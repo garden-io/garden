@@ -33,6 +33,8 @@ import { HandlerMonitor } from "../monitors/handler"
 import { GraphResultFromTask } from "../graph/results"
 import { PortForwardMonitor } from "../monitors/port-forward"
 import { registerCleanupFunction } from "../util/util"
+import { LogMonitor } from "../monitors/logs"
+import { parseLogLevel } from "../logger/logger"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -90,8 +92,14 @@ export const deployOpts = {
     aliases: ["nodeps"],
   }),
   "forward": new BooleanParameter({
-    help: `Create port forwards and leave process running after deploying. This is implied if any of --sync or --local/--local-mode are set.`,
+    help: `Create port forwards and leave process running after deploying. This is implied if any of --sync / --local or --logs are set.`,
   }),
+  "logs": new BooleanParameter({
+    help: `Stream logs from the requested Deploy(s) (or services if using modules) during deployment, and leave the log streaming process running after deploying. Note: This option implies the --forward option.`
+  }),
+  "timestamps": new BooleanParameter({
+    help: "Show timestamps with log output. Should be used with the `--logs` option (has no effect if that option is not used)."
+  })
 }
 
 type Args = typeof deployArgs
@@ -134,7 +142,7 @@ export class DeployCommand extends Command<Args, Opts> {
   outputsSchema = () => processCommandResultSchema()
 
   maybePersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts["sync"] || !!opts["local-mode"] || !!opts.forward
+    return !!opts["sync"] || !!opts["local-mode"] || !!opts.forward || !!opts.logs
   }
 
   printHeader({ headerLog }) {
@@ -158,6 +166,7 @@ export class DeployCommand extends Command<Args, Opts> {
     // TODO-0.13.0: make these both explicit options
     let monitor = this.maybePersistent(params)
     let forward = monitor
+    const streamLogs = opts.logs
 
     const actionModes: ActionModeMap = {
       // Support a single empty value (which comes across as an empty list) as equivalent to '*'
@@ -166,9 +175,9 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const graph = await garden.getConfigGraph({ log, emit: true, actionModes })
-    let actions = graph.getDeploys({ names: args.names, includeDisabled: true })
+    let deployActions = graph.getDeploys({ names: args.names, includeDisabled: true })
 
-    const disabled = actions.filter((s) => s.isDisabled()).map((s) => s.name)
+    const disabled = deployActions.filter((s) => s.isDisabled()).map((s) => s.name)
 
     if (disabled.length > 0) {
       const bold = disabled.map((d) => chalk.bold(d))
@@ -179,9 +188,9 @@ export class DeployCommand extends Command<Args, Opts> {
 
     const skipped = opts.skip || []
 
-    actions = actions.filter((s) => !s.isDisabled() && !skipped.includes(s.name))
+    deployActions = deployActions.filter((s) => !s.isDisabled() && !skipped.includes(s.name))
 
-    if (actions.length === 0) {
+    if (deployActions.length === 0) {
       log.error({ msg: "Nothing to deploy. Aborting." })
       return { result: { aborted: true, success: true, graphResults: {} } }
     }
@@ -199,7 +208,7 @@ export class DeployCommand extends Command<Args, Opts> {
     const force = opts.force
     const startSync = !!opts.sync
 
-    await warnOnLinkedActions(garden, log, actions)
+    await warnOnLinkedActions(garden, log, deployActions)
 
     if (forward) {
       // Start port forwards for ready deployments
@@ -223,6 +232,29 @@ export class DeployCommand extends Command<Args, Opts> {
           })
         )
       })
+    }
+
+    if (streamLogs) {
+      const resolved = await garden.resolveActions({ actions: deployActions, graph, log})
+      for (const action of Object.values(resolved)) {
+        garden.monitors.add(
+          // TODO: Only stream logs starting from the current time once the `since` option is being respected again.
+          new LogMonitor({
+            garden,
+            log,
+            action,
+            graph,
+            collect: false,
+            hideService: false,
+            showTags: false,
+            msgPrefix: printEmoji("▶", log),
+            logLevel: parseLogLevel(opts["log-level"]),
+            tagFilters: undefined,
+            showTimestamps: opts["timestamps"],
+            command: this,
+          })
+        )
+      }
     }
 
     let syncAlerted = false
@@ -253,7 +285,7 @@ export class DeployCommand extends Command<Args, Opts> {
       syncAlerted = true
     }
 
-    const tasks = actions.map((action) => {
+    const tasks = deployActions.map((action) => {
       const events = new PluginEventBroker(garden)
       const task = new DeployTask({
         garden,

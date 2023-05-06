@@ -135,6 +135,8 @@ describe("DeployCommand", () => {
         "skip-dependencies": false,
         "skip-watch": false,
         "forward": false,
+        "logs": false,
+        "timestamps": false,
       }),
     })
 
@@ -202,6 +204,8 @@ describe("DeployCommand", () => {
         "skip-dependencies": false,
         "skip-watch": false,
         "forward": false,
+        "logs": false,
+        "timestamps": false,
       }),
     })
 
@@ -251,6 +255,8 @@ describe("DeployCommand", () => {
           "skip-dependencies": true, // <-----
           "skip-watch": false,
           "forward": false,
+          "logs": false,
+          "timestamps": false,
         }),
       })
 
@@ -301,6 +307,8 @@ describe("DeployCommand", () => {
         "skip-dependencies": false,
         "skip-watch": false,
         "forward": false,
+        "logs": false,
+        "timestamps": false,
       }),
     })
 
@@ -340,6 +348,8 @@ describe("DeployCommand", () => {
         "skip-dependencies": false,
         "skip-watch": false,
         "forward": false,
+        "logs": false,
+        "timestamps": false,
       }),
     })
 
@@ -374,6 +384,8 @@ describe("DeployCommand", () => {
         "skip-dependencies": false,
         "skip-watch": false,
         "forward": false,
+        "logs": false,
+        "timestamps": false,
       }),
     })
 
@@ -405,6 +417,8 @@ describe("DeployCommand", () => {
           "skip-dependencies": false,
           "skip-watch": false,
           "forward": false,
+          "logs": false,
+          "timestamps": false,
         }),
       })
       expect(persistent).to.be.true
@@ -430,6 +444,8 @@ describe("DeployCommand", () => {
           "skip-dependencies": false,
           "skip-watch": false,
           "forward": false,
+          "logs": false,
+          "timestamps": false,
         }),
       })
       expect(persistent).to.be.true
@@ -456,6 +472,8 @@ describe("DeployCommand", () => {
           "skip-dependencies": false,
           "skip-watch": false,
           "forward": true,
+          "logs": false,
+          "timestamps": false,
         }),
       })
       expect(persistent).to.be.true

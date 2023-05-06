@@ -41,6 +41,7 @@ interface LogMonitorParams extends MonitorBaseParams {
   showTimestamps: boolean
   logLevel: LogLevel
   tagFilters?: LogsTagOrFilter
+  msgPrefix?: string
 }
 
 export type LogsTagFilter = [string, string]
@@ -64,6 +65,8 @@ export class LogMonitor extends Monitor {
   private showTimestamps: boolean
   private logLevel: LogLevel
   private tagFilters?: LogsTagOrFilter
+  // This could be replaced with e.g. a custom render function if more flexibility becomes needed.
+  private msgPrefix?: string
 
   constructor(params: LogMonitorParams) {
     super(params)
@@ -81,6 +84,7 @@ export class LogMonitor extends Monitor {
     this.showTimestamps = params.showTimestamps
     this.logLevel = params.logLevel
     this.tagFilters = params.tagFilters
+    this.msgPrefix = params.msgPrefix
   }
 
   static getColorForName(name: string) {
@@ -205,6 +209,9 @@ export class LogMonitor extends Monitor {
     }
 
     let out = ""
+    if (this.msgPrefix) {
+      out += this.msgPrefix
+    }
     if (!this.hideService) {
       out += `${sectionStyle(padSection(entry.name, maxDeployName))} → `
     }
