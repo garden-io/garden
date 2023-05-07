@@ -38,7 +38,7 @@ export abstract class Monitor {
   }
 
   unsubscribe(subscriber: Command) {
-    this.subscribers.filter((sub) => sub === subscriber)
+    this.subscribers = this.subscribers.filter((sub) => sub !== subscriber)
   }
 
   unsubscribeAll() {
