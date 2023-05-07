@@ -70,7 +70,7 @@ const makeDeployAction = (basePath: string, name: string): BaseActionConfig => (
   },
 })
 
-async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
+async function makeGarden({ tmpDir, plugin }: { tmpDir: tmp.DirectoryResult; plugin: GardenPlugin }) {
   const config: ProjectConfig = createProjectConfig({
     path: tmpDir.path,
     providers: [{ name: "test" }],
@@ -142,7 +142,7 @@ describe("LogsCommand", () => {
 
   context("follow=false", () => {
     it("should return service logs", async () => {
-      const garden = await makeGarden(tmpDir, makeTestPlugin())
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden }))
       expect(res).to.eql({
@@ -184,7 +184,7 @@ describe("LogsCommand", () => {
         })
         return {}
       }
-      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden }))
@@ -236,7 +236,7 @@ describe("LogsCommand", () => {
         })
         return {}
       }
-      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden }))
@@ -244,7 +244,7 @@ describe("LogsCommand", () => {
       expect(res).to.eql({ result: [] })
     })
     it("should render the service name by default", async () => {
-      const garden = await makeGarden(tmpDir, makeTestPlugin())
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
       const command = new LogsCommand()
       await command.action(makeCommandParams({ garden }))
 
@@ -253,7 +253,7 @@ describe("LogsCommand", () => {
       expect(out[0]).to.eql(`${color.bold("test-service-a")} → ${msgColor("Yes, this is log")}`)
     })
     it("should optionally skip rendering the service name", async () => {
-      const garden = await makeGarden(tmpDir, makeTestPlugin())
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
       const command = new LogsCommand()
       await command.action(makeCommandParams({ garden, opts: { "hide-name": true } }))
 
@@ -262,7 +262,7 @@ describe("LogsCommand", () => {
       expect(out[0]).to.eql(msgColor("Yes, this is log"))
     })
     it("should optionally show timestamps", async () => {
-      const garden = await makeGarden(tmpDir, makeTestPlugin())
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
       const command = new LogsCommand()
       await command.action(makeCommandParams({ garden, opts: { timestamps: true } }))
 
@@ -282,13 +282,53 @@ describe("LogsCommand", () => {
         })
         return {}
       }
-      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
       const command = new LogsCommand()
       await command.action(makeCommandParams({ garden }))
 
       const out = getLogOutput(garden, logMsg)
 
       expect(out[0]).to.eql(`${color.bold("test-service-a")} → ${chalk.white("Yes, this is log")}`)
+    })
+    it("should set the '--tail' and since flag", async () => {
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
+      const command = new LogsCommand()
+      await command.action(makeCommandParams({ garden, opts: { tail: 5, follow: true } }))
+
+      const monitors = garden.monitors.getByCommand(command)
+      const tailOpts = monitors.map((m) => m["tail"])
+      expect(tailOpts.every((o) => o === 5)).to.be.true
+    })
+    it("should set the '--since' flag", async () => {
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
+      const command = new LogsCommand()
+      await command.action(makeCommandParams({ garden, opts: { since: "10s", follow: true } }))
+
+      const monitors = garden.monitors.getByCommand(command)
+      const sinceOpts = monitors.map((m) => m["since"])
+      expect(sinceOpts.every((o) => o === "10s")).to.be.true
+    })
+    it("should have the '--tail' flag overwrite the '--since' flag if both are set", async () => {
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
+      const command = new LogsCommand()
+      await command.action(makeCommandParams({ garden, opts: { since: "10s", tail: 5, follow: true } }))
+
+      const monitors = garden.monitors.getByCommand(command)
+      const tailOpts = monitors.map((m) => m["tail"])
+      const sinceOpts = monitors.map((m) => m["since"])
+      expect(tailOpts.every((o) => o === 5)).to.be.true
+      expect(sinceOpts.every((o) => o === undefined)).to.be.true
+    })
+    it("should have '--tail=0' overwrite the '--since' flag if both are set", async () => {
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
+      const command = new LogsCommand()
+      await command.action(makeCommandParams({ garden, opts: { since: "10s", tail: 0, follow: true } }))
+
+      const monitors = garden.monitors.getByCommand(command)
+      const tailOpts = monitors.map((m) => m["tail"])
+      const sinceOpts = monitors.map((m) => m["since"])
+      expect(tailOpts.every((o) => o === 0)).to.be.true
+      expect(sinceOpts.every((o) => o === undefined)).to.be.true
     })
     context("mutliple services", () => {
       it("should align content for visible entries", async () => {
@@ -337,7 +377,7 @@ describe("LogsCommand", () => {
           }
           return {}
         }
-        const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+        const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
 
         garden.setActionConfigs([
           makeDeployAction(tmpDir.path, "a-short"),
@@ -381,7 +421,7 @@ describe("LogsCommand", () => {
         })
         return {}
       }
-      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
       garden.setActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
@@ -412,7 +452,7 @@ describe("LogsCommand", () => {
         })
         return {}
       }
-      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
       garden.setActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
@@ -432,7 +472,7 @@ describe("LogsCommand", () => {
         })
         return {}
       }
-      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
       garden.setActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
@@ -463,7 +503,7 @@ describe("LogsCommand", () => {
         })
         return {}
       }
-      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
       garden.setActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
@@ -503,7 +543,7 @@ describe("LogsCommand", () => {
         })
         return {}
       }
-      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
       garden.setActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
@@ -549,7 +589,7 @@ describe("LogsCommand", () => {
         })
         return {}
       }
-      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
       garden.setActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()

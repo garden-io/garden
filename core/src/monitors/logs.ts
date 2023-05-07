@@ -42,6 +42,8 @@ interface LogMonitorParams extends MonitorBaseParams {
   logLevel: LogLevel
   tagFilters?: LogsTagOrFilter
   msgPrefix?: string
+  tail?: number
+  since?: string
 }
 
 export type LogsTagFilter = [string, string]
@@ -67,6 +69,8 @@ export class LogMonitor extends Monitor {
   private tagFilters?: LogsTagOrFilter
   // This could be replaced with e.g. a custom render function if more flexibility becomes needed.
   private msgPrefix?: string
+  private tail?: number
+  private since?: string
 
   constructor(params: LogMonitorParams) {
     super(params)
@@ -85,6 +89,8 @@ export class LogMonitor extends Monitor {
     this.logLevel = params.logLevel
     this.tagFilters = params.tagFilters
     this.msgPrefix = params.msgPrefix
+    this.tail = params.tail
+    this.since = params.since
   }
 
   static getColorForName(name: string) {
@@ -157,6 +163,8 @@ export class LogMonitor extends Monitor {
       graph: this.graph,
       stream,
       events: this.events,
+      tail: this.tail,
+      since: this.since,
     })
 
     if (this.collect) {

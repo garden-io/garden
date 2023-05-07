@@ -95,11 +95,11 @@ export const deployOpts = {
     help: `Create port forwards and leave process running after deploying. This is implied if any of --sync / --local or --logs are set.`,
   }),
   "logs": new BooleanParameter({
-    help: `Stream logs from the requested Deploy(s) (or services if using modules) during deployment, and leave the log streaming process running after deploying. Note: This option implies the --forward option.`
+    help: `Stream logs from the requested Deploy(s) (or services if using modules) during deployment, and leave the log streaming process running after deploying. Note: This option implies the --forward option.`,
   }),
   "timestamps": new BooleanParameter({
-    help: "Show timestamps with log output. Should be used with the `--logs` option (has no effect if that option is not used)."
-  })
+    help: "Show timestamps with log output. Should be used with the `--logs` option (has no effect if that option is not used).",
+  }),
 }
 
 type Args = typeof deployArgs
@@ -235,7 +235,7 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     if (streamLogs) {
-      const resolved = await garden.resolveActions({ actions: deployActions, graph, log})
+      const resolved = await garden.resolveActions({ actions: deployActions, graph, log })
       for (const action of Object.values(resolved)) {
         garden.monitors.add(
           // TODO: Only stream logs starting from the current time once the `since` option is being respected again.
