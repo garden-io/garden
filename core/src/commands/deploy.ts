@@ -222,38 +222,34 @@ export class DeployCommand extends Command<Args, Opts> {
 
         const action = typedResult.result!.executedAction
 
-        garden.monitors.add(
-          new PortForwardMonitor({
-            garden,
-            log,
-            graph,
-            action,
-            command: this,
-          })
-        )
+        const portForwardMonitor = new PortForwardMonitor({
+          garden,
+          log,
+          graph,
+          action,
+        })
+        garden.monitors.addAndSubscribe(portForwardMonitor, this)
       })
     }
 
     if (streamLogs) {
       const resolved = await garden.resolveActions({ actions: deployActions, graph, log })
       for (const action of Object.values(resolved)) {
-        garden.monitors.add(
-          // TODO: Only stream logs starting from the current time once the `since` option is being respected again.
-          new LogMonitor({
-            garden,
-            log,
-            action,
-            graph,
-            collect: false,
-            hideService: false,
-            showTags: false,
-            msgPrefix: printEmoji("▶", log),
-            logLevel: parseLogLevel(opts["log-level"]),
-            tagFilters: undefined,
-            showTimestamps: opts["timestamps"],
-            command: this,
-          })
-        )
+        const logMonitor = new LogMonitor({
+          garden,
+          log,
+          action,
+          graph,
+          collect: false,
+          hideService: false,
+          showTags: false,
+          msgPrefix: printEmoji("▶", log),
+          logLevel: parseLogLevel(opts["log-level"]),
+          tagFilters: undefined,
+          showTimestamps: opts["timestamps"],
+          since: "1s",
+        })
+        garden.monitors.addAndSubscribe(logMonitor, this)
       }
     }
 
@@ -304,43 +300,37 @@ export class DeployCommand extends Command<Args, Opts> {
           const mode = executedAction.mode()
 
           if (mode === "sync") {
-            garden.monitors.add(
-              new SyncMonitor({
-                garden,
-                log,
-                command: this,
-                action: executedAction,
-                graph,
-              })
-            )
+            const syncMonitor = new SyncMonitor({
+              garden,
+              log,
+              action: executedAction,
+              graph,
+            })
+            garden.monitors.addAndSubscribe(syncMonitor, this)
             syncWarnings()
           } else if (mode === "local" && result.attached) {
             // Wait for local mode processes to complete.
-            garden.monitors.add(
-              new HandlerMonitor({
-                type: "local-deploy",
-                garden,
-                log,
-                command: this,
-                events,
-                key: action.key(),
-                description: "monitor for attached local mode process in " + action.longDescription(),
-              })
-            )
+            const handlerMonitor = new HandlerMonitor({
+              type: "local-deploy",
+              garden,
+              log,
+              events,
+              key: action.key(),
+              description: "monitor for attached local mode process in " + action.longDescription(),
+            })
+            garden.monitors.addAndSubscribe(handlerMonitor, this)
           } else if (result.attached) {
             // Wait for other attached processes after deployment.
             // Note: No plugin currently does this outside of local mode but we do support it.
-            garden.monitors.add(
-              new HandlerMonitor({
-                type: "deploy",
-                garden,
-                log,
-                command: this,
-                events,
-                key: action.key(),
-                description: "monitor for attached process in " + action.longDescription(),
-              })
-            )
+            const handlerMonitor = new HandlerMonitor({
+              type: "deploy",
+              garden,
+              log,
+              events,
+              key: action.key(),
+              description: "monitor for attached process in " + action.longDescription(),
+            })
+            garden.monitors.addAndSubscribe(handlerMonitor, this)
           }
         })
       }

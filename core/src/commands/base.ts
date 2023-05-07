@@ -256,7 +256,8 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
    * so that subscribers are managed properly.
    */
   clone(): Command {
-    return Object.getPrototypeOf(this).constructor(this.parent)
+    // See: https://stackoverflow.com/a/64638986
+    return new (this.constructor as new (parent?: CommandGroup) => this)(this.parent)
   }
 
   // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),

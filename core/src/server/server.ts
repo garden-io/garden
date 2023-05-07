@@ -535,13 +535,13 @@ export class GardenServer extends EventEmitter {
 
             // Request was aborted in-flight so we cleanup its monitors
             if (!req) {
-              this.stopMonitorsForCommand(command)
+              this.unsubscribeFromMonitors(command)
             }
 
-            const monitors = garden?.monitors.getByCommand(command) || []
+            const monitors = garden?.monitors.getBySubscriber(command) || []
             if (req && monitors.length > 0) {
+              const monitorIds = monitors.map((m) => m.id())
               return new Promise<CommandResult>((resolve, reject) => {
-                const monitorIds = monitors.map((m) => m.id())
                 garden.monitors
                   .waitUntilStopped(monitorIds)
                   .then(() => {
@@ -587,7 +587,7 @@ export class GardenServer extends EventEmitter {
 
       if (req) {
         req.command.terminate()
-        this.stopMonitorsForCommand(req.command)
+        this.unsubscribeFromMonitors(req.command)
       }
 
       delete this.activePersistentRequests[requestId]
@@ -602,10 +602,10 @@ export class GardenServer extends EventEmitter {
     }
   }
 
-  private stopMonitorsForCommand(command: Command) {
-    const monitors = this.garden?.monitors.getByCommand(command) || []
+  private unsubscribeFromMonitors(command: Command) {
+    const monitors = this.garden?.monitors.getBySubscriber(command) || []
     monitors.forEach((m) => {
-      this.garden?.monitors.stop(m)
+      m.unsubscribe(command)
     })
   }
 }

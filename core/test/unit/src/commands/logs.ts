@@ -295,7 +295,7 @@ describe("LogsCommand", () => {
       const command = new LogsCommand()
       await command.action(makeCommandParams({ garden, opts: { tail: 5, follow: true } }))
 
-      const monitors = garden.monitors.getByCommand(command)
+      const monitors = garden.monitors.getBySubscriber(command)
       const tailOpts = monitors.map((m) => m["tail"])
       expect(tailOpts.every((o) => o === 5)).to.be.true
     })
@@ -304,7 +304,7 @@ describe("LogsCommand", () => {
       const command = new LogsCommand()
       await command.action(makeCommandParams({ garden, opts: { since: "10s", follow: true } }))
 
-      const monitors = garden.monitors.getByCommand(command)
+      const monitors = garden.monitors.getBySubscriber(command)
       const sinceOpts = monitors.map((m) => m["since"])
       expect(sinceOpts.every((o) => o === "10s")).to.be.true
     })
@@ -313,7 +313,7 @@ describe("LogsCommand", () => {
       const command = new LogsCommand()
       await command.action(makeCommandParams({ garden, opts: { since: "10s", tail: 5, follow: true } }))
 
-      const monitors = garden.monitors.getByCommand(command)
+      const monitors = garden.monitors.getBySubscriber(command)
       const tailOpts = monitors.map((m) => m["tail"])
       const sinceOpts = monitors.map((m) => m["since"])
       expect(tailOpts.every((o) => o === 5)).to.be.true
@@ -324,7 +324,7 @@ describe("LogsCommand", () => {
       const command = new LogsCommand()
       await command.action(makeCommandParams({ garden, opts: { since: "10s", tail: 0, follow: true } }))
 
-      const monitors = garden.monitors.getByCommand(command)
+      const monitors = garden.monitors.getBySubscriber(command)
       const tailOpts = monitors.map((m) => m["tail"])
       const sinceOpts = monitors.map((m) => m["since"])
       expect(tailOpts.every((o) => o === 0)).to.be.true
