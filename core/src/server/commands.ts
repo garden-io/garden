@@ -70,12 +70,14 @@ export function parseRequest(ctx: Koa.ParameterizedContext, log: Log, commands: 
     ctx.throw(400, `Invalid request format for command ${request.command}`)
   }
 
-  // Prepare arguments for command action.
-  const command = commandSpec.command
+  // Note that we clone the command here to ensure that each request gets its own
+  // command instance and thereby that subscribers are properly isolated at the request level.
+  const command = commandSpec.command.clone()
 
   // We generally don't want actions to log anything in the server.
   const cmdLog = log.createLog({ fixLevel: LogLevel.silly })
 
+  // Prepare arguments for command action.
   let cmdArgs: ParameterValues<any> = {}
   let cmdOpts: ParameterValues<any> = {}
 
