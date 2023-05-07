@@ -118,7 +118,7 @@ export class LogsCommand extends Command<Args, Opts> {
 
     let tagFilters: LogsTagOrFilter | undefined = undefined
 
-    if (tail !== undefined) {
+    if (tail || tail === 0) {
       // Tail takes precedence over since...
       since = undefined
     } else if (follow && !since) {
@@ -190,6 +190,8 @@ export class LogsCommand extends Command<Args, Opts> {
         logLevel,
         tagFilters,
         command: this,
+        tail,
+        since,
       })
     })
 
