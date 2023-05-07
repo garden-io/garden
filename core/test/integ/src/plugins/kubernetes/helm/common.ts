@@ -722,7 +722,7 @@ ${expectedIngressOutput}
 
         const { reference } = await prepareTemplates({ ctx, log, action })
 
-        expect(reference.join(" ")).to.include("--version 11.6.12")
+        expect(reference.join(" ")).to.include("--version 12.4.2")
       })
 
       it("adds --repo flag if chart.repo is set", async () => {
