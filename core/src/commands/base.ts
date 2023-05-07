@@ -97,7 +97,17 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   subscribers: DataCallback[]
   terminated: boolean
 
-  constructor(private parent?: CommandGroup) {
+  // FIXME: The parent command is not set via the constructor but rather needs to be set "manually" after
+  // the command class has been initialised.
+  // E.g: const cmd = new Command(); cmd["parent"] = parentCommand.
+  // This is so that commands that are initialised via arguments can be cloned which is required
+  // for the websocket server to work properly.
+  private parent?: CommandGroup
+
+  // FIXME: This is a little hack so that we can clone commands that are initialised with
+  // arbitrary parameters.
+  // See also comment above on the "parent" property.
+  constructor(private _params?: any) {
     this.subscribers = []
     this.terminated = false
 
@@ -257,7 +267,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
    */
   clone(): Command {
     // See: https://stackoverflow.com/a/64638986
-    return new (this.constructor as new (parent?: CommandGroup) => this)(this.parent)
+    return new (this.constructor as new (parent?: CommandGroup) => this)(this._params)
   }
 
   // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),
@@ -344,7 +354,8 @@ export abstract class CommandGroup extends Command {
 
   getSubCommands(): Command[] {
     return this.subCommands.flatMap((cls) => {
-      const cmd = new cls(this)
+      const cmd = new cls()
+      cmd["parent"] = this
       if (cmd instanceof CommandGroup) {
         return cmd.getSubCommands()
       } else {

@@ -79,7 +79,7 @@ export class CustomCommandWrapper extends Command {
   allowUndefinedArguments = true
 
   constructor(public spec: CommandResource) {
-    super()
+    super(spec)
     this.name = spec.name
     this.help = spec.description?.short
     this.description = spec.description?.long

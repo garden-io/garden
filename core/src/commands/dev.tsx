@@ -178,7 +178,7 @@ class QuitCommand extends ConsoleCommand {
   aliases = ["exit"]
 
   constructor(private quit: () => void) {
-    super()
+    super(quit)
   }
 
   async action() {
