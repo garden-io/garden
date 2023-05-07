@@ -535,7 +535,7 @@ export class GardenServer extends EventEmitter {
 
             // Request was aborted in-flight so we cleanup its monitors
             if (!req) {
-              this.unsubscribeFromMonitors(command)
+              this.garden?.monitors.unsubscribe(command)
             }
 
             const monitors = garden?.monitors.getBySubscriber(command) || []
@@ -587,7 +587,7 @@ export class GardenServer extends EventEmitter {
 
       if (req) {
         req.command.terminate()
-        this.unsubscribeFromMonitors(req.command)
+        this.garden?.monitors.unsubscribe(req.command)
       }
 
       delete this.activePersistentRequests[requestId]
@@ -600,13 +600,6 @@ export class GardenServer extends EventEmitter {
         message: `Unsupported request type: ${requestType}`,
       })
     }
-  }
-
-  private unsubscribeFromMonitors(command: Command) {
-    const monitors = this.garden?.monitors.getBySubscriber(command) || []
-    monitors.forEach((m) => {
-      m.unsubscribe(command)
-    })
   }
 }
 

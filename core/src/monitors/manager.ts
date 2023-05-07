@@ -98,6 +98,17 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
     }
   }
 
+  unsubscribe(command: Command) {
+    const monitors = this.getBySubscriber(command) || []
+    monitors.forEach((m) => {
+      m.unsubscribe(command)
+      // Stop monitor if it doesn't have any subscribers
+      if (m.subscribers.length === 0) {
+        this.stop(m)
+      }
+    })
+  }
+
   start(monitor: Monitor) {
     let status = this.getStatus(monitor)
 
