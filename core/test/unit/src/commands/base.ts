@@ -117,6 +117,8 @@ describe("Command", () => {
       }
 
       const cmd = new TestCommand(new TestGroup())
+      // FIXME: This is needs to be set "manually" for now to work around issues with cloning commands.
+      cmd["parent"] = new TestGroup()
       expect(cmd.getPaths()).to.eql([["test-group", "test-command"]])
     })
 
@@ -141,6 +143,8 @@ describe("Command", () => {
       }
 
       const cmd = new TestCommand(new TestGroup())
+      // FIXME: This is needs to be set "manually" for now to work around issues with cloning commands.
+      cmd["parent"] = new TestGroup()
       expect(cmd.getPaths()).to.eql([
         ["test-group", "test-command"],
         ["group-alias", "test-command"],
@@ -168,6 +172,8 @@ describe("Command", () => {
       }
 
       const cmd = new TestCommand(new TestGroup())
+      // FIXME: This is needs to be set "manually" for now to work around issues with cloning commands.
+      cmd["parent"] = new TestGroup()
       expect(cmd.getPaths()).to.eql([
         ["test-group", "test-command"],
         ["test-group", "command-alias"],
@@ -196,6 +202,8 @@ describe("Command", () => {
       }
 
       const cmd = new TestCommand(new TestGroup())
+      // FIXME: This is needs to be set "manually" for now to work around issues with cloning commands.
+      cmd["parent"] = new TestGroup()
       expect(cmd.getPaths()).to.eql([
         ["test-group", "test-command"],
         ["test-group", "command-alias"],
@@ -283,6 +291,7 @@ describe("CommandGroup", () => {
       }
 
       const cmd = new TestGroup()
+      // FIXME: This is needs to be set "manually" for now to work around issues with cloning commands.
 
       expect(trimLineEnds(stripAnsi(cmd.renderHelp())).trim()).to.equal(dedent`
       USAGE
