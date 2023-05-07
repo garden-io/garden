@@ -414,6 +414,7 @@ export class GardenServer extends EventEmitter {
         for (const [id, req] of Object.entries(this.activePersistentRequests)) {
           if (connectionId === req.connectionId) {
             req.command.terminate()
+
             delete this.activePersistentRequests[id]
           }
         }
@@ -505,6 +506,7 @@ export class GardenServer extends EventEmitter {
                 args,
                 opts,
               })
+
               this.activePersistentRequests[requestId] = { command, connectionId }
 
               command.subscribe((data: any) => {
@@ -526,13 +528,42 @@ export class GardenServer extends EventEmitter {
               opts,
             })
           })
-          .then((result) => {
+          // Here we check if the command has active monitors and if so,
+          // wait for them to stop before handling the command result.
+          .then((commandResult) => {
+            const req = this.activePersistentRequests[requestId]
+
+            // Request was aborted in-flight so we cleanup its monitors
+            if (!req) {
+              this.stopMonitorsForCommand(command)
+            }
+
+            const monitors = garden?.monitors.getByCommand(command) || []
+            if (req && monitors.length > 0) {
+              return new Promise<CommandResult>((resolve, reject) => {
+                const monitorIds = monitors.map((m) => m.id())
+                garden.monitors
+                  .waitUntilStopped(monitorIds)
+                  .then(() => {
+                    resolve(commandResult)
+                  })
+                  .catch((err) => {
+                    reject(err)
+                  })
+              })
+            } else {
+              return commandResult
+            }
+          })
+          // Here we handle the actual commnad result.
+          .then((commandResult) => {
+            const { result, errors } = commandResult
             send(
               "commandResult",
               sanitizeValue({
                 requestId,
-                result: result.result,
-                errors: result.errors,
+                result,
+                errors,
               })
             )
             delete this.activePersistentRequests[requestId]
@@ -553,7 +584,12 @@ export class GardenServer extends EventEmitter {
       })
     } else if (requestType === "abortCommand") {
       const req = this.activePersistentRequests[requestId]
-      req && req.command.terminate()
+
+      if (req) {
+        req.command.terminate()
+        this.stopMonitorsForCommand(req.command)
+      }
+
       delete this.activePersistentRequests[requestId]
     } else if (clientRequestNames.find((e) => e === requestType)) {
       // TODO-0.13.0: get rid of ClientRouter entirely
@@ -564,6 +600,13 @@ export class GardenServer extends EventEmitter {
         message: `Unsupported request type: ${requestType}`,
       })
     }
+  }
+
+  private stopMonitorsForCommand(command: Command) {
+    const monitors = this.garden?.monitors.getByCommand(command) || []
+    monitors.forEach((m) => {
+      this.garden?.monitors.stop(m)
+    })
   }
 }
 

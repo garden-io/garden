@@ -99,7 +99,9 @@ describe("PreReleaseTests", () => {
     })
     it("runs the test command", async () => {
       const logEntries = await runWithEnv(["test"])
-      expect(searchLog(logEntries, /(Done!|No Test actions found)/), "expected to find 'Done!' in log output").to.eql("passed")
+      expect(searchLog(logEntries, /(Done!|No Test actions found)/), "expected to find 'Done!' in log output").to.eql(
+        "passed"
+      )
     })
   })
 

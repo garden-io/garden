@@ -495,7 +495,7 @@ ${renderCommands(commands)}
         if (garden.monitors.anyMonitorsActive()) {
           // Wait for monitors to exit
           log.debug(chalk.gray("One or more monitors active, waiting until all exit."))
-          await garden.monitors.waitUntilAllStopped()
+          await garden.monitors.waitUntilStopped()
         }
 
         await garden.close()
