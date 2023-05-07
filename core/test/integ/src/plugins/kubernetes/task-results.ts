@@ -27,7 +27,7 @@ describe("kubernetes Run results", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   describe("storeRunResult", () => {

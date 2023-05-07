@@ -50,7 +50,7 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
 
   after(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 

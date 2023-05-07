@@ -30,7 +30,7 @@ describe("System services", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   // TODO: Revisit this. Doesn't make sense to have the kubernetes provider depend on a provider that depends on

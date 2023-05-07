@@ -429,11 +429,17 @@ export function prepareBuildDependencies(buildDependencies: any[]): BuildDepende
     .filter(isTruthy)
 }
 
-export async function findProjectConfig(
-  log: Log,
-  path: string,
-  allowInvalid = false
-): Promise<ProjectResource | undefined> {
+export async function findProjectConfig({
+  log,
+  path,
+  allowInvalid = false,
+  scan = true,
+}: {
+  log: Log
+  path: string
+  allowInvalid?: boolean
+  scan?: boolean
+}): Promise<ProjectResource | undefined> {
   let sepCount = path.split(sep).length - 1
 
   for (let i = 0; i < sepCount; i++) {
@@ -451,6 +457,10 @@ export async function findProjectConfig(
       } else if (projectSpecs.length > 0) {
         return <ProjectResource>projectSpecs[0]
       }
+    }
+
+    if (!scan) {
+      break
     }
 
     path = resolve(path, "..")

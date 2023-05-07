@@ -1575,6 +1575,13 @@
   dependencies:
     "@types/node" "*"
 
+"@types/string-argv@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@types/string-argv/-/string-argv-0.3.0.tgz#777f059fc6511cb144db61e4134089a27089f1a6"
+  integrity sha512-2ILZD9aKjOkNtE9zfNJOLUEsE+SHt46WxyuEVBIMH7n+f0fXfrsA2K1XArizP4IYZ2RGWbJJIRyFdJsJYp0miQ==
+  dependencies:
+    string-argv "*"
+
 "@types/superagent@*":
   version "4.1.10"
   resolved "https://registry.yarnpkg.com/@types/superagent/-/superagent-4.1.10.tgz#5e2cc721edf58f64fe9b819f326ee74803adee86"
@@ -10989,6 +10996,11 @@ strict-uri-encode@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/strict-uri-encode/-/strict-uri-encode-2.0.0.tgz#b9c7330c7042862f6b142dc274bbcc5866ce3546"
   integrity sha1-ucczDHBChi9rFC3CdLvMWGbONUY=
+
+string-argv@*, string-argv@^0.3.2:
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/string-argv/-/string-argv-0.3.2.tgz#2b6d0ef24b656274d957d54e0a4bbf6153dc02b6"
+  integrity sha512-aqD2Q0144Z+/RqG52NeHEkZauTAUWJO8c6yTftGJKO3Tja5tUgIfmIl6kExvhtxSDP7fXB6DvzkfMpCd/F3G+Q==
 
 string-width@^1.0.1, string-width@^1.0.2:
   version "1.0.2"

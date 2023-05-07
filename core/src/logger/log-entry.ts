@@ -46,6 +46,18 @@ interface BaseContext {
    */
   origin?: string
   type: "coreLog" | "actionLog"
+  /**
+   * A session ID, to identify the log entry as part of a specific command execution.
+   */
+  sessionId?: string
+  /**
+   * If applicable, the session ID of the parent command (e.g. serve or dev)
+   */
+  parentSessionId?: string
+  /**
+   * The key of a Garden instance, if applicable.
+   */
+  gardenKey?: string
 }
 
 export interface CoreLogContext extends BaseContext {

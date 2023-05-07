@@ -25,3 +25,7 @@ export const namespaceStatusSchema = () =>
   })
 
 export const namespaceStatusesSchema = () => joi.array().items(namespaceStatusSchema())
+
+export function environmentToString({ environmentName, namespace }: { environmentName: string; namespace?: string }) {
+  return namespace ? `${environmentName}.${namespace}` : environmentName
+}

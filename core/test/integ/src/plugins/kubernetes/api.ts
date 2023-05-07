@@ -39,7 +39,7 @@ describe("KubeApi", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   function makePod(command: string[], image = "busybox"): KubernetesPod {

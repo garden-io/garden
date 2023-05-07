@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import type { Command } from "../commands/base"
-import type { Garden } from "../garden"
+import { EventBus } from "../events"
 import type { Log } from "../logger/log-entry"
 import { LogLevel } from "../logger/logger"
 import { TypedEventEmitter } from "../util/events"
@@ -26,17 +26,17 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
   private monitorStatuses: Map<string, MonitorStatus>
   private log: Log
 
-  constructor(garden: Garden) {
+  constructor(log: Log, events: EventBus) {
     super()
 
     this.monitors = new KeyedSet<Monitor>((monitor) => monitor.id())
     this.monitorStatuses = new Map()
 
-    this.log = garden.log.createLog({ name: "[monitors]" })
+    this.log = log.createLog({ name: "[monitors]" })
 
-    garden.events.on("_exit", () => this.stopAll())
+    events.on("_exit", () => this.stopAll())
     // TODO: see if we want this
-    garden.events.on("_restart", () => this.stopAll())
+    events.on("_restart", () => this.stopAll())
   }
 
   /**

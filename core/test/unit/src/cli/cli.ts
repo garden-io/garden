@@ -10,12 +10,7 @@ import { expect } from "chai"
 import td from "testdouble"
 
 import { makeDummyGarden, GardenCli, validateRuntimeRequirementsCached } from "../../../../src/cli/cli"
-import {
-  getDataDir,
-  projectRootA,
-  TestEventBus,
-  initTestLogger,
-} from "../../../helpers"
+import { getDataDir, projectRootA, initTestLogger } from "../../../helpers"
 import { gardenEnv, GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join, resolve } from "path"
 import { Command, CommandGroup, CommandParams, PrepareParams } from "../../../../src/commands/base"
@@ -26,7 +21,7 @@ import stripAnsi from "strip-ansi"
 import { ToolsCommand } from "../../../../src/commands/tools"
 import { getRootLogger, RootLogger } from "../../../../src/logger/logger"
 import { safeLoad } from "js-yaml"
-import { startServer, GardenServer } from "../../../../src/server/server"
+import { startServer } from "../../../../src/server/server"
 import { envSupportsEmoji } from "../../../../src/logger/util"
 import { expectError } from "../../../../src/util/testing"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
@@ -34,6 +29,8 @@ import tmp from "tmp-promise"
 import { CloudCommand } from "../../../../src/commands/cloud/cloud"
 import { registerProcess } from "../../../../src/process"
 import { ServeCommand } from "../../../../src/commands/serve"
+import { GardenInstanceManager } from "../../../../src/server/instance-manager"
+import { mkdirp } from "fs-extra"
 
 describe("cli", () => {
   let cli: GardenCli
@@ -340,7 +337,7 @@ describe("cli", () => {
 
     it("updates the GardenProcess entry if given with command info before running (no server)", async () => {
       const args = ["test-command", "--root", projectRootA]
-      const record = await registerProcess(globalConfigStore, "test-command", args)
+      const processRecord = await registerProcess(globalConfigStore, "test-command", args)
 
       class TestCommand extends Command {
         name = "test-command"
@@ -349,8 +346,10 @@ describe("cli", () => {
         printHeader() {}
 
         async action({ garden }: CommandParams) {
+          const record = await globalConfigStore.get("activeProcesses", String(processRecord.pid))
+
           expect(record.command).to.equal(this.name)
-          expect(record.sessionId).to.equal(garden.sessionId)
+          expect(record.sessionId).to.exist
           expect(record.persistent).to.equal(false)
           expect(record.serverHost).to.equal(null)
           expect(record.serverAuthKey).to.equal(null)
@@ -367,31 +366,42 @@ describe("cli", () => {
       cli.addCommand(cmd)
 
       try {
-        await cli.run({ args, exitOnError: false, processRecord: record })
+        const result = await cli.run({ args, exitOnError: false, processRecord })
+        if (result.errors[0]) {
+          throw result.errors[0]
+        }
       } finally {
-        await globalConfigStore.delete("activeProcesses", String(record.pid))
+        await globalConfigStore.delete("activeProcesses", String(processRecord.pid))
       }
     })
 
     it("updates the GardenProcess entry if given with command info before running (with server)", async () => {
       const args = ["test-command", "--root", projectRootA]
-      const record = await registerProcess(globalConfigStore, "test-command", args)
+      const processRecord = await registerProcess(globalConfigStore, "test-command", args)
 
-      class TestCommand extends ServeCommand {
+      class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
 
-        server: GardenServer
+        maybePersistent() {
+          return true
+        }
 
         async prepare({ footerLog }: PrepareParams) {
-          this.server = await startServer({ log: footerLog, command: this })
+          this.server = await startServer({
+            log: footerLog,
+            defaultProjectRoot: projectRootA,
+            manager: new GardenInstanceManager({ log, serveCommand: new ServeCommand() }),
+          })
         }
 
         printHeader() {}
 
         async action({ garden }: CommandParams) {
+          const record = await globalConfigStore.get("activeProcesses", String(processRecord.pid))
+
           expect(record.command).to.equal(this.name)
-          expect(record.sessionId).to.equal(garden.sessionId)
+          expect(record.sessionId).to.exist
           expect(record.persistent).to.equal(true)
           expect(record.serverHost).to.equal(this.server!.getUrl())
           expect(record.serverAuthKey).to.equal(this.server!.authKey)
@@ -408,42 +418,13 @@ describe("cli", () => {
       cli.addCommand(cmd)
 
       try {
-        await cli.run({ args, exitOnError: false, processRecord: record })
+        const result = await cli.run({ args, exitOnError: false, processRecord })
+        if (result.errors[0]) {
+          throw result.errors[0]
+        }
       } finally {
-        await globalConfigStore.delete("activeProcesses", String(record.pid))
+        await globalConfigStore.delete("activeProcesses", String(processRecord.pid))
       }
-    })
-
-    it("tells the CoreEventStream to ignore the local server URL", async () => {
-      const testEventBus = new TestEventBus()
-
-      class TestCommand extends ServeCommand {
-        name = "test-command"
-        help = "halp!"
-
-        server: GardenServer
-
-        async prepare({ footerLog }: PrepareParams) {
-          this.server = await startServer({ log: footerLog, command: this })
-          this.server["incomingEvents"] = testEventBus
-        }
-
-        printHeader() {}
-
-        async action({ garden }: CommandParams) {
-          garden.events.emit("_test", "nope")
-          return { result: {} }
-        }
-      }
-
-      const cmd = new TestCommand()
-      cli.addCommand(cmd)
-
-      const args = ["test-command", "--root", projectRootA]
-
-      await cli.run({ args, exitOnError: false })
-
-      expect(testEventBus.eventLog).to.eql([])
     })
 
     it.skip("shows the URL of the Garden Cloud dashboard", async () => {
@@ -515,7 +496,6 @@ describe("cli", () => {
         "--force-refresh",
         "--var",
         "my=value,other=something",
-        "--disable-port-forwards",
       ]
 
       const { code, result } = await cli.run({
@@ -540,7 +520,6 @@ describe("cli", () => {
           "var": ["my=value", "other=something"],
           "version": false,
           "help": false,
-          "disable-port-forwards": true,
         },
       })
     })
@@ -669,7 +648,11 @@ describe("cli", () => {
           "version": false,
           "help": false,
           "floop": "floop-opt",
-          "disable-port-forwards": false,
+          "env": undefined,
+          "logger-type": undefined,
+          "output": undefined,
+          "root": undefined,
+          "var": undefined,
         },
       })
     })
@@ -740,7 +723,11 @@ describe("cli", () => {
           "version": false,
           "help": false,
           "floop": "floop-opt",
-          "disable-port-forwards": false,
+          "env": undefined,
+          "logger-type": undefined,
+          "output": undefined,
+          "root": undefined,
+          "var": undefined,
         },
       })
     })
@@ -894,26 +881,6 @@ describe("cli", () => {
       expect(safeLoad(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
     })
 
-    it("should disable port forwards if --disable-port-forwards is set", async () => {
-      class TestCommand extends Command {
-        name = "test-command"
-        help = "halp!"
-        noProject = true
-
-        printHeader() {}
-
-        async action({ garden }: CommandParams) {
-          return { result: { garden } }
-        }
-      }
-
-      const command = new TestCommand()
-      cli.addCommand(command)
-
-      const { result } = await cli.run({ args: ["test-command", "--disable-port-forwards"], exitOnError: false })
-      expect(result.garden.disablePortForwards).to.be.true
-    })
-
     it(`should configure a dummy environment when command has noProject=true and --env is specified`, async () => {
       class TestCommand2 extends Command {
         name = "test-command-2"
@@ -962,7 +929,9 @@ describe("cli", () => {
 
   describe("makeDummyGarden", () => {
     it("should initialise and resolve config graph in a directory with no project", async () => {
-      const garden = await makeDummyGarden(join(GARDEN_CORE_ROOT, "tmp", "foobarbas"), {
+      const path = join(GARDEN_CORE_ROOT, "tmp", "foobarbas")
+      await mkdirp(path)
+      const garden = await makeDummyGarden(path, {
         commandInfo: { name: "foo", args: {}, opts: {} },
       })
       const dg = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -971,7 +940,9 @@ describe("cli", () => {
     })
 
     it("should correctly configure a dummy environment when a namespace is set", async () => {
-      const garden = await makeDummyGarden(join(GARDEN_CORE_ROOT, "tmp", "foobarbas"), {
+      const path = join(GARDEN_CORE_ROOT, "tmp", "foobarbas")
+      await mkdirp(path)
+      const garden = await makeDummyGarden(path, {
         environmentName: "test.foo",
         commandInfo: { name: "foo", args: {}, opts: {} },
       })

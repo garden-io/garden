@@ -75,7 +75,7 @@ describe("GitHandler", () => {
       projectRoot: tmpPath,
       gardenDirPath: join(tmpPath, ".garden"),
       ignoreFile: defaultIgnoreFilename,
-      cache: garden.cache,
+      cache: garden.treeCache,
     })
     git = (<any>handler).gitCli(log, tmpPath)
   })
@@ -395,7 +395,7 @@ describe("GitHandler", () => {
         projectRoot: tmpPath,
         gardenDirPath: join(tmpPath, ".garden"),
         ignoreFile: "",
-        cache: garden.cache,
+        cache: garden.treeCache,
       })
 
       expect(await _handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])

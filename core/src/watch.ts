@@ -7,127 +7,183 @@
  */
 
 import { watch, FSWatcher } from "chokidar"
-import { Garden } from "./garden"
 import { Log } from "./logger/log-entry"
 import { InternalError } from "./exceptions"
-import { EventEmitter } from "events"
+import EventEmitter2 from "eventemitter2"
+import { EventBus } from "./events"
+import { Stats } from "fs"
+import { join } from "path"
 
-let watcher: FSWatcher | undefined
+let watcher: Watcher | undefined
+
+interface SubscribedPath {
+  type: "config"
+  path: string
+}
+
+interface Subscriber {
+  eventBus: EventBus
+  paths: Map<string, SubscribedPath>
+}
+
+interface WatcherParams {
+  log: Log
+}
 
 /**
- * Wrapper around the Chokidar file watcher. Emits events on `garden.events` when Garden config files are changed.
+ * Wrapper around the Chokidar file watcher. This is a singleton class that manages multiple subscribers.
  *
- * This needs to be enabled by calling the `.start()` method, and stopped with the `.stop()` method.
- *
- * Note: Unlike the 0.12-era Watcher, this implementation only watches a specific list of paths (not entire
- * directories). This is done both for performance and simplicity. If we want to introduce functionality that benefits
- * from watching all of an action's included sources, we can revisit & adapt an older version of this class from the
- * Git history.
+ * Individual Garden instances should subscribe()
  */
-export class Watcher extends EventEmitter {
-  private garden: Garden
+export class Watcher extends EventEmitter2 {
   private log: Log
-  private configPaths: string[]
-  private watcher?: FSWatcher
+  private subscribers: Subscriber[]
   public ready: boolean
+  private fsWatcher: FSWatcher
 
-  constructor({
-    garden,
-    log,
-    configPaths
-  }: {
-    garden: Garden
-    log: Log
-    configPaths: string[]
-  }) {
+  private constructor({ log }: WatcherParams) {
     super()
-    this.garden = garden
-    this.log = log
-    this.configPaths = configPaths
+    this.log = log.root.createLog() // We want internal logs to go to the root logger
+    this.subscribers = []
     this.ready = false
-    this.start()
-  }
 
-  async stop() {
-    if (this.watcher) {
-      this.log.debug(`Watcher: Clearing handlers`)
-      this.watcher.removeAllListeners()
-      // We re-use the FSWatcher instance on Mac to avoid fsevents segfaults, but don't need to on other platforms
-      if (process.platform !== "darwin") {
-        await this.watcher.close()
+    this.log.debug(`Watcher: Initializing`)
+
+    // Make sure that fsevents works when we're on macOS. This has come up before without us noticing, which has
+    // a dramatic performance impact, so it's best if we simply throw here so that our tests catch such issues.
+    if (process.platform === "darwin") {
+      try {
+        require("fsevents")
+      } catch (error) {
+        throw new InternalError(`Unable to load fsevents module: ${error}`, {
+          error,
+        })
       }
-      delete this.watcher
     }
-  }
 
-  start() {
-    this.log.debug(`Watcher: Watching paths ${this.configPaths.join(", ")}`)
+    this.log.debug(`Watcher: Starting FSWatcher`)
+    this.fsWatcher = watch([], {
+      ignoreInitial: true,
+      ignorePermissionErrors: true,
+      persistent: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 300,
+        pollInterval: 100,
+      },
+    })
 
-    if (!this.watcher) {
-      // We keep a single instance of FSWatcher to avoid segfault issues on Mac
-      if (watcher) {
-        this.log.debug(`Watcher: Using existing FSWatcher`)
-        this.watcher = watcher
-
-        this.log.debug(`Watcher: Watch ${this.configPaths}`)
-        watcher.add(this.configPaths)
-
+    this.fsWatcher
+      .on("error", (err: Error) => {
+        this.log.error(`Watcher: Error - ${err}`)
+        this.emit("error", err)
+      })
+      .once("ready", () => {
+        this.log.debug(`Watcher: Ready`)
+        this.emit("ready")
         this.ready = true
-
-        // Emit after the call returns
-        setTimeout(() => {
-          watcher!.emit("ready")
-        }, 100)
-      } else {
-        // Make sure that fsevents works when we're on macOS. This has come up before without us noticing, which has
-        // a dramatic performance impact, so it's best if we simply throw here so that our tests catch such issues.
-        if (process.platform === "darwin") {
-          try {
-            require("fsevents")
-          } catch (error) {
-            throw new InternalError(`Unable to load fsevents module: ${error}`, {
-              error,
-            })
-          }
-        }
-
-        this.log.debug(`Watcher: Starting FSWatcher`)
-        this.watcher = watch(this.configPaths, {
-          ignoreInitial: true,
-          ignorePermissionErrors: true,
-          persistent: true,
-          awaitWriteFinish: {
-            stabilityThreshold: 300,
-            pollInterval: 100,
-          },
-        })
-
-        if (process.platform === "darwin") {
-          // We re-use the FSWatcher instance on Mac to avoid fsevents segfaults, but don't need to on other platforms
-          watcher = this.watcher
-        }
-      }
-
-      this.watcher
-        .on("change", this.makeFileChangedHandler())
-        .on("ready", () => {
-          this.emit("ready")
-          this.ready = true
-        })
-        .on("error", (err) => {
-          this.emit("error", err)
-        })
-        .on("all", (name, path, payload) => {
-          this.emit(name, path, payload)
-          this.log.silly(`FSWatcher event: ${name} ${path} ${JSON.stringify(payload)}`)
-        })
-    }
+      })
+      .on("all", (name, path, payload) => {
+        this.log.silly(`FSWatcher event: ${name} ${path} ${JSON.stringify(payload)}`)
+        this.routeEvent(name, path, payload)
+      })
   }
 
-  private makeFileChangedHandler() {
-    return (path: string) => {
-      this.log.silly(`Watcher: File ${path} modified`)
-      this.garden.events.emit("configChanged", { path })
+  static getInstance(params: WatcherParams) {
+    if (!watcher) {
+      watcher = new Watcher(params)
+    }
+    return watcher
+  }
+
+  /**
+   * Subscribes the given EventBus to watch events for the given paths.
+   * If an existing subscription exists, the paths are added to the previously subscribed paths.
+   * If you want to remove the previously subscribed paths, use `unsubscribe()` first.
+   */
+  subscribe(eventBus: EventBus, paths: SubscribedPath[]) {
+    let subscriber = this.getSubscriber(eventBus)
+
+    if (!subscriber) {
+      subscriber = { eventBus, paths: new Map() }
+      this.subscribers.push(subscriber)
+    }
+
+    for (const path of paths) {
+      subscriber.paths.set(path.path, path)
+    }
+
+    this.log.debug(`Watcher: Add ${paths.length} paths`)
+    this.fsWatcher.add(paths.map((p) => p.path))
+  }
+
+  /**
+   * Unsubscribes the given EventBus from all or given path updates.
+   * If no paths are specified, the EventBus is fully unsubscribed.
+   */
+  unsubscribe(eventBus: EventBus, paths?: SubscribedPath[]) {
+    const subscriber = this.getSubscriber(eventBus)
+
+    if (!subscriber) {
+      return
+    }
+
+    if (paths) {
+      for (const path of paths) {
+        subscriber.paths.delete(path.path)
+      }
+    } else {
+      subscriber.paths.clear()
+    }
+
+    if (subscriber.paths.size === 0) {
+      // No paths subscribed, remove the subscriber
+      this.subscribers.splice(this.subscribers.indexOf(subscriber))
+    }
+
+    const orphaned = this.getWatchedPaths()
+
+    for (const s of this.subscribers) {
+      for (const { path } of s.paths.values()) {
+        orphaned.delete(path)
+      }
+    }
+
+    this.log.debug(`Cleaning up ${orphaned.size} paths from watcher`)
+    this.fsWatcher.unwatch(Array.from(orphaned.values()))
+  }
+
+  getSubscriber(eventBus: EventBus) {
+    for (const subscriber of this.subscribers) {
+      if (subscriber.eventBus === eventBus) {
+        return subscriber
+      }
+    }
+    return
+  }
+
+  getWatchedPaths() {
+    return new Set(
+      Object.entries(this.fsWatcher.getWatched()).flatMap(([dir, filenames]) => filenames.map((f) => join(dir, f)))
+    )
+  }
+
+  /**
+   * Permanently stop the watcher. This should only be done at the end of a process.
+   */
+  async stop() {
+    this.log.debug(`Watcher: Cleaning up`)
+    this.fsWatcher.removeAllListeners()
+    this.subscribers = []
+    await this.fsWatcher.close()
+    this.log.debug(`Watcher: Cleaned up`)
+  }
+
+  private routeEvent(_eventName: "add" | "addDir" | "change" | "unlink" | "unlinkDir", path: string, _stats?: Stats) {
+    for (const subscriber of this.subscribers) {
+      const match = subscriber.paths.get(path)
+      if (match?.type === "config") {
+        subscriber.eventBus.emit("configChanged", { path })
+      }
     }
   }
 }

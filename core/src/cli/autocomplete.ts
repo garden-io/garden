@@ -11,7 +11,7 @@ import { Command, CommandGroup } from "../commands/base"
 import { ConfigDump } from "../garden"
 import { Log } from "../logger/log-entry"
 import { parseCliArgs, pickCommand } from "./helpers"
-import { globalOptions, Parameter, Parameters } from "./params"
+import { globalDisplayOptions, globalGardenInstanceOptions, globalOptions, Parameter, Parameters } from "./params"
 
 export interface AutocompleteSuggestion {
   // What's being suggested in the last item in the split array
@@ -265,7 +265,8 @@ export class Autocompleter {
     }
 
     const opts: Parameters = {
-      ...(ignoreGlobalFlags ? {} : globalOptions),
+      ...(ignoreGlobalFlags ? {} : globalDisplayOptions),
+      ...globalGardenInstanceOptions,
       ...command.options,
     }
 

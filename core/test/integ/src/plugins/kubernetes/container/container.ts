@@ -24,6 +24,7 @@ import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/c
 import { ContainerTestAction } from "../../../../../../src/plugins/container/config"
 import { createActionLog } from "../../../../../../src/logger/log-entry"
 import { TestGardenOpts } from "../../../../../../src/util/testing"
+import { waitForOutputFlush } from "../../../../../../src/process"
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
@@ -120,7 +121,7 @@ describe("kubernetes container module handlers", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   describe("testContainerModule", () => {
@@ -141,6 +142,8 @@ describe("kubernetes container module handlers", () => {
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: true })
       const logEvent = garden.events.eventLog.find((l) => l.name === "log")
+
+      await waitForOutputFlush()
 
       expect(result.error).to.be.null
       const task = result.results.getResult(testTask)!

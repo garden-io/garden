@@ -21,24 +21,17 @@ import {
   CreateProjectsForRepoResponse,
   ListProjectsResponse,
 } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
+import { getCloudDistributionName, getCloudLogSectionName } from "../util/util"
 import { CommandInfo } from "../plugin-context"
-import { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
+import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
 import { add } from "date-fns"
 import { LogLevel } from "../logger/logger"
+import { makeAuthHeader } from "./auth"
 
 const gardenClientName = "garden-core"
-const gardenClientVersion = getPackageVersion()
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 export class CloudApiTokenRefreshError extends CloudApiError {}
-
-// If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
-// switch to ci-token authentication method.
-export const authTokenHeader =
-  gardenEnv.GARDEN_AUTH_TOKEN && !gardenEnv.GARDEN_GE_SCHEDULED ? "x-ci-token" : "x-access-auth-token"
-
-export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]: clientAuthToken })
 
 export function isGotError(error: any, statusCode: number): error is GotHttpError {
   return error instanceof GotHttpError && error.response.statusCode === statusCode
@@ -149,6 +142,13 @@ export function getGardenCloudDomain(configuredDomain: string | undefined): stri
   return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
 }
 
+export interface CloudApiFactoryParams {
+  log: Log
+  cloudDomain: string
+  globalConfigStore: GlobalConfigStore
+  skipLogging?: boolean
+}
+
 /**
  * The Enterprise API client.
  *
@@ -166,9 +166,19 @@ export class CloudApi {
   // Set when/if the Core session is registered with Cloud
   public environmentId?: number
   public namespaceId?: number
-  public sessionRegistered = false
 
-  constructor(private log: Log, public domain: string, private globalConfigStore: GlobalConfigStore) {}
+  private registeredSessions: Set<string>
+
+  private log: Log
+  public readonly domain: string
+  private globalConfigStore: GlobalConfigStore
+
+  constructor({ log, domain, globalConfigStore }: { log: Log; domain: string; globalConfigStore: GlobalConfigStore }) {
+    this.log = log
+    this.domain = domain
+    this.globalConfigStore = globalConfigStore
+    this.registeredSessions = new Set()
+  }
 
   /**
    * Initialize the Cloud API.
@@ -179,17 +189,7 @@ export class CloudApi {
    * Optionally skip logging during initialization. Useful for noProject commands that need to use the class
    * without all the "flair".
    */
-  static async factory({
-    log,
-    cloudDomain,
-    globalConfigStore,
-    skipLogging = false,
-  }: {
-    log: Log
-    cloudDomain: string
-    globalConfigStore: GlobalConfigStore
-    skipLogging?: boolean
-  }) {
+  static async factory({ log, cloudDomain, globalConfigStore, skipLogging = false }: CloudApiFactoryParams) {
     const distroName = getCloudDistributionName(cloudDomain)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
     const cloudFactoryLog = log.createLog({ fixLevel, name: getCloudLogSectionName(distroName), showDuration: true })
@@ -202,10 +202,10 @@ export class CloudApi {
       log.debug(
         `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
       )
-      return null
+      return
     }
 
-    const api = new CloudApi(log, cloudDomain, globalConfigStore)
+    const api = new CloudApi({ log, domain: cloudDomain, globalConfigStore })
     const tokenIsValid = await api.checkClientAuthToken()
 
     cloudFactoryLog.debug("Authorizing...")
@@ -321,6 +321,10 @@ export class CloudApi {
       clearInterval(this.intervalId)
       this.intervalId = null
     }
+  }
+
+  sessionRegistered(id: string) {
+    return this.registeredSessions.has(id)
   }
 
   /**
@@ -588,21 +592,28 @@ export class CloudApi {
   }
 
   async registerSession({
+    parentSessionId,
     sessionId,
     commandInfo,
     localServerPort,
     environment,
     namespace,
   }: {
+    parentSessionId: string | null
     sessionId: string
     commandInfo: CommandInfo
     localServerPort?: number
     environment: string
     namespace: string
   }): Promise<void> {
+    if (this.registeredSessions.has(sessionId)) {
+      return
+    }
+
     try {
       const body = {
         sessionId,
+        parentSessionId,
         commandInfo,
         localServerPort,
         projectUid: this.projectId,
@@ -618,6 +629,8 @@ export class CloudApi {
       this.environmentId = res.environmentId
       this.namespaceId = res.namespaceId
       this.log.debug("Successfully registered session with Garden Cloud.")
+
+      this.registeredSessions.add(sessionId)
     } catch (err) {
       // We don't want the command to fail when an error occurs during session registration.
       if (isGotError(err, 422)) {
@@ -632,7 +645,6 @@ export class CloudApi {
         this.log.verbose(`An error occurred while registering the session: ${err.message}`)
       }
     }
-    this.sessionRegistered = true
   }
 
   async getProject(): Promise<CloudProject | undefined> {

@@ -12,7 +12,7 @@ import React, { FC, useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
 import { serveArgs, ServeCommand, serveOpts } from "./serve"
 import { LoggerType } from "../logger/logger"
-import { ParameterError } from "../exceptions"
+import { ParameterError, RuntimeError } from "../exceptions"
 import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer"
 import { CommandLine } from "../cli/command-line"
 import chalk from "chalk"
@@ -20,9 +20,10 @@ import { globalOptions, StringsParameter } from "../cli/params"
 import { pick } from "lodash"
 import Divider from "ink-divider"
 import moment from "moment"
-import { getBuiltinCommands } from "./commands"
 import { dedent } from "../util/string"
 import Spinner from "ink-spinner"
+import type { Log } from "../logger/log-entry"
+import { findProjectConfig } from "../config/base"
 
 const devCommandArgs = {
   ...serveArgs,
@@ -75,7 +76,25 @@ Let's get your development environment wired up.
   }
 
   async action(params: ActionParams): Promise<CommandResult> {
-    const logger = params.log.root
+    const { log } = params
+
+    const projectConfig = await findProjectConfig({ log, path: params.garden.projectRoot })
+
+    // Fail if this is not run within a garden project
+    if (!projectConfig) {
+      throw new RuntimeError(
+        `Not a project directory (or any of the parent directories): ${params.garden.projectRoot}`,
+        {
+          root: params.garden.projectRoot,
+        }
+      )
+    }
+
+    const manager = this.getManager(log)
+    manager.defaultProjectRoot = projectConfig.path
+    manager.defaultEnv = params.opts.env
+
+    const logger = log.root
     const terminalWriter = logger.getWriters().display
 
     let inkWriter: InkTerminalWriter
@@ -145,39 +164,70 @@ Let's get your development environment wired up.
     return {}
   }
 
+  async reload(log: Log) {
+    this.commandLine?.disable("🌸  Loading Garden project...")
+
+    const manager = this.getManager(log)
+
+    try {
+      await manager.reload(log)
+
+      // TODO: reload the last used project immediately
+      // if (this.defaultGarden) {
+      //   const newGarden = await manager.ensureInstance(
+      //     log,
+      //     this.defaultGarden.getInstanceKeyParams(),
+      //     this.defaultGarden.opts
+      //   )
+
+      //   this.defaultGarden = newGarden
+
+      //   // TODO: restart monitors
+      // }
+
+      this.commandLine?.flashSuccess(`Project successfully loaded!`)
+    } catch (error) {
+      log.error(`Failed loading the project: ${error}`)
+      log.error({ error })
+      this.commandLine?.flashError(
+        `Failed loading the project. See above logs for details. Type ${chalk.white("reload")} to try again.`
+      )
+    } finally {
+      this.commandLine?.enable()
+    }
+  }
+
   private async initCommandHandler(params: ActionParams) {
     const _this = this
     const { garden, log, opts } = params
 
-    // Custom commands are loaded later, along with the project config
-    const commands = getBuiltinCommands()
+    const manager = this.getManager(log)
 
-    /**
-     * Help/utility commands
-     */
     const cl = (this.commandLine = new CommandLine({
-      garden,
-      serverCommand: this,
       log,
-      commands: [...commands, new HelpCommand(), new QuitCommand(quit), new QuietCommand(), new QuiteCommand()],
-      configDump: undefined, // This gets loaded later
+      manager,
+      cwd: manager.defaultProjectRoot!,
+      // Add some command-line specific commands
+      extraCommands: [new HelpCommand(), new QuitCommand(quit), new QuietCommand(), new QuiteCommand()],
       globalOpts: pick(opts, Object.keys(globalOptions)),
       history: await garden.localConfigStore.get("devCommandHistory"),
     }))
 
     function quitWithWarning() {
-      garden.emitWarning({
-        log,
-        key: "dev-syncs-active",
-        message: chalk.yellow(
-          `Syncs started during this session may still be active when this command terminates. You can run ${chalk.white(
-            "garden sync stop '*'"
-          )} to stop all code syncs. Hint: To stop code syncing when exiting ${chalk.white(
-            "garden dev"
-          )}, use ${chalk.white("Control-D")} or the ${chalk.white(`exit`)} command.`
-        ),
-      })
-      quit()
+      garden
+        .emitWarning({
+          log,
+          key: "dev-syncs-active",
+          message: chalk.yellow(
+            `Syncs started during this session may still be active when this command terminates. You can run ${chalk.white(
+              "garden sync stop '*'"
+            )} to stop all code syncs. Hint: To stop code syncing when exiting ${chalk.white(
+              "garden dev"
+            )}, use ${chalk.white("Ctrl-D")} or the ${chalk.white(`exit`)} command.`
+          ),
+        })
+        .catch(() => {})
+        .finally(() => quit())
     }
 
     function quit() {
@@ -195,6 +245,9 @@ Let's get your development environment wired up.
   }
 }
 
+/**
+ * Help/utility commands
+ */
 class HelpCommand extends ConsoleCommand {
   name = "help"
   help = ""

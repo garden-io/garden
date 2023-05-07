@@ -121,7 +121,7 @@ export class ToolsCommand extends Command<Args, Opts> {
       }
     } else {
       // Place configured providers at the top for preference, if applicable
-      const projectRoot = await findProjectConfig(log, garden.projectRoot)
+      const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
 
       if (projectRoot) {
         // This will normally be the case, but we're checking explictly to accommodate testing

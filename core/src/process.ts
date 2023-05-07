@@ -14,24 +14,12 @@ import { GardenProcess, GlobalConfigStore } from "./config-store/global"
 import { sleep } from "./util/util"
 
 export async function waitForExitEvent(garden: Garden, log: Log) {
-  let restartRequired = false
-
   await new Promise((resolve) => {
-    garden.events.on("_restart", () => {
-      log.debug(`Manual restart triggered`)
-      restartRequired = true
-      resolve({})
-    })
-
     garden.events.on("_exit", () => {
       log.debug(`Manual exit triggered`)
       resolve({})
     })
   })
-
-  return {
-    restartRequired,
-  }
 }
 
 /**

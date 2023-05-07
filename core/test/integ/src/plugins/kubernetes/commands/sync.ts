@@ -33,7 +33,7 @@ describe("sync plugin commands", () => {
 
   after(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
       const dataDir = join(garden.gardenDirPath, MUTAGEN_DIR_NAME)
       await getMutagenMonitor({ log, dataDir }).stop()
       await cleanProject(garden.gardenDirPath)
