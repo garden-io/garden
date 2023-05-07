@@ -318,11 +318,11 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectResource): Projec
     if (projectSpec["apiVersion"] === PREVIOUS_API_VERSION) {
       emitNonRepeatableWarning(
         log,
-        `Project "apiVersion" running with backwards compatibility against "${PREVIOUS_API_VERSION}".`
+        `Project is configured with \`apiVersion: ${PREVIOUS_API_VERSION}\`, running with backwards compatibility.`
       )
     } else if (projectSpec["apiVersion"] !== DEFAULT_API_VERSION) {
       throw new ConfigurationError(
-        `Project "apiVersion: ${projectSpec["apiVersion"]}" is unknown. Valid values are ${DEFAULT_API_VERSION} or ${PREVIOUS_API_VERSION}.`,
+        `Project configuration with \`apiVersion: ${projectSpec["apiVersion"]}\` is not supported. Valid values are ${DEFAULT_API_VERSION} or ${PREVIOUS_API_VERSION}.`,
         {
           projectSpec,
         }
