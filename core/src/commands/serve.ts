@@ -211,7 +211,7 @@ class AutocompleteCommand extends ConsoleCommand<AutocompleteArguments> {
   arguments = autocompleteArguments
 
   constructor(private serverCommand: ServeCommand) {
-    super()
+    super(serverCommand)
   }
 
   async action({ args }: CommandParams<AutocompleteArguments>): Promise<CommandResult<AutocompleteResult>> {
@@ -231,7 +231,7 @@ class ReloadCommand extends ConsoleCommand {
   help = "Reload the project and action/module configuration."
 
   constructor(private serverCommand: ServeCommand) {
-    super()
+    super(serverCommand)
   }
 
   async action({ garden, log }: CommandParams) {
