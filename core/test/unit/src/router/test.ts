@@ -50,7 +50,7 @@ describe("test actions", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   describe("test.run", () => {

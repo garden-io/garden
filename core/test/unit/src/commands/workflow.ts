@@ -116,7 +116,7 @@ describe("RunWorkflowCommand", () => {
 
     expect(stepHeaderEntries.map((e) => e.metadata)).to.eql([undefined, undefined], "stepHeaderEntries")
 
-    const stepBodyEntriesMetadata = stepBodyEntries.map((e) => e.metadata)
+    const stepBodyEntriesMetadata = stepBodyEntries.map((e) => e.metadata).filter(Boolean)
     expect(stepBodyEntriesMetadata).to.eql(
       [{ workflowStep: { index: 0 } }, { workflowStep: { index: 1 } }],
       "stepBodyEntries"

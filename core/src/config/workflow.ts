@@ -404,8 +404,10 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
     resolvedConfig.resources.limits = resolvedConfig.limits
   }
 
-  validateTriggers(resolvedConfig, garden.environmentConfigs)
-  populateNamespaceForTriggers(resolvedConfig, garden.environmentConfigs)
+  const environmentConfigs = garden.getProjectConfig().environments
+
+  validateTriggers(resolvedConfig, environmentConfigs)
+  populateNamespaceForTriggers(resolvedConfig, environmentConfigs)
 
   return resolvedConfig
 }

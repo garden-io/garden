@@ -250,7 +250,7 @@ describe("Terraform provider", () => {
       const _garden = await makeTestGarden(testRoot, {
         environmentName: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
       await _garden.resolveProvider(garden.log, "terraform")
@@ -379,7 +379,7 @@ describe("Terraform module type", () => {
       const _garden = await makeTestGarden(testRoot, {
         environmentName: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
 
@@ -424,7 +424,7 @@ describe("Terraform module type", () => {
       const _garden = await makeTestGarden(testRoot, {
         environmentName: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
 
@@ -469,7 +469,7 @@ describe("Terraform module type", () => {
       const _garden = await makeTestGarden(testRoot, {
         environmentName: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
 
@@ -560,7 +560,7 @@ describe("Terraform module type", () => {
       const _garden = await makeTestGarden(testRoot, {
         environmentName: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
 
@@ -611,7 +611,7 @@ describe("Terraform module type", () => {
       const _garden = await makeTestGarden(testRoot, {
         environmentName: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
 
@@ -683,7 +683,7 @@ describe("Terraform module type", () => {
       const _garden = await makeTestGarden(testRoot, {
         environmentName: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
 

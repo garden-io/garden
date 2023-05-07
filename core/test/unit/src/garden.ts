@@ -361,8 +361,8 @@ describe("Garden", () => {
       const projectRoot = getDataDir("test-projects", "module-varfiles")
 
       const garden = await makeTestGarden(projectRoot)
-      // In the normal flow, `garden.cliVariables` is populated with variables passed via the `--var` CLI option.
-      garden.cliVariables["d"] = "from-cli-var"
+      // In the normal flow, `garden.variableOverrides` is populated with variables passed via the `--var` CLI option.
+      garden.variableOverrides["d"] = "from-cli-var"
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("module-a")
       expect({ ...garden.variables, ...module.variables }).to.eql({
@@ -440,7 +440,7 @@ describe("Garden", () => {
       const garden = await TestGarden.factory(pathFoo, {
         config,
         environmentName: "default",
-        variables: { foo: "override" },
+        variableOverrides: { foo: "override" },
       })
 
       expect(garden.variables).to.eql({ foo: "override", bar: "something" })
@@ -462,7 +462,7 @@ describe("Garden", () => {
       const garden = await TestGarden.factory(pathFoo, {
         config,
         environmentName: "default",
-        variables: { foo: "override" },
+        variableOverrides: { foo: "override" },
       })
 
       expect(garden.proxy).to.eql({ hostname: "localhost" })
@@ -487,7 +487,7 @@ describe("Garden", () => {
       const garden = await TestGarden.factory(pathFoo, {
         config,
         environmentName: "default",
-        variables: { foo: "override" },
+        variableOverrides: { foo: "override" },
       })
 
       expect(garden.proxy).to.eql({ hostname: "127.0.0.1" })
@@ -526,13 +526,13 @@ describe("Garden", () => {
         const gardenWithProxyConfig = await TestGarden.factory(pathFoo, {
           config: configWithProxy,
           environmentName: "default",
-          variables: { foo: "override" },
+          variableOverrides: { foo: "override" },
           noCache: true,
         })
         const gardenNoProxyConfig = await TestGarden.factory(pathFoo, {
           config: configNoProxy,
           environmentName: "default",
-          variables: { foo: "override" },
+          variableOverrides: { foo: "override" },
           noCache: true,
         })
 
@@ -2254,7 +2254,7 @@ describe("Garden", () => {
   describe("scanForConfigs", () => {
     it("should find all garden configs in the project directory", async () => {
       const garden = await makeTestGardenA()
-      const files = await garden.scanForConfigs(garden.projectRoot)
+      const files = await garden.scanForConfigs(garden.log, garden.projectRoot)
       expect(files).to.eql([
         join(garden.projectRoot, "commands.garden.yml"),
         join(garden.projectRoot, "garden.yml"),
@@ -2267,14 +2267,14 @@ describe("Garden", () => {
     it("should respect the include option, if specified", async () => {
       const garden = await makeTestGardenA()
       set(garden, "moduleIncludePatterns", ["module-a/**/*"])
-      const files = await garden.scanForConfigs(garden.projectRoot)
+      const files = await garden.scanForConfigs(garden.log, garden.projectRoot)
       expect(files).to.eql([join(garden.projectRoot, "module-a", "garden.yml")])
     })
 
     it("should respect the exclude option, if specified", async () => {
       const garden = await makeTestGardenA()
       set(garden, "moduleExcludePatterns", ["module-a/**/*"])
-      const files = await garden.scanForConfigs(garden.projectRoot)
+      const files = await garden.scanForConfigs(garden.log, garden.projectRoot)
       expect(files).to.eql([
         join(garden.projectRoot, "commands.garden.yml"),
         join(garden.projectRoot, "garden.yml"),
@@ -2287,7 +2287,7 @@ describe("Garden", () => {
       const garden = await makeTestGardenA()
       set(garden, "moduleIncludePatterns", ["module*/**/*"])
       set(garden, "moduleExcludePatterns", ["module-a/**/*"])
-      const files = await garden.scanForConfigs(garden.projectRoot)
+      const files = await garden.scanForConfigs(garden.log, garden.projectRoot)
       expect(files).to.eql([
         join(garden.projectRoot, "module-b", "garden.yml"),
         join(garden.projectRoot, "module-c", "garden.yml"),
@@ -4475,7 +4475,7 @@ describe("Garden", () => {
         dependencyVersions: {},
         files: [],
       }
-      garden.cache.set(garden.log, ["moduleVersions", config.name], version, getModuleCacheContext(config))
+      garden.treeCache.set(garden.log, ["moduleVersions", config.name], version, getModuleCacheContext(config))
 
       const result = await garden.resolveModuleVersion(garden.log, config, [])
 
@@ -4486,7 +4486,7 @@ describe("Garden", () => {
       const garden = await makeTestGardenA()
       await garden.scanAndAddConfigs()
 
-      garden.cache.delete(garden.log, ["moduleVersions", "module-b"])
+      garden.treeCache.delete(garden.log, ["moduleVersions", "module-b"])
 
       const config = await garden.resolveModule("module-b")
       garden.vcs.getTreeVersion = async () => ({
@@ -4510,7 +4510,7 @@ describe("Garden", () => {
         dependencyVersions: {},
         files: [],
       }
-      garden.cache.set(garden.log, ["moduleVersions", config.name], version, getModuleCacheContext(config))
+      garden.treeCache.set(garden.log, ["moduleVersions", config.name], version, getModuleCacheContext(config))
 
       const result = await garden.resolveModuleVersion(garden.log, config, [], true)
 

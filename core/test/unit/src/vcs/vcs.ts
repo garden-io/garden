@@ -126,7 +126,7 @@ describe("VcsHandler", () => {
         projectRoot: garden.projectRoot,
         gardenDirPath: garden.gardenDirPath,
         ignoreFile: garden.dotIgnoreFile,
-        cache: garden.cache,
+        cache: garden.treeCache,
       })
 
       const version = await handler.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
@@ -146,7 +146,7 @@ describe("VcsHandler", () => {
         projectRoot: garden.projectRoot,
         gardenDirPath: garden.gardenDirPath,
         ignoreFile: garden.dotIgnoreFile,
-        cache: garden.cache,
+        cache: garden.treeCache,
       })
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
@@ -164,7 +164,7 @@ describe("VcsHandler", () => {
         projectRoot: garden.projectRoot,
         gardenDirPath: garden.gardenDirPath,
         ignoreFile: garden.dotIgnoreFile,
-        cache: garden.cache,
+        cache: garden.treeCache,
       })
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)

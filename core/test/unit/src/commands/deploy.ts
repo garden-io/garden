@@ -124,6 +124,7 @@ describe("DeployCommand", () => {
     "timestamps": false,
     "port": defaultServerPort,
     "cmd": undefined,
+    "disable-port-forwards": false,
   })
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.

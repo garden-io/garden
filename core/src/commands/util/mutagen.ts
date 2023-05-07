@@ -38,7 +38,7 @@ export class MutagenCommand extends Command<{}, {}> {
   printHeader() {}
 
   async action({ garden, log, args }: CommandParams<{}, {}>) {
-    const projectRoot = await findProjectConfig(log, garden.projectRoot)
+    const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
 
     if (!projectRoot) {
       throw new RuntimeError(

@@ -36,6 +36,7 @@ import { LogMonitor } from "../monitors/logs"
 import { LoggerType, parseLogLevel } from "../logger/logger"
 import { serveOpts } from "./serve"
 import { DevCommand } from "./dev"
+import { gardenEnv } from "../constants"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -91,6 +92,9 @@ export const deployOpts = {
     This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
     `,
     aliases: ["nodeps"],
+  }),
+  "disable-port-forwards": new BooleanParameter({
+    help: "Disable automatic port forwarding when running persistently. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS=true in your environment.",
   }),
   "forward": new BooleanParameter({
     help: `Create port forwards and leave process running after deploying. This is implied if any of --sync / --local or --logs are set.`,
@@ -181,7 +185,10 @@ export class DeployCommand extends Command<Args, Opts> {
       return devCmd.action(params)
     }
 
-    const forward = monitor
+    const disablePortForwards = gardenEnv.GARDEN_DISABLE_PORT_FORWARDS || opts["disable-port-forwards"] || false
+
+    // TODO-0.13.0: make these both explicit options
+    let forward = monitor && !disablePortForwards
     const streamLogs = opts.logs
 
     const actionModes: ActionModeMap = {

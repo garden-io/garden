@@ -60,11 +60,6 @@ export async function startPortProxies({
   status: ServiceStatus
   events?: PluginEventBroker
 }) {
-  if (garden.disablePortForwards) {
-    log.info({ msg: chalk.gray("Port forwards disabled") })
-    return []
-  }
-
   return Bluebird.map(status.forwardablePorts || [], (spec) => {
     return startPortProxy({ garden, graph, log, action, spec, events })
   })

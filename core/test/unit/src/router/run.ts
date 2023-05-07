@@ -55,7 +55,7 @@ describe("run actions", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   afterEach(() => {

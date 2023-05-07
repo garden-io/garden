@@ -44,12 +44,18 @@ export function combineRenders(entry: LogEntry, logger: Logger, renderers: Rende
 }
 
 export function renderError(entry: LogEntry): string {
-  const { error } = entry
+  const { msg, error } = entry
+
+  let out = ""
+
   if (error) {
-    return formatGardenErrorWithDetail(toGardenError(error))
+    if (msg) {
+      out += "\n\n"
+    }
+    out += formatGardenErrorWithDetail(toGardenError(error))
   }
 
-  return entry.msg || ""
+  return out
 }
 
 export function renderSymbol(entry: LogEntry): string {
@@ -162,6 +168,7 @@ export function formatForTerminal(entry: LogEntry, logger: Logger): string {
     renderSymbol,
     renderSection,
     renderMsg,
+    renderError,
     renderData,
     () => "\n",
   ])

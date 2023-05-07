@@ -42,7 +42,7 @@ export const levelToStr = (lvl: LogLevel): string => LogLevel[lvl]
 
 export function render(level: LogLevel, entry: LogEntry): string | null {
   if (level >= entry.level) {
-    const renderFn = entry.level === LogLevel.error ? renderError : renderMsg
+    const renderFn = entry.error ? renderError : renderMsg
     return stripAnsi(renderFn(entry))
   }
   return null

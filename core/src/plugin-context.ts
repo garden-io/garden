@@ -6,19 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Garden } from "./garden"
+import type { Garden } from "./garden"
 import { projectNameSchema, projectSourcesSchema, environmentNameSchema, SourceConfig } from "./config/project"
 import { Provider, providerSchema, GenericProviderConfig } from "./config/provider"
 import { deline } from "./util/string"
-import { joi, joiVariables, joiStringMap, DeepPrimitiveMap, joiIdentifier } from "./config/common"
-import { PluginTool } from "./util/ext-tools"
-import { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base"
+import { joi, joiVariables, joiStringMap, joiIdentifier } from "./config/common"
+import type { PluginTool } from "./util/ext-tools"
+import type { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base"
 import { resolveTemplateStrings } from "./template-string/template-string"
-import { Log } from "./logger/log-entry"
+import type { Log } from "./logger/log-entry"
 import { logEntrySchema } from "./plugin/base"
 import { EventEmitter } from "eventemitter3"
 import { CreateEventLogParams, EventLogger, LogLevel, StringLogLevel } from "./logger/logger"
 import { Memoize } from "typescript-memoize"
+import type { ParameterValues } from "./cli/params"
 
 type WrappedFromGarden = Pick<
   Garden,
@@ -36,8 +37,8 @@ type WrappedFromGarden = Pick<
 
 export interface CommandInfo {
   name: string
-  args: DeepPrimitiveMap
-  opts: DeepPrimitiveMap
+  args: ParameterValues<any>
+  opts: ParameterValues<any>
 }
 
 type ResolveTemplateStringsOpts = Omit<ContextResolveOpts, "stack">

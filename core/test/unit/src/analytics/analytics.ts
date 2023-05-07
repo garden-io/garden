@@ -28,7 +28,11 @@ import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
 
 class FakeCloudApi extends CloudApi {
   static async factory(params: { log: Log; projectConfig?: ProjectResource; skipLogging?: boolean }) {
-    return new FakeCloudApi(params.log, "https://garden.io", new GlobalConfigStore())
+    return new FakeCloudApi({
+      log: params.log,
+      domain: "https://garden.io",
+      globalConfigStore: new GlobalConfigStore(),
+    })
   }
 
   async getProfile() {

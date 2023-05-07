@@ -12,23 +12,23 @@
   Useful for sets of non-scalar entries, where the built-in Set data structure's === comparison is not suitable.
 */
 export class KeyedSet<V> {
-  private map: Map<string, V>
+  protected map: Map<string, V>
 
-  constructor(private keyFn: (v: V) => string) {
+  constructor(public getKey: (v: V) => string) {
     this.map = new Map()
   }
 
   add(entry: V): KeyedSet<V> {
-    this.map.set(this.keyFn(entry), entry)
+    this.map.set(this.getKey(entry), entry)
     return this
   }
 
   delete(entry: V): boolean {
-    return this.map.delete(this.keyFn(entry))
+    return this.map.delete(this.getKey(entry))
   }
 
   has(entry: V): boolean {
-    return this.map.has(this.keyFn(entry))
+    return this.map.has(this.getKey(entry))
   }
 
   hasKey(key: string): boolean {
@@ -46,5 +46,15 @@ export class KeyedSet<V> {
 
   clear(): void {
     this.map = new Map()
+  }
+}
+
+export class KeyedMap<V> extends KeyedSet<V> {
+  get(v: V) {
+    return this.map.get(this.getKey(v))
+  }
+
+  getByKey(key: string) {
+    return this.map.get(key)
   }
 }

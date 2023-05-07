@@ -42,7 +42,7 @@ describe("kubernetes", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   describe("k8sGetContainerDeployLogs", () => {
