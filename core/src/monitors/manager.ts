@@ -39,20 +39,29 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
     garden.events.on("_restart", () => this.stopAll())
   }
 
-  add(monitor: Monitor) {
-    const status = this.getStatus(monitor)
+  /**
+   * Add a monitor and subscribe the command that requested it.
+   *
+   * In case the monitor already exists, the command is added to its subscriber list.
+   */
+  addAndSubscribe(monitor: Monitor, command: Command) {
+    this.log.debug(`Subscribing command ${command.getFullName()} to monitor ${monitor.description()}.`)
 
-    // TODO: Handle case when monitor has status "stopping"
-    if (this.monitors.has(monitor) && status !== "stopped") {
-      this.log.debug(`${monitor.description()} already registered and active.`)
-      return
-    } else if (this.monitors.has(monitor) && status === "stopped") {
-      this.log.debug(`Restarting stopped monitor ${monitor.description()}.`)
-      this.start(monitor)
-    } else {
-      this.log.debug(`Added ${monitor.description()}.`)
+    if (!this.monitors.has(monitor)) {
+      this.log.debug(`Adding monitor ${monitor.description()}.`)
       this.monitors.add(monitor)
-      this.start(monitor)
+    } else {
+      this.log.debug(`${monitor.description()} already registered.`)
+    }
+
+    // NOTE: We get the monitor from the monitors list instead of using the
+    // instance provided via the function param in case there's already a corresponding
+    // monitor in which case the fuction parameter isn't used.
+    const m = this.getById(monitor.id())!
+    m.subscribe(command)
+
+    if (this.getStatus(m) === "stopped") {
+      this.start(m)
     }
   }
 
@@ -68,8 +77,8 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
     return this.getAll().filter((m) => (!type || type === m.type) && (!key || key === m.key()))
   }
 
-  getByCommand(command: Command) {
-    return this.getAll().filter((m) => m.command === command)
+  getBySubscriber(subscriber: Command) {
+    return this.getAll().filter((m) => m.subscribers.includes(subscriber))
   }
 
   getById(id: string) {
@@ -128,7 +137,9 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
     log.verbose(`Stopping ${monitor.description()}...`)
 
     this.setStatus(monitor, "stopping")
+    monitor.unsubscribeAll()
 
+    // TODO: Should we remove the monitor from the monitors list if there are no active subscribers?
     monitor
       .stop()
       .then(() => {

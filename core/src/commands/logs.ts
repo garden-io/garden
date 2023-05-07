@@ -189,14 +189,13 @@ export class LogsCommand extends Command<Args, Opts> {
         showTimestamps: opts.timestamps,
         logLevel,
         tagFilters,
-        command: this,
         tail,
         since,
       })
     })
 
     if (follow) {
-      monitors.forEach((m) => garden.monitors.add(m))
+      monitors.forEach((m) => garden.monitors.addAndSubscribe(m, this))
       return { result: [] }
     } else {
       const entries = await Bluebird.map(monitors, async (m) => {

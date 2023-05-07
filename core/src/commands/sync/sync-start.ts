@@ -153,8 +153,8 @@ export class SyncStartCommand extends Command<Args, Opts> {
         if (opts.monitor) {
           task.on("ready", ({ result }) => {
             const executedAction = result?.executedAction
-            const monitor = new SyncMonitor({ garden, log, command: this, action: executedAction, graph })
-            garden.monitors.add(monitor)
+            const monitor = new SyncMonitor({ garden, log, action: executedAction, graph })
+            garden.monitors.addAndSubscribe(monitor, this)
           })
         }
         return task
@@ -206,8 +206,8 @@ export class SyncStartCommand extends Command<Args, Opts> {
             someSyncStarted = true
 
             if (opts.monitor) {
-              const monitor = new SyncMonitor({ garden, log, command: this, action: executedAction, graph })
-              garden.monitors.add(monitor)
+              const monitor = new SyncMonitor({ garden, log, action: executedAction, graph })
+              garden.monitors.addAndSubscribe(monitor, this)
             }
           } catch (error) {
             actionLog.warn(

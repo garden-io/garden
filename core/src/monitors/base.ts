@@ -12,17 +12,16 @@ import type { Garden } from "../garden"
 
 export interface MonitorBaseParams {
   garden: Garden
-  command: Command
 }
 
 export type MonitorKey = PrimitiveMap
 
 export abstract class Monitor {
-  public command: Command
+  public subscribers: Command[]
   protected garden: Garden
 
   constructor(params: MonitorBaseParams) {
-    this.command = params.command
+    this.subscribers = []
     this.garden = params.garden
   }
 
@@ -33,6 +32,18 @@ export abstract class Monitor {
 
   abstract start(): Promise<{}>
   abstract stop(): Promise<{}>
+
+  subscribe(subscriber: Command) {
+    this.subscribers.push(subscriber)
+  }
+
+  unsubscribe(subscriber: Command) {
+    this.subscribers.filter((sub) => sub === subscriber)
+  }
+
+  unsubscribeAll() {
+    this.subscribers = []
+  }
 
   id() {
     return `"type=${this.type}--key=${this.key()}`
