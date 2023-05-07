@@ -2646,7 +2646,6 @@ describe("Garden", () => {
         await garden.scanAndAddConfigs()
       }).to.not.throw()
     })
-
   })
 
   describe("resolveModules", () => {

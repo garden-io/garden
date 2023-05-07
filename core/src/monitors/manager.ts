@@ -15,7 +15,7 @@ import { TypedEventEmitter } from "../util/events"
 import { KeyedSet } from "../util/keyed-set"
 import type { Monitor } from "./base"
 
-type MonitorStatus = "started" | "starting" | "stopped"
+type MonitorStatus = "starting" | "started" | "stopping" | "stopped"
 
 interface MonitorEvents {
   monitorStatus: { monitor: Monitor; status: MonitorStatus }
@@ -40,14 +40,20 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
   }
 
   add(monitor: Monitor) {
-    if (this.monitors.has(monitor)) {
-      this.log.debug(`${monitor.description()} already registered.`)
-      return
-    }
+    const status = this.getStatus(monitor)
 
-    this.log.debug(`Added ${monitor.description()}.`)
-    this.monitors.add(monitor)
-    this.start(monitor)
+    // TODO: Handle case when monitor has status "stopping"
+    if (this.monitors.has(monitor) && status !== "stopped") {
+      this.log.debug(`${monitor.description()} already registered and active.`)
+      return
+    } else if (this.monitors.has(monitor) && status === "stopped") {
+      this.log.debug(`Restarting stopped monitor ${monitor.description()}.`)
+      this.start(monitor)
+    } else {
+      this.log.debug(`Added ${monitor.description()}.`)
+      this.monitors.add(monitor)
+      this.start(monitor)
+    }
   }
 
   getAll() {
@@ -66,6 +72,10 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
     return this.getAll().filter((m) => m.command === command)
   }
 
+  getById(id: string) {
+    return this.getAll().find((m) => m.id() === id)
+  }
+
   getStatus(monitor: Monitor) {
     return this.monitorStatuses.get(monitor.id()) || "stopped"
   }
@@ -82,7 +92,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
   start(monitor: Monitor) {
     let status = this.getStatus(monitor)
 
-    if (status !== "stopped") {
+    if (status !== "stopped" && status !== "stopping") {
       this.log.silly(`${monitor.description()} already ${status}.`)
       return
     }
@@ -94,7 +104,17 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
     monitor
       .start()
       .then(() => {
-        this.setStatus(monitor, "starting")
+        // A monitor may have been stopped while waiting on this repsonse. If that's the case we don't overwrite the status here.
+        // NOTE: Condsider calling this.stop() in that case to guarantee the actual monitors stops (would assume stopping is idempotent).
+        const currentStatus = this.getStatus(monitor)
+        if (currentStatus === "starting") {
+          this.log.silly(`${monitor.description} started successfully`)
+          this.setStatus(monitor, "started")
+        } else {
+          this.log.silly(
+            `${monitor.description} status changed from 'starting' to ${currentStatus} while being started. Will not set status to 'started'.`
+          )
+        }
       })
       .catch((error) => {
         this.log.error({ msg: chalk.red(`${monitor.description()} failed: ${error}`), error })
@@ -107,12 +127,23 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
     const log = logOverride || this.log.createLog({ fixLevel: LogLevel.verbose })
     log.verbose(`Stopping ${monitor.description()}...`)
 
+    this.setStatus(monitor, "stopping")
+
     monitor
       .stop()
       .then(() => {
-        log.verbose(`${monitor.description()} stopped.`)
-        this.setStatus(monitor, "stopped")
-        this.removeAllListeners()
+        // A monitor may have been started while waiting on this repsonse. If that's the case we don't overwrite the status here.
+        // NOTE: Condsider calling this.start() in that case to guarantee the actual monitors starts (would assume starting is idempotent).
+        const currentStatus = this.getStatus(monitor)
+        if (currentStatus === "stopping") {
+          this.setStatus(monitor, "stopped")
+          this.removeAllListeners()
+          log.silly(`${monitor.description()} stopped.`)
+        } else {
+          this.log.silly(
+            `${monitor.description} status changed from 'stopping' to ${currentStatus} while being stopped. Will not set status to 'stopped'.`
+          )
+        }
       })
       .catch((error) => {
         log.error(chalk.red(`Error when stopping ${monitor.description()}: ${error}`))
@@ -139,12 +170,15 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
   }
 
   /**
-   * Wait for all monitors to exit
+   * Wait for monitors to exit.
+   *
+   * Optionally specify which monitors to wait for by ID, otherwise waits for all.
    */
-  async waitUntilAllStopped() {
+  async waitUntilStopped(ids?: string[]) {
     return new Promise<void>((resolve) => {
       const handler = () => {
-        if (!this.anyMonitorsActive()) {
+        const activeMonitors = this.getActive().filter((m) => (ids ? ids.includes(m.id()) : true))
+        if (activeMonitors.length === 0) {
           resolve()
           this.off("monitorStatus", handler)
         }
