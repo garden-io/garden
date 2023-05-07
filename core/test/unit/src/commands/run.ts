@@ -89,6 +89,74 @@ describe("RunCommand", () => {
     )
   })
 
+  context("detecting invocations to removed 0.12-era run subcommands", () => {
+    it("throws if called with 'test' as the first argument", async () => {
+      await expectError(
+        () =>
+          garden.runCommand({
+            command,
+            args: { names: ["test", "foo"] },
+            opts: {
+              "force": true,
+              "force-build": true,
+              "watch": false,
+              "skip": [],
+              "skip-dependencies": false,
+              "module": undefined,
+            },
+          }),
+        {
+          contains:
+            "The run test command was removed in Garden 0.13",
+        }
+      )
+    })
+
+    it("throws if called with 'task' as the first argument", async () => {
+      await expectError(
+        () =>
+          garden.runCommand({
+            command,
+            args: { names: ["task", "foo"] },
+            opts: {
+              "force": true,
+              "force-build": true,
+              "watch": false,
+              "skip": [],
+              "skip-dependencies": false,
+              "module": undefined,
+            },
+          }),
+        {
+          contains:
+            "The run task command was removed in Garden 0.13",
+        }
+      )
+    })
+
+    it("throws if called with 'workflow' as the first argument", async () => {
+      await expectError(
+        () =>
+          garden.runCommand({
+            command,
+            args: { names: ["workflow", "foo"] },
+            opts: {
+              "force": true,
+              "force-build": true,
+              "watch": false,
+              "skip": [],
+              "skip-dependencies": false,
+              "module": undefined,
+            },
+          }),
+        {
+          contains:
+            "The run workflow command was removed in Garden 0.13",
+        }
+      )
+    })
+  })
+
   it("supports '*' as an argument to select all Runs", async () => {
     const { result } = await garden.runCommand({
       command,

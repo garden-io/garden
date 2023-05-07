@@ -118,6 +118,7 @@ export class RunCommand extends Command<Args, Opts> {
 
     if (args.names && args.names.length > 0) {
       names = args.names
+      detectOldRunCommand(names, args, opts)
     }
 
     if (!names && !opts.module) {
@@ -248,5 +249,24 @@ export class RunCommand extends Command<Args, Opts> {
     const results = await garden.processTasks({ tasks, log })
 
     return handleProcessResults(garden, footerLog, "test", results)
+  }
+}
+
+function detectOldRunCommand(names: string[], args: any, opts: any) {
+  if (["test", "task", "workflow"].includes(names[0])) {
+    let renameDescription = ""
+    if (names[0] === "test") {
+      renameDescription = `The ${chalk.yellow("run test")} command was removed in Garden 0.13. Please use the ${chalk.yellow("test")} command instead.`
+    }
+    if (names[0] === "task") {
+      renameDescription = `The ${chalk.yellow("run task")} command was removed in Garden 0.13. Please use the ${chalk.yellow("run")} command instead.`
+    }
+    if (names[0] === "workflow") {
+      renameDescription = `The ${chalk.yellow("run workflow")} command was removed in Garden 0.13. Please use the ${chalk.yellow("run-workflow")} command instead.`
+    }
+    throw new ParameterError(
+      `Error: ${renameDescription}`,
+      { args, opts }
+    )
   }
 }
