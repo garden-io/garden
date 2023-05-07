@@ -372,7 +372,7 @@ export abstract class CommandGroup extends Command {
 
   describe() {
     const description = super.describe()
-    const subCommands = this.subCommands.map((S) => new S(this).describe())
+    const subCommands = this.getSubCommands().map((c) => c.describe())
 
     return {
       ...description,
@@ -381,7 +381,7 @@ export abstract class CommandGroup extends Command {
   }
 
   renderHelp() {
-    const commands = this.subCommands.map((c) => new c(this))
+    const commands = this.getSubCommands()
 
     return `
 ${cliStyles.heading("USAGE")}
