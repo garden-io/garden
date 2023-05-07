@@ -250,6 +250,15 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
 
   printHeader(_: PrintHeaderParams<A, O>) {}
 
+  /**
+   * Helper function for creating a new instance of the command.
+   * Used e.g. by the server to ensure that each request gets a unique command instance
+   * so that subscribers are managed properly.
+   */
+  clone(): Command {
+    return Object.getPrototypeOf(this).constructor(this.parent)
+  }
+
   // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),
   // subclass implementations need to explicitly set the types in the implemented function signature. So for now we
   // can't enforce the types of `args` and `opts` automatically at the abstract class level and have to specify
