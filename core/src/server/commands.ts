@@ -12,7 +12,7 @@ import { Command } from "../commands/base"
 import { joi } from "../config/common"
 import { validateSchema } from "../config/validation"
 import { extend, mapValues, omitBy } from "lodash"
-import { LogLevel } from "../logger/logger"
+import { ServerLogger } from "../logger/logger"
 import { Log } from "../logger/log-entry"
 import { Parameters, ParameterValues, globalOptions } from "../cli/params"
 import { parseCliArgs, processCliArgs } from "../cli/helpers"
@@ -74,8 +74,9 @@ export function parseRequest(ctx: Koa.ParameterizedContext, log: Log, commands: 
   // command instance and thereby that subscribers are properly isolated at the request level.
   const command = commandSpec.command.clone()
 
-  // We generally don't want actions to log anything in the server.
-  const cmdLog = log.createLog({ fixLevel: LogLevel.silly })
+  // The server logger only logs to stdout at the silly level but still emits log events
+  const serverLogger = new ServerLogger({ rootLogger: log.root, level: log.root.level })
+  const cmdLog = serverLogger.createLog({})
 
   // Prepare arguments for command action.
   let cmdArgs: ParameterValues<any> = {}

@@ -9,7 +9,7 @@
 import Bluebird from "bluebird"
 
 import { Events, EventName, EventBus, pipedEventNames } from "../events"
-import { LogMetadata, Log, LogEntry } from "../logger/log-entry"
+import { LogMetadata, Log, LogEntry, LogContext } from "../logger/log-entry"
 import { got } from "../util/http"
 
 import { LogLevel } from "../logger/logger"
@@ -32,6 +32,7 @@ export interface LogEntryEventPayload {
   timestamp: string
   level: LogLevel
   message: LogEntryMessage
+  context: LogContext
   metadata?: LogMetadata
 }
 
@@ -44,6 +45,7 @@ export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEventPayl
     metadata: entry.metadata,
     timestamp: entry.timestamp,
     level: entry.level,
+    context: entry.context,
     message: {
       section,
       msg: entry.msg,
