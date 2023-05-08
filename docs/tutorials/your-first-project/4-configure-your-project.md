@@ -17,7 +17,7 @@ to get going:
    concepts, and introduce all the moving parts, including the different action kinds and types that Garden supports.
 3. Have a look at the [examples](../../../examples) folder in the Garden repository, which offers several usage examples
    that you can refer to while building out your project.
-4. Set up your actions, getting them building and deploying.
+4. Configure your actions, get them building and deploying.
 5. Make sure your whole project builds and deploys successfully.
 6. Start thinking about tests. Garden excels at managing all the different test suites in your stack, especially
    integration and end-to-end tests that need to run inside your deployment environment.
