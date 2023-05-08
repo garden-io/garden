@@ -728,7 +728,7 @@ export const convertModules = profileAsync(async function convertModules(
 
       convertBuildDependency,
       convertTestName: (d: string) => {
-        return module.name + "-" + d
+        return d
       },
 
       convertRuntimeDependencies,

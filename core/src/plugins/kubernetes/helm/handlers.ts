@@ -111,7 +111,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     }
 
     for (const test of tests) {
-      const testName = module.name + "-" + test.name
+      const testName = test.name
       const resource = convertServiceResource(module, test.spec.resource, testName)
 
       if (!resource) {

@@ -170,10 +170,6 @@ export function getModuleCacheContext<M extends ModuleConfig>(config: M) {
   return pathToCacheContext(config.path)
 }
 
-export function moduleTestNameToActionName(moduleName: string, testName: string) {
-  return `${moduleName}-${testName}`
-}
-
 /**
  * Recursively resolves all the bases for the given module type, ordered from closest base to last.
  */

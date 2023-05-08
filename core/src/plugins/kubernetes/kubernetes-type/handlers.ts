@@ -116,7 +116,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       actions.push({
         kind: "Test",
         type: "kubernetes-pod",
-        name: module.name + "-" + test.name,
+        name: test.name,
         ...params.baseFields,
         disabled: test.disabled,
 

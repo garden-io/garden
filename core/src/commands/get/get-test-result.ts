@@ -15,7 +15,7 @@ import { GetTestResult, getTestResultSchema } from "../../plugin/handlers/Test/g
 import { ParameterValues, StringOption, StringParameter } from "../../cli/params"
 import { ParameterError } from "../../exceptions"
 import { ConfigGraph } from "../../graph/config-graph"
-import { GardenModule, moduleTestNameToActionName } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { findByName, getNames } from "../../util/util"
 import { createActionLog } from "../../logger/log-entry"
 
@@ -130,7 +130,7 @@ export function getTestActionFromArgs(graph: ConfigGraph, args: ParameterValues<
       })
     }
 
-    return graph.getTest(moduleTestNameToActionName(moduleName, testName))
+    return graph.getTest(testName)
   } else {
     return graph.getTest(args.name, { includeDisabled: true })
   }

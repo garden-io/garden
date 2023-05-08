@@ -141,7 +141,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
     actions.push({
       kind: "Test",
       type: "exec",
-      name: module.name + "-" + test.name,
+      name: test.name,
       ...params.baseFields,
 
       disabled: test.disabled,

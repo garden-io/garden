@@ -324,7 +324,7 @@ function getRouterUnitTestPlugins() {
               actions.push({
                 kind: "Test",
                 type: "test",
-                name: module.name + "-" + test.name,
+                name: test.name,
                 ...params.baseFields,
 
                 disabled: test.disabled,

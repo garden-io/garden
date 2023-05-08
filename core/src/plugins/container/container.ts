@@ -265,7 +265,7 @@ function convertContainerModuleRuntimeActions(
     actions.push({
       kind: "Test",
       type: "container",
-      name: module.name + "-" + test.name,
+      name: test.name,
       ...convertParams.baseFields,
 
       disabled: test.disabled,

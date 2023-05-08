@@ -15,7 +15,6 @@ import { filterTestConfigs, TestTask } from "../tasks/test"
 import { naturalList } from "../util/string"
 import { ConfigGraph } from "../graph/config-graph"
 import { RunTask } from "../tasks/run"
-import { moduleTestNameToActionName } from "../types/module"
 import { printEmoji } from "../logger/util"
 import { ActionMode } from "../actions/types"
 
@@ -212,7 +211,7 @@ export const clientRequestHandlers = {
     const { moduleName, testNames, force, forceBuild } = params.request
     const module = graph.getModule(moduleName)
     return filterTestConfigs(module, testNames).map((config) => {
-      const testName = moduleTestNameToActionName(params.request.moduleName, config.name)
+      const testName = config.name
       return new TestTask({
         garden,
         graph,

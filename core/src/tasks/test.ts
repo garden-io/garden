@@ -16,7 +16,6 @@ import { resolvedActionToExecuted } from "../actions/helpers"
 import { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/Test/get-result"
 import { TestConfig } from "../config/test"
-import { moduleTestNameToActionName } from "../types/module"
 
 class TestError extends Error {
   toString() {
@@ -123,8 +122,7 @@ export function filterTestConfigs(module: ModuleConfig, filterNames?: string[]):
     if (!filterNames || filterNames.length === 0) {
       return true
     }
-    const testName = moduleTestNameToActionName(module.name, test.name)
-    return find(filterNames, (n: string) => minimatch(testName, n))
+    return find(filterNames, (n: string) => minimatch(test.name, n))
   }
   return module.testConfigs.filter(acceptableTestConfig)
 }
