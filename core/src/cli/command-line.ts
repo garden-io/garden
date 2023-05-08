@@ -19,6 +19,7 @@ import { getRootLogger } from "../logger/logger"
 import { renderDivider } from "../logger/util"
 import { TypedEventEmitter } from "../util/events"
 import { uuidv4 } from "../util/random"
+import { sleep } from "../util/util"
 import { Autocompleter, AutocompleteSuggestion } from "./autocomplete"
 import { parseCliArgs, pickCommand, processCliArgs, renderCommandErrors, renderCommands } from "./helpers"
 import { GlobalOptions, ParameterValues } from "./params"
@@ -135,7 +136,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.commands = commands
     this.globalOpts = globalOpts
 
-    this.enabled = true
+    this.enabled = false
     this.currentCommand = ""
     this.cursorPosition = 0
     this.historyIndex = history.length
@@ -224,37 +225,49 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     if (handler) {
       handler(input, key)
     } else if (this.isValidInputCharacter(input, key)) {
-      this.currentCommand =
-        this.currentCommand.substring(0, this.cursorPosition) +
-        input +
-        this.currentCommand.substring(this.cursorPosition)
-      this.moveCursor(this.cursorPosition + 1)
-      this.renderCommandLine()
+      this.addCharacter(input)
     }
   }
 
-  private isValidInputCharacter(input: string, key: Key) {
+  private addCharacter(char: string) {
+    this.currentCommand =
+      this.currentCommand.substring(0, this.cursorPosition) + char + this.currentCommand.substring(this.cursorPosition)
+    this.moveCursor(this.cursorPosition + 1)
+    this.renderCommandLine()
+  }
+
+  async typeCommand(line: string) {
+    this.enabled = false
+    this.clear()
+    for (const char of line) {
+      this.addCharacter(char)
+      this.commandLineCallback(commandLinePrefix + this.currentCommand)
+      await sleep(120)
+    }
+    await sleep(250)
+    this.handleReturn()
+    this.commandLineCallback(commandLinePrefix + this.currentCommand)
+  }
+
+  private isValidInputCharacter(input: string, key?: Key) {
     // TODO: this is most likely not quite sufficient, nor the most efficient way to handle the inputs
     // FIXME: for one, typing an umlaut character does not appear to work on international English keyboards
     return (
       input.length === 1 &&
-      !key.backspace &&
-      !key.delete &&
-      !key.downArrow &&
-      !key.escape &&
-      !key.leftArrow &&
-      !key.meta &&
-      !key.pageDown &&
-      !key.pageUp &&
-      !key.return &&
-      !key.rightArrow &&
-      !key.tab &&
-      !key.upArrow
+      (!key ||
+        (!key.backspace &&
+          !key.delete &&
+          !key.downArrow &&
+          !key.escape &&
+          !key.leftArrow &&
+          !key.meta &&
+          !key.pageDown &&
+          !key.pageUp &&
+          !key.return &&
+          !key.rightArrow &&
+          !key.tab &&
+          !key.upArrow))
     )
-  }
-
-  private setCommandLine(line: string) {
-    this.commandLineCallback(line)
   }
 
   private init() {
@@ -353,9 +366,6 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
       }
     })
 
-    this.enabled = true
-    this.renderCommandLine()
-
     setInterval(() => {
       this.showCursor = !this.showCursor
       this.renderCommandLine()
@@ -398,7 +408,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
         sliceAnsi(renderedCommand, this.cursorPosition + 1)
     }
 
-    this.setCommandLine(commandLinePrefix + renderedCommand)
+    this.commandLineCallback(commandLinePrefix + renderedCommand)
   }
 
   renderStatus() {
@@ -419,9 +429,9 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   }
 
   disable(message: string) {
-    this.setCommandLine(message)
-    this.clearTimeout()
     this.enabled = false
+    this.clearTimeout()
+    this.commandLineCallback(message)
   }
 
   enable() {
@@ -543,7 +553,7 @@ ${chalk.white.underline("Keys:")}
     }
   }
 
-  private clear() {
+  clear() {
     this.currentCommand = ""
     this.moveCursor(0)
     this.renderCommandLine()

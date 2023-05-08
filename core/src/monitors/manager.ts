@@ -119,7 +119,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
 
     this.setStatus(monitor, "starting")
 
-    this.log.verbose(`Starting ${monitor.description()}...`)
+    this.log.info(`Starting ${monitor.description()}...`)
 
     monitor
       .start()
