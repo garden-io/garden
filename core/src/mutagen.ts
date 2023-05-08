@@ -603,13 +603,12 @@ export class Mutagen {
 
     while (true) {
       try {
-        const res = mutagenCli.exec({
+        return await mutagenCli.exec({
           cwd: this.dataDir,
           args,
           log: this.log,
           env: getMutagenEnv(this.dataDir),
         })
-        return res
       } catch (err) {
         const unableToConnect = err.message.match(/unable to connect to daemon/)
         if (unableToConnect && loops < 10) {
