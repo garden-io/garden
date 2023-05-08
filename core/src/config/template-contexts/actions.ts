@@ -209,7 +209,7 @@ export class ActionSpecContext extends OutputConfigContext {
       "Runtime outputs and information from other actions (only resolved at runtime when executing actions)."
     )
   )
-  public action: ActionReferencesContext
+  public actions: ActionReferencesContext
 
   @schema(ActionReferencesContext.getSchema().description("Alias for `action`."))
   public runtime: ActionReferencesContext
@@ -260,13 +260,13 @@ export class ActionSpecContext extends OutputConfigContext {
     const parentName = internal?.parentName
     const templateName = internal?.templateName
 
-    this.action = new ActionReferencesContext(this, partialRuntimeResolution, [
+    this.actions = new ActionReferencesContext(this, partialRuntimeResolution, [
       ...resolvedDependencies,
       ...executedDependencies,
     ])
 
     // Throw specific error when attempting to resolve self
-    this.action[action.kind.toLowerCase()].set(
+    this.actions[action.kind.toLowerCase()].set(
       name,
       new ErrorContext(`Action ${chalk.white.bold(action.key())} cannot reference itself.`)
     )
@@ -277,7 +277,7 @@ export class ActionSpecContext extends OutputConfigContext {
     }
     this.inputs = inputs
 
-    this.runtime = this.action
+    this.runtime = this.actions
 
     this.this = new ActionReferenceContext({
       root: this,
