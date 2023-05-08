@@ -48,7 +48,7 @@ const runWorkflowArgs = {
 
 type Args = typeof runWorkflowArgs
 
-interface WorkflowRunOutput {
+export interface WorkflowRunOutput {
   steps: { [stepName: string]: WorkflowStepResult }
 }
 
