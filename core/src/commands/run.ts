@@ -217,7 +217,7 @@ export class RunCommand extends Command<Args, Opts> {
           dedent`
             ${divider}
             The ${chalk.white("garden run workflow")} command has been renamed to
-            ${chalk.whiteBright("garden run-workflow")} (note the dash).
+            ${chalk.whiteBright("garden workflow")}.
             ${divider}
           `
         ),
@@ -256,17 +256,20 @@ function detectOldRunCommand(names: string[], args: any, opts: any) {
   if (["test", "task", "workflow"].includes(names[0])) {
     let renameDescription = ""
     if (names[0] === "test") {
-      renameDescription = `The ${chalk.yellow("run test")} command was removed in Garden 0.13. Please use the ${chalk.yellow("test")} command instead.`
+      renameDescription = `The ${chalk.yellow(
+        "run test"
+      )} command was removed in Garden 0.13. Please use the ${chalk.yellow("test")} command instead.`
     }
     if (names[0] === "task") {
-      renameDescription = `The ${chalk.yellow("run task")} command was removed in Garden 0.13. Please use the ${chalk.yellow("run")} command instead.`
+      renameDescription = `The ${chalk.yellow(
+        "run task"
+      )} command was removed in Garden 0.13. Please use the ${chalk.yellow("run")} command instead.`
     }
     if (names[0] === "workflow") {
-      renameDescription = `The ${chalk.yellow("run workflow")} command was removed in Garden 0.13. Please use the ${chalk.yellow("run-workflow")} command instead.`
+      renameDescription = `The ${chalk.yellow(
+        "run workflow"
+      )} command was removed in Garden 0.13. Please use the ${chalk.yellow("workflow")} command instead.`
     }
-    throw new ParameterError(
-      `Error: ${renameDescription}`,
-      { args, opts }
-    )
+    throw new ParameterError(`Error: ${renameDescription}`, { args, opts })
   }
 }

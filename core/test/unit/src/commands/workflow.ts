@@ -21,7 +21,7 @@ import {
   getDataDir,
 } from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import { RunWorkflowCommand, shouldBeDropped } from "../../../../src/commands/run-workflow"
+import { WorkflowCommand, shouldBeDropped } from "../../../../src/commands/workflow"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { joi } from "../../../../src/config/common"
 import { ProjectConfig } from "../../../../src/config/project"
@@ -32,7 +32,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { defaultWorkflowResources, WorkflowStepSpec } from "../../../../src/config/workflow"
 
 describe("RunWorkflowCommand", () => {
-  const cmd = new RunWorkflowCommand()
+  const cmd = new WorkflowCommand()
   let garden: TestGarden
   let defaultParams: any
 
@@ -1019,7 +1019,7 @@ describe("RunWorkflowCommand", () => {
 })
 
 describe("Lazy provider initialization in RunWorkflowCommand", () => {
-  const cmd = new RunWorkflowCommand()
+  const cmd = new WorkflowCommand()
   let garden: TestGarden
   let defaultParams: any
 

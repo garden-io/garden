@@ -108,7 +108,6 @@ garden cleanup deploy my-deploy
 
 ## `Test` actions
 
-
 ### Running all tests in a project
 
 ```sh
@@ -158,7 +157,7 @@ garden build my-build
 Runs `my-workflow` in `my-namespace` in the `dev` environment.
 
 ```sh
-garden run-workflow my-workflow --env=my-namespace.dev
+garden workflow my-workflow --env=my-namespace.dev
 ```
 
 ## Logs
@@ -242,7 +241,7 @@ garden create module
 
 ### Creating an action
 
-[//]: # (TODO)
+[//]: # "TODO"
 
 ## Remote sources
 

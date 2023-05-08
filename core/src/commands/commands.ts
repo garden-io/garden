@@ -27,7 +27,7 @@ import { OptionsCommand } from "./options"
 import { PluginsCommand } from "./plugins"
 import { PublishCommand } from "./publish"
 import { RunCommand } from "./run"
-import { RunWorkflowCommand } from "./run-workflow"
+import { WorkflowCommand } from "./workflow"
 import { SelfUpdateCommand } from "./self-update"
 import { ServeCommand } from "./serve"
 import { SetCommand } from "./set"
@@ -59,7 +59,7 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new PluginsCommand(),
   new PublishCommand(),
   new RunCommand(),
-  new RunWorkflowCommand(),
+  new WorkflowCommand(),
   new SelfUpdateCommand(),
   new ServeCommand(),
   new SetCommand(),
