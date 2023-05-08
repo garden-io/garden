@@ -632,7 +632,7 @@ ${chalk.white.underline("Keys:")}
     })
 
     const id = uuidv4()
-    const width = this.getTermWidth()
+    const width = this.getTermWidth() - 2
 
     const params = {
       garden: this.garden,
@@ -660,8 +660,11 @@ ${chalk.white.underline("Keys:")}
 
     // Execute the command
     if (!command.isDevCommand) {
-      this.flashMessage(getCmdStartMsg(name))
-      logCommandStart({ commandName: name, width, log: this.log })
+      // this.flashMessage(getCmdStartMsg(name))
+      // logCommandStart({ commandName: name, width, log: this.log })
+      const msg = `Running command: ${chalk.white.bold(rawArgs.join(" "))}`
+      this.flashMessage(msg)
+      this.log.info({ msg: "\n" + renderDivider({ width, title: msg, color: chalk.blueBright, char: "┈" }) })
       this.runningCommands[id] = { command, params }
       this.renderStatus()
     }
