@@ -113,7 +113,7 @@ spec:
       port: http
 ```
 
-Before deploying the application, you need to set up a local kubernetes cluster or connect to a remote cluster.
+Before deploying, you need to set up a local kubernetes cluster or connect to a remote cluster.
 First you can try to deploy the project with the local kubernetes cluster.
 
 Now, let's move on to our next section, and [connect to a Kubernetes cluster](./2-connect-to-a-cluster.md).
