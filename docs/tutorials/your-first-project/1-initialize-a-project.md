@@ -90,14 +90,12 @@ name: frontend
 description: Frontend service container
 type: container
 
-# This defines an image to be used and refers the 'frontend' Build action defined above
 build: frontend
 # Dependency section is used to specify action execution order. The frontend will be deployed after the backend is deployed.
 # Dependency for the Build action is implicit.
 dependencies:
   - deploy.backend
 
-# This block is necessary to deploy and expose the frontend application
 spec:
   ports:
     - name: http

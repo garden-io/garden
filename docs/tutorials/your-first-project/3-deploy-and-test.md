@@ -26,7 +26,7 @@ build: frontend
 spec:
   args: [ npm, test ]
 
---- # the yaml separator is necessary to delimit different actions
+---
 
 kind: Test
 name: frontend-integ
