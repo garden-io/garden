@@ -114,14 +114,14 @@ Here's a section from the manifests in our example:
 ...
       containers:
         - name: main
-          image: ${action.build["${parent.name}"].outputs.deployment-image-id}
+          image: ${actions.build["${parent.name}"].outputs.deployment-image-id}
           imagePullPolicy: "Always"
           ports:
             - name: http
               containerPort: ${inputs.containerPort}
 ```
 
-Notice the `image` field above. We use bracket notation to template the action name, whose outputs we want to reference: `${action.build["${parent.name}"].outputs.deployment-image-id}`. Here we're using that to get the built image ID of the `${parent.name}` Build in the same template.
+Notice the `image` field above. We use bracket notation to template the action name, whose outputs we want to reference: `${actions.build["${parent.name}"].outputs.deployment-image-id}`. Here we're using that to get the built image ID of the `${parent.name}` Build in the same template.
 
 _Note that for a reference like this to work, that action also needs to be specified as a dependency._
 

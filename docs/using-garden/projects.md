@@ -112,7 +112,7 @@ kind: Project
 name: my-project
 ...
 outputs:
-  my-action-image: ${action.build.my-image.outputs.deployment-image-id}
+  my-action-image: ${actions.build.my-image.outputs.deployment-image-id}
 ```
 
 You can then retrieve this value by running e.g. `garden get outputs -o json` and parsing the output with `jq`.

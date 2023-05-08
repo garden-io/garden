@@ -84,7 +84,7 @@ type: helm-pod
 dependencies:
   - deploy.api
 variables:
-  hostname: vote.${var.baseHostname}  
+  hostname: vote.${var.baseHostname}
 timeout: 60
 spec:
   resource:
@@ -167,8 +167,8 @@ dependencies: [build.worker-image]
 spec:
   values:
     image:
-      repository: ${action.build.worker-image.outputs.deployment-image-name}
-      tag: ${action.build.worker-image.version}
+      repository: ${actions.build.worker-image.outputs.deployment-image-name}
+      tag: ${actions.build.worker-image.version}
 
 ```
 
@@ -195,7 +195,7 @@ spec:
   sync:
     paths:
       - containerPath: /app/src
-        sourcePath: ${action.build.vote-image.sourcePath}/src
+        sourcePath: ${actions.build.vote-image.sourcePath}/src
         mode: two-way
 
 ```
@@ -216,7 +216,7 @@ You can define a remote environment as a `production` environment by setting the
 
 ## Next steps
 
-Check out the full [action reference](../../reference/action-types/README.md) for more details 
+Check out the full [action reference](../../reference/action-types/README.md) for more details
 and the [vote-helm](../../../examples/vote-helm/README.md) example project for a full project
 that showcases Garden's Helm support.
 
