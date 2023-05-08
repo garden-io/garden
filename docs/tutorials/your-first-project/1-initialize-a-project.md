@@ -56,7 +56,7 @@ name: backend
 description: Backend service container
 type: container
 
-# This defines an image to be used and refers the 'backend' Build action defined above
+# Reference to the Build action that builds the image to be deployed (defined above)
 build: backend
 
 # This block is necessary to deploy and expose the backend application
