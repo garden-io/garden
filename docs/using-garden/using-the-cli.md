@@ -241,7 +241,7 @@ garden create module
 
 ### Creating an action
 
-[//]: # "TODO"
+See the [actions guide](./actions.md) to learn more about actions and how to create them.
 
 ## Remote sources
 

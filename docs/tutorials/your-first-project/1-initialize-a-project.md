@@ -5,18 +5,21 @@ order: 1
 
 # 1. Initialize a Project
 
-With the Garden CLI [installed](../../basics/quickstart.md#step-1-install-garden), we'll kick off by configuring a simple example project for use with Garden.
+With the Garden CLI [installed](../../basics/quickstart.md#step-1-install-garden), we'll kick off by configuring a
+simple example project for use with Garden.
 
-Start by cloning our repo and finding the example project:
+Start by cloning our repo and finding the [example project](../../../examples/demo-project-start):
 
 ```sh
 git clone https://github.com/garden-io/garden.git
 cd garden/examples/demo-project-start
 ```
 
-This directory contains two directories, with one container service each, `backend` and `frontend`. We'll first define a boilerplate Garden project, and then a Garden module for each of the services.
+The example directory has two directories: `backend` and `frontend`. Each contains simple application with
+a `Dockerfile`. We'll first define a boilerplate Garden project, and then Garden action configurations for each
+application.
 
-To initialize the project, we can use a helper command:
+To initialize the project use a helper command:
 
 ```sh
 garden create project
@@ -35,55 +38,80 @@ providers:
 
 We have one environment (`default`) and a single provider. We'll get back to this later.
 
-Next, let's create module configs for each of our two modules, starting with `backend`.
+Next, let's create action configs for each of our two applications, starting with `backend`.
 
-```sh
-cd backend
-garden create module
-cd ..
-```
-
-You'll get a suggestion to make it a `container` module. Pick that, and give it the default name as well. Then do the same for the `frontend` module:
-
-```sh
-cd frontend
-garden create module
-cd ..
-```
-
-This is now enough configuration to build the project. Before we can deploy, we need to configure `services` in each module configuration, as well as set up a local cluster or connect to a remote cluster.
-
-Starting with the former, go ahead and open the newly created `backend/garden.yml` file. Just to keep things simple for now, go ahead and append to the file the following:
+First we need to define `Build` and `Deploy` actions for the `backend` application. Let's use `container` action type.
+Create an empty `backend.garden.yml` config file in the `backend` directory and add the following lines:
 
 ```yaml
-services:
-  - name: backend
-    ports:
-      - name: http
-        containerPort: 8080
-        servicePort: 80
-    ingresses:
-      - path: /hello-backend
-        port: http
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
+
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+
+# Reference to the Build action that builds the image to be deployed (defined above)
+build: backend
+
+# Action type specific config goes under the `spec` block
+spec:
+  healthCheck:
+    httpGet:
+      path: /hello-backend
+      port: http
+  ports:
+    - name: http
+      containerPort: 8080
+      servicePort: 80
+  ingresses:
+    - path: /hello-backend
+      port: http
 ```
 
-This is enough information for Garden to be able to deploy and expose the `backend` service. Now do the same for the `frontend` service, with the following block:
+Next, let's do the same for the `frontend` application:
+Create a `frontend.garden.yml` config file in the `frontend` directory and add the following lines:
 
-```yaml
-services:
-  - name: frontend
-    ports:
-      - name: http
-        containerPort: 8080
-    ingresses:
-      - path: /hello-frontend
-        port: http
-      - path: /call-backend
-        port: http
-    dependencies:
-      - backend
+```sh
+kind: Build
+name: frontend
+description: Frontend service container image
+type: container
+
+---
+
+kind: Deploy
+name: frontend
+description: Frontend service container
+type: container
+
+build: frontend
+# Dependency section is used to specify action execution order. The frontend will be deployed after the backend is deployed.
+# Dependency for the Build action is implicit.
+dependencies:
+  - deploy.backend
+
+spec:
+  ports:
+    - name: http
+      containerPort: 8080
+  healthCheck:
+    httpGet:
+      path: /hello-frontend
+      port: http
+  ingresses:
+    - path: /hello-frontend
+      port: http
+    - path: /call-backend
+      port: http
 ```
 
-This does the same for the `frontend` service, with the addition of declaring a runtime dependency on the `backend` service.
+Before deploying, you need to set up a local kubernetes cluster or connect to a remote cluster.
+First you can try to deploy the project with the local kubernetes cluster.
 
 Now, let's move on to our next section, and [connect to a Kubernetes cluster](./2-connect-to-a-cluster.md).
