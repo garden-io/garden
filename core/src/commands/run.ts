@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import { Command, CommandParams, handleProcessResults, PrepareParams, processCommandResultSchema } from "./base"
 import { RunTask } from "../tasks/run"
-import { printHeader, renderDivider } from "../logger/util"
+import { printHeader } from "../logger/util"
 import { ParameterError } from "../exceptions"
 import { dedent, deline } from "../util/string"
 import { BooleanParameter, StringsParameter } from "../cli/params"
@@ -106,20 +106,22 @@ export class RunCommand extends Command<Args, Opts> {
   async action(params: CommandParams<Args, Opts>) {
     const { garden, log, footerLog, args, opts } = params
 
+    // Detect possible old-style invocations as early as possible
+    // Needs to be done before graph init to support lazy init usecases, e.g. workflows
+    let names: string[] | undefined = undefined
+    if (args.names && args.names.length > 0) {
+      names = args.names
+      detectOldRunCommand(names, args, opts)
+    }
+
     if (opts.watch) {
       await watchRemovedWarning(garden, log)
     }
 
     const graph = await garden.getConfigGraph({ log, emit: true })
 
-    let names: string[] | undefined = undefined
     const force = opts.force
     const skipRuntimeDependencies = opts["skip-dependencies"]
-
-    if (args.names && args.names.length > 0) {
-      names = args.names
-      detectOldRunCommand(names, args, opts)
-    }
 
     if (!names && !opts.module) {
       throw new ParameterError(
@@ -165,65 +167,6 @@ export class RunCommand extends Command<Args, Opts> {
 
     actions = actions.filter((a) => !a.isDisabled() || opts.force)
 
-    // Warn users if they seem to be trying to use old `run <...>` commands.
-    const divider = renderDivider()
-    const firstArg = args.names?.[0]
-    const warningKey = `run-${firstArg}-removed`
-
-    if (firstArg === "test") {
-      await garden.emitWarning({
-        key: warningKey,
-        log,
-        message: chalk.yellowBright(
-          dedent`
-            ${divider}
-            The ${chalk.white("garden run test")} command has been removed.
-            Please use ${chalk.whiteBright("garden test")} instead.
-            ${divider}
-          `
-        ),
-      })
-    } else if (firstArg === "task") {
-      await garden.emitWarning({
-        key: warningKey,
-        log,
-        message: chalk.yellowBright(
-          dedent`
-            ${divider}
-            The ${chalk.white("garden run task")} command has been renamed to
-            ${chalk.whiteBright("garden run")}. Please make sure you're using the right syntax.
-            ${divider}
-          `
-        ),
-      })
-    } else if (firstArg === "module" || firstArg === "service") {
-      await garden.emitWarning({
-        key: warningKey,
-        log,
-        message: chalk.yellowBright(
-          dedent`
-            ${divider}
-            The ${chalk.white("garden run " + firstArg)} command has been removed.
-            Please define a Run action instead, or use the underlying tools (e.g. Docker or Kubernetes) directly.
-            ${divider}
-          `
-        ),
-      })
-    } else if (firstArg === "workflow") {
-      await garden.emitWarning({
-        key: warningKey,
-        log,
-        message: chalk.yellowBright(
-          dedent`
-            ${divider}
-            The ${chalk.white("garden run workflow")} command has been renamed to
-            ${chalk.whiteBright("garden run-workflow")} (note the dash).
-            ${divider}
-          `
-        ),
-      })
-    }
-
     const tasks = actions.map(
       (action) =>
         new RunTask({
@@ -253,20 +196,28 @@ export class RunCommand extends Command<Args, Opts> {
 }
 
 function detectOldRunCommand(names: string[], args: any, opts: any) {
-  if (["test", "task", "workflow"].includes(names[0])) {
+  if (["module", "service", "task", "test", "workflow"].includes(names[0])) {
     let renameDescription = ""
-    if (names[0] === "test") {
-      renameDescription = `The ${chalk.yellow("run test")} command was removed in Garden 0.13. Please use the ${chalk.yellow("test")} command instead.`
+    const firstArg = names[0]
+    if (firstArg === "module" || firstArg === "service") {
+      renameDescription = `The ${chalk.white("garden run " + firstArg)} command has been removed.
+      Please define a Run action instead, or use the underlying tools (e.g. Docker or Kubernetes) directly.`
     }
-    if (names[0] === "task") {
-      renameDescription = `The ${chalk.yellow("run task")} command was removed in Garden 0.13. Please use the ${chalk.yellow("run")} command instead.`
+    if (firstArg === "task") {
+      renameDescription = `The ${chalk.yellow(
+        "run task"
+      )} command was removed in Garden 0.13. Please use the ${chalk.yellow("run")} command instead.`
     }
-    if (names[0] === "workflow") {
-      renameDescription = `The ${chalk.yellow("run workflow")} command was removed in Garden 0.13. Please use the ${chalk.yellow("run-workflow")} command instead.`
+    if (firstArg === "test") {
+      renameDescription = `The ${chalk.yellow(
+        "run test"
+      )} command was removed in Garden 0.13. Please use the ${chalk.yellow("test")} command instead.`
     }
-    throw new ParameterError(
-      `Error: ${renameDescription}`,
-      { args, opts }
-    )
+    if (firstArg === "workflow") {
+      renameDescription = `The ${chalk.yellow(
+        "run workflow"
+      )} command was removed in Garden 0.13. Please use the ${chalk.yellow("workflow")} command instead.`
+    }
+    throw new ParameterError(`Error: ${renameDescription}`, { args, opts })
   }
 }

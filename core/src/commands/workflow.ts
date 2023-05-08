@@ -52,8 +52,8 @@ interface WorkflowRunOutput {
   steps: { [stepName: string]: WorkflowStepResult }
 }
 
-export class RunWorkflowCommand extends Command<Args, {}> {
-  name = "run-workflow"
+export class WorkflowCommand extends Command<Args, {}> {
+  name = "workflow"
   help = "Run a Workflow."
 
   streamEvents = true
@@ -64,7 +64,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
     Examples:
 
-        garden run-workflow my-workflow
+        garden workflow my-workflow
   `
 
   arguments = runWorkflowArgs

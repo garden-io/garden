@@ -3347,7 +3347,7 @@ success:
 graphResults:
 ```
 
-### garden run-workflow
+### garden workflow
 
 **Run a Workflow.**
 
@@ -3355,11 +3355,11 @@ Runs the commands and/or scripts defined in the workflow's steps, in sequence.
 
 Examples:
 
-    garden run-workflow my-workflow
+    garden workflow my-workflow
 
 #### Usage
 
-    garden run-workflow <workflow> 
+    garden workflow <workflow> 
 
 #### Arguments
 

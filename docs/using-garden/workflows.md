@@ -12,7 +12,7 @@ Custom shell scripts can be used for preparation ahead of running Garden command
 A sequence of commands executed in a workflow is also generally more efficent than scripting successive runs of Garden CLI commands, since state is cached between the commands, and there is no startup delay between the commands.
 
 {% hint style="warning" %}
-As of Garden 0.13, the CLI command to run a Workflow is `garden run-workflow` (note the dash), instead of `garden run workflow`.
+As of Garden 0.13, the CLI command to run a Workflow is `garden workflow` instead of `garden run workflow`.
 {% endhint %}
 
 ## How it Works
@@ -31,7 +31,7 @@ We suggest making a `workflows.garden.yml` next to your project configuration in
 
 Each step in your workflow can either trigger Garden commands, or run custom scripts. The steps are executed in succession. If a step fails, the remainder of the workflow is aborted.
 
-You can run a workflow by running `garden run-workflow <name>`, or have it [trigger automatically](#triggers) via Garden Enterprise.
+You can run a workflow by running `garden workflow <name>`, or have it [trigger automatically](#triggers) via Garden Enterprise.
 
 ### Command steps
 
@@ -41,7 +41,7 @@ A simple command step looks like this:
 kind: Workflow
 name: my-workflow
 steps:
-  - command: [deploy]  # runs garden deploy
+  - command: [deploy] # runs garden deploy
 ```
 
 You can also provide arguments to commands, and even template them:
@@ -92,8 +92,8 @@ envVars:
   MY_ENV_VAR: some-value
   MY_PROJECT_VAR: ${var.my-var} # Use template strings
   SECRET_ACCESS_TOKEN: ${secrets.SECRET_ACCESS_TOKEN} # Use a Garden Enterprise secret
-...
 ```
+
 Workflow-level environment variables like this can be useful e.g. for providing templated values (such as secrets or project variables) to several script steps, or to initialize providers in the context of a CI system.
 
 Note that workflow-level environment variables apply to all steps of a workflow (both command and script steps).
@@ -107,10 +107,11 @@ The `skip` field is a boolean. If its value is `true`, the step will be skipped,
 Note that skipped steps don't produce any outputs (see the [step outputs](#step-outputs) section below for more). However, skipped steps are shown in the command log.
 
 The `when` field can be used with the following values:
-* `onSuccess` (default): This step will be run if all preceding steps succeeded or were skipped.
-* `onError`: This step will be run if a preceding step failed, or if its preceding step has `when: onError`. If the next step has `when: onError`, it will also be run. Otherwise, all subsequent steps are ignored. See below for more.
-* `always`: The step will always be run, regardless of whether any previous steps have failed.
-* `never`: The step will always be ignored, even if all previous steps succeeded. Note: Ignored steps don't show up in the command logs.
+
+- `onSuccess` (default): This step will be run if all preceding steps succeeded or were skipped.
+- `onError`: This step will be run if a preceding step failed, or if its preceding step has `when: onError`. If the next step has `when: onError`, it will also be run. Otherwise, all subsequent steps are ignored. See below for more.
+- `always`: The step will always be run, regardless of whether any previous steps have failed.
+- `never`: The step will always be ignored, even if all previous steps succeeded. Note: Ignored steps don't show up in the command logs.
 
 The simplest usage pattern for `onError` steps is to place them at the end of your workflow (which ensures that they're run if any step in your workflow fails):
 
@@ -124,14 +125,14 @@ steps:
   - script: |
       echo "Run if any of the previous steps failed"
     when: onError
-  - script:
-      echo "This task is always run, regardless of whether any previous steps failed."
+  - script: echo "This task is always run, regardless of whether any previous steps failed."
     when: always
 ```
 
 A more advanced use case is to use `onError` steps to set up "error handling checkpoints" in your workflow.
 
 For example, if the first step (`run my-task`) fails in this workflow:
+
 ```yaml
 kind: Workflow
 name: my-workflow
@@ -152,9 +153,11 @@ steps:
       echo "This task is always run, regardless of whether any previous steps failed."
     when: always
 ```
+
 then the first two `onError` steps will be run, and all other steps will be skipped (except for the last one, since it has `when: always`). This can be useful for rollback operations that are relevant only at certain points in the workflow.
 
- You can also template the values of `skip` and `when` for even more flexibility. For example:
+You can also template the values of `skip` and `when` for even more flexibility. For example:
+
 ```yaml
 kind: Workflow
 name: my-workflow
