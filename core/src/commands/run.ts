@@ -229,7 +229,7 @@ function maybeOldRunCommand(names: string[], args: any, opts: any, log: Log, par
     }
     if (firstArg === "task") {
       log.warn(
-        `The ${chalk.yellow("run task")} command was removed in Garden 0.13. Please use the ${chalk.yellow(
+        `The ${chalk.yellow("run task")} command will be removed in Garden 0.14. Please use the ${chalk.yellow(
           "run"
         )} command instead.`
       )
@@ -239,7 +239,7 @@ function maybeOldRunCommand(names: string[], args: any, opts: any, log: Log, par
     }
     if (firstArg === "test") {
       log.warn(
-        `The ${chalk.yellow("run test")} command was removed in Garden 0.13. Please use the ${chalk.yellow(
+        `The ${chalk.yellow("run test")} command will be removed in Garden 0.14. Please use the ${chalk.yellow(
           "test"
         )} command instead.`
       )
@@ -250,7 +250,7 @@ function maybeOldRunCommand(names: string[], args: any, opts: any, log: Log, par
     }
     if (firstArg === "workflow") {
       log.warn(
-        `The ${chalk.yellow("run workflow")} command was removed in Garden 0.13. Please use the ${chalk.yellow(
+        `The ${chalk.yellow("run workflow")} command will be removed in Garden 0.14. Please use the ${chalk.yellow(
           "workflow"
         )} command instead.`
       )
