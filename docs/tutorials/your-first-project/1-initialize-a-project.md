@@ -75,7 +75,7 @@ spec:
 ```
 
 Next, let's do the same for the `frontend` application:
-Create an empty `frontend.garden.yml` config file in the `frontend` directory and add the following lines:
+Create a `frontend.garden.yml` config file in the `frontend` directory and add the following lines:
 
 ```sh
 kind: Build
