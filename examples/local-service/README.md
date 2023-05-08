@@ -45,7 +45,7 @@ spec:
     command: ["yarn", "run", "dev"] # <--- This is the command Garden runs to start the process in sync mode
     statusCommand: [./check-local-status.sh] # <--- Optionally set a status command that checks whether the local service is ready
   deployCommand: [] # <--- A no op since we only want to deploy it when we're in sync mode
-  env: ${action.deploy.frontend.env} # <--- Reference the env variable defined above
+  env: ${actions.deploy.frontend.env} # <--- Reference the env variable defined above
 ```
 
 In the config above the `local-frontend` deploy action is always enabled when in sync mode, but you can choose to conditionally enable it as well.

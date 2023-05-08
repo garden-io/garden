@@ -33,7 +33,7 @@ name: backend
 # Corresponds to the ARG directive in the Dockerfile.
 spec:
   buildArgs:
-    BASE_IMAGE_VERSION: ${action.build.base-image.version}
+    BASE_IMAGE_VERSION: ${actions.build.base-image.version}
 ```
 
 and

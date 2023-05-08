@@ -16,12 +16,12 @@ spec:
   sync:
     paths:
       - containerPath: /app/src
-        sourcePath: ${action.build.vote-image.sourcePath}/src
+        sourcePath: ${actions.build.vote-image.sourcePath}/src
         mode: two-way
   values:
     image:
-      repository: ${action.build.vote-image.outputs.deployment-image-name}
-      tag: ${action.build.vote-image.version}
+      repository: ${actions.build.vote-image.outputs.deployment-image-name}
+      tag: ${actions.build.vote-image.version}
     ingress:
       enabled: true
       paths: [/]
@@ -52,7 +52,7 @@ type: helm-pod
 dependencies:
   - deploy.api
 variables:
-  hostname: vote.${var.baseHostname}  
+  hostname: vote.${var.baseHostname}
 timeout: 60
 spec:
   resource:
@@ -61,8 +61,8 @@ spec:
   command: [/bin/sh, -c, "npm run test:integ"]
   values:
     image:
-      repository: ${action.build.vote-image.outputs.deployment-image-name}
-      tag: ${action.build.vote-image.version}
+      repository: ${actions.build.vote-image.outputs.deployment-image-name}
+      tag: ${actions.build.vote-image.version}
     ingress:
       enabled: true
       paths: [/]

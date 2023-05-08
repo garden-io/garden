@@ -11,8 +11,8 @@ spec:
   values:
     name: api
     image:
-      repository: ${action.build.api-image.outputs.deployment-image-name}
-      tag: ${action.build.api-image.version}
+      repository: ${actions.build.api-image.outputs.deployment-image-name}
+      tag: ${actions.build.api-image.version}
     ingress:
       enabled: true
       paths: [/]
