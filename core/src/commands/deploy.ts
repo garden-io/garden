@@ -247,7 +247,7 @@ export class DeployCommand extends Command<Args, Opts> {
           logLevel: parseLogLevel(opts["log-level"]),
           tagFilters: undefined,
           showTimestamps: opts["timestamps"],
-          since: "1s",
+          since: "1m",
         })
         garden.monitors.addAndSubscribe(logMonitor, this)
       }
