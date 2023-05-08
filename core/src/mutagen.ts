@@ -275,6 +275,10 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
           }
         })
 
+        proc.once("start", () => {
+          log.verbose("Mutagen synchronization monitor started")
+        })
+
         proc.start()
       })
     })
