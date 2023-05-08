@@ -38,11 +38,14 @@ import { ServeCommand } from "../commands/serve"
 import { getBuiltinCommands } from "../commands/commands"
 import { sanitizeValue } from "../util/logging"
 import { uuidv4 } from "../util/random"
+import { logCommandError, logCommandOutputErrors, logCommandStart, logCommandSuccess } from "../cli/command-line"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
 export const defaultWatchServerPort = 9777
 const notReadyMessage = "Waiting for Garden instance to initialize"
+
+const skipLogsForCommands = ["autocomplete"]
 
 interface WebsocketCloseEvent {
   code: number
@@ -496,6 +499,9 @@ export class GardenServer extends EventEmitter {
         }
 
         const persistent = command.maybePersistent(prepareParams)
+        const termWidth = process.stdout?.columns || 100
+        // We don't want to print logs on every request for some commands.
+        const printLogs = !skipLogsForCommands.includes(command.getFullName())
 
         command
           .prepare(prepareParams)
@@ -516,6 +522,10 @@ export class GardenServer extends EventEmitter {
                   data: sanitizeValue(data),
                 })
               })
+            }
+
+            if (printLogs) {
+              logCommandStart({ commandName: command.getFullName(), width: termWidth, log })
             }
 
             // TODO: validate result schema
@@ -566,10 +576,20 @@ export class GardenServer extends EventEmitter {
                 errors,
               })
             )
+            if (printLogs) {
+              if (errors?.length) {
+                logCommandOutputErrors({ errors, log, width: termWidth })
+              } else {
+                logCommandSuccess({ commandName: command.getFullName(), width: termWidth, log })
+              }
+            }
             delete this.activePersistentRequests[requestId]
           })
-          .catch((err) => {
-            send("error", { message: err.message, requestId })
+          .catch((error) => {
+            send("error", { message: error.message, requestId })
+            if (printLogs) {
+              logCommandError({ error, width: termWidth, log: this.log })
+            }
             delete this.activePersistentRequests[requestId]
           })
       } catch (err) {

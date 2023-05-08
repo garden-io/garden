@@ -55,6 +55,38 @@ interface CommandLineEvents {
   message: string
 }
 
+function getCmdStartMsg(commandName: string) {
+  return `Running ${chalk.white.bold(commandName)}...`
+}
+
+function getCmdSuccessMsg(commandName: string) {
+  return `${chalk.whiteBright(commandName)} command completed successfully!`
+}
+
+function getCmdFailMsg(commandName: string) {
+  return `Failed running the ${commandName} command. Please see above for the logs.`
+}
+
+export function logCommandStart({ commandName, log, width }: { commandName: string; log: Log; width: number }) {
+  const msg = getCmdStartMsg(commandName)
+  log.info("\n" + renderDivider({ width, title: msg, color: chalk.blueBright, char: "┈" }))
+}
+
+export function logCommandSuccess({ commandName, log, width }: { commandName: string; log: Log; width: number }) {
+  const msg = getCmdSuccessMsg(commandName)
+  log.info(renderDivider({ width, title: chalk.green("✓ ") + msg, color: chalk.blueBright, char: "┈" }))
+}
+
+export function logCommandOutputErrors({ errors, log, width }: { errors: Error[]; log: Log; width: number }) {
+  renderCommandErrors(getRootLogger(), errors, log)
+  log.error({ msg: renderDivider({ width, color: chalk.red }) })
+}
+
+export function logCommandError({ error, log, width }: { error: Error; log: Log; width: number }) {
+  log.error({ error: toGardenError(error) })
+  log.error({ msg: renderDivider({ width, color: chalk.red, char: "┈" }) })
+}
+
 export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private enabled: boolean
 
@@ -613,14 +645,11 @@ ${chalk.white.underline("Keys:")}
 
     // Execute the command
     if (!command.isDevCommand) {
-      const msg = `Running ${chalk.white.bold(command.getFullName())}...`
-      this.flashMessage(msg)
-      this.log.info({ msg: "\n" + renderDivider({ width, title: msg, color: chalk.blueBright, char: "┈" }) })
+      this.flashMessage(getCmdStartMsg(name))
+      logCommandStart({ commandName: name, width, log: this.log })
       this.runningCommands[id] = { command, params }
       this.renderStatus()
     }
-    const failMessage = `Failed running the ${command.getFullName()} command. Please see above for the logs.`
-
     // Clear the VCS handler's tree cache to make sure we pick up any changed sources.
     this.garden.clearTreeCache()
 
@@ -628,24 +657,19 @@ ${chalk.white.underline("Keys:")}
       .action(params)
       .then((output: CommandResult) => {
         if (output.errors?.length) {
-          renderCommandErrors(getRootLogger(), output.errors, this.log)
-          this.log.error({ msg: renderDivider({ width, color: chalk.red }) })
-          this.flashError(failMessage)
+          logCommandOutputErrors({ errors: output.errors, log: this.log, width })
+          this.flashError(getCmdFailMsg(name))
         } else if (!command.isDevCommand) {
           // TODO: print this differently if monitors from the command are active
           // const monitorsAdded = this.garden.monitors.getByCommand(command).length
-          const msg = `${chalk.whiteBright(command.getFullName())} command completed successfully!`
-          this.flashSuccess(msg)
-          this.log.info({
-            msg: renderDivider({ width, title: chalk.green("✓ ") + msg, color: chalk.blueBright, char: "┈" }),
-          })
+          this.flashSuccess(getCmdSuccessMsg(name))
+          logCommandSuccess({ commandName: name, width, log: this.log })
         }
       })
       .catch((error: Error) => {
         // TODO-0.13.1: improve error rendering
-        this.log.error({ error: toGardenError(error) })
-        this.log.error({ msg: renderDivider({ width, color: chalk.red, char: "┈" }) })
-        this.flashError(failMessage)
+        logCommandError({ error, width, log: this.log })
+        this.flashError(getCmdFailMsg(name))
       })
       .finally(() => {
         delete this.runningCommands[id]
