@@ -42,7 +42,6 @@ export interface ConvertModuleParams<T extends GardenModule = GardenModule> exte
       }
     }
   }
-  convertTestName: (d: string) => string
   convertBuildDependency: (d: string | BuildDependencyConfig) => string
   convertRuntimeDependencies: (d: string[]) => string[]
   prepareRuntimeDependencies: (deps: string[], build: BuildActionConfig<string, any> | undefined) => string[]
@@ -81,11 +80,6 @@ export const convert = () => ({
       .unknown(true)
       .required()
       .description("Fields that should generally be applied to all returned actions, based on the input Module."),
-    convertTestName: joi
-      .function()
-      .description(
-        "A helper that accepts a test name from the module and returns the correct action name for the converted test."
-      ),
     convertBuildDependency: joi
       .function()
       .description(

@@ -93,7 +93,6 @@ describe("plugins.container", () => {
       },
       convertBuildDependency: () => "buildDep",
       convertRuntimeDependencies: () => ["runtimeDep"],
-      convertTestName: () => "testName",
       ctx,
       dummyBuild: undefined,
       log,

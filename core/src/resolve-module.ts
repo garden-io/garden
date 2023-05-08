@@ -727,10 +727,6 @@ export const convertModules = profileAsync(async function convertModules(
       },
 
       convertBuildDependency,
-      convertTestName: (d: string) => {
-        return d
-      },
-
       convertRuntimeDependencies,
       prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig<string, any>) {
         const resolved: string[] = convertRuntimeDependencies(deps)
