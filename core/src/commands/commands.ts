@@ -38,6 +38,7 @@ import { UnlinkCommand } from "./unlink/unlink"
 import { UpdateRemoteCommand } from "./update-remote/update-remote"
 import { UtilCommand } from "./util/util"
 import { ValidateCommand } from "./validate"
+import { UpCommand } from "./up"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new BuildCommand(),
@@ -67,6 +68,7 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new TestCommand(),
   new ToolsCommand(),
   new UnlinkCommand(),
+  new UpCommand(),
   new UpdateRemoteCommand(),
   new UtilCommand(),
   new ValidateCommand(),

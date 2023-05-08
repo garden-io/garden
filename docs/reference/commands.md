@@ -3688,6 +3688,20 @@ Examples:
   | `--all` |  | boolean | Unlink all modules.
 
 
+### garden up
+
+**Spin up your stack with the dev console and streaming logs.**
+
+Spin up your stack with the dev console and streaming logs.
+
+This is basically an alias for garden dev --cmd 'deploy --logs', but you can add any arguments and flags supported by the deploy command as well.
+
+#### Usage
+
+    garden up 
+
+
+
 ### garden update-remote sources
 
 **Update remote sources.**
