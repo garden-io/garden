@@ -33,7 +33,7 @@ name: frontend-integ
 type: container
 build: frontend
 dependencies:
-  - deploy.frontend # <- we want the frontend service to be running and up-to-date for this test
+  - deploy.frontend # <- have the frontend service be running and up-to-date before the test
 spec:
   args: [ npm, run, integ ]
 ```
