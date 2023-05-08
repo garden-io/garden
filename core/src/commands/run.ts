@@ -7,13 +7,24 @@
  */
 
 import chalk from "chalk"
-import { Command, CommandParams, handleProcessResults, PrepareParams, processCommandResultSchema } from "./base"
+import {
+  Command,
+  CommandParams,
+  CommandResult,
+  handleProcessResults,
+  PrepareParams,
+  ProcessCommandResult,
+  processCommandResultSchema,
+} from "./base"
 import { RunTask } from "../tasks/run"
 import { printHeader } from "../logger/util"
 import { ParameterError } from "../exceptions"
 import { dedent, deline } from "../util/string"
 import { BooleanParameter, StringsParameter } from "../cli/params"
 import { validateActionSearchResults, watchParameter, watchRemovedWarning } from "./helpers"
+import { Log } from "../logger/log-entry"
+import { TestCommand } from "./test"
+import { WorkflowCommand, WorkflowRunOutput } from "./workflow"
 
 // TODO: support interactive execution for a single Run (needs implementation from RunTask through plugin handlers).
 
@@ -103,7 +114,9 @@ export class RunCommand extends Command<Args, Opts> {
     printHeader(headerLog, msg, "🏃‍♂️")
   }
 
-  async action(params: CommandParams<Args, Opts>) {
+  async action(
+    params: CommandParams<Args, Opts>
+  ): Promise<CommandResult<ProcessCommandResult> | CommandResult<WorkflowRunOutput>> {
     const { garden, log, footerLog, args, opts } = params
 
     // Detect possible old-style invocations as early as possible
@@ -111,7 +124,11 @@ export class RunCommand extends Command<Args, Opts> {
     let names: string[] | undefined = undefined
     if (args.names && args.names.length > 0) {
       names = args.names
-      detectOldRunCommand(names, args, opts)
+      const result = await maybeOldRunCommand(names, args, opts, log, params)
+      // If we get a result from the old-style compatibility runner, early return it instead of continuing
+      if (result) {
+        return result
+      }
     }
 
     if (opts.watch) {
@@ -195,29 +212,54 @@ export class RunCommand extends Command<Args, Opts> {
   }
 }
 
-function detectOldRunCommand(names: string[], args: any, opts: any) {
-  if (["module", "service", "task", "test", "workflow"].includes(names[0])) {
-    let renameDescription = ""
-    const firstArg = names[0]
+/**
+ * Helper function for detecting an old-style run command invocation and passing the params to the correct handlers. Examples: `garden run workflow foo`, `garden run test`.
+ *
+ * This is slightly hacky with any types and other parameter adjusting, but is required for backwards compatibility.
+ */
+function maybeOldRunCommand(names: string[], args: any, opts: any, log: Log, params: any) {
+  const firstArg = names[0]
+  if (["module", "service", "task", "test", "workflow"].includes(firstArg)) {
     if (firstArg === "module" || firstArg === "service") {
-      renameDescription = `The ${chalk.white("garden run " + firstArg)} command has been removed.
-      Please define a Run action instead, or use the underlying tools (e.g. Docker or Kubernetes) directly.`
+      throw new ParameterError(
+        `Error: The ${chalk.white("garden run " + firstArg)} command has been removed.
+      Please define a Run action instead, or use the underlying tools (e.g. Docker or Kubernetes) directly.`,
+        { args, opts }
+      )
     }
     if (firstArg === "task") {
-      renameDescription = `The ${chalk.yellow(
-        "run task"
-      )} command was removed in Garden 0.13. Please use the ${chalk.yellow("run")} command instead.`
+      log.warn(
+        `The ${chalk.yellow("run task")} command was removed in Garden 0.13. Please use the ${chalk.yellow(
+          "run"
+        )} command instead.`
+      )
+      // Remove the `task` arg and continue execution in the Run handler
+      names.shift()
+      return
     }
     if (firstArg === "test") {
-      renameDescription = `The ${chalk.yellow(
-        "run test"
-      )} command was removed in Garden 0.13. Please use the ${chalk.yellow("test")} command instead.`
+      log.warn(
+        `The ${chalk.yellow("run test")} command was removed in Garden 0.13. Please use the ${chalk.yellow(
+          "test"
+        )} command instead.`
+      )
+      // Remove the `test` arg and execute in the Test handler
+      names.shift()
+      const testCmd = new TestCommand()
+      return testCmd.action(params)
     }
     if (firstArg === "workflow") {
-      renameDescription = `The ${chalk.yellow(
-        "run workflow"
-      )} command was removed in Garden 0.13. Please use the ${chalk.yellow("workflow")} command instead.`
+      log.warn(
+        `The ${chalk.yellow("run workflow")} command was removed in Garden 0.13. Please use the ${chalk.yellow(
+          "workflow"
+        )} command instead.`
+      )
+      // Remove the `workflow` arg and execute in the Workflow handler
+      names.shift()
+      const workflowCmd = new WorkflowCommand()
+      const workflow = names[0] // NOTE: the workflow command only supports passing one workflow name, not a list
+      return workflowCmd.action({ ...params, args: { ...args, workflow } })
     }
-    throw new ParameterError(`Error: ${renameDescription}`, { args, opts })
   }
+  return
 }
