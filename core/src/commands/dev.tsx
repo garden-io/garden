@@ -16,17 +16,23 @@ import { ParameterError } from "../exceptions"
 import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer"
 import { CommandLine } from "../cli/command-line"
 import chalk from "chalk"
-import { globalOptions } from "../cli/params"
+import { globalOptions, StringsParameter } from "../cli/params"
 import { pick } from "lodash"
 import Divider from "ink-divider"
 import moment from "moment"
 import { getBuiltinCommands } from "./commands"
+import { dedent } from "../util/string"
 
 const devCommandArgs = {
   ...serveArgs,
 }
 const devCommandOpts = {
   ...serveOpts,
+  cmd: new StringsParameter({
+    help: dedent`
+      Specify a command to run in the console after startup. You may specify multiple commands and they will be run in succession.
+    `,
+  }),
 }
 
 type DevCommandArgs = typeof devCommandArgs
@@ -91,7 +97,7 @@ Let's get your development environment wired up.
       const { stdout, write } = useStdout()
       inkWriter.setWriteCallback(write)
 
-      const [line, setLine] = useState(commandLine.getBlankCommandLine())
+      const [line, setLine] = useState("🌸  Initializing...")
       const [status, setStatus] = useState("")
       const [message, setMessage] = useState("")
 
@@ -125,7 +131,9 @@ Let's get your development environment wired up.
 
     // TODO: detect config changes and notify user in status
 
-    return super.action({ ...params, commandLine })
+    await super.action({ ...params, commandLine })
+
+    return {}
   }
 
   private async initCommandHandler(params: ActionParams) {

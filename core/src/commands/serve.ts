@@ -22,6 +22,7 @@ import { Autocompleter, AutocompleteSuggestion } from "../cli/autocomplete"
 import chalk from "chalk"
 import { isMatch } from "micromatch"
 import { BufferedEventStream } from "../cloud/buffered-event-stream"
+import { sleep } from "../util/util"
 
 export const defaultServerPort = 9700
 
@@ -32,6 +33,7 @@ export const serveOpts = {
     help: `The port number for the server to listen on.`,
     defaultValue: defaultServerPort,
   }),
+  cmd: new StringsParameter({ help: "(Only used by dev command for now)", hidden: true }),
 }
 
 export type ServeCommandArgs = typeof serveArgs
@@ -102,7 +104,7 @@ export class ServeCommand<
     })
   }
 
-  async action({ garden, log, cli }: CommandParams<A, O>): Promise<CommandResult<R>> {
+  async action({ garden, log, cli, opts }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<R>> {
     this.garden = garden
     const loggedIn = this.garden?.isLoggedIn()
     if (!loggedIn) {
@@ -130,9 +132,16 @@ export class ServeCommand<
       })
 
       // Errors are handled in the method
-      this.reload({ log, garden, bufferedEventStream: cli?.bufferedEventStream })
-        .then(() => {
+      this.reload({ log, garden, bufferedEventStream: cli?.bufferedEventStream, enableCommandLine: false })
+        .then(async () => {
+          if (this.commandLine) {
+            for (const cmd of opts.cmd || []) {
+              await this.commandLine.typeCommand(cmd)
+              await sleep(1000)
+            }
+          }
           this.commandLine?.flashSuccess(chalk.white.bold(`Dev console is ready to go! 🚀`))
+          this.commandLine?.enable()
         })
         .catch(() => { })
     })
@@ -142,16 +151,18 @@ export class ServeCommand<
     log,
     garden,
     bufferedEventStream,
+    enableCommandLine = true,
   }: {
     log: Log
     garden: Garden
     bufferedEventStream?: BufferedEventStream
+    enableCommandLine?: boolean
   }) {
     this.commandLine?.disable("🌸  Loading Garden project...")
 
     try {
       const newGarden = await Garden.factory(garden.projectRoot, garden.opts)
-      const configDump = await newGarden.dumpConfig({ log })
+      const configDump = await newGarden.dumpConfig({ log, partial: true })
       const commands = await this.getCommands(newGarden)
       // TODO: restart monitors
       this.garden = newGarden
@@ -173,7 +184,7 @@ export class ServeCommand<
         `Failed loading the project. See above logs for details. Type ${chalk.white("reload")} to try again.`
       )
     } finally {
-      this.commandLine?.enable()
+      enableCommandLine && this.commandLine?.enable()
     }
   }
 
