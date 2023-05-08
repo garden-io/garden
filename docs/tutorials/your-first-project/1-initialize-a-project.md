@@ -38,41 +38,33 @@ providers:
 
 We have one environment (`default`) and a single provider. We'll get back to this later.
 
-[//]: # (TODO: `garden create action` is still under construction, update this section when the command is ready)
 Next, let's create action configs for each of our two applications, starting with `backend`.
 
-```sh
-cd backend
-garden create action
-cd ..
-```
-
-You'll get a multiple-choice suggestion to select action [kind](../../using-garden/actions.md#action-kinds)
-and [type](../../using-garden/actions.md#action-types). Let's start with a `Build` action configuration by specifying
-kind `Build` and type `container`. You can also give it a name if necessary. By default, the name is the current
-directory name, i.e. `backend`.
-
-The helper command will also suggest you to create more actions. Create a `Deploy` action for the `backend` application
-by specifying kind `Deploy` and type `container`, see more about types in
-the [reference guide](../../reference/action-types/Deploy). It will suggest you the list of available `Build` names to
-be deployed. Pick a build name from the `Build` action configured above.
-
-Next, let's do the same for the `frontend` application:
-
-```sh
-cd frontend
-garden create action
-cd ..
-```
-
-Before deploying the application, you need to configure `spec` in each `Deploy` action configuration, and set up a local
-kubernetes cluster or connect to a remote cluster.
-
-For simplicity, let's consider the local cluster configuration. Open the newly
-created `backend/garden.yml` file, locate the `kind: Deploy` configuration and append the following:
+First we need to define `Build` and `Deploy` actions for the `backend` application. Let's use `container` action type.
+Create an empty `backend.garden.yml` config file in the `backend` directory and add the following lines:
 
 ```yaml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
+
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+
+# This defines an image to be used and refers the 'backend' Build action defined above
+build: backend
+
+# This block is necessary to deploy and expose the backend application
 spec:
+  healthCheck:
+    httpGet:
+      path: /hello-backend
+      port: http
   ports:
     - name: http
       containerPort: 8080
@@ -82,24 +74,45 @@ spec:
       port: http
 ```
 
-This is enough information for Garden to be able to deploy and expose the `backend` application. Now do the same for
-the `frontend` application, with the following block:
+Next, let's do the same for the `frontend` application:
+Create an empty `frontend.garden.yml` config file in the `frontend` directory and add the following lines:
 
-```yaml
+```sh
+kind: Build
+name: frontend
+description: Frontend service container image
+type: container
+
+---
+
+kind: Deploy
+name: frontend
+description: Frontend service container
+type: container
+
+# This defines an image to be used and refers the 'frontend' Build action defined above
+build: frontend
+# Dependency section is used to ensure the deployment order. The frontend will be deployed after the backend.
+dependencies:
+  - deploy.backend
+
+# This block is necessary to deploy and expose the frontend application
 spec:
   ports:
     - name: http
       containerPort: 8080
+  healthCheck:
+    httpGet:
+      path: /hello-frontend
+      port: http
   ingresses:
     - path: /hello-frontend
       port: http
     - path: /call-backend
       port: http
-  dependencies:
-    - deploy.backend # the dependencies must be specified in the `{kind}.{name}` format
 ```
 
-This does the same for the `Deploy` configuration of the `frontend` application, with the addition of declaring a
-runtime dependency on the `backend` `Deploy` action.
+Before deploying the application, you need to set up a local kubernetes cluster or connect to a remote cluster.
+First you can try to deploy the project with the local kubernetes cluster.
 
 Now, let's move on to our next section, and [connect to a Kubernetes cluster](./2-connect-to-a-cluster.md).
