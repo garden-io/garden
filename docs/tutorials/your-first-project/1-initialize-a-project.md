@@ -59,7 +59,7 @@ type: container
 # Reference to the Build action that builds the image to be deployed (defined above)
 build: backend
 
-# This block is necessary to deploy and expose the backend application
+# Action type specific config goes under the `spec` block
 spec:
   healthCheck:
     httpGet:
