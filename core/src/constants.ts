@@ -50,7 +50,7 @@ export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggigno
 export const DOCS_BASE_URL = "https://docs.garden.io"
 export const VERSION_CHECK_URL = "https://get.garden.io/version"
 
-export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden"
+export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
 
 /**
  * Environment variables, with defaults where appropriate.
