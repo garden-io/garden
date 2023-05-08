@@ -68,7 +68,7 @@ export interface ActionLogContext extends BaseContext {
   actionKind: string
 }
 
-type LogContext = CoreLogContext | ActionLogContext
+export type LogContext = CoreLogContext | ActionLogContext
 
 /**
  * Common Log config that the class implements and other interfaces pick / omit from.
@@ -135,10 +135,11 @@ export interface LogEntry<C extends BaseContext = LogContext>
   data?: any
   dataFormat?: "json" | "yaml"
   error?: GardenError
+  skipEmit?: boolean
 }
 
 interface LogParams
-  extends Pick<LogEntry, "metadata" | "msg" | "symbol" | "data" | "dataFormat" | "error">,
+  extends Pick<LogEntry, "metadata" | "msg" | "symbol" | "data" | "dataFormat" | "error" | "skipEmit">,
     Pick<LogContext, "origin"> {}
 
 interface CreateLogEntryParams extends LogParams {

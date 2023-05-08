@@ -224,7 +224,11 @@ describe("CoreLog", () => {
   describe("createLogEntry", () => {
     it("should pass its config on to the log entry", () => {
       const timestamp = freezeTime().toISOString()
-      const testLog = log.createLog({ name: "test-log", origin: "foo", metadata: { workflowStep: { index: 2 } } })
+      const testLog = log.createLog({
+        name: "test-log",
+        origin: "foo",
+        metadata: { workflowStep: { index: 2 } },
+      })
       const entry = testLog.info("hello").getLatestEntry()
 
       expect(entry.key).to.be.a.string
@@ -325,7 +329,6 @@ describe("ActionLog", () => {
       })
     })
     it("should optionally overwrite origin", () => {
-      const timestamp = freezeTime().toISOString()
       const actionLog = createActionLog({
         log,
         origin: "origin",

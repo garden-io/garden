@@ -236,17 +236,12 @@ export abstract class LoggerBase implements Logger {
   }
 
   log(entry: LogEntry) {
-    if (entry.context.type === "actionLog") {
-      entry.context.actionKind
-    } else {
-      entry.context.name
-    }
     // FIXME @eysi: We're storing entries on the roots and each individual log instance
     // so basically duplicating them. Not a big deal since it's only used for testing atm.
     if (this.storeEntries) {
       this.entries.push(entry)
     }
-    if (entry.level <= eventLogLevel) {
+    if (entry.level <= eventLogLevel && !entry.skipEmit) {
       this.events.emit("logEntry", formatLogEntryForEventStream(entry))
     }
     const writers = [this.writers.display, ...this.writers.file]
@@ -443,8 +438,37 @@ interface EventLoggerParams extends LoggerConfigBase {
   events: PluginEventBroker // TODO: may want to support other event buses
 }
 
+interface ServerLoggerParams extends LoggerConfigBase {
+  defaultOrigin?: string
+  rootLogger: Logger
+}
+
 export interface CreateEventLogParams extends CreateLogParams {
   origin: string
+}
+
+/**
+ * A Logger class for handling server requests.
+ *
+ * It writes entries to stdout at the silly level via the "main" root logger for the respective
+ * Garden instance but emits log entry events at their regular level. This basically ensures
+ * command logs for server requests are emitted but do not pollute the terminal.
+ */
+export class ServerLogger extends LoggerBase {
+  private rootLogger: Logger
+
+  constructor(config: ServerLoggerParams) {
+    super(config)
+    this.rootLogger = config.rootLogger
+  }
+
+  log(entry: LogEntry) {
+    this.rootLogger.log({ ...entry, level: LogLevel.silly })
+
+    if (entry.level <= eventLogLevel && !entry.skipEmit) {
+      this.rootLogger.events.emit("logEntry", formatLogEntryForEventStream(entry))
+    }
+  }
 }
 
 export class EventLogger extends LoggerBase {

@@ -30,7 +30,7 @@ import { AnalyticsHandler } from "../analytics/analytics"
 import { joi } from "../config/common"
 import { randomString } from "../util/string"
 import { authTokenHeader } from "../cloud/api"
-import { ApiEventBatch } from "../cloud/buffered-event-stream"
+import { ApiEventBatch, LogEntryEventPayload } from "../cloud/buffered-event-stream"
 import { LogLevel } from "../logger/logger"
 import { clientRequestNames, ClientRequestType, ClientRouter } from "./client-router"
 import { EventEmitter } from "eventemitter3"
@@ -359,12 +359,15 @@ export class GardenServer extends EventEmitter {
 
       // Helper to make JSON messages, make them type-safe, and to log errors.
       const send: SendWrapper = (type, payload) => {
+        // Need to make sure that the log entries created here aren't emitted to prevent
+        // an infinite loop.
+        const skipEmit = true
         const event = { type, ...(<object>payload) }
         const jsonEvent = JSON.stringify(event)
-        this.log.debug(`Send ${type} event: ${jsonEvent}`)
+        this.log.debug({ msg: `Send ${type} event: ${jsonEvent}`, skipEmit })
         websocket.send(jsonEvent, (err?: Error) => {
           if (err) {
-            this.debugLog.debug({ error: toGardenError(err) })
+            this.debugLog.debug({ error: toGardenError(err), skipEmit })
           }
         })
       }
@@ -401,8 +404,14 @@ export class GardenServer extends EventEmitter {
           send("event", { name, payload })
         }
       }
+      const logListener = (name: EventName, payload: any) => {
+        if (name === "logEntry") {
+          send(name, { name, ...payload })
+        }
+      }
       this.garden.events.onAny(eventListener)
       this.incomingEvents.onAny(eventListener)
+      this.garden.log.root.events.onAny(logListener)
 
       const cleanup = () => {
         this.log.debug(`Connection ${connectionId} terminated, cleaning up.`)
@@ -410,6 +419,7 @@ export class GardenServer extends EventEmitter {
 
         this.garden && this.garden.events.offAny(eventListener)
         this.incomingEvents.offAny(eventListener)
+        this.garden && this.garden.log.root.events.offAny(logListener)
 
         for (const [id, req] of Object.entries(this.activePersistentRequests)) {
           if (connectionId === req.connectionId) {
@@ -631,6 +641,7 @@ interface ServerWebsocketMessages {
     name: EventName
     payload: ValueOf<Events>
   }
+  logEntry: LogEntryEventPayload
 }
 
 type ServerWebsocketMessageType = keyof ServerWebsocketMessages
