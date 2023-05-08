@@ -8,7 +8,16 @@
 
 import { expect } from "chai"
 import { RunCommand } from "../../../../src/commands/run"
-import { TestGarden, makeTestGardenA, expectError, getAllProcessedTaskNames } from "../../../helpers"
+import {
+  TestGarden,
+  expectError,
+  getAllProcessedTaskNames,
+  makeTestGarden,
+  getDataDir,
+  makeTestGardenA,
+} from "../../../helpers"
+import { getLogMessages } from "../../../../src/util/testing"
+import { LogLevel } from "../../../../src/logger/logger"
 
 // TODO-G2: fill in test implementations. use TestCommand tests for reference.
 
@@ -87,74 +96,6 @@ describe("RunCommand", () => {
           "A name argument or --module must be specified. If you really want to perform every Run in the project, please specify '*' as an argument.",
       }
     )
-  })
-
-  context("detecting invocations to removed 0.12-era run subcommands", () => {
-    it("throws if called with 'test' as the first argument", async () => {
-      await expectError(
-        () =>
-          garden.runCommand({
-            command,
-            args: { names: ["test", "foo"] },
-            opts: {
-              "force": true,
-              "force-build": true,
-              "watch": false,
-              "skip": [],
-              "skip-dependencies": false,
-              "module": undefined,
-            },
-          }),
-        {
-          contains:
-            "The run test command was removed in Garden 0.13",
-        }
-      )
-    })
-
-    it("throws if called with 'task' as the first argument", async () => {
-      await expectError(
-        () =>
-          garden.runCommand({
-            command,
-            args: { names: ["task", "foo"] },
-            opts: {
-              "force": true,
-              "force-build": true,
-              "watch": false,
-              "skip": [],
-              "skip-dependencies": false,
-              "module": undefined,
-            },
-          }),
-        {
-          contains:
-            "The run task command was removed in Garden 0.13",
-        }
-      )
-    })
-
-    it("throws if called with 'workflow' as the first argument", async () => {
-      await expectError(
-        () =>
-          garden.runCommand({
-            command,
-            args: { names: ["workflow", "foo"] },
-            opts: {
-              "force": true,
-              "force-build": true,
-              "watch": false,
-              "skip": [],
-              "skip-dependencies": false,
-              "module": undefined,
-            },
-          }),
-        {
-          contains:
-            "The run workflow command was removed in Garden 0.13",
-        }
-      )
-    })
   })
 
   it("supports '*' as an argument to select all Runs", async () => {
@@ -347,6 +288,78 @@ describe("RunCommand", () => {
         "resolve-action.run.task-c",
         "run.task-c",
       ])
+    })
+  })
+})
+
+// TODO: switch these back to expectError for 0.14 by reverting a commit from https://github.com/garden-io/garden/pull/4195
+describe("RunCommand legacy invocations", () => {
+  const command = new RunCommand()
+
+  let garden: TestGarden
+
+  beforeEach(async () => {
+    garden = await makeTestGarden(getDataDir("test-projects", "old-style-run-invocations"))
+  })
+
+  context("detecting invocations to removed 0.12-era run subcommands", async () => {
+    it("warns if called with 'test' as the first argument", async () => {
+      const log = garden.log
+      await garden.runCommand({
+        command,
+        args: { names: ["test", "module-a-unit"] },
+        opts: {
+          "force": true,
+          "force-build": true,
+          "watch": false,
+          "skip": [],
+          "skip-dependencies": false,
+          "module": undefined,
+        },
+      })
+      const logMessages = getLogMessages(log, (l) => l.level === LogLevel.warn)
+      expect(logMessages[0]).to.include("The run test command will be removed in Garden 0.14")
+    })
+
+    it("warns if called with 'task' as the first argument", async () => {
+      const log = garden.log
+      await garden.runCommand({
+        command,
+        args: { names: ["task", "task-a"] },
+        opts: {
+          "force": true,
+          "force-build": true,
+          "watch": false,
+          "skip": [],
+          "skip-dependencies": false,
+          "module": undefined,
+        },
+      })
+      const logMessages = getLogMessages(log, (l) => l.level === LogLevel.warn)
+      expect(logMessages[0]).to.include("The run task command will be removed in Garden 0.14")
+    })
+
+    it("warns if called with 'workflow' as the first argument", async () => {
+      const log = garden.log
+      try {
+        await garden.runCommand({
+          command,
+          args: { names: ["workflow", "workflow-a"] },
+          opts: {
+            "force": true,
+            "force-build": true,
+            "watch": false,
+            "skip": [],
+            "skip-dependencies": false,
+            "module": undefined,
+          },
+        })
+      } catch (e) {
+        // we get an output schema validation error here.
+        // ignoring it for test purposes - we're only interested in the warning
+      }
+      const logMessages = getLogMessages(log, (l) => l.level === LogLevel.warn)
+      expect(logMessages[0]).to.include("The run workflow command will be removed in Garden 0.14")
     })
   })
 })
