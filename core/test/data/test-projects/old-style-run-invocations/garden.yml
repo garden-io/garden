@@ -1,5 +1,5 @@
 # TODO: remove this entire test project directory in 0.14
-apiVersion: garden.io/v1
+apiVersion: garden.io/v0
 kind: Project
 name: test-project-a
 environments:
