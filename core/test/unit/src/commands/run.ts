@@ -16,7 +16,7 @@ import {
   getDataDir,
   makeTestGardenA,
 } from "../../../helpers"
-import { getLogMessages } from "../../../../src/util/testing"
+import { expectLogsContain, getLogMessages } from "../../../../src/util/testing"
 import { LogLevel } from "../../../../src/logger/logger"
 
 // TODO-G2: fill in test implementations. use TestCommand tests for reference.
@@ -318,7 +318,7 @@ describe("RunCommand legacy invocations", () => {
         },
       })
       const logMessages = getLogMessages(log, (l) => l.level === LogLevel.warn)
-      expect(logMessages[0]).to.include("The run test command will be removed in Garden 0.14")
+      expectLogsContain(logMessages, "The run test command will be removed in Garden 0.14")
     })
 
     it("warns if called with 'task' as the first argument", async () => {
@@ -336,7 +336,7 @@ describe("RunCommand legacy invocations", () => {
         },
       })
       const logMessages = getLogMessages(log, (l) => l.level === LogLevel.warn)
-      expect(logMessages[0]).to.include("The run task command will be removed in Garden 0.14")
+      expectLogsContain(logMessages, "The run task command will be removed in Garden 0.14")
     })
 
     it("warns if called with 'workflow' as the first argument", async () => {
@@ -359,7 +359,7 @@ describe("RunCommand legacy invocations", () => {
         // ignoring it for test purposes - we're only interested in the warning
       }
       const logMessages = getLogMessages(log, (l) => l.level === LogLevel.warn)
-      expect(logMessages[0]).to.include("The run workflow command will be removed in Garden 0.14")
+      expectLogsContain(logMessages, "The run workflow command will be removed in Garden 0.14")
     })
   })
 })
