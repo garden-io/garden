@@ -315,15 +315,15 @@ describe("TestCommand", () => {
     expect(Object.keys(result!.graphResults).sort()).to.eql(["test.module-a-integration", "test.module-a-unit"])
   })
 
-  it("concatenates positional args and --name flags", async () => {
+  it("finds tests in multiple modules when using --name flag", async () => {
     const { result } = await command.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { names: ["module-a-unit"] },
+      args: { names: [] },
       opts: withDefaultGlobalOpts({
-        "name": ["module-b-unit"],
+        "name": ["unit"],
         "force": true,
         "force-build": true,
         "watch": false,
@@ -335,7 +335,7 @@ describe("TestCommand", () => {
       }),
     })
 
-    expect(Object.keys(result!.graphResults).sort()).to.eql(["test.module-a-unit", "test.module-b-unit"])
+    expect(Object.keys(result!.graphResults).sort()).to.eql(["test.module-a-unit", "test.module-b-unit", "test.module-c-unit"])
   })
 
   it("throws if --module filter specifies module that does not exist", async () => {
