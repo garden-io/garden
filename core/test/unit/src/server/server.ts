@@ -221,12 +221,17 @@ describe("GardenServer", () => {
       ws.close()
     })
 
-    const onMessageAfterReady = (cb: (req: any) => void) => {
+    /**
+     * Helper for testing websocket callbacks.
+     *
+     * Optionally filter on specific event types to e.g. only collect messages of type "event" or
+     * only collect messages of type "logEntry".
+     */
+    function onMessageAfterReady({ cb, skipType }: { cb: (req: any) => void; skipType?: string }) {
       ws.on("message", (msg) => {
         const parsed = JSON.parse(msg.toString())
-        // This message is always sent at the beginning and we skip it here
-        // to simplify testing.
-        if (parsed.name !== "serverReady") {
+        // This message is always sent at the beginning and we skip it here to simplify testing.
+        if (parsed.name !== "serverReady" && skipType !== parsed.type) {
           cb(parsed)
         }
       })
@@ -289,20 +294,38 @@ describe("GardenServer", () => {
     })
 
     it("should emit events from the Garden event bus", (done) => {
-      onMessageAfterReady((req) => {
-        expect(req).to.eql({ type: "event", name: "_test", payload: "foo" })
-        done()
+      onMessageAfterReady({
+        cb: (req) => {
+          expect(req).to.eql({ type: "event", name: "_test", payload: "foo" })
+          done()
+        },
+        skipType: "logEntry",
       })
       garden.events.emit("_test", "foo")
     })
 
+    it("should emit log entries", (done) => {
+      onMessageAfterReady({
+        cb: (req) => {
+          expect(req.type).to.eql("logEntry")
+          expect(req.message.msg).to.eql("hello ws")
+          done()
+        },
+        skipType: "event",
+      })
+      garden.log.info("hello ws")
+    })
+
     it("should send error when a request is not valid JSON", (done) => {
-      onMessageAfterReady((req) => {
-        expect(req).to.eql({
-          type: "error",
-          message: "Could not parse message as JSON",
-        })
-        done()
+      onMessageAfterReady({
+        cb: (req) => {
+          expect(req).to.eql({
+            type: "error",
+            message: "Could not parse message as JSON",
+          })
+          done()
+        },
+        skipType: "logEntry",
       })
       ws.send("ijdgkasdghlasdkghals")
     })
@@ -310,13 +333,16 @@ describe("GardenServer", () => {
     it("should send error when Garden instance is not set", (done) => {
       const id = uuidv4()
 
-      onMessageAfterReady((req) => {
-        expect(req).to.eql({
-          type: "error",
-          message: "Waiting for Garden instance to initialize",
-          requestId: id,
-        })
-        done()
+      onMessageAfterReady({
+        cb: (req) => {
+          expect(req).to.eql({
+            type: "error",
+            message: "Waiting for Garden instance to initialize",
+            requestId: id,
+          })
+          done()
+        },
+        skipType: "logEntry",
       })
 
       gardenServer["garden"] = undefined
@@ -331,37 +357,46 @@ describe("GardenServer", () => {
     })
 
     it("should error when a request is missing an ID", (done) => {
-      onMessageAfterReady((req) => {
-        expect(req).to.eql({
-          type: "error",
-          message: "Message should contain an `id` field with a UUID value",
-        })
-        done()
+      onMessageAfterReady({
+        cb: (req) => {
+          expect(req).to.eql({
+            type: "error",
+            message: "Message should contain an `id` field with a UUID value",
+          })
+          done()
+        },
+        skipType: "logEntry",
       })
       ws.send(JSON.stringify({ type: "command" }))
     })
 
     it("should error when a request has an invalid ID", (done) => {
-      onMessageAfterReady((req) => {
-        expect(req).to.eql({
-          type: "error",
-          requestId: "ksdhgalsdkjghalsjkg",
-          message: "Message should contain an `id` field with a UUID value",
-        })
-        done()
+      onMessageAfterReady({
+        cb: (req) => {
+          expect(req).to.eql({
+            type: "error",
+            requestId: "ksdhgalsdkjghalsjkg",
+            message: "Message should contain an `id` field with a UUID value",
+          })
+          done()
+        },
+        skipType: "logEntry",
       })
       ws.send(JSON.stringify({ type: "command", id: "ksdhgalsdkjghalsjkg" }))
     })
 
     it("should error when a request has an invalid type", (done) => {
       const id = uuidv4()
-      onMessageAfterReady((req) => {
-        expect(req).to.eql({
-          type: "error",
-          requestId: id,
-          message: "Unsupported request type: foo",
-        })
-        done()
+      onMessageAfterReady({
+        cb: (req) => {
+          expect(req).to.eql({
+            type: "error",
+            requestId: id,
+            message: "Unsupported request type: foo",
+          })
+          done()
+        },
+        skipType: "logEntry",
       })
       ws.send(JSON.stringify({ type: "foo", id }))
     })
@@ -372,17 +407,19 @@ describe("GardenServer", () => {
       garden
         .dumpConfig({ log: garden.log })
         .then((config) => {
-          onMessageAfterReady((req: any) => {
-            if (req.type !== "commandResult") {
-              return
-            }
+          onMessageAfterReady({
+            cb: (req: any) => {
+              if (req.type !== "commandResult") {
+                return
+              }
 
-            expect(req).to.eql({
-              type: "commandResult",
-              requestId: id,
-              result: deepOmitUndefined(config),
-            })
-            done()
+              expect(req).to.eql({
+                type: "commandResult",
+                requestId: id,
+                result: deepOmitUndefined(config),
+              })
+              done()
+            },
           })
           ws.send(
             JSON.stringify({
@@ -397,20 +434,23 @@ describe("GardenServer", () => {
 
     it("should correctly map arguments and options to commands", (done) => {
       const id = uuidv4()
-      onMessageAfterReady((req) => {
-        // Ignore other events such as taskPending and taskProcessing and wait for the command result
-        if (req.type !== "commandResult") {
-          return
-        }
-        const taskResult = taskResultOutputs(req.result)
-        const result = {
-          ...req,
-          result: taskResult,
-        }
-        expect(result.requestId).to.equal(id)
-        expect(result.result["build.module-a"]).to.exist
-        expect(result.result["build.module-a"].state).to.equal("ready")
-        done()
+      onMessageAfterReady({
+        cb: (req) => {
+          // Ignore other events such as taskPending and taskProcessing and wait for the command result
+          if (req.type !== "commandResult") {
+            return
+          }
+          const taskResult = taskResultOutputs(req.result)
+          const result = {
+            ...req,
+            result: taskResult,
+          }
+          expect(result.requestId).to.equal(id)
+          expect(result.result["build.module-a"]).to.exist
+          expect(result.result["build.module-a"].state).to.equal("ready")
+          done()
+        },
+        skipType: "logEntry",
       })
       ws.send(
         JSON.stringify({
@@ -427,25 +467,28 @@ describe("GardenServer", () => {
 
     it("parses string arguments if specified", (done) => {
       const id = uuidv4()
-      onMessageAfterReady((msg) => {
-        if (msg.type === "commandStart") {
-          expect(msg.args).to.eql({ names: ["module-a"] })
-          expect(msg.opts.force).to.be.true
-        }
+      onMessageAfterReady({
+        cb: (msg) => {
+          if (msg.type === "commandStart") {
+            expect(msg.args).to.eql({ names: ["module-a"] })
+            expect(msg.opts.force).to.be.true
+          }
 
-        // Ignore other events such as taskPending and taskProcessing and wait for the command result
-        if (msg.type !== "commandResult") {
-          return
-        }
-        const taskResult = taskResultOutputs(msg.result)
-        const result = {
-          ...msg,
-          result: taskResult,
-        }
-        expect(result.requestId).to.equal(id)
-        expect(result.result["build.module-a"]).to.exist
-        expect(result.result["build.module-a"].state).to.equal("ready")
-        done()
+          // Ignore other events such as taskPending and taskProcessing and wait for the command result
+          if (msg.type !== "commandResult") {
+            return
+          }
+          const taskResult = taskResultOutputs(msg.result)
+          const result = {
+            ...msg,
+            result: taskResult,
+          }
+          expect(result.requestId).to.equal(id)
+          expect(result.result["build.module-a"]).to.exist
+          expect(result.result["build.module-a"].state).to.equal("ready")
+          done()
+        },
+        skipType: "logEntry",
       })
       ws.send(
         JSON.stringify({
