@@ -549,7 +549,7 @@ ${chalk.white.underline("Keys:")}
       return
     }
 
-    const rawArgs = this.currentCommand.split(" ")
+    const rawArgs = this.currentCommand.trim().split(" ")
     const { command, rest, matchedPath } = pickCommand(this.commands, rawArgs)
 
     if (!command) {
