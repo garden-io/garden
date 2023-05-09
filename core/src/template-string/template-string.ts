@@ -494,7 +494,7 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
 
   // ${action.*}
   const refs: ActionTemplateReference[] = rawRefs
-    .filter((ref) => ref[0] === "action")
+    .filter((ref) => ref[0] === "actions")
     .map((ref) => {
       if (!ref[1]) {
         throw new ConfigurationError("Found invalid action reference (missing kind)", { config, ref })

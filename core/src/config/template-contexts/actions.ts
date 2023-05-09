@@ -203,13 +203,12 @@ export interface ActionSpecContextParams {
  * Used to resolve action spec and variables.
  */
 export class ActionSpecContext extends OutputConfigContext {
-  // TODO-0.13.0: rename to actions (to allow using action singular in certain contexts + match the modules field)
   @schema(
     ActionReferencesContext.getSchema().description(
       "Runtime outputs and information from other actions (only resolved at runtime when executing actions)."
     )
   )
-  public action: ActionReferencesContext
+  public actions: ActionReferencesContext
 
   @schema(ActionReferencesContext.getSchema().description("Alias for `action`."))
   public runtime: ActionReferencesContext
@@ -239,8 +238,15 @@ export class ActionSpecContext extends OutputConfigContext {
   public this: ActionReferenceContext
 
   constructor(params: ActionSpecContextParams) {
-    const { action, garden, partialRuntimeResolution, variables, inputs, resolvedDependencies, executedDependencies } =
-      params
+    const {
+      action,
+      garden,
+      partialRuntimeResolution,
+      variables,
+      inputs,
+      resolvedDependencies,
+      executedDependencies,
+    } = params
 
     const internal = action.getInternal()
 
@@ -260,13 +266,13 @@ export class ActionSpecContext extends OutputConfigContext {
     const parentName = internal?.parentName
     const templateName = internal?.templateName
 
-    this.action = new ActionReferencesContext(this, partialRuntimeResolution, [
+    this.actions = new ActionReferencesContext(this, partialRuntimeResolution, [
       ...resolvedDependencies,
       ...executedDependencies,
     ])
 
     // Throw specific error when attempting to resolve self
-    this.action[action.kind.toLowerCase()].set(
+    this.actions[action.kind.toLowerCase()].set(
       name,
       new ErrorContext(`Action ${chalk.white.bold(action.key())} cannot reference itself.`)
     )
@@ -277,7 +283,7 @@ export class ActionSpecContext extends OutputConfigContext {
     }
     this.inputs = inputs
 
-    this.runtime = this.action
+    this.runtime = this.actions
 
     this.this = new ActionReferenceContext({
       root: this,

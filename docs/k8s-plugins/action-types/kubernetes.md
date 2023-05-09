@@ -14,7 +14,7 @@ you'll find a lot common between the two guides.
 
 See the full spec for the `kubernetes` deploy action in our [reference docs](../../reference/action-types/Deploy/kubernetes.md).
 
-[`kubernetes-pod` run](../../reference/action-types/Run/kubernetes-pod.md), [`kubernetes-pod` test](../../reference/action-types/Test/kubernetes-pod.md) and `kubernetes-exec` 
+[`kubernetes-pod` run](../../reference/action-types/Run/kubernetes-pod.md), [`kubernetes-pod` test](../../reference/action-types/Test/kubernetes-pod.md) and `kubernetes-exec`
 actions can be used for testing and task porposes.
 
 ## Referencing manifests
@@ -169,7 +169,7 @@ type: kubernetes-pod
 dependencies:
   - deploy.api
 variables:
-  hostname: vote.${var.baseHostname}  
+  hostname: vote.${var.baseHostname}
 timeout: 60
 spec:
   resource:
@@ -208,7 +208,7 @@ spec:
       spec:
         containers:
         - name: worker
-          image: ${action.build.worker-image.outputs.deployment-image-id} # <--- Here we're referencing the output from the api-image module. This will also work in manifest files.
+          image: ${actions.build.worker-image.outputs.deployment-image-id} # <--- Here we're referencing the output from the api-image module. This will also work in manifest files.
           # ...
 ```
 
@@ -232,7 +232,7 @@ spec:
   sync:
     paths:
       - containerPath: /app/src
-        sourcePath: ${action.build.vote-image.sourcePath}/src
+        sourcePath: ${actions.build.vote-image.sourcePath}/src
         mode: two-way
 
 ```

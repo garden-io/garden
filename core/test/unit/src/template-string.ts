@@ -1683,42 +1683,42 @@ describe("collectTemplateReferences", () => {
 })
 
 describe("getActionTemplateReferences", () => {
-  context("action.*", () => {
+  context("actions.*", () => {
     it("returns valid action references", () => {
       const config = {
-        build: '${action["build"].build-a}',
-        deploy: '${action["deploy"].deploy-a}',
-        run: '${action["run"].run-a}',
-        test: '${action["test"].test-a}',
+        build: '${actions["build"].build-a}',
+        deploy: '${actions["deploy"].deploy-a}',
+        run: '${actions["run"].run-a}',
+        test: '${actions["test"].test-a}',
       }
       const actionTemplateReferences = getActionTemplateReferences(config)
       expect(actionTemplateReferences).to.eql([
         {
           kind: "Build",
           name: "build-a",
-          fullRef: ["action", "build", "build-a"],
+          fullRef: ["actions", "build", "build-a"],
         },
         {
           kind: "Deploy",
           name: "deploy-a",
-          fullRef: ["action", "deploy", "deploy-a"],
+          fullRef: ["actions", "deploy", "deploy-a"],
         },
         {
           kind: "Run",
           name: "run-a",
-          fullRef: ["action", "run", "run-a"],
+          fullRef: ["actions", "run", "run-a"],
         },
         {
           kind: "Test",
           name: "test-a",
-          fullRef: ["action", "test", "test-a"],
+          fullRef: ["actions", "test", "test-a"],
         },
       ])
     })
 
     it("throws if action ref has no kind", () => {
       const config = {
-        foo: "${action}",
+        foo: "${actions}",
       }
       void expectError(() => getActionTemplateReferences(config), {
         contains: "Found invalid action reference (missing kind)",
@@ -1727,7 +1727,7 @@ describe("getActionTemplateReferences", () => {
 
     it("throws if action ref has invalid kind", () => {
       const config = {
-        foo: '${action["badkind"].some-name}',
+        foo: '${actions["badkind"].some-name}',
       }
       void expectError(() => getActionTemplateReferences(config), {
         contains: "Found invalid action reference (invalid kind 'badkind')",
@@ -1736,7 +1736,7 @@ describe("getActionTemplateReferences", () => {
 
     it("throws if action kind is not a string", () => {
       const config = {
-        foo: "${action[123]}",
+        foo: "${actions[123]}",
       }
       void expectError(() => getActionTemplateReferences(config), {
         contains: "Found invalid action reference (kind is not a string)",
@@ -1745,7 +1745,7 @@ describe("getActionTemplateReferences", () => {
 
     it("throws if action kind is not resolvable", () => {
       const config = {
-        foo: "${action[foo.bar].some-name}",
+        foo: "${actions[foo.bar].some-name}",
       }
       void expectError(() => getActionTemplateReferences(config), {
         contains: "Found invalid action reference (invalid kind '${foo.bar}')",
@@ -1754,7 +1754,7 @@ describe("getActionTemplateReferences", () => {
 
     it("throws if action ref has no name", () => {
       const config = {
-        foo: '${action["build"]}',
+        foo: '${actions["build"]}',
       }
       void expectError(() => getActionTemplateReferences(config), {
         contains: "Found invalid action reference (missing name)",
@@ -1763,7 +1763,7 @@ describe("getActionTemplateReferences", () => {
 
     it("throws if action name is not a string", () => {
       const config = {
-        foo: '${action["build"].123}',
+        foo: '${actions["build"].123}',
       }
       void expectError(() => getActionTemplateReferences(config), {
         contains: "Found invalid action reference (name is not a string)",

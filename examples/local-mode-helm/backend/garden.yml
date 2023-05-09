@@ -19,8 +19,8 @@ spec:
 
   values:
     image:
-      repository: ${action.build.backend-image.outputs.deployment-image-name}
-      tag: ${action.build.backend-image.version}
+      repository: ${actions.build.backend-image.outputs.deployment-image-name}
+      tag: ${actions.build.backend-image.version}
     ingress:
       enabled: true
       paths: [ "/hello-backend" ]

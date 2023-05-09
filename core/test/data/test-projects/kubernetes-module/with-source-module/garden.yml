@@ -40,7 +40,7 @@ spec:
           spec:
             containers:
               - name: api
-                image: ${action.build.api-image.outputs.deployment-image-id}
+                image: ${actions.build.api-image.outputs.deployment-image-id}
                 args: [python, app.py]
                 ports:
                   - containerPort: 80

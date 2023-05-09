@@ -91,7 +91,7 @@ describe("ResolveActionTask", () => {
           type: "test",
           name: "foo",
           spec: {
-            foo: "${action.build.foo.outputs.something}",
+            foo: "${actions.build.foo.outputs.something}",
           },
         },
       ])
@@ -116,7 +116,7 @@ describe("ResolveActionTask", () => {
           type: "test",
           name: "foo",
           spec: {
-            foo: "${action.build.foo.version}",
+            foo: "${actions.build.foo.version}",
           },
         },
       ])
@@ -258,7 +258,7 @@ describe("ResolveActionTask", () => {
           type: "test",
           name: "foo",
           spec: {
-            deployCommand: ["echo", "${action.build.foo.version}"],
+            deployCommand: ["echo", "${actions.build.foo.version}"],
           },
         },
       ])
@@ -290,7 +290,7 @@ describe("ResolveActionTask", () => {
           type: "test",
           name: "foo",
           spec: {
-            foo: "${action.build.foo.version}",
+            foo: "${actions.build.foo.version}",
           },
         },
       ])
@@ -419,7 +419,7 @@ describe("ResolveActionTask", () => {
           type: "test",
           name: "foo",
           spec: {
-            deployCommand: ["echo", "${action.run.foo.outputs.log}"],
+            deployCommand: ["echo", "${actions.run.foo.outputs.log}"],
           },
         },
       ])

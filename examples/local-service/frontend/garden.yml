@@ -46,7 +46,7 @@ dependencies:
 
 spec:
   args: [ npm, test ]
-  env: ${action.deploy.frontend.var.env}
+  env: ${actions.deploy.frontend.var.env}
 
 ---
 kind: Test
@@ -60,7 +60,7 @@ dependencies:
 
 spec:
   args: [ npm, run, integ ]
-  env: ${action.deploy.frontend.var.env}
+  env: ${actions.deploy.frontend.var.env}
 
 ---
 kind: Build
@@ -81,4 +81,4 @@ spec:
     command: [ "yarn", "run", "dev" ]
     statusCommand: [ ./check-local-status.sh ]
   deployCommand: [ ]
-  env: ${action.deploy.frontend.var.env}
+  env: ${actions.deploy.frontend.var.env}
