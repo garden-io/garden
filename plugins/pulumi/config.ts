@@ -48,11 +48,12 @@ export const pulumiProviderConfigSchema = providerConfigBaseSchema()
         This option can be useful when you want to provide a folder of pre-approved pulumi plans to a CI pipeline step.
     `
       ),
-    orgName: joi.string().description(dedent`
+    orgName: joi.string().optional().empty(["", null]).description(dedent`
       The name of the pulumi organization to use. This option can also be set on the module level, in which case it
-      overrides this provider-level option.
+      overrides this provider-level option. Note that setting the organization name is only necessary when using
+      pulumi managed backend with an organization.
     `),
-    backendURL: joi.string().uri().default("https://api.pulumi.com").required().description(dedent`
+    backendURL: joi.string().optional().uri().empty(["", null]).default("https://api.pulumi.com").description(dedent`
       The URL of the state backend endpoint used. This option can also be set on the module level, in which case it
       overrides this  provider-level option. Set this option as per list of available self-managed state backends on
       https://www.pulumi.com/docs/intro/concepts/state/#using-a-self-managed-backend
@@ -72,8 +73,7 @@ export interface PulumiDeploySpec {
   createStack: boolean
   pulumiVariables: DeepPrimitiveMap
   pulumiVarfiles: string[]
-  orgName?: string | null
-  backendURL?: string | null
+  orgName?: string
   cacheStatus: boolean
   stackReferences: string[]
   deployFromPreview: boolean
@@ -138,14 +138,9 @@ export const pulumiDeploySpecSchema = () =>
           config. Simply specify all the config variables at the top level.
         `
     ),
-    orgName: joi.string().optional().allow(null).description(dedent`
+    orgName: joi.string().optional().empty(["", null]).description(dedent`
       The name of the pulumi organization to use. Overrides the \`orgName\` set on the pulumi provider (if any).
       To use the default org, set to null.
-    `),
-    backendURL: joi.string().uri().optional().allow(null).description(dedent`
-      The name of the Pulumi backend URL to use. Overrides the \`backendURL\` set on the pulumi provider (if any).
-      Set this option as per list of available self-managed state backends on
-      https://www.pulumi.com/docs/intro/concepts/state/#using-a-self-managed-backend
     `),
     cacheStatus: joi
       .boolean()

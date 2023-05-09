@@ -53,7 +53,7 @@ export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({
 
   const provider = ctx.provider as PulumiProvider
 
-  const backendUrl = moduleConfig.spec.backendURL || provider.config.backendURL
+  const backendUrl = provider.config.backendURL
   const orgName = moduleConfig.spec.orgName || provider.config.orgName
 
   // Check to avoid using `orgName` or `cacheStatus: true` with non-pulumi managed backends
