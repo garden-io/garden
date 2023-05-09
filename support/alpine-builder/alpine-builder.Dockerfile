@@ -1,6 +1,5 @@
 # Note: This is used by build-pkg.ts, and is not usable as a Garden container
-ARG NODE_VERSION=18-alpine3.17
-FROM node:${NODE_VERSION} as builder
+FROM node:18.15.0-alpine@sha256:19eaf41f3b8c2ac2f609ac8103f9246a6a6d46716cdbe49103fdb116e55ff0cc as builder
 
 RUN apk add --no-cache \
   ca-certificates \

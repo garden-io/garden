@@ -1,5 +1,4 @@
-ARG NODE_VERSION=18-alpine3.17
-FROM node:${NODE_VERSION}
+FROM node:18.15.0-alpine@sha256:19eaf41f3b8c2ac2f609ac8103f9246a6a6d46716cdbe49103fdb116e55ff0cc
 
 RUN apk add --no-cache \
   bash \
