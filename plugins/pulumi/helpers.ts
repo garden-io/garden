@@ -269,8 +269,7 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   log.debug(`merged vars: ${JSON.stringify(vars, null, 2)}`)
   stackConfig.config = vars
 
-  const backendUrl = getBackendUrl(params.provider, params.action)
-  stackConfig.backend = { url: backendUrl }
+  stackConfig.backend = { url: params.provider.config.backendURL }
 
   if (stackConfigFileExists && isEmpty(vars)) {
     log.debug(deline`
@@ -404,17 +403,8 @@ export async function reimportStack(params: PulumiParams): Promise<void> {
 
 // Lower-level helpers
 
-function getBackendUrl(provider: PulumiProvider, action: PulumiDeploy): string {
-  const backendURL = action.getConfig().spec.backendURL
-  if (backendURL) {
-    return backendURL
-  } else {
-    return provider.config.backendURL
-  }
-}
-
 export function ensureEnv(pulumiParams: PulumiParams): { [key: string]: string } {
-  const backendUrl = getBackendUrl(pulumiParams.provider, pulumiParams.action)
+  const backendUrl = pulumiParams.provider.config.backendURL
   return { PULUMI_BACKEND_URL: backendUrl, ...defaultPulumiEnv }
 }
 
@@ -422,7 +412,6 @@ export async function selectStack({ action, ctx, provider, log }: PulumiParams) 
   const root = getActionStackRoot(action)
   const spec = action.getSpec()
   const stackName = spec.stack || ctx.environmentName
-
   const orgName = getOrgName(<PulumiProvider>ctx.provider, action)
   const qualifiedStackName = orgName ? `${orgName}/${stackName}` : stackName
   const args = ["stack", "select", qualifiedStackName]
@@ -432,12 +421,12 @@ export async function selectStack({ action, ctx, provider, log }: PulumiParams) 
   return stackName
 }
 
-function getOrgName(provider: PulumiProvider, action: Resolved<PulumiDeploy>): string | null {
+function getOrgName(provider: PulumiProvider, action: Resolved<PulumiDeploy>): string | undefined {
   const orgName = action.getSpec("orgName")
-  if (orgName || orgName === null) {
+  if (orgName) {
     return orgName
   } else {
-    return provider.config.orgName || null
+    return provider.config.orgName
   }
 }
 
