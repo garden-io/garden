@@ -205,22 +205,11 @@ export async function actionFromConfig({
   const actionTypes = await garden.getActionTypes()
   const definition = actionTypes[config.kind][config.type]?.spec
   const compatibleTypes = [config.type, ...getActionTypeBases(definition, actionTypes[config.kind]).map((t) => t.name)]
-
-  const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
-  const treeVersion = await garden.vcs.getTreeVersion(log, garden.projectName, config)
-
-  const variables = await resolveVariables({
-    basePath: config.internal.basePath,
-    variables: config.variables,
-    varfiles: config.varfiles,
-  })
-
-  let linked: LinkedSource | null = null
-  let remoteSourcePath: string | null = null
-
   const repositoryUrl = config.source?.repository?.url
   const key = actionReferenceToString(config)
 
+  let linked: LinkedSource | null = null
+  let remoteSourcePath: string | null = null
   if (repositoryUrl) {
     if (config.internal.remoteClonePath) {
       // Carry over clone path from converted module
@@ -232,12 +221,22 @@ export async function actionFromConfig({
         repositoryUrl,
         linkedSources: Object.values(linkedSources),
       })
+
+      config.internal.basePath = remoteSourcePath
     }
 
     if (linkedSources[key]) {
       linked = linkedSources[key]
     }
   }
+  const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
+  const treeVersion = await garden.vcs.getTreeVersion(log, garden.projectName, config)
+
+  const variables = await resolveVariables({
+    basePath: config.internal.basePath,
+    variables: config.variables,
+    varfiles: config.varfiles,
+  })
 
   const params: ActionWrapperParams<any> = {
     baseBuildDirectory: garden.buildStaging.buildDirPath,
