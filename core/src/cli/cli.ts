@@ -118,7 +118,7 @@ export class GardenCli {
   // access the bufferedEventStream instance via the cli instance for
   // some commands. We can remove this all together when we introduce the
   // instance manager.
-  public bufferedEventStream: BufferedEventStream | undefined
+  public bufferedEventStream: BufferedEventStream
 
   constructor({ plugins, initLogger = false }: { plugins?: GardenPluginReference[]; initLogger?: boolean } = {}) {
     this.plugins = plugins || []
@@ -312,8 +312,8 @@ ${renderCommands(commands)}
 
     registerCleanupFunction("stream-session-cancelled-event", () => {
       if (!this.sessionFinished) {
-        this.bufferedEventStream?.streamEvent("sessionCancelled", {})
-        this.bufferedEventStream?.flushAll().catch(() => {})
+        this.bufferedEventStream.streamEvent("sessionCancelled", {})
+        this.bufferedEventStream.flushAll().catch(() => {})
       }
     })
 
@@ -714,15 +714,13 @@ ${renderCommands(commands)}
       code = commandResult.exitCode || 1
     }
 
-    if (this.bufferedEventStream) {
-      if (code === 0) {
-        this.bufferedEventStream.streamEvent("sessionCompleted", {})
-      } else {
-        this.bufferedEventStream.streamEvent("sessionFailed", {})
-      }
-      await this.bufferedEventStream.close()
-      this.sessionFinished = true
+    if (code === 0) {
+      this.bufferedEventStream.streamEvent("sessionCompleted", {})
+    } else {
+      this.bufferedEventStream.streamEvent("sessionFailed", {})
     }
+    await this.bufferedEventStream.close()
+    this.sessionFinished = true
 
     return { argv, code, errors, result: commandResult?.result }
   }
