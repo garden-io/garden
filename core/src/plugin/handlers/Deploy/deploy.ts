@@ -27,7 +27,7 @@ export class DoDeployAction<T extends DeployAction = DeployAction> extends Actio
     Deploy the specified service. This should wait until the service is ready and accessible,
     and fail if the service doesn't reach a ready state.
 
-    Called by the \`garden deploy\` and \`garden dev\` commands.
+    Called by the \`garden deploy\`command.
   `
 
   paramsSchema = () =>

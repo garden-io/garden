@@ -167,7 +167,7 @@ It is, which is why we recommend that tasks are written to be idempotent. Tasks 
 
 This is intentional, we don't re-run tasks on file watch events. We debated this behavior quite a bit and ultimately opted not to run task dependencies on every watch event.
 
-### Why is my task not running on `garden deploy` or `garden dev`?
+### Why is my task not running on `garden deploy`?
 
 The task result is likely cached. Garden won't run tasks with cached results unless `cacheResult: false` is set on the task definition.
 

@@ -83,7 +83,7 @@ garden test --name e2e
 Garden also has a special mode called "sync mode" which live reloads changes to your running services—ensuring **blazing fast feedback while developing**. To enable it, simply run:
 
 ```yaml
-garden dev
+garden deploy --sync
 ```
 
 There are also a handful of utility commands for getting logs, exec-ing into services, publishing images, and more.
