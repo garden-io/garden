@@ -678,7 +678,7 @@ ${renderCommands(commands)}
 
     const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
 
-    analytics?.trackCommandResult(command.getFullName(), gardenErrors, commandStartTime)
+    analytics?.trackCommandResult(command.getFullName(), gardenErrors, commandStartTime, commandResult.exitCode)
 
     // Flushes the Analytics events queue in case there are some remaining events.
     if (analytics) {

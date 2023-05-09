@@ -151,6 +151,7 @@ interface CommandResultEvent extends EventBase {
     durationMsec: number
     result: AnalyticsCommandResult
     errors: string[] // list of GardenBaseError types
+    exitCode?: number
   }
 }
 
@@ -590,7 +591,7 @@ export class AnalyticsHandler {
   /**
    * Track a command result.
    */
-  trackCommandResult(commandName: string, errors: GardenBaseError[], startTime: Date) {
+  trackCommandResult(commandName: string, errors: GardenBaseError[], startTime: Date, exitCode?: number) {
     const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
 
     const durationMsec = getDurationMsec(startTime, new Date())
@@ -602,6 +603,7 @@ export class AnalyticsHandler {
         durationMsec,
         result,
         errors: errors.map((e) => e.type),
+        exitCode,
         ...this.getBasicAnalyticsProperties(),
       },
     })
