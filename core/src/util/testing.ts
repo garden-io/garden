@@ -397,6 +397,10 @@ export function expectFuzzyMatch(str: string, sample: string | string[]) {
   samples.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
 }
 
+export function expectLogsContain(logs: string[], sample: string) {
+  expect(logs.some((line) => line.includes(sample))).to.be.true
+}
+
 type ExpectErrorAssertion =
   | string
   | ((err: any) => void)
