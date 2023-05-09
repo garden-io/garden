@@ -59,6 +59,11 @@ describe("Logger", () => {
             dataFormat: "json",
             data: { foo: "bar" },
           },
+          context: {
+            name: "log-context-name",
+            origin: undefined,
+            type: "coreLog",
+          },
           metadata: {
             workflowStep: {
               index: 2,
