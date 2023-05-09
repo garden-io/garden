@@ -43,7 +43,8 @@ providers:
     previewDir:
 
     # The name of the pulumi organization to use. This option can also be set on the module level, in which case it
-    # overrides this provider-level option.
+    # overrides this provider-level option. Note that setting the organization name is only necessary when using
+    # pulumi managed backend with an organization.
     orgName:
 
     # The URL of the state backend endpoint used. This option can also be set on the module level, in which case it
@@ -149,7 +150,8 @@ This option can be useful when you want to provide a folder of pre-approved pulu
 [providers](#providers) > orgName
 
 The name of the pulumi organization to use. This option can also be set on the module level, in which case it
-overrides this provider-level option.
+overrides this provider-level option. Note that setting the organization name is only necessary when using
+pulumi managed backend with an organization.
 
 | Type     | Required |
 | -------- | -------- |
@@ -165,7 +167,7 @@ https://www.pulumi.com/docs/intro/concepts/state/#using-a-self-managed-backend
 
 | Type     | Default                    | Required |
 | -------- | -------------------------- | -------- |
-| `string` | `"https://api.pulumi.com"` | Yes      |
+| `string` | `"https://api.pulumi.com"` | No       |
 
 ### `providers[].pluginTaskConcurrencyLimit`
 
