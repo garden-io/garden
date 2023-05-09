@@ -361,7 +361,11 @@ ${renderCommands(commands)}
     // TODO: Link to Cloud namespace page here.
     const nsLog = log.createLog({ name: "garden" })
 
+    let commandIteration = 0
+
     do {
+      commandIteration += 1
+
       try {
         if (command.noProject) {
           garden = await makeDummyGarden(workingDir, contextOpts)
@@ -462,7 +466,7 @@ ${renderCommands(commands)}
           commandFullName: command.getFullName(),
         })
         analytics = await AnalyticsHandler.init(garden, log)
-        analytics.trackCommand(command.getFullName())
+        analytics.trackCommand({ commandName: command.getFullName(), commandIteration })
 
         // Note: No reason to await the check
         checkForUpdates(garden.globalConfigStore, log).catch((err) => {
@@ -471,6 +475,8 @@ ${renderCommands(commands)}
         })
 
         await checkForStaticDir()
+
+        const commandStartTime = new Date()
 
         // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
         if (await command.isAllowedToRun(garden, log, parsedOpts)) {
@@ -490,6 +496,16 @@ ${renderCommands(commands)}
           log.info("\nCommand aborted.")
           result = {}
         }
+
+        // Track the result of the command run
+        const allErrors = result.errors || []
+        analytics?.trackCommandResult(
+          command.getFullName(),
+          commandIteration,
+          allErrors,
+          commandStartTime,
+          result.exitCode
+        )
 
         // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to
         // fire, which may be needed to e.g. capture monitors added in event handlers
@@ -664,8 +680,6 @@ ${renderCommands(commands)}
 
     this.processRecord = processRecord!
 
-    const commandStartTime = new Date()
-
     try {
       const runResults = await this.runCommand({ command, parsedArgs, parsedOpts, processRecord, workingDir, log })
       commandResult = runResults.result
@@ -677,8 +691,6 @@ ${renderCommands(commands)}
     errors.push(...(commandResult.errors || []))
 
     const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
-
-    analytics?.trackCommandResult(command.getFullName(), gardenErrors, commandStartTime, commandResult.exitCode)
 
     // Flushes the Analytics events queue in case there are some remaining events.
     if (analytics) {

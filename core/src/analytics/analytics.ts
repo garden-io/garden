@@ -132,6 +132,7 @@ interface CommandEvent extends EventBase {
   type: "Run Command"
   properties: PropertiesBase & {
     name: string
+    commandIteration: number
   }
 }
 
@@ -152,6 +153,7 @@ interface CommandResultEvent extends EventBase {
     result: AnalyticsCommandResult
     errors: string[] // list of GardenBaseError types
     exitCode?: number
+    commandIteration: number
   }
 }
 
@@ -578,11 +580,12 @@ export class AnalyticsHandler {
   /**
    * Tracks a Command.
    */
-  trackCommand(commandName: string) {
+  trackCommand({ commandName, commandIteration = 1 }: { commandName: string; commandIteration?: number }) {
     return this.track({
       type: "Run Command",
       properties: {
         name: commandName,
+        commandIteration,
         ...this.getBasicAnalyticsProperties(),
       },
     })
@@ -591,7 +594,13 @@ export class AnalyticsHandler {
   /**
    * Track a command result.
    */
-  trackCommandResult(commandName: string, errors: GardenBaseError[], startTime: Date, exitCode?: number) {
+  trackCommandResult(
+    commandName: string,
+    commandIteration: number,
+    errors: GardenBaseError[],
+    startTime: Date,
+    exitCode?: number
+  ) {
     const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
 
     const durationMsec = getDurationMsec(startTime, new Date())
@@ -600,6 +609,7 @@ export class AnalyticsHandler {
       type: "Command Result",
       properties: {
         name: commandName,
+        commandIteration,
         durationMsec,
         result,
         errors: errors.map((e) => e.type),

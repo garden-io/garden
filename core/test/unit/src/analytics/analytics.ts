@@ -394,12 +394,13 @@ describe("AnalyticsHandler", () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
-      const event = analytics.trackCommand("testCommand")
+      const event = analytics.trackCommand({ commandName: "testCommand" })
 
       expect(event).to.eql({
         type: "Run Command",
         properties: {
           name: "testCommand",
+          commandIteration: 1,
           projectId: AnalyticsHandler.hash(remoteOriginUrl),
           projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
           projectName,
@@ -438,12 +439,13 @@ describe("AnalyticsHandler", () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo: { isCi: true, ciName: "foo" } })
-      const event = analytics.trackCommand("testCommand")
+      const event = analytics.trackCommand({ commandName: "testCommand" })
 
       expect(event).to.eql({
         type: "Run Command",
         properties: {
           name: "testCommand",
+          commandIteration: 1,
           projectId: AnalyticsHandler.hash(remoteOriginUrl),
           projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
           projectName,
@@ -499,12 +501,13 @@ describe("AnalyticsHandler", () => {
       const now = freezeTime()
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      const event = analytics.trackCommand("testCommand")
+      const event = analytics.trackCommand({ commandName: "testCommand" })
 
       expect(event).to.eql({
         type: "Run Command",
         properties: {
           name: "testCommand",
+          commandIteration: 1,
           projectId: AnalyticsHandler.hash(remoteOriginUrl),
           projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
           projectName,
@@ -548,12 +551,13 @@ describe("AnalyticsHandler", () => {
       const now = freezeTime()
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      const event = analytics.trackCommand("testCommand")
+      const event = analytics.trackCommand({ commandName: "testCommand" })
 
       expect(event).to.eql({
         type: "Run Command",
         properties: {
           name: "testCommand",
+          commandIteration: 1,
           projectId: AnalyticsHandler.hash(remoteOriginUrl),
           projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
           projectName: AnalyticsHandler.hash("has-domain-and-id"),
@@ -597,12 +601,13 @@ describe("AnalyticsHandler", () => {
       const now = freezeTime()
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      const event = analytics.trackCommand("testCommand")
+      const event = analytics.trackCommand({ commandName: "testCommand" })
 
       expect(event).to.eql({
         type: "Run Command",
         properties: {
           name: "testCommand",
+          commandIteration: 1,
           projectId: AnalyticsHandler.hash(remoteOriginUrl),
           projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
           projectName: AnalyticsHandler.hash("config-templates"),
@@ -677,7 +682,7 @@ describe("AnalyticsHandler", () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      analytics.trackCommand("test-command-A")
+      analytics.trackCommand({ commandName: "test-command-A" })
       await analytics.flush()
 
       expect(analytics["pendingEvents"].size).to.eql(0)
