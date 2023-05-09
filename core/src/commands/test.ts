@@ -41,9 +41,12 @@ export const testOpts = {
   // TODO-0.14: remove in 0.14?
   "name": new StringsParameter({
     help: deline`
-      DEPRECATED: This now does the exact same as the positional arguments.
+      DEPRECATED: This option will be removed in 0.14. Please use a positional argument "<module name>-<test name>" or "*-<test name>" instead of of "--name".
 
-      Only run tests with the specified name (e.g. unit or integ).
+      This option can be used to run all tests with the specified name (e.g. unit or integ) in declared in any module.
+
+      Note: Since 0.13, using the --name option is equivalent to using the positional argument "*-<test name>". This means that new tests declared using the new Action kinds will also be executed if their name matches this pattern.
+
       Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').
     `,
     aliases: ["n"],
@@ -145,10 +148,14 @@ export class TestCommand extends Command<Args, Opts> {
       log.warn("The --skip-dependants option no longer has any effect, since dependants are not processed by default.")
     }
 
+    if (opts["name"]) {
+      log.warn("The --name option will be removed in 0.14. Please use a positional argument <module-name>-<test-name> instead.")
+    }
+
     const graph = await garden.getConfigGraph({ log, emit: true })
 
     let names: string[] | undefined = undefined
-    const nameArgs = [...(args.names || []), ...(opts.name || [])]
+    const nameArgs = [...(args.names || []), ...(opts.name || []).map((n) => `*-${n}`)]
     const force = opts.force
     const skipRuntimeDependencies = opts["skip-dependencies"]
 
