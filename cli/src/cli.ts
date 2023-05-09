@@ -43,12 +43,18 @@ export async function runCli({
     code = result.code
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.log(err.message)
+    console.log(`Unhandled error when running garden\n${err.message}`)
     code = 1
   } finally {
     if (cli?.processRecord) {
       const globalConfigStore = new GlobalConfigStore()
-      await globalConfigStore.delete("activeProcesses", String(cli.processRecord.pid))
+
+      try {
+        await globalConfigStore.delete("activeProcesses", String(cli.processRecord.pid))
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.log(`Global config store cleanup failed, ${err.message}`)
+      }
     }
     await shutdown(code)
   }
