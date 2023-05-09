@@ -34,7 +34,9 @@ import { GraphResultFromTask } from "../graph/results"
 import { PortForwardMonitor } from "../monitors/port-forward"
 import { registerCleanupFunction } from "../util/util"
 import { LogMonitor } from "../monitors/logs"
-import { parseLogLevel } from "../logger/logger"
+import { LoggerType, parseLogLevel } from "../logger/logger"
+import { serveOpts } from "./serve"
+import { DevCommand } from "./dev"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -100,6 +102,7 @@ export const deployOpts = {
   "timestamps": new BooleanParameter({
     help: "Show timestamps with log output. Should be used with the `--logs` option (has no effect if that option is not used).",
   }),
+  ...serveOpts,
 }
 
 type Args = typeof deployArgs
@@ -149,6 +152,10 @@ export class DeployCommand extends Command<Args, Opts> {
     printHeader(headerLog, "Deploy", "🚀")
   }
 
+  getTerminalWriterType(params): LoggerType {
+    return this.maybePersistent(params) ? "ink" : "default"
+  }
+
   terminate() {
     super.terminate()
     this.garden?.events.emit("_exit", {})
@@ -163,9 +170,19 @@ export class DeployCommand extends Command<Args, Opts> {
       await watchRemovedWarning(garden, log)
     }
 
-    // TODO-0.13.0: make these both explicit options
-    let monitor = this.maybePersistent(params)
-    let forward = monitor
+    const monitor = this.maybePersistent(params)
+    if (monitor && !params.commandLine) {
+      // Then we're not in the dev command yet, so we call that instead with the appropriate initial command.
+      // TODO: Abstract this delegation process into a helper if we write more commands that do this sort of thing.
+      params.opts.cmd = ["deploy " + params.args.$all!.join(" ")]
+      const devCmd = new DevCommand()
+      devCmd.printHeader(params)
+      await devCmd.prepare(params)
+
+      return devCmd.action(params)
+    }
+
+    const forward = monitor
     const streamLogs = opts.logs
 
     const actionModes: ActionModeMap = {

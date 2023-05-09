@@ -239,10 +239,12 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   async typeCommand(line: string) {
     this.enabled = false
     this.clear()
+    // Make sure it takes at most 2 seconds to auto-type the command.
+    const sleepMs = Math.min(Math.floor(2000 / line.length), 40)
     for (const char of line) {
       this.addCharacter(char)
       this.commandLineCallback(commandLinePrefix + this.currentCommand)
-      await sleep(120)
+      await sleep(sleepMs)
     }
     await sleep(250)
     this.handleReturn()

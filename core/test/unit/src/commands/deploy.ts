@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployCommand } from "../../../../src/commands/deploy"
+import { DeployCommand, deployOpts } from "../../../../src/commands/deploy"
 import { expect } from "chai"
 import {
   taskResultOutputs,
@@ -21,6 +21,7 @@ import {
 import { getRootLogger } from "../../../../src/logger/logger"
 import { ActionStatus } from "../../../../src/actions/types"
 import { DeployStatus } from "../../../../src/plugin/handlers/Deploy/get-status"
+import { defaultServerPort } from "../../../../src/commands/serve"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 const placeholderTimestamp = new Date()
@@ -109,6 +110,22 @@ describe("DeployCommand", () => {
   const projectRootB = getDataDir("test-project-b")
   const projectRootA = getDataDir("test-project-a")
 
+  const defaultDeployOpts = withDefaultGlobalOpts({
+    "sync": undefined,
+    "local-mode": undefined,
+    "watch": false,
+    "force": false,
+    "force-build": true, // <----
+    "skip": undefined,
+    "skip-dependencies": false,
+    "skip-watch": false,
+    "forward": false,
+    "logs": false,
+    "timestamps": false,
+    "port": defaultServerPort,
+    "cmd": undefined
+  })
+
   // TODO: Verify that services don't get redeployed when same version is already deployed.
 
   const command = new DeployCommand()
@@ -125,19 +142,7 @@ describe("DeployCommand", () => {
       args: {
         names: undefined,
       },
-      opts: withDefaultGlobalOpts({
-        "sync": undefined,
-        "local-mode": undefined,
-        "watch": false,
-        "force": false,
-        "force-build": true,
-        "skip": undefined,
-        "skip-dependencies": false,
-        "skip-watch": false,
-        "forward": false,
-        "logs": false,
-        "timestamps": false,
-      }),
+      opts: defaultDeployOpts,
     })
 
     if (errors?.length) {
@@ -194,19 +199,7 @@ describe("DeployCommand", () => {
       args: {
         names: ["service-b"],
       },
-      opts: withDefaultGlobalOpts({
-        "sync": undefined,
-        "local-mode": undefined,
-        "watch": false,
-        "force": false,
-        "force-build": true,
-        "skip": undefined,
-        "skip-dependencies": false,
-        "skip-watch": false,
-        "forward": false,
-        "logs": false,
-        "timestamps": false,
-      }),
+      opts: defaultDeployOpts
     })
 
     if (errors) {
@@ -245,19 +238,10 @@ describe("DeployCommand", () => {
         args: {
           names: ["service-b", "service-c"],
         },
-        opts: withDefaultGlobalOpts({
-          "sync": undefined,
-          "local-mode": undefined,
-          "watch": false,
-          "force": false,
-          "force-build": true,
-          "skip": undefined,
-          "skip-dependencies": true, // <-----
-          "skip-watch": false,
-          "forward": false,
-          "logs": false,
-          "timestamps": false,
-        }),
+        opts: {
+          ...defaultDeployOpts,
+          "skip-dependencies": true,
+        }
       })
 
       if (errors) {
@@ -297,19 +281,7 @@ describe("DeployCommand", () => {
       args: {
         names: undefined,
       },
-      opts: withDefaultGlobalOpts({
-        "sync": undefined,
-        "local-mode": undefined,
-        "watch": false,
-        "force": false,
-        "force-build": true,
-        "skip": undefined,
-        "skip-dependencies": false,
-        "skip-watch": false,
-        "forward": false,
-        "logs": false,
-        "timestamps": false,
-      }),
+      opts: defaultDeployOpts,
     })
 
     if (errors) {
@@ -338,19 +310,7 @@ describe("DeployCommand", () => {
       args: {
         names: undefined,
       },
-      opts: withDefaultGlobalOpts({
-        "sync": undefined,
-        "local-mode": undefined,
-        "watch": false,
-        "force": false,
-        "force-build": true,
-        "skip": undefined,
-        "skip-dependencies": false,
-        "skip-watch": false,
-        "forward": false,
-        "logs": false,
-        "timestamps": false,
-      }),
+      opts: defaultDeployOpts,
     })
 
     if (errors) {
@@ -374,19 +334,10 @@ describe("DeployCommand", () => {
       args: {
         names: undefined,
       },
-      opts: withDefaultGlobalOpts({
-        "sync": undefined,
-        "local-mode": undefined,
-        "watch": false,
-        "force": false,
-        "force-build": true,
+      opts: {
+        ...defaultDeployOpts,
         "skip": ["service-b"],
-        "skip-dependencies": false,
-        "skip-watch": false,
-        "forward": false,
-        "logs": false,
-        "timestamps": false,
-      }),
+      },
     })
 
     if (errors) {
@@ -407,19 +358,10 @@ describe("DeployCommand", () => {
         args: {
           names: undefined,
         },
-        opts: withDefaultGlobalOpts({
-          "sync": [],
-          "local-mode": undefined,
-          "watch": false,
-          "force": false,
-          "force-build": true,
-          "skip": ["service-b"],
-          "skip-dependencies": false,
-          "skip-watch": false,
-          "forward": false,
-          "logs": false,
-          "timestamps": false,
-        }),
+        opts: {
+          ...defaultDeployOpts,
+          sync: [],
+        },
       })
       expect(persistent).to.be.true
     })
@@ -434,24 +376,15 @@ describe("DeployCommand", () => {
         args: {
           names: undefined,
         },
-        opts: withDefaultGlobalOpts({
-          "sync": undefined,
+        opts: {
+          ...defaultDeployOpts,
           "local-mode": [],
-          "watch": false,
-          "force": false,
-          "force-build": true,
-          "skip": ["service-b"],
-          "skip-dependencies": false,
-          "skip-watch": false,
-          "forward": false,
-          "logs": false,
-          "timestamps": false,
-        }),
+        }
       })
       expect(persistent).to.be.true
     })
 
-    it("should return persistent=true if --follow is set", async () => {
+    it("should return persistent=true if --forward is set", async () => {
       const cmd = new DeployCommand()
       const log = getRootLogger().createLog()
       const persistent = cmd.maybePersistent({
@@ -461,20 +394,10 @@ describe("DeployCommand", () => {
         args: {
           names: undefined,
         },
-        opts: withDefaultGlobalOpts({
-          "sync": undefined,
-
-          "local-mode": undefined,
-          "watch": false,
-          "force": false,
-          "force-build": true,
-          "skip": ["service-b"],
-          "skip-dependencies": false,
-          "skip-watch": false,
-          "forward": true,
-          "logs": false,
-          "timestamps": false,
-        }),
+        opts: {
+          ...defaultDeployOpts,
+          forward: true,
+        }
       })
       expect(persistent).to.be.true
     })
