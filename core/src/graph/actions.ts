@@ -229,6 +229,7 @@ export async function actionFromConfig({
       linked = linkedSources[key]
     }
   }
+
   const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
   const treeVersion = await garden.vcs.getTreeVersion(log, garden.projectName, config)
 
