@@ -254,11 +254,10 @@ ${renderCommands(commands)}
     const commandLoggerType = command.getTerminalWriterType({ opts: parsedOpts, args: parsedArgs })
     getRootLogger().setTerminalWriter(getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType }))
 
-    // TODO-0.13.0: remove for the proper 0.13 release
     if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
       log.warn(
-        chalk.yellow(dedent`Garden Bonsai (0.13) is in alpha. Please report any issues here:
-          https://github.com/garden-io/garden/issues/new?labels=0.13&template=0-13-issue-template.md&title=0.13%3A+%5BBug%5D%3A`)
+        chalk.yellow(dedent`Garden v0.13 is a major release with significant changes. Please help us improve it by reporting any issues/bugs here:
+        https://github.com/garden-io/garden/issues/new?labels=0.13&template=0-13-issue-template.md&title=0.13%3A+%5BBug%5D%3A`)
       )
     }
 
