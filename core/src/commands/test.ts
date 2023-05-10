@@ -149,7 +149,9 @@ export class TestCommand extends Command<Args, Opts> {
     }
 
     if (opts["name"]) {
-      log.warn("The --name option will be removed in 0.14. Please use a positional argument <module-name>-<test-name> instead.")
+      log.warn(
+        "The --name option will be removed in 0.14. Please use a positional argument <module-name>-<test-name> instead."
+      )
     }
 
     const graph = await garden.getConfigGraph({ log, emit: true })

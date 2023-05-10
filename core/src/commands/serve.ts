@@ -21,6 +21,7 @@ import { CommandLine } from "../cli/command-line"
 import { Autocompleter, AutocompleteSuggestion } from "../cli/autocomplete"
 import chalk from "chalk"
 import { isMatch } from "micromatch"
+import { BufferedEventStream } from "../cloud/buffered-event-stream"
 
 export const defaultServerPort = 9700
 
@@ -40,7 +41,7 @@ export class ServeCommand<
   A extends ServeCommandArgs = ServeCommandArgs,
   O extends ServeCommandOpts = ServeCommandOpts,
   R = any
-> extends Command<A, O, R> {
+  > extends Command<A, O, R> {
   name = "serve"
   aliases = ["dashboard"]
   help = "Starts the Garden Core API server for the current project and environment."
@@ -71,7 +72,7 @@ export class ServeCommand<
     super.terminate()
     // Note: This will stop monitors. The CLI wrapper will wait for those to halt.
     this.garden?.events.emit("_exit", {})
-    this.server?.close().catch(() => {})
+    this.server?.close().catch(() => { })
   }
 
   maybePersistent() {
@@ -101,7 +102,7 @@ export class ServeCommand<
     })
   }
 
-  async action({ garden, log }: CommandParams<A, O>): Promise<CommandResult<R>> {
+  async action({ garden, log, cli }: CommandParams<A, O>): Promise<CommandResult<R>> {
     this.garden = garden
     const loggedIn = this.garden?.isLoggedIn()
     if (!loggedIn) {
@@ -129,25 +130,38 @@ export class ServeCommand<
       })
 
       // Errors are handled in the method
-      this.reload(log, garden)
+      this.reload({ log, garden, bufferedEventStream: cli?.bufferedEventStream })
         .then(() => {
           this.commandLine?.flashSuccess(chalk.white.bold(`Dev console is ready to go! 🚀`))
         })
-        .catch(() => {})
+        .catch(() => { })
     })
   }
 
-  async reload(log: Log, garden: Garden) {
+  async reload({
+    log,
+    garden,
+    bufferedEventStream,
+  }: {
+    log: Log
+    garden: Garden
+    bufferedEventStream?: BufferedEventStream
+  }) {
     this.commandLine?.disable("🌸  Loading Garden project...")
 
     try {
       const newGarden = await Garden.factory(garden.projectRoot, garden.opts)
       const configDump = await newGarden.dumpConfig({ log })
       const commands = await this.getCommands(newGarden)
-
       // TODO: restart monitors
-
       this.garden = newGarden
+
+      // FIXME: @instance-manager: This is needed so that the buffered event stream
+      // works with serve commands. We can remove this when we introduce the instance manager.
+      if (bufferedEventStream) {
+        bufferedEventStream.setGarden(newGarden)
+      }
+
       await this.commandLine?.update(newGarden, configDump, commands)
       await this.server?.setGarden(newGarden)
       this.autocompleter = new Autocompleter({ log, commands, configDump })
@@ -235,7 +249,7 @@ class ReloadCommand extends ConsoleCommand {
   }
 
   async action({ garden, log }: CommandParams) {
-    await this.serverCommand.reload(log, garden)
+    await this.serverCommand.reload({ log, garden })
     return {}
   }
 }

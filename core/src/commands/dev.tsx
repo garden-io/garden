@@ -39,6 +39,7 @@ export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
 
   protected = true
   cliOnly = true
+  streamEvents = true
 
   arguments = devCommandArgs
   options = devCommandOpts

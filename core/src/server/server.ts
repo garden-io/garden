@@ -535,7 +535,7 @@ export class GardenServer extends EventEmitter {
             }
 
             if (printLogs) {
-              logCommandStart({ commandName: command.getFullName(), width: termWidth, log })
+              logCommandStart({ commandName: command.getFullName(), width: termWidth, log: this.log })
             }
 
             // TODO: validate result schema
@@ -588,9 +588,9 @@ export class GardenServer extends EventEmitter {
             )
             if (printLogs) {
               if (errors?.length) {
-                logCommandOutputErrors({ errors, log, width: termWidth })
+                logCommandOutputErrors({ errors, log: this.log, width: termWidth })
               } else {
-                logCommandSuccess({ commandName: command.getFullName(), width: termWidth, log })
+                logCommandSuccess({ commandName: command.getFullName(), width: termWidth, log: this.log })
               }
             }
             delete this.activePersistentRequests[requestId]
