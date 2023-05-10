@@ -6,7 +6,7 @@ order: 3
 
 Garden includes a *sync* mode that allows you to rapidly synchronize your code (and other files) to and from running containers.
 
-The sync mode uses [Mutagen](https://mutagen.io/) under the hood. Garden automatically takes care of fetching Mutagen, so you don't need to install any dependencies yourself to make use of dev mode.
+The sync mode uses [Mutagen](https://mutagen.io/) under the hood. Garden automatically takes care of fetching Mutagen, so you don't need to install any dependencies yourself to make use of sync mode.
 
 {% hint style="info" %}
 This feature used to be called _dev mode_ but as of version 0.13 we've opted for more straightforward terminology. The functionality is exactly the same as before.
