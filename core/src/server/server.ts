@@ -459,7 +459,7 @@ export class GardenServer extends EventEmitter {
   }) {
     let request: any
 
-    this.log.debug("Got request: " + msg)
+    this.log.silly("Got request: " + msg)
 
     try {
       request = JSON.parse(msg.toString())
