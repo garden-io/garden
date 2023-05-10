@@ -17,13 +17,6 @@ jobs:
   actionlint:
     runs-on: ubuntu-latest
     steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969 # 2.4.0
-        with:
-          egress-policy: block
-          allowed-endpoints: >
-            github.com:443
-            objects.githubusercontent.com:443
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # 3.0.2
       - name: Download actionlint
         run: |
