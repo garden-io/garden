@@ -269,7 +269,6 @@ export class DeployCommand extends Command<Args, Opts> {
         .catch(() => {})
 
       registerCleanupFunction("sync-active-alert", () => {
-        // eslint-disable-next-line no-console
         log.info(
           "\n" +
             printEmoji("ℹ️", log) +
