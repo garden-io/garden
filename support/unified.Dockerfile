@@ -76,7 +76,17 @@ RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet
 #
 # garden-azure-base
 #
-FROM mcr.microsoft.com/azure-cli:2.9.1 as garden-azure-base
+FROM garden-alpine-base as garden-azure-base
+
+WORKDIR /
+ENV AZURE_CLI_VERSION=2.48.1
+RUN apk add py3-virtualenv
+RUN wget -O azure-cli-source.tar.gz https://github.com/Azure/azure-cli/archive/refs/tags/azure-cli-$AZURE_CLI_VERSION.tar.gz
+RUN tar -xzf azure-cli-source.tar.gz
+RUN cd /azure-cli-azure-cli-$AZURE_CLI_VERSION
+RUN python3 -m virtualenv /azure-cli
+ENV PATH /azure-cli/bin:$PATH
+RUN /azure-cli-azure-cli-$AZURE_CLI_VERSION/scripts/install_full.sh && python /azure-cli-azure-cli-$AZURE_CLI_VERSION/scripts/trim_sdk.py
 
 #
 # garden-azure
@@ -100,7 +110,7 @@ FROM garden-alpine-base as garden-aws
 RUN apk --no-cache add groff
 
 # Copy aws cli
-COPY --from=garden-aws-base /aws-cli /aws-cli
+COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
 # Copy /usr/local/bin/aws from aws
 # COPY --from=garden-aws-base /usr/local/bin/aws /usr/local/bin 
 # Copy aws-iam-authenticator from aws
@@ -128,7 +138,7 @@ FROM garden-alpine-base as garden-aws-gcloud
 RUN apk --no-cache add groff
 
 # Copy aws cli
-COPY --from=garden-aws-base /aws-cli /aws-cli
+COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
 # Copy /usr/local/bin/aws from aws
 # COPY --from=garden-aws-base /usr/local/bin/aws /usr/local/bin 
 # Copy aws-iam-authenticator from aws
@@ -152,7 +162,7 @@ FROM garden-gcloud as garden-aws-gcloud-azure
 RUN apk --no-cache add groff
 
 # Copy aws cli
-COPY --from=garden-aws-base /aws-cli /aws-cli
+COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
 # Copy /usr/local/bin/aws from aws
 # COPY --from=garden-aws-base /usr/local/bin/aws /usr/local/bin 
 # Copy aws-iam-authenticator from aws
