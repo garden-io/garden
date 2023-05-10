@@ -9,7 +9,7 @@
 import { apply, merge } from "json-merge-patch"
 import { dedent, deline, naturalList } from "../util/string"
 import {
-  apiVersionSchemaWithoutDefault,
+  apiVersionSchema,
   createSchema,
   DeepPrimitiveMap,
   includeGuideLink,
@@ -283,7 +283,7 @@ export const projectSchema = createSchema({
     "Configuration for a Garden project. This should be specified in the garden.yml file in your project root.",
   required: true,
   keys: () => ({
-    apiVersion: apiVersionSchemaWithoutDefault().required(),
+    apiVersion: apiVersionSchema().description("Schema version of the config."),
     kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
     path: projectRootSchema().meta({ internal: true }),
     configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
