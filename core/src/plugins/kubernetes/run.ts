@@ -865,6 +865,7 @@ export class PodRunner extends PodRunnerParams {
     })
 
     try {
+      const startTime = new Date(Date.now())
       await this.createPod({ log, tty })
 
       // Wait until main container terminates
@@ -872,7 +873,7 @@ export class PodRunner extends PodRunnerParams {
 
       // the Pod might have been killed – if the process exits with code zero when
       // receiving SIGINT, we might not notice if we don't double check this.
-      await this.throwIfPodKilled()
+      await this.throwIfPodKilled(startTime)
 
       // Retrieve logs after run
       const mainContainerLogs = await this.getMainContainerLogs()
@@ -1046,7 +1047,7 @@ export class PodRunner extends PodRunnerParams {
     const containerName = container || this.pod.spec.containers[0].name
 
     log.debug(`Execing command in ${this.namespace}/Pod/${this.podName}/${containerName}: ${command.join(" ")}`)
-
+    const startTime = new Date(Date.now())
     const result = await this.api.execInPod({
       log,
       namespace: this.namespace,
@@ -1079,7 +1080,7 @@ export class PodRunner extends PodRunnerParams {
 
     // the Pod might have been killed – if the process exits with code zero when
     // receiving SIGINT, we might not notice if we don't double check this.
-    await this.throwIfPodKilled()
+    await this.throwIfPodKilled(startTime)
 
     if (result.exitCode !== 0) {
       const errorDetails: PodErrorDetails = {
@@ -1105,9 +1106,12 @@ export class PodRunner extends PodRunnerParams {
    *
    * @throws NotFoundError
    */
-  private async throwIfPodKilled(): Promise<void> {
+  private async throwIfPodKilled(afterTime: Date): Promise<void> {
     const events = await getResourceEvents(this.api, this.pod)
-    if (some(events, (event) => event.reason === "Killing")) {
+    if (
+      // If reason is killed and lastTimestamp doesn't exist or is greater than afterTime
+      some(events, (event) => event.reason === "Killing" && (!event.lastTimestamp || event.lastTimestamp > afterTime))
+    ) {
       const details: PodErrorDetails = { podEvents: events }
       throw new NotFoundError("Pod has been killed or evicted.", details)
     }
