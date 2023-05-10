@@ -50,7 +50,7 @@ RUN apk add --no-cache \
   openssl-dev
 RUN curl https://awscli.amazonaws.com/awscli-$AWSCLI_VERSION.tar.gz | tar -xz
 RUN cd awscli-$AWSCLI_VERSION \
-  && ./configure --bindir=/usr/local/bin --prefix=/aws-cli/ --with-download-deps \
+  && ./configure --bindir=/usr/local/bin --prefix=/aws-cli/ --with-download-deps --with-install-type=portable-exe \
   && make \
   && make install
 
@@ -111,11 +111,9 @@ RUN apk --no-cache add groff
 
 # Copy aws cli
 COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
-# Copy /usr/local/bin/aws from aws
-# COPY --from=garden-aws-base /usr/local/bin/aws /usr/local/bin 
 # Copy aws-iam-authenticator from aws
 COPY --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin 
-ENV PATH /aws-cli/bin:$PATH
+ENV PATH /aws-cli:$PATH
 
 
 #
@@ -139,11 +137,9 @@ RUN apk --no-cache add groff
 
 # Copy aws cli
 COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
-# Copy /usr/local/bin/aws from aws
-# COPY --from=garden-aws-base /usr/local/bin/aws /usr/local/bin 
 # Copy aws-iam-authenticator from aws
 COPY --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin 
-ENV PATH /aws-cli/bin:$PATH
+ENV PATH /aws-cli:$PATH
 
 ENV CLOUDSDK_PYTHON=python3
 
@@ -163,11 +159,9 @@ RUN apk --no-cache add groff
 
 # Copy aws cli
 COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
-# Copy /usr/local/bin/aws from aws
-# COPY --from=garden-aws-base /usr/local/bin/aws /usr/local/bin 
 # Copy aws-iam-authenticator from aws
 COPY --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin 
-ENV PATH /aws-cli/bin:$PATH
+ENV PATH /aws-cli:$PATH
 
 ENV CLOUDSDK_PYTHON=python3
 
