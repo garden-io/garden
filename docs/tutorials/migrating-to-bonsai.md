@@ -10,6 +10,7 @@ On the other hand, the optional new configuration format is easier to read and w
 
 Here is the list of breaking changes when upgrading your `garden` CLI tool. This lets you use your old Module-style configuration files with minimal changes.
 
+- `apiVersion` is now mandatory in project config files for new action-Kind configs. It's recommended to set the value to `garden.io/v1` for new projects. For backwards compatibility, garden will assume the apiVersion `garden.io/v0`.
 - `cert-manager` integration has been removed. New documentation has been created in the [ext dns and cert manager example](../../examples/cert-manager-ext-dns)
 - `dev-mode` has been renamed to `sync`, both in the configuration as well as on the CLI
 - `garden delete` has been renamed to `garden cleanup`

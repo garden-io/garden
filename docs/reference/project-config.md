@@ -20,6 +20,9 @@ Please refer to those for more details on provider configuration.
 The values in the schema below are the default values.
 
 ```yaml
+# Schema version of the config.
+apiVersion: garden.io/v1
+
 # Indicate what kind of config this is.
 kind: Project
 
@@ -195,6 +198,14 @@ variables: {}
 
 ## Configuration Keys
 
+
+### `apiVersion`
+
+Schema version of the config.
+
+| Type     | Allowed Values                 | Default          | Required |
+| -------- | ------------------------------ | ---------------- | -------- |
+| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `kind`
 
