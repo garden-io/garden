@@ -9,7 +9,7 @@ You can import **two** types of remote repositories with Garden:
 
 > **Remote _source_**: A repository that contains one or more Garden modules or actions _and_ their corresponding `garden.yml` config files.
 
-> **Remote _actions_**: The source code for a single Garden action. In this case, the `garden.yml` config file is stored in the main project repositorywhile the action code itself is in the remote repository.
+> **Remote _actions_**: The source code for a single Garden action. In this case, the `garden.yml` config file is stored in the main project repository while the action code itself is in the remote repository.
 
 The code examples below are from our [remote sources example](../../examples/remote-sources/README.md).
 
