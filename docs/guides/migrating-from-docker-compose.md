@@ -137,7 +137,7 @@ With the four config files added, we can test our service on Garden. We've moved
 Now run:
 
 ```bash
-garden dev
+garden deploy
 ```
 
 in the project folder. Garden will start up locally. You should see output in your terminal showing that this worked successfully.

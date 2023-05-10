@@ -225,7 +225,7 @@ and to have Docker running locally. For development clusters, you
 may in fact get set up quicker if you use the in-cluster build
 modes.
 
-When you deploy to your environment (via `garden deploy` or `garden dev`) using the local Docker mode, images are first
+When you deploy to your environment (via `garden deploy`) using the local Docker mode, images are first
 built locally and then pushed to the configured _deployment registry_, where the K8s cluster will then pull the built
 images when deploying. This should generally be a _private_ container registry, or at least a private project in a
 public registry.

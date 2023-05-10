@@ -118,7 +118,7 @@ tests:
 
 Here we first define a `unit` test suite, which has no dependencies, and simply runs `npm test` in the container. The `integ` suite is similar but adds a _runtime dependency_. This means that before the `integ` test is run, Garden makes sure that `some-service` is running and up-to-date.
 
-When you run `garden test` or `garden dev` we will run those tests. In both cases, the tests will be executed by running the container with the specified command _in your configured environment_ (as opposed to locally on the machine you're running the `garden` CLI from).
+When you run `garden test`, we will run those tests. The tests will be executed by running the container with the specified command _in your configured environment_ (as opposed to locally on the machine you're running the `garden` CLI from).
 
 The names and commands to run are of course completely up to you, but we suggest naming the test suites consistently across your different modules.
 

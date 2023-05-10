@@ -4,7 +4,9 @@ order: 3
 ---
 # Code Synchronization
 
-Garden allows you to rapidly synchronize your code (and other files) to and from running containers.
+Garden includes a *sync* mode that allows you to rapidly synchronize your code (and other files) to and from running containers.
+
+The sync mode uses [Mutagen](https://mutagen.io/) under the hood. Garden automatically takes care of fetching Mutagen, so you don't need to install any dependencies yourself to make use of sync mode.
 
 {% hint style="info" %}
 This feature used to be called _dev mode_ but as of version 0.13 we've opted for more straightforward terminology. The functionality is exactly the same as before.
@@ -16,7 +18,7 @@ This feature used to be called _dev mode_ but as of version 0.13 we've opted for
 Please make sure to specify any paths that should not be synced by setting the provider-level default excludes and/or the `exclude` field on each configured sync! Otherwise you may end up syncing large directories and even run into application errors.
 {% endhint %}
 
-To configure a service for sync, add `sync` to your Deploy configuration to specify your sync targets:
+To configure a service for sync mode, add `sync` to your Deploy configuration to specify your sync targets:
 
 ### Configuring sync for `container` modules
 
