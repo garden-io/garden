@@ -186,6 +186,10 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.statusCallback = status
   }
 
+  clearTimeout() {
+    clearTimeout(this.messageTimeout)
+  }
+
   getBlankCommandLine() {
     return commandLinePrefix + emptyCommandLinePlaceholder
   }
@@ -415,8 +419,9 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   }
 
   disable(message: string) {
-    this.enabled = false
     this.setCommandLine(message)
+    this.clearTimeout()
+    this.enabled = false
   }
 
   enable() {
@@ -481,7 +486,7 @@ ${chalk.white.underline("Keys:")}
    * Flash the given `message` in the command line for `duration` milliseconds, meanwhile disabling the command line.
    */
   flashMessage(message: string, opts: FlashOpts = {}) {
-    clearTimeout(this.messageTimeout)
+    this.clearTimeout()
 
     const prefix = opts.prefix || chalk.cyan("ℹ︎ ")
     this.messageCallback(prefix + message)
