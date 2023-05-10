@@ -169,8 +169,6 @@ ENV CLOUDSDK_PYTHON=python3
 COPY --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
 ENV PATH /google-cloud-sdk/bin:$PATH
 
-RUN gcloud version
-
 COPY --from=garden-azure-base /azure-cli /azure-cli
 RUN ln -s /azure-cli/bin/az /usr/local/bin/az 
 
