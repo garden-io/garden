@@ -19,6 +19,7 @@ RUN apk add --no-cache \
   py3-pip \
   libc6-compat \
   py3-openssl \
+  libffi \
   gnupg \
   openssh-client \
   py3-crcmod
@@ -82,12 +83,15 @@ FROM garden-alpine-base as garden-azure-base
 
 WORKDIR /
 ENV AZURE_CLI_VERSION=2.48.1
-RUN apk add py3-virtualenv
+
 RUN wget -O azure-cli-source.tar.gz https://github.com/Azure/azure-cli/archive/refs/tags/azure-cli-$AZURE_CLI_VERSION.tar.gz
 RUN tar -xzf azure-cli-source.tar.gz
 RUN cd /azure-cli-azure-cli-$AZURE_CLI_VERSION
+
+RUN apk add py3-virtualenv openssl-dev libffi-dev build-base python3-dev
 RUN python3 -m virtualenv /azure-cli
 ENV PATH /azure-cli/bin:$PATH
+
 RUN /azure-cli-azure-cli-$AZURE_CLI_VERSION/scripts/install_full.sh && python /azure-cli-azure-cli-$AZURE_CLI_VERSION/scripts/trim_sdk.py
 
 #
@@ -96,7 +100,7 @@ RUN /azure-cli-azure-cli-$AZURE_CLI_VERSION/scripts/install_full.sh && python /a
 FROM garden-alpine-base as garden-azure
 
 COPY --from=garden-azure-base /azure-cli /azure-cli
-COPY --from=garden-azure-base /usr/local/bin/az /usr/local/bin/az
+RUN ln -s /azure-cli/bin/az /usr/local/bin/az 
 
 RUN az aks install-cli
 
@@ -128,8 +132,6 @@ ENV CLOUDSDK_PYTHON=python3
 COPY --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
 ENV PATH /google-cloud-sdk/bin:$PATH
 
-RUN gcloud version
-
 #
 # garden-aws-gloud
 #
@@ -148,14 +150,11 @@ ENV CLOUDSDK_PYTHON=python3
 COPY --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
 ENV PATH /google-cloud-sdk/bin:$PATH
 
-RUN gcloud version
-
 
 #
 # garden-aws-gloud-azure
 #
-FROM garden-gcloud as garden-aws-gcloud-azure
-
+FROM garden-alpine-base as garden-aws-gcloud-azure
 
 RUN apk --no-cache add groff
 
@@ -173,7 +172,7 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 RUN gcloud version
 
 COPY --from=garden-azure-base /azure-cli /azure-cli
-COPY --from=garden-azure-base /usr/local/bin/az /usr/local/bin/az
+RUN ln -s /azure-cli/bin/az /usr/local/bin/az 
 
 RUN az aks install-cli
 
