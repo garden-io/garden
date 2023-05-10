@@ -68,10 +68,12 @@ RUN curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/
 #
 # gcloud base
 #
-FROM google/cloud-sdk:430.0.0-alpine as gcloud
+FROM google/cloud-sdk:430.0.0-alpine as gcloud-base
 
 RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet
 
+# Clean up bloat that increases layer size unnecessarily
+RUN rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && rm -rf /google-cloud-sdk/.install/.backup
 
 #
 # garden-azure-base
@@ -123,7 +125,7 @@ FROM garden-alpine-base as garden-gcloud
 
 ENV CLOUDSDK_PYTHON=python3
 
-COPY --from=gcloud /google-cloud-sdk /google-cloud-sdk
+COPY --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
 ENV PATH /google-cloud-sdk/bin:$PATH
 
 RUN gcloud version
@@ -143,7 +145,7 @@ ENV PATH /aws-cli:$PATH
 
 ENV CLOUDSDK_PYTHON=python3
 
-COPY --from=gcloud /google-cloud-sdk /google-cloud-sdk
+COPY --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
 ENV PATH /google-cloud-sdk/bin:$PATH
 
 RUN gcloud version
@@ -165,7 +167,7 @@ ENV PATH /aws-cli:$PATH
 
 ENV CLOUDSDK_PYTHON=python3
 
-COPY --from=gcloud /google-cloud-sdk /google-cloud-sdk
+COPY --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
 ENV PATH /google-cloud-sdk/bin:$PATH
 
 RUN gcloud version
