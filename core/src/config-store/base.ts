@@ -177,7 +177,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
     // NOTE: this allows the execution to continue, and the writeFile function potentially overwrites the config written by another call
     const onCompromised = (err, reject) => {
       // eslint-disable-next-line
-      console.log("Warning: The lock on the global config store was compromised. Overwriting the config")
+      console.log("Warning: The lock on the global config store was compromised. Updating the config anyway.")
       reject(err)
     }
 
