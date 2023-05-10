@@ -120,7 +120,7 @@ Let's get your development environment wired up.
       )
     }
 
-    render(<Dev />)
+    render(<Dev />, { exitOnCtrlC: false })
 
     // TODO: detect config changes and notify user in status
 
