@@ -27,6 +27,7 @@ import { GardenCli } from "../cli/cli"
 import { CommandLine } from "../cli/command-line"
 import { SolveResult } from "../graph/solver"
 import { waitForOutputFlush } from "../process"
+import { BufferedEventStream } from "../cloud/buffered-event-stream"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -65,6 +66,7 @@ export interface PrepareParams<T extends Parameters = {}, U extends Parameters =
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
   cli?: GardenCli
+  bufferedEventStream?: BufferedEventStream
   garden: Garden
 }
 

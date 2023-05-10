@@ -154,6 +154,21 @@ export class BufferedEventStream {
     this.eventNames = pipedEventNames
   }
 
+  /**
+   * Helper for overwriting the Garden instance that's used by commands that need to create a new instance.
+   *
+   * FIXME @instance-manager: We can remove this when we introduce the instance manager.
+   */
+  setGarden(garden: Garden) {
+    this.log.debug("Setting new Garden instance on buffered event stream")
+    this.connect({
+      garden,
+      targets: this.targets,
+      streamEvents: this.streamEvents,
+      streamLogEntries: this.streamLogEntries,
+    })
+  }
+
   connect({ garden, targets, streamEvents, streamLogEntries }: ConnectBufferedEventStreamParams) {
     if (this.intervalId) {
       clearInterval(this.intervalId)

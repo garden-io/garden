@@ -111,10 +111,14 @@ export class GardenCli {
   private commands: { [key: string]: Command } = {}
   private fileWritersInitialized: boolean = false
   private plugins: GardenPluginReference[]
-  private bufferedEventStream: BufferedEventStream | undefined
   private sessionFinished = false
   private initLogger: boolean
   public processRecord: GardenProcess
+  // FIXME @instance-manager: This was changed from public to private so that we can
+  // access the bufferedEventStream instance via the cli instance for
+  // some commands. We can remove this all together when we introduce the
+  // instance manager.
+  public bufferedEventStream: BufferedEventStream | undefined
 
   constructor({ plugins, initLogger = false }: { plugins?: GardenPluginReference[]; initLogger?: boolean } = {}) {
     this.plugins = plugins || []
