@@ -90,8 +90,8 @@ interface GardenServerParams {
 export async function startServer(params: GardenServerParams) {
   // Start HTTP API server.
   // allow overriding automatic port picking
-  if (!params.port) {
-    params.port = gardenEnv.GARDEN_SERVER_PORT || undefined
+  if (gardenEnv.GARDEN_SERVER_PORT) {
+    params.port = gardenEnv.GARDEN_SERVER_PORT
   }
   const server = new GardenServer(params)
   await server.start()
