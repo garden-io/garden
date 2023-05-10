@@ -243,7 +243,7 @@ export function skopeoManifestUnknown(errMsg: string | null | undefined): boolea
   if (!errMsg) {
     return false
   }
-  return errMsg.includes("manifest unknown") || /artifact [^ ]+ not found/.test(errMsg)
+  return errMsg.includes("manifest unknown") || /(artifact|repository) [^ ]+ not found/.test(errMsg)
 }
 
 /**
