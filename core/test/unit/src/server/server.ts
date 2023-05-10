@@ -76,6 +76,29 @@ describe("GardenServer", () => {
     expect(status).to.equal(`🌻 Garden server running at http://${hostname}:9800?key=foo`)
   })
 
+  context("GARDEN_SERVER_PORT env var is set", () => {
+    const originalServerPort = gardenEnv.GARDEN_SERVER_PORT
+    let customPort: number
+    let gardenServerCustomPort: GardenServer
+
+    before(async () => {
+      customPort = await getPort()
+      gardenEnv.GARDEN_SERVER_PORT = customPort
+    })
+
+    after(async () => {
+      await gardenServerCustomPort.close()
+      gardenEnv.GARDEN_SERVER_PORT = originalServerPort
+    })
+
+    it("should use the GARDEN_SERVER_PORT env var if set", async () => {
+      gardenServerCustomPort = await startServer({ log: garden.log, command, port })
+      await gardenServerCustomPort.start()
+
+      expect(gardenServerCustomPort.port).to.eql(customPort)
+    })
+  })
+
   describe("POST /api", () => {
     it("returns 401 if missing auth header", async () => {
       await request(server).post("/api").send({}).expect(401)
