@@ -13,7 +13,7 @@ import { resolve } from "path"
 import { projectSchema } from "../config/project"
 import { get, isFunction, isString } from "lodash"
 import handlebars = require("handlebars")
-import { joi, JoiDescription } from "../config/common"
+import { JoiDescription } from "../config/common"
 import { STATIC_DIR } from "../constants"
 import {
   indent,
@@ -433,10 +433,7 @@ export function renderTemplateStringReference({
 
 export function renderProjectConfigReference(opts: RenderConfigOpts = {}) {
   return renderConfigReference(
-    projectSchema().keys({
-      // Hide this from docs until we actually use it
-      apiVersion: joi.string().meta({ internal: true }),
-    }),
+    projectSchema(),
     opts
   )
 }

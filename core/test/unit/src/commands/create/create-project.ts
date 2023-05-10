@@ -58,6 +58,7 @@ describe("CreateProjectCommand", () => {
 
     expect(parsed).to.eql([
       {
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         name,
         environments: [{ name: "default" }],
@@ -134,6 +135,7 @@ describe("CreateProjectCommand", () => {
     const parsed = safeLoadAll((await readFile(configPath)).toString())
     expect(parsed).to.eql([
       {
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         name: "foo",
         environments: [{ name: "default" }],
@@ -169,6 +171,7 @@ describe("CreateProjectCommand", () => {
     expect(parsed).to.eql([
       existing,
       {
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         name,
         environments: [{ name: "default" }],
