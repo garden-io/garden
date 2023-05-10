@@ -3535,8 +3535,10 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--name` |  | array:string | DEPRECATED: This now does the exact same as the positional arguments.
-Only run tests with the specified name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+  | `--name` |  | array:string | DEPRECATED: This option will be removed in 0.14. Please use a positional argument &quot;&lt;module name&gt;-&lt;test name&gt;&quot; or &quot;*-&lt;test name&gt;&quot; instead of of &quot;--name&quot;.
+This option can be used to run all tests with the specified name (e.g. unit or integ) in declared in any module.
+Note: Since 0.13, using the --name option is equivalent to using the positional argument &quot;*-&lt;test name&gt;&quot;. This means that new tests declared using the new Action kinds will also be executed if their name matches this pattern.
+Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
   | `--force` |  | boolean | Force re-run of Test, even if a successful result is found in cache.
   | `--force-build` |  | boolean | Force rebuild of any Build dependencies encountered.
   | `--interactive` |  | boolean | Run the specified Test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
