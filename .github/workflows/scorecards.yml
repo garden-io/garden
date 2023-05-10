@@ -24,23 +24,6 @@ jobs:
       actions: read
 
     steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
-        with:
-          egress-policy: block
-          allowed-endpoints: >
-            api.github.com:443
-            api.osv.dev:443
-            bestpractices.coreinfrastructure.org:443
-            codeload.github.com:443
-            github.com:443
-            pipelines.actions.githubusercontent.com:443
-            auth.docker.io:443
-            index.docker.io:443
-            fulcio.sigstore.dev:443
-            sigstore-tuf-root.storage.googleapis.com:443
-            *.blob.core.windows.net:443
-
       - name: "Checkout code"
         uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.0.0
         with:
