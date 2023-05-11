@@ -109,7 +109,7 @@ export function getTerminalWriterInstance(loggerType: LoggerType, level: LogLeve
   }
 }
 
-interface LoggerConfigBase {
+export interface LoggerConfigBase {
   /**
    * The Garden log level. This get propagated to the actual writers which have their own
    * levels which may in some cases overwrite this.
@@ -468,6 +468,13 @@ export class ServerLogger extends LoggerBase {
     if (entry.level <= eventLogLevel && !entry.skipEmit) {
       this.rootLogger.events.emit("logEntry", formatLogEntryForEventStream(entry))
     }
+  }
+}
+
+export class VoidLogger extends LoggerBase {
+
+  log() {
+    // No op
   }
 }
 

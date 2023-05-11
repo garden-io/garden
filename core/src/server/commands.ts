@@ -74,8 +74,7 @@ export function parseRequest(ctx: Koa.ParameterizedContext, log: Log, commands: 
   // command instance and thereby that subscribers are properly isolated at the request level.
   const command = commandSpec.command.clone()
 
-  // The server logger only logs to stdout at the silly level but still emits log events
-  const serverLogger = new ServerLogger({ rootLogger: log.root, level: log.root.level })
+  const serverLogger = command.getServerLogger() || new ServerLogger({ rootLogger: log.root, level: log.root.level })
   const cmdLog = serverLogger.createLog({})
 
   // Prepare arguments for command action.
