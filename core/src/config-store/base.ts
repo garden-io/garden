@@ -190,9 +190,9 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
 
   private logLockReleaseError() {
     // eslint-disable-next-line
-    console.log("Warning: Unable to release the lock on the global config store; lock was already released")
-    // eslint-disable-next-line
-    console.log("Warning: If you run into this error repeatedly, please report on our GitHub or Discord")
+    console.log(
+      "Warning: Unable to release the lock on the global config store; lock was already released. If you run into this error repeatedly, please report on our GitHub or Discord"
+    )
   }
 
   private async readConfig(): Promise<I<T>> {
