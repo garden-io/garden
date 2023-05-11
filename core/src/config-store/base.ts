@@ -42,11 +42,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
         return config[section][key]
       }
     } finally {
-      try {
-        await release()
-      } catch (e) {
-        this.logLockReleaseError()
-      }
+      await release()
     }
   }
 
@@ -67,11 +63,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
       const validated = this.validate(config, "updating")
       await this.writeConfig(validated)
     } finally {
-      try {
-        await release()
-      } catch (e) {
-        this.logLockReleaseError()
-      }
+      await release()
     }
   }
 
@@ -118,11 +110,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
       const validated = this.validate(config, "updating")
       await this.writeConfig(validated)
     } finally {
-      try {
-        await release()
-      } catch (e) {
-        this.logLockReleaseError()
-      }
+      await release()
     }
   }
 
@@ -140,11 +128,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
         await this.writeConfig(validated)
       }
     } finally {
-      try {
-        await release()
-      } catch (e) {
-        this.logLockReleaseError()
-      }
+      await release()
     }
   }
 
@@ -175,24 +159,33 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
 
     // HACK: override the lock compromised handler to bubble up a thrown error as a Promise rejection instead
     // NOTE: this allows the execution to continue, and the writeFile function potentially overwrites the config written by another call
-    const onCompromised = (err, reject) => {
+    const compromiseHandler = (err, reject) => {
       // eslint-disable-next-line
       console.log("Warning: The lock on the global config store was compromised. Updating the config anyway.")
       reject(err)
     }
 
     return new Promise<() => Promise<void>>((resolve, reject) => {
-      lock(path, { retries: 5, stale: 5000, onCompromised: (err) => onCompromised(err, reject) })
-        .then(resolve)
-        .catch(reject)
+      const onCompromise = (err) => compromiseHandler(err, reject)
+      this._wrappedLock(path, onCompromise).then(resolve).catch(reject)
     })
   }
 
-  private logLockReleaseError() {
-    // eslint-disable-next-line
-    console.log(
-      "Warning: Unable to release the lock on the global config store; lock was already released. If you run into this error repeatedly, please report on our GitHub or Discord"
-    )
+  // NOTE: Inner helper for the lock function. Do not use directly. This exists to avoid fail-stop when releasing the lock fails
+  private async _wrappedLock(path: string, onCompromised: (err) => void): Promise<() => Promise<void>> {
+    const release = await lock(path, { retries: 5, stale: 5000, onCompromised })
+
+    return async () => {
+      try {
+        await release()
+      } catch (err) {
+        // eslint-disable-next-line
+        console.log(
+          "Warning: Unable to release the lock on the global config store; lock was already released. If you run into this error repeatedly, please report on our GitHub or Discord"
+        )
+        throw err
+      }
+    }
   }
 
   private async readConfig(): Promise<I<T>> {
