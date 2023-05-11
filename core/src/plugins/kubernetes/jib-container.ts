@@ -60,6 +60,7 @@ export const k8sJibContainerBuildExtension = (): BuildActionExtension<ContainerB
 
 async function buildAndPushViaRemote(params: BuildActionParams<"build", ContainerBuildAction>) {
   const { ctx, log, action, base } = params
+  const k8sCtx = ctx as KubernetesPluginContext
 
   const provider = <KubernetesProvider>ctx.provider
   let buildMode = provider.config.buildMode
@@ -79,7 +80,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
   // Push to util or buildkit deployment on remote, and push to registry from there to make sure auth/access is
   // consistent with normal image pushes.
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   const tempDir = await makeTempDir()
 
@@ -124,7 +125,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
     // Sync the archive to the remote
     const { dataPath } = await syncToBuildSync({
       ...params,
-      ctx: ctx as KubernetesPluginContext,
+      ctx: k8sCtx,
       api,
       namespace,
       deploymentName,

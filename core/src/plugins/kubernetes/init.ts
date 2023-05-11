@@ -13,6 +13,7 @@ import {
   deleteNamespaces,
   getSystemNamespace,
   getAppNamespaceStatus,
+  clearNamespaceCache,
 } from "./namespace"
 import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config"
 import { prepareSystemServices, getSystemServiceStatus, getSystemGarden } from "./system"
@@ -72,7 +73,7 @@ export async function getEnvironmentStatus({
 
   const namespaces = await prepareNamespaces({ ctx, log })
   const systemServiceNames = k8sCtx.provider.config._systemServices
-  const systemNamespace = await getSystemNamespace(ctx, k8sCtx.provider, log)
+  const systemNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
 
   const detail: KubernetesEnvironmentDetail = {
     deployStatuses: {},
@@ -262,7 +263,7 @@ export async function prepareSystem({
 
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
   const sysProvider = <KubernetesProvider>await sysGarden.resolveProvider(log, provider.name)
-  const systemNamespace = await getSystemNamespace(ctx, sysProvider, log)
+  const systemNamespace = await getSystemNamespace(k8sCtx, sysProvider, log)
   const sysApi = await KubeApi.factory(log, ctx, sysProvider)
 
   await sysGarden.clearBuilds()
@@ -329,6 +330,9 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
     .info(`Deleting ${nsDescription} (this may take a while)`)
 
   await deleteNamespaces(<string[]>namespacesToDelete, api, entry)
+
+  // Since we've deleted one or more namespaces, we invalidate the NS cache for this provider instance.
+  clearNamespaceCache(provider)
 
   return { namespaceStatuses: [{ namespaceName: namespace, state: "missing", pluginName: provider.name }] }
 }

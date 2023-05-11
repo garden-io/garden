@@ -97,7 +97,7 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
     .createLog({ name: ctx.provider.name, showDuration: true })
     .info("collecting provider configuration")
 
-  const systemNamespace = await getSystemNamespace(ctx, provider, log)
+  const systemNamespace = await getSystemNamespace(k8sCtx, provider, log)
   const systemMetadataNamespace = getSystemMetadataNamespaceName(provider.config)
 
   const namespacesList = [systemNamespace, systemMetadataNamespace]

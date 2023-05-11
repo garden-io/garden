@@ -523,7 +523,8 @@ export async function getDeployedResource<ResourceKind extends KubernetesObject>
   log: Log
 ): Promise<KubernetesResource<ResourceKind> | null> {
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = resource.metadata?.namespace || (await getAppNamespace(ctx, log, provider))
+  const k8sCtx = ctx as KubernetesPluginContext
+  const namespace = resource.metadata?.namespace || (await getAppNamespace(k8sCtx, log, provider))
 
   try {
     const res = await api.readBySpec({ namespace, manifest: resource, log })

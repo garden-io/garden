@@ -10,7 +10,7 @@ import { randomString, gardenAnnotationKey } from "../../../../../src/util/strin
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
 import { getDataDir, makeTestGarden } from "../../../../helpers"
 import { Provider } from "../../../../../src/config/provider"
-import { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config"
+import { KubernetesConfig, KubernetesPluginContext } from "../../../../../src/plugins/kubernetes/config"
 import { ensureNamespace } from "../../../../../src/plugins/kubernetes/namespace"
 import { Log } from "../../../../../src/logger/log-entry"
 import { expect } from "chai"
@@ -18,6 +18,7 @@ import { getPackageVersion } from "../../../../../src/util/util"
 
 describe("ensureNamespace", () => {
   let api: KubeApi
+  let ctx: KubernetesPluginContext
   let log: Log
   let namespaceName: string
 
@@ -25,7 +26,7 @@ describe("ensureNamespace", () => {
     const root = getDataDir("test-projects", "container")
     const garden = await makeTestGarden(root)
     const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
-    const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    ctx = <KubernetesPluginContext>await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     log = garden.log
     api = await KubeApi.factory(log, ctx, provider)
   })
@@ -47,7 +48,7 @@ describe("ensureNamespace", () => {
       labels: { floo: "blar" },
     }
 
-    const result = await ensureNamespace(api, namespace, log)
+    const result = await ensureNamespace(api, ctx, namespace, log)
 
     const ns = result.remoteResource
 
@@ -81,7 +82,7 @@ describe("ensureNamespace", () => {
       annotations: { foo: "bar" },
     }
 
-    const result = await ensureNamespace(api, namespace, log)
+    const result = await ensureNamespace(api, ctx, namespace, log)
 
     const ns = result.remoteResource
 
@@ -111,7 +112,7 @@ describe("ensureNamespace", () => {
       labels: { floo: "blar" },
     }
 
-    const result = await ensureNamespace(api, namespace, log)
+    const result = await ensureNamespace(api, ctx, namespace, log)
 
     const ns = result.remoteResource
 
@@ -144,7 +145,7 @@ describe("ensureNamespace", () => {
       labels: { floo: "blar" },
     }
 
-    const result = await ensureNamespace(api, namespace, log)
+    const result = await ensureNamespace(api, ctx, namespace, log)
 
     expect(result.created).to.be.false
     expect(result.patched).to.be.false

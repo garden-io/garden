@@ -7,7 +7,7 @@
  */
 
 import { getContainerTestGarden } from "../container"
-import { ClusterBuildkitCacheConfig, KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
+import { ClusterBuildkitCacheConfig, KubernetesPluginContext, KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
 import { Garden } from "../../../../../../../src"
 import { PluginContext } from "../../../../../../../src/plugin-context"
 import {
@@ -46,7 +46,7 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     api = await KubeApi.factory(garden.log, ctx, provider)
-    namespace = (await getNamespaceStatus({ log: garden.log, ctx, provider })).namespaceName
+    namespace = (await getNamespaceStatus({ log: garden.log, ctx: ctx as KubernetesPluginContext, provider })).namespaceName
   })
 
   after(async () => {
