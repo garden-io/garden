@@ -393,6 +393,7 @@ describe("actionConfigsToGraph", () => {
     expect(action.isCompatible("test")).to.be.true
   })
 
+  // TODO-G2
   it.skip("correctly sets compatibleTypes for an action type with a base", async () => {
     const graph = await actionConfigsToGraph({
       garden,
