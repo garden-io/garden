@@ -413,28 +413,7 @@ jobs:
       - deploy:
           name: Release docker images
           command: |
-            # test prerelease tags
-            MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 PRERELEASE=edge CODENAME=bonsai \
-              docker buildx bake -f support/docker-bake.hcl all
-
-            fail() {
-              echo "Assertion failed: $1"
-              exit 1
-            }
-
-            docker image ls gardendev/garden | grep latest              && fail "tag should not exist"
-            docker image ls gardendev/garden | grep 0.13-buster         && fail "tag should not exist"
-            docker image ls gardendev/garden | grep 0.13-edge-buster    || fail "tag should exist"
-            docker image ls gardendev/garden | grep bonsai-edge-buster  || fail "tag should exist"
-
-            for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}; do
-              docker image ls $image | grep latest              && fail "tag should not exist"
-              docker image ls $image | grep 0.13-alpine         && fail "tag should not exist"
-              docker image ls $image | grep 0.13-edge-alpine    || fail "tag should exist"
-              docker image ls $image | grep bonsai-edge-alpine  || fail "tag should exist"
-            done
-
-
+            bash support/docker-bake-test.sh
   dockerhub-release:
     <<: *node-config
     steps:
