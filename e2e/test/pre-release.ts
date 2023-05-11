@@ -120,29 +120,6 @@ describe("PreReleaseTests", () => {
     })
   }
 
-  if (project === "tasks") {
-    /*
-     * TODO: Re-enable once this has been debugged:
-     *
-     * TimeoutError: Knex: Timeout acquiring a connection. The pool is probably full.
-     * Are you missing a .transacting(trx) call?
-     */
-    describe.skip("tasks", () => {
-      it("calls the hello service to fetch the usernames populated by the ruby migration", async () => {
-        /**
-         * Verify that the output includes the usernames populated by the ruby-migration task.
-         * The users table was created by the node-migration task.
-         */
-        await runWithEnv(["deploy"])
-        const logEntries = await runWithEnv(["call", "hello"])
-        expect(
-          searchLog(logEntries, /John, Paul, George, Ringo/),
-          "expected to find populated usernames in log output"
-        ).to.eql("passed")
-      })
-    })
-  }
-
   if (project === "code-synchronization") {
     describe("code-synchronization", () => {
       it("runs the dev command with code-synchronization enabled", async () => {
