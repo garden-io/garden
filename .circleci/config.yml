@@ -44,6 +44,14 @@ orbs:
     attach_workspace:
       at: ./
 
+  only-prs: &only-prs
+    filters:
+      branches:
+        ignore: /^main|0\.13$/
+      tags:
+        ignore: /.*/
+
+
   # Only run jobs on main
   only-main: &only-main
     filters:
@@ -310,15 +318,11 @@ jobs:
   build-dist:
     <<: *node-config
     resource_class: large
-    steps:
-      - build_dist
-  build-dist-edge:
-    <<: *node-config
     parameters:
       version:
         description: The version tag/name to set
         type: string
-    resource_class: large
+        default: ""
     steps:
       - build_dist:
           version: <<parameters.version>>
@@ -399,7 +403,39 @@ jobs:
       - cleanup_remote_cluster:
           filter: <<parameters.project>>-testing-ci-$CIRCLE_BUILD_NUM-e2e
 
-  release-service-docker:
+  test-dockerhub:
+    <<: *node-config
+    steps:
+      - *remote-docker
+      - checkout
+      # This is to copy the pre-built code from a previous step
+      - *attach-workspace
+      - deploy:
+          name: Release docker images
+          command: |
+            // prerelease tags
+            MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 PRERELEASE=edge CODENAME=bonsai \
+              docker buildx bake -f support/docker-bake.hcl all
+
+            fail() {
+              echo "Assertion failed: $1"
+              exit 1
+            }
+
+            docker image ls gardendev/garden | grep latest              && fail "tag should not exist"
+            docker image ls gardendev/garden | grep 0.13-buster         && fail "tag should not exist"
+            docker image ls gardendev/garden | grep 0.13-edge-buster    || fail "tag should exist"
+            docker image ls gardendev/garden | grep bonsai-edge-buster  || fail "tag should exist"
+
+            for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}; do
+              docker image ls $image | grep latest              && fail "tag should not exist"
+              docker image ls $image | grep 0.13-alpine         && fail "tag should not exist"
+              docker image ls $image | grep 0.13-edge-alpine    || fail "tag should exist"
+              docker image ls $image | grep bonsai-edge-alpine  || fail "tag should exist"
+            done
+
+
+  dockerhub-release:
     <<: *node-config
     steps:
       - *remote-docker
@@ -411,22 +447,24 @@ jobs:
       - deploy:
           name: Release docker images
           command: |
-            # Push with latest tag for non-pre-release tags
-            if [[ "$TAG" == "$CIRCLE_TAG" ]] && [[ $VERSION != *"-"* ]]; then
-              ./scripts/push-containers.sh latest
-            fi
-            # Push again with bonsai-edge tag for 0.13 branch
+            # bonsai edge
             if [ "$CIRCLE_BRANCH" == "0.13" ]; then
-              ./scripts/push-containers.sh bonsai-edge
+              MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 PRERELEASE=edge CODENAME=bonsai \
+                docker buildx bake --push -f support/docker-bake.hcl all
             fi
-            # Get remote image digest of pushed container
-            DIGEST=$(docker inspect --format='{{.RepoDigests}}' gardendev/garden:bonsai-edge-buster | tr -d '[]')
-            echo "export DIGEST=$DIGEST" >> $BASH_ENV
+
+            # TODO: Handle $CIRCLE_TAG as well
+            if [ "$CIRCLE_TAG" != "" ]; then
+              echo "TODO: implement bonsai production release"
+              exit 1
+            fi
+
+            echo "export GCLOUD_DIGEST=$(docker inspect --format='{{.RepoDigests}}' gardendev/garden-gcloud:bonsai-edge-alpine | tr -d '[]')" >> $BASH_ENV
 
   test-docker-gcloud:
     docker:
       # Use remote image digest from previous job
-      - image: $DIGEST
+      - image: $GCLOUD_DIGEST
         environment:
           <<: *shared-env-config
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
@@ -442,7 +480,7 @@ jobs:
       - cleanup_remote_cluster:
           filter: $CIRCLE_BUILD_NUM-docker
 
-  release-service-dist:
+  github-release-tag:
     <<: *release-config
     steps:
       # Need to checkout to read version from core/package.json
@@ -466,7 +504,7 @@ jobs:
               ${PRERELEASE} \
               ${DRAFT} \
               ${VERSION} ./dist
-  release-service-dist-edge:
+  github-edge-prerelease:
     <<: *release-config
     parameters:
       version:
@@ -806,45 +844,11 @@ workflows:
           requires: [build]
       - check-package-licenses:
           requires: [build]
-      # TODO-0.13: fix and re-enable
-      # - build-docker-alpine:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-dist]
-      # - build-docker-aws:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-docker-alpine]
-      # - build-docker-azure:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-docker-alpine]
-      # - build-docker-gcloud:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-docker-alpine]
-      # - build-docker-aws-gcloud:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-docker-gcloud]
-      # - build-docker-aws-gcloud-azure:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-docker-gcloud]
-      # - build-docker-full:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-docker-gcloud]
-      # - build-docker-buster:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-dist]
 
-      # TODO-0.13: fix and re-enable
-      # - test-docker-gcloud:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [release-service-docker]
+      - test-docker-gcloud:
+          <<: *only-internal-prs
+          context: docker
+          requires: [dockerhub-release]
       - test-framework:
           requires: [build]
       - test-dist:
@@ -853,6 +857,9 @@ workflows:
           requires: [build-dist]
       - test-macos:
           <<: *only-internal-prs
+          requires: [build-dist]
+      - test-dockerhub:
+          <<: *only-prs
           requires: [build-dist]
       # TODO-0.13: fix and re-enable
       # - test-windows:
@@ -1037,37 +1044,24 @@ workflows:
       #     requires: [build]
       #     kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
 
-      ### MAIN ONLY ###
-
-      - build-dist-edge:
-          <<: *only-main
+      - build-dist:
+          <<: *only-bonsai
+          name: build-dist-edge
           version: edge
           requires: [build]
-      - build-dist-edge:
+
+      - github-edge-prerelease:
           <<: *only-bonsai
-          name: build-dist-edge-bonsai
-          version: edge-bonsai
-          requires: [build]
-      - release-service-dist-edge:
-          <<: *only-main
           version: edge
           requires: [build-dist-edge]
-      - release-service-dist-edge:
-          <<: *only-bonsai
-          name: release-service-dist-edge-bonsai
-          version: edge-bonsai
-          requires: [build-dist-edge-bonsai]
 
-      ### MAIN AND 0.13 ###
-      - release-service-docker:
+      - dockerhub-release:
           context: docker
           requires:
             - build-dist-edge
-            - build-dist-edge-bonsai
           filters:
             branches:
               only:
-                - main
                 - "0.13"
 
   tags:
@@ -1077,10 +1071,10 @@ workflows:
       - build-dist:
           <<: *only-tags
           requires: [build]
-      - release-service-docker:
+      - dockerhub-release:
           <<: *only-tags
           context: docker
           requires: [build-dist]
-      - release-service-dist:
+      - github-release-tag:
           <<: *only-tags
           requires: [build-dist]
