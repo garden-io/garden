@@ -255,8 +255,12 @@ describe("CoreLog", () => {
 
 describe("ActionLog", () => {
   let log: Log
+  const inheritedMetadata = { workflowStep: { index: 2 } }
+
   beforeEach(() => {
-    log = logger.createLog()
+    log = logger.createLog({
+      metadata: inheritedMetadata,
+    })
   })
 
   describe("createActionLog helper", () => {
@@ -268,7 +272,6 @@ describe("ActionLog", () => {
         actionName: "api",
         actionKind: "build",
         fixLevel: LogLevel.verbose,
-        metadata: { workflowStep: { index: 2 } },
       })
       const partialActionLog = omit(actionLog, "root")
 
@@ -276,9 +279,7 @@ describe("ActionLog", () => {
       expect(partialActionLog).to.eql({
         entries: [],
         key: actionLog.key,
-        metadata: {
-          workflowStep: { index: 2 },
-        },
+        metadata: inheritedMetadata,
         fixLevel: LogLevel.verbose,
         showDuration: true,
         timestamp,
@@ -307,7 +308,6 @@ describe("ActionLog", () => {
         actionName: "api",
         actionKind: "build",
         fixLevel: LogLevel.verbose,
-        metadata: { workflowStep: { index: 2 } },
       })
 
       const actionLogChild = actionLog.createLog()
@@ -324,7 +324,7 @@ describe("ActionLog", () => {
           origin: "origin",
           type: "actionLog",
         },
-        metadata: { workflowStep: { index: 2 } },
+        metadata: inheritedMetadata,
         parentConfigs: [log.getConfig(), actionLog.getConfig()],
       })
     })
@@ -335,7 +335,6 @@ describe("ActionLog", () => {
         actionName: "api",
         actionKind: "build",
         fixLevel: LogLevel.verbose,
-        metadata: { workflowStep: { index: 2 } },
       })
 
       const actionLogChild = actionLog.createLog({ origin: "origin-2" })
@@ -346,6 +345,7 @@ describe("ActionLog", () => {
       expect(testLog.showDuration).to.be.true
     })
   })
+
   describe("createLogEntry", () => {
     it("should pass its config on to the log entry", () => {
       const timestamp = freezeTime().toISOString()
@@ -354,7 +354,6 @@ describe("ActionLog", () => {
         actionKind: "build",
         actionName: "api",
         origin: "foo",
-        metadata: { workflowStep: { index: 2 } },
       })
       const entry = testLog.info("hello").getLatestEntry()
 
@@ -362,11 +361,7 @@ describe("ActionLog", () => {
       expect(entry).to.eql({
         key: entry.key,
         level: LogLevel.info,
-        metadata: {
-          workflowStep: {
-            index: 2,
-          },
-        },
+        metadata: inheritedMetadata,
         msg: "hello",
         parentLogKey: testLog.key,
         timestamp,
