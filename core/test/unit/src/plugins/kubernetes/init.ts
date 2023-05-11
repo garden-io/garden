@@ -23,6 +23,7 @@ import { V1IngressClass, V1Secret } from "@kubernetes/client-node"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { kubectlSpec } from "../../../../../src/plugins/kubernetes/kubectl"
 import { PluginTool } from "../../../../../src/util/ext-tools"
+import { uuidv4 } from "../../../../../src/util/random"
 
 const basicConfig: KubernetesConfig = {
   name: "kubernetes",
@@ -65,6 +66,7 @@ const basicConfig: KubernetesConfig = {
 
 const basicProvider: KubernetesProvider = {
   name: "kubernetes",
+  uid: uuidv4(),
   config: basicConfig,
   dependencies: {},
   moduleConfigs: [],
