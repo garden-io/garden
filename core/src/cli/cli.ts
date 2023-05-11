@@ -340,6 +340,7 @@ ${renderCommands(commands)}
     let garden: Garden
     let result: CommandResult<any> = {}
     let analytics: AnalyticsHandler | undefined = undefined
+    let commandStartTime: Date | undefined = undefined
 
     const prepareParams = {
       log,
@@ -476,7 +477,7 @@ ${renderCommands(commands)}
 
         await checkForStaticDir()
 
-        const commandStartTime = new Date()
+        commandStartTime = new Date()
 
         // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
         if (await command.isAllowedToRun(garden, log, parsedOpts)) {
@@ -531,8 +532,13 @@ ${renderCommands(commands)}
           )
         }
 
-        // Track the result of the command run
-        analytics?.trackCommandResult(command.getFullName(), commandIteration, [err], new Date(), result.exitCode)
+        analytics?.trackCommandResult(
+          command.getFullName(),
+          commandIteration,
+          [err],
+          commandStartTime || new Date(),
+          result.exitCode
+        )
 
         // flush analytics early since when we throw the instance is not returned
         await analytics?.flush()
