@@ -155,16 +155,27 @@ Let's get your development environment wired up.
       history: await garden.localConfigStore.get("devCommandHistory"),
     }))
 
+    function quitWithWarning() {
+      garden.emitWarning({
+        log,
+        key: "dev-syncs-active",
+        message: chalk.yellow(
+          `Syncs started during this session may still be active when this command terminates. You can run ${chalk.white("garden sync stop '*'")} to stop all code syncs. Hint: To stop code syncing when exiting ${chalk.white("garden dev")}, use ${chalk.white("Control-D")} or the ${chalk.white(`exit`)} command.`
+          )
+      })
+      quit()
+    }
+
     function quit() {
       cl?.disable("🌷  Thanks for stopping by, love you! ❤️")
       _this.terminate()
     }
 
-    process.on("SIGINT", quit)
+    process.on("SIGINT", quitWithWarning)
 
     // Support ctrl-c and ctrl-d to exit
     cl.setKeyHandler("ctrl-d", quit)
-    cl.setKeyHandler("ctrl-c", quit)
+    cl.setKeyHandler("ctrl-c", quitWithWarning)
 
     return cl
   }
