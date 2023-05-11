@@ -270,33 +270,6 @@ export class DeployCommand extends Command<Args, Opts> {
       }
     }
 
-    let syncAlerted = false
-
-    function syncWarnings() {
-      if (syncAlerted) {
-        return
-      }
-      const commandSuggestion = `To stop syncing, use the ${chalk.whiteBright("sync stop")} command.`
-      garden
-        .emitWarning({
-          log,
-          key: "syncs-stay-active",
-          message: chalk.white(`Please note: Syncs stay active after the Garden process ends. ${commandSuggestion}`),
-        })
-        .catch(() => {})
-
-      registerCleanupFunction("sync-active-alert", () => {
-        log.info(
-          "\n" +
-            printEmoji("ℹ️", log) +
-            chalk.white(`One or more syncs may still be active. ${commandSuggestion}\n\n`) +
-            chalk.green("Done!")
-        )
-      })
-
-      syncAlerted = true
-    }
-
     const tasks = deployActions.map((action) => {
       const events = new PluginEventBroker(garden)
       const task = new DeployTask({
@@ -321,9 +294,9 @@ export class DeployCommand extends Command<Args, Opts> {
               log,
               action: executedAction,
               graph,
+              stopOnExit: true, // On this code path, we're running inside the `dev` command.
             })
             garden.monitors.addAndSubscribe(syncMonitor, this)
-            syncWarnings()
           } else if (mode === "local" && result.attached) {
             // Wait for local mode processes to complete.
             const handlerMonitor = new HandlerMonitor({

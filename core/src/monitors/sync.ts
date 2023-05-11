@@ -9,14 +9,16 @@
 import type { DeployAction } from "../actions/deploy"
 import { Executed } from "../actions/types"
 import { ConfigGraph } from "../graph/config-graph"
-import { createActionLog, Log } from "../logger/log-entry"
+import { ActionLog, createActionLog, Log } from "../logger/log-entry"
 import { PluginEventBroker } from "../plugin-context"
+import { ActionRouter } from "../router/router"
 import { MonitorBaseParams, Monitor } from "./base"
 
 interface SyncMonitorParams extends MonitorBaseParams {
   action: Executed<DeployAction>
   graph: ConfigGraph
   log: Log
+  stopOnExit: boolean
 }
 
 /**
@@ -29,6 +31,9 @@ export class SyncMonitor extends Monitor {
   private graph: ConfigGraph
   private log: Log
   private events: PluginEventBroker
+  private actionLog: ActionLog
+  private router: ActionRouter
+  private stopOnExit: boolean
 
   constructor(params: SyncMonitorParams) {
     super(params)
@@ -36,6 +41,7 @@ export class SyncMonitor extends Monitor {
     this.graph = params.graph
     this.log = params.log.createLog({ name: params.action.key() })
     this.events = new PluginEventBroker(params.garden)
+    this.stopOnExit = params.stopOnExit
   }
 
   key() {
@@ -47,10 +53,10 @@ export class SyncMonitor extends Monitor {
   }
 
   async start() {
-    const router = await this.garden.getActionRouter()
-    const actionLog = createActionLog({ log: this.log, actionName: this.action.name, actionKind: this.action.kind })
-    await router.deploy.getSyncStatus({
-      log: actionLog,
+    this.router = await this.garden.getActionRouter()
+    this.actionLog = createActionLog({ log: this.log, actionName: this.action.name, actionKind: this.action.kind })
+    await this.router.deploy.getSyncStatus({
+      log: this.actionLog,
       action: this.action,
       monitor: true,
       graph: this.graph,
@@ -61,7 +67,12 @@ export class SyncMonitor extends Monitor {
   }
 
   async stop() {
-    this.events.emit("abort")
+    if (this.stopOnExit && this.router && this.actionLog) {
+      await this.router.deploy.stopSync({ log: this.actionLog, action: this.action, graph: this.graph })
+      this.actionLog.info({ symbol: "success", msg: `Stopped sync` })
+    } else {
+      this.events.emit("abort")
+    }
     return {}
   }
 }
