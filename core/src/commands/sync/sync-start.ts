@@ -99,6 +99,9 @@ export class SyncStartCommand extends Command<Args, Opts> {
       return { result: {} }
     }
 
+    // We want to stop any started syncs on exit if we're calling `sync start` from inside the `dev` command.
+    const stopOnExit = !!params.commandLine
+
     const graph = await garden.getConfigGraph({
       log,
       emit: true,
@@ -153,7 +156,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
         if (opts.monitor) {
           task.on("ready", ({ result }) => {
             const executedAction = result?.executedAction
-            const monitor = new SyncMonitor({ garden, log, action: executedAction, graph })
+            const monitor = new SyncMonitor({ garden, log, action: executedAction, graph, stopOnExit })
             garden.monitors.addAndSubscribe(monitor, this)
           })
         }
@@ -206,7 +209,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
             someSyncStarted = true
 
             if (opts.monitor) {
-              const monitor = new SyncMonitor({ garden, log, action: executedAction, graph })
+              const monitor = new SyncMonitor({ garden, log, action: executedAction, graph, stopOnExit })
               garden.monitors.addAndSubscribe(monitor, this)
             }
           } catch (error) {

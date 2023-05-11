@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployCommand, deployOpts } from "../../../../src/commands/deploy"
+import { DeployCommand } from "../../../../src/commands/deploy"
 import { expect } from "chai"
 import {
   taskResultOutputs,
