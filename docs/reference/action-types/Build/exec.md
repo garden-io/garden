@@ -180,7 +180,7 @@ include:
 exclude:
 
 # Set a timeout for the build to complete, in seconds.
-timeout: 1200
+timeout: 600
 
 spec:
   # If `true`, runs file inside of a shell. Uses `/bin/sh` on UNIX and `cmd.exe` on Windows. A different shell can be
@@ -486,7 +486,7 @@ Set a timeout for the build to complete, in seconds.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `spec`
 

@@ -61,7 +61,7 @@ build:
           target:
 
   # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
+  timeout: 600
 
   # The type of project to build. Defaults to auto-detecting between gradle and maven (based on which
   # files/directories are found in the module root), but in some cases you may need to specify it.
@@ -885,7 +885,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `build.projectType`
 

@@ -26,7 +26,7 @@ export const DEFAULT_PORT_PROTOCOL = "TCP"
 export const PREVIOUS_API_VERSION = "garden.io/v0"
 export const DEFAULT_API_VERSION = "garden.io/v1"
 
-export const DEFAULT_BUILD_TIMEOUT_SEC = 1200
+export const DEFAULT_BUILD_TIMEOUT_SEC = 600
 export const DEFAULT_TEST_TIMEOUT_SEC = 600
 export const DEFAULT_RUN_TIMEOUT_SEC = 600
 

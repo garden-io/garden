@@ -176,7 +176,7 @@ spec:
             target:
 
     # Maximum time in seconds to wait for build to finish.
-    timeout: 1200
+    timeout: 600
 
   # The names of any services that this service depends on at runtime, and the names of any tasks that should be
   # executed before this service is deployed.
@@ -519,7 +519,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `spec.dependencies[]`
 
