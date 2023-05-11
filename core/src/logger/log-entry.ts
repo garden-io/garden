@@ -157,20 +157,18 @@ export function createActionLog({
   log,
   actionName,
   actionKind,
-  metadata,
   origin,
   fixLevel,
 }: {
   log: Log
   actionName: string
   actionKind: string
-  metadata?: LogMetadata
   origin?: string
   fixLevel?: LogLevel
 }) {
   return new ActionLog({
     parentConfigs: [...log.parentConfigs, log.getConfig()],
-    metadata,
+    metadata: log.metadata,
     root: log.root,
     fixLevel,
     context: {

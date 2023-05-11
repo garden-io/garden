@@ -216,9 +216,6 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
   constructor(params: BaseActionTaskParams<T>) {
     const { action } = params
 
-    const coreLog = params.log.root.createLog({ name: "foo" })
-    const newCoreLog = coreLog.createLog()
-
     super({ ...params })
     this.log = createActionLog({ log: params.log, actionName: action.name, actionKind: action.kind })
     this.action = action
