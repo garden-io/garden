@@ -339,7 +339,7 @@ ${renderCommands(commands)}
 
     let garden: Garden
     let result: CommandResult<any> = {}
-    let analytics: AnalyticsHandler
+    let analytics: AnalyticsHandler | undefined = undefined
 
     const prepareParams = {
       log,
@@ -499,7 +499,7 @@ ${renderCommands(commands)}
 
         // Track the result of the command run
         const allErrors = result.errors || []
-        analytics?.trackCommandResult(
+        analytics.trackCommandResult(
           command.getFullName(),
           commandIteration,
           allErrors,
@@ -530,6 +530,13 @@ ${renderCommands(commands)}
             parsedOpts.format
           )
         }
+
+        // Track the result of the command run
+        analytics?.trackCommandResult(command.getFullName(), commandIteration, [err], new Date(), result.exitCode)
+
+        // flush analytics early since when we throw the instance is not returned
+        await analytics?.flush()
+
         throw err
       } finally {
         if (!result.restartRequired) {
@@ -693,9 +700,7 @@ ${renderCommands(commands)}
     const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
 
     // Flushes the Analytics events queue in case there are some remaining events.
-    if (analytics) {
-      await analytics.flush()
-    }
+    await analytics?.flush()
 
     // --output option set
     if (argv.output) {
