@@ -13,7 +13,11 @@ import { TestGarden } from "../../../../../helpers"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
 import { getKubernetesTestGarden } from "./common"
-import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../../src/constants"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC,
+} from "../../../../../../src/constants"
 
 describe("configureKubernetesModule", () => {
   let garden: TestGarden
@@ -42,7 +46,7 @@ describe("configureKubernetesModule", () => {
       cacheResult: true,
       dependencies: [],
       disabled: false,
-      timeout: null,
+      timeout: DEFAULT_RUN_TIMEOUT_SEC,
       env: {},
       artifacts: [],
     }
@@ -52,7 +56,7 @@ describe("configureKubernetesModule", () => {
       command: ["sh", "-c", "echo ok"],
       dependencies: [],
       disabled: false,
-      timeout: null,
+      timeout: DEFAULT_TEST_TIMEOUT_SEC,
       env: {},
       artifacts: [],
     }
@@ -134,7 +138,7 @@ describe("configureKubernetesModule", () => {
         dependencies: [],
         disabled: false,
         spec: taskSpec,
-        timeout: null,
+        timeout: DEFAULT_RUN_TIMEOUT_SEC,
       },
     ])
 
@@ -144,7 +148,7 @@ describe("configureKubernetesModule", () => {
         dependencies: [],
         disabled: false,
         spec: testSpec,
-        timeout: null,
+        timeout: DEFAULT_TEST_TIMEOUT_SEC,
       },
     ])
   })

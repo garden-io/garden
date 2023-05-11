@@ -1294,7 +1294,7 @@ describe("kubernetes Pod runner functions", () => {
           artifactsPath: tmpDir.path,
           image,
           version: action.versionString(),
-          timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          timeout,
         })
 
         expect(result.log.trim()).to.equal(`Command timed out after ${timeout} seconds.`)
