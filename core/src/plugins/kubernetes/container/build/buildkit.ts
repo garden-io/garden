@@ -49,7 +49,7 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
   const provider = k8sCtx.provider
 
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   const { authSecret } = await ensureBuildkit({
     ctx,
@@ -74,10 +74,11 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
 export const buildkitBuildHandler: BuildHandler = async (params) => {
   const { ctx, action, log } = params
   const spec = action.getSpec()
+  const k8sCtx = ctx as KubernetesPluginContext
 
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   await ensureBuildkit({
     ctx,
@@ -94,7 +95,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   const { contextPath } = await syncToBuildSync({
     ...params,
-    ctx: ctx as KubernetesPluginContext,
+    ctx: k8sCtx,
     api,
     namespace,
     deploymentName: buildkitDeploymentName,

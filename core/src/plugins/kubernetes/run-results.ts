@@ -82,7 +82,7 @@ interface StoreTaskResultParams {
 export async function storeRunResult({ ctx, log, action, result }: StoreTaskResultParams): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = await getAppNamespace(ctx, log, provider)
+  const namespace = await getAppNamespace(ctx as KubernetesPluginContext, log, provider)
 
   // FIXME: We should store the logs separately, because of the 1MB size limit on ConfigMaps.
   const data = trimRunOutput(result)
@@ -120,7 +120,7 @@ export async function clearRunResult({
 }): Promise<void> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = await getAppNamespace(ctx, log, provider)
+  const namespace = await getAppNamespace(ctx as KubernetesPluginContext, log, provider)
 
   const key = getRunResultKey(ctx, action)
 

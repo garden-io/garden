@@ -51,7 +51,7 @@ export const getKanikoBuildStatus: BuildStatusHandler = async (params) => {
   const provider = k8sCtx.provider
 
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   await ensureUtilDeployment({
     ctx,
@@ -77,8 +77,9 @@ export const kanikoBuild: BuildHandler = async (params) => {
   const { ctx, action, log } = params
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
+  const k8sCtx = ctx as KubernetesPluginContext
 
-  const projectNamespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const projectNamespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   const spec = action.getSpec()
   const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
@@ -109,7 +110,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
   let kanikoNamespace = provider.config.kaniko?.namespace || projectNamespace
 
   if (!kanikoNamespace) {
-    kanikoNamespace = await getSystemNamespace(ctx, provider, log)
+    kanikoNamespace = await getSystemNamespace(k8sCtx, provider, log)
   }
 
   if (kanikoNamespace !== projectNamespace) {
@@ -124,7 +125,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     authSecret = secretRes.authSecret
   }
 
-  await ensureNamespace(api, { name: kanikoNamespace }, log)
+  await ensureNamespace(api, k8sCtx, { name: kanikoNamespace }, log)
 
   // Execute the build
   const args = [

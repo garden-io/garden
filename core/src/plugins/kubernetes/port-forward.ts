@@ -198,7 +198,7 @@ export async function getPortForwardHandler(params: {
   let namespace = params.namespace
 
   if (!namespace) {
-    namespace = await getAppNamespace(ctx, log, provider)
+    namespace = await getAppNamespace(ctx as KubernetesPluginContext, log, provider)
   }
 
   const targetResource = getTargetResourceName(action, targetName)
