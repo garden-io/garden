@@ -301,3 +301,47 @@ export function pathToCacheContext(path: string): CacheContext {
   const parsed = parse(normalize(path))
   return ["path", ...parsed.dir.split(sep)]
 }
+
+/**
+ * A simple in-memory cache that prunes older entries once the maximum size (as measured by key count) has been
+ * reached.
+ *
+ * Useful for scenarios where new keys accumulate indefinitely, and there's a need to prevent unbounded memory use.
+ */
+export class BoundedCache<CachedValue> {
+  private cache: {
+    [key: string]: CachedValue
+  } = {}
+  private keys: string[] = []
+
+  constructor(private maxCacheCount = 1000) {}
+
+  get(key: string): CachedValue | null {
+    return this.cache[key] || null
+  }
+
+  set(key: string, val: CachedValue): void {
+    if (this.keys.length >= this.maxCacheCount) {
+      const pruneCount = Math.floor(this.maxCacheCount / 2)
+      // We remove the oldest `pruneCount` ids and their associated values.
+      const idsToPrune = this.keys.slice(0, pruneCount)
+      for (const pruneId of idsToPrune) {
+        delete this.cache[pruneId]
+      }
+      this.keys.splice(0, pruneCount)
+    }
+    if (!this.cache[key]) {
+      this.keys.push(key)
+    }
+    this.cache[key] = val
+  }
+
+  /**
+   * Returns true if a value existed and was deleted, returns false otherwise.
+   */
+  delete(key: string): boolean {
+    const existed = !!this.cache[key]
+    delete this.cache[key]
+    return existed
+  }
+}
