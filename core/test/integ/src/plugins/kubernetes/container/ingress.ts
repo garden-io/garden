@@ -25,6 +25,7 @@ import { PartialBy } from "../../../../../../src/util/util"
 import { Resolved } from "../../../../../../src/actions/types"
 import { actionFromConfig } from "../../../../../../src/graph/actions"
 import { DeployAction } from "../../../../../../src/actions/deploy"
+import { uuidv4 } from "../../../../../../src/util/random"
 
 const namespace = "my-namespace"
 const ports = [
@@ -316,6 +317,7 @@ describe("createIngressResources", () => {
 
     basicProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: { ...basicConfig, context },
       dependencies: {},
       moduleConfigs: [],
@@ -327,6 +329,7 @@ describe("createIngressResources", () => {
 
     multiTlsProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: { ...multiTlsConfig, context },
       dependencies: {},
       moduleConfigs: [],
@@ -338,6 +341,7 @@ describe("createIngressResources", () => {
 
     singleTlsProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: { ...singleTlsConfig, context },
       dependencies: {},
       moduleConfigs: [],
@@ -541,6 +545,7 @@ describe("createIngressResources", () => {
 
     const provider: KubernetesProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: {
         ...basicConfig,
         context,
@@ -579,6 +584,7 @@ describe("createIngressResources", () => {
 
     const provider: KubernetesProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: {
         ...basicConfig,
         context,
@@ -619,6 +625,7 @@ describe("createIngressResources", () => {
 
     const provider: KubernetesProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: {
         ...basicConfig,
         context,
@@ -684,6 +691,7 @@ describe("createIngressResources", () => {
 
     const provider: KubernetesProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: {
         ...basicConfig,
         context,
