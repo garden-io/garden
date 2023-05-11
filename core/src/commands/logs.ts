@@ -12,7 +12,7 @@ import chalk from "chalk"
 import { omit, sortBy } from "lodash"
 import Bluebird from "bluebird"
 import { DeployLogEntry } from "../types/service"
-import { parseLogLevel } from "../logger/logger"
+import { LogLevel, parseLogLevel, VoidLogger } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
 import { printHeader, renderDivider } from "../logger/util"
 import { dedent, deline, naturalList } from "../util/string"
@@ -100,6 +100,12 @@ export class LogsCommand extends Command<Args, Opts> {
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Logs", "📜")
+  }
+
+  getServerLogger() {
+    // We don't want to log anything when called via the server.
+    // Note that the level doesn't really matter here since the void logger doesn't log anything
+    return new VoidLogger({ level: LogLevel.info })
   }
 
   maybePersistent({ opts }: PrepareParams<Args, Opts>) {

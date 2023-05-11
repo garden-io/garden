@@ -16,7 +16,7 @@ import { createSchema, joi } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
-import { LoggerType } from "../logger/logger"
+import { LoggerType, LoggerBase, LoggerConfigBase } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { GraphResultMapWithoutTask } from "../graph/results"
 import { capitalize } from "lodash"
@@ -261,6 +261,14 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   }
 
   printHeader(_: PrintHeaderParams<A, O>) {}
+
+  /**
+   * Allow commands to specify what logger to use when executed by the server.
+   *
+   * Used e.g. by the logs command to disable logging for server requests since
+   * the log entries are emitted as events.
+   */
+  getServerLogger(_?: LoggerConfigBase): LoggerBase | void {}
 
   /**
    * Helper function for creating a new instance of the command.
