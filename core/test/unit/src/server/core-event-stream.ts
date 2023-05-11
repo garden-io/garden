@@ -270,8 +270,4 @@ describe("CoreEventStream", () => {
     // Wait for it to come up
     await pEvent(garden.events, "serversUpdated", { timeout: 5000 })
   })
-
-  it.skip("removes target hosts that are unreachable", async () => {
-    // TODO: let's see if we need this on top of the polling
-  })
 })
