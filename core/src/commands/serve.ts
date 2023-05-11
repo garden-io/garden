@@ -104,7 +104,12 @@ export class ServeCommand<
     })
   }
 
-  async action({ garden, log, cli, opts }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<R>> {
+  async action({
+    garden,
+    log,
+    cli,
+    opts
+  }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<R>> {
     this.garden = garden
     const loggedIn = this.garden?.isLoggedIn()
     if (!loggedIn) {
