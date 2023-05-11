@@ -241,13 +241,17 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.clear()
     // Make sure it takes at most 2 seconds to auto-type the command.
     const sleepMs = Math.min(Math.floor(2000 / line.length), 40)
-    for (const char of line) {
-      this.addCharacter(char)
-      this.commandLineCallback(commandLinePrefix + this.currentCommand)
-      await sleep(sleepMs)
+    // We split newlines into separate commands
+    const lines = line.trim().split(/[\r\n]+/)
+    for (const cmd of lines) {
+      for (const char of cmd) {
+        this.addCharacter(char)
+        this.commandLineCallback(commandLinePrefix + this.currentCommand)
+        await sleep(sleepMs)
+      }
+      await sleep(250)
+      this.handleReturn()
     }
-    await sleep(250)
-    this.handleReturn()
     this.commandLineCallback(commandLinePrefix + this.currentCommand)
   }
 
