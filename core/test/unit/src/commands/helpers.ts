@@ -58,7 +58,7 @@ describe("command helpers", () => {
       )
     })
 
-    it("should throw a warning if no actions are found using wildcards", async () => {
+    it("should throw an error if no actions are found using wildcards", async () => {
       await expectError(
         () =>
           validateActionSearchResults({
