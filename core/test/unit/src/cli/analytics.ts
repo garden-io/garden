@@ -63,11 +63,6 @@ describe("cli analytics", () => {
     expect(scope.done()).to.not.throw
   })
 
-  // TODO: @eysi This test always passes locally but fails consistently in CI.
-  // I'm pretty stumped so simply skipping this for now but definitely revisiting.
-  // Let's make sure we keep an eye on our analytics data after we release this.
-  // If nothing looks off there, we can assume the test was bad. Otherwise
-  // we'll need to revert.
   it("should wait for queued analytic events to flush", async () => {
     const scope = nock("https://api.segment.io")
 
