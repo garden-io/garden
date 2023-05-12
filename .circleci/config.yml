@@ -45,6 +45,14 @@ orbs:
     attach_workspace:
       at: ./
 
+  # Only run on PRs
+  only-prs: &only-prs
+    filters:
+      branches:
+        ignore: /^main|0\.12$/
+      tags:
+        ignore: /.*/
+
   # Only run jobs on main
   only-main: &only-main
     filters:
@@ -53,13 +61,13 @@ orbs:
       tags:
         ignore: /.*/
 
-  # Only run on versioned tags
-  only-tags: &only-tags
+  # Only run on versioned acorn tags
+  only-acorn-tags: &only-acorn-tags
     filters:
       branches:
         ignore: /.*/
       tags:
-        only: /\d+\.\d+\.\d+(-\d+)?/
+        only: /0\.12\.\d+(-[a-zA-Z0-9]+)?/
 
   # Only run for PRs from core team
   only-internal-prs: &only-internal-prs
@@ -375,114 +383,62 @@ jobs:
             yarn e2e-project --project=<<parameters.project>> --env=<<parameters.environment>>
       - cleanup_remote_cluster
 
-  build-docker-alpine:
+  test-dockerhub:
     <<: *node-config
     steps:
       - *remote-docker
       - checkout
+      # This is to copy the pre-built code from a previous step
       - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
+      - deploy:
+          name: Build and test docker images
           command: |
-            TAG=gardendev/garden:${CIRCLE_SHA1}
-            docker build -t ${TAG} -f support/alpine.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-aws:
+            bash support/docker-bake-test.sh
+  dockerhub-release:
     <<: *node-config
     steps:
       - *remote-docker
       - checkout
+      # This is to copy the pre-built code from a previous step
       - *attach-workspace
       - docker_login
-      - run:
-          name: Build image and push to registry
+      # TODO: use garden publish here
+      - deploy:
+          name: Release docker images
           command: |
-            TAG=gardendev/garden-aws:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-azure:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
-          command: |
-            TAG=gardendev/garden-azure:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/azure.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-gcloud:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
-          command: |
-            TAG=gardendev/garden-gcloud:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/gcloud.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-aws-gcloud:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
-          command: |
-            TAG=gardendev/garden-aws-gcloud:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws-gcloud.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-aws-gcloud-azure:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
-          command: |
-            TAG=gardendev/garden-aws-gcloud-azure:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws-gcloud-azure.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-full:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
-          command: |
-            TAG=gardendev/garden-full:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/full.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-buster:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
-          command: |
-            TAG=gardendev/garden:${CIRCLE_SHA1}-buster
-            docker build -t ${TAG} -f support/buster.Dockerfile dist/linux-amd64
-            docker push ${TAG}
+            if [[ -z "${CIRCLE_TAG}" ]]; then
+              if [[ ${CIRCLE_TAG} !~ "^0.12" ]]; then
+                echo "This pipeline should only build 0.12 releases"
+                exit 1
+              fi
+
+              # Parse SemVer tag into different parts
+              regex="^([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9A-Za-z-]+))?(\+([0-9A-Za-z-]+))?$"
+
+              # production release, or prerelease
+              if [[ ${CIRCLE_TAG} =~ $regex ]]; then
+                  export MAJOR_VERSION=${BASH_REMATCH[1]}
+                  export MINOR_VERSION=${BASH_REMATCH[2]}
+                  export PATCH_VERSION=${BASH_REMATCH[3]}
+                  export PRERELEASE=${BASH_REMATCH[5]}
+              else
+                  echo "Invalid SemVer tag."
+                  exit 1
+              fi
+            else
+              # 0.12 edge release
+              export MAJOR_VERSION=0
+              export MINOR_VERSION=12
+              export CODENAME=acorn
+              export PRERELEASE=edge
+            fi
+
+            # Build and publish
+            docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
 
   test-docker-gcloud:
     docker:
-      - image: gardendev/garden-gcloud:${CIRCLE_SHA1}
+      - image: gardendev/garden-gcloud:0.12-edge-alpine
         environment:
           <<: *shared-env-config
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
@@ -497,27 +453,7 @@ jobs:
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker /garden/garden build --root examples/demo-project --env remote --logger-type basic
       - cleanup_remote_cluster
 
-  release-service-docker:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      # This is to copy the pre-built code from a previous step
-      - *attach-workspace
-      - docker_login
-      # TODO: use garden publish here
-      - deploy:
-          name: Release docker images
-          command: |
-            # Switches between git tag and main for releases
-            TAG=${CIRCLE_TAG:-main}
-            # Push the container
-            ./scripts/push-containers.sh $TAG
-            # Push again with latest tag for non-pre-release tags
-            if [[ "$TAG" == "$CIRCLE_TAG" ]] && [[ $VERSION != *"-"* ]]; then
-              ./scripts/push-containers.sh latest
-            fi
-  release-service-dist:
+  github-release-tag:
     <<: *release-config
     steps:
       # Need to checkout to read version from core/package.json
@@ -541,7 +477,7 @@ jobs:
               ${PRERELEASE} \
               ${DRAFT} \
               ${VERSION} ./dist
-  release-service-dist-edge:
+  github-edge-prerelease:
     <<: *release-config
     steps:
       - *attach-workspace
@@ -881,43 +817,6 @@ workflows:
           requires: [build]
       - check-package-licenses:
           requires: [build]
-      - build-docker-alpine:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-dist]
-      - build-docker-aws:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-alpine]
-      - build-docker-azure:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-alpine]
-      - build-docker-gcloud:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-alpine]
-      - build-docker-aws-gcloud:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-gcloud]
-      - build-docker-aws-gcloud-azure:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-gcloud]
-      - build-docker-full:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-gcloud]
-      - build-docker-buster:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-dist]
-
-      - test-docker-gcloud:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-gcloud]
       - test-framework:
           requires: [build]
       - test-dist:
@@ -926,6 +825,9 @@ workflows:
           requires: [build-dist]
       - test-macos:
           <<: *only-internal-prs
+          requires: [build-dist]
+      - test-dockerhub:
+          <<: *only-prs
           requires: [build-dist]
       - test-windows:
           <<: *only-internal-prs
@@ -1069,25 +971,29 @@ workflows:
       - build-dist-edge:
           <<: *only-main
           requires: [build]
-      - release-service-docker:
+      - dockerhub-release:
           <<: *only-main
           context: docker
           requires: [build-dist-edge]
-      - release-service-dist-edge:
+      - test-docker-gcloud:
+          <<: *only-main
+          context: docker
+          requires: [dockerhub-release]
+      - github-edge-prerelease:
           <<: *only-main
           requires: [build-dist-edge]
 
   tags:
     jobs:
       - build:
-          <<: *only-tags
+          <<: *only-acorn-tags
       - build-dist:
-          <<: *only-tags
+          <<: *only-acorn-tags
           requires: [build]
-      - release-service-docker:
-          <<: *only-tags
+      - dockerhub-release:
+          <<: *only-acorn-tags
           context: docker
           requires: [build-dist]
-      - release-service-dist:
-          <<: *only-tags
+      - github-release-tag:
+          <<: *only-acorn-tags
           requires: [build-dist]
