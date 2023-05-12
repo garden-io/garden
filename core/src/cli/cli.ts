@@ -339,7 +339,8 @@ ${renderCommands(commands)}
 
     let garden: Garden
     let result: CommandResult<any> = {}
-    let analytics: AnalyticsHandler
+    let analytics: AnalyticsHandler | undefined = undefined
+    let commandStartTime: Date | undefined = undefined
 
     const prepareParams = {
       log,
@@ -472,6 +473,8 @@ ${renderCommands(commands)}
 
         await checkForStaticDir()
 
+        commandStartTime = new Date()
+
         // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
         if (await command.isAllowedToRun(garden, log, parsedOpts)) {
           // TODO: enforce that commands always output DeepPrimitiveMap
@@ -490,6 +493,10 @@ ${renderCommands(commands)}
           log.info("\nCommand aborted.")
           result = {}
         }
+
+        // Track the result of the command run
+        const allErrors = result.errors || []
+        analytics.trackCommandResult(command.getFullName(), allErrors, commandStartTime, result.exitCode)
 
         // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to
         // fire, which may be needed to e.g. capture monitors added in event handlers
@@ -514,6 +521,12 @@ ${renderCommands(commands)}
             parsedOpts.format
           )
         }
+
+        analytics?.trackCommandResult(command.getFullName(), [err], commandStartTime || new Date(), result.exitCode)
+
+        // flush analytics early since when we throw the instance is not returned
+        await analytics?.flush()
+
         throw err
       } finally {
         if (!result.restartRequired) {
@@ -664,8 +677,6 @@ ${renderCommands(commands)}
 
     this.processRecord = processRecord!
 
-    const commandStartTime = new Date()
-
     try {
       const runResults = await this.runCommand({ command, parsedArgs, parsedOpts, processRecord, workingDir, log })
       commandResult = runResults.result
@@ -678,12 +689,8 @@ ${renderCommands(commands)}
 
     const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
 
-    analytics?.trackCommandResult(command.getFullName(), gardenErrors, commandStartTime)
-
     // Flushes the Analytics events queue in case there are some remaining events.
-    if (analytics) {
-      await analytics.flush()
-    }
+    await analytics?.flush()
 
     // --output option set
     if (argv.output) {

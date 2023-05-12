@@ -963,65 +963,6 @@ describe("cli", () => {
         "Invalid value for option --env: Invalid environment specified ($.%): must be a valid environment name or <namespace>.<environment>"
       )
     })
-
-    context("test analytics", () => {
-      const host = "https://api.segment.io"
-      const scope = nock(host)
-      let garden: TestGarden
-      let resetAnalyticsConfig: Function
-
-      before(async () => {
-        garden = await makeTestGardenA()
-        resetAnalyticsConfig = await enableAnalytics(garden)
-      })
-
-      after(async () => {
-        await resetAnalyticsConfig()
-        nock.cleanAll()
-      })
-
-      // TODO: @eysi This test always passes locally but fails consistently in CI.
-      // I'm pretty stumped so simply skipping this for now but definitely revisiting.
-      // Let's make sure we keep an eye on our analytics data after we release this.
-      // If nothing looks off there, we can assume the test was bad. Otherwise
-      // we'll need to revert.
-      it.skip("should wait for queued analytic events to flush", async () => {
-        class TestCommand extends Command {
-          name = "test-command"
-          help = "hilfe!"
-          noProject = true
-
-          printHeader() {}
-
-          async action({ args }) {
-            return { result: { args } }
-          }
-        }
-
-        const command = new TestCommand()
-        cli.addCommand(command)
-
-        scope
-          .post(`/v1/batch`, (body) => {
-            const events = body.batch.map((event: any) => ({
-              event: event.event,
-              type: event.type,
-              name: event.properties.name,
-            }))
-            return isEqual(events, [
-              {
-                event: "Run Command",
-                type: "track",
-                name: "test-command",
-              },
-            ])
-          })
-          .reply(200)
-        await cli.run({ args: ["test-command"], exitOnError: false })
-
-        expect(scope.isDone()).to.equal(true)
-      })
-    })
   })
 
   describe("makeDummyGarden", () => {

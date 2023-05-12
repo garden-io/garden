@@ -429,6 +429,11 @@ describe("AnalyticsHandler", () => {
             tasksCount: 4,
             servicesCount: 3,
             testsCount: 5,
+            actionsCount: 0,
+            buildActionCount: 0,
+            testActionCount: 0,
+            deployActionCount: 0,
+            runActionCount: 0,
           },
         },
       })
@@ -468,6 +473,11 @@ describe("AnalyticsHandler", () => {
             tasksCount: 4,
             servicesCount: 3,
             testsCount: 5,
+            actionsCount: 0,
+            buildActionCount: 0,
+            testActionCount: 0,
+            deployActionCount: 0,
+            runActionCount: 0,
           },
         },
       })
@@ -524,6 +534,11 @@ describe("AnalyticsHandler", () => {
             tasksCount: 0,
             servicesCount: 0,
             testsCount: 0,
+            actionsCount: 0,
+            buildActionCount: 0,
+            testActionCount: 0,
+            deployActionCount: 0,
+            runActionCount: 0,
           },
         },
       })
@@ -568,6 +583,60 @@ describe("AnalyticsHandler", () => {
             tasksCount: 0,
             servicesCount: 0,
             testsCount: 0,
+            actionsCount: 0,
+            buildActionCount: 0,
+            testActionCount: 0,
+            deployActionCount: 0,
+            runActionCount: 0,
+          },
+        },
+      })
+    })
+    it("should have counts for action kinds", async () => {
+      scope.post(`/v1/batch`).reply(200)
+
+      const root = getDataDir("test-projects", "config-templates")
+      garden = await makeTestGarden(root)
+      garden.vcsInfo.originUrl = remoteOriginUrl
+
+      await garden.globalConfigStore.set("analytics", basicConfig)
+      const now = freezeTime()
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
+
+      const event = analytics.trackCommand("testCommand")
+
+      expect(event).to.eql({
+        type: "Run Command",
+        properties: {
+          name: "testCommand",
+          projectId: AnalyticsHandler.hash(remoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
+          projectName: AnalyticsHandler.hash("config-templates"),
+          projectNameV2: AnalyticsHandler.hashV2("config-templates"),
+          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseProjectId: undefined,
+          enterpriseProjectIdV2: undefined,
+          isLoggedIn: false,
+          customer: undefined,
+          ciName: analytics["ciName"],
+          system: analytics["systemConfig"],
+          isCI: analytics["isCI"],
+          sessionId: analytics["sessionId"],
+          firstRunAt: basicConfig.firstRunAt,
+          latestRunAt: now,
+          isRecurringUser: false,
+          projectMetadata: {
+            modulesCount: 0,
+            moduleTypes: [],
+            tasksCount: 0,
+            servicesCount: 0,
+            testsCount: 0,
+            actionsCount: 3,
+            buildActionCount: 1,
+            testActionCount: 1,
+            deployActionCount: 1,
+            runActionCount: 0,
           },
         },
       })

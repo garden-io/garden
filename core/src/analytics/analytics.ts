@@ -24,6 +24,8 @@ import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
 import { uuidv4 } from "../util/random"
 import { GardenBaseError } from "../exceptions"
+import { ActionConfigMap } from "../actions/types"
+import { actionKinds } from "../actions/types"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 const CI_USER = "ci-user"
@@ -92,6 +94,11 @@ interface ProjectMetadata {
   servicesCount: number
   testsCount: number
   moduleTypes: string[]
+  actionsCount: number
+  buildActionCount: number
+  testActionCount: number
+  deployActionCount: number
+  runActionCount: number
 }
 
 interface PropertiesBase {
@@ -144,6 +151,7 @@ interface CommandResultEvent extends EventBase {
     durationMsec: number
     result: AnalyticsCommandResult
     errors: string[] // list of GardenBaseError types
+    exitCode?: number
   }
 }
 
@@ -249,6 +257,7 @@ export class AnalyticsHandler {
     analyticsConfig,
     anonymousUserId,
     moduleConfigs,
+    actionConfigs,
     cloudUser,
     isEnabled,
     ciInfo,
@@ -258,6 +267,7 @@ export class AnalyticsHandler {
     analyticsConfig: AnalyticsGlobalConfig
     anonymousUserId: string
     moduleConfigs: ModuleConfig[]
+    actionConfigs: ActionConfigMap
     isEnabled: boolean
     cloudUser?: UserResult
     ciInfo: CiInfo
@@ -273,12 +283,30 @@ export class AnalyticsHandler {
     this.pendingEvents = new Map()
 
     this.analyticsConfig = analyticsConfig
+
+    let actionsCount = 0
+    const countByActionKind: { [key: string]: number } = {}
+
+    for (const kind of actionKinds) {
+      countByActionKind[kind] = 0
+
+      for (const name in actionConfigs[kind]) {
+        countByActionKind[kind] = countByActionKind[kind] + 1
+        actionsCount++
+      }
+    }
+
     this.projectMetadata = {
       modulesCount: moduleConfigs.length,
       moduleTypes: uniq(moduleConfigs.map((c) => c.type)),
       tasksCount: countActions(moduleConfigs, "tasks"),
       servicesCount: countActions(moduleConfigs, "services"),
       testsCount: countActions(moduleConfigs, "tests"),
+      actionsCount,
+      buildActionCount: countByActionKind["Build"],
+      testActionCount: countByActionKind["Test"],
+      deployActionCount: countByActionKind["Deploy"],
+      runActionCount: countByActionKind["Run"],
     }
     this.systemConfig = {
       platform: platform(),
@@ -381,6 +409,7 @@ export class AnalyticsHandler {
     const currentAnalyticsConfig = await garden.globalConfigStore.get("analytics")
     const isFirstRun = !currentAnalyticsConfig.firstRunAt
     const moduleConfigs = await garden.getRawModuleConfigs()
+    const actionConfigs = await garden.getRawActionConfigs()
 
     let cloudUser: UserResult | undefined
     if (garden.cloudApi) {
@@ -434,6 +463,7 @@ export class AnalyticsHandler {
       log,
       analyticsConfig,
       moduleConfigs,
+      actionConfigs,
       cloudUser,
       isEnabled,
       ciInfo,
@@ -561,7 +591,7 @@ export class AnalyticsHandler {
   /**
    * Track a command result.
    */
-  trackCommandResult(commandName: string, errors: GardenBaseError[], startTime: Date) {
+  trackCommandResult(commandName: string, errors: GardenBaseError[], startTime: Date, exitCode?: number) {
     const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
 
     const durationMsec = getDurationMsec(startTime, new Date())
@@ -573,6 +603,7 @@ export class AnalyticsHandler {
         durationMsec,
         result,
         errors: errors.map((e) => e.type),
+        exitCode,
         ...this.getBasicAnalyticsProperties(),
       },
     })
