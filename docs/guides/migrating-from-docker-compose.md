@@ -45,7 +45,7 @@ providers:
 
 This is a `Project` level file. We call it `compose2garden` in our example, but you can use your own name. We configure
 a single environment and specify the hostname where we can visit the running application. Finally, we
-configure `local-kubernetes` (a Kubernetes cluster running in Docker Desktop) as our provider.
+configure `local-kubernetes` (e.g. a Kubernetes cluster running in Docker Desktop) as our provider.
 
 ### The `backend/backend.garden.yml` file
 
