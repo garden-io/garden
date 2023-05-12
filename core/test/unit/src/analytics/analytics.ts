@@ -13,7 +13,12 @@ import { validate as validateUuid } from "uuid"
 
 import { makeTestGardenA, TestGarden, enableAnalytics, getDataDir, makeTestGarden, freezeTime } from "../../../helpers"
 import { AnalyticsHandler, getAnonymousUserId } from "../../../../src/analytics/analytics"
-import { DEFAULT_API_VERSION, DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants"
+import {
+  DEFAULT_API_VERSION,
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_GARDEN_CLOUD_DOMAIN,
+  gardenEnv,
+} from "../../../../src/constants"
 import { CloudApi } from "../../../../src/cloud/api"
 import { Log } from "../../../../src/logger/log-entry"
 import { LogLevel, RootLogger } from "../../../../src/logger/logger"
@@ -25,6 +30,7 @@ class FakeCloudApi extends CloudApi {
   static async factory(params: { log: Log; projectConfig?: ProjectResource; skipLogging?: boolean }) {
     return new FakeCloudApi(params.log, "https://garden.io", new GlobalConfigStore())
   }
+
   async getProfile() {
     return {
       id: "1",
@@ -475,7 +481,7 @@ describe("AnalyticsHandler", () => {
           name: "module-a",
           type: "test",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path: "",
           serviceConfigs: [],

@@ -455,7 +455,7 @@ export class ActionLog extends Log<ActionLogContext> {
   showDuration = true
 
   /**
-   * Create a new ActioLog instance. The new instance inherits the parent context.
+   * Create a new ActionLog instance. The new instance inherits the parent context.
    */
   createLog(params: CreateLogParams = {}): ActionLog {
     return new ActionLog(this.makeLogConfig(params))

@@ -172,7 +172,7 @@ spec:
             target:
 
     # Maximum time in seconds to wait for build to finish.
-    timeout: 1200
+    timeout: 600
 
   # If set to true, Garden will destroy the stack when calling `garden delete env` or `garden delete service <module
   # name>`.
@@ -567,7 +567,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `spec.allowDestroy`
 

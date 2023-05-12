@@ -8,12 +8,13 @@
 
 import { joiUserIdentifier, joi, joiSparseArray, createSchema } from "./common"
 import { deline, dedent } from "../util/string"
+import { DEFAULT_TEST_TIMEOUT_SEC } from "../constants"
 
 export interface BaseTestSpec {
   name: string
   dependencies: string[]
   disabled: boolean
-  timeout: number | null
+  timeout: number
 }
 
 export const baseTestSpecSchema = createSchema({
@@ -35,7 +36,12 @@ export const baseTestSpecSchema = createSchema({
         specific environments, e.g. only during CI.
       `
       ),
-    timeout: joi.number().allow(null).default(null).description("Maximum duration (in seconds) of the test run."),
+    timeout: joi
+      .number()
+      .integer()
+      .min(1)
+      .default(DEFAULT_TEST_TIMEOUT_SEC)
+      .description("Maximum duration (in seconds) of the test run."),
   }),
 })
 

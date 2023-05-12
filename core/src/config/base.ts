@@ -14,7 +14,7 @@ import { pathExists, readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
 import { coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig, ModuleConfig } from "./module"
 import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions"
-import { DEFAULT_API_VERSION, PREVIOUS_API_VERSION } from "../constants"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, PREVIOUS_API_VERSION } from "../constants"
 import { ProjectConfig, ProjectResource } from "../config/project"
 import { validateWithPath } from "./validation"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs"
@@ -379,6 +379,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
     allowPublish: spec.allowPublish,
     build: {
       dependencies,
+      timeout: spec.build?.timeout || DEFAULT_BUILD_TIMEOUT_SEC,
     },
     configPath,
     description: spec.description,

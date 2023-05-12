@@ -40,8 +40,6 @@ interface DockerVersion {
   server?: string
 }
 
-export const DEFAULT_BUILD_TIMEOUT = 600
-
 export const minDockerVersion: DockerVersion = {
   client: "19.03.0",
   server: "17.07.0",

@@ -24,6 +24,7 @@ import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
 import { DeployActionDefinition } from "../../../plugin/action-types"
 import { getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/handlers"
 import { Resolved } from "../../../actions/types"
+import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 
 export interface PersistentVolumeClaimDeploySpec extends BaseVolumeSpec {
   namespace?: string
@@ -47,6 +48,7 @@ const commonSpecKeys = () => ({
 interface PersistentVolumeClaimSpec extends PersistentVolumeClaimDeploySpec {
   dependencies: string[]
 }
+
 type PersistentVolumeClaimModule = GardenModule<PersistentVolumeClaimSpec, PersistentVolumeClaimSpec>
 
 type PersistentVolumeClaimActionConfig = DeployActionConfig<"persistentvolumeclaim", PersistentVolumeClaimDeploySpec>
@@ -196,6 +198,7 @@ function getKubernetesAction(action: Resolved<PersistentVolumeClaimAction>) {
       namespace: action.getSpec("namespace"),
       files: [],
       manifests: [pvcManifest],
+      timeout: KUBECTL_DEFAULT_TIMEOUT,
     },
   }
 

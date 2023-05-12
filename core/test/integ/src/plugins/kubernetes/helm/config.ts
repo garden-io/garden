@@ -13,11 +13,12 @@ import { cloneDeep, omit } from "lodash"
 import { expectError, TestGarden } from "../../../../../helpers"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { dedent } from "../../../../../../src/util/string"
-import { defaultBuildTimeout, ModuleConfig } from "../../../../../../src/config/module"
+import { ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
 import { getHelmTestGarden } from "./common"
 import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/module-config"
 import stripAnsi = require("strip-ansi")
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../../src/constants"
 import { PREVIOUS_API_VERSION } from "../../../../../../src/constants"
 
 describe("configureHelmModule", () => {
@@ -52,7 +53,7 @@ describe("configureHelmModule", () => {
       atomicInstall: true,
       build: {
         dependencies: [],
-        timeout: defaultBuildTimeout,
+        timeout: DEFAULT_BUILD_TIMEOUT_SEC,
       },
       chartPath: ".",
       sync: {
@@ -93,7 +94,7 @@ describe("configureHelmModule", () => {
       allowPublish: true,
       build: {
         dependencies: [],
-        timeout: defaultBuildTimeout,
+        timeout: DEFAULT_BUILD_TIMEOUT_SEC,
       },
       configPath: resolve(ctx.projectRoot, "api", "garden.yml"),
       description: "The API backend for the voting UI",

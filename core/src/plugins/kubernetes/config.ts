@@ -284,6 +284,7 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
 export const k8sDeploymentTimeoutSchema = () =>
   joi
     .number()
+    .integer()
     .default(KUBECTL_DEFAULT_TIMEOUT)
     .description("The maximum duration (in seconds) to wait for resources to deploy and become healthy.")
 

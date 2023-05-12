@@ -79,6 +79,8 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   include?: string[]
   exclude?: string[]
 
+  timeout?: number
+
   // Variables
   // -> Templating with ActionConfigContext allowed
   variables?: DeepPrimitiveMap

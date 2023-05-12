@@ -252,7 +252,7 @@ function convertContainerModuleRuntimeActions(
       disabled: task.disabled,
       build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(task.spec.dependencies, buildAction),
-      timeout: task.spec.timeout || undefined,
+      timeout: task.spec.timeout,
 
       spec: {
         ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
@@ -271,7 +271,7 @@ function convertContainerModuleRuntimeActions(
       disabled: test.disabled,
       build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(test.spec.dependencies, buildAction),
-      timeout: test.spec.timeout ? test.spec.timeout : undefined,
+      timeout: test.spec.timeout,
 
       spec: {
         ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),

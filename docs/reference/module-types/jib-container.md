@@ -61,7 +61,7 @@ build:
           target:
 
   # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
+  timeout: 600
 
   # The type of project to build. Defaults to auto-detecting between gradle and maven (based on which
   # files/directories are found in the module root), but in some cases you may need to specify it.
@@ -556,7 +556,7 @@ tests:
     disabled: false
 
     # Maximum duration (in seconds) of the test run.
-    timeout: null
+    timeout: 600
 
     # The command/entrypoint to run the container with.
     command:
@@ -671,7 +671,7 @@ tasks:
     disabled: false
 
     # Maximum duration (in seconds) of the task's execution.
-    timeout: null
+    timeout: 600
 
     # The command/entrypoint to run the container with.
     command:
@@ -885,7 +885,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `build.projectType`
 
@@ -2189,7 +2189,7 @@ Maximum duration (in seconds) of the test run.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `null`  | No       |
+| `number` | `600`   | No       |
 
 ### `tests[].command[]`
 
@@ -2550,7 +2550,7 @@ Maximum duration (in seconds) of the task's execution.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `null`  | No       |
+| `number` | `600`   | No       |
 
 ### `tasks[].command[]`
 

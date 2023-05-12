@@ -15,7 +15,7 @@ import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import type { KubernetesPluginContext } from "../config"
 import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync"
-import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
+import { apply, deleteObjectsBySelector } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
@@ -65,6 +65,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         files,
         manifests,
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
+        timeout: service.spec.timeout,
       },
     }
 
@@ -94,7 +95,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
         build: dummyBuild?.name,
         dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
-        timeout: task.spec.timeout || undefined,
+        timeout: task.spec.timeout,
 
         spec: {
           ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
@@ -122,7 +123,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
         build: dummyBuild?.name,
         dependencies: prepareRuntimeDependencies(test.config.dependencies, dummyBuild),
-        timeout: test.spec.timeout || undefined,
+        timeout: test.spec.timeout,
 
         spec: {
           ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
@@ -251,7 +252,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       actionName: action.key(),
       resources: namespaceManifests,
       log,
-      timeoutSec: spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
+      timeoutSec: spec.timeout,
     })
   }
 
@@ -283,7 +284,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       actionName: action.key(),
       resources: preparedManifests,
       log,
-      timeoutSec: spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
+      timeoutSec: spec.timeout,
     })
   }
 

@@ -23,7 +23,7 @@ import {
 import { getNames } from "../../../src/util/util"
 import { ConfigGraph, ConfigGraphNode } from "../../../src/graph/config-graph"
 import { Garden } from "../../../src/garden"
-import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT } from "../../../src/constants"
 import tmp from "tmp-promise"
 import { GardenPlugin } from "../../../src/plugin/plugin"
 import { ProjectConfig } from "../../../src/config/project"
@@ -706,9 +706,7 @@ describe("ConfigGraph (module-based configs)", () => {
         makeTestModule({
           name: "test",
           path: tmpPath,
-          build: {
-            dependencies: [{ name: "missing-build-dep", copy: [] }],
-          },
+          build: { dependencies: [{ name: "missing-build-dep", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         }),
       ])
 
@@ -764,7 +762,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -799,7 +797,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -834,7 +832,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -912,7 +910,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -946,7 +944,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -980,7 +978,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -1051,7 +1049,7 @@ describe("ConfigGraph (module-based configs)", () => {
           apiVersion: DEFAULT_API_VERSION,
           kind: "Module",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: true,
           name: "module-a",
           include: [],
@@ -1066,7 +1064,7 @@ describe("ConfigGraph (module-based configs)", () => {
           apiVersion: DEFAULT_API_VERSION,
           kind: "Module",
           allowPublish: false,
-          build: { dependencies: [{ name: "module-a", copy: [] }] },
+          build: { dependencies: [{ name: "module-a", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-b",
           include: [],
@@ -1098,7 +1096,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -1142,7 +1140,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -1189,7 +1187,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-a",
           include: [],
@@ -1211,7 +1209,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-b",
           include: [],
@@ -1251,7 +1249,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -1298,7 +1296,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -1347,7 +1345,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: true,
           name: "module-a",
           include: [],
@@ -1361,7 +1359,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-b",
           include: [],
@@ -1389,7 +1387,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-a",
           include: [],
@@ -1411,7 +1409,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-b",
           include: [],
@@ -1448,7 +1446,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-a",
           include: [],
@@ -1462,7 +1460,7 @@ describe("ConfigGraph (module-based configs)", () => {
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
-          build: { dependencies: [{ name: "module-a", copy: [] }] },
+          build: { dependencies: [{ name: "module-a", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-b",
           include: [],

@@ -38,6 +38,7 @@ import {
 import { ResolvedConfigGraph } from "../graph/config-graph"
 import { ActionVersion } from "../vcs/vcs"
 import { Memoize } from "typescript-memoize"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants"
 
 export interface BuildCopyFrom {
   build: string
@@ -51,7 +52,6 @@ export interface BuildActionConfig<T extends string = string, S extends object =
   allowPublish?: boolean
   buildAtSource?: boolean
   copyFrom?: BuildCopyFrom[]
-  timeout?: number
 }
 
 export const copyFromSchema = createSchema({
@@ -136,6 +136,8 @@ export const buildActionConfigSchema = () =>
     timeout: joi
       .number()
       .integer()
+      .min(1)
+      .default(DEFAULT_BUILD_TIMEOUT_SEC)
       .description("Set a timeout for the build to complete, in seconds.")
       .meta({ templateContext: ActionConfigContext }),
   })
@@ -203,6 +205,7 @@ export class ResolvedBuildAction<
     this._config.spec = params.spec
     this._config.internal.inputs = params.inputs
   }
+
   getExecutedDependencies() {
     return this.executedDependencies
   }

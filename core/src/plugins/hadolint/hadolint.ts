@@ -71,6 +71,8 @@ const isHadolintTest = (action: BaseAction): action is HadolintTest =>
 
 const gitHubUrl = getGitHubUrl("examples/hadolint")
 
+const defaultHadolintTimeoutSec = 10
+
 export const gardenPlugin = () =>
   createGardenPlugin({
     name: "hadolint",
@@ -342,7 +344,7 @@ export const gardenPlugin = () =>
 
               include: [module.spec.dockerfilePath],
 
-              timeout: 10,
+              timeout: defaultHadolintTimeoutSec,
 
               spec: {
                 dockerfilePath: module.spec.dockerfilePath,

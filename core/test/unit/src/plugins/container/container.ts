@@ -29,8 +29,12 @@ import {
   defaultDockerfileName,
 } from "../../../../../src/plugins/container/moduleConfig"
 import { ExecBuildConfig } from "../../../../../src/plugins/exec/config"
-import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import {
+  DEFAULT_API_VERSION,
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC,
+} from "../../../../../src/constants"
 import { resolve } from "path"
 
 describe("plugins.container", () => {
@@ -42,9 +46,7 @@ describe("plugins.container", () => {
 
   const baseConfig: ContainerModuleConfig = {
     allowPublish: false,
-    build: {
-      dependencies: [],
-    },
+    build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
     disabled: false,
     apiVersion: DEFAULT_API_VERSION,
     name: "test",
@@ -53,7 +55,7 @@ describe("plugins.container", () => {
 
     spec: {
       build: {
-        timeout: DEFAULT_BUILD_TIMEOUT,
+        timeout: DEFAULT_BUILD_TIMEOUT_SEC,
       },
       buildArgs: {},
       extraFlags: [],
@@ -227,9 +229,7 @@ describe("plugins.container", () => {
   describe("configureContainerModule", () => {
     const containerModuleConfig: ContainerModuleConfig = {
       allowPublish: false,
-      build: {
-        dependencies: [],
-      },
+      build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       disabled: false,
       apiVersion: DEFAULT_API_VERSION,
       name: "module-a",
@@ -238,7 +238,7 @@ describe("plugins.container", () => {
 
       spec: {
         build: {
-          timeout: DEFAULT_BUILD_TIMEOUT,
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         },
         buildArgs: {},
         extraFlags: [],
@@ -300,7 +300,7 @@ describe("plugins.container", () => {
             },
             cpu: defaultCpu,
             memory: defaultMemory,
-            timeout: null,
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
             volumes: [],
           },
         ],
@@ -316,7 +316,7 @@ describe("plugins.container", () => {
             },
             cpu: defaultCpu,
             memory: defaultMemory,
-            timeout: null,
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
             volumes: [],
           },
         ],
@@ -333,7 +333,7 @@ describe("plugins.container", () => {
       expect(result).to.eql({
         moduleConfig: {
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",
@@ -342,7 +342,7 @@ describe("plugins.container", () => {
           type: "container",
           spec: {
             build: {
-              timeout: DEFAULT_BUILD_TIMEOUT,
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
             },
             buildArgs: {},
             extraFlags: [],
@@ -394,7 +394,7 @@ describe("plugins.container", () => {
                 },
                 cpu: defaultCpu,
                 memory: defaultMemory,
-                timeout: null,
+                timeout: DEFAULT_RUN_TIMEOUT_SEC,
                 volumes: [],
               },
             ],
@@ -410,7 +410,7 @@ describe("plugins.container", () => {
                 },
                 cpu: defaultCpu,
                 memory: defaultMemory,
-                timeout: null,
+                timeout: DEFAULT_TEST_TIMEOUT_SEC,
                 volumes: [],
               },
             ],
@@ -480,10 +480,10 @@ describe("plugins.container", () => {
                 cpu: defaultCpu,
                 memory: defaultMemory,
                 name: "task-a",
-                timeout: null,
+                timeout: DEFAULT_RUN_TIMEOUT_SEC,
                 volumes: [],
               },
-              timeout: null,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
             },
           ],
           testConfigs: [
@@ -502,10 +502,10 @@ describe("plugins.container", () => {
                 },
                 cpu: defaultCpu,
                 memory: defaultMemory,
-                timeout: null,
+                timeout: DEFAULT_TEST_TIMEOUT_SEC,
                 volumes: [],
               },
-              timeout: null,
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
             },
           ],
         },
@@ -515,9 +515,7 @@ describe("plugins.container", () => {
     it("should add service volume modules as build and runtime dependencies", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         apiVersion: DEFAULT_API_VERSION,
         name: "module-a",
@@ -526,7 +524,7 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -577,9 +575,7 @@ describe("plugins.container", () => {
     it("should add task volume modules as build and runtime dependencies", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         apiVersion: DEFAULT_API_VERSION,
         name: "module-a",
@@ -588,7 +584,7 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -604,7 +600,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
               volumes: [
                 {
                   name: "test",
@@ -631,9 +627,7 @@ describe("plugins.container", () => {
     it("should add test volume modules as build and runtime dependencies", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         apiVersion: DEFAULT_API_VERSION,
         name: "module-a",
@@ -642,7 +636,7 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -658,7 +652,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
               volumes: [
                 {
                   name: "test",
@@ -684,9 +678,7 @@ describe("plugins.container", () => {
     it("should fail with invalid port in ingress spec", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         apiVersion: DEFAULT_API_VERSION,
         name: "module-a",
@@ -695,7 +687,7 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -734,7 +726,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
               volumes: [],
             },
           ],
@@ -748,7 +740,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
               volumes: [],
             },
           ],
@@ -765,9 +757,7 @@ describe("plugins.container", () => {
     it("should fail with invalid port in httpGet healthcheck spec", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         apiVersion: DEFAULT_API_VERSION,
         name: "module-a",
@@ -776,7 +766,7 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -815,7 +805,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
               volumes: [],
             },
           ],
@@ -833,9 +823,7 @@ describe("plugins.container", () => {
     it("should fail with invalid port in tcpPort healthcheck spec", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         apiVersion: DEFAULT_API_VERSION,
         name: "module-a",
@@ -844,7 +832,7 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -880,7 +868,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
               volumes: [],
             },
           ],

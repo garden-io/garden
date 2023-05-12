@@ -9,7 +9,7 @@
 import tmp from "tmp-promise"
 import { ProjectConfig } from "../../../../../src/config/project"
 import execa = require("execa")
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants"
 import { createProjectConfig, getDataDir, TestGarden } from "../../../../helpers"
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
@@ -66,7 +66,7 @@ describe("hadolint provider", () => {
         name: "foo",
         type: "container",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         path: tmpPath,
         serviceConfigs: [],
@@ -80,7 +80,7 @@ describe("hadolint provider", () => {
         name: "bar",
         type: "container",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         path: tmpPath,
         serviceConfigs: [],
@@ -130,7 +130,7 @@ describe("hadolint provider", () => {
         name: "foo",
         type: "foo",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         path: tmpPath,
         serviceConfigs: [],
@@ -163,7 +163,7 @@ describe("hadolint provider", () => {
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -236,7 +236,7 @@ describe("hadolint provider", () => {
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path: modulePath,
           serviceConfigs: [],
@@ -303,7 +303,7 @@ describe("hadolint provider", () => {
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -364,7 +364,7 @@ describe("hadolint provider", () => {
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -415,7 +415,7 @@ describe("hadolint provider", () => {
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -469,7 +469,7 @@ describe("hadolint provider", () => {
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],

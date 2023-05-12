@@ -202,7 +202,7 @@ spec:
   cleanupCommand:
 
   # The maximum duration (in seconds) to wait for `deployCommand` to exit. Ignored if `persistent: false`.
-  timeout:
+  timeout: 600
 
   # The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if no
   # `statusCommand` is set.
@@ -515,9 +515,9 @@ Note that if a Build is referenced in the `build` field, the command will be run
 
 The maximum duration (in seconds) to wait for `deployCommand` to exit. Ignored if `persistent: false`.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `spec.statusTimeout`
 

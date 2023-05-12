@@ -7,7 +7,7 @@
  */
 
 import env from "env-var"
-import { resolve, join } from "path"
+import { join, resolve } from "path"
 import { homedir } from "os"
 
 export const isPkg = !!(<any>process).pkg
@@ -26,8 +26,9 @@ export const DEFAULT_PORT_PROTOCOL = "TCP"
 export const PREVIOUS_API_VERSION = "garden.io/v0"
 export const DEFAULT_API_VERSION = "garden.io/v1"
 
-export const DEFAULT_TEST_TIMEOUT = 60 * 1000
-export const DEFAULT_RUN_TIMEOUT = 60 * 1000
+export const DEFAULT_BUILD_TIMEOUT_SEC = 600
+export const DEFAULT_TEST_TIMEOUT_SEC = 600
+export const DEFAULT_RUN_TIMEOUT_SEC = 600
 
 export type SupportedPlatform = "linux" | "darwin" | "win32"
 export const SUPPORTED_PLATFORMS: SupportedPlatform[] = ["linux", "darwin", "win32"]

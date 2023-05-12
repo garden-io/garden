@@ -16,16 +16,20 @@ import {
   RuntimeAction,
 } from "./base"
 import { Action, BaseActionConfig } from "./types"
+import { DEFAULT_TEST_TIMEOUT_SEC } from "../constants"
 
 export interface TestActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"Test", N, S> {
-  timeout?: number
-}
+  extends BaseRuntimeActionConfig<"Test", N, S> {}
 
 export const testActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({
     kind: joi.string().allow("Test").only(),
-    timeout: joi.number().integer().description("Set a timeout for the test to complete, in seconds."),
+    timeout: joi
+      .number()
+      .integer()
+      .min(1)
+      .default(DEFAULT_TEST_TIMEOUT_SEC)
+      .description("Set a timeout for the test to complete, in seconds."),
   })
 )
 

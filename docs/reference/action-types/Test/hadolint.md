@@ -157,7 +157,7 @@ build:
 kind:
 
 # Set a timeout for the test to complete, in seconds.
-timeout:
+timeout: 600
 
 spec:
   # POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
@@ -387,9 +387,9 @@ This would mean that instead of looking for manifest files relative to this acti
 
 Set a timeout for the test to complete, in seconds.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `spec`
 

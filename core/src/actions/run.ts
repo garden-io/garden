@@ -16,16 +16,20 @@ import {
   RuntimeAction,
 } from "./base"
 import { Action, BaseActionConfig } from "./types"
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../constants"
 
 export interface RunActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"Run", N, S> {
-  timeout?: number
-}
+  extends BaseRuntimeActionConfig<"Run", N, S> {}
 
 export const runActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({
     kind: joi.string().allow("Run").only(),
-    timeout: joi.number().integer().description("Set a timeout for the run to complete, in seconds."),
+    timeout: joi
+      .number()
+      .integer()
+      .min(1)
+      .default(DEFAULT_RUN_TIMEOUT_SEC)
+      .description("Set a timeout for the run to complete, in seconds."),
   })
 )
 

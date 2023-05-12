@@ -55,5 +55,5 @@ export interface BaseRunParams {
   command?: string[]
   args: string[]
   interactive: boolean
-  timeout?: number
+  timeout: number
 }

@@ -57,7 +57,7 @@ build:
           target:
 
   # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
+  timeout: 600
 
   # The command to run to perform the build.
   #
@@ -224,7 +224,7 @@ services:
     cleanupCommand:
 
     # The maximum duration (in seconds) to wait for a local script to exit.
-    timeout:
+    timeout: 600
 
     # Environment variables to set when running the deploy and status commands.
     env: {}
@@ -280,7 +280,7 @@ tasks:
     disabled: false
 
     # Maximum duration (in seconds) of the task's execution.
-    timeout: null
+    timeout: 600
 
     # A list of artifacts to copy after the task run.
     artifacts:
@@ -316,7 +316,7 @@ tests:
     disabled: false
 
     # Maximum duration (in seconds) of the test run.
-    timeout: null
+    timeout: 600
 
     # The command to run to test the module.
     #
@@ -457,7 +457,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `build.command[]`
 
@@ -765,9 +765,9 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 
 The maximum duration (in seconds) to wait for a local script to exit.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `services[].env`
 
@@ -892,7 +892,7 @@ Maximum duration (in seconds) of the task's execution.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `null`  | No       |
+| `number` | `600`   | No       |
 
 ### `tasks[].artifacts[]`
 
@@ -996,7 +996,7 @@ Maximum duration (in seconds) of the test run.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `null`  | No       |
+| `number` | `600`   | No       |
 
 ### `tests[].command[]`
 

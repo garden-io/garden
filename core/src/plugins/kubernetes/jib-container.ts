@@ -9,7 +9,6 @@
 import { mkdirp } from "fs-extra"
 import { resolve } from "path"
 import tar from "tar"
-import { defaultBuildTimeout } from "../../config/module"
 import { ConfigurationError, PluginError } from "../../exceptions"
 import { ModuleActionHandlers } from "../../plugin/plugin"
 import { makeTempDir } from "../../util/fs"
@@ -24,6 +23,7 @@ import { PodRunner } from "./run"
 import { getRunningDeploymentPod } from "./util"
 import { BuildActionExtension, BuildActionParams } from "../../plugin/action-types"
 import { ContainerBuildAction } from "../container/config"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../constants"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
   ...containerHandlers,
@@ -131,7 +131,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
       sourcePath: extractPath,
     })
 
-    const pushTimeout = action.getConfig("timeout") || defaultBuildTimeout
+    const pushTimeout = action.getConfig("timeout") || DEFAULT_BUILD_TIMEOUT_SEC
 
     const syncCommand = ["skopeo", `--command-timeout=${pushTimeout}s`, "copy", "--authfile", "/.docker/config.json"]
 

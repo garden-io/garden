@@ -18,7 +18,7 @@ import {
 } from "../../../../src/config/base"
 import { resolve, join } from "path"
 import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
-import { DEFAULT_API_VERSION, PREVIOUS_API_VERSION } from "../../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, PREVIOUS_API_VERSION } from "../../../../src/constants"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { safeDumpYaml } from "../../../../src/util/serialization"
 import { getRootLogger } from "../../../../src/logger/logger"
@@ -268,7 +268,7 @@ describe("loadConfigResources", () => {
         exclude: undefined,
         repositoryUrl: undefined,
         allowPublish: undefined,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         path: modulePathA,
         variables: { msg: "OK" },
         varfile: undefined,
@@ -412,7 +412,7 @@ describe("loadConfigResources", () => {
         exclude: undefined,
         repositoryUrl: undefined,
         allowPublish: undefined,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         path: projectPathMultipleModules,
         serviceConfigs: [],
         spec: {
@@ -449,6 +449,7 @@ describe("loadConfigResources", () => {
         repositoryUrl: undefined,
         build: {
           dependencies: [{ name: "module-from-project-config", copy: [] }],
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         },
         path: modulePathAMultiple,
         serviceConfigs: [],
@@ -479,7 +480,7 @@ describe("loadConfigResources", () => {
         include: ["*"],
         exclude: undefined,
         repositoryUrl: undefined,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         path: modulePathAMultiple,
         serviceConfigs: [],
         spec: {

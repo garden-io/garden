@@ -11,6 +11,7 @@ import { Log } from "../../../../src/logger/log-entry"
 import { ActionRouter } from "../../../../src/router/router"
 import { TestGarden } from "../../../helpers"
 import { getRouterTestData } from "./_helpers"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../src/constants"
 
 describe("module actions", () => {
   let garden: TestGarden
@@ -37,6 +38,7 @@ describe("module actions", () => {
             { name: "module-b", copy: [{ source: "2", target: "2" }] },
             { name: "module-c", copy: [{ source: "3", target: "3" }] },
           ],
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         },
       }
 

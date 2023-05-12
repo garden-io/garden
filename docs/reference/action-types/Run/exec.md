@@ -151,7 +151,7 @@ build:
 kind:
 
 # Set a timeout for the run to complete, in seconds.
-timeout:
+timeout: 600
 
 spec:
   # If `true`, runs file inside of a shell. Uses `/bin/sh` on UNIX and `cmd.exe` on Windows. A different shell can be
@@ -410,9 +410,9 @@ This would mean that instead of looking for manifest files relative to this acti
 
 Set a timeout for the run to complete, in seconds.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `spec`
 
