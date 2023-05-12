@@ -841,9 +841,9 @@ workflows:
           <<: *only-prs
           requires: [build-dist]
       # TODO-0.13: fix and re-enable
-      # - test-windows:
-      #     <<: *only-internal-prs
-      #     requires: [build-dist]
+      - test-windows:
+          <<: *only-internal-prs
+          requires: [build-dist]
 
       # - e2e-project:
       #     <<: *only-internal-prs
