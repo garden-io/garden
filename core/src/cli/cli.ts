@@ -362,11 +362,7 @@ ${renderCommands(commands)}
     // TODO: Link to Cloud namespace page here.
     const nsLog = log.createLog({ name: "garden" })
 
-    let commandIteration = 0
-
     do {
-      commandIteration += 1
-
       try {
         if (command.noProject) {
           garden = await makeDummyGarden(workingDir, contextOpts)
@@ -467,7 +463,7 @@ ${renderCommands(commands)}
           commandFullName: command.getFullName(),
         })
         analytics = await AnalyticsHandler.init(garden, log)
-        analytics.trackCommand({ commandName: command.getFullName(), commandIteration })
+        analytics.trackCommand(command.getFullName())
 
         // Note: No reason to await the check
         checkForUpdates(garden.globalConfigStore, log).catch((err) => {
@@ -500,13 +496,7 @@ ${renderCommands(commands)}
 
         // Track the result of the command run
         const allErrors = result.errors || []
-        analytics.trackCommandResult(
-          command.getFullName(),
-          commandIteration,
-          allErrors,
-          commandStartTime,
-          result.exitCode
-        )
+        analytics.trackCommandResult(command.getFullName(), allErrors, commandStartTime, result.exitCode)
 
         // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to
         // fire, which may be needed to e.g. capture monitors added in event handlers
@@ -532,13 +522,7 @@ ${renderCommands(commands)}
           )
         }
 
-        analytics?.trackCommandResult(
-          command.getFullName(),
-          commandIteration,
-          [err],
-          commandStartTime || new Date(),
-          result.exitCode
-        )
+        analytics?.trackCommandResult(command.getFullName(), [err], commandStartTime || new Date(), result.exitCode)
 
         // flush analytics early since when we throw the instance is not returned
         await analytics?.flush()
