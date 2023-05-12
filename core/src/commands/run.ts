@@ -159,13 +159,16 @@ export class RunCommand extends Command<Args, Opts> {
       includeDisabled: true,
     })
 
-    validateActionSearchResults({
+    const { shouldAbort } = validateActionSearchResults({
       log,
       actionKind: "Test",
       actions,
       names,
       errData: { params, args },
     })
+    if (shouldAbort) {
+      return {}
+    }
 
     for (const action of actions) {
       if (action.isDisabled() && !opts.force) {

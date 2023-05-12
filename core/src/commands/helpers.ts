@@ -79,7 +79,9 @@ export async function watchRemovedWarning(garden: Garden, log: Log) {
 }
 
 /**
- * Throws if nothing is found matching the search parameters.
+ * Throws if an action by name is not found.
+ * Logs a warning if no actions are found matching wildcard arguments.
+ *
  */
 export const validateActionSearchResults = ({
   log,
@@ -93,7 +95,12 @@ export const validateActionSearchResults = ({
   actions: { name: string }[]
   errData: any
   actionKind: ActionKind
-}) => {
+}): { shouldAbort: boolean } => {
+  if (actions.length === 0 && (!names || names.length === 0)) {
+    log.warn(`No ${actionKind} actions were found. Aborting.`)
+    return { shouldAbort: true }
+  }
+
   names?.forEach((n) => {
     if (!isGlob(n) && !actions.find((a) => a.name === n)) {
       throw new ParameterError(`${actionKind} action "${n}" was not found.`, { ...errData })
@@ -107,4 +114,5 @@ export const validateActionSearchResults = ({
     }
     throw new ParameterError(`No ${actionKind} actions were found${argumentsMsg}.`, { errData })
   }
+  return { shouldAbort: false }
 }

@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { expect } from "chai"
 import { validateActionSearchResults } from "../../../../src/commands/helpers"
 import { getRootLogger } from "../../../../src/logger/logger"
 import { initTestLogger } from "../../../helpers"
@@ -84,6 +85,30 @@ describe("command helpers", () => {
           }),
         { contains: "(matching argument(s) 'foo*')" }
       )
+    })
+
+    it("should log a warning of no names are provided and no actions are found", async () => {
+      let log = logger.createLog()
+      validateActionSearchResults({
+        actionKind: "Build",
+        actions: [],
+        log,
+        names: undefined,
+        errData: {},
+      })
+
+      expect(log.entries[0].msg?.includes("No Build actions were found. Aborting.")).to.eql(true)
+
+      log = logger.createLog()
+      validateActionSearchResults({
+        actionKind: "Build",
+        actions: [],
+        log,
+        names: [],
+        errData: {},
+      })
+
+      expect(log.entries[0].msg?.includes("No Build actions were found. Aborting.")).to.eql(true)
     })
   })
 })
