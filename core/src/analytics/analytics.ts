@@ -95,10 +95,10 @@ interface ProjectMetadata {
   testsCount: number
   moduleTypes: string[]
   actionsCount: number
-  actionBuildsCount: number
-  actionTestsCount: number
-  actionDeploysCount: number
-  actionRunsCount: number
+  buildActionCount: number
+  testActionCount: number
+  deployActionCount: number
+  runActionCount: number
 }
 
 interface PropertiesBase {
@@ -305,10 +305,10 @@ export class AnalyticsHandler {
       servicesCount: countActions(moduleConfigs, "services"),
       testsCount: countActions(moduleConfigs, "tests"),
       actionsCount,
-      actionBuildsCount: countByActionKind["Build"],
-      actionTestsCount: countByActionKind["Test"],
-      actionDeploysCount: countByActionKind["Deploy"],
-      actionRunsCount: countByActionKind["Run"],
+      buildActionCount: countByActionKind["Build"],
+      testActionCount: countByActionKind["Test"],
+      deployActionCount: countByActionKind["Deploy"],
+      runActionCount: countByActionKind["Run"],
     }
     this.systemConfig = {
       platform: platform(),
