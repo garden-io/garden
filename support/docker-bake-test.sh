@@ -2,6 +2,8 @@
 
 set -x -e -o pipefail
 
+export BRANCH_NAME=$1
+
 # Bash test framework. Sorry :D
 fail() {
   echo "FAIL: $@"

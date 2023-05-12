@@ -1,7 +1,7 @@
 #
 # garden-base
 #
-FROM node:18-alpine3.17 as garden-alpine-base
+FROM node:18-alpine@sha256:44aaf1ccc80eaed6572a0f2ef7d6b5a2982d54481e4255480041ac92221e2f11 as garden-alpine-base
 
 RUN apk add --no-cache \
   bash \
@@ -35,7 +35,7 @@ RUN chmod +x /garden/garden \
 
 ENTRYPOINT ["/garden/garden"]
 
-FROM python:3.8-alpine AS aws-builder
+FROM python:3.8-alpine@sha256:4912e629ee15ae93787756afb2e02b040448a86eadcb00bb542a7e81cbb2d8f8 AS aws-builder
 
 ENV AWSCLI_VERSION=2.11.18
 
@@ -68,7 +68,7 @@ RUN curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/
 #
 # gcloud base
 #
-FROM google/cloud-sdk:430.0.0-alpine as gcloud-base
+FROM google/cloud-sdk:430.0.0-alpine@sha256:10bbf2db2828f7ce67ce49e4704b6225634319b9efef02d9a90185e107aef662 as gcloud-base
 
 RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet
 

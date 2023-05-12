@@ -413,7 +413,7 @@ jobs:
       - deploy:
           name: Build and test docker images
           command: |
-            bash support/docker-bake-test.sh
+            bash support/docker-bake-test.sh $CIRCLE_BRANCH
   dockerhub-release:
     <<: *node-config
     steps:
@@ -428,7 +428,7 @@ jobs:
           command: |
             # bonsai edge
             if [ "$CIRCLE_BRANCH" == "0.13" ]; then
-              MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai \
+              MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai BRANCH_NAME=$CIRCLE_BRANCH \
                 docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
             fi
 
