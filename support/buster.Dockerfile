@@ -1,4 +1,4 @@
-FROM node:18.16.0-buster as buster-base
+FROM node:18-buster@sha256:9b982ad25de81f86da9c47fd057e15f980036343ad45e602ead9926eea0d64ff as buster-base
 
 # system dependencies
 RUN set -ex; \
