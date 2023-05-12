@@ -84,15 +84,14 @@ FROM garden-alpine-base as garden-azure-base
 WORKDIR /
 ENV AZURE_CLI_VERSION=2.48.1
 
-RUN wget -O azure-cli-source.tar.gz https://github.com/Azure/azure-cli/archive/refs/tags/azure-cli-$AZURE_CLI_VERSION.tar.gz
-RUN tar -xzf azure-cli-source.tar.gz
-RUN cd /azure-cli-azure-cli-$AZURE_CLI_VERSION
+RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/src/azure-cli/requirements.py3.Linux.txt
+RUN wget -O trim_sdk.py https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/scripts/trim_sdk.py
 
 RUN apk add py3-virtualenv openssl-dev libffi-dev build-base python3-dev
 RUN python3 -m virtualenv /azure-cli
 ENV PATH /azure-cli/bin:$PATH
 
-RUN /azure-cli-azure-cli-$AZURE_CLI_VERSION/scripts/install_full.sh && python /azure-cli-azure-cli-$AZURE_CLI_VERSION/scripts/trim_sdk.py
+RUN pip install -r requirements.txt && python trim_sdk.py
 
 #
 # garden-azure
@@ -100,7 +99,7 @@ RUN /azure-cli-azure-cli-$AZURE_CLI_VERSION/scripts/install_full.sh && python /a
 FROM garden-alpine-base as garden-azure
 
 COPY --from=garden-azure-base /azure-cli /azure-cli
-RUN ln -s /azure-cli/bin/az /usr/local/bin/az 
+RUN ln -s /azure-cli/bin/az /usr/local/bin/az
 
 RUN az aks install-cli
 
@@ -110,7 +109,6 @@ LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
 #
 # garden-aws
 #
-
 FROM garden-alpine-base as garden-aws
 
 RUN apk --no-cache add groff
@@ -118,7 +116,7 @@ RUN apk --no-cache add groff
 # Copy aws cli
 COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
 # Copy aws-iam-authenticator from aws
-COPY --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin 
+COPY --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin
 ENV PATH /aws-cli:$PATH
 
 
@@ -142,7 +140,7 @@ RUN apk --no-cache add groff
 # Copy aws cli
 COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
 # Copy aws-iam-authenticator from aws
-COPY --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin 
+COPY --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin
 ENV PATH /aws-cli:$PATH
 
 ENV CLOUDSDK_PYTHON=python3
@@ -161,7 +159,7 @@ RUN apk --no-cache add groff
 # Copy aws cli
 COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
 # Copy aws-iam-authenticator from aws
-COPY --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin 
+COPY --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin
 ENV PATH /aws-cli:$PATH
 
 ENV CLOUDSDK_PYTHON=python3
@@ -170,7 +168,7 @@ COPY --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
 ENV PATH /google-cloud-sdk/bin:$PATH
 
 COPY --from=garden-azure-base /azure-cli /azure-cli
-RUN ln -s /azure-cli/bin/az /usr/local/bin/az 
+RUN ln -s /azure-cli/bin/az /usr/local/bin/az
 
 RUN az aks install-cli
 
