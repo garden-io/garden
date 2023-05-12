@@ -87,7 +87,7 @@ spec:
 ```
 
 A `Build` action and a `Deploy` action are defined.
-Let's consider `Deploy` action in a bit more details.
+Make note of the `Deploy` action and it's configuration.
 
 Under `sync` we set up syncing from the root folder to our built `app` folder, so we can see code changes live when in
 developer mode.
