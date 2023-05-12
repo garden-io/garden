@@ -82,7 +82,7 @@ TEST "prerelease tags for alpine"
     should_not_exist $image 0.13-alpine
     should_not_exist $image 0.13-alpha1-alpine
     should_not_exist $image bonsai-alpha1-alpine
-    should_exist gardendev/garden 0.13.0-alpha1-buster
+    should_exist gardendev/garden 0.13.0-alpha1-alpine
   done
 
 TEST "production release tags for buster"
