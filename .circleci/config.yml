@@ -840,7 +840,6 @@ workflows:
       - test-dockerhub:
           <<: *only-prs
           requires: [build-dist]
-      # TODO-0.13: fix and re-enable
       - test-windows:
           <<: *only-internal-prs
           requires: [build-dist]
@@ -980,19 +979,18 @@ workflows:
           requires: [build]
           kubernetesVersion: "1.19.7"
           minikubeVersion: "v1.16.0"
-      # TODO-0.13: fix and re-enable
-      # - test-microk8s:
-      #     name: vm-1.24-microk8s
-      #     requires: [build]
-      #     kubernetesVersion: "1.24"
-      # - test-microk8s:
-      #     name: vm-1.25-microk8s
-      #     requires: [build]
-      #     kubernetesVersion: "1.25"
-      # - test-microk8s:
-      #     name: vm-1.26-microk8s
-      #     requires: [build]
-      #     kubernetesVersion: "1.26"
+      - test-microk8s:
+          name: vm-1.24-microk8s
+          requires: [build]
+          kubernetesVersion: "1.24"
+      - test-microk8s:
+          name: vm-1.25-microk8s
+          requires: [build]
+          kubernetesVersion: "1.25"
+      - test-microk8s:
+          name: vm-1.26-microk8s
+          requires: [build]
+          kubernetesVersion: "1.26"
       - test-kind:
           name: vm-1.21-kind
           requires: [build]
