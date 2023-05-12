@@ -406,7 +406,7 @@ jobs:
       - deploy:
           name: Release docker images
           command: |
-            if [[ "${CIRCLE_TAG}" == "" ]]; then
+            if [[ "${CIRCLE_TAG}" = "" ]]; then
               # 0.12 edge release
               export MAJOR_VERSION=0
               export MINOR_VERSION=12
