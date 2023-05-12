@@ -133,6 +133,7 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
               build: dummyBuild?.name,
               dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
+              timeout: KUBECTL_DEFAULT_TIMEOUT,
               spec: {
                 accessModes: module.spec.accessModes,
                 namespace: module.spec.namespace,

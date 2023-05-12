@@ -15,7 +15,6 @@ import { getAppNamespaceStatus } from "../namespace"
 import { RunActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
 import { runResultToActionState } from "../../../actions/base"
-import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../constants"
 
 export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = async (params) => {
   const { ctx, log, action } = params
@@ -33,7 +32,7 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     dropCapabilities,
   } = action.getSpec()
 
-  const timeout = action.getConfig("timeout") || DEFAULT_RUN_TIMEOUT_SEC
+  const timeout = action.getConfig("timeout")
   const k8sCtx = ctx as KubernetesPluginContext
   const image = getDeployedImageId(action, k8sCtx.provider)
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)

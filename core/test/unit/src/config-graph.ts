@@ -48,6 +48,7 @@ const makeAction = ({
   name,
   type: "test",
   disabled,
+  timeout: 10,
   internal: {
     basePath,
   },

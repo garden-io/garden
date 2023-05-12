@@ -23,7 +23,6 @@ import { PodRunner } from "./run"
 import { getRunningDeploymentPod } from "./util"
 import { BuildActionExtension, BuildActionParams } from "../../plugin/action-types"
 import { ContainerBuildAction } from "../container/config"
-import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../constants"
 import { buildkitDeploymentName } from "./constants"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
@@ -133,7 +132,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
       sourcePath: extractPath,
     })
 
-    const pushTimeout = action.getConfig("timeout") || DEFAULT_BUILD_TIMEOUT_SEC
+    const pushTimeout = action.getConfig("timeout")
 
     const syncCommand = ["skopeo", `--command-timeout=${pushTimeout}s`, "copy", "--authfile", "/.docker/config.json"]
 

@@ -309,6 +309,7 @@ export const gardenPlugin = () =>
               allowPublish: module.allowPublish,
               dependencies: module.build.dependencies.map(convertBuildDependency),
 
+              timeout: module.build.timeout,
               spec: {
                 // base container fields
                 buildArgs: module.spec.buildArgs,

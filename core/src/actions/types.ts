@@ -79,7 +79,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   include?: string[]
   exclude?: string[]
 
-  timeout?: number
+  timeout: number
 
   // Variables
   // -> Templating with ActionConfigContext allowed

@@ -9,7 +9,6 @@
 import dedent from "dedent"
 import { runResultToActionState } from "../../../actions/base"
 import { Resolved } from "../../../actions/types"
-import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../constants"
 import { ConfigurationError } from "../../../exceptions"
 import { Log } from "../../../logger/log-entry"
 import { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types"
@@ -166,8 +165,6 @@ export async function runOrTestWithChart(
   const podSpec = getResourcePodSpec(target)
   const container = getResourceContainer(target, resourceSpec.containerName)
 
-  const { timeout } = action.getConfig()
-
   return runAndCopy({
     ...params,
     container,
@@ -179,7 +176,7 @@ export async function runOrTestWithChart(
     image: container.image!,
     namespace,
     podName: makePodName(action.kind.toLowerCase(), action.name),
-    timeout: timeout || DEFAULT_RUN_TIMEOUT_SEC,
+    timeout: action.getConfig().timeout,
     version,
   })
 }

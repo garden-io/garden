@@ -51,6 +51,7 @@ const testProvider = createGardenPlugin({
                     basePath: params.module.path,
                     groupName: params.module.name,
                   },
+                  timeout: params.module.build.timeout,
                   spec: {},
                 },
               ],

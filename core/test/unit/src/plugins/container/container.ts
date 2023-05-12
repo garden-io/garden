@@ -130,12 +130,13 @@ describe("plugins.container", () => {
           basePath: ".",
         },
         kind: "Build",
+        type: "exec",
         name: "dummyBuild",
+        timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         spec: {
           command: ["echo"],
           env: {},
         },
-        type: "exec",
       }
       const result = await convertContainerModule({ ...getModuleConvertBaseParams(module), dummyBuild })
       const build = result.group.actions.find((a) => a.kind === "Build")!

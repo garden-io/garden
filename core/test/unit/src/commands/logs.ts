@@ -20,7 +20,7 @@ import {
   makeTempDir,
   withDefaultGlobalOpts,
 } from "../../../helpers"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../src/constants"
 import { formatForTerminal } from "../../../../src/logger/renderers"
 import chalk from "chalk"
 import { LogEntry } from "../../../../src/logger/log-entry"
@@ -65,6 +65,7 @@ const makeDeployAction = (basePath: string, name: string): BaseActionConfig => (
   internal: {
     basePath,
   },
+  timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
   spec: {
     deployCommand: ["echo", "ok"],
   },

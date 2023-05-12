@@ -202,6 +202,10 @@ export const baseActionConfigSchema = createSchema({
       .example(["tmp/**/*", "*.log"])
       .meta({ templateContext: ActionConfigContext }),
 
+    // No default here by intention.
+    // Each action kind must override this and define own timeout and its description.
+    timeout: joi.number().integer().required().description("Set a timeout for the action, in seconds."),
+
     // Variables
     variables: joiVariables()
       .default(() => undefined)
@@ -680,8 +684,7 @@ export abstract class ResolvedRuntimeAction<
     Outputs extends {} = any
   >
   extends RuntimeAction<Config, Outputs>
-  implements ResolvedActionExtension<Config, Outputs>
-{
+  implements ResolvedActionExtension<Config, Outputs> {
   protected graph: ResolvedConfigGraph
   protected readonly params: ResolvedActionWrapperParams<Config>
   protected readonly resolved: true
@@ -766,8 +769,7 @@ export abstract class ExecutedRuntimeAction<
     O extends {} = any
   >
   extends ResolvedRuntimeAction<C, O>
-  implements ExecutedActionExtension<C, O>
-{
+  implements ExecutedActionExtension<C, O> {
   private readonly status: ActionStatus<this, any, O>
 
   constructor(params: ExecutedActionWrapperParams<C, O>) {

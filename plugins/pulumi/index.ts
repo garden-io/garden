@@ -25,6 +25,8 @@ import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/M
 const moduleOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
 const actionOutputsTemplateString = "${actions.<name>.outputs.<key>}"
 
+const defaultPulumiTimeoutSec = 600
+
 const outputsSchema = () => joiVariables().description("A map of all the outputs returned by the Pulumi stack.")
 
 export const gardenPlugin = () =>
@@ -108,6 +110,7 @@ export const gardenPlugin = () =>
               build: dummyBuild?.name,
               dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
+              timeout: defaultPulumiTimeoutSec,
               spec: {
                 ...omit(module.spec, ["dependencies"]),
               },
