@@ -179,8 +179,8 @@ Use `frontend` application's ingress URL from the console output to open the app
 
 ## Larger migrations
 
-This was a simple example, but it should give you what you need to migrate larger projects too. If you have feedback on
-how we could make migrating from Docker Compose easier, please send us feedback
-via [GitHub issues](https://github.com/garden-io/garden/issues), or reach out
+This is a basic example but it should give you what you need to migrate larger projects too. If you have feedback on
+how we could make migrating from Docker Compose easier, please send it our way
+via [GitHub issues](https://github.com/garden-io/garden/issues) or reach out
 on [our Discord community](https://discord.gg/FrmhuUjFs6).
 
