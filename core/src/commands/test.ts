@@ -178,16 +178,13 @@ export class TestCommand extends Command<Args, Opts> {
 
     await warnOnLinkedActions(garden, log, actions)
 
-    const { shouldAbort } = validateActionSearchResults({
+    validateActionSearchResults({
       log,
       actionKind: "Test",
       actions,
       names,
       errData: { params, args },
     })
-    if (shouldAbort) {
-      return {}
-    }
 
     const tasks = actions.map(
       (action) =>

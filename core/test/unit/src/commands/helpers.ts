@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expect } from "chai"
 import { validateActionSearchResults } from "../../../../src/commands/helpers"
 import { getRootLogger } from "../../../../src/logger/logger"
 import { initTestLogger } from "../../../helpers"
@@ -59,17 +58,32 @@ describe("command helpers", () => {
       )
     })
 
-    it("should log a warning if no actions are found using wildcards", async () => {
-      const log = logger.createLog()
-      validateActionSearchResults({
-        actionKind: "Build",
-        actions: [],
-        log,
-        names: ["foo*"],
-        errData: {},
-      })
+    it("should throw a warning if no actions are found using wildcards", async () => {
+      await expectError(
+        () =>
+          validateActionSearchResults({
+            actionKind: "Build",
+            actions: [],
+            log: logger.createLog(),
+            names: ["foo*"],
+            errData: {},
+          }),
+        { contains: "No Build actions were found" }
+      )
+    })
 
-      expect(log.entries[0].msg?.includes("asd"))
+    it("should contain arguments in error message", async () => {
+      await expectError(
+        () =>
+          validateActionSearchResults({
+            actionKind: "Build",
+            actions: [],
+            log: logger.createLog(),
+            names: ["foo*"],
+            errData: {},
+          }),
+        { contains: "(matching argument(s) 'foo*')" }
+      )
     })
   })
 })
