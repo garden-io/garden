@@ -154,6 +154,9 @@ build:
 
 kind:
 
+# Set a timeout for the deploy to complete, in seconds.
+timeout: 300
+
 spec:
   # Specify how to build the module. Note that plugins may define additional keys on this object.
   build:
@@ -480,6 +483,14 @@ This would mean that instead of looking for manifest files relative to this acti
 | Type     | Allowed Values | Required |
 | -------- | -------------- | -------- |
 | `string` | "Deploy"       | Yes      |
+
+### `timeout`
+
+Set a timeout for the deploy to complete, in seconds.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
 
 ### `spec`
 

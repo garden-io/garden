@@ -1443,6 +1443,9 @@ actionConfigs:
 
       kind:
 
+      # Set a timeout for the deploy to complete, in seconds.
+      timeout:
+
   # Run action configs in the project.
   Run:
     <name>:

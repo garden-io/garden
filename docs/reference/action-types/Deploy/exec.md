@@ -150,6 +150,9 @@ build:
 
 kind:
 
+# Set a timeout for the deploy to complete, in seconds.
+timeout: 300
+
 spec:
   # If `true`, runs file inside of a shell. Uses `/bin/sh` on UNIX and `cmd.exe` on Windows. A different shell can be
   # specified as a string. The shell should understand the `-c` switch on UNIX or `/d /s /c` on Windows.
@@ -427,6 +430,14 @@ This would mean that instead of looking for manifest files relative to this acti
 | Type     | Allowed Values | Required |
 | -------- | -------------- | -------- |
 | `string` | "Deploy"       | Yes      |
+
+### `timeout`
+
+Set a timeout for the deploy to complete, in seconds.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
 
 ### `spec`
 
