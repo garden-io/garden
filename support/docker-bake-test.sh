@@ -4,7 +4,7 @@ set -x -e -o pipefail
 
 # Bash test framework. Sorry :D
 fail() {
-  echo "FAIL: $1"
+  echo "FAIL: $@"
   exit 1
 }
 
@@ -16,19 +16,43 @@ tag_exists() {
 }
 
 should_exist() {
-if tag_exists $@; then
-  echo "OK: $image:$tag exists"
-else
-  fail "$image: tag \"$tag\" should exist"
-fi
+  if tag_exists $@; then
+    echo "OK: $image:$tag exists"
+  else
+    fail "$image: tag \"$tag\" should exist"
+  fi
 }
 
 should_not_exist() {
-if tag_exists $@; then
-  fail "$image: tag \"$tag\" should not exist"
-else
-  echo "OK: $image:$tag does not exist"
-fi
+  if tag_exists $@; then
+    fail "$image: tag \"$tag\" should not exist"
+  else
+    echo "OK: $image:$tag does not exist"
+  fi
+}
+
+run_binary() {
+  binary=$1
+  command=$2
+  image=$3
+
+  docker run --platform=linux/amd64 --rm -it --entrypoint=$binary $image $command
+}
+
+should_succeed() {
+  if run_binary $@; then
+    echo "OK: command run_binary $@ succeeded as expected"
+  else
+    fail "command run_binary $@ should have succeeded"
+  fi
+}
+
+should_fail() {
+  if run_binary $@; then
+    fail "command run_binary $@ should have failed"
+  else
+    echo "OK: command run_binary $@ failed as expected"
+  fi
 }
 
 before_each() {
@@ -37,9 +61,64 @@ before_each() {
 }
 
 TEST() {
-  echo "$1"
+  echo "TEST: $@"
   before_each
 }
+
+TEST "test cloud provider tool availability"
+  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
+    docker buildx bake --progress=plain -f support/docker-bake.hcl alpine
+
+  # aws
+  should_succeed aws --version gardendev/garden-aws-gcloud-azure
+  should_succeed aws --version gardendev/garden-aws-gcloud
+  should_succeed aws --version gardendev/garden-aws
+  should_fail aws --version gardendev/garden
+  should_fail aws --version gardendev/garden-gcloud
+  should_fail aws --version gardendev/garden-azure
+
+  # Gcloud
+  should_succeed gcloud version gardendev/garden-aws-gcloud-azure
+  should_succeed gcloud version gardendev/garden-aws-gcloud
+  should_succeed gcloud version gardendev/garden-gcloud
+  should_fail gcloud version gardendev/garden
+  should_fail gcloud version gardendev/garden-azure
+  should_fail gcloud version gardendev/garden-aws
+
+  # Azure
+  should_succeed az version gardendev/garden-aws-gcloud-azure
+  should_succeed az version gardendev/garden-azure
+  should_fail az version gardendev/garden
+  should_fail az version gardendev/garden-gcloud
+  should_fail az version gardendev/garden-aws
+  should_fail az version gardendev/garden-aws-gcloud
+
+TEST "run all binaries"
+  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
+    docker buildx bake --progress=plain -f support/docker-bake.hcl all
+
+  # garden
+  should_succeed garden --version gardendev/garden-aws-gcloud-azure
+  should_succeed garden --version gardendev/garden-aws-gcloud
+  should_succeed garden --version gardendev/garden-aws
+  should_succeed garden --version gardendev/garden-gcloud
+  should_succeed garden --version gardendev/garden-azure
+  should_succeed garden --version gardendev/garden:bonsai-alpine
+  should_succeed garden --version gardendev/garden:bonsai-buster
+
+  # aws
+  should_succeed aws --version gardendev/garden-aws-gcloud-azure
+  should_succeed aws --version gardendev/garden-aws-gcloud
+  should_succeed aws --version gardendev/garden-aws
+
+  # Gcloud
+  should_succeed gcloud version gardendev/garden-aws-gcloud-azure
+  should_succeed gcloud version gardendev/garden-aws-gcloud
+  should_succeed gcloud version gardendev/garden-gcloud
+
+  # Azure
+  should_succeed az version gardendev/garden-aws-gcloud-azure
+  should_succeed az version gardendev/garden-azure
 
 TEST "edge tags for buster"
   MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai \
@@ -109,30 +188,3 @@ TEST "production release tags for alpine"
     should_not_exist $image 0.13-edge-alpine
     should_not_exist $image bonsai-edge-alpine
   done
-
-TEST "run all binaries"
-  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
-    docker buildx bake --progress=plain -f support/docker-bake.hcl all
-
-  # garden
-  docker run --platform=linux/amd64 --rm -it --entrypoint=garden gardendev/garden-aws-gcloud-azure --version
-  docker run --platform=linux/amd64 --rm -it --entrypoint=garden gardendev/garden-aws-gcloud --version
-  docker run --platform=linux/amd64 --rm -it --entrypoint=garden gardendev/garden-aws --version
-  docker run --platform=linux/amd64 --rm -it --entrypoint=garden gardendev/garden-gcloud --version
-  docker run --platform=linux/amd64 --rm -it --entrypoint=garden gardendev/garden-azure --version
-  docker run --platform=linux/amd64 --rm -it --entrypoint=garden gardendev/garden:bonsai-alpine --version
-  docker run --platform=linux/amd64 --rm -it --entrypoint=garden gardendev/garden:bonsai-buster --version
-
-  # aws
-  docker run --platform=linux/amd64 --rm -it --entrypoint=aws gardendev/garden-aws-gcloud-azure --version
-  docker run --platform=linux/amd64 --rm -it --entrypoint=aws gardendev/garden-aws-gcloud --version
-  docker run --platform=linux/amd64 --rm -it --entrypoint=aws gardendev/garden-aws --version
-
-  # Gcloud
-  docker run --platform=linux/amd64 --rm -it --entrypoint=gcloud gardendev/garden-aws-gcloud-azure version
-  docker run --platform=linux/amd64 --rm -it --entrypoint=gcloud gardendev/garden-aws-gcloud version
-  docker run --platform=linux/amd64 --rm -it --entrypoint=gcloud gardendev/garden-gcloud version
-
-  # Azure
-  docker run --platform=linux/amd64 --rm -it --entrypoint=az gardendev/garden-aws-gcloud-azure version
-  docker run --platform=linux/amd64 --rm -it --entrypoint=az gardendev/garden-azure version

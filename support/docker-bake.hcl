@@ -65,6 +65,7 @@ group "all" {
 
 target "buster" {
   dockerfile = "../../support/buster.Dockerfile"
+  target     = "buster-base"
   platforms  = ["linux/amd64"]
   context    = "dist/linux-amd64"
   tags       = repository("gardendev/garden", tags("buster"))
@@ -72,43 +73,49 @@ target "buster" {
 
 group "alpine" {
   targets = [
-    "garden-alpine-base",
-    "garden-aws",
-    "garden-azure",
-    "garden-gcloud",
-    "garden-aws-gcloud",
-    "garden-aws-gcloud-azure"
+    "alpine-base",
+    "alpine-aws",
+    "alpine-azure",
+    "alpine-gcloud",
+    "alpine-aws-gcloud",
+    "alpine-aws-gcloud-azure"
   ]
 }
 
-target "garden-alpine-base" {
+target "alpine-base" {
   dockerfile = "../../support/alpine.Dockerfile"
+  target     = "garden-alpine-base"
   platforms  = ["linux/amd64"]
   context    = "dist/alpine-amd64"
   tags       = repository("gardendev/garden", withLatest(tags("alpine")))
 }
 
-target "garden-aws" {
-  inherits = ["garden-alpine-base"]
+target "alpine-aws" {
+  inherits = ["alpine-base"]
+  target   = "garden-aws"
   tags     = repository("gardendev/garden-aws", withLatest(tags("alpine")))
 }
 
-target "garden-azure" {
-  inherits = ["garden-alpine-base"]
+target "alpine-azure" {
+  inherits = ["alpine-base"]
+  target   = "garden-azure"
   tags     = repository("gardendev/garden-azure", withLatest(tags("alpine")))
 }
 
-target "garden-gcloud" {
-  inherits = ["garden-alpine-base"]
+target "alpine-gcloud" {
+  inherits = ["alpine-base"]
+  target   = "garden-gcloud"
   tags     = repository("gardendev/garden-gcloud", withLatest(tags("alpine")))
 }
 
-target "garden-aws-gcloud" {
-  inherits = ["garden-alpine-base"]
+target "alpine-aws-gcloud" {
+  inherits = ["alpine-base"]
+  target   = "garden-aws-gcloud"
   tags     = repository("gardendev/garden-aws-gcloud", withLatest(tags("alpine")))
 }
 
-target "garden-aws-gcloud-azure" {
-  inherits = ["garden-alpine-base"]
+target "alpine-aws-gcloud-azure" {
+  inherits = ["alpine-base"]
+  target   = "garden-aws-gcloud-azure"
   tags     = repository("gardendev/garden-aws-gcloud-azure", withLatest(tags("alpine")))
 }
