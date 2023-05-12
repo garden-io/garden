@@ -101,7 +101,7 @@ Finally, we specify the dependency on the `mongo` module, which we will define i
 
 ### The `frontend/frontend.garden.yml` file
 
-For the `frontend` we create another Garden configuration file:
+For the `frontend` application we create separate Garden configuration file:
 
 ```yaml
 kind: Build
