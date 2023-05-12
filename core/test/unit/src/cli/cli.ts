@@ -7,16 +7,11 @@
  */
 
 import { expect } from "chai"
-import nock from "nock"
-import { isEqual } from "lodash"
 import td from "testdouble"
 
 import { makeDummyGarden, GardenCli, validateRuntimeRequirementsCached } from "../../../../src/cli/cli"
 import {
   getDataDir,
-  TestGarden,
-  makeTestGardenA,
-  enableAnalytics,
   projectRootA,
   TestEventBus,
   initTestLogger,
