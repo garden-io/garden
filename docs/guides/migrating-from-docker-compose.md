@@ -89,8 +89,8 @@ spec:
 A `Build` action and a `Deploy` action are defined.
 Make note of the `Deploy` action and it's configuration.
 
-Under `sync` we set up syncing from the root folder to our built `app` folder, so we can see code changes live when in
-developer mode.
+Under `sync` we set up syncing from the action root to the `app` folder on the container, so we can synchronize code changes live when in
+`sync` mode.
 
 Under `ports` we specify the same port as in our Docker Compose file (`3000`).
 
