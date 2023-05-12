@@ -21,7 +21,6 @@ RUN apk add --no-cache \
   py3-openssl \
   libffi \
   gnupg \
-  openssh-client \
   py3-crcmod
 
 # Note: This is run with the dist/alpine-amd64 directory as the context root

@@ -411,7 +411,7 @@ jobs:
       # This is to copy the pre-built code from a previous step
       - *attach-workspace
       - deploy:
-          name: Release docker images
+          name: Build and test docker images
           command: |
             bash support/docker-bake-test.sh
   dockerhub-release:
