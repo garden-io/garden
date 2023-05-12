@@ -307,7 +307,7 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
       copyFrom: dummyBuild?.copyFrom,
       allowPublish: module.allowPublish,
       dependencies: module.build.dependencies.map(convertBuildDependency),
-      timeout: module.spec.build.timeout,
+      timeout: module.build.timeout,
 
       spec: {
         buildArgs: module.spec.buildArgs,
@@ -360,7 +360,7 @@ export const gardenPlugin = () =>
             async getOutputs({ action }) {
               // TODO: figure out why this cast is needed here
               return {
-                outputs: getContainerBuildActionOutputs(action) as unknown as DeepPrimitiveMap,
+                outputs: (getContainerBuildActionOutputs(action) as unknown) as DeepPrimitiveMap,
               }
             },
 
