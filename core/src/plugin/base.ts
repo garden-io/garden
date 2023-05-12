@@ -115,6 +115,7 @@ export const runBaseParams = () => ({
   interactive: joi.boolean().description("Whether to run interactively (i.e. attach to the terminal)."),
   silent: joi.boolean().description("Set to false if no output should be logged."),
   timeout: joi.number().required().description("If set, how long to run the command before timing out."),
+  artifactsPath: artifactsPathSchema(),
 })
 
 // TODO-0.13.0: update this schema in 0.13.0

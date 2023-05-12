@@ -7,7 +7,7 @@
  */
 
 import { dedent } from "../../../util/string"
-import { artifactsPathSchema, PluginTestActionParamsBase } from "../../../plugin/base"
+import { PluginTestActionParamsBase } from "../../../plugin/base"
 import { TestAction } from "../../../actions/test"
 import { joi } from "../../../config/common"
 import { ActionTypeHandlerSpec } from "../base/base"
@@ -38,7 +38,6 @@ export class RunTestAction<T extends TestAction = TestAction> extends ActionType
   paramsSchema = () =>
     actionParamsSchema().keys({
       ...runBaseParams(),
-      artifactsPath: artifactsPathSchema(),
       silent: joi.boolean().description("Set to true if no log output should be emitted during execution"),
     })
   resultSchema = () => getTestResultSchema()
