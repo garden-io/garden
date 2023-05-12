@@ -72,7 +72,7 @@ function "repository" {
 
 function "cacheFrom" {
   params = [repository, flavor]
-  result = ["type=registry,ref=${repository}:_buildcache_${flavor}"]
+  result = ["type=registry,ref=${repository}:_buildcache-${CODENAME}-${flavor}"]
 }
 
 function "cacheTo" {
