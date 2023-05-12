@@ -14,7 +14,7 @@ import { GlobalConfigStore } from "../../../../src/config-store/global"
 import { TestGarden, enableAnalytics, makeTestGardenA } from "../../../helpers"
 import { Command } from "../../../../src/commands/base"
 import { isEqual } from "lodash"
-import { getRootLogger, RootLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 
 // TODO: These tests are skipped because they fail repeatedly in CI, but works fine locally
 describe("cli analytics", () => {

@@ -11,7 +11,6 @@ import { getRootLogger, Logger, LogLevel, RootLogger } from "../../../../src/log
 import { LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream"
 import { freezeTime } from "../../../helpers"
 import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
-import chalk from "chalk"
 
 const logger: Logger = getRootLogger()
 
