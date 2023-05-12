@@ -86,7 +86,7 @@ spec:
       hostname: backend.${var.base-hostname}
 ```
 
-It defines 2 actions: a trivial `Build` action, and a `Deploy` action.
+A `Build` action and a `Deploy` action are defined.
 Let's consider `Deploy` action in a bit more details.
 
 Under `sync` we set up syncing from the root folder to our built `app` folder, so we can see code changes live when in
