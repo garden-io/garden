@@ -8,7 +8,6 @@
 
 import type { ActionLog, Log } from "../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../plugin-context"
-import { GardenModule, moduleSchema } from "../types/module"
 import { createSchema, joi } from "../config/common"
 import { dedent, deline } from "../util/string"
 import type { BuildAction } from "../actions/build"
@@ -96,20 +95,6 @@ export interface PluginTestActionParamsBase<T extends TestAction<any, any>> exte
   log: ActionLog
   action: T
 }
-
-/**
- * START LEGACY
- */
-export interface PluginModuleActionParamsBase<T extends GardenModule = GardenModule> extends PluginActionParamsBase {
-  module: T
-}
-export const moduleActionParamsSchema = () =>
-  actionParamsSchema().keys({
-    module: moduleSchema(),
-  })
-/**
- * END LEGACY
- */
 
 export const runBaseParams = () => ({
   interactive: joi.boolean().description("Whether to run interactively (i.e. attach to the terminal)."),
