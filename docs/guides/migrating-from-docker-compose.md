@@ -24,7 +24,7 @@ The frontend and backend applications each have their own `Dockerfile`, and ther
 file to tie them together and to add MongoDB.
 
 This application is based on the one at https://github.com/docker/awesome-compose/tree/master/react-express-mongodb.
-We've added four `*.garden.yml` files, which we'll walk through now in detail.
+We've added four `*.garden.yml` files, which we'll walk through in detail.
 
 ### The `project.garden.yml` file
 
