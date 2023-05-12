@@ -1,9 +1,9 @@
 # Migrating from Docker Compose to Garden
 
-If you already have an application built using Docker Compose and want to migrate it to Garden, you can do this by
-adding the correct `*.garden.yml` files. In this guide, we'll walk through an example of converting a simple Docker
-Compose project to Garden. You can follow along with the example, or substitute your own Docker Compose project where
-relevant.
+If you already have an application configured to use Docker Compose and want to migrate it to Garden, you can do so by
+adding the necessary Garden config files. In this guide, we'll walk through an example of converting a simple Docker
+Compose project to Garden. You can follow along with the example, or substitute with your own Docker Compose project
+where relevant.
 
 ## Pre-requisites
 
