@@ -67,7 +67,6 @@
     "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path core/src:core/test --output-dir .",
     "bootstrap": "yarn",
     "build": "yarn run clean && yarn run bootstrap && ./scripts/run-script.ts build",
-    "build-containers": "yarn run dist && ./scripts/build-containers.sh",
     "check-all": "yarn run check-package-lock && yarn run check-licenses && yarn run lint && yarn run check-docs",
     "check-docs": "./scripts/check-docs.sh",
     "check-licenses": "gulp check-licenses",
@@ -84,7 +83,6 @@
     "generate-docs": "./scripts/run-script.ts generate-docs",
     "integ": "./scripts/run-script.ts integ",
     "lint": "./scripts/run-script.ts lint --no-bail --parallel && gulp check-licenses",
-    "push-containers": "yarn run dist && ./script/push-containers.sh",
     "test:plugins": "./scripts/run-script.ts test --no-bail --scope @garden-io/garden-*",
     "test:framework:unit": "./scripts/run-script.ts test --no-bail --ignore @garden-io/garden-* --report report.tmp"
   },
