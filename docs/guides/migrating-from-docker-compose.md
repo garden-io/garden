@@ -177,6 +177,22 @@ application running on your local Kubernetes cluster.
 
 Use `frontend` application's ingress URL from the console output to open the application.
 
+## Running the Garden project in code synchronization mode
+
+You can also try out [live code synchronization](./code-synchronization.md) with Garden.
+
+Just run:
+
+```bash
+garden deploy --sync
+```
+
+in the project folder. Garden will start up locally. You will see output in your terminal showing that this worked
+successfully.
+
+Now try to modify some files in `backend` or `frontend` applications. The code changes will be synced to the running
+applications.
+
 ## Larger migrations
 
 This is a basic example but it should give you what you need to migrate larger projects too. If you have feedback on
