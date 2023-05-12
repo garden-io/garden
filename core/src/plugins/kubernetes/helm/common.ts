@@ -28,7 +28,6 @@ import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
 import { safeDumpYaml } from "../../../util/serialization"
 import { HelmDeployAction } from "./config"
 import { Resolved } from "../../../actions/types"
-import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 
 export const helmChartYamlFilename = "Chart.yaml"
 
@@ -157,7 +156,7 @@ type PrepareManifestsParams = GetChartResourcesParams & PrepareTemplatesOutput
 
 export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
   const { ctx, action, log, namespace, releaseName, valuesPath, reference } = params
-  const timeout = action.getConfig().timeout || KUBECTL_DEFAULT_TIMEOUT
+  const timeout = action.getConfig().timeout
 
   const res = await helm({
     ctx,

@@ -58,7 +58,6 @@ const execCommonSchema = createSchema({
 
 export interface ExecBuildActionSpec extends CommonKeys {
   command?: string[] // This needs to be optional to support "dummy" builds
-  timeout?: number
   env: StringMap
 }
 

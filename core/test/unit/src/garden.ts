@@ -4111,6 +4111,7 @@ describe("Garden", () => {
                   internal: {
                     basePath: pathFoo,
                   },
+                  timeout: DEFAULT_BUILD_TIMEOUT_SEC,
                   spec: {},
                 },
               ],
@@ -4155,6 +4156,7 @@ describe("Garden", () => {
                   internal: {
                     basePath: pathFoo,
                   },
+                  timeout: DEFAULT_BUILD_TIMEOUT_SEC,
                   spec: {},
                 },
                 {
@@ -4164,6 +4166,7 @@ describe("Garden", () => {
                   internal: {
                     basePath: pathFoo,
                   },
+                  timeout: DEFAULT_BUILD_TIMEOUT_SEC,
                   spec: {},
                 },
               ],
@@ -4327,6 +4330,7 @@ describe("Garden", () => {
                   internal: {
                     basePath: pathFoo,
                   },
+                  timeout: DEFAULT_BUILD_TIMEOUT_SEC,
                   spec: {},
                 },
                 {
@@ -4336,6 +4340,7 @@ describe("Garden", () => {
                   internal: {
                     basePath: pathFoo,
                   },
+                  timeout: DEFAULT_BUILD_TIMEOUT_SEC,
                   spec: {},
                 },
               ],

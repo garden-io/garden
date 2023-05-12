@@ -264,6 +264,9 @@ export class TestGarden extends Garden {
       this.addActionConfig({
         spec: {},
         ...ac,
+        // TODO: consider making `timeout` mandatory in `PartialActionConfig`.
+        //  It will require extra code changes in tests.
+        timeout: ac.timeout || 10,
         internal: {
           basePath: this.projectRoot,
           ...ac.internal,

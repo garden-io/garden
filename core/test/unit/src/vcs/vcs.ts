@@ -496,6 +496,7 @@ describe("helpers", () => {
       name: "build-action",
       spec: {},
       type: "",
+      timeout: DEFAULT_BUILD_TIMEOUT_SEC,
     }
 
     it("getConfigFilePath", () => {

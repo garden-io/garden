@@ -18,6 +18,7 @@ import {
 } from "../../../helpers"
 import { expectLogsContain, getLogMessages } from "../../../../src/util/testing"
 import { LogLevel } from "../../../../src/logger/logger"
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../src/constants"
 
 // TODO-G2: fill in test implementations. use TestCommand tests for reference.
 
@@ -128,6 +129,7 @@ describe("RunCommand", () => {
       internal: {
         basePath: "/foo",
       },
+      timeout: DEFAULT_RUN_TIMEOUT_SEC,
       spec: {
         command: ["echo", "ok"],
       },
@@ -160,6 +162,7 @@ describe("RunCommand", () => {
       internal: {
         basePath: "/foo",
       },
+      timeout: DEFAULT_RUN_TIMEOUT_SEC,
       spec: {
         command: ["echo", "ok"],
       },

@@ -12,6 +12,7 @@ import { Log } from "../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { BaseActionTask, ValidResultType } from "../../../../src/tasks/base"
 import { TestAction } from "../../../../src/actions/test"
+import { DEFAULT_TEST_TIMEOUT_SEC } from "../../../../src/constants"
 
 describe("BaseActionTask", () => {
   let garden: TestGarden
@@ -43,6 +44,7 @@ describe("BaseActionTask", () => {
       kind: "Test",
       name: "test-b",
       type: "test",
+      timeout: DEFAULT_TEST_TIMEOUT_SEC,
       dependencies: [
         { kind: "Build", name: "module-a" },
         { kind: "Deploy", name: "service-b" },

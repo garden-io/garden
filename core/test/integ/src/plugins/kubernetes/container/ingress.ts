@@ -25,6 +25,7 @@ import { PartialBy } from "../../../../../../src/util/util"
 import { Resolved } from "../../../../../../src/actions/types"
 import { actionFromConfig } from "../../../../../../src/graph/actions"
 import { DeployAction } from "../../../../../../src/actions/deploy"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants"
 import { uuidv4 } from "../../../../../../src/util/random"
 
 const namespace = "my-namespace"
@@ -371,6 +372,7 @@ describe("createIngressResources", () => {
         kind: "Deploy",
         name: "my-service",
         type: "container",
+        timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
         spec: {
           image: "busybox:1.31.1",
           ingresses,

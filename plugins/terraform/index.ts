@@ -77,6 +77,8 @@ const deployOutputsTemplateString = "${deploys.<deploy-name>.outputs.<key>}"
 const serviceOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
 const providerOutputsTemplateString = "${providers.terraform.outputs.<key>}"
 
+const defaultTerraformTimeoutSec = 600
+
 export const gardenPlugin = () =>
   createGardenPlugin({
     name: "terraform",
@@ -197,6 +199,7 @@ export const gardenPlugin = () =>
               build: dummyBuild?.name,
               dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
+              timeout: defaultTerraformTimeoutSec,
               spec: {
                 ...module.spec,
               },

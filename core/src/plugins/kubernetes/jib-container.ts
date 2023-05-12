@@ -133,7 +133,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
       sourcePath: extractPath,
     })
 
-    const pushTimeout = action.getConfig("timeout") || DEFAULT_BUILD_TIMEOUT_SEC
+    const pushTimeout = action.getConfig("timeout")
 
     const syncCommand = ["skopeo", `--command-timeout=${pushTimeout}s`, "copy", "--authfile", "/.docker/config.json"]
 

@@ -34,6 +34,7 @@ export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>):
       buildAtSource: module.spec.local,
       dependencies: module.build.dependencies.map(convertBuildDependency),
 
+      timeout: module.build.timeout,
       spec: {
         shell: true, // This keeps the old pre-0.13 behavior
         command: module.spec.build?.command,

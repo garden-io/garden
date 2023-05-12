@@ -144,6 +144,7 @@ export const gardenPlugin = () =>
             internal: {
               basePath: action.basePath(),
             },
+            timeout: action.getConfig().timeout,
             spec: {
               dockerfilePath,
             },
