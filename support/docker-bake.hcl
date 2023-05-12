@@ -77,7 +77,9 @@ function "cacheFrom" {
 
 function "cacheTo" {
   params = [repository, flavor]
-  result = "${BRANCH_NAME == "0.13" || BRANCH_NAME == "main" ? ["${cacheFrom(repository, flavor)},mode=max"] : []}"
+  result = "${BRANCH_NAME == "0.13" || BRANCH_NAME == "main" ? [
+    "type=registry,ref=${repository}:_buildcache-${CODENAME}-${flavor},mode=max"
+  ] : []}"
 }
 
 ##
