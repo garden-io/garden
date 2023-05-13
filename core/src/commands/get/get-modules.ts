@@ -49,7 +49,7 @@ type OutputModule = Omit<GardenModule, "_config" | "buildDependencies">
 
 const outputsSchema = createSchema({
   name: "GetModulesCommand:outputs",
-  keys: { modules: joiIdentifierMap(moduleSchema()) },
+  keys: () => ({ modules: joiIdentifierMap(moduleSchema()) }),
 })
 
 export class GetModulesCommand extends Command {

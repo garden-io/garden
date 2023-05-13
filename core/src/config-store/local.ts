@@ -12,7 +12,7 @@ import { ConfigStore } from "./base"
 import { z } from "zod"
 import { readFile } from "fs-extra"
 import { safeLoad } from "js-yaml"
-import { keyBy } from "lodash"
+import { keyBy, memoize } from "lodash"
 
 export const legacyLocalConfigFilename = "local-config.yml"
 export const localConfigFilename = "local-config.json"
@@ -54,8 +54,9 @@ export type LocalConfig = z.infer<typeof localSchema>
 export type AnalyticsLocalConfig = LocalConfig["analytics"]
 
 // TODO: we should not be passing this to provider actions
-export const configStoreSchema = () =>
+export const configStoreSchema = memoize(() =>
   joi.object().description("Helper class for managing local configuration for plugins.")
+)
 
 export class LocalConfigStore extends ConfigStore<typeof localSchema> {
   schema = localSchema

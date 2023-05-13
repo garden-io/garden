@@ -8,7 +8,7 @@
 
 import { Log } from "../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../plugin-context"
-import { joi, joiArray, joiIdentifier, joiIdentifierDescription } from "../config/common"
+import { joi, joiArray, joiIdentifier, joiIdentifierDescription, createSchema } from "../config/common"
 import { moduleSchema } from "../types/module"
 import { logEntrySchema } from "./base"
 import { Garden } from "../garden"
@@ -23,8 +23,9 @@ export interface PluginCommandParams {
   graph: ConfigGraph
 }
 
-export const pluginParamsSchema = () =>
-  joi.object().keys({
+export const pluginParamsSchema = createSchema({
+  name: "plugin-params",
+  keys: () => ({
     ctx: pluginContextSchema(),
     args: joiArray(joi.string()).description(
       "A list of arguments from the command line. This excludes any parsed global options, as well as the command name itself."
@@ -33,18 +34,21 @@ export const pluginParamsSchema = () =>
     modules: joiArray(moduleSchema()).description(
       "If the command defnitions has `resolveModules` set to `true`, this is set to a list of all modules in the project/environment. Otherwise this is an empty list."
     ),
-  })
+  }),
+})
 
 export interface PluginCommandResult<T extends object = object> {
   result: T
   errors?: Error[]
 }
 
-export const pluginCommandResultSchema = () =>
-  joi.object().keys({
+export const pluginCommandResultSchema = createSchema({
+  name: "plugin-command-result",
+  keys: () => ({
     result: joi.object().options({ allowUnknown: true }).required(),
     errors: joiArray(joi.any()),
-  })
+  }),
+})
 
 export interface PluginCommandHandler<T extends object = object> {
   (params: PluginCommandParams): PluginCommandResult<T> | Promise<PluginCommandResult<T>>
@@ -59,8 +63,9 @@ export interface PluginCommand {
   title?: string | ((params: { args: string[]; environmentName: string }) => string | Promise<string>)
 }
 
-export const pluginCommandSchema = () =>
-  joi.object().keys({
+export const pluginCommandSchema = createSchema({
+  name: "plugin-command",
+  keys: () => ({
     name: joiIdentifier()
       .required()
       .description("The name of the command. Must be " + joiIdentifierDescription),
@@ -78,4 +83,5 @@ export const pluginCommandSchema = () =>
       .func()
       // TODO: see if we can define/output the function schema somehow
       .description("The command handler."),
-  })
+  }),
+})

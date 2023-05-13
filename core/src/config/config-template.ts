@@ -168,8 +168,10 @@ export const configTemplateSchema = createSchema({
   }),
 })
 
-const moduleSchema = () =>
-  baseModuleSpecSchema().keys({
+const moduleSchema = createSchema({
+  name: "module",
+  extend: baseModuleSpecSchema,
+  keys: () => ({
     path: joi
       .posixPath()
       .relativeOnly()
@@ -177,12 +179,13 @@ const moduleSchema = () =>
       .description(
         "POSIX-style path of a sub-directory to set as the module root. If the directory does not exist, it is automatically created."
       ),
-  })
+  }),
+})
 
 // Note: Further validation is performed with more specific schemas after parsing
 const templatedResourceSchema = createSchema({
   name: "templated-resource",
-  keys: {
+  keys: () => ({
     apiVersion: apiVersionSchema,
     kind: joi
       .string()
@@ -191,5 +194,5 @@ const templatedResourceSchema = createSchema({
       .description("The kind of resource to create."),
     name: joiUserIdentifier().description("The name of the resource."),
     unknown: true,
-  },
+  }),
 })

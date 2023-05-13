@@ -7,9 +7,10 @@
  */
 
 import { baseModuleSpecSchema, ModuleSpec } from "../config/module"
-import { joi } from "../config/common"
+import { createSchema, joi } from "../config/common"
 import { dedent } from "../util/string"
 import { createGardenPlugin } from "../plugin/plugin"
+import { memoize } from "lodash"
 
 export type VolumeAccessMode = "ReadOnlyMany" | "ReadWriteOnce" | "ReadWriteMany"
 
@@ -17,7 +18,7 @@ export interface BaseVolumeSpec extends ModuleSpec {
   accessModes: VolumeAccessMode[]
 }
 
-export const accessModesSchemaKeys = () => ({
+export const accessModesSchemaKeys = memoize(() => ({
   accessModes: joi
     .sparseArray()
     .items(joi.string().allow("ReadOnlyMany", "ReadWriteOnce", "ReadWriteMany"))
@@ -31,12 +32,13 @@ export const accessModesSchemaKeys = () => ({
 
       At least one mode must be specified.
       `),
-})
+}))
 
-export const baseVolumeSpecSchema = () =>
-  baseModuleSpecSchema().keys({
-    ...accessModesSchemaKeys(),
-  })
+export const baseVolumeSpecSchema = createSchema({
+  name: "base-volume-spec",
+  extend: baseModuleSpecSchema,
+  keys: accessModesSchemaKeys,
+})
 
 export const gardenPlugin = () =>
   createGardenPlugin({

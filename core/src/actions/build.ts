@@ -55,7 +55,7 @@ export interface BuildActionConfig<T extends string = string, S extends object =
 }
 
 export const copyFromSchema = createSchema({
-  name: "Build.copyFrom",
+  name: "build-copyFrom",
   keys: () => ({
     build: joiUserIdentifier().required().description("The name of the Build action to copy from."),
     sourcePath: joi
@@ -73,8 +73,10 @@ export const copyFromSchema = createSchema({
   }),
 })
 
-export const buildActionConfigSchema = () =>
-  baseActionConfigSchema().keys({
+export const buildActionConfigSchema = createSchema({
+  name: "build-action-config",
+  extend: baseActionConfigSchema,
+  keys: () => ({
     kind: joi.string().allow("Build").only(),
 
     allowPublish: joi
@@ -140,7 +142,8 @@ export const buildActionConfigSchema = () =>
       .default(DEFAULT_BUILD_TIMEOUT_SEC)
       .description("Set a timeout for the build to complete, in seconds.")
       .meta({ templateContext: ActionConfigContext }),
-  })
+  }),
+})
 
 export class BuildAction<
   C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,

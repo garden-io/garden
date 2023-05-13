@@ -10,7 +10,7 @@ import Joi from "@hapi/joi"
 import chalk from "chalk"
 import dedent from "dedent"
 import stripAnsi from "strip-ansi"
-import { mapValues, pickBy, size } from "lodash"
+import { mapValues, memoize, pickBy, size } from "lodash"
 
 import { createSchema, joi } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
@@ -598,13 +598,14 @@ export const processCommandResultKeys = () => ({
   error: joi.string().description("An error message, if the action failed."),
 })
 
-export const graphResultsSchema = () =>
+export const graphResultsSchema = memoize(() =>
   joi
     .object()
     .description(
       "A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead."
     )
     .meta({ keyPlaceholder: "<key>" })
+)
 
 export const processCommandResultSchema = createSchema({
   name: "process-command-result",

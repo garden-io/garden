@@ -60,13 +60,13 @@ export interface BaseGardenResource {
 
 export const baseInternalFieldsSchema = createSchema({
   name: "base-internal-fields",
-  keys: {
+  keys: () => ({
     basePath: joi.string().required().meta({ internal: true }),
     configFilePath: joi.string().optional().meta({ internal: true }),
     inputs: joi.object().optional().meta({ internal: true }),
     parentName: joi.string().optional().meta({ internal: true }),
     templateName: joi.string().optional().meta({ internal: true }),
-  },
+  }),
   allowUnknown: true,
   meta: { internal: true },
 })

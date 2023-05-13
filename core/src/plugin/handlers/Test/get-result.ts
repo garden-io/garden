@@ -25,9 +25,9 @@ export interface TestStatusMap extends ActionStatusMap<TestAction> {
 
 export const getTestResultSchema = createSchema({
   name: "get-test-result",
-  keys: {
+  keys: () => ({
     detail: testResultSchema().allow(null),
-  },
+  }),
   extend: actionStatusSchema,
 })
 
