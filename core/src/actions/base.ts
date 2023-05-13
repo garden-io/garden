@@ -312,7 +312,7 @@ export interface ActionDescription {
   moduleName: string | null
   name: string
   treeVersion: TreeVersion
-  version: ModuleVersion
+  version: ActionVersion
 }
 
 export interface ActionDescriptionMap {
@@ -458,7 +458,17 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   moduleVersion(): ModuleVersion {
-    return this._moduleVersion || this.getFullVersion()
+    if (this._moduleVersion) {
+      return this._moduleVersion
+    } else {
+      const version = this.getFullVersion()
+      return {
+        contentHash: version.sourceVersion,
+        versionString: version.versionString,
+        dependencyVersions: version.dependencyVersions,
+        files: version.files,
+      }
+    }
   }
 
   getDependencyReferences(): ActionDependency[] {

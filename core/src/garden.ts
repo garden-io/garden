@@ -1175,9 +1175,9 @@ export class Garden {
     )
 
     const version: ModuleVersion = {
+      ...treeVersion,
       dependencyVersions: mapValues(keyBy(namedDependencyVersions, "name"), (v) => v.versionString),
       versionString,
-      files: treeVersion.files,
     }
 
     this.treeCache.set(log, cacheKey, version, ...cacheContexts)

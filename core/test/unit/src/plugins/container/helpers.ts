@@ -63,6 +63,7 @@ describe("containerHelpers", () => {
   }
 
   const dummyVersion: ModuleVersion = {
+    contentHash: "1234",
     versionString: "1234",
     dependencyVersions: {},
     files: [],

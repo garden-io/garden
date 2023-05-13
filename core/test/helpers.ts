@@ -80,6 +80,7 @@ const testDataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
 const testNow = new Date()
 const testModuleVersionString = "v-1234512345"
 export const testModuleVersion: ModuleVersion = {
+  contentHash: testModuleVersionString,
   versionString: testModuleVersionString,
   dependencyVersions: {},
   files: [],
