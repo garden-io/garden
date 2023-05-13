@@ -4471,6 +4471,7 @@ describe("Garden", () => {
       const garden = await makeTestGardenA()
       const config = await garden.resolveModule("module-a")
       const version: ModuleVersion = {
+        contentHash: "banana",
         versionString: "banana",
         dependencyVersions: {},
         files: [],
@@ -4506,6 +4507,7 @@ describe("Garden", () => {
       const garden = await makeTestGardenA()
       const config = await garden.resolveModule("module-a")
       const version: ModuleVersion = {
+        contentHash: "banana",
         versionString: "banana",
         dependencyVersions: {},
         files: [],
@@ -4545,11 +4547,7 @@ describe("Garden", () => {
 
         const treeVersion = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, module)
 
-        expect(result).to.eql({
-          versionString: getModuleVersionString(module, { ...treeVersion, name: "module-a" }, []),
-          dependencyVersions: {},
-          files: [],
-        })
+        expect(result.versionString).to.equal(getModuleVersionString(module, { ...treeVersion, name: "module-a" }, []))
       })
 
       it("should hash together the version of the module and all dependencies", async () => {
@@ -4565,6 +4563,7 @@ describe("Garden", () => {
         gardenA.clearCaches()
 
         const moduleVersionA: ModuleVersion = {
+          contentHash: treeVersionA.contentHash,
           versionString: treeVersionA.contentHash,
           files: [],
           dependencyVersions: {},
@@ -4574,6 +4573,7 @@ describe("Garden", () => {
 
         const versionStringB = "qwerty"
         const moduleVersionB: ModuleVersion = {
+          contentHash: versionStringB,
           versionString: versionStringB,
           files: [],
           dependencyVersions: { "module-a": moduleVersionA.versionString },
@@ -4587,19 +4587,17 @@ describe("Garden", () => {
         handlerA.setTestTreeVersion(moduleC.path, treeVersionC)
 
         const gardenResolvedModuleVersion = await gardenA.resolveModuleVersion(gardenA.log, moduleC, [moduleA, moduleB])
-        const manuallyResolvedModuleVersion = {
-          versionString: getModuleVersionString(moduleC, { ...treeVersionC, name: "module-c" }, [
+
+        expect(gardenResolvedModuleVersion.versionString).to.equal(
+          getModuleVersionString(moduleC, { ...treeVersionC, name: "module-c" }, [
             { ...moduleVersionA, name: "module-a" },
             { ...moduleVersionB, name: "module-b" },
-          ]),
-          dependencyVersions: {
-            "module-a": moduleVersionA.versionString,
-            "module-b": moduleVersionB.versionString,
-          },
-          files: [],
-        }
-
-        expect(gardenResolvedModuleVersion).to.eql(manuallyResolvedModuleVersion)
+          ])
+        )
+        expect(gardenResolvedModuleVersion.dependencyVersions).to.eql({
+          "module-a": moduleVersionA.versionString,
+          "module-b": moduleVersionB.versionString,
+        })
       })
 
       it("should not include module's garden.yml in version file list", async () => {

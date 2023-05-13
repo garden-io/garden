@@ -44,8 +44,7 @@ export interface ActionSourceSpec {
  *
  * See inline comments below for information on what templating is allowed on different fields.
  */
-export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec = any>
-  extends BaseGardenResource {
+export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec = any> extends BaseGardenResource {
   // Basics
   // -> No templating is allowed on these.
   apiVersion?: string
@@ -63,6 +62,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   internal: GardenResourceInternalFields & {
     groupName?: string
     resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
+    treeVersion?: TreeVersion // Set during module resolution to avoid duplicate scanning for Build actions
     // For forwards-compatibility, applied on actions returned from module conversion handlers
     remoteClonePath?: string
     moduleName?: string

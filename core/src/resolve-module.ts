@@ -833,8 +833,11 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   if (module.repositoryUrl) {
     action.internal.remoteClonePath = module.path // This is set to the source local path during module resolution
   }
-  if (isBuildActionConfig(action) && !module.allowPublish) {
-    action.allowPublish = false
+  if (isBuildActionConfig(action)) {
+    if (!module.allowPublish) {
+      action.allowPublish = false
+    }
+    action.internal.treeVersion = module.version
   }
   if (!action.varfiles && module.varfile) {
     action.varfiles = [module.varfile]

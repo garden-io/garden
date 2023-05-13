@@ -247,6 +247,7 @@ describe("VcsHandler", () => {
 describe("getModuleVersionString", () => {
   const namedVersionA: NamedModuleVersion = {
     name: "module-a",
+    contentHash: "qwerty",
     versionString: "qwerty",
     dependencyVersions: {},
     files: [],
@@ -258,6 +259,7 @@ describe("getModuleVersionString", () => {
   }
   const namedVersionB: NamedModuleVersion = {
     name: "module-b",
+    contentHash: "qwerty",
     versionString: "qwerty",
     dependencyVersions: { "module-a": namedVersionA.versionString },
     files: [],
@@ -265,6 +267,7 @@ describe("getModuleVersionString", () => {
 
   const namedVersionC: NamedModuleVersion = {
     name: "module-c",
+    contentHash: "qwerty",
     versionString: "qwerty",
     dependencyVersions: { "module-b": namedVersionB.versionString },
     files: [],
@@ -434,7 +437,7 @@ describe("hashModuleVersion", () => {
       }
       const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
       const b = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [
-        { name: "dep", versionString: "blabalbalba", files: [], dependencyVersions: {} },
+        { name: "dep", contentHash: "abcdefabced", versionString: "blabalbalba", files: [], dependencyVersions: {} },
       ])
       expect(a).to.not.equal(b)
     })
@@ -481,7 +484,7 @@ describe("hashModuleVersion", () => {
       }
       const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
       const b = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [
-        { name: "dep", versionString: "blabalbalba", files: [], dependencyVersions: {} },
+        { name: "dep", contentHash: "abcdefabced", versionString: "blabalbalba", files: [], dependencyVersions: {} },
       ])
       expect(a).to.not.equal(b)
     })

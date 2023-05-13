@@ -93,7 +93,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
 export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {
   const buildName = action.name
   const localId = action.getSpec("localId")
-  const version = action.getFullVersion()
+  const version = action.moduleVersion()
 
   const localImageName = containerHelpers.getLocalImageName(buildName, localId)
   const localImageId = containerHelpers.getLocalImageId(buildName, localId, version)
