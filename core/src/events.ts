@@ -30,12 +30,17 @@ export type GardenEventListener<T extends EventName> = (payload: Events[T]) => v
  * See below for the event interfaces.
  */
 export class EventBus extends EventEmitter2 {
-  constructor() {
+  private keyIndex: {
+    [key: string]: { [eventName: string]: ((payload: any) => void)[] }
+  }
+
+  constructor(name?: string) {
     super({
       wildcard: false,
       newListener: false,
       maxListeners: 5000, // we may need to adjust this
     })
+    this.keyIndex = {}
   }
 
   emit<T extends EventName>(name: T, payload: Events[T]) {
@@ -44,6 +49,53 @@ export class EventBus extends EventEmitter2 {
 
   on<T extends EventName>(name: T, listener: (payload: Events[T]) => void) {
     return super.on(name, listener)
+  }
+
+  /**
+   * Registers the listener under the provided key for easy cleanup via `offKey`. This is useful e.g. for the
+   * plugin event broker, which is instantiated in several places and where there isn't a single obvious place to
+   * remove listeners from all instances generated in a single command run.
+   */
+  onKey<T extends EventName>(name: T, listener: (payload: Events[T]) => void, key: string) {
+    if (!this.keyIndex[key]) {
+      this.keyIndex[key] = {}
+    }
+    if (!this.keyIndex[key][name]) {
+      this.keyIndex[key][name] = []
+    }
+    this.keyIndex[key][name].push(listener)
+    return super.on(name, listener)
+  }
+
+  /**
+   * Removes all event listeners for the event `name` that were registered under `key` (via `onKey`).
+   */
+  offKey<T extends EventName>(name: T, key: string) {
+    if (!this.keyIndex[key]) {
+      return
+    }
+    if (!this.keyIndex[key][name]) {
+      return
+    }
+    for (const listener of this.keyIndex[key][name]) {
+      this.removeListener(name, listener)
+    }
+    delete this.keyIndex[key][name]
+  }
+
+  /**
+   * Removes all event listeners that were registered under `key` (via `onKey`).
+   */
+  clearKey(key: string) {
+    if (!this.keyIndex[key]) {
+      return
+    }
+    for (const name of Object.keys(this.keyIndex[key])) {
+      for (const listener of this.keyIndex[key][name]) {
+        this.removeListener(name, listener)
+      }
+    }
+    delete this.keyIndex[key]
   }
 
   onAny(listener: <T extends EventName>(name: T, payload: Events[T]) => void) {
@@ -260,8 +312,8 @@ export type EventName = keyof Events
 
 // Note: Does not include logger events.
 export const pipedEventNames: EventName[] = [
-  "_exit",
-  "_restart",
+  // "_exit",
+  // "_restart",
   "_test",
   "_workflowRunRegistered",
   "sessionCompleted",

@@ -719,6 +719,7 @@ ${chalk.white.underline("Keys:")}
         this.flashError(getCmdFailMsg(name))
       })
       .finally(() => {
+        this.garden.events.clearKey(this.garden.sessionId)
         delete this.runningCommands[id]
         this.renderStatus()
       })
