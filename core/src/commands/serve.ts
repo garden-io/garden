@@ -169,8 +169,17 @@ export class ServeCommand<
       const newGarden = await Garden.factory(garden.projectRoot, garden.opts)
       const configDump = await newGarden.dumpConfig({ log, partial: true })
       const commands = await this.getCommands(newGarden)
-      // TODO: restart monitors
+      if (this.garden) {
+        await this.garden.close()
+      }
       this.garden = newGarden
+      await this.garden.startWatcher()
+      this.garden.events.once("configChanged", (_payload) => {
+        if (this.commandLine && !this.commandLine.needsReload) {
+          this.commandLine.needsReload = true
+          log.info(chalk.magenta.bold(`${chalk.white("→")} Config change detected, project will be reloaded when the next command is run.`))
+        }
+      })
 
       // FIXME: @instance-manager: This is needed so that the buffered event stream
       // works with serve commands. We can remove this when we introduce the instance manager.

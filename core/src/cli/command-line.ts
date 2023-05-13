@@ -23,6 +23,7 @@ import { sleep } from "../util/util"
 import { Autocompleter, AutocompleteSuggestion } from "./autocomplete"
 import { parseCliArgs, pickCommand, processCliArgs, renderCommandErrors, renderCommands } from "./helpers"
 import { GlobalOptions, ParameterValues } from "./params"
+import { ServeCommand } from "../commands/serve"
 
 const defaultMessageDuration = 2000
 const commandLinePrefix = chalk.yellow("🌼  > ")
@@ -89,6 +90,7 @@ export function logCommandError({ error, log, width }: { error: Error; log: Log;
 }
 
 export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
+  public needsReload = false // Set to true when a config change is detected, and set back to false after reloading.
   private enabled: boolean
 
   private currentCommand: string
@@ -110,12 +112,14 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
   private autocompleter: Autocompleter
   private garden: Garden
+  private serverCommand: ServeCommand
   private readonly log: Log
   private commands: Command[]
   private readonly globalOpts: Partial<ParameterValues<GlobalOptions>>
 
   constructor({
     garden,
+    serverCommand,
     log,
     commands,
     configDump,
@@ -123,6 +127,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     history = [],
   }: {
     garden: Garden
+    serverCommand: ServeCommand
     log: Log
     commands: Command[]
     configDump?: ConfigDump
@@ -132,6 +137,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     super()
 
     this.garden = garden
+    this.serverCommand = serverCommand
     this.log = log
     this.commands = commands
     this.globalOpts = globalOpts
@@ -250,7 +256,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
         await sleep(sleepMs)
       }
       await sleep(250)
-      this.handleReturn()
+      await this.handleReturn()
     }
     this.commandLineCallback(commandLinePrefix + this.currentCommand)
   }
@@ -569,7 +575,24 @@ ${chalk.white.underline("Keys:")}
     if (this.currentCommand.trim() === "") {
       return
     }
+    return this.reloadIfConfigChanged()
+      .catch((error: Error) => {
+        logCommandError({ error, width: this.getTermWidth(), log: this.log })
+      })
+      .then(() => this.parseAndRunCommand())
+  }
 
+  private async reloadIfConfigChanged() {
+    if (this.needsReload) {
+      const currentCommand = this.currentCommand
+      await this.serverCommand.reload({ log: this.log, garden: this.garden })
+      // We want the pre-reload command to be maintained across the reload.
+      this.currentCommand = currentCommand
+      this.needsReload = false
+    }
+  }
+
+  private parseAndRunCommand() {
     const rawArgs = this.currentCommand.trim().split(" ")
     const { command, rest, matchedPath } = pickCommand(this.commands, rawArgs)
 
