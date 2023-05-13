@@ -15,7 +15,6 @@ import type { Omit } from "./util/util"
 import type { AuthTokenResponse } from "./cloud/api"
 import type { RenderedActionGraph } from "./graph/config-graph"
 import type { CommandInfo } from "./plugin-context"
-import type { ActionReference } from "./config/common"
 import type { GraphResult } from "./graph/results"
 import { NamespaceStatus } from "./types/namespace"
 import { BuildState, BuildStatusForEventPayload } from "./plugin/handlers/Build/get-status"
@@ -138,26 +137,15 @@ export interface Events {
   sessionCancelled: {} // Command exited because of an interrupt signal (e.g. CTRL-C)
 
   // Watcher events
-  configAdded: {
-    path: string
-  }
-  configRemoved: {
-    path: string
-  }
   internalError: {
     timestamp: Date
     error: Error
   }
-  projectConfigChanged: {}
-  actionConfigChanged: {
-    names: string[]
+  // TODO: We may want to split this up into `projectConfigChanged` and `actionConfigChanged`, but we don't currently
+  // need that distinction for our purposes.
+  configChanged: {
     path: string
   }
-  actionSourcesChanged: {
-    refs: ActionReference[]
-    pathsChanged: string[]
-  }
-  actionRemoved: {}
 
   // Command/project metadata events
   commandInfo: CommandInfoPayload
@@ -270,10 +258,6 @@ export interface Events {
 
 export type EventName = keyof Events
 
-/**
- * These events indicate a request from Cloud to Core.
- */
-
 // Note: Does not include logger events.
 export const pipedEventNames: EventName[] = [
   "_exit",
@@ -283,16 +267,10 @@ export const pipedEventNames: EventName[] = [
   "sessionCompleted",
   "sessionFailed",
   "sessionCancelled",
-  "configAdded",
-  "configRemoved",
   "internalError",
   "log",
-  "actionConfigChanged",
-  "actionRemoved",
   "commandInfo",
-  "actionSourcesChanged",
   "namespaceStatus",
-  "projectConfigChanged",
   "deployStatus",
   "stackGraph",
   "taskCancelled",

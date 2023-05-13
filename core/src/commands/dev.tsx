@@ -129,8 +129,6 @@ Let's get your development environment wired up.
 
     render(<Dev />, { exitOnCtrlC: false })
 
-    // TODO: detect config changes and notify user in status
-
     await super.action({ ...params, commandLine })
 
     return {}
@@ -148,6 +146,7 @@ Let's get your development environment wired up.
      */
     const cl = (this.commandLine = new CommandLine({
       garden,
+      serverCommand: this,
       log,
       commands: [...commands, new HelpCommand(), new QuitCommand(quit), new QuietCommand(), new QuiteCommand()],
       configDump: undefined, // This gets loaded later

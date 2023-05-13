@@ -8,11 +8,11 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { ensureDir, readdir } from "fs-extra"
+import { ensureDir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve } from "path"
-import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy, uniq } from "lodash"
+import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -225,6 +225,7 @@ export class Garden {
   protected actionConfigs: ActionConfigMap
   protected moduleConfigs: ModuleConfigMap
   protected workflowConfigs: WorkflowConfigMap
+  protected configPaths: Set<string>
   private resolvedProviders: { [key: string]: Provider }
   protected configsScanned: boolean
   protected registeredPlugins: RegisterPluginParam[]
@@ -374,6 +375,7 @@ export class Garden {
     }
     this.moduleConfigs = {}
     this.workflowConfigs = {}
+    this.configPaths = new Set<string>()
     this.registeredPlugins = [...getBuiltinPlugins(), ...params.plugins]
     this.resolvedProviders = {}
 
@@ -494,42 +496,11 @@ export class Garden {
    * Enables the file watcher for the project.
    * Make sure to stop it using `.close()` when cleaning up or when watching is no longer needed.
    */
-  async startWatcher({
-    graph,
-    skipModules = [],
-    skipActions = [],
-    bufferInterval,
-  }: {
-    graph: ConfigGraph
-    skipModules?: GardenModule[]
-    skipActions?: Action[]
-    bufferInterval?: number
-  }) {
-    const actions = graph.getActions()
-    const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
-    const paths = [this.projectRoot, ...linkedPaths]
-
-    // For skipped modules/actions (e.g. those with services in sync mode), we skip watching all files and folders in the
-    // module/action root except for the config path. This way, we can still react to changes in config files.
-    const skipDirectories = uniq([...skipModules.map((m) => m.path), ...skipActions.map((a) => a.basePath())])
-    const configPaths = new Set(
-      [...skipModules.map((m) => m.configPath), ...skipActions.map((a) => a.configPath())].filter(Boolean)
-    )
-
-    const skipPaths = flatten(
-      await Bluebird.map(skipDirectories, async (path: string) => {
-        return (await readdir(path))
-          .map((relPath) => resolve(path, relPath))
-          .filter((absPath) => configPaths.has(absPath))
-      })
-    )
+  async startWatcher() {
     this.watcher = new Watcher({
       garden: this,
       log: this.log,
-      paths,
-      actions,
-      skipPaths,
-      bufferInterval,
+      configPaths: [...this.configPaths],
     })
   }
 
@@ -1203,6 +1174,9 @@ export class Garden {
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
       const configPaths = flatten(await Bluebird.map(dirsToScan, (path) => this.scanForConfigs(path)))
+      for (const path of configPaths) {
+        this.configPaths.add(path)
+      }
 
       const allResources = flatten(
         await Bluebird.map(configPaths, async (path) => (await this.loadResources(path)) || [])
