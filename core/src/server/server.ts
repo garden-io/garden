@@ -270,6 +270,7 @@ export class GardenServer extends EventEmitter {
         args,
         opts,
       })
+      this.garden.events.clearKey(this.garden.sessionId)
 
       if (result.errors?.length) {
         throw result.errors[0]

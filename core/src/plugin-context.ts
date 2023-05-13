@@ -131,6 +131,8 @@ export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventTyp
   private done: boolean
   private failed: boolean
   private error: Error | undefined
+  private garden: Garden
+  private abortHandler: () => void
 
   constructor(garden: Garden) {
     super()
@@ -138,14 +140,13 @@ export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventTyp
     this.aborted = false
     this.done = false
     this.failed = false
+    this.garden = garden
+    this.abortHandler = () => this.emit("abort")
 
+    // console.trace()
     // Always respond to exit and restart events
-    garden.events.on("_exit", () => {
-      this.emit("abort")
-    })
-    garden.events.on("_restart", () => {
-      this.emit("abort")
-    })
+    this.garden.events.onKey("_exit", this.abortHandler, garden.sessionId)
+    this.garden.events.onKey("_restart", this.abortHandler, garden.sessionId)
 
     this.on("abort", () => {
       this.aborted = true
