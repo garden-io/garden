@@ -8,7 +8,8 @@
 
 import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
-import { joi, joiIdentifier, joiArray } from "../../../config/common"
+import { joi, joiIdentifier, joiArray, createSchema } from "../../../config/common"
+import { memoize } from "lodash"
 
 export interface DashboardPage {
   name: string
@@ -20,8 +21,9 @@ export interface DashboardPage {
   // children: DashboardPage[]
 }
 
-export const dashboardPageSchema = () =>
-  joi.object().keys({
+export const dashboardPageSchema = createSchema({
+  name: "dashboard-page",
+  keys: () => ({
     name: joiIdentifier().required().description("A unique identifier for the page."),
     title: joi.string().max(32).required().description("The link title to show in the menu bar (max length 32)."),
     description: joi.string().required().description("A description to show when hovering over the link."),
@@ -35,13 +37,15 @@ export const dashboardPageSchema = () =>
       .boolean()
       .default(false)
       .description("Set to true if the link should open in a new browser tab/window."),
-  })
+  }),
+})
 
-export const dashboardPagesSchema = () =>
+export const dashboardPagesSchema = memoize(() =>
   joiArray(dashboardPageSchema())
     .optional()
     .description("A list of pages that the provider adds to the Garden dashboard.")
     .unique("name")
+)
 
 export interface GetDashboardPageParams extends PluginActionParamsBase {
   page: DashboardPage

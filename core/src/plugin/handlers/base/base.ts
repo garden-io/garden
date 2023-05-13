@@ -7,6 +7,7 @@
  */
 
 import Joi from "@hapi/joi"
+import { memoize } from "lodash"
 import { ActionKind } from "../../../actions/types"
 import { joi, joiVariables } from "../../../config/common"
 
@@ -37,7 +38,7 @@ export abstract class ActionTypeHandlerSpec<K extends ActionKind, P extends Para
 }
 
 // No way currently to further validate the shape of the super function
-export const baseHandlerSchema = () =>
+export const baseHandlerSchema = memoize(() =>
   joi
     .func()
     .arity(1)
@@ -45,11 +46,13 @@ export const baseHandlerSchema = () =>
       "When a handler is overriding a handler from a base plugin, this is provided to call the base handler. " +
         "This accepts the same parameters as the handler calling it."
     )
+)
 
-export const actionOutputsSchema = () =>
+export const actionOutputsSchema = memoize(() =>
   joiVariables().description(
     "Structured outputs from the execution, as defined by individual action/module types, to be made available for dependencies and in templating."
   )
+)
 
 export interface BaseRunParams {
   command?: string[]

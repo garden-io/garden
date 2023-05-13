@@ -70,7 +70,7 @@ export const kubernetesRunPodSchema = (kind: string) => {
       resource: runPodResourceSchema(kind),
       podSpec: runPodSpecSchema(kind),
     }),
-    xor: ["resource", "podSpec"],
+    xor: [["resource", "podSpec"]],
   })()
   runSchemas[name] = schema
   return schema

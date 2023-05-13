@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mapValues } from "lodash"
+import { mapValues, memoize } from "lodash"
 import { outputSchemaDocs, ResolvedActionHandlerDescription } from "./plugin"
 import { ActionTypeHandlerSpec, baseHandlerSchema } from "./handlers/base/base"
 import { DoBuildAction } from "./handlers/Build/build"
@@ -404,11 +404,11 @@ const createActionTypeSchema = (kind: ActionKind) => {
     .description(`Define a ${titleKind} action.`)
 }
 
-export const createActionTypesSchema = () => {
+export const createActionTypesSchema = memoize(() => {
   return joi
     .object()
     .keys(mapValues(actionTypeClasses, (_, k: ActionKind) => joiArray(createActionTypeSchema(k)).unique("name")))
-}
+})
 
 const extendActionTypeSchema = (kind: ActionKind) => {
   const titleKind = titleize(kind)
@@ -423,8 +423,8 @@ const extendActionTypeSchema = (kind: ActionKind) => {
     .description(`Extend a ${titleKind} action.`)
 }
 
-export const extendActionTypesSchema = () => {
+export const extendActionTypesSchema = memoize(() => {
   return joi
     .object()
     .keys(mapValues(actionTypeClasses, (_, k: ActionKind) => joiArray(extendActionTypeSchema(k)).unique("name")))
-}
+})

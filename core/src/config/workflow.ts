@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { omit } from "lodash"
+import { memoize, omit } from "lodash"
 import {
   joi,
   joiUserIdentifier,
@@ -82,18 +82,21 @@ export function makeRunConfig(
 
 export interface WorkflowResource extends WorkflowConfig {}
 
-const workflowResourceRequestsSchema = () =>
-  joi.object().keys({
+const workflowResourceRequestsSchema = createSchema({
+  name: "workflow-resource-request",
+  keys: () => ({
     cpu: joi.number().min(minimumWorkflowRequests.cpu).description(deline`
         The minimum amount of CPU the workflow needs in order to be scheduled, in millicpus (i.e. 1000 = 1 CPU).
       `),
     memory: joi.number().min(minimumWorkflowRequests.memory).description(deline`
         The minimum amount of RAM the workflow needs in order to be scheduled, in megabytes (i.e. 1024 = 1 GB).
       `),
-  })
+  }),
+})
 
-const workflowResourceLimitsSchema = () =>
-  joi.object().keys({
+const workflowResourceLimitsSchema = createSchema({
+  name: "workflow-resource-limit",
+  keys: () => ({
     cpu: joi
       .number()
       .min(minimumWorkflowLimits.cpu)
@@ -102,7 +105,8 @@ const workflowResourceLimitsSchema = () =>
       .number()
       .min(minimumWorkflowLimits.memory)
       .description("The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)."),
-  })
+  }),
+})
 
 export const workflowConfigSchema = createSchema({
   name: "workflow-config",
@@ -187,7 +191,7 @@ export const workflowFileSchema = createSchema({
       .description("The name of a Garden secret to copy the file data from (Garden Cloud only).")
       .meta({ enterprise: true }),
   }),
-  xor: ["data", "secretName"],
+  xor: [["data", "secretName"]],
 })
 
 export interface WorkflowStepSpec {
@@ -264,7 +268,7 @@ export const workflowStepSchema = createSchema({
       and examples.
       `),
   }),
-  xor: ["command", "script"],
+  xor: [["command", "script"]],
 })
 
 export type workflowStepModifier = "onSuccess" | "onError" | "always" | "never"
@@ -289,7 +293,7 @@ export interface TriggerSpec {
   ignoreBaseBranches?: string[]
 }
 
-export const triggerSchema = () => {
+export const triggerSchema = memoize(() => {
   const eventDescriptions = triggerEvents
     .sort()
     .map((event) => `\`${event}\``)
@@ -336,7 +340,7 @@ export const triggerSchema = () => {
         If specified, do not run the workflow for pull/merge requests whose base branch matches one of these filters.
       `),
   })
-}
+})
 
 export interface WorkflowConfigMap {
   [key: string]: WorkflowConfig

@@ -51,7 +51,7 @@ export interface GetSyncStatusResult<D extends object = {}> {
 
 export const getSyncStatusResultSchema = createSchema({
   name: "get-sync-status-result",
-  keys: {
+  keys: () => ({
     state: joi
       .string()
       .allow(...syncStates)
@@ -79,7 +79,7 @@ export const getSyncStatusResultSchema = createSchema({
     ).description("Should include an entry for every configured sync, also when their target isn't deployed in sync mode."),
     error: joi.string().description("Set to an error message if the sync is failed."),
     detail: joiVariables().description("Any additional detail to be included and printed with status checks."),
-  },
+  }),
 })
 
 export class GetSyncStatus<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<

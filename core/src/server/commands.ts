@@ -206,7 +206,7 @@ export interface BaseServerRequest {
 
 export const serverRequestSchema = createSchema({
   name: "server-request",
-  keys: {
+  keys: () => ({
     id: joi.string().uuid().description("A UUID to assign to the request."),
     command: joi
       .string()
@@ -234,7 +234,7 @@ export const serverRequestSchema = createSchema({
       .description(
         "Internal command that's not triggered by the user. Internal commands have a higher log level and results are not persisted in Cloud."
       ),
-  },
+  }),
 })
 
 // TODO: refactor and deduplicate from the GardenCli class

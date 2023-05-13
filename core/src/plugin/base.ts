@@ -16,6 +16,7 @@ import type { RunAction } from "../actions/run"
 import type { TestAction } from "../actions/test"
 import { NamespaceStatus, namespaceStatusSchema } from "../types/namespace"
 import Joi from "@hapi/joi"
+import { memoize } from "lodash"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>
@@ -54,27 +55,34 @@ export interface ResolvedActionHandlerDescriptions {
 }
 
 // Note: not specifying this further because we will later remove it from the API
-export const logEntrySchema = () =>
+export const logEntrySchema = memoize(() =>
   joi.object().description("Logging context handler that the handler can use to log messages and progress.").required()
+)
 
-export const pluginEventBrokerSchema = () =>
+export const pluginEventBrokerSchema = memoize(() =>
   joi.object().description(deline`
     Event broker that the handler can use to emit events that are handled by the action and/or command that called it.
   `)
+)
 
 // Used by actions that don't belong to a single action config (e.g. environment-, provider- or graph-level actions).
-export const projectActionParamsSchema = () =>
-  joi.object().keys({
+export const projectActionParamsSchema = createSchema({
+  name: "project-action-params",
+  keys: () => ({
     ctx: pluginContextSchema().required(),
     log: logEntrySchema(),
     events: pluginEventBrokerSchema(),
-  })
+  }),
+})
 
-export const actionParamsSchema = () =>
-  projectActionParamsSchema().keys({
+export const actionParamsSchema = createSchema({
+  name: "action-params",
+  extend: projectActionParamsSchema,
+  keys: () => ({
     // TODO: specify the action wrapper class further
     action: joi.object().required(),
-  })
+  }),
+})
 
 export interface PluginBuildActionParamsBase<T extends BuildAction<any, any>> extends PluginActionParamsBase {
   log: ActionLog
@@ -116,19 +124,20 @@ export interface RunResult {
 
 export const runResultSchema = createSchema({
   name: "run-result",
-  keys: {
+  keys: () => ({
     success: joi.boolean().required().description("Whether the module was successfully run."),
     exitCode: joi.number().integer().description("The exit code of the run (if applicable)."),
     startedAt: joi.date().required().description("When the module run was started."),
     completedAt: joi.date().required().description("When the module run was completed."),
     log: joi.string().allow("").default("").description("The output log from the run."),
     namespaceStatus: namespaceStatusSchema().optional(),
-  },
+  }),
   allowUnknown: true,
 })
 
-export const artifactsPathSchema = () =>
+export const artifactsPathSchema = memoize(() =>
   joi.string().required().description("A directory path where the handler should write any exported artifacts to.")
+)
 
 export type RunState = "outdated" | "unknown" | "running" | "succeeded" | "failed" | "not-implemented"
 

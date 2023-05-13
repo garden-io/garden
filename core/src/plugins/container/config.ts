@@ -16,7 +16,6 @@ import {
   joiUserIdentifier,
   Primitive,
   PrimitiveMap,
-  CustomObjectSchema,
   createSchema,
   ActionReference,
 } from "../../config/common"
@@ -32,6 +31,8 @@ import { BuildAction, BuildActionConfig } from "../../actions/build"
 import { DeployAction, DeployActionConfig } from "../../actions/deploy"
 import { TestAction, TestActionConfig } from "../../actions/test"
 import { RunAction, RunActionConfig } from "../../actions/run"
+import { memoize } from "lodash"
+import Joi from "@hapi/joi"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -155,7 +156,7 @@ const permissionsDocs =
 const ownerDocs =
   "Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information."
 
-export const syncExcludeSchema = () =>
+export const syncExcludeSchema = memoize(() =>
   joi
     .array()
     .items(joi.posixPath().allowGlobs().subPathOnly())
@@ -167,8 +168,9 @@ export const syncExcludeSchema = () =>
       `
     )
     .example(["dist/**/*", "*.log"])
+)
 
-export const syncModeSchema = () =>
+export const syncModeSchema = memoize(() =>
   joi
     .string()
     .allow(
@@ -186,8 +188,9 @@ export const syncModeSchema = () =>
     .description(
       `The sync mode to use for the given paths. See the [Code Synchronization guide](${syncGuideLink}) for details.`
     )
+)
 
-export const syncDefaultFileModeSchema = () =>
+export const syncDefaultFileModeSchema = memoize(() =>
   joi
     .number()
     .min(0)
@@ -196,8 +199,9 @@ export const syncDefaultFileModeSchema = () =>
       "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). " +
         permissionsDocs
     )
+)
 
-export const syncDefaultDirectoryModeSchema = () =>
+export const syncDefaultDirectoryModeSchema = memoize(() =>
   joi
     .number()
     .min(0)
@@ -206,18 +210,21 @@ export const syncDefaultDirectoryModeSchema = () =>
       "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). " +
         permissionsDocs
     )
+)
 
-export const syncDefaultOwnerSchema = () =>
+export const syncDefaultOwnerSchema = memoize(() =>
   joi
     .alternatives(joi.number().integer(), joi.string())
     .description("Set the default owner of files and directories at the target. " + ownerDocs)
+)
 
-export const syncDefaultGroupSchema = () =>
+export const syncDefaultGroupSchema = memoize(() =>
   joi
     .alternatives(joi.number().integer(), joi.string())
     .description("Set the default group on files and directories at the target. " + ownerDocs)
+)
 
-export const syncTargetPathSchema = () =>
+export const syncTargetPathSchema = memoize(() =>
   joi
     .posixPath()
     .absoluteOnly()
@@ -229,9 +236,11 @@ export const syncTargetPathSchema = () =>
       `
     )
     .example("/app/src")
+)
 
-const containerSyncSchema = () =>
-  joi.object().keys({
+const containerSyncSchema = createSchema({
+  name: "container-sync",
+  keys: () => ({
     source: joi
       .string()
       .default(".")
@@ -248,7 +257,8 @@ const containerSyncSchema = () =>
     defaultDirectoryMode: syncDefaultDirectoryModeSchema(),
     defaultOwner: syncDefaultOwnerSchema(),
     defaultGroup: syncDefaultGroupSchema(),
-  })
+  }),
+})
 
 export interface ContainerSyncSpec {
   args?: string[]
@@ -256,32 +266,31 @@ export interface ContainerSyncSpec {
   paths: DevModeSyncSpec[]
 }
 
-export const containerSyncPathSchema = () =>
-  joi
-    .object()
-    .keys({
-      args: joi
-        .sparseArray()
-        .items(joi.string())
-        .description("Override the default container arguments when in sync mode."),
-      command: joi
-        .sparseArray()
-        .items(joi.string())
-        .description("Override the default container command (i.e. entrypoint) when in sync mode."),
-      paths: joi
-        .array()
-        .items(containerSyncSchema())
-        .description(
-          "Specify one or more source files or directories to automatically sync with the running container."
-        ),
-    })
-    .rename("sync", "paths").description(dedent`
-      Specifies which files or directories to sync to which paths inside the running containers of the service when it's in sync mode, and overrides for the container command and/or arguments.
+export const containerSyncPathSchema = createSchema({
+  name: "container-sync-path",
+  description: dedent`
+    Specifies which files or directories to sync to which paths inside the running containers of the service when it's in sync mode, and overrides for the container command and/or arguments.
 
-      Sync is enabled e.g. by setting the \`--sync\` flag on the \`garden deploy\` command.
+    Sync is enabled e.g. by setting the \`--sync\` flag on the \`garden deploy\` command.
 
-      See the [Code Synchronization guide](${syncGuideLink}) for more information.
-    `)
+    See the [Code Synchronization guide](${syncGuideLink}) for more information.
+  `,
+  keys: () => ({
+    args: joi
+      .sparseArray()
+      .items(joi.string())
+      .description("Override the default container arguments when in sync mode."),
+    command: joi
+      .sparseArray()
+      .items(joi.string())
+      .description("Override the default container command (i.e. entrypoint) when in sync mode."),
+    paths: joi
+      .array()
+      .items(containerSyncSchema())
+      .description("Specify one or more source files or directories to automatically sync with the running container."),
+  }),
+  rename: [["sync", "paths"]],
+})
 
 const defaultLocalModeRestartDelayMsec = 1000
 const defaultLocalModeMaxRestarts = Number.POSITIVE_INFINITY
@@ -291,44 +300,43 @@ export interface LocalModeRestartSpec {
   max: number
 }
 
-export const localModeRestartSchema = () =>
-  joi
-    .object()
-    .keys({
-      delayMsec: joi
-        .number()
-        .integer()
-        .greater(-1)
-        .optional()
-        .default(defaultLocalModeRestartDelayMsec)
-        .description(
-          `Delay in milliseconds between the local application restart attempts. The default value is ${defaultLocalModeRestartDelayMsec}ms.`
-        ),
-      max: joi
-        .number()
-        .integer()
-        .greater(-1)
-        .optional()
-        .default(defaultLocalModeMaxRestarts)
-        .allow(defaultLocalModeMaxRestarts)
-        .description("Max number of the local application restarts. Unlimited by default."),
-    })
-    .optional()
-    .default({
-      delayMsec: defaultLocalModeRestartDelayMsec,
-      max: defaultLocalModeMaxRestarts,
-    })
-    .description(
-      `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`
-    )
+export const localModeRestartSchema = createSchema({
+  name: "local-mode-restart",
+  description: `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`,
+  keys: () => ({
+    delayMsec: joi
+      .number()
+      .integer()
+      .greater(-1)
+      .optional()
+      .default(defaultLocalModeRestartDelayMsec)
+      .description(
+        `Delay in milliseconds between the local application restart attempts. The default value is ${defaultLocalModeRestartDelayMsec}ms.`
+      ),
+    max: joi
+      .number()
+      .integer()
+      .greater(-1)
+      .optional()
+      .default(defaultLocalModeMaxRestarts)
+      .allow(defaultLocalModeMaxRestarts)
+      .description("Max number of the local application restarts. Unlimited by default."),
+  }),
+  options: { presence: "optional" },
+  default: {
+    delayMsec: defaultLocalModeRestartDelayMsec,
+    max: defaultLocalModeMaxRestarts,
+  },
+})
 
 export interface LocalModePortsSpec {
   local: number
   remote: number
 }
 
-export const localModePortsSchema = () =>
-  joi.object().keys({
+export const localModePortsSchema = createSchema({
+  name: "local-mode-port",
+  keys: () => ({
     local: joi
       .number()
       .integer()
@@ -341,7 +349,8 @@ export const localModePortsSchema = () =>
       .greater(0)
       .optional()
       .description("The remote port to be used for reverse port-forward."),
-  })
+  }),
+})
 
 export interface ContainerLocalModeSpec {
   ports: LocalModePortsSpec[]
@@ -349,21 +358,9 @@ export interface ContainerLocalModeSpec {
   restart: LocalModeRestartSpec
 }
 
-export const containerLocalModeSchema = () =>
-  joi.object().keys({
-    ports: joi
-      .array()
-      .items(localModePortsSchema())
-      .description("The reverse port-forwards configuration for the local application."),
-    command: joi
-      .sparseArray()
-      .optional()
-      .items(joi.string())
-      .description(
-        "The command to run the local application. If not present, then the local application should be started manually."
-      ),
-    restart: localModeRestartSchema(),
-  }).description(dedent`
+export const containerLocalModeSchema = createSchema({
+  name: "container-local-mode",
+  description: dedent`
     [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
 
     The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
@@ -377,12 +374,28 @@ export const containerLocalModeSchema = () =>
     See the [Local Mode guide](${localModeGuideLink}) for more information.
 
     Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
-  `)
+  `,
+  keys: () => ({
+    ports: joi
+      .array()
+      .items(localModePortsSchema())
+      .description("The reverse port-forwards configuration for the local application."),
+    command: joi
+      .sparseArray()
+      .optional()
+      .items(joi.string())
+      .description(
+        "The command to run the local application. If not present, then the local application should be started manually."
+      ),
+    restart: localModeRestartSchema(),
+  }),
+})
 
-const annotationsSchema = () =>
+const annotationsSchema = memoize(() =>
   joiStringMap(joi.string())
     .example({ "nginx.ingress.kubernetes.io/proxy-body-size": "0" })
     .default(() => ({}))
+)
 
 export interface EnvSecretRef {
   secretRef: {
@@ -391,27 +404,26 @@ export interface EnvSecretRef {
   }
 }
 
-const secretRefSchema = () =>
-  joi
-    .object()
-    .keys({
-      secretRef: joi.object().keys({
-        name: joi.string().required().description("The name of the secret to refer to."),
-        key: joi
-          .string()
-          .description("The key to read from in the referenced secret. May be required for some providers."),
-      }),
-    })
-    .description(
-      "A reference to a secret, that should be applied to the environment variable. " +
-        "Note that this secret must already be defined in the provider."
-    )
+const secretRefSchema = createSchema({
+  name: "container-secret-ref",
+  description:
+    "A reference to a secret, that should be applied to the environment variable. " +
+    "Note that this secret must already be defined in the provider.",
+  keys: () => ({
+    secretRef: joi.object().keys({
+      name: joi.string().required().description("The name of the secret to refer to."),
+      key: joi
+        .string()
+        .description("The key to read from in the referenced secret. May be required for some providers."),
+    }),
+  }),
+})
 
 export interface ContainerEnvVars {
   [key: string]: Primitive | EnvSecretRef
 }
 
-export const containerEnvVarsSchema = () =>
+export const containerEnvVarsSchema = memoize(() =>
   joi
     .object()
     .pattern(envVarRegex, joi.alternatives(joiPrimitive(), secretRefSchema()))
@@ -428,9 +440,11 @@ export const containerEnvVarsSchema = () =>
       },
       {},
     ])
+)
 
-const ingressSchema = () =>
-  joi.object().keys({
+const ingressSchema = createSchema({
+  name: "container-ingress",
+  keys: () => ({
     annotations: annotationsSchema().description(
       "Annotations to attach to the ingress (Note: May not be applicable to all providers)"
     ),
@@ -441,49 +455,51 @@ const ingressSchema = () =>
       .string()
       .required()
       .description("The name of the container port where the specified paths should be routed."),
-  })
+  }),
+})
 
-const healthCheckSchema = () =>
-  joi
-    .object()
-    .keys({
-      httpGet: joi
-        .object()
-        .keys({
-          path: joi
-            .string()
-            .uri(<any>{ relativeOnly: true })
-            .required()
-            .description("The path of the service's health check endpoint."),
-          port: joi
-            .string()
-            .required()
-            .description("The name of the port where the service's health check endpoint should be available."),
-          scheme: joi.string().allow("HTTP", "HTTPS").default("HTTP"),
-        })
-        .description("Set this to check the service's health by making an HTTP request."),
-      command: joi
-        .sparseArray()
-        .items(joi.string())
-        .description("Set this to check the service's health by running a command in its container."),
-      tcpPort: joi
-        .string()
-        .description("Set this to check the service's health by checking if this TCP port is accepting connections."),
-      readinessTimeoutSeconds: joi
-        .number()
-        .min(1)
-        .default(3)
-        .description("The maximum number of seconds to wait until the readiness check counts as failed."),
-      livenessTimeoutSeconds: joi
-        .number()
-        .min(1)
-        .default(3)
-        .description("The maximum number of seconds to wait until the liveness check counts as failed."),
-    })
-    .xor("httpGet", "command", "tcpPort")
+const healthCheckSchema = createSchema({
+  name: "container-health-check",
+  keys: () => ({
+    httpGet: joi
+      .object()
+      .keys({
+        path: joi
+          .string()
+          .uri(<any>{ relativeOnly: true })
+          .required()
+          .description("The path of the service's health check endpoint."),
+        port: joi
+          .string()
+          .required()
+          .description("The name of the port where the service's health check endpoint should be available."),
+        scheme: joi.string().allow("HTTP", "HTTPS").default("HTTP"),
+      })
+      .description("Set this to check the service's health by making an HTTP request."),
+    command: joi
+      .sparseArray()
+      .items(joi.string())
+      .description("Set this to check the service's health by running a command in its container."),
+    tcpPort: joi
+      .string()
+      .description("Set this to check the service's health by checking if this TCP port is accepting connections."),
+    readinessTimeoutSeconds: joi
+      .number()
+      .min(1)
+      .default(3)
+      .description("The maximum number of seconds to wait until the readiness check counts as failed."),
+    livenessTimeoutSeconds: joi
+      .number()
+      .min(1)
+      .default(3)
+      .description("The maximum number of seconds to wait until the liveness check counts as failed."),
+  }),
+  xor: [["httpGet", "command", "tcpPort"]],
+})
 
-const limitsSchema = () =>
-  joi.object().keys({
+const limitsSchema = createSchema({
+  name: "container-limits",
+  keys: () => ({
     cpu: joi
       .number()
       .min(10)
@@ -494,7 +510,8 @@ const limitsSchema = () =>
       .min(64)
       .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)")
       .meta({ deprecated: true }),
-  })
+  }),
+})
 
 export const containerCpuSchema = () =>
   joi.object().keys({
@@ -509,8 +526,9 @@ export const containerCpuSchema = () =>
       `),
   })
 
-export const containerMemorySchema = () =>
-  joi.object().keys({
+export const containerMemorySchema = createSchema({
+  name: "container-memory",
+  keys: () => ({
     min: joi.number().default(defaultContainerResources.memory.min).description(deline`
         The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes
         (i.e. 1024 = 1 GB)
@@ -519,10 +537,12 @@ export const containerMemorySchema = () =>
         The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
         If set to null will result in no limit being set.
       `),
-  })
+  }),
+})
 
-export const portSchema = () =>
-  joi.object().keys({
+export const portSchema = createSchema({
+  name: "container-port",
+  keys: () => ({
     name: joiUserIdentifier()
       .required()
       .description("The name of the port (used when referencing the port elsewhere in the service configuration)."),
@@ -572,10 +592,12 @@ export const portSchema = () =>
         This allows you to call the service from the outside by the node's IP address
         and the port number set in this field.
       `),
-  })
+  }),
+})
 
-export const volumeSchemaBase = () =>
-  joi.object().keys({
+export const volumeSchemaBase = createSchema({
+  name: "container-volume-base",
+  keys: () => ({
     name: joiUserIdentifier().required().description("The name of the allocated volume."),
     containerPath: joi
       .posixPath()
@@ -591,27 +613,30 @@ export const volumeSchemaBase = () =>
       `
       )
       .example("/some/dir"),
-  })
+  }),
+})
 
-const volumeSchema = () =>
-  volumeSchemaBase()
-    .keys({
-      // TODO-0.13.0: remove when kubernetes-container type is ready, better to swap out with raw k8s references
-      action: joi
-        .actionReference()
-        .kind("Deploy")
-        .name("base-volume")
-        .description(
-          dedent`
-          The action reference to a _volume Deploy action_ that should be mounted at \`containerPath\`. The supported action types are \`persistentvolumeclaim\` and \`configmap\`.
+const volumeSchema = createSchema({
+  name: "container-volume",
+  extend: volumeSchemaBase,
+  keys: () => ({
+    // TODO-0.13.0: remove when kubernetes-container type is ready, better to swap out with raw k8s references
+    action: joi
+      .actionReference()
+      .kind("Deploy")
+      .name("base-volume")
+      .description(
+        dedent`
+        The action reference to a _volume Deploy action_ that should be mounted at \`containerPath\`. The supported action types are \`persistentvolumeclaim\` and \`configmap\`.
 
-          Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-          `
-        ),
-    })
-    .oxor("hostPath", "action")
+        Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+        `
+      ),
+  }),
+  oxor: [["hostPath", "action"]],
+})
 
-export function getContainerVolumesSchema(schema: CustomObjectSchema) {
+export function getContainerVolumesSchema(schema: Joi.ObjectSchema) {
   return joiSparseArray(schema).unique("name").description(dedent`
     List of volumes that should be mounted when starting the container.
 
@@ -619,23 +644,26 @@ export function getContainerVolumesSchema(schema: CustomObjectSchema) {
   `)
 }
 
-const containerPrivilegedSchema = () =>
+const containerPrivilegedSchema = memoize(() =>
   joi
     .boolean()
     .optional()
     .description(
       `If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.`
     )
+)
 
-const containerAddCapabilitiesSchema = () =>
+const containerAddCapabilitiesSchema = memoize(() =>
   joi.sparseArray().items(joi.string()).optional().description(`POSIX capabilities to add when running the container.`)
+)
 
-const containerDropCapabilitiesSchema = () =>
+const containerDropCapabilitiesSchema = memoize(() =>
   joi
     .sparseArray()
     .items(joi.string())
     .optional()
     .description(`POSIX capabilities to remove when running the container.`)
+)
 
 interface ContainerCommonRuntimeSpec {
   args: string[]
@@ -677,14 +705,16 @@ export interface ContainerDeployOutputs {
   deployedImageId: string
 }
 
-export const containerDeployOutputsSchema = () =>
-  joi.object().keys({
+export const containerDeployOutputsSchema = createSchema({
+  name: "container-deploy-outputs",
+  keys: () => ({
     deployedImageId: joi.string().required().description("The ID of the image that was deployed."),
-  })
+  }),
+})
 
 export type ContainerDeployAction = DeployAction<ContainerDeployActionConfig, ContainerDeployOutputs>
 
-const containerCommonRuntimeSchemaKeys = () => ({
+const containerCommonRuntimeSchemaKeys = memoize(() => ({
   command: joi
     .sparseArray()
     .items(joi.string().allow(""))
@@ -713,14 +743,15 @@ const containerCommonRuntimeSchemaKeys = () => ({
     .default(defaultDeploymentStrategy)
     .valid(...deploymentStrategies)
     .description("Specifies the container's deployment strategy."),
-})
+}))
 
-const containerImageSchema = () =>
+const containerImageSchema = memoize(() =>
   joi.string().allow(false, null).empty([false, null]).description(deline`
     Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no \`build\` is specified.
   `)
+)
 
-export const containerDeploySchemaKeys = () => ({
+export const containerDeploySchemaKeys = memoize(() => ({
   ...containerCommonRuntimeSchemaKeys(),
   annotations: annotationsSchema().description(
     dedent`
@@ -753,16 +784,14 @@ export const containerDeploySchemaKeys = () => ({
 
     Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\` or if the provider doesn't support multiple replicas.
   `),
-})
+}))
 
-export const containerDeploySchema = () =>
-  joi
-    .object()
-    .keys({
-      ...containerDeploySchemaKeys(),
-    })
-    .rename("devMode", "sync")
-    .meta({ name: "container-deploy" })
+export const containerDeploySchema = createSchema({
+  name: "container-deploy",
+  keys: containerDeploySchemaKeys,
+  rename: [["devMode", "sync"]],
+  meta: { name: "container-deploy" },
+})
 
 export interface ContainerRegistryConfig {
   hostname: string
@@ -771,8 +800,9 @@ export interface ContainerRegistryConfig {
   insecure: boolean
 }
 
-export const containerRegistryConfigSchema = () =>
-  joi.object().keys({
+export const containerRegistryConfigSchema = createSchema({
+  name: "container-registry-config",
+  keys: () => ({
     hostname: joi
       .string()
       .required()
@@ -790,7 +820,8 @@ export const containerRegistryConfigSchema = () =>
       .boolean()
       .default(false)
       .description("Set to true to allow insecure connections to the registry (without SSL)."),
-  })
+  }),
+})
 
 // TEST //
 
@@ -799,8 +830,9 @@ Specify artifacts to copy out of the container after the run. The artifacts are 
 the \`.garden/artifacts\` directory.
 `
 
-export const containerArtifactSchema = () =>
-  joi.object().keys({
+export const containerArtifactSchema = createSchema({
+  name: "container-artifact",
+  keys: () => ({
     source: joi
       .posixPath()
       .allowGlobs()
@@ -815,9 +847,10 @@ export const containerArtifactSchema = () =>
       .default(".")
       .description(artifactsTargetDescription)
       .example("outputs/foo/"),
-  })
+  }),
+})
 
-const artifactsSchema = () =>
+const artifactsSchema = memoize(() =>
   joi
     .array()
     .items(containerArtifactSchema())
@@ -830,13 +863,14 @@ const artifactsSchema = () =>
   `
     )
     .example([{ source: "/report/**/*" }])
+)
 
 export interface ContainerTestOutputs {
   log: string
 }
-
-export const containerTestOutputSchema = () =>
-  joi.object().keys({
+export const containerTestOutputSchema = createSchema({
+  name: "container-test-output",
+  keys: () => ({
     log: joi
       .string()
       .allow("")
@@ -844,7 +878,8 @@ export const containerTestOutputSchema = () =>
       .description(
         "The full log output from the executed action. (Pro-tip: Make it machine readable so it can be parsed by dependants)"
       ),
-  })
+  }),
+})
 
 export interface ContainerTestActionSpec extends ContainerCommonRuntimeSpec {
   artifacts: ArtifactSpec[]
@@ -855,11 +890,11 @@ export interface ContainerTestActionSpec extends ContainerCommonRuntimeSpec {
 export type ContainerTestActionConfig = TestActionConfig<"container", ContainerTestActionSpec>
 export type ContainerTestAction = TestAction<ContainerTestActionConfig, ContainerTestOutputs>
 
-export const containerTestSpecKeys = () => ({
+export const containerTestSpecKeys = memoize(() => ({
   ...containerCommonRuntimeSchemaKeys(),
   artifacts: artifactsSchema(),
   image: containerImageSchema(),
-})
+}))
 
 export const containerTestActionSchema = createSchema({
   name: "container:Test",
@@ -879,10 +914,10 @@ export interface ContainerRunActionSpec extends ContainerTestActionSpec {
 export type ContainerRunActionConfig = RunActionConfig<"container", ContainerRunActionSpec>
 export type ContainerRunAction = RunAction<ContainerRunActionConfig, ContainerRunOutputs>
 
-export const containerRunSpecKeys = () => ({
+export const containerRunSpecKeys = memoize(() => ({
   ...containerTestSpecKeys(),
   cacheResult: cacheResultSchema(),
-})
+}))
 export const containerRunActionSchema = createSchema({
   name: "container:Run",
   keys: containerRunSpecKeys,
@@ -904,7 +939,7 @@ export interface ContainerBuildOutputs {
   "deployment-image-id": string
 }
 
-export const containerBuildOutputSchemaKeys = () => ({
+export const containerBuildOutputSchemaKeys = memoize(() => ({
   "localImageName": joi
     .string()
     .required()
@@ -937,7 +972,7 @@ export const containerBuildOutputSchemaKeys = () => ({
     .string()
     .required()
     .description("Alias for deploymentImageId, for backward compatibility."),
-})
+}))
 
 export const containerBuildOutputsSchema = createSchema({
   name: "container:Build:outputs",
@@ -956,7 +991,7 @@ export interface ContainerBuildActionSpec {
 export type ContainerBuildActionConfig = BuildActionConfig<"container", ContainerBuildActionSpec>
 export type ContainerBuildAction = BuildAction<ContainerBuildActionConfig, ContainerBuildOutputs>
 
-export const containerBuildSpecKeys = () => ({
+export const containerBuildSpecKeys = memoize(() => ({
   localId: joi
     .string()
     .allow(false, null)
@@ -980,9 +1015,9 @@ export const containerBuildSpecKeys = () => ({
     https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
     details).
   `),
-})
+}))
 
-export const containerCommonBuildSpecKeys = () => ({
+export const containerCommonBuildSpecKeys = memoize(() => ({
   buildArgs: joi
     .object()
     .pattern(/.+/, joiPrimitive())
@@ -994,7 +1029,7 @@ export const containerCommonBuildSpecKeys = () => ({
   extraFlags: joi.sparseArray().items(joi.string()).description(deline`
     Specify extra flags to use when building the container image.
     Note that arguments may not be portable across implementations.`),
-})
+}))
 
 export const containerBuildSpecSchema = createSchema({
   name: "container:Build",

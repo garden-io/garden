@@ -220,10 +220,11 @@ export interface ProjectResource extends ProjectConfig {
   kind: "Project"
 }
 
-export const projectNameSchema = () =>
+export const projectNameSchema = memoize(() =>
   joiIdentifier().required().description("The name of the project.").example("my-sweet-project")
+)
 
-export const projectRootSchema = () => joi.string().description("The path to the project root.")
+export const projectRootSchema = memoize(() => joi.string().description("The path to the project root."))
 
 const projectScanSchema = createSchema({
   name: "project-scan",

@@ -2492,6 +2492,9 @@ modules:
     configPath:
 
     version:
+      # The hash of all files belonging to the Garden action/module.
+      contentHash:
+
       # A Stack Graph node (i.e. module, service, task or test) version.
       versionString:
 

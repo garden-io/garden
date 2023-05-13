@@ -130,20 +130,20 @@ export const testModuleSpecSchema = createSchema({
 export const testDeploySchema = createSchema({
   name: "test.Deploy",
   extend: execDeployActionSchema,
-  keys: {
+  keys: () => ({
     // Making this optional for tests
     deployCommand: execDeployCommandSchema().optional(),
-  },
+  }),
 })
 export const testRunSchema = createSchema({
   name: "test.Run",
   extend: execRunActionSchema,
-  keys: {},
+  keys: () => ({}),
 })
 export const testTestSchema = createSchema({
   name: "test.Test",
   extend: execTestActionSchema,
-  keys: {},
+  keys: () => ({}),
 })
 
 export async function configureTestModule({ moduleConfig }: ConfigureModuleParams) {

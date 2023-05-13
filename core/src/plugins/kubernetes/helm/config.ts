@@ -228,7 +228,7 @@ export const helmPodRunSchema = (kind: string) => {
         .default(defaultHelmTimeout)
         .description("Time in seconds to wait for Helm to render templates."),
     }),
-    xor: ["resource", "podSpec"],
+    xor: [["resource", "podSpec"]],
   })()
   runSchemas[name] = schema
   return schema

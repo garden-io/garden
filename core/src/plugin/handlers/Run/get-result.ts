@@ -24,9 +24,9 @@ export interface RunStatusMap extends ActionStatusMap<RunAction> {
 
 export const getRunResultSchema = createSchema({
   name: "get-run-result",
-  keys: {
+  keys: () => ({
     detail: runResultSchema().allow(null),
-  },
+  }),
   extend: actionStatusSchema,
 })
 
