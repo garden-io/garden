@@ -724,7 +724,7 @@ interface SyncEndpoint {
   stagingProgress?: SyncReceiverStatus
 }
 
-interface SyncSession {
+export interface SyncSession {
   identifier: string
   version: number
   creationTime: string

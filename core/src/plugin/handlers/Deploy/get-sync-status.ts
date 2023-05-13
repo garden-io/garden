@@ -12,17 +12,32 @@ import { createSchema, joi, joiVariables } from "../../../config/common"
 import type { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
 import type { Executed } from "../../../actions/types"
+import { SyncMode, syncModeSchema } from "../../../plugins/container/config"
 
 interface GetSyncStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   monitor: boolean
 }
 
+export interface SyncStatus {
+  source: string
+  target?: string
+  // TODO: Should we filter on not-configured?
+  state: SyncState
+  /**
+   * ISO format date string
+   */
+  lastSyncAt?: string
+  successfulCycles?: number
+  mode?: SyncMode
+}
+
 // TODO: maybe this should be the same as an ActionState
-export const syncStates = ["active", "not-active", "failed", "unknown", "outdated"] as const
+export const syncStates = ["active", "not-active", "failed", "unknown", "outdated", "not-configured"] as const
 export type SyncState = (typeof syncStates)[number]
 
 export interface GetSyncStatusResult<D extends object = {}> {
   state: SyncState
+  syncs?: SyncStatus[]
   error?: string
   detail?: D
 }
@@ -36,6 +51,16 @@ export const getSyncStatusResultSchema = createSchema({
       .only()
       .required()
       .description("Whether the sync is active."),
+    syncs: joi.array().items(
+      joi.object().keys({
+        source: joi.string().required().description("TODO"),
+        target: joi.string().description("TODO"),
+        state: joi.string().required().allow(...syncStates).description("TODO"),
+        lastSyncAt: joi.string().description("ISO format date string"),
+        successfulCycles: joi.number().description("TOOD"),
+        mode: syncModeSchema(),
+      })
+    ),
     error: joi.string().description("Set to an error message if the sync is failed."),
     detail: joiVariables().description("Any additional detail to be included and printed with status checks."),
   },

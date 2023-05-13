@@ -144,6 +144,6 @@ async function getMutagenSyncSessions({ mutagen, dataDir, log }: { mutagen: Plug
   return parseSyncListResult(res)
 }
 
-function getMutagenDataDir(gardenDirPath: string) {
+export function getMutagenDataDir(gardenDirPath: string) {
   return join(gardenDirPath, MUTAGEN_DIR_NAME)
 }

@@ -483,6 +483,7 @@ export class GardenServer extends EventEmitter {
       return send("error", { message: "Message should contain a type field" })
     }
 
+
     if (requestType === "command") {
       // Start a command
       // IMPORTANT: We need to grab the Garden instance reference here, since it may be replaced upon
@@ -494,7 +495,7 @@ export class GardenServer extends EventEmitter {
       }
 
       try {
-        const { command, log, args, opts } = parseRequest(
+        const { command, log, args, opts, silent } = parseRequest(
           ctx,
           this.debugLog,
           this.commands,
@@ -512,7 +513,7 @@ export class GardenServer extends EventEmitter {
         const persistent = command.maybePersistent(prepareParams)
         const termWidth = process.stdout?.columns || 100
         // We don't want to print logs on every request for some commands.
-        const printLogs = !skipLogsForCommands.includes(command.getFullName())
+        const printLogs = !silent && !skipLogsForCommands.includes(command.getFullName())
 
         command
           .prepare(prepareParams)

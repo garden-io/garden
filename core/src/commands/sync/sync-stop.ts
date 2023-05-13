@@ -102,6 +102,7 @@ export class SyncStopCommand extends Command<Args, Opts> {
       return {}
     }
 
+    // 1
     const router = await garden.getActionRouter()
 
     await Bluebird.map(actions, async (action) => {
