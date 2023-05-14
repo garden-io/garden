@@ -143,7 +143,6 @@ export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventTyp
     this.garden = garden
     this.abortHandler = () => this.emit("abort")
 
-    // console.trace()
     // Always respond to exit and restart events
     this.garden.events.onKey("_exit", this.abortHandler, garden.sessionId)
     this.garden.events.onKey("_restart", this.abortHandler, garden.sessionId)
