@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import split2 = require("split2")
 import { StringMap } from "../../config/common"
 import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
 import { ExecActionConfig, ExecBuildConfig, defaultStatusTimeout } from "./config"
