@@ -441,6 +441,13 @@ export class GardenServer extends EventEmitter {
       websocket.on("message", (msg: string | Buffer) => {
         this.handleWsMessage({ msg, ctx, send, connectionId })
       })
+
+      // Make sure we close the connection when Garden exits. Otherwise the
+      // Garden process may appear to hang after the user attempts to quit.
+      this.garden.events.on("_exit", () => {
+        websocket.close(1000, "Garden exited")
+      })
+
     })
 
     app.ws.use(<Koa.Middleware<any>>wsRouter.routes())
