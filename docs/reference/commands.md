@@ -3506,6 +3506,37 @@ Examples:
 
 
 
+### garden sync status
+
+**Get sync statuses.**
+
+Get the current status of the configured syncs for this project.
+
+Examples:
+    # get all sync statuses
+    garden sync status 
+
+    # get sync statuses for the 'api' Deploy
+    garden sync status api
+
+    # output detailed sync statuses in JSON format
+    garden sync status -o json
+
+    # output detailed sync statuses in YAML format
+    garden sync status -o yaml
+
+#### Usage
+
+    garden sync status [names] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | The name(s) of the Deploy(s) to get the sync status for (skip to get status from all Deploys in the project). You may specify multiple names, separated by space.
+
+
+
 ### garden test
 
 **Run all or specified Test actions in the project.**
