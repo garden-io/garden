@@ -35,19 +35,21 @@ providers:
     version: 3.64.0
 
     # Overrides the default plan directory path used when deploying with the `deployFromPreview` option for pulumi
-    # modules.
+    # deploy actions.
     #
     # Must be a relative path to a directory inside the project root.
     #
     # This option can be useful when you want to provide a folder of pre-approved pulumi plans to a CI pipeline step.
     previewDir:
 
-    # The name of the pulumi organization to use. This option can also be set on the module level, in which case it
+    # The name of the pulumi organization to use. This option can also be set on the deploy action level, in which
+    # case it
     # overrides this provider-level option. Note that setting the organization name is only necessary when using
     # pulumi managed backend with an organization.
     orgName:
 
-    # The URL of the state backend endpoint used. This option can also be set on the module level, in which case it
+    # The URL of the state backend endpoint used. This option can also be set on the deploy action level, in which
+    # case it
     # overrides this  provider-level option. Set this option as per list of available self-managed state backends on
     # https://www.pulumi.com/docs/intro/concepts/state/#using-a-self-managed-backend
     backendURL: 'https://api.pulumi.com'
@@ -135,7 +137,7 @@ The version of pulumi to use. Set to `null` to use whichever version of `pulumi`
 [providers](#providers) > previewDir
 
 Overrides the default plan directory path used when deploying with the `deployFromPreview` option for pulumi
-modules.
+deploy actions.
 
 Must be a relative path to a directory inside the project root.
 
@@ -149,7 +151,7 @@ This option can be useful when you want to provide a folder of pre-approved pulu
 
 [providers](#providers) > orgName
 
-The name of the pulumi organization to use. This option can also be set on the module level, in which case it
+The name of the pulumi organization to use. This option can also be set on the deploy action level, in which case it
 overrides this provider-level option. Note that setting the organization name is only necessary when using
 pulumi managed backend with an organization.
 
@@ -161,7 +163,7 @@ pulumi managed backend with an organization.
 
 [providers](#providers) > backendURL
 
-The URL of the state backend endpoint used. This option can also be set on the module level, in which case it
+The URL of the state backend endpoint used. This option can also be set on the deploy action level, in which case it
 overrides this  provider-level option. Set this option as per list of available self-managed state backends on
 https://www.pulumi.com/docs/intro/concepts/state/#using-a-self-managed-backend
 
