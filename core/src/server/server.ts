@@ -38,7 +38,7 @@ import { ServeCommand } from "../commands/serve"
 import { getBuiltinCommands } from "../commands/commands"
 import { sanitizeValue } from "../util/logging"
 import { uuidv4 } from "../util/random"
-import { logCommandError, logCommandOutputErrors, logCommandStart, logCommandSuccess } from "../cli/command-line"
+import { renderCommandErrors } from "../cli/helpers"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -490,6 +490,7 @@ export class GardenServer extends EventEmitter {
       return send("error", { message: "Message should contain a type field" })
     }
 
+
     if (requestType === "command") {
       // Start a command
       // IMPORTANT: We need to grab the Garden instance reference here, since it may be replaced upon
@@ -501,7 +502,7 @@ export class GardenServer extends EventEmitter {
       }
 
       try {
-        const { command, log, args, opts } = parseRequest(
+        const { command, log: commandLog, args, opts, internal } = parseRequest(
           ctx,
           this.debugLog,
           this.commands,
@@ -509,17 +510,18 @@ export class GardenServer extends EventEmitter {
         )
 
         const prepareParams = {
-          log,
-          headerLog: log,
-          footerLog: log,
+          log: commandLog,
+          headerLog: commandLog,
+          footerLog: commandLog,
           args,
           opts,
         }
 
         const persistent = command.maybePersistent(prepareParams)
-        const termWidth = process.stdout?.columns || 100
         // We don't want to print logs on every request for some commands.
-        const printLogs = !skipLogsForCommands.includes(command.getFullName())
+        const printLogs = !internal && !skipLogsForCommands.includes(command.getFullName())
+        const requestLog = this.log.createLog({ name: "garden-server" })
+        const cmdNameStr = chalk.bold.white(command.getFullName())
 
         command
           .prepare(prepareParams)
@@ -543,15 +545,15 @@ export class GardenServer extends EventEmitter {
             }
 
             if (printLogs) {
-              logCommandStart({ commandName: command.getFullName(), width: termWidth, log: this.log })
+              requestLog.info(chalk.grey(`Running command ${cmdNameStr}`))
             }
 
             // TODO: validate result schema
             return command.action({
               garden,
-              log,
-              headerLog: log,
-              footerLog: log,
+              log: commandLog,
+              headerLog: commandLog,
+              footerLog: commandLog,
               args,
               opts,
             })
@@ -596,9 +598,9 @@ export class GardenServer extends EventEmitter {
             )
             if (printLogs) {
               if (errors?.length) {
-                logCommandOutputErrors({ errors, log: this.log, width: termWidth })
+                renderCommandErrors(requestLog.root, errors, commandLog)
               } else {
-                logCommandSuccess({ commandName: command.getFullName(), width: termWidth, log: this.log })
+                requestLog.success(chalk.green(`Command ${cmdNameStr} completed successfully`))
               }
             }
             delete this.activePersistentRequests[requestId]
@@ -606,7 +608,7 @@ export class GardenServer extends EventEmitter {
           .catch((error) => {
             send("error", { message: error.message, requestId })
             if (printLogs) {
-              logCommandError({ error, width: termWidth, log: this.log })
+              requestLog.error({ error: toGardenError(error) })
             }
             delete this.activePersistentRequests[requestId]
           })
