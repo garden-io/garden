@@ -6,6 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import stripAnsi from "strip-ansi"
+
 import {
   ContainerDeployAction,
   containerSyncPathSchema,
@@ -49,7 +51,7 @@ import {
 } from "./config"
 import { isConfiguredForSyncMode } from "./status/status"
 import { PluginContext } from "../../plugin-context"
-import { mutagenAgentPath, Mutagen, SyncConfig } from "../../mutagen"
+import { mutagenAgentPath, Mutagen, SyncConfig, SyncSession } from "../../mutagen"
 import { k8sSyncUtilImageName } from "./constants"
 import { templateStringLiteral } from "../../docs/common"
 import { resolve } from "path"
@@ -61,7 +63,7 @@ import { KubernetesModule, KubernetesService } from "./kubernetes-type/module-co
 import { HelmModule, HelmService } from "./helm/module-config"
 import { convertServiceResource } from "./kubernetes-type/common"
 import { prepareConnectionOpts } from "./kubectl"
-import { GetSyncStatusResult, SyncState } from "../../plugin/handlers/Deploy/get-sync-status"
+import { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/handlers/Deploy/get-sync-status"
 import { ConfigurationError } from "../../exceptions"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
@@ -603,11 +605,22 @@ export async function stopSyncs(params: StopSyncsParams) {
 }
 
 export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyncStatusResult> {
-  const { ctx, log, basePath, action, defaultNamespace, actionDefaults, defaultTarget, syncs, monitor } = params
-
+  const {
+    ctx,
+    log,
+    basePath,
+    action,
+    defaultNamespace,
+    actionDefaults,
+    defaultTarget,
+    syncs,
+    monitor,
+  } = params
   const mutagen = new Mutagen({ ctx, log })
   const allSyncs = await mutagen.getActiveSyncSessions(log)
   const syncsByName = keyBy(allSyncs, "name")
+  let session: SyncSession | null = null
+  const syncStatuses: SyncStatus[]= []
 
   const provider = ctx.provider
   const providerDefaults = provider.config.sync?.defaults || {}
@@ -655,17 +668,29 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
       targetPath: s.containerPath,
     })
 
-    const session = syncsByName[key]
+    session = syncsByName[key]
+    let syncState: SyncStatus["state"] = "active"
 
     if (session) {
       if (session.status === "disconnected") {
         failed = true
+        syncState = "failed"
       } else {
         someActive = true
       }
     } else {
+      syncState = "not-active"
       allActive = false
     }
+
+    syncStatuses.push({
+      source: s.sourcePath,
+      // The targetDescription variable has ANSI characters that we strip for the status result
+      targetDescription: stripAnsi(targetDescription),
+      state: syncState,
+      mode: s.mode,
+      syncCount: session?.successfulCycles
+    })
 
     expectedKeys.push(key)
 
@@ -701,16 +726,22 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
 
   let state: SyncState = "not-active"
 
-  if (failed) {
+  if (syncs.length === 0) {
+    state = "not-configured"
+  } else if (failed) {
     state = "failed"
-  } else if (extraSyncs || someActive) {
-    state = "outdated"
   } else if (allActive) {
     state = "active"
+  } else if (extraSyncs || someActive) {
+    state = "outdated"
   }
 
   return {
     state,
+    syncs: syncStatuses,
+    detail: {
+      session,
+    },
   }
 }
 
@@ -736,9 +767,8 @@ function sanitizeForSyncKey(value: string): string {
 function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableResource): string {
   const sourcePath = sanitizeForSyncKey(spec.sourcePath)
   const containerPath = sanitizeForSyncKey(spec.containerPath)
-  return `${getSyncKeyPrefix(ctx, action)}${target.kind}--${
-    target.metadata.name
-  }-from-${sourcePath}-to-${containerPath}`
+  return `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name
+    }-from-${sourcePath}-to-${containerPath}`
 }
 
 async function prepareSync(params: PrepareSyncParams) {

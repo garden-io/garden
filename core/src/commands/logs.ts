@@ -183,7 +183,7 @@ export class LogsCommand extends Command<Args, Opts> {
 
     const resolvedActions = await garden.resolveActions({ actions, graph, log })
 
-    const monitors = await Bluebird.map(Object.values(resolvedActions), async (action) => {
+    const monitors = Object.values(resolvedActions).map((action) => {
       return new LogMonitor({
         garden,
         log,
