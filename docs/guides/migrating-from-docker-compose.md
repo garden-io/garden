@@ -94,10 +94,10 @@ changes live when in `sync` mode.
 
 Under `ports` we specify the same port as in our Docker Compose file (`3000`).
 
-We set up a health check for the `/api` route, as that is what this module serves, and an ingress on a subdomain. In our
-case, this will let us access our `backend` application on `compose2garden.local.demo.garden`.
+We set up a health check for the `/api` route, and an ingress on a subdomain.
+In our case, this will let us access our `backend` application on `compose2garden.local.demo.garden`.
 
-Finally, we specify the dependency on the `mongo` module, which we will define in a bit.
+Finally, we specify the dependency on the `mongo` `Deploy` action, which we will define in a bit.
 
 ### The `frontend/frontend.garden.yml` file
 
