@@ -62,7 +62,7 @@ import {
   ExecTest,
   execTestActionSchema,
 } from "../src/plugins/exec/config"
-import { RunActionHandler, TestActionHandler } from "../src/plugin/action-types"
+import { ManyActionTypeDefinitions, RunActionHandler, TestActionHandler } from "../src/plugin/action-types"
 import { GetRunResult } from "../src/plugin/handlers/Run/get-result"
 import { defaultEnvironment, defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/Module/convert"
@@ -851,4 +851,13 @@ export function getPropertyName<T>(
   Object.keys(obj).map((k) => (res[k as keyof T] = () => k))
 
   return expression(res)()
+}
+
+export function getEmptyPluginActionDefinitions(name: string): ManyActionTypeDefinitions {
+  return {
+    Build: [{ docs: "blah", handlers: {}, name, schema: joi.object() }],
+    Test: [{ docs: "blah", handlers: {}, name, schema: joi.object() }],
+    Deploy: [{ docs: "blah", handlers: {}, name, schema: joi.object() }],
+    Run: [{ docs: "blah", handlers: {}, name, schema: joi.object() }],
+  }
 }
