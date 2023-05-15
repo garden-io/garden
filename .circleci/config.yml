@@ -1021,16 +1021,18 @@ workflows:
       #     requires: [build]
       #     kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
 
+      # TODO-0.13.0: revert to edge version and main branch
       - build-dist:
           <<: *only-bonsai
           name: build-dist-edge
-          version: edge
+          version: edge-bonsai
           requires: [build]
 
       - github-edge-prerelease:
           <<: *only-bonsai
-          version: edge
+          version: edge-bonsai
           requires: [build-dist-edge]
+      # end of TODO-0.13.0
 
       - dockerhub-release:
           context: docker
