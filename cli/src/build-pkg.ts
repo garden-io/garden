@@ -201,7 +201,7 @@ async function pkgAlpine({ targetName, version }: TargetHandlerParams) {
   await mkdirp(targetPath)
 
   console.log(` - ${targetName} -> docker build`)
-  const imageName = "gardendev/garden:alpine-builder"
+  const imageName = "garden-alpine-builder"
   const containerName = "alpine-builder-" + randomString(8)
   const supportDir = resolve(repoRoot, "support")
 

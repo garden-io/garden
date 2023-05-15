@@ -14,9 +14,8 @@ import {
   defaultResources,
   KubernetesProvider,
 } from "../../../../../../../src/plugins/kubernetes/config"
-import { k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
+import { buildkitImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
 import {
-  buildkitImageName,
   getBuildkitDeployment,
   getBuildkitFlags,
   getBuildkitImageFlags,

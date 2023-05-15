@@ -107,7 +107,7 @@ Here's what our preview job looks like:
 jobs:
   preview:
     docker:
-      - image: gardendev/garden-gcloud:v0.10.0-1
+      - image: gardendev/garden-gcloud:bonsai-alpine
     environment:
       GARDEN_LOG_LEVEL: debug # set the log level to your preference here
     steps:

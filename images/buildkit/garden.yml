@@ -5,7 +5,7 @@ description: Used for the cluster-buildkit build mode in the kubernetes provider
 image: gardendev/buildkit:v0.10.5-2
 dockerfile: Dockerfile
 build:
-  targetImage: output
+  targetImage: buildkit
 extraFlags: [ "--platform", "linux/amd64" ]
 
 ---
@@ -19,7 +19,5 @@ dockerfile: Dockerfile
 build:
   dependencies:
     - buildkit
-  targetImage: output
-buildArgs:
-  BASE_IMAGE_SUFFIX: "-rootless"
+  targetImage: buildkit-rootless
 extraFlags: [ "--platform", "linux/amd64" ]
