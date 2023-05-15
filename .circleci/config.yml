@@ -428,7 +428,7 @@ jobs:
           command: |
             # bonsai edge
             if [ "$CIRCLE_BRANCH" == "0.13" ]; then
-              MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai BRANCH_NAME=$CIRCLE_BRANCH \
+              MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai \
                 docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
             fi
 
