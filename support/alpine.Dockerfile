@@ -1,7 +1,11 @@
+# Variant can be root or rootless.
+# Defaults to root.
+ARG VARIANT=root
+
 #
 # garden-base
 #
-FROM node:18-alpine@sha256:44aaf1ccc80eaed6572a0f2ef7d6b5a2982d54481e4255480041ac92221e2f11 as garden-alpine-base
+FROM node:18-alpine@sha256:44aaf1ccc80eaed6572a0f2ef7d6b5a2982d54481e4255480041ac92221e2f11 as garden-alpine-base-root
 
 RUN apk add --no-cache \
   bash \
@@ -21,6 +25,7 @@ RUN apk add --no-cache \
   py3-openssl \
   libffi \
   gnupg \
+  groff \
   py3-crcmod
 
 # Note: This is run with the dist/alpine-amd64 directory as the context root
@@ -31,9 +36,21 @@ RUN chmod +x /garden/garden \
   && ln -s /garden/garden /usr/local/bin/garden \
   && chmod +x /usr/local/bin/garden \
   && cd /garden/static \
-  && GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util fetch-tools --all --garden-image-build
+  && git init
 
 ENTRYPOINT ["/garden/garden"]
+
+FROM garden-alpine-base-root as garden-alpine-base-rootless
+
+ENV USER=gardenuser
+ENV HOME=/home/gardenuser
+RUN adduser -D $USER
+USER $USER
+WORKDIR $HOME
+
+FROM garden-alpine-base-$VARIANT as garden-alpine-base
+
+RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util fetch-tools --all --garden-image-build
 
 FROM python:3.8-alpine@sha256:4912e629ee15ae93787756afb2e02b040448a86eadcb00bb542a7e81cbb2d8f8 AS aws-builder
 
@@ -78,7 +95,7 @@ RUN rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && rm -rf /google-
 #
 # garden-azure-base
 #
-FROM garden-alpine-base as garden-azure-base
+FROM garden-alpine-base-root as garden-azure-base
 
 WORKDIR /
 ENV AZURE_CLI_VERSION=2.48.1
@@ -110,8 +127,6 @@ LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
 #
 FROM garden-alpine-base as garden-aws
 
-RUN apk --no-cache add groff
-
 # Copy aws cli
 COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
 # Copy aws-iam-authenticator from aws
@@ -134,8 +149,6 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 #
 FROM garden-alpine-base as garden-aws-gcloud
 
-RUN apk --no-cache add groff
-
 # Copy aws cli
 COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
 # Copy aws-iam-authenticator from aws
@@ -152,8 +165,6 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 # garden-aws-gloud-azure
 #
 FROM garden-alpine-base as garden-aws-gcloud-azure
-
-RUN apk --no-cache add groff
 
 # Copy aws cli
 COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
