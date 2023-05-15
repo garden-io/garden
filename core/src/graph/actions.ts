@@ -231,7 +231,7 @@ export async function actionFromConfig({
     }
   }
 
-  if (!actionTypes[config.type]) {
+  if (!actionTypes[config.kind][config.type]) {
     const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
 
     throw new ConfigurationError(
