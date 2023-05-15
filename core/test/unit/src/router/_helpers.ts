@@ -19,6 +19,12 @@ import { getModuleHandlerDescriptions } from "../../../../src/plugin/module-type
 import { createGardenPlugin, GardenPluginSpec } from "../../../../src/plugin/plugin"
 import { getProviderActionDescriptions, ProviderHandlers } from "../../../../src/plugin/providers"
 import { createProjectConfig, makeTestGarden, projectRootA } from "../../../helpers"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_DEPLOY_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC,
+} from "../../../../src/constants"
 
 export async function getRouterTestData() {
   const {
@@ -180,6 +186,7 @@ function getRouterUnitTestPlugins() {
               kind: "Build",
               name: actionName,
               type: "test",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
               internal: {
                 basePath: params.ctx.projectRoot,
               },
@@ -189,6 +196,7 @@ function getRouterUnitTestPlugins() {
               kind: "Deploy",
               name: actionName,
               type: "test",
+              timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
               internal: {
                 basePath: params.ctx.projectRoot,
               },
@@ -237,7 +245,7 @@ function getRouterUnitTestPlugins() {
               name: spec.name,
               dependencies: spec.dependencies || [],
               disabled: false,
-
+              timeout: spec.timeout || DEFAULT_DEPLOY_TIMEOUT_SEC,
               spec,
             }))
 
@@ -245,6 +253,7 @@ function getRouterUnitTestPlugins() {
               name: spec.name,
               dependencies: spec.dependencies || [],
               disabled: false,
+              timeout: spec.timeout || DEFAULT_RUN_TIMEOUT_SEC,
               spec,
             }))
 
@@ -252,6 +261,7 @@ function getRouterUnitTestPlugins() {
               name: spec.name,
               dependencies: spec.dependencies || [],
               disabled: false,
+              timeout: spec.timeout || DEFAULT_TEST_TIMEOUT_SEC,
               spec,
             }))
 
