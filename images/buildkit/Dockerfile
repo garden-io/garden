@@ -1,6 +1,4 @@
-ARG BASE_IMAGE_SUFFIX
-ARG BUILDKIT_VERSION=v0.10.5
-FROM moby/buildkit:${BUILDKIT_VERSION} as deps
+FROM moby/buildkit:v0.10.5 as deps
 
 RUN apk add --no-cache curl
 
@@ -14,7 +12,12 @@ RUN curl -fsSL "https://github.com/GoogleCloudPlatform/docker-credential-gcr/rel
   | tar xz --to-stdout ./docker-credential-gcr \
   > /tmp/docker-credential-gcr && chmod +x /tmp/docker-credential-gcr
 
-FROM moby/buildkit:${BUILDKIT_VERSION}${BASE_IMAGE_SUFFIX} as output
+FROM moby/buildkit:v0.10.5 as buildkit
+
+COPY --from=deps /tmp/docker-credential-ecr-login /usr/local/bin/docker-credential-ecr-login
+COPY --from=deps /tmp/docker-credential-gcr /usr/local/bin/docker-credential-gcr
+
+FROM moby/buildkit:v0.10.5-rootless as buildkit-rootless
 
 COPY --from=deps /tmp/docker-credential-ecr-login /usr/local/bin/docker-credential-ecr-login
 COPY --from=deps /tmp/docker-credential-gcr /usr/local/bin/docker-credential-gcr
