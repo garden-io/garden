@@ -87,8 +87,8 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
   arguments = createProjectArgs
   options = createProjectOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Create new project", "✏️")
+  printHeader({ log }) {
+    printHeader(log, "Create new project", "✏️")
   }
 
   // Defining it like this because it'll stall on waiting for user input.

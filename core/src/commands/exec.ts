@@ -65,14 +65,10 @@ export class ExecCommand extends Command<Args, Opts> {
 
   outputsSchema = () => execInDeployResultSchema()
 
-  printHeader({ headerLog, args }) {
+  printHeader({ log, args }) {
     const deployName = args.deploy
     const command = this.getCommand(args)
-    printHeader(
-      headerLog,
-      `Running command ${chalk.cyan(command.join(" "))} in Deploy ${chalk.cyan(deployName)}`,
-      "runner"
-    )
+    printHeader(log, `Running command ${chalk.cyan(command.join(" "))} in Deploy ${chalk.cyan(deployName)}`, "runner")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInDeployResult>> {

@@ -833,8 +833,6 @@ export function makeCommandParams<T extends Parameters = {}, U extends Parameter
     cli,
     garden,
     log,
-    headerLog: log,
-    footerLog: log,
     args,
     opts: withDefaultGlobalOpts(opts),
   }

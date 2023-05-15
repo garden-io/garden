@@ -42,8 +42,6 @@ describe("CreateModuleCommand", () => {
 
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -74,8 +72,6 @@ describe("CreateModuleCommand", () => {
   it("should allow overriding the default generated filename", async () => {
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -95,8 +91,6 @@ describe("CreateModuleCommand", () => {
   it("should optionally set a module name", async () => {
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -130,8 +124,6 @@ describe("CreateModuleCommand", () => {
 
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -168,8 +160,6 @@ describe("CreateModuleCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
@@ -192,8 +182,6 @@ describe("CreateModuleCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
@@ -213,8 +201,6 @@ describe("CreateModuleCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({

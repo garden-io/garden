@@ -113,8 +113,6 @@ describe("SelfUpdateCommand", () => {
     return command.action({
       garden,
       log: garden.log,
-      headerLog: garden.log,
-      footerLog: garden.log,
       args,
       opts: withDefaultGlobalOpts(opts),
     })

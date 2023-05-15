@@ -38,8 +38,6 @@ describe("GetWorkflowsCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { workflows: undefined },
       opts: withDefaultGlobalOpts({}),
     })
@@ -66,8 +64,6 @@ describe("GetWorkflowsCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { workflows: ["a"] },
       opts: withDefaultGlobalOpts({}),
     })
@@ -90,8 +86,6 @@ describe("GetWorkflowsCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { workflows: ["a", "c"] },
       opts: withDefaultGlobalOpts({}),
     })

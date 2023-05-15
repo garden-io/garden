@@ -34,8 +34,6 @@ function loginCommandParams({ garden, opts = { "disable-project-check": false } 
   return {
     garden,
     log,
-    headerLog: log,
-    footerLog: log,
     args: {},
     opts: withDefaultGlobalOpts({
       ...opts,

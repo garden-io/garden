@@ -55,8 +55,8 @@ export class GetStatusCommand extends Command {
       }),
     })
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Get status", "📟")
+  printHeader({ log }) {
+    printHeader(log, "Get status", "📟")
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<StatusCommandResult>> {

@@ -19,8 +19,8 @@ export class GetGraphCommand extends Command {
   name = "graph"
   help = "Outputs the dependency relationships across the project."
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Get graph", "📈")
+  printHeader({ log }) {
+    printHeader(log, "Get graph", "📈")
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<GraphOutput>> {

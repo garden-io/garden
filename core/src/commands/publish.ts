@@ -91,17 +91,11 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
       ),
     })
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Publish builds", "🚀")
+  printHeader({ log }) {
+    printHeader(log, "Publish builds", "🚀")
   }
 
-  async action({
-    garden,
-    log,
-    footerLog,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<PublishCommandResult>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<PublishCommandResult>> {
     const graph = await garden.getConfigGraph({ log, emit: true })
     const builds = graph.getBuilds({ names: args.names })
 
@@ -119,6 +113,6 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
     })
 
     const processed = await garden.processTasks({ tasks, log, throwOnError: true })
-    return handleProcessResults(garden, footerLog, "publish", processed)
+    return handleProcessResults(garden, log, "publish", processed)
   }
 }

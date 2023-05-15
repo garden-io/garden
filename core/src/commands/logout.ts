@@ -35,8 +35,8 @@ export class LogOutCommand extends Command<{}, Opts> {
   `
   options = logoutOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Log out", "☁️")
+  printHeader({ log }) {
+    printHeader(log, "Log out", "☁️")
   }
 
   async action({ garden, log, opts }: CommandParams): Promise<CommandResult> {

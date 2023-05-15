@@ -53,8 +53,8 @@ export class UpdateRemoteAllCommand extends Command<{}, Opts> {
         garden update-remote all --parallel  # update all remote sources in the project in parallel mode
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Update remote sources and modules", "🛠️")
+  printHeader({ log }) {
+    printHeader(log, "Update remote sources and modules", "🛠️")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<UpdateRemoteAllResult>> {

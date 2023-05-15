@@ -273,8 +273,6 @@ export class GardenServer extends EventEmitter {
 
       const prepareParams = {
         log,
-        headerLog: log,
-        footerLog: log,
         args,
         opts,
       }
@@ -526,8 +524,6 @@ export class GardenServer extends EventEmitter {
 
         const prepareParams = {
           log: commandLog,
-          headerLog: commandLog,
-          footerLog: commandLog,
           args,
           opts,
         }

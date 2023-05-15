@@ -75,12 +75,12 @@ export class BuildCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Build", "🔨")
+  printHeader({ log }) {
+    printHeader(log, "Build", "🔨")
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
-    const { garden, log, footerLog, args, opts } = params
+    const { garden, log, args, opts } = params
 
     if (opts.watch) {
       await watchRemovedWarning(garden, log)
@@ -122,6 +122,6 @@ export class BuildCommand extends Command<Args, Opts> {
 
     const result = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(garden, footerLog, "build", result)
+    return handleProcessResults(garden, log, "build", result)
   }
 }

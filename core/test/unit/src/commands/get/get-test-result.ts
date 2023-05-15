@@ -40,8 +40,6 @@ describe("GetTestResultCommand", () => {
         await command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { name: moduleName, moduleTestName: testName },
           opts: withDefaultGlobalOpts({}),
         }),
@@ -68,8 +66,6 @@ describe("GetTestResultCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { name: "module-a-unit", moduleTestName: undefined },
       opts: withDefaultGlobalOpts({}),
     })
@@ -101,8 +97,6 @@ describe("GetTestResultCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { name: moduleName, moduleTestName: "unit" },
       opts: withDefaultGlobalOpts({}),
     })
@@ -145,8 +139,6 @@ describe("GetTestResultCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { name: moduleName, moduleTestName: "unit" },
       opts: withDefaultGlobalOpts({}),
     })
@@ -163,8 +155,6 @@ describe("GetTestResultCommand", () => {
     const res = await command.action({
       garden,
       log,
-      footerLog: log,
-      headerLog: log,
       args: { name: moduleName, moduleTestName: testName },
       opts: withDefaultGlobalOpts({}),
     })

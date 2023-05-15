@@ -47,8 +47,6 @@ function makeCommandParams({
   return {
     garden,
     log,
-    headerLog: log,
-    footerLog: log,
     args,
     opts: withDefaultGlobalOpts({
       ...opts,

@@ -59,8 +59,8 @@ export class LinkModuleCommand extends Command<Args> {
         garden link module my-module path/to/my-module # links my-module to its local version at the given path
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Link module", "🔗")
+  printHeader({ log }) {
+    printHeader(log, "Link module", "🔗")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<Output>> {

@@ -372,8 +372,6 @@ export class TestGarden extends Garden {
     const result = await command.action({
       garden: this,
       log,
-      headerLog: log,
-      footerLog: log,
       args,
       opts: <ParameterValues<GlobalOptions> & C["options"]>{
         ...mapValues(globalOptions, (opt) => opt.defaultValue),

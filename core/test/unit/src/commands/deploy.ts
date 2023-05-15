@@ -138,8 +138,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -195,8 +193,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: ["service-b"],
       },
@@ -234,8 +230,6 @@ describe("DeployCommand", () => {
       const { result, errors } = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: ["service-b", "service-c"],
         },
@@ -277,8 +271,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -306,8 +298,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -330,8 +320,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -354,8 +342,6 @@ describe("DeployCommand", () => {
       const log = getRootLogger().createLog()
       const persistent = cmd.maybePersistent({
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: undefined,
         },
@@ -372,8 +358,6 @@ describe("DeployCommand", () => {
       const log = getRootLogger().createLog()
       const persistent = cmd.maybePersistent({
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: undefined,
         },
@@ -390,8 +374,6 @@ describe("DeployCommand", () => {
       const log = getRootLogger().createLog()
       const persistent = cmd.maybePersistent({
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: undefined,
         },
