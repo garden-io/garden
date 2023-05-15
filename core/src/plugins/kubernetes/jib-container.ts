@@ -23,7 +23,6 @@ import { PodRunner } from "./run"
 import { getRunningDeploymentPod } from "./util"
 import { BuildActionExtension, BuildActionParams } from "../../plugin/action-types"
 import { ContainerBuildAction } from "../container/config"
-import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../constants"
 import { buildkitDeploymentName } from "./constants"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
