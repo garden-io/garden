@@ -22,6 +22,7 @@ If in doubt, use the following setup for builds:
 Here's a basic configuration example:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...
@@ -241,6 +242,7 @@ Once you've created the auth secret in the cluster, you can configure the regist
 `garden.yml` project config like this:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 environments:
@@ -273,6 +275,7 @@ To deploy a built image to a remote Kubernetes cluster, the image first needs to
 To configure a deployment registry, you need to specify at least the `deploymentRegistry` field on your `kubernetes` provider, and in many cases you also need to provide a Secret in order to authenticate with the registry via the `imagePullSecrets` field:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...
@@ -318,6 +321,7 @@ kubectl --namespace default create secret generic ecr-config \
 Finally, add the secret reference to your `kubernetes` provider configuration:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...
@@ -409,6 +413,7 @@ kubectl --namespace default create secret docker-registry gcr-config \
 Finally, add the created _imagePullSecret_ to your `kubernetes` provider configuration:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...
@@ -474,6 +479,7 @@ kubectl --namespace default create secret docker-registry gar-config \
 Finally, add the created _imagePullSecret_ and _deploymentRegistry_ to your `kubernetes` provider configuration:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...
@@ -509,6 +515,7 @@ where `my-private-registry.com` requires authorization.
 For this to work, you need to create a registry secret in your cluster (see [this guide](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) for how to create the secret) and then configure the [imagePullSecrets](../../reference/providers/kubernetes.md#providersimagepullsecrets) field in your `kubernetes` provider configuration:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...

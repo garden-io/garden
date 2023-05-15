@@ -28,6 +28,7 @@ garden create project
 This will create a basic boilerplate project configuration in the current directory, making it our project root.
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: demo-project
 environments:

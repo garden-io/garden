@@ -6,6 +6,7 @@ Just run `garden deploy --env=remote` and see the kaniko builder do its job!
 
 Snippet from [project config](garden.yml)
 ```yml
+apiVersion: garden.io/v1
 kind: Project
 name: kaniko
 environments:

@@ -34,6 +34,7 @@ pulumi managed state backend. The same applies to `orgName` which only makes sen
 Please ensure that `orgName` is set to `null` or empty string `""` for all the environments that are not using the pulumi managed state backend.
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: pulumi
 defaultEnvironment: dev

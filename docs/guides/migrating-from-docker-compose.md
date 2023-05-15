@@ -31,6 +31,7 @@ We've added four `*.garden.yml` files, which we'll walk through in detail.
 In the root of the directory, we've added `project.garden.yml` with the following contents:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: compose2garden
 

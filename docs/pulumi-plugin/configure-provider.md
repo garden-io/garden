@@ -7,6 +7,7 @@ order: 1
 
 First, you need to enable the pulumi provider in your project configuration. This is as simple as placing it in your list of providers:
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 providers:
@@ -25,6 +26,7 @@ Please ensure that `orgName` is set to `null` or empty string `""` for all the e
 
 ```yaml
 ---
+apiVersion: garden.io/v1
 kind: Project
 name: pulumi
 defaultEnvironment: dev
