@@ -262,6 +262,11 @@ image: postgres:11.7-alpine
 Note, however, that if a disabled action is referenced as a _build_ dependency of another action, the action will still
 be built when needed, to ensure the dependant action can be built as expected.
 
+For other action kinds, the action is skipped in all scenarios, and dependency declarations to it are ignored. Note
+however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the action is
+disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional
+expressions.
+
 See the [disabled-config example](../../examples/disabled-configs) for more details.
 
 ## Further Reading
