@@ -20,7 +20,7 @@ import { join } from "path"
 import { MUTAGEN_DIR_NAME } from "../../../../../../src/constants"
 
 // TODO-G2: https://github.com/orgs/garden-io/projects/5/views/1?pane=issue&itemId=23082896
-describe.skip("sync plugin commands", () => {
+describe.only("sync plugin commands", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
@@ -59,6 +59,7 @@ describe.skip("sync plugin commands", () => {
       action,
       force: true,
       forceBuild: false,
+      startSync: true,
     })
 
     await garden.processTasks({ log, tasks: [deployTask], throwOnError: true })
