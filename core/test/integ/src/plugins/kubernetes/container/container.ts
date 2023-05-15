@@ -23,17 +23,18 @@ import { V1Secret } from "@kubernetes/client-node"
 import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init"
 import { ContainerTestAction } from "../../../../../../src/plugins/container/config"
 import { createActionLog } from "../../../../../../src/logger/log-entry"
+import { TestGardenOpts } from "../../../../../../src/util/testing"
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
 const initializedEnvs: string[] = []
 let localInstance: Garden
 
-export async function getContainerTestGarden(environmentName: string = defaultEnvironment) {
-  const garden = await makeTestGarden(root, { environmentName, noTempDir: true })
+export async function getContainerTestGarden(environmentName: string = defaultEnvironment, opts?: TestGardenOpts) {
+  const garden = await makeTestGarden(root, { environmentName, noTempDir: opts?.noTempDir })
 
   if (!localInstance) {
-    localInstance = await makeTestGarden(root, { environmentName: "local", noTempDir: true })
+    localInstance = await makeTestGarden(root, { environmentName: "local", noTempDir: opts?.noTempDir })
   }
 
   const needsInit = !environmentName.startsWith("local") && !initializedEnvs.includes(environmentName)

@@ -82,7 +82,7 @@ describe("sync mode deployments and sync behavior", () => {
     )
   }
 
-  it.only("should deploy a service in sync mode and successfully set a two-way sync", async () => {
+  it("should deploy a service in sync mode and successfully set a two-way sync", async () => {
     await init("local")
     const action = graph.getDeploy("sync-mode")
     const log = garden.log
@@ -138,7 +138,7 @@ describe("sync mode deployments and sync behavior", () => {
     }
   })
 
-  it.only("should apply ignore rules from the sync spec and the provider-level sync defaults", async () => {
+  it("should apply ignore rules from the sync spec and the provider-level sync defaults", async () => {
     await init("local")
     const action = graph.getDeploy("sync-mode")
 
