@@ -18,7 +18,7 @@ import { apply } from "json-merge-patch"
 import { getHelmTestGarden } from "./common"
 import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/module-config"
 import stripAnsi = require("strip-ansi")
-import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants"
 import { PREVIOUS_API_VERSION } from "../../../../../../src/constants"
 
 describe("configureHelmModule", () => {
@@ -113,6 +113,7 @@ describe("configureHelmModule", () => {
           dependencies: [],
           disabled: false,
           sourceModuleName: "api-image",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           spec,
         },
       ],

@@ -125,6 +125,7 @@ describe("exec plugin", () => {
             statusCommand: ["test -f deployed.log && echo already deployed"],
             timeout: DEFAULT_RUN_TIMEOUT_SEC,
           },
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
         },
       ])
       expect(moduleA.taskConfigs).to.eql([
@@ -236,6 +237,7 @@ describe("exec plugin", () => {
           dependencies: [],
           disabled: false,
           name: "touch",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           spec: {
             cleanupCommand: ["rm -f deployed.log && echo cleaned up"],
             dependencies: [],
@@ -251,6 +253,7 @@ describe("exec plugin", () => {
           dependencies: [],
           disabled: false,
           name: "echo",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           spec: {
             dependencies: [],
             deployCommand: ["echo", "deployed $NAME"],
@@ -264,6 +267,7 @@ describe("exec plugin", () => {
           dependencies: [],
           disabled: false,
           name: "error",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           spec: {
             cleanupCommand: ["sh", '-c "echo fail! && exit 1"'],
             dependencies: [],
@@ -278,6 +282,7 @@ describe("exec plugin", () => {
           dependencies: [],
           disabled: false,
           name: "empty",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           spec: {
             dependencies: [],
             deployCommand: [],

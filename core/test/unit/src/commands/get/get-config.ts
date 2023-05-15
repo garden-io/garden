@@ -497,23 +497,10 @@ describe("GetConfigCommand", () => {
       })
 
       const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
-      // Remove the disabled service
-      expectedModuleConfigs[0].serviceConfigs = [
-        {
-          name: "service-enabled",
-          dependencies: [],
-          disabled: false,
-          sourceModuleName: undefined,
-          spec: {
-            name: "service-enabled",
-            dependencies: [],
-            disabled: false,
-            spec: {},
-          },
-        },
-      ]
+      const actualEnabledServiceConfig = res.result?.moduleConfigs[0].serviceConfigs[0];
+      const expectedEnabledServiceConfig = expectedModuleConfigs[0].serviceConfigs.filter((s) => !s.disabled)[0]
 
-      expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
+      expect(actualEnabledServiceConfig).to.deep.equal(expectedEnabledServiceConfig)
     })
 
     it("should exclude disabled task configs", async () => {

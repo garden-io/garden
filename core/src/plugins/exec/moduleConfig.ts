@@ -60,6 +60,7 @@ export async function configureExecModule({
     name: s.name,
     dependencies: s.dependencies,
     disabled: s.disabled,
+    timeout: s.timeout,
     spec: s,
   }))
 
