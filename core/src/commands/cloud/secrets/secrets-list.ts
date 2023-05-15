@@ -50,8 +50,8 @@ export class SecretsListCommand extends Command<{}, Opts> {
 
   options = secretsListOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "List secrets", "🔒")
+  printHeader({ log }) {
+    printHeader(log, "List secrets", "🔒")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<SecretResult[]>> {

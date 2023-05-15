@@ -658,8 +658,6 @@ ${chalk.white.underline("Keys:")}
 
     const prepareParams = {
       log: this.log,
-      headerLog: this.log,
-      footerLog: this.log,
       args,
       opts,
       commandLine: this,

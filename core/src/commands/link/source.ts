@@ -60,8 +60,8 @@ export class LinkSourceCommand extends Command<Args> {
         garden link source my-source path/to/my-source # links my-source to its local version at the given path
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Link source", "🔗")
+  printHeader({ log }) {
+    printHeader(log, "Link source", "🔗")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<Output>> {

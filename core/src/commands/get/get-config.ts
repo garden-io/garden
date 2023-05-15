@@ -69,8 +69,8 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
 
   options = getConfigOptions
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Get config", "📂")
+  printHeader({ log }) {
+    printHeader(log, "Get config", "📂")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<ConfigDump>> {

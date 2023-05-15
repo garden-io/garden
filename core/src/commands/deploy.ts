@@ -151,8 +151,8 @@ export class DeployCommand extends Command<Args, Opts> {
     return !!opts["sync"] || !!opts["local-mode"] || !!opts.forward || !!opts.logs
   }
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Deploy", "🚀")
+  printHeader({ log }) {
+    printHeader(log, "Deploy", "🚀")
   }
 
   getTerminalWriterType(params): LoggerType {
@@ -165,7 +165,7 @@ export class DeployCommand extends Command<Args, Opts> {
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
-    const { garden, log, footerLog, args, opts } = params
+    const { garden, log, args, opts } = params
 
     this.garden = garden
 
@@ -334,6 +334,6 @@ export class DeployCommand extends Command<Args, Opts> {
 
     const results = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(garden, footerLog, "deploy", results)
+    return handleProcessResults(garden, log, "deploy", results)
   }
 }

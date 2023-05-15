@@ -66,8 +66,8 @@ export class UpdateRemoteActionsCommand extends Command<Args, Opts> {
         garden update-remote action build.my-build   # update remote Build my-build
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Update remote actions", "🛠️")
+  printHeader({ log }) {
+    printHeader(log, "Update remote actions", "🛠️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<Output>> {

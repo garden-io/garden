@@ -46,8 +46,6 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           action: "build.a",
           path: linkedActionPathA,
@@ -57,8 +55,6 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           action: "build.b",
           path: linkedActionPathB,
@@ -75,8 +71,6 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { actions: ["build.b"] },
         opts: withDefaultGlobalOpts({ all: false }),
       })
@@ -93,8 +87,6 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { actions: undefined },
         opts: withDefaultGlobalOpts({ all: true }),
       })
@@ -120,8 +112,6 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           module: "module-a",
           path: linkedModulePathA,
@@ -131,8 +121,6 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           module: "module-b",
           path: linkedModulePathB,
@@ -142,8 +130,6 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           module: "module-c",
           path: linkedModulePathC,
@@ -160,8 +146,6 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { modules: ["module-a", "module-b"] },
         opts: withDefaultGlobalOpts({ all: false }),
       })
@@ -178,8 +162,6 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { modules: undefined },
         opts: withDefaultGlobalOpts({ all: true }),
       })
@@ -205,8 +187,6 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           source: "source-a",
           path: linkedSourcePathA,
@@ -216,8 +196,6 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           source: "source-b",
           path: linkedSourcePathB,
@@ -227,8 +205,6 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           source: "source-c",
           path: linkedSourcePathC,
@@ -245,8 +221,6 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { sources: ["source-a", "source-b"] },
         opts: withDefaultGlobalOpts({ all: false }),
       })
@@ -263,8 +237,6 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { sources: undefined },
         opts: withDefaultGlobalOpts({ all: true }),
       })

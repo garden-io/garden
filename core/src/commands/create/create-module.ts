@@ -90,8 +90,8 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
   arguments = createModuleArgs
   options = createModuleOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Create new module", "✏️")
+  printHeader({ log }) {
+    printHeader(log, "Create new module", "✏️")
   }
 
   allowInDevCommand() {

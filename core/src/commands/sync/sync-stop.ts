@@ -54,8 +54,8 @@ export class SyncStopCommand extends Command<Args, Opts> {
 
   outputsSchema = () => joi.object()
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Stopping sync(s)", "🔁")
+  printHeader({ log }) {
+    printHeader(log, "Stopping sync(s)", "🔁")
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {

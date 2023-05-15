@@ -125,8 +125,8 @@ export class TestCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, `Running Tests`, "🌡️")
+  printHeader({ log }) {
+    printHeader(log, `Running Tests`, "🌡️")
   }
 
   maybePersistent({ opts }: PrepareParams<Args, Opts>) {
@@ -138,7 +138,7 @@ export class TestCommand extends Command<Args, Opts> {
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
-    const { garden, log, footerLog, args, opts } = params
+    const { garden, log, args, opts } = params
 
     if (opts.watch) {
       await watchRemovedWarning(garden, log)
@@ -212,6 +212,6 @@ export class TestCommand extends Command<Args, Opts> {
 
     const results = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(garden, footerLog, "test", results)
+    return handleProcessResults(garden, log, "test", results)
   }
 }

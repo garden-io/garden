@@ -246,7 +246,7 @@ ${renderCommands(commands)}
 
     await validateRuntimeRequirementsCached(log, globalConfigStore, checkRequirements)
 
-    command.printHeader({ headerLog: log, args: parsedArgs, opts: parsedOpts })
+    command.printHeader({ log, args: parsedArgs, opts: parsedOpts })
     const sessionId = uuidv4()
 
     // Init Cloud API (if applicable)
@@ -301,8 +301,6 @@ ${renderCommands(commands)}
 
     const prepareParams = {
       log,
-      headerLog: log,
-      footerLog: log,
       args: parsedArgs,
       opts: parsedOpts,
       cloudApi,

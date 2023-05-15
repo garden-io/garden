@@ -86,8 +86,6 @@ describe("PluginsCommand", () => {
     await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { plugin: undefined, command: undefined },
       opts: withDefaultGlobalOpts({}),
     })
@@ -121,8 +119,6 @@ describe("PluginsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { "plugin": "test-plugin-a", "command": "command-a", "--": ["foo"] },
       opts: withDefaultGlobalOpts({}),
     })
@@ -137,8 +133,6 @@ describe("PluginsCommand", () => {
     const result = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { plugin: undefined, command: undefined },
       opts: withDefaultGlobalOpts({ env: "invalid-env" }),
     })

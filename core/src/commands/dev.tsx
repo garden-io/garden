@@ -52,12 +52,12 @@ export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
   arguments = devCommandArgs
   options = devCommandOpts
 
-  printHeader({ headerLog }) {
+  printHeader({ log }) {
     const width = process.stdout?.columns ? process.stdout?.columns - 2 : 100
 
     console.clear()
 
-    headerLog.info(
+    log.info(
       chalk.magenta(`
 ${renderDivider({ color: chalk.green, title: chalk.green.bold("🌳  garden dev 🌳 "), width })}
 

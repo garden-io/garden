@@ -98,8 +98,8 @@ export class LogsCommand extends Command<Args, Opts> {
   arguments = logsArgs
   options = logsOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Logs", "📜")
+  printHeader({ log }) {
+    printHeader(log, "Logs", "📜")
   }
 
   getServerLogger() {

@@ -185,8 +185,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   // Overridden during testing
   _baseReleasesUrl = "https://download.garden.io/core/"
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Update Garden", "🗞️")
+  printHeader({ log }) {
+    printHeader(log, "Update Garden", "🗞️")
   }
 
   async action({

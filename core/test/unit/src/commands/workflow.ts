@@ -43,8 +43,6 @@ describe("RunWorkflowCommand", () => {
       cli: new TestGardenCli(),
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       opts: withDefaultGlobalOpts({}),
     }
   })
@@ -89,8 +87,6 @@ describe("RunWorkflowCommand", () => {
     const _defaultParams = {
       garden: _garden,
       log: _log,
-      headerLog: _log,
-      footerLog: _log,
       opts: withDefaultGlobalOpts({}),
     }
     _garden.setWorkflowConfigs([
@@ -133,8 +129,6 @@ describe("RunWorkflowCommand", () => {
     const _defaultParams = {
       garden: _garden,
       log: _log,
-      headerLog: _log,
-      footerLog: _log,
       opts: withDefaultGlobalOpts({}),
     }
     _garden.setWorkflowConfigs([
@@ -372,8 +366,6 @@ describe("RunWorkflowCommand", () => {
     await cmd.action({
       garden: _garden,
       log,
-      headerLog: log,
-      footerLog: log,
       opts: withDefaultGlobalOpts({}),
       args: { workflow: "workflow-a" },
     })
@@ -1030,8 +1022,6 @@ describe("Lazy provider initialization in RunWorkflowCommand", () => {
       cli: new TestGardenCli(),
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       opts: withDefaultGlobalOpts({}),
     }
   })

@@ -56,7 +56,7 @@ export class SyncStatusCommand extends Command<Args> {
 
     Examples:
         # get all sync statuses
-        garden sync status 
+        garden sync status
 
         # get sync statuses for the 'api' Deploy
         garden sync status api
@@ -70,8 +70,8 @@ export class SyncStatusCommand extends Command<Args> {
 
   outputsSchema = () => joi.object()
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Getting sync statuses", "📟")
+  printHeader({ log }) {
+    printHeader(log, "Getting sync statuses", "📟")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<SyncStatusCommandResult> {
@@ -129,11 +129,12 @@ export class SyncStatusCommand extends Command<Args> {
         })
         syncStatus["syncs"] = sorted
 
-        const styleFn = {
-          "active": chalk.green,
-          "failed": chalk.red,
-          "not-active": chalk.yellow
-        }[syncStatus.state] || chalk.bold.dim
+        const styleFn =
+          {
+            "active": chalk.green,
+            "failed": chalk.red,
+            "not-active": chalk.yellow,
+          }[syncStatus.state] || chalk.bold.dim
 
         log.info(
           `The ${chalk.cyan(action.name)} Deploy has ${chalk.cyan(syncStatus.syncs.length)} syncs(s) configured:`

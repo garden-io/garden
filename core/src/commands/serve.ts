@@ -57,8 +57,8 @@ export class ServeCommand<
   arguments = <A>serveArgs
   options = <O>serveOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Garden API Server", "🌐")
+  printHeader({ log }) {
+    printHeader(log, "Garden API Server", "🌐")
   }
 
   terminate() {

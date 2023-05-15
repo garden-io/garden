@@ -387,9 +387,9 @@ describe("cli", () => {
           return true
         }
 
-        async prepare({ footerLog }: PrepareParams) {
+        async prepare({ log: _log }: PrepareParams) {
           this.server = await startServer({
-            log: footerLog,
+            log: _log,
             defaultProjectRoot: projectRootA,
             manager: new GardenInstanceManager({ log, serveCommand: new ServeCommand() }),
           })
@@ -970,8 +970,7 @@ describe("cli", () => {
   describe("runtime dependency check", () => {
     describe("validateRuntimeRequirementsCached", () => {
       let config: GlobalConfigStore
-      let tmpDir
-      const log = getRootLogger().createLog()
+      let tmpDir: tmp.DirectoryResult
 
       before(async () => {
         tmpDir = await tmp.dir({ unsafeCleanup: true })

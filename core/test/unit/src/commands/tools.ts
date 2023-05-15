@@ -110,8 +110,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { tool: undefined },
       opts: withDefaultGlobalOpts({ "get-path": false }),
     })
@@ -164,8 +162,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { "tool": "tool", "--": ["0"] },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
@@ -181,8 +177,6 @@ describe("ToolsCommand", () => {
         command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { "tool": "51616ok3xnnz....361.2362&123", "--": ["0"] },
           opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
         }),
@@ -199,8 +193,6 @@ describe("ToolsCommand", () => {
         command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { "tool": "bla.tool", "--": ["0"] },
           opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
         }),
@@ -214,8 +206,6 @@ describe("ToolsCommand", () => {
         command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { "tool": "bla", "--": ["0"] },
           opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
         }),
@@ -233,8 +223,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden: _garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { "tool": "tool", "--": ["0"] },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
@@ -248,8 +236,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { "tool": "test-b.tool", "--": ["0"] },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
@@ -263,8 +249,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { tool: "test-a.lib" },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
@@ -279,8 +263,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { tool: "test-a.tool" },
       opts: withDefaultGlobalOpts({ "get-path": true, "output": "json" }),
     })
@@ -295,8 +277,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { "tool": "tool", "--": ["1"] },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })

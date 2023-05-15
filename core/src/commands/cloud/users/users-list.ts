@@ -43,8 +43,8 @@ export class UsersListCommand extends Command<{}, Opts> {
 
   options = usersListOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "List users", "💁‍♀️")
+  printHeader({ log }) {
+    printHeader(log, "List users", "💁‍♀️")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<UserResult[]>> {

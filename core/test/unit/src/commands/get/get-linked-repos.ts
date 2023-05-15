@@ -39,8 +39,6 @@ describe("GetLinkedReposCommand", () => {
       await linkSourceCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { source: sourceName, path: join(sourcesDir, sourceName) },
         opts: withDefaultGlobalOpts({}),
       })
@@ -50,8 +48,6 @@ describe("GetLinkedReposCommand", () => {
     const results = await getLinkedReposCommand.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -73,8 +69,6 @@ describe("GetLinkedReposCommand", () => {
       await linkModuleCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { action: key, path: join(sourcesDir, key) },
         opts: withDefaultGlobalOpts({}),
       })
@@ -84,8 +78,6 @@ describe("GetLinkedReposCommand", () => {
     const results = await getLinkedReposCommand.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -107,8 +99,6 @@ describe("GetLinkedReposCommand", () => {
       await linkModuleCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { module: moduleName, path: join(sourcesDir, moduleName) },
         opts: withDefaultGlobalOpts({}),
       })
@@ -118,8 +108,6 @@ describe("GetLinkedReposCommand", () => {
     const results = await getLinkedReposCommand.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })

@@ -37,8 +37,8 @@ export class UsersDeleteCommand extends Command<Args> {
 
   arguments = usersDeleteArgs
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Delete users", "🔒")
+  printHeader({ log }) {
+    printHeader(log, "Delete users", "🔒")
   }
 
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {

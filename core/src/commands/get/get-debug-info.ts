@@ -258,8 +258,8 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
   arguments = debugInfoArguments
   options = debugInfoOptions
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Get debug info", "information_source")
+  printHeader({ log }) {
+    printHeader(log, "Get debug info", "information_source")
   }
 
   async action({ garden, log, opts }: CommandParams<Args, Opts>) {

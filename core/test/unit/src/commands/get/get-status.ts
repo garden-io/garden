@@ -179,8 +179,6 @@ describe("GetStatusCommand", () => {
         log,
         args: {},
         opts: withDefaultGlobalOpts({}),
-        headerLog: log,
-        footerLog: log,
       })
 
       const logMessages = getLogMessages(log, (l) => l.level === LogLevel.warn)

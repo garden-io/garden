@@ -22,8 +22,6 @@ describe("GetModulesCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { modules: undefined },
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "full": false }),
     })
@@ -45,8 +43,6 @@ describe("GetModulesCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { modules: undefined },
       opts: withDefaultGlobalOpts({ "exclude-disabled": true, "full": false }),
     })
@@ -64,8 +60,6 @@ describe("GetModulesCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { modules: ["module-a"] },
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "full": false }),
     })

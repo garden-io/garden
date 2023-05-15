@@ -47,8 +47,6 @@ describe("GetRunResultCommand", () => {
         await command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { name },
           opts: withDefaultGlobalOpts({}),
         }),
@@ -77,8 +75,6 @@ describe("GetRunResultCommand", () => {
     const res = await command.action({
       garden,
       log,
-      footerLog: log,
-      headerLog: log,
       args: { name },
       opts: withDefaultGlobalOpts({}),
     })
@@ -123,8 +119,6 @@ describe("GetRunResultCommand", () => {
     const res = await command.action({
       garden,
       log,
-      footerLog: log,
-      headerLog: log,
       args: { name },
       opts: withDefaultGlobalOpts({}),
     })
@@ -141,8 +135,6 @@ describe("GetRunResultCommand", () => {
     const res = await command.action({
       garden,
       log,
-      footerLog: log,
-      headerLog: log,
       args: { name },
       opts: withDefaultGlobalOpts({}),
     })

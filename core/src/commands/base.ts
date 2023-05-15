@@ -56,12 +56,10 @@ export interface CommandParamsBase<T extends Parameters = {}, U extends Paramete
 
 export interface PrintHeaderParams<T extends Parameters = {}, U extends Parameters = {}>
   extends CommandParamsBase<T, U> {
-  headerLog: Log
+  log: Log
 }
 
 export interface PrepareParams<T extends Parameters = {}, U extends Parameters = {}> extends CommandParamsBase<T, U> {
-  headerLog: Log
-  footerLog: Log
   log: Log
   commandLine?: CommandLine
 }
@@ -296,8 +294,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
           garden,
           cli,
           log,
-          footerLog: log,
-          headerLog: log,
           args,
           opts: allOpts,
         })
