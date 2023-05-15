@@ -23,6 +23,10 @@ export const deline = _deline
 export const urlJoin = _urlJoin as (...args: string[]) => string
 export const stableStringify = _stableStringify
 
+// helper to enforce annotating images that we bundle with
+// Garden to include the sha256 digest for extra security.
+export type DockerImageWithDigest = `${string}:${string}@sha256:${string}`
+
 const gardenAnnotationPrefix = "garden.io/"
 
 export type GardenAnnotationKey =

@@ -217,7 +217,8 @@ providers:
       extraFlags:
 
       # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
-      image: 'gcr.io/kaniko-project/executor:v1.8.1-debug'
+      image: >-
+  gcr.io/kaniko-project/executor:v1.8.1-debug@sha256:3bc3f3a05f803cac29164ce12617a7be64931748c944f6c419565f500b65e8db
 
       # Choose the namespace where the Kaniko pods will be run. Defaults to the project namespace.
       namespace:
@@ -953,9 +954,9 @@ Specify extra flags to use when building the container image with kaniko. Flags 
 
 Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
 
-| Type     | Default                                         | Required |
-| -------- | ----------------------------------------------- | -------- |
-| `string` | `"gcr.io/kaniko-project/executor:v1.8.1-debug"` | No       |
+| Type     | Default                                                                                                                 | Required |
+| -------- | ----------------------------------------------------------------------------------------------------------------------- | -------- |
+| `string` | `"gcr.io/kaniko-project/executor:v1.8.1-debug@sha256:3bc3f3a05f803cac29164ce12617a7be64931748c944f6c419565f500b65e8db"` | No       |
 
 ### `providers[].kaniko.namespace`
 

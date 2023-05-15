@@ -14,7 +14,7 @@ import { ModuleActionHandlers } from "../../plugin/plugin"
 import { makeTempDir } from "../../util/fs"
 import { KubeApi } from "./api"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
-import { buildkitDeploymentName, ensureBuildkit } from "./container/build/buildkit"
+import { ensureBuildkit } from "./container/build/buildkit"
 import { ensureUtilDeployment, syncToBuildSync, utilContainerName, utilDeploymentName } from "./container/build/common"
 import { loadToLocalK8s } from "./container/build/local"
 import { containerHandlers } from "./container/handlers"
@@ -24,6 +24,7 @@ import { getRunningDeploymentPod } from "./util"
 import { BuildActionExtension, BuildActionParams } from "../../plugin/action-types"
 import { ContainerBuildAction } from "../container/config"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../constants"
+import { buildkitDeploymentName } from "./constants"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
   ...containerHandlers,

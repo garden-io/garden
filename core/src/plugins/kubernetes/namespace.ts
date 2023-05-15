@@ -29,10 +29,10 @@ import AsyncLock from "async-lock"
 const GARDEN_VERSION = getPackageVersion()
 
 interface NamespaceCacheForProvider {
-    [namespaceName: string]: {
-      status: "pending" | "created"
-      resource?: KubernetesServerResource<V1Namespace>
-    }
+  [namespaceName: string]: {
+    status: "pending" | "created"
+    resource?: KubernetesServerResource<V1Namespace>
+  }
 }
 
 // TODO: Provide a cache via the `PluginContext` instead. Let's think about that once we have 1-2 more
@@ -212,7 +212,11 @@ export async function getSystemNamespace(
   return namespace.name
 }
 
-export async function getAppNamespace(ctx: KubernetesPluginContext, log: Log, provider: KubernetesProvider): Promise<string> {
+export async function getAppNamespace(
+  ctx: KubernetesPluginContext,
+  log: Log,
+  provider: KubernetesProvider
+): Promise<string> {
   const status = await getNamespaceStatus({
     log,
     ctx,
