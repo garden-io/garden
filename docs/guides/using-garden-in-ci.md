@@ -64,11 +64,6 @@ You'll find the rest of the config [here](https://github.com/garden-io/ci-demo-p
 
 We need to make sure that it can access our remote cluster. We do this by setting up a [kubectl context](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/) on the CI agent. How you set this up will vary by how and where you have deployed your cluster. What follows is specific to GKE.
 
-Note: Below we use the `gardendev/garden-gcloud` container image, that extends the standard
-`gardendev/garden` image to bundle the `gcloud` binary. You could also add an installation step to install `gcloud`
-(or any other binaries needed for your setup), or you could fashion your own container image to save time when testing.
-_(You're also more than welcome to ask us to add another pre-packaged container to our release pipeline :))_
-
 We create a re-usable command for configuring the kubectl context:
 
 ```yaml
@@ -101,6 +96,10 @@ You'll find the entire CircleCI config for this project
 
 Now that we have everything set up, we can [add the project](https://circleci.com/docs/2.0/getting-started/#setting-up-your-build-on-circleci) to CircleCI and start using Garden in our CI pipelines.
 
+Note: Below we use the `gardendev/garden-gcloud` container image, that extends the standard
+`gardendev/garden` image to bundle the `gcloud` binary (Google Cloud CLI).
+For an overview of all official Garden convenience containers, please refer to [the reference guide for DockerHub containers](../reference/dockerhub-containers.md).
+
 Here's what our preview job looks like:
 
 ```yaml
@@ -110,7 +109,7 @@ jobs:
     docker:
       - image: gardendev/garden-gcloud:bonsai-alpine
     environment:
-      GARDEN_LOG_LEVEL: debug # set the log level to your preference here
+      GARDEN_LOG_LEVEL: verbose # set the log level to your preference here
     steps:
       - checkout
       - configure_kubectl_context
