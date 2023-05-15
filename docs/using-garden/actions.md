@@ -12,7 +12,7 @@ add after creating the project-level configuration.
 
 There are 4 different _kinds_ of the actions supported by Garden:
 
-* `Build` action to _build_ something, e,g, an application container. It is a replacement for [module](./modules.md)
+* `Build` action to _build_ something, e.g. a Docker container. It is a replacement for [module](./modules.md)
   -based build configuration.
 * `Deploy` action to _deploy_ something, e.g. a built and configured application container. It is a replacement for old
   module-based [services](./services.md) configuration.
@@ -259,12 +259,12 @@ disabled: ${environment.name == "prod"}
 image: postgres:11.7-alpine
 ```
 
-Note, however, that if a disabled action is referenced as a _build_ dependency of another action, the action will still
-be built when needed, to ensure the dependant action can be built as expected.
+If a disabled action is referenced as a _build_ dependency of another action it will still
+be executed to ensure the dependant action can be built as expected.
 
-For other action kinds, the action is skipped in all scenarios, and dependency declarations to it are ignored. Note
-however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the action is
-disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional
+Disabled actions are skipped with other action kinds and dependency declarations to them are ignored.
+Template strings referencing runtime outputs will fail to resolve when the action is
+disabled, so you need to make sure to provide alternate values for them using conditional
 expressions.
 
 See the [disabled-config example](../../examples/disabled-configs) for more details.
