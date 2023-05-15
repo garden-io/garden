@@ -171,12 +171,10 @@ You can also use [.gardenignore file](./configuration-overview.md#ignore-file), 
 files across your project. You can place them in your project root, in action roots, and even in individual
 sub-directories of actions.
 
-[//]: # (TODO: Review this and correct/remove if necessary. This seems to be unnecessary for actions.)
-**TODO: Review this and correct/remove if necessary. This seems to be unnecessary for actions.**
 {% hint style="warning" %}
-Note that you **must** use the `include` and/or `exclude` directives (described above) when module paths overlap. This
-is to help users steer away from subtle bugs that can occur when modules unintentionally consume source files from other
-modules. See the next section for details on including and excluding files.
+Note that you **must** use the `include` and/or `exclude` directives (described above) when action paths overlap. This
+is to help users steer away from subtle bugs that can occur when actions unintentionally consume source files from other
+actions. See the next section for details on including and excluding files.
 {% endhint %}
 
 ## Actions in the Stack Graph
