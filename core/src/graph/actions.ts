@@ -233,6 +233,24 @@ export async function actionFromConfig({
 
   if (!actionTypes[config.kind][config.type]) {
     const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
+    const availableKinds: ActionKind[] = []
+    actionKinds.forEach((actionKind) => {
+      if (actionTypes[actionKind][config.type]) {
+        availableKinds.push(actionKind)
+      }
+    })
+
+    if (availableKinds.length > 0) {
+      throw new ConfigurationError(
+        deline`
+        Unrecognized ${config.type} action of kind ${config.kind} (defined at ${configPath}).
+        There are no ${config.type} ${config.kind} actions, did you mean to specify a ${naturalList(availableKinds, {
+          trailingWord: "or a",
+        })} action(s)?
+        `,
+        { config, configuredActionTypes: Object.keys(actionTypes) }
+      )
+    }
 
     throw new ConfigurationError(
       deline`
