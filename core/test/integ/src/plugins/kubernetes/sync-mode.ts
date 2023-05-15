@@ -25,7 +25,7 @@ import {
 } from "../../../../../src/plugins/kubernetes/sync"
 import { HelmModuleConfig } from "../../../../../src/plugins/kubernetes/helm/module-config"
 import { KubernetesModuleConfig } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config"
-import { TestGarden } from "../../../../helpers"
+import { TestGarden, cleanProject } from "../../../../helpers"
 import { ContainerDeployActionConfig } from "../../../../../src/plugins/container/moduleConfig"
 import { resolveAction } from "../../../../../src/graph/actions"
 import { DeployTask } from "../../../../../src/tasks/deploy"
@@ -63,11 +63,12 @@ describe("sync mode deployments and sync behavior", () => {
       await garden.close()
       const dataDir = join(garden.gardenDirPath, MUTAGEN_DIR_NAME)
       await getMutagenMonitor({ log: garden.log, dataDir }).stop()
+      await cleanProject(garden.gardenDirPath)
     }
   })
 
   const init = async (environmentName: string) => {
-    garden = await getContainerTestGarden(environmentName)
+    garden = await getContainerTestGarden(environmentName, { noTempDir: true})
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,
