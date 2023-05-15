@@ -203,8 +203,11 @@ export const baseActionConfigSchema = createSchema({
       .meta({ templateContext: ActionConfigContext }),
 
     // No default here by intention.
-    // Each action kind must override this and define own timeout and its description.
-    timeout: joi.number().integer().required().description("Set a timeout for the action, in seconds."),
+    // Each action kind must override this, declare it as required, and define own timeout and description.
+    // FIXME: this is an ugly hack.
+    //  Making it .required() will break the `augmentGraph ResolvedActionHandlerDescription`.
+    //  See the FIXME-comment in core/src/plugin/handlers/Provider/augmentGraph.ts.
+    timeout: joi.number().integer().optional().description("Set a timeout for the action, in seconds."),
 
     // Variables
     variables: joiVariables()
