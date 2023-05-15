@@ -77,6 +77,13 @@ export async function ensureNamespace(
         }
         if (n.metadata.name === namespace.name) {
           result.remoteResource = n
+          if (n.status.phase === "Terminating") {
+            throw new KubernetesError(
+              dedent`Namespace "${n.metadata.name}" is in "Terminating" state so Garden is unable to create it.
+            Please try again once the namespace has terminated.`,
+              {}
+            )
+          }
         }
       }
 
