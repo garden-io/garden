@@ -16,6 +16,7 @@ import uniqid from "uniqid"
 import chalk from "chalk"
 import { GardenError } from "../exceptions"
 import hasAnsi from "has-ansi"
+import { omitUndefined } from "../util/objects"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
@@ -184,6 +185,7 @@ export function createActionLog({
     root: log.root,
     fixLevel,
     context: {
+      ...omitUndefined(log.context),
       type: "actionLog",
       origin,
       actionName,

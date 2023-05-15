@@ -300,6 +300,19 @@ describe("ActionLog", () => {
         ],
       })
     })
+
+    it("inherits context from input log", () => {
+      log.context.sessionId = "foo"
+      const actionLog = createActionLog({
+        log,
+        origin: "origin",
+        actionName: "api",
+        actionKind: "build",
+        fixLevel: LogLevel.verbose,
+      })
+      expect(actionLog.context.sessionId).to.equal("foo")
+    })
+
     it("should ensure child log inherits config", () => {
       const timestamp = freezeTime().toISOString()
       const actionLog = createActionLog({
