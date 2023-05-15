@@ -3517,7 +3517,7 @@ Get the current status of the configured syncs for this project.
 
 Examples:
     # get all sync statuses
-    garden sync status 
+    garden sync status
 
     # get sync statuses for the 'api' Deploy
     garden sync status api
