@@ -52,7 +52,7 @@ import {
   resolveTemplateString,
   resolveTemplateStrings,
 } from "../template-string/template-string"
-import { dedent, naturalList } from "../util/string"
+import { dedent, deline, naturalList } from "../util/string"
 import { resolveVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
@@ -61,6 +61,7 @@ import type { MaybeUndefined } from "../util/util"
 import minimatch from "minimatch"
 import { ConfigContext } from "../config/template-contexts/base"
 import { LinkedSource, LinkedSourceMap } from "../config-store/local"
+import { relative } from "path"
 
 export async function actionConfigsToGraph({
   garden,
@@ -228,6 +229,18 @@ export async function actionFromConfig({
     if (linkedSources[key]) {
       linked = linkedSources[key]
     }
+  }
+
+  if (!actionTypes[config.type]) {
+    const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
+
+    throw new ConfigurationError(
+      deline`
+      Unrecognized action type '${config.type}' (defined at ${configPath}).
+      Are you missing a provider configuration?
+      `,
+      { config, configuredActionTypes: Object.keys(actionTypes) }
+    )
   }
 
   const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
