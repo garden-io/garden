@@ -12,14 +12,19 @@ add after creating the project-level configuration.
 
 There are 4 different _kinds_ of the actions supported by Garden:
 
-* `Build` action to _build_ something, e,g, an application container. It is a replacement for [module](./modules.md)-based build configuration.
-* `Deploy` action to _deploy_ something, e.g. a built and configured application container. It is a replacement for old module-based [services](./services.md) configuration.
-* `Run` action to _run_ something, e.g. some custom scripts. It is a replacement for old module-based [tasks](./tasks.md) configuration.
-* `Test` action to _test_ something, e.g. run a single application's test suite. It is a replacement for old module-based [test](./tests.md) configuration.
+* `Build` action to _build_ something, e,g, an application container. It is a replacement for [module](./modules.md)
+  -based build configuration.
+* `Deploy` action to _deploy_ something, e.g. a built and configured application container. It is a replacement for old
+  module-based [services](./services.md) configuration.
+* `Run` action to _run_ something, e.g. some custom scripts. It is a replacement for old
+  module-based [tasks](./tasks.md) configuration.
+* `Test` action to _test_ something, e.g. run a single application's test suite. It is a replacement for old
+  module-based [test](./tests.md) configuration.
 
 Generally, a Garden project may contain multiple _components_ like applications, databases, etc.
 Each component can have multiple actions. For example, a single application can have different build and deployment
-scenarios (`Build` snd `Deploy` actions), multiple test suites (`Test` actions), and various helper scripts (`Run` actions).
+scenarios (`Build` snd `Deploy` actions), multiple test suites (`Test` actions), and various helper scripts (`Run`
+actions).
 
 Each action can be defined in it's own Garden configuration file, but for the sake of simplicity and maintainability it
 might be easier to have one `garden.yml` configuration file per project's component.
@@ -254,11 +259,8 @@ disabled: ${environment.name == "prod"}
 image: postgres:11.7-alpine
 ```
 
-[//]: # (TODO: Review this and correct if necessary)
-**TODO: Review this and correct if necessary**
-Disabling a module disables all services, tasks and tests defined in the module.
-Note, however, that if a disabled module is referenced as a build dependency of another module, the module will still be
-built when needed, to ensure the dependant module can be built as expected.
+Note, however, that if a disabled action is referenced as a _build_ dependency of another action, the action will still
+be built when needed, to ensure the dependant action can be built as expected.
 
 See the [disabled-config example](../../examples/disabled-configs) for more details.
 
