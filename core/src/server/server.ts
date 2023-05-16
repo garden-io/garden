@@ -149,13 +149,30 @@ export class GardenServer extends EventEmitter {
 
     const hostname = gardenEnv.GARDEN_SERVER_HOSTNAME || "localhost"
 
+    const _start = async () => {
+      // TODO: pipe every event
+      return new Promise<void>((resolve, reject) => {
+        this.server = this.app.listen(this.port, hostname)
+        this.server.on("error", (error) => {
+          this.emit("error", error)
+          reject(error)
+        })
+        this.server.on("close", () => {
+          this.emit("close")
+        })
+        this.server.once("listening", () => {
+          resolve()
+        })
+      })
+    }
+
     if (this.port) {
-      this.server = this.app.listen(this.port, hostname)
+      await _start()
     } else {
       do {
         try {
           this.port = await getPort({ port: defaultWatchServerPort })
-          this.server = this.app.listen(this.port, hostname)
+          await _start()
         } catch {}
       } while (!this.server)
     }
@@ -168,11 +185,6 @@ export class GardenServer extends EventEmitter {
         serverAuthKey: this.authKey,
       })
     }
-
-    // TODO: pipe every event
-    this.server.on("close", () => {
-      this.emit("close")
-    })
 
     this.log.info("")
     this.statusLog = this.log.createLog()
@@ -286,9 +298,8 @@ export class GardenServer extends EventEmitter {
       await command.prepare(prepareParams)
 
       const result = await command.run({
+        ...prepareParams,
         garden,
-        args,
-        opts,
         sessionId: uuidv4(),
         nested: true,
       })
@@ -561,9 +572,8 @@ export class GardenServer extends EventEmitter {
             }
 
             return command.run({
+              ...prepareParams,
               garden,
-              args,
-              opts,
               sessionId: requestId,
               nested: true,
             })

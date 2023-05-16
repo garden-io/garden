@@ -679,8 +679,8 @@ ${chalk.white.underline("Keys:")}
 
     // Execute the command
     if (!command.isDevCommand) {
-      this.flashMessage(getCmdStartMsg(rawArgs.join(" ")))
-      logCommandStart({ commandName: name, width, log: this.log })
+      this.flashMessage(getCmdStartMsg(name))
+      logCommandStart({ commandName: rawArgs.join(" "), width, log: this.log })
       this.runningCommands[id] = { command, params: prepareParams }
       this.renderStatus()
     }

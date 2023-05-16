@@ -66,17 +66,12 @@ export interface PrepareParams<T extends Parameters = {}, U extends Parameters =
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
   cli?: GardenCli
-  bufferedEventStream?: BufferedEventStream
   garden: Garden
 }
 
-export interface RunCommandParams<A extends Parameters = {}, O extends Parameters = {}> {
-  garden: Garden
-  args: ParameterValues<A> & BuiltinArgs
-  opts: ParameterValues<O & Partial<GlobalOptions>>
+export interface RunCommandParams<A extends Parameters = {}, O extends Parameters = {}> extends CommandParams<A, O> {
   sessionId: string
   nested: boolean // Set to true if running in dev command or WS server
-  cli?: GardenCli
 }
 
 type DataCallback = (data: string) => void
@@ -184,6 +179,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     args,
     opts,
     cli,
+    commandLine,
     sessionId,
     nested,
   }: RunCommandParams<A, O>): Promise<CommandResult<R>> {
@@ -296,6 +292,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
           log,
           args,
           opts: allOpts,
+          commandLine,
         })
         log.silly(`Completed command '${this.getFullName()}' action successfully`)
       } else {
