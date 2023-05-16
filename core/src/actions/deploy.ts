@@ -29,7 +29,7 @@ export const deployActionConfigSchema = memoize(() =>
       .integer()
       .min(1)
       .default(DEFAULT_DEPLOY_TIMEOUT_SEC)
-      .description("Set a timeout for the deploy to complete, in seconds."),
+      .description("Timeout for the deploy to complete, in seconds."),
   })
 )
 

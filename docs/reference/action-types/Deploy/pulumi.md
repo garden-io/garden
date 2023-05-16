@@ -154,7 +154,7 @@ build:
 
 kind:
 
-# Set a timeout for the deploy to complete, in seconds.
+# Timeout for the deploy to complete, in seconds.
 timeout: 300
 
 spec:
@@ -486,7 +486,7 @@ This would mean that instead of looking for manifest files relative to this acti
 
 ### `timeout`
 
-Set a timeout for the deploy to complete, in seconds.
+Timeout for the deploy to complete, in seconds.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
