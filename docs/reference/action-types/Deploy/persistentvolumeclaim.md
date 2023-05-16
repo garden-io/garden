@@ -152,6 +152,9 @@ build:
 
 kind:
 
+# Timeout for the deploy to complete, in seconds.
+timeout: 300
+
 spec:
   # A list of access modes supported by the volume when mounting. At least one must be specified. The available modes
   # are as follows:
@@ -441,6 +444,14 @@ This would mean that instead of looking for manifest files relative to this acti
 | Type     | Allowed Values | Required |
 | -------- | -------------- | -------- |
 | `string` | "Deploy"       | Yes      |
+
+### `timeout`
+
+Timeout for the deploy to complete, in seconds.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
 
 ### `spec`
 

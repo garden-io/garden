@@ -14,7 +14,7 @@ describe("BuildAction", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
     // test-project-a uses module configs, so they'll be run through the module conversion process to generate actions,
-    // which is exacly what we need here.
+    // which is exactly what we need here.
     const graph = await garden.getConfigGraph({ log, emit: false })
     const moduleA = graph.getModule("module-a")
     const buildA = graph.getBuild("module-a")

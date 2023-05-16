@@ -23,7 +23,7 @@ import {
   warningStyle,
 } from "../../../../src/logger/renderers"
 import { GardenError } from "../../../../src/exceptions"
-import dedent = require("dedent")
+
 import { createActionLog, TaskMetadata } from "../../../../src/logger/log-entry"
 import logSymbols = require("log-symbols")
 import stripAnsi = require("strip-ansi")

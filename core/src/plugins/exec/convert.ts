@@ -33,6 +33,7 @@ export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>):
       buildAtSource: module.spec.local,
       dependencies: module.build.dependencies.map(convertBuildDependency),
 
+      timeout: module.build.timeout,
       spec: {
         shell: true, // This keeps the old pre-0.13 behavior
         command: module.spec.build?.command,
@@ -101,6 +102,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       disabled: service.disabled,
       build: buildAction ? buildAction.name : undefined,
       dependencies: prepRuntimeDeps(service.spec.dependencies),
+      timeout: service.spec.timeout,
 
       spec: {
         shell: true, // This keeps the old pre-0.13 behavior
@@ -109,7 +111,6 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
         deployCommand,
         statusCommand,
         statusTimeout: service.spec.syncMode?.timeout || defaultStatusTimeout,
-        timeout: service.spec.timeout,
         env: prepareEnv(service.spec.env),
       },
     })

@@ -152,23 +152,24 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
     dependencies: spec.dependencies,
     disabled: spec.disabled,
     sourceModuleName: spec.sourceModuleName,
+    timeout: spec.timeout,
     spec,
   }))
 
-  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
-    name: t.name,
-    dependencies: t.dependencies,
-    disabled: t.disabled,
-    spec: t,
-    timeout: t.timeout,
+  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((spec) => ({
+    name: spec.name,
+    dependencies: spec.dependencies,
+    disabled: spec.disabled,
+    timeout: spec.timeout,
+    spec,
   }))
 
-  moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
-    name: t.name,
-    dependencies: t.dependencies,
-    disabled: t.disabled,
-    spec: t,
-    timeout: t.timeout,
+  moduleConfig.testConfigs = moduleConfig.spec.tests.map((spec) => ({
+    name: spec.name,
+    dependencies: spec.dependencies,
+    disabled: spec.disabled,
+    timeout: spec.timeout,
+    spec,
   }))
 
   return { moduleConfig }

@@ -21,6 +21,7 @@ import { Executed } from "../../../../../src/actions/types"
 import { BuildActionConfig } from "../../../../../src/actions/build"
 import { containerHelpers, minDockerVersion } from "../../../../../src/plugins/container/helpers"
 import { getDockerBuildFlags } from "../../../../../src/plugins/container/build"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants"
 
 const testVersionedId = "some/image:12345"
 
@@ -31,6 +32,7 @@ describe("plugins.container", () => {
     name: "test",
     kind: "Build",
     type: "container",
+    timeout: DEFAULT_BUILD_TIMEOUT_SEC,
     internal: { basePath: "." },
     allowPublish: false,
     spec: {

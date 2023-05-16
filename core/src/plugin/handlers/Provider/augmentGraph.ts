@@ -48,6 +48,7 @@ export const augmentGraph = () => ({
   `,
   paramsSchema: projectActionParamsSchema().keys({
     // allow unknown because BaseAction-s are passed not BaseActionConfigs
+    // FIXME: consider fixing this by passing the values of a correct type
     actions: joiArray(baseActionConfigSchema().unknown(true)).description(
       dedent`
           A list of all previously defined actions in the project, including all actions added by any \`augmentGraph\`

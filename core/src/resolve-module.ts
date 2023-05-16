@@ -797,6 +797,7 @@ export function makeDummyBuild({
     allowPublish: module.allowPublish,
     dependencies,
 
+    timeout: module.build.timeout,
     spec: {
       env: {},
     },

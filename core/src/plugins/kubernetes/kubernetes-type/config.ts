@@ -40,7 +40,6 @@ export interface KubernetesTypeCommonDeploySpec {
   manifests: KubernetesResource[]
   namespace?: string
   portForwards?: PortForwardSpec[]
-  timeout: number
 }
 
 export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySpec {
@@ -101,12 +100,14 @@ export const kubernetesDeploySchema = () =>
 export interface KubernetesRunOutputs {
   log: string
 }
+
 export const kubernetesRunOutputsSchema = () => containerRunOutputSchema()
 
 export type KubernetesRunActionConfig = KubernetesPodRunActionConfig | KubernetesExecRunActionConfig
 export type KubernetesRunAction = KubernetesPodRunAction | KubernetesExecRunAction
 
 export interface KubernetesTestOutputs extends KubernetesRunOutputs {}
+
 export const kubernetesTestOutputsSchema = () => kubernetesRunOutputsSchema()
 
 export type KubernetesTestActionConfig = KubernetesPodTestActionConfig | KubernetesExecTestActionConfig

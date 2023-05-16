@@ -76,6 +76,7 @@ export const gardenPlugin = () =>
                 internal: {
                   basePath: action.basePath(),
                 },
+                timeout: action.getConfig().timeout,
                 spec: {
                   policyPath,
                   namespace: provider.config.namespace,
@@ -94,6 +95,7 @@ export const gardenPlugin = () =>
                 internal: {
                   basePath: action.basePath(),
                 },
+                timeout: action.getConfig().timeout,
                 spec: {
                   policyPath,
                   namespace: provider.config.namespace,

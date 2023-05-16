@@ -329,7 +329,7 @@ describe("getModuleVersionString", () => {
     const garden = await makeTestGarden(projectRoot, { noCache: true })
     const module = await garden.resolveModule("module-a")
 
-    const fixedVersionString = "v-15dac6739d"
+    const fixedVersionString = "v-d3e58c6cb9"
     expect(module.version.versionString).to.eql(fixedVersionString)
 
     delete process.env.TEST_ENV_VAR
@@ -496,6 +496,7 @@ describe("helpers", () => {
       name: "build-action",
       spec: {},
       type: "",
+      timeout: DEFAULT_BUILD_TIMEOUT_SEC,
     }
 
     it("getConfigFilePath", () => {
