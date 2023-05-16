@@ -59,17 +59,56 @@ describe("command helpers", () => {
       )
     })
 
-    it("should log a warning if no actions are found using wildcards", async () => {
-      const log = logger.createLog()
+    it("should throw an error if no actions are found using wildcards", async () => {
+      await expectError(
+        () =>
+          validateActionSearchResults({
+            actionKind: "Build",
+            actions: [],
+            log: logger.createLog(),
+            names: ["foo*"],
+            errData: {},
+          }),
+        { contains: "No Build actions were found" }
+      )
+    })
+
+    it("should contain arguments in error message", async () => {
+      await expectError(
+        () =>
+          validateActionSearchResults({
+            actionKind: "Build",
+            actions: [],
+            log: logger.createLog(),
+            names: ["foo*"],
+            errData: {},
+          }),
+        { contains: "(matching argument(s) 'foo*')" }
+      )
+    })
+
+    it("should log a warning of no names are provided and no actions are found", async () => {
+      let log = logger.createLog()
       validateActionSearchResults({
         actionKind: "Build",
         actions: [],
         log,
-        names: ["foo*"],
+        names: undefined,
         errData: {},
       })
 
-      expect(log.entries[0].msg?.includes("asd"))
+      expect(log.entries[0].msg?.includes("No Build actions were found. Aborting.")).to.eql(true)
+
+      log = logger.createLog()
+      validateActionSearchResults({
+        actionKind: "Build",
+        actions: [],
+        log,
+        names: [],
+        errData: {},
+      })
+
+      expect(log.entries[0].msg?.includes("No Build actions were found. Aborting.")).to.eql(true)
     })
   })
 })

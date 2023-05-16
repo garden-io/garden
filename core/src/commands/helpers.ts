@@ -96,6 +96,11 @@ export const validateActionSearchResults = ({
   errData: any
   actionKind: ActionKind
 }): { shouldAbort: boolean } => {
+  if (actions.length === 0 && (!names || names.length === 0)) {
+    log.warn(`No ${actionKind} actions were found. Aborting.`)
+    return { shouldAbort: true }
+  }
+
   names?.forEach((n) => {
     if (!isGlob(n) && !actions.find((a) => a.name === n)) {
       throw new ParameterError(`${actionKind} action "${n}" was not found.`, { ...errData })
@@ -107,10 +112,7 @@ export const validateActionSearchResults = ({
     if (names) {
       argumentsMsg = ` (matching argument(s) ${naturalList(names.map((n) => `'${n}'`))})`
     }
-    log.warn({
-      msg: `No ${actionKind} actions found${argumentsMsg}. Aborting.`,
-    })
-    return { shouldAbort: true }
+    throw new ParameterError(`No ${actionKind} actions were found${argumentsMsg}.`, { errData })
   }
   return { shouldAbort: false }
 }
