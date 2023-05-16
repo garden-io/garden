@@ -123,7 +123,7 @@ describe("DeployCommand", () => {
     "logs": false,
     "timestamps": false,
     "port": defaultServerPort,
-    "cmd": undefined
+    "cmd": undefined,
   })
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
@@ -199,7 +199,7 @@ describe("DeployCommand", () => {
       args: {
         names: ["service-b"],
       },
-      opts: defaultDeployOpts
+      opts: defaultDeployOpts,
     })
 
     if (errors) {
@@ -241,7 +241,7 @@ describe("DeployCommand", () => {
         opts: {
           ...defaultDeployOpts,
           "skip-dependencies": true,
-        }
+        },
       })
 
       if (errors) {
@@ -336,7 +336,7 @@ describe("DeployCommand", () => {
       },
       opts: {
         ...defaultDeployOpts,
-        "skip": ["service-b"],
+        skip: ["service-b"],
       },
     })
 
@@ -379,7 +379,7 @@ describe("DeployCommand", () => {
         opts: {
           ...defaultDeployOpts,
           "local-mode": [],
-        }
+        },
       })
       expect(persistent).to.be.true
     })
@@ -397,7 +397,7 @@ describe("DeployCommand", () => {
         opts: {
           ...defaultDeployOpts,
           forward: true,
-        }
+        },
       })
       expect(persistent).to.be.true
     })

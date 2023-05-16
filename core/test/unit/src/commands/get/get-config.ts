@@ -497,7 +497,7 @@ describe("GetConfigCommand", () => {
       })
 
       const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
-      const actualEnabledServiceConfig = res.result?.moduleConfigs[0].serviceConfigs[0];
+      const actualEnabledServiceConfig = res.result?.moduleConfigs[0].serviceConfigs[0]
       const expectedEnabledServiceConfig = expectedModuleConfigs[0].serviceConfigs.filter((s) => !s.disabled)[0]
 
       expect(actualEnabledServiceConfig).to.deep.equal(expectedEnabledServiceConfig)

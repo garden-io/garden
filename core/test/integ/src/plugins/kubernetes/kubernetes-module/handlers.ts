@@ -75,7 +75,7 @@ describe("kubernetes-module handlers", () => {
     garden = await getKubernetesTestGarden()
     moduleConfigBackup = await garden.getRawModuleConfigs()
     log = garden.log
-    actionLog = createActionLog({ log: log, actionName: "", actionKind: "" })
+    actionLog = createActionLog({ log, actionName: "", actionKind: "" })
     const provider = <KubernetesProvider>await garden.resolveProvider(log, "local-kubernetes")
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
