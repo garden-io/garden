@@ -5,9 +5,9 @@ order: 1
 
 # Quickstart Guide
 
-In this quickstart guide we'll install Garden and deploy an example application to Kubernetes.
+Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow. In this quickstart, we'll introduce you to the one interactive command you'll spend 90% of your time in as a developer: `garden dev`.
 
-In this quickstart we'll:
+In just 3 steps, we'll:
 
 * Install Garden
 * Run a local, [supported flavor](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes
