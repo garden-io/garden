@@ -421,6 +421,28 @@ export class Garden {
     return Object.assign(Object.create(Object.getPrototypeOf(this)), this)
   }
 
+  cloneForCommand(sessionId: string): Garden {
+    // Make an instance clone to override anything that needs to be scoped to a specific command run
+    // TODO: this could be made more elegant
+    const garden = this.clone()
+    const parentSessionId = this.sessionId
+    this.nestedSessions.set(sessionId, garden)
+    garden.sessionId = sessionId
+
+    garden.log = garden.log.createLog()
+    garden.log.context.sessionId = sessionId
+    garden.log.context.parentSessionId = parentSessionId
+
+    const parentEvents = garden.events
+    garden.events = new EventBus({ gardenKey: garden.getInstanceKey(), sessionId })
+    // We make sure events emitted in the context of the command are forwarded to the parent Garden event bus.
+    garden.events.onAny((name, payload) => {
+      parentEvents.emit(name, payload)
+    })
+
+    return garden
+  }
+
   needsReload(v?: true) {
     if (v) {
       this.state.needsReload = true
@@ -1713,27 +1735,27 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
     const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), showDuration: true })
-    cloudLog.debug(`Initializing ${distroName}...`)
+    cloudLog.verbose(`Connecting to ${distroName}...`)
 
-    let project: CloudProject | undefined
+    let cloudProject: CloudProject | undefined
 
     if (cloudProjectId) {
       // Ensure that the current projectId exists in the remote project
       try {
-        project = await cloudApi.verifyAndConfigureProject(cloudProjectId)
+        cloudProject = await cloudApi.getProjectById(cloudProjectId)
       } catch (err) {
         cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
       }
     }
 
-    if (!project && !cloudProjectId && !config.domain) {
+    if (!cloudProject && !cloudProjectId && !config.domain) {
       // Create a new project in case the project does not exist
       // and the user is logged in to a default domain.
       // Note: excluding projects with a domain is for backwards compatibility
       cloudLog.debug(`Creating or retrieving a ${distroName} project called ${projectName}.`)
 
       try {
-        project = await cloudApi.getOrCreateProject(projectName)
+        cloudProject = await cloudApi.getOrCreateProjectByName(projectName)
       } catch (err) {
         if (err instanceof CloudApiDuplicateProjectsError) {
           cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
@@ -1743,19 +1765,17 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       }
     }
 
-    if (project) {
-      if (cloudApi.projectId) {
-        // ensure we use the fetched/created project ID
-        cloudProjectId = cloudApi.projectId
+    if (cloudProject) {
+      // ensure we use the fetched/created project ID
+      cloudProjectId = cloudProject.id
 
-        // Only fetch secrets if the projectId exists in the cloud API instance
-        try {
-          secrets = await getSecrets({ log: cloudLog, projectId: cloudApi.projectId, environmentName, cloudApi })
-          cloudLog.success(chalk.green("Ready"))
-          cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
-        } catch (err) {
-          cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
-        }
+      // Only fetch secrets if the projectId exists in the cloud API instance
+      try {
+        secrets = await getSecrets({ log: cloudLog, projectId: cloudProject.id, environmentName, cloudApi })
+        cloudLog.success(chalk.green("Ready"))
+        cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
+      } catch (err) {
+        cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
       }
     } else {
       cloudLog.info(

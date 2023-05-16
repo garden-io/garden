@@ -20,14 +20,14 @@ import { BaseServerRequest, resolveRequest, serverRequestSchema } from "./comman
 import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
-import { toGardenError, GardenError } from "../exceptions"
+import { toGardenError, GardenError, GardenBaseError } from "../exceptions"
 import { EventName, Events, EventBus, pipedEventNamesSet } from "../events"
 import type { ValueOf } from "../util/util"
 import { joi } from "../config/common"
 import { randomString } from "../util/string"
 import { authTokenHeader } from "../cloud/auth"
-import { ApiEventBatch, LogEntryEventPayload } from "../cloud/buffered-event-stream"
-import { LogLevel } from "../logger/logger"
+import { ApiEventBatch, BufferedEventStream, LogEntryEventPayload } from "../cloud/buffered-event-stream"
+import { eventLogLevel, LogLevel } from "../logger/logger"
 import { EventEmitter } from "eventemitter3"
 import { sanitizeValue } from "../util/logging"
 import { uuidv4 } from "../util/random"
@@ -37,6 +37,7 @@ import { LocalConfigStore } from "../config-store/local"
 import { join } from "path"
 import { GlobalConfigStore } from "../config-store/global"
 import { validateSchema } from "../config/validation"
+import { ConfigGraph } from "../graph/config-graph"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -126,6 +127,7 @@ export class GardenServer extends EventEmitter {
 
   public port: number | undefined
   public readonly authKey: string
+  public readonly sessionId: string
 
   constructor({ log, manager, port, defaultProjectRoot }: GardenServerParams) {
     super()
@@ -136,6 +138,7 @@ export class GardenServer extends EventEmitter {
     this.globalConfigStore = new GlobalConfigStore()
     this.port = port
     this.defaultProjectRoot = defaultProjectRoot
+    this.sessionId = manager.sessionId
     this.authKey = randomString(24)
     this.incomingEvents = new EventBus()
     this.activePersistentRequests = {}
@@ -181,6 +184,7 @@ export class GardenServer extends EventEmitter {
 
     if (processRecord) {
       await this.globalConfigStore.update("activeProcesses", String(process.pid), {
+        sessionId: this.sessionId,
         serverHost: this.getBaseUrl(),
         serverAuthKey: this.authKey,
       })
@@ -262,8 +266,10 @@ export class GardenServer extends EventEmitter {
 
     http.use((ctx, next) => {
       const authToken = ctx.header[authTokenHeader] || ctx.query.key
+      const sessionId = ctx.query.sessionId
 
-      if (authToken !== this.authKey) {
+      // We allow either sessionId or authKey ro authorize
+      if (authToken !== this.authKey && sessionId !== this.sessionId) {
         return ctx.throw(401, `Unauthorized request`)
       }
       return next()
@@ -396,8 +402,7 @@ export class GardenServer extends EventEmitter {
         })
       }
 
-      // TODO: Only allow auth key authentication
-      if (ctx.query.key !== `${this.authKey}`) {
+      if (ctx.query.key !== this.authKey && ctx.query.sessionId !== this.sessionId) {
         send("error", { message: `401 Unauthorized` })
         const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
         websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
@@ -524,7 +529,7 @@ export class GardenServer extends EventEmitter {
     if (requestType === "command") {
       // Start a command
       try {
-        const resolved = await this.resolveRequest(ctx, omit(request, "id", "type"))
+        const resolved = await this.resolveRequest(ctx, omit(request, "type"))
         const { garden, command, log: commandLog, args, opts, internal } = resolved
 
         if (!command) {
@@ -636,6 +641,7 @@ export class GardenServer extends EventEmitter {
         return send("error", { message: err.message, requestId })
       }
     } else if (requestType === "commandStatus") {
+      // Retrieve the status for an active persistent command
       const r = this.activePersistentRequests[requestId]
       const status = r ? "active" : "not found"
       send("commandStatus", {
@@ -643,6 +649,7 @@ export class GardenServer extends EventEmitter {
         status,
       })
     } else if (requestType === "abortCommand") {
+      // Abort a running persistent command
       const { garden } = await this.resolveRequest(ctx, omit(request, "command", "type"))
       const req = this.activePersistentRequests[requestId]
 
@@ -652,6 +659,40 @@ export class GardenServer extends EventEmitter {
       }
 
       delete this.activePersistentRequests[requestId]
+    } else if (requestType === "loadConfig") {
+      // Emit the config graph for the project (used for the Cloud dashboard)
+      const resolved = await this.resolveRequest(ctx, omit(request, "type"))
+      let { garden, log } = resolved
+
+      garden = garden.cloneForCommand(request.id)
+
+      const cloudEventStream = new BufferedEventStream({
+        log,
+        cloudApi: garden.cloudApi || undefined,
+        maxLogLevel: eventLogLevel,
+        garden,
+        streamEvents: true,
+        streamLogEntries: false,
+      })
+
+      let graph: ConfigGraph | undefined
+      let errors: GardenBaseError[] = []
+
+      try {
+        graph = await garden.getConfigGraph({ log, emit: true })
+      } catch (error) {
+        errors.push(toGardenError(error))
+      } finally {
+        await cloudEventStream.close() // Note: This also flushes events
+        send(
+          "commandResult",
+          sanitizeValue({
+            requestId,
+            result: graph,
+            errors,
+          })
+        )
+      }
     } else {
       return send("error", {
         requestId,

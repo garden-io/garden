@@ -17,6 +17,7 @@ import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
 import { getCloudDistributionName } from "../../../util/util"
+import { CloudProject } from "../../../cloud/api"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
@@ -56,7 +57,11 @@ export class UsersListCommand extends Command<{}, Opts> {
       throw new ConfigurationError(noApiMsg("list", "users"), {})
     }
 
-    const project = await api.getProject()
+    let project: CloudProject | undefined
+
+    if (garden.projectId) {
+      project = await api.getProjectById(garden.projectId)
+    }
 
     if (!project) {
       throw new CloudApiError(
