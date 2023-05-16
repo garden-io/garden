@@ -50,6 +50,7 @@ WORKDIR $HOME
 
 FROM garden-alpine-base-$VARIANT as garden-alpine-base
 
+RUN git config --global --add safe.directory /garden/static
 RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util fetch-tools --all --garden-image-build
 
 FROM python:3.8-alpine@sha256:4912e629ee15ae93787756afb2e02b040448a86eadcb00bb542a7e81cbb2d8f8 AS aws-builder

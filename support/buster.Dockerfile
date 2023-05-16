@@ -47,4 +47,5 @@ WORKDIR $HOME
 
 FROM buster-base-$VARIANT as buster-base
 
+RUN git config --global --add safe.directory /garden/static
 RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util fetch-tools --all --garden-image-build
