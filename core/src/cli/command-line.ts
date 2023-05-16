@@ -201,7 +201,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     return commandLinePrefix + emptyCommandLinePlaceholder
   }
 
-  keyStroke(input: string, key: Key) {
+  handleInput(input: string, key: Key) {
     if (!this.enabled) {
       return
     }
@@ -230,15 +230,18 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
     if (handler) {
       handler(input, key)
-    } else if (this.isValidInputCharacter(input, key)) {
-      this.addCharacter(input)
+    } else if (this.isValidInput(input, key)) {
+      this.addInput(input)
     }
   }
 
-  private addCharacter(char: string) {
+  private addInput(input: string) {
+    // When pasting, only enter input up to first line break
+    input = input.split(/\r?\n|\r|\n/g)[0]
+
     this.currentCommand =
-      this.currentCommand.substring(0, this.cursorPosition) + char + this.currentCommand.substring(this.cursorPosition)
-    this.moveCursor(this.cursorPosition + 1)
+      this.currentCommand.substring(0, this.cursorPosition) + input + this.currentCommand.substring(this.cursorPosition)
+    this.moveCursor(this.cursorPosition + input.length)
     this.renderCommandLine()
   }
 
@@ -251,7 +254,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     const lines = line.trim().split(/[\r\n]+/)
     for (const cmd of lines) {
       for (const char of cmd) {
-        this.addCharacter(char)
+        this.addInput(char)
         this.commandLineCallback(commandLinePrefix + this.currentCommand)
         await sleep(sleepMs)
       }
@@ -261,11 +264,11 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.commandLineCallback(commandLinePrefix + this.currentCommand)
   }
 
-  private isValidInputCharacter(input: string, key?: Key) {
+  private isValidInput(input: string, key?: Key) {
     // TODO: this is most likely not quite sufficient, nor the most efficient way to handle the inputs
     // FIXME: for one, typing an umlaut character does not appear to work on international English keyboards
     return (
-      input.length === 1 &&
+      input.length > 0 &&
       (!key ||
         (!key.backspace &&
           !key.delete &&
