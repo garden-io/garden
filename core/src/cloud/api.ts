@@ -171,11 +171,13 @@ export class CloudApi {
 
   private log: Log
   public readonly domain: string
+  public readonly distroName: string
   private globalConfigStore: GlobalConfigStore
 
   constructor({ log, domain, globalConfigStore }: { log: Log; domain: string; globalConfigStore: GlobalConfigStore }) {
     this.log = log
     this.domain = domain
+    this.distroName = getCloudDistributionName(domain)
     this.globalConfigStore = globalConfigStore
     this.registeredSessions = new Set()
   }
@@ -243,10 +245,12 @@ export class CloudApi {
     tokenResponse: AuthTokenResponse,
     domain: string
   ) {
+    const distroName = getCloudDistributionName(domain)
+
     if (!tokenResponse.token) {
       const errMsg = deline`
         Received a null/empty client auth token while logging in. This indicates that either your user account hasn't
-        yet been created in Garden Cloud, or that there's a problem with your account's VCS username / login
+        yet been created in ${distroName}, or that there's a problem with your account's VCS username / login
         credentials.
       `
       throw new CloudApiError(errMsg, { tokenResponse })
@@ -343,7 +347,7 @@ export class CloudApi {
     }
 
     if (!project) {
-      throw new CloudApiError(`Garden Cloud has no project with ${projectId}`, {})
+      throw new CloudApiError(`${this.distroName} has no project with ${projectId}`, {})
     }
 
     return project
@@ -620,7 +624,9 @@ export class CloudApi {
         environment,
         namespace,
       }
-      this.log.debug(`Registering session with Garden Cloud for ${this.projectId} in ${environment}/${namespace}.`)
+      this.log.debug(
+        `Registering session with ${this.distroName} for ${this.projectId} in ${environment}/${namespace}.`
+      )
       const res: RegisterSessionResponse = await this.post("sessions", {
         body,
         retry: true,
@@ -628,7 +634,7 @@ export class CloudApi {
       })
       this.environmentId = res.environmentId
       this.namespaceId = res.namespaceId
-      this.log.debug("Successfully registered session with Garden Cloud.")
+      this.log.debug(`Successfully registered session with ${this.distroName}.`)
 
       this.registeredSessions.add(sessionId)
     } catch (err) {
@@ -636,7 +642,7 @@ export class CloudApi {
       if (isGotError(err, 422)) {
         const errMsg = deline`
           Session registration skipped due to mismatch between CLI and API versions. Please make sure your Garden CLI
-          version is compatible with your version of Garden Cloud.
+          version is compatible with your version of ${this.distroName}.
         `
         this.log.debug(errMsg)
       } else {
