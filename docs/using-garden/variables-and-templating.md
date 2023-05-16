@@ -134,6 +134,7 @@ services:
 And the `+` operator can also be used to concatenate two arrays or strings:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 # ...
 variables:
@@ -213,6 +214,7 @@ This style offer nested template resolution, which is quite powerful, because yo
 For example, you can declare a mapping variable for your project, and look up values by another variable such as the current environment name. To illustrate, here's an excerpt from a project config with a mapping variable:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 variables:
@@ -372,6 +374,7 @@ Any object or mapping field supports a special `$merge` key, which allows you to
 Here's an example where we share a common set of environment variables for two services:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 variables:
@@ -416,6 +419,7 @@ In some cases, you may want to provide configuration values only for certain cas
 Example:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 providers:
@@ -437,6 +441,7 @@ You might, for example, define project defaults using the `variables` key, and t
 The variables can then be referenced via `${var.<key>}` template string keys. For example:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 variables:
@@ -463,6 +468,7 @@ Variable values can be any valid JSON/YAML values (strings, numbers, nulls, nest
 You can also output objects or arrays from template strings. For example:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 variables:
@@ -612,6 +618,7 @@ Here's an example, where we have some project variables defined in our project c
 
 ```yaml
 # garden.yml
+apiVersion: garden.io/v1
 kind: Project
 ...
 variables:

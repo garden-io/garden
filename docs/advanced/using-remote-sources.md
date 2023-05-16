@@ -21,6 +21,7 @@ You can import remote sources via the `sources` directive in the project-level `
 
 ```yaml
 # examples/remote-sources/garden.yml
+apiVersion: garden.io/v1
 kind: Project
 name: remote-sources
 sources:

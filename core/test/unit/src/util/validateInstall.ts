@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expect } from "chai"
 import { describe } from "mocha"
 import { expectError } from "../../../../src/util/testing"
 import { validateInstall } from "../../../../src/util/validateInstall"

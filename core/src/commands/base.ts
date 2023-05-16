@@ -277,7 +277,11 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
    */
   clone(): Command {
     // See: https://stackoverflow.com/a/64638986
-    return new (this.constructor as new (parent?: CommandGroup) => this)(this._params)
+    const clone = new (this.constructor as new (params?: any) => this)(this._params)
+    if (this.parent) {
+      clone["parent"] = this.parent
+    }
+    return clone
   }
 
   // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),

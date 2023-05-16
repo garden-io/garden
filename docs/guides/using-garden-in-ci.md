@@ -39,6 +39,7 @@ We deploy to the `preview` environment every time someone makes a pull request o
 
 ```yaml
 # garden.yml
+apiVersion: garden.io/v1
 kind: Project
 name: ci-demo-project
 environments:
@@ -107,7 +108,7 @@ Here's what our preview job looks like:
 jobs:
   preview:
     docker:
-      - image: gardendev/garden-gcloud:v0.10.0-1
+      - image: gardendev/garden-gcloud:bonsai-alpine
     environment:
       GARDEN_LOG_LEVEL: debug # set the log level to your preference here
     steps:

@@ -152,6 +152,9 @@ build:
 
 kind:
 
+# Timeout for the deploy to complete, in seconds.
+timeout: 300
+
 spec:
   # The command/entrypoint to run the container with.
   command:
@@ -641,6 +644,14 @@ This would mean that instead of looking for manifest files relative to this acti
 | Type     | Allowed Values | Required |
 | -------- | -------------- | -------- |
 | `string` | "Deploy"       | Yes      |
+
+### `timeout`
+
+Timeout for the deploy to complete, in seconds.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
 
 ### `spec`
 

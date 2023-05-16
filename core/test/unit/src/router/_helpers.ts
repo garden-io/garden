@@ -12,17 +12,28 @@ import { omit } from "lodash"
 import { join } from "path"
 import { BaseRuntimeActionConfig } from "../../../../src/actions/base"
 import { BuildActionConfig } from "../../../../src/actions/build"
-import { joi, CustomObjectSchema } from "../../../../src/config/common"
+import { joi } from "../../../../src/config/common"
 import { validateSchema } from "../../../../src/config/validation"
 import { createActionLog } from "../../../../src/logger/log-entry"
 import { getModuleHandlerDescriptions } from "../../../../src/plugin/module-types"
 import { createGardenPlugin, GardenPluginSpec } from "../../../../src/plugin/plugin"
 import { getProviderActionDescriptions, ProviderHandlers } from "../../../../src/plugin/providers"
 import { createProjectConfig, makeTestGarden, projectRootA } from "../../../helpers"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_DEPLOY_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC,
+} from "../../../../src/constants"
 
 export async function getRouterTestData() {
-  const { basePlugin, dateUsedForCompleted, returnWrongOutputsCfgKey, testPluginA, testPluginB } =
-    getRouterUnitTestPlugins()
+  const {
+    basePlugin,
+    dateUsedForCompleted,
+    returnWrongOutputsCfgKey,
+    testPluginA,
+    testPluginB,
+  } = getRouterUnitTestPlugins()
   const garden = await makeTestGarden(projectRootA, {
     plugins: [basePlugin, testPluginA, testPluginB],
     config: createProjectConfig({
@@ -175,6 +186,7 @@ function getRouterUnitTestPlugins() {
               kind: "Build",
               name: actionName,
               type: "test",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
               internal: {
                 basePath: params.ctx.projectRoot,
               },
@@ -184,6 +196,7 @@ function getRouterUnitTestPlugins() {
               kind: "Deploy",
               name: actionName,
               type: "test",
+              timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
               internal: {
                 basePath: params.ctx.projectRoot,
               },
@@ -232,7 +245,7 @@ function getRouterUnitTestPlugins() {
               name: spec.name,
               dependencies: spec.dependencies || [],
               disabled: false,
-
+              timeout: spec.timeout || DEFAULT_DEPLOY_TIMEOUT_SEC,
               spec,
             }))
 
@@ -240,6 +253,7 @@ function getRouterUnitTestPlugins() {
               name: spec.name,
               dependencies: spec.dependencies || [],
               disabled: false,
+              timeout: spec.timeout || DEFAULT_RUN_TIMEOUT_SEC,
               spec,
             }))
 
@@ -247,6 +261,7 @@ function getRouterUnitTestPlugins() {
               name: spec.name,
               dependencies: spec.dependencies || [],
               disabled: false,
+              timeout: spec.timeout || DEFAULT_TEST_TIMEOUT_SEC,
               spec,
             }))
 
@@ -263,8 +278,15 @@ function getRouterUnitTestPlugins() {
           convert: async (params) => {
             validateParams(params, moduleActionDescriptions.convert.paramsSchema)
 
-            const { module, services, tasks, tests, dummyBuild, convertBuildDependency, convertRuntimeDependencies } =
-              params
+            const {
+              module,
+              services,
+              tasks,
+              tests,
+              dummyBuild,
+              convertBuildDependency,
+              convertRuntimeDependencies,
+            } = params
 
             const actions: (BuildActionConfig | BaseRuntimeActionConfig)[] = []
 
@@ -278,6 +300,7 @@ function getRouterUnitTestPlugins() {
 
               dependencies: module.build.dependencies.map(convertBuildDependency),
 
+              timeout: module.build.timeout,
               spec: {
                 command: module.spec.build?.command,
                 env: module.spec.env,
@@ -297,6 +320,7 @@ function getRouterUnitTestPlugins() {
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: convertRuntimeDependencies(service.spec.dependencies),
 
+                timeout: service.spec.timeout,
                 spec: {
                   ...omit(service.spec, ["name", "dependencies", "disabled"]),
                 },
@@ -314,6 +338,7 @@ function getRouterUnitTestPlugins() {
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: convertRuntimeDependencies(task.spec.dependencies),
 
+                timeout: task.spec.timeout,
                 spec: {
                   ...omit(task.spec, ["name", "dependencies", "disabled"]),
                 },
@@ -331,6 +356,7 @@ function getRouterUnitTestPlugins() {
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: convertRuntimeDependencies(test.spec.dependencies),
 
+                timeout: test.spec.timeout,
                 spec: {
                   ...omit(test.spec, ["name", "dependencies", "disabled"]),
                 },

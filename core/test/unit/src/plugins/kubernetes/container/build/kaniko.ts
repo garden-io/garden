@@ -15,10 +15,9 @@ import {
 import { expect } from "chai"
 import {
   defaultResources,
-  DEFAULT_KANIKO_IMAGE,
   KubernetesProvider,
 } from "../../../../../../../src/plugins/kubernetes/config"
-import { k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
+import { defaultKanikoImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
 import { DeepPartial } from "utility-types"
 
 describe("kaniko build", () => {
@@ -97,7 +96,7 @@ describe("kaniko build", () => {
           containers: [
             {
               command: ["sh", "-c", "build command"],
-              image: DEFAULT_KANIKO_IMAGE,
+              image: defaultKanikoImageName,
               name: "kaniko",
               resources: {
                 limits: {

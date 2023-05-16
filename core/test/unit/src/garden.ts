@@ -29,6 +29,7 @@ import {
   createProjectConfig,
   makeModuleConfig,
   makeTempGarden,
+  getEmptyPluginActionDefinitions,
 } from "../../helpers"
 import { getNames, findByName, exec } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store/local"
@@ -40,7 +41,7 @@ import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { ModuleConfig, baseModuleSpecSchema } from "../../../src/config/module"
 import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, PREVIOUS_API_VERSION, gardenEnv } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
-import { keyBy, set, mapValues, omit } from "lodash"
+import { keyBy, set, mapValues, omit, cloneDeep } from "lodash"
 import { joi } from "../../../src/config/common"
 import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs"
 import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } from "fs-extra"
@@ -259,7 +260,7 @@ describe("Garden", () => {
         providers: [{ name: "foo" }],
       })
       config.environments = [] // this is omitted later to simulate a config where envs are not set
-      config = (omit(config, "environments") as any) as ProjectConfig
+      config = omit(config, "environments") as any as ProjectConfig
       await expectError(async () => await TestGarden.factory(pathFoo, { config }), {
         contains: "Error validating project environments: value is required",
       })
@@ -1727,6 +1728,7 @@ describe("Garden", () => {
             handlers: {},
           },
         ],
+        createActionTypes: getEmptyPluginActionDefinitions("test"),
       })
 
       const projectConfig: ProjectConfig = createProjectConfig({
@@ -3712,6 +3714,69 @@ describe("Garden", () => {
       expect(test.getInternal()).to.eql(internal)
     })
 
+    it.only("throws with helpful message if action type doesn't exist", async () => {
+      const garden = await TestGarden.factory(pathFoo, {
+        config: createProjectConfig({
+          name: "test",
+          path: pathFoo,
+          providers: [],
+        }),
+        plugins: [testPlugin()],
+      })
+
+      garden.setActionConfigs([
+        {
+          kind: "Build",
+          type: "invalidtype",
+          name: "foo",
+          internal: {
+            basePath: pathFoo,
+          },
+          spec: {},
+        },
+      ])
+
+      await expectError(() => garden.resolveModules({ log: garden.log }), {
+        contains: [
+          "Unrecognized action type 'invalidtype'",
+          "Are you missing a provider configuration?",
+        ],
+      })
+    })
+
+    it("throws with helpful message if action kind doesn't exist", async () => {
+      const testPluginNoBuildAction = cloneDeep(testPlugin())
+      testPluginNoBuildAction.createActionTypes.Build = []
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config: createProjectConfig({
+          name: "test",
+          path: pathFoo,
+          providers: [],
+        }),
+        plugins: [testPluginNoBuildAction],
+      })
+
+      garden.setActionConfigs([
+        {
+          kind: "Build",
+          type: "test",
+          name: "foo",
+          internal: {
+            basePath: pathFoo,
+          },
+          spec: {},
+        },
+      ])
+
+      await expectError(() => garden.resolveModules({ log: garden.log }), {
+        contains: [
+          "Unrecognized test action of kind Build",
+          "There are no test Build actions, did you mean to specify a",
+        ],
+      })
+    })
+
     it("should throw an error if modules have circular build dependencies", async () => {
       const garden = await TestGarden.factory(pathFoo, {
         config: createProjectConfig({
@@ -4111,6 +4176,7 @@ describe("Garden", () => {
                   internal: {
                     basePath: pathFoo,
                   },
+                  timeout: DEFAULT_BUILD_TIMEOUT_SEC,
                   spec: {},
                 },
               ],
@@ -4137,7 +4203,7 @@ describe("Garden", () => {
         createActionTypes: {
           Build: [
             {
-              name: "test",
+              name: "foo",
               docs: "foo",
               schema: joi.object(),
               handlers: {},
@@ -4155,6 +4221,7 @@ describe("Garden", () => {
                   internal: {
                     basePath: pathFoo,
                   },
+                  timeout: DEFAULT_BUILD_TIMEOUT_SEC,
                   spec: {},
                 },
                 {
@@ -4164,6 +4231,7 @@ describe("Garden", () => {
                   internal: {
                     basePath: pathFoo,
                   },
+                  timeout: DEFAULT_BUILD_TIMEOUT_SEC,
                   spec: {},
                 },
               ],
@@ -4223,7 +4291,7 @@ describe("Garden", () => {
       garden.setActionConfigs([
         {
           kind: "Build",
-          type: "foo",
+          type: "test",
           name: "foo",
           internal: {
             basePath: pathFoo,
@@ -4232,7 +4300,7 @@ describe("Garden", () => {
         },
         {
           kind: "Build",
-          type: "foo",
+          type: "test",
           name: "bar",
           internal: {
             basePath: pathFoo,
@@ -4285,7 +4353,7 @@ describe("Garden", () => {
       garden.setActionConfigs([
         {
           kind: "Build",
-          type: "foo",
+          type: "test",
           name: "bar",
           internal: {
             basePath: pathFoo,
@@ -4309,7 +4377,7 @@ describe("Garden", () => {
         createActionTypes: {
           Build: [
             {
-              name: "test",
+              name: "foo",
               docs: "foo",
               schema: joi.object(),
               handlers: {},
@@ -4327,6 +4395,7 @@ describe("Garden", () => {
                   internal: {
                     basePath: pathFoo,
                   },
+                  timeout: DEFAULT_BUILD_TIMEOUT_SEC,
                   spec: {},
                 },
                 {
@@ -4336,6 +4405,7 @@ describe("Garden", () => {
                   internal: {
                     basePath: pathFoo,
                   },
+                  timeout: DEFAULT_BUILD_TIMEOUT_SEC,
                   spec: {},
                 },
               ],
@@ -4568,9 +4638,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-15dac6739d"
-      const moduleBVersionString = "v-33728410e6"
-      const moduleCVersionString = "v-bd65300051"
+      const moduleAVersionString = "v-d3e58c6cb9"
+      const moduleBVersionString = "v-457bae4f58"
+      const moduleCVersionString = "v-12b5e981e0"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")

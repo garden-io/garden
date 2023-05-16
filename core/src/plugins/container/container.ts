@@ -45,6 +45,7 @@ import { Resolved } from "../../actions/types"
 import { getDeployedImageId } from "../kubernetes/container/util"
 import { KubernetesProvider } from "../kubernetes/config"
 import { DeepPrimitiveMap } from "../../config/common"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 
@@ -229,6 +230,7 @@ function convertContainerModuleRuntimeActions(
       build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(service.spec.dependencies, buildAction),
 
+      timeout: service.spec.timeout || DEFAULT_DEPLOY_TIMEOUT_SEC,
       spec: {
         ...omit(service.spec, ["name", "dependencies", "disabled"]),
         image: deploymentImageId,
@@ -305,7 +307,7 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
       copyFrom: dummyBuild?.copyFrom,
       allowPublish: module.allowPublish,
       dependencies: module.build.dependencies.map(convertBuildDependency),
-      timeout: module.spec.build.timeout,
+      timeout: module.build.timeout,
 
       spec: {
         buildArgs: module.spec.buildArgs,
@@ -358,7 +360,7 @@ export const gardenPlugin = () =>
             async getOutputs({ action }) {
               // TODO: figure out why this cast is needed here
               return {
-                outputs: getContainerBuildActionOutputs(action) as unknown as DeepPrimitiveMap,
+                outputs: (getContainerBuildActionOutputs(action) as unknown) as DeepPrimitiveMap,
               }
             },
 
@@ -556,7 +558,8 @@ export const gardenPlugin = () =>
           {
             platform: "windows",
             architecture: "amd64",
-            url: "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v20.10.9/docker-20.10.9.zip",
+            url:
+              "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v20.10.9/docker-20.10.9.zip",
             sha256: "360ca42101d453022eea17747ae0328709c7512e71553b497b88b7242b9b0ee4",
             extract: {
               format: "zip",

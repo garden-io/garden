@@ -161,7 +161,7 @@ export class RunCommand extends Command<Args, Opts> {
 
     const { shouldAbort } = validateActionSearchResults({
       log,
-      actionKind: "Test",
+      actionKind: "Run",
       actions,
       names,
       errData: { params, args },

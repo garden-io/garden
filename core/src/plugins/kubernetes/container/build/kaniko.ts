@@ -7,10 +7,10 @@
  */
 
 import { V1PodSpec } from "@kubernetes/client-node"
-import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName } from "../../constants"
+import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName, defaultKanikoImageName } from "../../constants"
 import { KubeApi } from "../../api"
 import { Log } from "../../../../logger/log-entry"
-import { KubernetesProvider, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } from "../../config"
+import { KubernetesProvider, KubernetesPluginContext } from "../../config"
 import { BuildError, ConfigurationError } from "../../../../exceptions"
 import { PodRunner } from "../../run"
 import { ensureNamespace, getNamespaceStatus, getSystemNamespace } from "../../namespace"
@@ -234,7 +234,7 @@ export function getKanikoBuilderPodManifest({
   podName: string
   commandStr: string
 }) {
-  const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
+  const kanikoImage = provider.config.kaniko?.image || defaultKanikoImageName
   const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
 
   const spec: V1PodSpec = {

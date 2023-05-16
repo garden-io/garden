@@ -55,7 +55,6 @@ interface HelmDeployActionSpec {
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string
-  timeout: number
   values: DeepPrimitiveMap
   valueFiles: string[]
 }
@@ -199,7 +198,6 @@ export interface HelmPodRunActionSpec extends KubernetesCommonRunSpec {
   chart?: HelmChartSpec
   namespace?: string
   releaseName?: string
-  timeout: number
   values: DeepPrimitiveMap
   valueFiles: string[]
   resource?: KubernetesTargetResourceSpec
@@ -240,6 +238,7 @@ export type HelmPodRunConfig = RunActionConfig<"helm-pod", HelmPodRunActionSpec>
 export type HelmPodRunAction = RunAction<HelmPodRunConfig, KubernetesRunOutputs>
 
 export interface HelmPodTestActionSpec extends HelmPodRunActionSpec {}
+
 export type HelmPodTestConfig = TestActionConfig<"helm-pod", HelmPodTestActionSpec>
 export type HelmPodTestAction = TestAction<HelmPodTestConfig, KubernetesRunOutputs>
 

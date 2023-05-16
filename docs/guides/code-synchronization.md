@@ -160,6 +160,7 @@ spec:
 Project-wide exclusion rules can be set on the `local-kubernetes` and `kubernetes` providers:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 providers:
@@ -209,6 +210,7 @@ These options are passed directly to Mutagen. For more information, please see t
 This example demonstrates several of the more advanced options. For more details on the options available, see the sections above.
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 providers:

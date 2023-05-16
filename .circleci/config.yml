@@ -24,7 +24,7 @@ orbs:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:18.12.0
+    image: gardendev/circleci-runner:18.12.0@sha256:364fda04a732191ada3f3f701d89836902b621ed269eaf135b73b75f92361065
 
   # Configuration for our node jobs
   node-config: &node-config
@@ -428,7 +428,7 @@ jobs:
           command: |
             # bonsai edge
             if [ "$CIRCLE_BRANCH" == "0.13" ]; then
-              MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai BRANCH_NAME=$CIRCLE_BRANCH \
+              MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai \
                 docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
             fi
 
@@ -438,12 +438,10 @@ jobs:
               exit 1
             fi
 
-            echo "export GCLOUD_DIGEST=$(docker inspect --format='{{.RepoDigests}}' gardendev/garden-gcloud:bonsai-edge-alpine | tr -d '[]')" >> $BASH_ENV
-
   test-docker-gcloud:
     docker:
-      # Use remote image digest from previous job
-      - image: $GCLOUD_DIGEST
+      # We do not use a specific digest here on purpose, to use the latest build from the previous job
+      - image: gardendev/garden-gcloud:bonsai-edge-alpine
         environment:
           <<: *shared-env-config
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
@@ -823,11 +821,6 @@ workflows:
           requires: [build]
       - check-package-licenses:
           requires: [build]
-
-      - test-docker-gcloud:
-          <<: *only-internal-prs
-          context: docker
-          requires: [dockerhub-release]
       - test-framework:
           requires: [build]
       - test-dist:
@@ -1021,26 +1014,27 @@ workflows:
       #     requires: [build]
       #     kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
 
+      # TODO-0.13.0: revert to edge version and main branch
       - build-dist:
           <<: *only-bonsai
           name: build-dist-edge
-          version: edge
+          version: edge-bonsai
           requires: [build]
 
       - github-edge-prerelease:
           <<: *only-bonsai
-          version: edge
+          version: edge-bonsai
           requires: [build-dist-edge]
+      # end of TODO-0.13.0
 
       - dockerhub-release:
+          <<: *only-bonsai
           context: docker
           requires:
             - build-dist-edge
-          filters:
-            branches:
-              only:
-                - "0.13"
-
+      - test-docker-gcloud:
+          context: docker
+          requires: [dockerhub-release]
   tags:
     jobs:
       - build:

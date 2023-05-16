@@ -40,8 +40,7 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { readFileSync } from "fs-extra"
 import { join } from "path"
 import { STATIC_DIR } from "../../constants"
-
-export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.8.1-debug"
+import { defaultKanikoImageName } from "./constants"
 
 export interface ProviderSecretRef {
   name: string
@@ -540,7 +539,7 @@ export const kubernetesConfigBase = () =>
             ),
           image: joi
             .string()
-            .default(DEFAULT_KANIKO_IMAGE)
+            .default(defaultKanikoImageName)
             .description(`Change the kaniko image (repository/image:tag) to use when building in kaniko mode.`),
           namespace: joi
             .string()

@@ -118,7 +118,7 @@ interface Annotations {
 }
 
 const deploymentStrategies = ["RollingUpdate", "Recreate"] as const
-export type DeploymentStrategy = (typeof deploymentStrategies)[number]
+export type DeploymentStrategy = typeof deploymentStrategies[number]
 export const defaultDeploymentStrategy: DeploymentStrategy = "RollingUpdate"
 
 export const commandExample = ["/bin/sh", "-c"]
@@ -670,6 +670,7 @@ export interface ContainerDeploySpec extends ContainerCommonDeploySpec {
   volumes: ContainerVolumeSpec[]
   image?: string
 }
+
 export type ContainerDeployActionConfig = DeployActionConfig<"container", ContainerDeploySpec>
 
 export interface ContainerDeployOutputs {
@@ -833,6 +834,7 @@ const artifactsSchema = () =>
 export interface ContainerTestOutputs {
   log: string
 }
+
 export const containerTestOutputSchema = () =>
   joi.object().keys({
     log: joi
@@ -849,6 +851,7 @@ export interface ContainerTestActionSpec extends ContainerCommonRuntimeSpec {
   image?: string
   volumes: ContainerVolumeSpec[]
 }
+
 export type ContainerTestActionConfig = TestActionConfig<"container", ContainerTestActionSpec>
 export type ContainerTestAction = TestAction<ContainerTestActionConfig, ContainerTestOutputs>
 
@@ -866,11 +869,13 @@ export const containerTestActionSchema = createSchema({
 // RUN //
 
 export interface ContainerRunOutputs extends ContainerTestOutputs {}
+
 export const containerRunOutputSchema = () => containerTestOutputSchema()
 
 export interface ContainerRunActionSpec extends ContainerTestActionSpec {
   cacheResult: boolean
 }
+
 export type ContainerRunActionConfig = RunActionConfig<"container", ContainerRunActionSpec>
 export type ContainerRunAction = RunAction<ContainerRunActionConfig, ContainerRunOutputs>
 
@@ -947,6 +952,7 @@ export interface ContainerBuildActionSpec {
   publishId?: string
   targetStage?: string
 }
+
 export type ContainerBuildActionConfig = BuildActionConfig<"container", ContainerBuildActionSpec>
 export type ContainerBuildAction = BuildAction<ContainerBuildActionConfig, ContainerBuildOutputs>
 

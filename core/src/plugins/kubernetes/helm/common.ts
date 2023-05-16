@@ -156,7 +156,7 @@ type PrepareManifestsParams = GetChartResourcesParams & PrepareTemplatesOutput
 
 export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
   const { ctx, action, log, namespace, releaseName, valuesPath, reference } = params
-  const timeout = action.getSpec().timeout
+  const timeout = action.getConfig().timeout
 
   const res = await helm({
     ctx,

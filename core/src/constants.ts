@@ -29,6 +29,7 @@ export const DEFAULT_API_VERSION = "garden.io/v1"
 export const DEFAULT_BUILD_TIMEOUT_SEC = 600
 export const DEFAULT_TEST_TIMEOUT_SEC = 600
 export const DEFAULT_RUN_TIMEOUT_SEC = 600
+export const DEFAULT_DEPLOY_TIMEOUT_SEC = 300
 
 export type SupportedPlatform = "linux" | "darwin" | "win32"
 export const SUPPORTED_PLATFORMS: SupportedPlatform[] = ["linux", "darwin", "win32"]
@@ -43,7 +44,7 @@ export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggigno
 export const DOCS_BASE_URL = "https://docs.garden.io"
 export const VERSION_CHECK_URL = "https://get.garden.io/version"
 
-export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden"
+export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
 
 /**
  * Environment variables, with defaults where appropriate.

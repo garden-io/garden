@@ -15,6 +15,7 @@ import { apply } from "json-merge-patch"
 import { getKubernetesTestGarden } from "./common"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_DEPLOY_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
 } from "../../../../../../src/constants"
@@ -128,6 +129,7 @@ describe("configureKubernetesModule", () => {
           tasks: [taskSpec],
           timeout: 300,
         },
+        timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
       },
     ])
 

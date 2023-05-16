@@ -10,7 +10,7 @@ import AsyncLock from "async-lock"
 import chalk from "chalk"
 import split2 = require("split2")
 import { isEmpty } from "lodash"
-import { buildSyncVolumeName, dockerAuthSecretKey } from "../../constants"
+import { buildSyncVolumeName, buildkitContainerName, buildkitDeploymentName, buildkitImageName, buildkitRootlessImageName, dockerAuthSecretKey } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
 import { Log } from "../../../../logger/log-entry"
@@ -37,9 +37,6 @@ import { getRunningDeploymentPod } from "../../util"
 import { defaultDockerfileName } from "../../../container/config"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { stringifyResources } from "../util"
-export const buildkitImageName = "gardendev/buildkit:v0.10.5-2"
-export const buildkitDeploymentName = "garden-buildkit"
-const buildkitContainerName = "buildkitd"
 
 const deployLock = new AsyncLock()
 
@@ -459,7 +456,7 @@ export function getBuildkitDeployment(
       "container.apparmor.security.beta.kubernetes.io/buildkitd": "unconfined",
       "container.seccomp.security.alpha.kubernetes.io/buildkitd": "unconfined",
     }
-    buildkitContainer.image += "-rootless"
+    buildkitContainer.image = buildkitRootlessImageName
     buildkitContainer.args = [
       "--addr",
       "unix:///run/user/1000/buildkit/buildkitd.sock",

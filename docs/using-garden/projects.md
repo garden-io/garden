@@ -9,6 +9,7 @@ The first step to using Garden is to create a project. You can use the `garden c
 
 ```yaml
 # project.garden.yml - located in the top-level directory of your project
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 environments:
@@ -41,6 +42,7 @@ Namespaces are similar in nature to Kubernetes but **do not directly map to Kube
 Here's a fairly typical list of environments:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 defaultEnvironment: dev
@@ -71,6 +73,7 @@ A project consists of one or more **actions** that each has a specific `kind` an
 Consider a project with the following three environments:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 environments:
@@ -108,6 +111,7 @@ You can define _project outputs_ using the `outputs` key in your project config
 For example, here's how you can output the image name and tag created from a `container` action build:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...
@@ -124,6 +128,7 @@ You can then retrieve this value by running e.g. `garden get outputs -o json` an
 Variables defined in the project config are accessible in [template strings](../reference/template-strings/README.md) for all the project's action configurations. To illustrate, here's the project configuration from the [variables example](../../examples/variables/garden.yml) project:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 variables:

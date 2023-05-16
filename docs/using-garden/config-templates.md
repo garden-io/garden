@@ -132,6 +132,7 @@ If you have multiple projects it can be useful to have a central repository cont
 To do that, simply place your `ConfigTemplate` configs in a repository (called something like `garden-templates`) and reference it as a remote source in your projects:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 sources:

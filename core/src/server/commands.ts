@@ -12,7 +12,7 @@ import { Command } from "../commands/base"
 import { joi } from "../config/common"
 import { validateSchema } from "../config/validation"
 import { extend, mapValues, omitBy } from "lodash"
-import { ServerLogger } from "../logger/logger"
+import { LoggerBase, LogLevel, ServerLogger, VoidLogger } from "../logger/logger"
 import { Log } from "../logger/log-entry"
 import { Parameters, ParameterValues, globalOptions } from "../cli/params"
 import { parseCliArgs, processCliArgs } from "../cli/helpers"
@@ -29,6 +29,7 @@ interface BaseRequest {
   command: string
   stringArguments?: string[]
   parameters: object
+  internal?: boolean
 }
 
 const baseRequestSchema = () =>
@@ -41,6 +42,12 @@ const baseRequestSchema = () =>
         .items(joi.string())
         .description("String arguments for the command, as if passed to the CLI normally."),
       parameters: joi.object().keys({}).unknown(true).description("The formal parameters for the command."),
+      internal: joi
+        .boolean()
+        .description(
+          "Internal command that's not triggered by the user. Internal commands have a higher log level and results are not persisted in Cloud."
+        )
+        .optional(),
     })
     .oxor("stringArguments", "parameters")
 
@@ -70,11 +77,18 @@ export function parseRequest(ctx: Koa.ParameterizedContext, log: Log, commands: 
     ctx.throw(400, `Invalid request format for command ${request.command}`)
   }
 
+  const internal = request.internal
   // Note that we clone the command here to ensure that each request gets its own
   // command instance and thereby that subscribers are properly isolated at the request level.
   const command = commandSpec.command.clone()
 
-  const serverLogger = command.getServerLogger() || new ServerLogger({ rootLogger: log.root, level: log.root.level })
+  let serverLogger: LoggerBase
+  if (internal) {
+    // TODO: Consider using a logger that logs at the silly level but doesn't emit anything.
+    serverLogger = new VoidLogger({ level: LogLevel.info })
+  } else {
+    serverLogger = command.getServerLogger() || new ServerLogger({ rootLogger: log.root, level: log.root.level })
+  }
   const cmdLog = serverLogger.createLog({})
 
   // Prepare arguments for command action.
@@ -100,6 +114,7 @@ export function parseRequest(ctx: Koa.ParameterizedContext, log: Log, commands: 
 
   return {
     command,
+    internal,
     log: cmdLog,
     args: cmdArgs,
     opts: cmdOpts,

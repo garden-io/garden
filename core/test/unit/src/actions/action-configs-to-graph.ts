@@ -13,6 +13,12 @@ import { ModuleGraph } from "../../../../src/graph/modules"
 import { Log } from "../../../../src/logger/log-entry"
 import { dumpYaml } from "../../../../src/util/serialization"
 import { expectError, makeTempGarden, TempDirectory, TestGarden } from "../../../helpers"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_DEPLOY_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC
+} from "../../../../src/constants"
 
 describe("actionConfigsToGraph", () => {
   let tmpDir: TempDirectory
@@ -36,6 +42,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -66,6 +73,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Deploy",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -96,6 +104,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Run",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -126,6 +135,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Test",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_TEST_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -160,6 +170,7 @@ describe("actionConfigsToGraph", () => {
               kind: "Test",
               type: "test",
               name: "foo",
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
               internal: {
                 basePath: tmpDir.path,
               },
@@ -193,6 +204,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -202,6 +214,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "bar",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           copyFrom: [{ build: "foo", sourcePath: ".", targetPath: "app" }],
           internal: {
             basePath: tmpDir.path,
@@ -238,6 +251,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -248,6 +262,7 @@ describe("actionConfigsToGraph", () => {
           type: "test",
           name: "bar",
           build: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -283,6 +298,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -292,6 +308,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "bar",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -330,6 +347,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -339,6 +357,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "bar",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -377,6 +396,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -404,6 +424,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -430,6 +451,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           variables: {
             projectName: "${project.name}",
           },
@@ -465,6 +487,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           varfiles: [varfilePath],
           internal: {
             basePath: tmpDir.path,
@@ -499,6 +522,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           variables: {
             foo: "foo",
             baz: "baz",
@@ -531,6 +555,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Deploy",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           variables: {},
           internal: {
             basePath: tmpDir.path,
@@ -565,6 +590,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Deploy",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           variables: {},
           internal: {
             basePath: tmpDir.path,
@@ -594,6 +620,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Deploy",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           variables: {},
           internal: {
             basePath: tmpDir.path,
@@ -629,6 +656,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Deploy",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           variables: {},
           internal: {
             basePath: tmpDir.path,
@@ -658,6 +686,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Deploy",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           variables: {},
           internal: {
             basePath: tmpDir.path,
@@ -689,6 +718,7 @@ describe("actionConfigsToGraph", () => {
               kind: <any>"Boop",
               type: "test",
               name: "foo",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
               internal: {
                 basePath: tmpDir.path,
               },
@@ -715,6 +745,7 @@ describe("actionConfigsToGraph", () => {
               kind: "Build",
               type: "test",
               name: "foo",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
               internal: {
                 basePath: tmpDir.path,
               },
@@ -724,6 +755,7 @@ describe("actionConfigsToGraph", () => {
               kind: "Build",
               type: "test",
               name: "foo",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
               internal: {
                 basePath: tmpDir.path,
               },

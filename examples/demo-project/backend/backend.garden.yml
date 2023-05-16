@@ -33,7 +33,7 @@ spec:
 ---
 
 kind: Run
-name: backend-test
+name: backend-run-task
 type: container
 build: backend
 spec:

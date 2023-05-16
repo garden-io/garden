@@ -312,8 +312,6 @@ export type EventName = keyof Events
 
 // Note: Does not include logger events.
 export const pipedEventNames: EventName[] = [
-  // "_exit",
-  // "_restart",
   "_test",
   "_workflowRunRegistered",
   "sessionCompleted",

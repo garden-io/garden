@@ -160,6 +160,7 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
               build: dummyBuild?.name,
               dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
+              timeout: KUBECTL_DEFAULT_TIMEOUT,
               spec: {
                 accessModes: module.spec.accessModes,
                 namespace: module.spec.namespace,
@@ -194,11 +195,11 @@ function getKubernetesAction(action: Resolved<PersistentVolumeClaimAction>) {
       basePath: action.basePath(),
     },
     include: [],
+    timeout: KUBECTL_DEFAULT_TIMEOUT,
     spec: {
       namespace: action.getSpec("namespace"),
       files: [],
       manifests: [pvcManifest],
-      timeout: KUBECTL_DEFAULT_TIMEOUT,
     },
   }
 

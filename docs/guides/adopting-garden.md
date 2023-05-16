@@ -92,6 +92,7 @@ We recommend putting each action in its own `garden.yml` file and locate it next
 
 ```yaml
 # At the root of your project.
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 
@@ -168,6 +169,7 @@ At this point, a simplified configuration could look something like the followin
 
 ```yaml
 # At the root of your project
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 

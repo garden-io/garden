@@ -12,14 +12,13 @@ import { Garden } from "../../../../../../../src"
 import { PluginContext } from "../../../../../../../src/plugin-context"
 import {
   ensureBuildkit,
-  buildkitDeploymentName,
 } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api"
 import { getNamespaceStatus } from "../../../../../../../src/plugins/kubernetes/namespace"
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
 import { buildDockerAuthConfig } from "../../../../../../../src/plugins/kubernetes/init"
-import { dockerAuthSecretKey } from "../../../../../../../src/plugins/kubernetes/constants"
+import { buildkitDeploymentName, dockerAuthSecretKey } from "../../../../../../../src/plugins/kubernetes/constants"
 import { grouped } from "../../../../../../helpers"
 
 grouped("cluster-buildkit").describe("ensureBuildkit", () => {
