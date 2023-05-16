@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x -e -o pipefail
+set -e -o pipefail
 
 # Bash test framework. Sorry :D
 fail() {
