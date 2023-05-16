@@ -5,24 +5,24 @@ order: 2
 
 # Exec
 
-The `exec` plugin and corresponding `exec` module type allow you to run commands locally on the host (e.g. your laptop
+The `exec` plugin and corresponding `exec` action type allow you to run commands locally on the host (e.g. your laptop
 or on your CI runner).
 
 It's built-in which means you don't need to specify it in the project level configuration and you can simply add `exec`
-modules right away.
+actions right away.
 
 It's great for running auth scripts as well as executing various scaffolding scripts that need to run "locally".
 
-It can also be used to start services locally (e.g. by executing commands like `yarn dev`).
+It can also be used to start applications locally (e.g. by executing commands like `yarn dev`).
 
 This can be very useful for hybrid environments where you have, say, your backend running in a remote production-like
 environment but your frontend running locally.
 
 ## Plugin Configuration
 
-Usually you don't need to configure the exec plugin because it's built-in and you can use exec modules directly.
+Usually you don't need to configure the `exec` plugin because it's built-in and you can use `exec` actions directly.
 
-However, it can be used to run init scripts ahead of other Garden execution. This is e.g. useful if you need to
+However, it can be used to run init scripts ahead of other Garden execution. This is useful if you need to
 authenticate against a remote environment before Garden initializes other plugins.
 
 Here's an example where we run a script to authenticate against a Kubernetes cluster before initializing the Kubernetes
@@ -36,59 +36,67 @@ name: my-project
 
 providers:
   - name: exec
-    initScript: [ ./scripts/auth.sh ]
+    initScript: [ "sh", "-c", "./scripts/auth.sh" ]
   - name: kubernetes
     dependencies: [ exec ] # <--- This ensures the init script runs before the K8s plugin is initialized.
     # ...
 ```
 
-## Module Configuration
+## Action Configuration
 
 ### Exec tasks
 
-Here's an example configuration for an exec module that's used for running various scripts:
+Here's an example configuration for an `exec` actions that's used for running various scripts:
 
 ```yaml
-kind: Module
-name: scripts
+kind: Run
+name: auth
 type: exec
-local: true # <--- Run the script relative to the source dir (don't worry about this)
 include: [ ] # <--- No source files are needed
-tasks: # <--- The scripts are defined as exec tasks
-  - name: authenticate
-    command: [ ./scripts/auth.sh ]
-  - name: prepare-data
-    command: [ ./scripts/prepare-data-locally.sh ]
+spec:
+  command: [ "sh", "-c", "./scripts/auth.sh" ]
+
+---
+kind: Run
+name: prepare-data
+type: exec
+include: [ ]
+spec:
+  command: [ "sh", "-c", "./scripts/prepare-data-locally.sh" ]
 ```
 
 Other actions can depend on these tasks:
 
 ```yaml
-kind: Module
-name: api
-type: kubernetes
+kind: Run
+name: db-init
+type: exec
+dependencies: [ run.auth, run.prepare-data ]
 
-dependencies: [ authenticate ]
-tasks:
-  - name: db-init
-    command: [ yarn, run, db-init ]
-    dependencies: [ prepare-data ]
+spec:
+  command: [ yarn, run, db-init ]
 ```
 
-It's also possible to reference the output from exec module tasks:
+It's also possible to reference the output from `exec` actions:
 
 ```yaml
-kind: Module
-name: api
+kind: Deploy
+name: postgres
 type: container
-services:
+spec:
+  image: postgres:15.3-alpine
+  ports:
+    - name: db
+      containerPort: 5432
   env:
-    AUTH_KEY: ${runtime.tasks.authenticate.outputs.log}
+    POSTGRES_DATABASE: postgres
+    POSTGRES_USERNAME: postgres
+    POSTGRES_PASSWORD: ${actions.run.auth.outputs.log}
 ```
 
 ### Local services
 
-The exec module can also be used to start long running services like so:
+The `exec` action type can also be used to start long-running processes like so:
 
 ```yaml
 kind: Module
@@ -105,9 +113,9 @@ services:
     env: ${modules.frontend.env} # <--- Reference the env variable defined above
 ```
 
-See also this [example project](https://github.com/garden-io/garden/tree/0.12.51/examples/local-service).
+See also this [example project](../../examples/local-service).
 
 ## Next Steps
 
-For some advanced exec use cases, check out [this recording](https://www.youtube.com/watch?v=npE0FWJwcno) of our
+For some advanced `exec` use cases, check out [this recording](https://www.youtube.com/watch?v=npE0FWJwcno) of our
 community office hours on the topic.
