@@ -31,9 +31,11 @@ For a Mac computer with Apple silicon, Garden needs [Rosetta](https://support.ap
 {% endtab %}
 
 {% tab title="Linux" %}
+
 ```sh
 curl -sL https://get.garden.io/install.sh | bash
 ```
+
 {% endtab %}
 
 {% tab title="Windows" %}
@@ -44,9 +46,11 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.We
 ```
 
 We also recommend adding an exclusion folder for the `.garden` directory in your repository root to Windows Defender:
+
 ```powershell
 Add-MpPreference -ExclusionPath "C:\Path\To\Your\Repo\.garden"
 ```
+
 This will significantly speed up the first Garden build of large projects on Windows machines.
 
 {% endtab %}
