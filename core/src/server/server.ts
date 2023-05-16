@@ -548,6 +548,9 @@ export class GardenServer extends EventEmitter {
               requestLog.info(chalk.grey(`Running command ${cmdNameStr}`))
             }
 
+            // Clear the VCS handler's tree cache to make sure we pick up any changed sources.
+            garden.clearTreeCache()
+
             // TODO: validate result schema
             return command.action({
               garden,
