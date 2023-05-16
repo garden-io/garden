@@ -66,59 +66,18 @@ For more detailed installation instructions, please see our [Installation guide]
 If you already have [a supported version](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes installed locally you can skip this section.
 {% endhint %}
 
-In this guide we're using local Kubernetes since that's usually the fastest way to get started.
+This quickstart uses Docker Desktop's built-in Kubernetes. For supported alternatives, check out our [guide to local Kubernetes flavors](../k8s-plugins/local-k8s/install.md).
 
-For real world projects we recommend using a remote Kubernetes cluster since that comes with various benefits such as shared caches and, well, doesn't require you to run K8s on your laptop!.
-
-Below are our recommended local K8s providers by platform. For alternatives, check out our [local Kubernetes guide](../k8s-plugins/local-k8s/install.md).
-
-{% tabs %}
-{% tab title="macOS (Docker Desktop)" %}
-First, download and install Docker Desktop for Mac following the instructions on the [official Docker site](https://docs.docker.com/desktop/install/mac-install/).
+Download and install Docker Desktop following the instructions on the [official Docker site](https://docs.docker.com/desktop).
 
 Then enable Kubernetes in Docker Desktop:
 
 1. From the Docker Dashboard, select the **Preferences** icon.
 2. Select **Kubernetes** from the left sidebar.
 3. Next to **Enable Kubernetes**, select the checkbox.
-3. Select **Apply & Restart** to save the settings and then click Install to confirm. This instantiates the images required to run the Kubernetes server as containers, and installs kubectl on your machine.
+4. Select **Apply & Restart** to save the settings and then click Install to confirm. This instantiates the images required to run the Kubernetes server as containers, and installs kubectl on your machine.
 
-See the [official Docker docs](https://docs.docker.com/desktop/kubernetes/) for more details.
-
-{% endtab %}
-
-{% tab title="Linux (minikube)" %}
-To install minikube on an AMD64 architecture, run:
-
-```sh
-curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-sudo install minikube-linux-amd64 /usr/local/bin/minikube
-```
-
-For other architectures and more detailed instructions, please see the [official minikube docs](https://minikube.sigs.k8s.io/docs/start/).
-
-Once you've installed minikube, you can start it with:
-
-```sh
-minikube start
-```
-
-{% endtab %}
-
-{% tab title="Windows (Docker Desktop)" %}
-First, download and install Docker Desktop for Windows following the instructions on the [official Docker site](https://docs.docker.com/desktop/install/windows-install/).
-
-Then enable Kubernetes in Docker Desktop:
-
-1. From the Docker Dashboard, select the **Settings** icon.
-2. Select **Kubernetes** from the left sidebar.
-3. Next to **Enable Kubernetes**, select the checkbox.
-3. Select **Apply & Restart** to save the settings and then click Install to confirm. This instantiates the images required to run the Kubernetes server as containers, and installs kubectl on your machine.
-
-See the [official Docker docs](https://docs.docker.com/desktop/kubernetes/) for more details.
-{% endtab %}
-
-{% endtabs %}
+See the [official Docker docs](https://docs.docker.com/desktop/kubernetes/) for more.
 
 ## Step 3 — Deploy the example application
 
