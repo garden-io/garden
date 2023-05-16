@@ -200,6 +200,12 @@ Let's get your development environment wired up.
     }))
 
     function quitWithWarning() {
+      // We ensure that the process exits at most 5 seconds after a SIGINT / ctrl-c.
+      setTimeout(() => {
+        console.error(chalk.red("\nTimed out waiting for Garden to exit. This is a bug, please report it!"))
+        process.exit(1)
+      }, 5000)
+
       garden
         .emitWarning({
           log,
