@@ -75,7 +75,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
       skipRuntimeDependencies: true,
     })
     await garden.processTask(task, log, {})
-    const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
+    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
     const status = await pRetry(
       async () => {
