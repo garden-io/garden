@@ -70,7 +70,7 @@
 
 * [About](./pulumi-plugin/about.md)
 * [Provider Configuration](./pulumi-plugin/configure-provider.md)
-* [Deploy action Configuration](./pulumi-plugin/configure-deploy-actions.md)
+* [Action Configuration](./pulumi-plugin/configure-deploy-actions.md)
 
 ## 🌹 Other Plugins
 

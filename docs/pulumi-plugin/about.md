@@ -11,7 +11,7 @@ The Pulumi plugin is already being used in large projects, but is still consider
 
 Garden includes an experimental Pulumi plugin that wraps the Pulumi CLI. This way, you can incorporate Pulumi stacks into your Garden project with minimal extra configuration. The benefits of using this plugin include:
 * Leveraging Garden's dependency semantics with your Pulumi stacks.
-  * For example, Kubernetes deploy actions can depend on infrastructure deployed with Pulumi (and access stack outputs via the `${actions.deploy.[pulumi-deploy-action-name].outputs})` key).
+  * For example, Kubernetes actions can depend on infrastructure deployed with Pulumi (and access stack outputs via the `${actions.deploy.[pulumi-deploy-action-name].outputs})` key).
   * Deploy, preview, update, refresh or destroy Pulumi stacks in dependency order with a single command.
 * Fast incremental deploys that use Garden's versioning system in combination with Pulumi stack tags to implement efficient service status checks.
 
@@ -27,7 +27,7 @@ Finally, the plugin defines several plugin-specific commands that let you run Pu
 
 ## Deploying your Pulumi stacks
 
-Once you've got your Pulumi deploy action configured, it will be deployed when you run `garden deploy` in your project; just like any other Garden service!
+Once you've got your Pulumi deploy actions configured, they will be deployed when you run `garden deploy` in your project; just like any other Garden deploy!
 
 ## Referencing stack outputs in other Garden actions
 
@@ -72,7 +72,7 @@ The currently available plugin commands are:
 * `reimport`
 Each of the above wraps the pulumi command with the same name, except for `reimport` (which wraps `pulumi export | pulumi import`—a workflow that's occasionally needed).
 
-By default, each command runs for every pulumi deploy action in the project. Each plugin command also accepts an optional list of pulumi module names as CLI arguments.
+By default, each command runs for every pulumi deploy action in the project. Each plugin command also accepts an optional list of pulumi deploy action names as CLI arguments.
 
 When a list of deploy action names is provided, the pulumi command will only be run for those deploy actions (still in dependency order).
 
