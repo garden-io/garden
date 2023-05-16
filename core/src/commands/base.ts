@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("@hapi/joi")
+import Joi from "@hapi/joi"
 import chalk from "chalk"
-import dedent = require("dedent")
+import dedent from "dedent"
 import stripAnsi from "strip-ansi"
 import { mapValues, pickBy, size } from "lodash"
 
@@ -16,7 +16,7 @@ import { createSchema, joi } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
-import { LoggerType, LoggerBase, LoggerConfigBase, LogLevel } from "../logger/logger"
+import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { GraphResultMapWithoutTask } from "../graph/results"
 import { capitalize } from "lodash"
@@ -28,9 +28,9 @@ import { CommandLine } from "../cli/command-line"
 import { SolveResult } from "../graph/solver"
 import { waitForOutputFlush } from "../process"
 import { BufferedEventStream } from "../cloud/buffered-event-stream"
-import { EventBus } from "../events"
 import { CommandInfo } from "../plugin-context"
 import type { GardenServer } from "../server/server"
+import { CloudSession } from "../cloud/api"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -187,34 +187,23 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     const server = this.server
 
     let garden = parentGarden
-    let parentSessionId: string | null = null
+    let parentSessionId: string | undefined
 
     if (nested) {
       // Make an instance clone to override anything that needs to be scoped to a specific command run
       // TODO: this could be made more elegant
-      garden = parentGarden.clone()
+      garden = parentGarden.cloneForCommand(sessionId)
       parentSessionId = parentGarden.sessionId
-      parentGarden.nestedSessions.set(sessionId, garden)
-      garden.sessionId = sessionId
-
-      garden.log = garden.log.createLog()
-      garden.log.context.sessionId = sessionId
-      garden.log.context.parentSessionId = parentSessionId
-
-      const parentEvents = garden.events
-      garden.events = new EventBus({ gardenKey: garden.getInstanceKey(), sessionId })
-      // We make sure events emitted in the context of the command are forwarded to the parent Garden event bus.
-      garden.events.onAny((name, payload) => {
-        parentEvents.emit(name, payload)
-      })
     }
 
     const log = garden.log
+    let cloudSession: CloudSession | undefined
 
     if (garden.cloudApi && garden.projectId && this.streamEvents) {
-      await garden.cloudApi.registerSession({
+      cloudSession = await garden.cloudApi.registerSession({
         parentSessionId,
         sessionId: garden.sessionId,
+        projectId: garden.projectId,
         commandInfo: garden.commandInfo,
         localServerPort: server?.port,
         environment: garden.environmentName,
@@ -222,10 +211,14 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
       })
     }
 
-    if (garden.cloudApi?.sessionRegistered(garden.sessionId)) {
+    if (garden.projectId && garden.cloudApi?.sessionRegistered(garden.sessionId)) {
       const distroName = getCloudDistributionName(garden.cloudApi.domain)
       const userId = (await garden.cloudApi.getProfile()).id
-      const commandResultUrl = garden.cloudApi.getCommandResultUrl({ sessionId: garden.sessionId, userId }).href
+      const commandResultUrl = garden.cloudApi.getCommandResultUrl({
+        sessionId: garden.sessionId,
+        projectId: garden.projectId,
+        userId,
+      }).href
       const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
       const msg = dedent`🌸  Connected to ${distroName}. View logs and command results at: \n\n${chalk.cyan(
@@ -236,8 +229,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
 
     const analytics = await garden.getAnalyticsHandler()
     analytics.trackCommand(this.getFullName())
-
-    const { streamEvents, streamLogEntries } = this
 
     const allOpts = <ParameterValues<GlobalOptions & O>>{
       ...mapValues(globalOptions, (opt) => opt.defaultValue),
@@ -253,25 +244,25 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     const cloudEventStream = new BufferedEventStream({
       log,
       cloudApi: garden.cloudApi || undefined,
-      maxLogLevel: LogLevel.debug,
+      maxLogLevel: eventLogLevel,
       garden,
-      streamEvents,
-      streamLogEntries,
+      streamEvents: this.streamEvents,
+      streamLogEntries: this.streamLogEntries,
     })
 
     let result: CommandResult<R>
 
     try {
-      if (garden.cloudApi && garden.projectId && streamEvents) {
+      if (garden.cloudApi && garden.projectId && cloudSession && this.streamEvents) {
         log.silly(`Connecting Garden instance events to Cloud API`)
         cloudEventStream.emit("commandInfo", {
           ...commandInfo,
           environmentName: garden.environmentName,
-          environmentId: garden.cloudApi.environmentId,
+          environmentId: cloudSession.environmentId,
           projectName: garden.projectName,
           projectId: garden.projectId,
           namespaceName: garden.namespace,
-          namespaceId: garden.cloudApi.namespaceId,
+          namespaceId: cloudSession.namespaceId,
           coreVersion: getPackageVersion(),
           vcsBranch: garden.vcsInfo.branch,
           vcsCommitHash: garden.vcsInfo.commitHash,

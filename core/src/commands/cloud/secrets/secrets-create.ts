@@ -18,6 +18,7 @@ import { IntegerParameter, PathParameter, StringParameter, StringsParameter } fr
 import { StringMap } from "../../../config/common"
 import dotenv = require("dotenv")
 import { getCloudDistributionName } from "../../../util/util"
+import { CloudProject } from "../../../cloud/api"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -127,7 +128,11 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError(noApiMsg("create", "secrets"), {})
     }
 
-    const project = await api.getProject()
+    let project: CloudProject | undefined
+
+    if (garden.projectId) {
+      project = await api.getProjectById(garden.projectId)
+    }
 
     if (!project) {
       throw new CloudApiError(

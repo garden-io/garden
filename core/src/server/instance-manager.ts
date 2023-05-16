@@ -37,6 +37,8 @@ interface ProjectRootContext {
 // TODO: clean up unused instances after some timeout since last request and when no monitors are active
 
 export class GardenInstanceManager {
+  public readonly sessionId: string
+
   private instances: Map<string, InstanceContext>
   private projectRoots: Map<string, ProjectRootContext>
   private cloudApis: Map<string, CloudApi>
@@ -57,15 +59,18 @@ export class GardenInstanceManager {
 
   constructor({
     log,
+    sessionId,
     serveCommand,
     extraCommands,
     defaultOpts,
   }: {
     log: Log
+    sessionId: string
     serveCommand: ServeCommand
     extraCommands?: Command[]
     defaultOpts?: Partial<GardenOpts>
   }) {
+    this.sessionId = sessionId
     this.instances = new Map()
     this.projectRoots = new Map()
     this.cloudApis = new Map()
@@ -113,6 +118,10 @@ export class GardenInstanceManager {
         log.debug(`Instance key: ${key}`)
 
         garden = await Garden.factory(params.projectRoot, {
+          // The sessionId should be the same as the surrounding process.
+          // For each command run, this will be set as the parentSessionId,
+          // and the command-specific Garden (cloned in `Command.run()`) gets its own sessionId.
+          sessionId: this.sessionId,
           monitors: this.monitors,
           ...this.defaultOpts,
           ...garden?.opts,

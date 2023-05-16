@@ -54,13 +54,19 @@ describe("GardenServer", () => {
     garden = await makeTestGardenA()
     manager = new GardenInstanceManager({
       log: garden.log,
+      sessionId: garden.sessionId,
       serveCommand: command,
       extraCommands: [new TestCommand()],
       defaultOpts: { plugins: [...testPlugins()] },
     })
     manager.set(garden.log, garden)
     gardenEnv.GARDEN_SERVER_HOSTNAME = hostname
-    gardenServer = await startServer({ log: garden.log, manager, defaultProjectRoot: garden.projectRoot, port })
+    gardenServer = await startServer({
+      log: garden.log,
+      manager,
+      defaultProjectRoot: garden.projectRoot,
+      port,
+    })
     await gardenServer.start()
     server = gardenServer["server"]
   })

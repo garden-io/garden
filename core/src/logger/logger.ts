@@ -72,7 +72,7 @@ export function logLevelToString(level: LogLevel): StringLogLevel {
   return logLevelMap[level] as StringLogLevel
 }
 
-const eventLogLevel = LogLevel.debug
+export const eventLogLevel = LogLevel.debug
 
 /**
  * Return the logger type, depending on what command line args have been set

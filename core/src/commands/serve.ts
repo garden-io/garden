@@ -17,7 +17,8 @@ import chalk from "chalk"
 import { getCloudDistributionName, sleep } from "../util/util"
 import { Log } from "../logger/log-entry"
 import { findProjectConfig } from "../config/base"
-import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
+import { CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
+import { uuidv4 } from "../util/random"
 
 export const defaultServerPort = 9700
 
@@ -49,6 +50,7 @@ export class ServeCommand<
 
   protected _manager?: GardenInstanceManager
   protected commandLine?: CommandLine
+  protected sessionId?: string
 
   description = dedent`
     Starts the Garden Core API server for the current project, and your selected environment+namespace.
@@ -77,6 +79,9 @@ export class ServeCommand<
   }
 
   async action({ garden, log, opts }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<R>> {
+    const sessionId = garden.sessionId
+    this.sessionId = sessionId
+
     const projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
 
     const manager = this.getManager(log)
@@ -87,21 +92,34 @@ export class ServeCommand<
 
     this.server = await startServer({
       log,
-      manager: this.getManager(log),
+      manager,
       port: opts.port,
       defaultProjectRoot: process.cwd(),
     })
 
     try {
-      const cloudApi = await CloudApi.factory({ log, cloudDomain, globalConfigStore: garden.globalConfigStore })
-      await cloudApi?.registerSession({
-        parentSessionId: null,
-        sessionId: garden.sessionId,
-        commandInfo: garden.commandInfo,
-        localServerPort: this.server.port,
-        environment: "garden-" + this.name,
-        namespace: "default",
-      })
+      const cloudApi = await manager.getCloudApi({ log, cloudDomain, globalConfigStore: garden.globalConfigStore })
+
+      if (projectConfig && cloudApi) {
+        let projectId = projectConfig?.id
+
+        if (!projectId) {
+          const cloudProject = await cloudApi.getProjectByName(projectConfig.name)
+          projectId = cloudProject?.id
+        }
+
+        if (projectId) {
+          await cloudApi.registerSession({
+            parentSessionId: undefined,
+            projectId,
+            sessionId: garden.sessionId,
+            commandInfo: garden.commandInfo,
+            localServerPort: this.server.port,
+            environment: "garden-" + this.name,
+            namespace: "default",
+          })
+        }
+      }
     } catch (err) {
       if (err instanceof CloudApiTokenRefreshError) {
         const distroName = getCloudDistributionName(cloudDomain)
@@ -159,7 +177,11 @@ export class ServeCommand<
 
   getManager(log: Log): GardenInstanceManager {
     if (!this._manager) {
-      this._manager = new GardenInstanceManager({ log, serveCommand: this })
+      this._manager = new GardenInstanceManager({
+        log,
+        sessionId: this.sessionId || uuidv4(),
+        serveCommand: this,
+      })
     }
     return this._manager
   }

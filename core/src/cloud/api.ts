@@ -90,7 +90,7 @@ export type ApiFetchResponse<T> = T & {
 }
 
 // TODO: Read this from the `api-types` package once the session registration logic has been released in Cloud.
-export interface RegisterSessionResponse {
+export interface CloudSession {
   environmentId: number
   namespaceId: number
 }
@@ -159,15 +159,10 @@ export class CloudApi {
   private intervalId: NodeJS.Timer | null
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private apiPrefix = "api"
-  private _project?: CloudProject
   private _profile?: GetProfileResponse["data"]
-  public projectId: string | undefined
 
-  // Set when/if the Core session is registered with Cloud
-  public environmentId?: number
-  public namespaceId?: number
-
-  private registeredSessions: Set<string>
+  private projects: Map<string, CloudProject> // keyed by project ID
+  private registeredSessions: Map<string, CloudSession> // keyed by session ID
 
   private log: Log
   public readonly domain: string
@@ -179,7 +174,8 @@ export class CloudApi {
     this.domain = domain
     this.distroName = getCloudDistributionName(domain)
     this.globalConfigStore = globalConfigStore
-    this.registeredSessions = new Set()
+    this.projects = new Map()
+    this.registeredSessions = new Map()
   }
 
   /**
@@ -331,29 +327,7 @@ export class CloudApi {
     return this.registeredSessions.has(id)
   }
 
-  /**
-   * Verifies the projectId against Garden Cloud and assigns it
-   * to the active API instance. Returns the project metadata or throws
-   * an error if the project does not exist.
-   */
-  async verifyAndConfigureProject(projectId: string): Promise<CloudProject> {
-    let project: CloudProject | undefined
-    try {
-      this.projectId = projectId
-      project = await this.getProject()
-    } catch (err) {
-      this.projectId = undefined
-      throw err
-    }
-
-    if (!project) {
-      throw new CloudApiError(`${this.distroName} has no project with ${projectId}`, {})
-    }
-
-    return project
-  }
-
-  async getProjectByName(projectName: string): Promise<CloudProject | undefined> {
+  async getAllProjects(): Promise<CloudProject[]> {
     let response: ListProjectsResponse
 
     try {
@@ -363,9 +337,20 @@ export class CloudApi {
       throw err
     }
 
-    let projects: ListProjectsResponse["data"] = response.data
+    let projectList: ListProjectsResponse["data"] = response.data
 
-    projects = projects.filter((p) => p.name === projectName)
+    return projectList.map((p) => {
+      const project = toCloudProject(p)
+      // Cache the entry by ID
+      this.projects.set(project.id, project)
+      return project
+    })
+  }
+
+  async getProjectByName(projectName: string): Promise<CloudProject | undefined> {
+    const allProjects = await this.getAllProjects()
+
+    const projects = allProjects.filter((p) => p.name === projectName)
 
     // Expect a single project, otherwise we fail with an error
     if (projects.length > 1) {
@@ -377,13 +362,7 @@ export class CloudApi {
       )
     }
 
-    let project: ListProjectsResponse["data"][0] | undefined = projects[0]
-
-    if (!project) {
-      return undefined
-    }
-
-    return toCloudProject(project)
+    return projects[0]
   }
 
   async createProject(projectName: string): Promise<CloudProject> {
@@ -409,16 +388,12 @@ export class CloudApi {
     return toCloudProject(project)
   }
 
-  async getOrCreateProject(projectName: string): Promise<CloudProject> {
+  async getOrCreateProjectByName(projectName: string): Promise<CloudProject> {
     let project: CloudProject | undefined = await this.getProjectByName(projectName)
 
     if (!project) {
       project = await this.createProject(projectName)
     }
-
-    // This is necessary to internally configure the project for this instance
-    this._project = project
-    this.projectId = project.id
 
     return project
   }
@@ -598,20 +573,24 @@ export class CloudApi {
   async registerSession({
     parentSessionId,
     sessionId,
+    projectId,
     commandInfo,
     localServerPort,
     environment,
     namespace,
   }: {
-    parentSessionId: string | null
+    parentSessionId: string | undefined
     sessionId: string
+    projectId: string
     commandInfo: CommandInfo
     localServerPort?: number
     environment: string
     namespace: string
-  }): Promise<void> {
-    if (this.registeredSessions.has(sessionId)) {
-      return
+  }): Promise<CloudSession | undefined> {
+    const session = this.registeredSessions.get(sessionId)
+
+    if (session) {
+      return session
     }
 
     try {
@@ -620,23 +599,20 @@ export class CloudApi {
         parentSessionId,
         commandInfo,
         localServerPort,
-        projectUid: this.projectId,
+        projectUid: projectId,
         environment,
         namespace,
       }
-      this.log.debug(
-        `Registering session with ${this.distroName} for ${this.projectId} in ${environment}/${namespace}.`
-      )
-      const res: RegisterSessionResponse = await this.post("sessions", {
+      this.log.debug(`Registering session with ${this.distroName} for ${projectId} in ${environment}/${namespace}.`)
+      const res: CloudSession = await this.post("sessions", {
         body,
         retry: true,
         retryDescription: "Registering session",
       })
-      this.environmentId = res.environmentId
-      this.namespaceId = res.namespaceId
       this.log.debug(`Successfully registered session with ${this.distroName}.`)
 
-      this.registeredSessions.add(sessionId)
+      this.registeredSessions.set(sessionId, res)
+      return res
     } catch (err) {
       // We don't want the command to fail when an error occurs during session registration.
       if (isGotError(err, 422)) {
@@ -650,29 +626,25 @@ export class CloudApi {
         // the Core version.
         this.log.verbose(`An error occurred while registering the session: ${err.message}`)
       }
+      return
     }
   }
 
-  async getProject(): Promise<CloudProject | undefined> {
-    if (!this.projectId) {
-      this.log.debug(`No project ID set. Will not fetch project.`)
-      return
+  async getProjectById(projectId: string): Promise<CloudProject | undefined> {
+    const existing = this.projects.get(projectId)
+
+    if (existing) {
+      return existing
     }
 
-    // If we are using a new project ID, retrieve again from the API
-    // NOTE: If we wan't to use this with multiple project IDs we need
-    // a cache supporting that + check if the remote project metadata
-    // was updated.
-    if (this._project && this._project.id === this.projectId) {
-      return this._project
-    }
+    const res = await this.get<GetProjectResponse>(`/projects/uid/${projectId}`)
+    const projectData: GetProjectResponse["data"] = res.data
 
-    const res = await this.get<GetProjectResponse>(`/projects/uid/${this.projectId}`)
-    const project: GetProjectResponse["data"] = res.data
+    const project = toCloudProject(projectData)
 
-    this._project = toCloudProject(project)
+    this.projects.set(projectId, project)
 
-    return this._project
+    return project
   }
 
   async getProfile() {
@@ -709,12 +681,12 @@ export class CloudApi {
     return valid
   }
 
-  getProjectUrl() {
-    return new URL(`/projects/${this.projectId}`, this.domain)
+  getProjectUrl(projectId: string) {
+    return new URL(`/projects/${projectId}`, this.domain)
   }
 
-  getCommandResultUrl({ sessionId, userId }: { sessionId: string; userId: string }) {
-    const path = `/projects/${this.projectId}?sessionId=${sessionId}&userId=${userId}`
+  getCommandResultUrl({ projectId, sessionId, userId }: { projectId: string; sessionId: string; userId: string }) {
+    const path = `/projects/${projectId}?sessionId=${sessionId}&userId=${userId}`
     return new URL(path, this.domain)
   }
 }

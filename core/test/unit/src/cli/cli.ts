@@ -31,11 +31,13 @@ import { registerProcess } from "../../../../src/process"
 import { ServeCommand } from "../../../../src/commands/serve"
 import { GardenInstanceManager } from "../../../../src/server/instance-manager"
 import { mkdirp } from "fs-extra"
+import { uuidv4 } from "../../../../src/util/random"
 
 describe("cli", () => {
   let cli: GardenCli
   const globalConfigStore = new GlobalConfigStore()
   const log = getRootLogger().createLog()
+  const sessionId = uuidv4()
 
   beforeEach(() => {
     cli = new GardenCli()
@@ -391,7 +393,7 @@ describe("cli", () => {
           this.server = await startServer({
             log: _log,
             defaultProjectRoot: projectRootA,
-            manager: new GardenInstanceManager({ log, serveCommand: new ServeCommand() }),
+            manager: new GardenInstanceManager({ log, sessionId, serveCommand: new ServeCommand() }),
           })
         }
 

@@ -14,7 +14,7 @@ import { got } from "../util/http"
 
 import type { LogLevel } from "../logger/logger"
 import type { Garden } from "../garden"
-import type { CloudApi } from "./api"
+import type { CloudApi, CloudSession } from "./api"
 import { getSection } from "../logger/renderers"
 import { registerCleanupFunction } from "../util/util"
 import { makeAuthHeader } from "./auth"
@@ -98,6 +98,7 @@ export interface BufferedEventStreamParams {
   log: Log
   maxLogLevel: LogLevel
   cloudApi?: CloudApi
+  cloudSession?: CloudSession
   garden: Garden
   streamEvents?: boolean
   streamLogEntries?: boolean
@@ -116,6 +117,7 @@ export interface BufferedEventStreamParams {
 export class BufferedEventStream {
   protected log: Log
   protected cloudApi?: CloudApi
+  protected cloudSession?: CloudSession
   protected maxLogLevel: LogLevel
 
   protected _targets: StreamTarget[]
@@ -138,6 +140,7 @@ export class BufferedEventStream {
     log,
     maxLogLevel,
     cloudApi,
+    cloudSession,
     garden,
     targets,
     streamEvents = true,
@@ -146,6 +149,7 @@ export class BufferedEventStream {
     this.log = log
     this.maxLogLevel = maxLogLevel
     this.cloudApi = cloudApi
+    this.cloudSession = cloudSession
     this.garden = garden
     this._targets = targets || []
     this.streamEvents = streamEvents
@@ -256,7 +260,7 @@ export class BufferedEventStream {
   }
 
   private getTargets() {
-    if (this.cloudApi && this.garden.projectId) {
+    if (this.cloudApi && this.cloudSession) {
       return [{ enterprise: true }, ...this._targets]
     } else {
       return this._targets
@@ -273,8 +277,8 @@ export class BufferedEventStream {
       workflowRunUid: this.workflowRunUid,
       sessionId: this.garden.sessionId,
       projectUid: this.garden.projectId || undefined,
-      environmentId: this.cloudApi?.environmentId,
-      namespaceId: this.cloudApi?.namespaceId,
+      environmentId: this.cloudSession?.environmentId,
+      namespaceId: this.cloudSession?.namespaceId,
       environment: this.garden.environmentName,
       namespace: this.garden.namespace,
     }
