@@ -151,11 +151,10 @@ Now you should be able to load the quickstart example project in your browser at
 
 Now that you have Garden installed and seen its basic capabilities it's time to take the next steps.
 
-If you'd like to better understand how a Garden project is configured when using one of the Kubernetes plugins, we recommend going
+If you'd like to better understand how a Garden project is configured, we recommend going
 through our [first project tutorial](../tutorials/your-first-project/README.md) which walks you through configuring a Garden project step-by-step.
 
-If you like to dive right in and configure your own project for Garden, we recommend using our [example
-projects on GitHub](https://github.com/garden-io/garden/tree/0.12.51/examples) for reference and reading through the different pages
-of the [Using Garden section](../using-garden/configuration-overview.md) of our docs.
+If you like to dive right in and configure your own project for Garden, we recommend referencing our [example
+projects on GitHub](https://github.com/garden-io/garden/tree/main/examples) and the section of our docs title [Using Garden](../using-garden/configuration-overview.md), which covers all parts of Garden in detail.
 
-And if you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://discord.gg/FrmhuUjFs6)!
+If you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://discord.gg/FrmhuUjFs6)!
