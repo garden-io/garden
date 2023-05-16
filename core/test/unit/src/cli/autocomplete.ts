@@ -79,6 +79,18 @@ describe("Autocompleter", () => {
     expect(lines).to.eql(["build --force", "build --force-refresh"])
   })
 
+  it("returns option flag alias if no canonical flag name is matched", () => {
+    const result = ac.getSuggestions("deploy --dev")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.eql(["deploy --dev", "deploy --dev-mode"])
+  })
+
+  it("returns single char alias", () => {
+    const result = ac.getSuggestions("build -f")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.eql(["build -f"])
+  })
+
   it("returns the command itself when matched verbatim", () => {
     const result = ac.getSuggestions("build")
     const lines = result.map((s) => s.line)
