@@ -14,8 +14,10 @@ import { dedent } from "../util/string"
 import { CommandLine } from "../cli/command-line"
 import { GardenInstanceManager } from "../server/instance-manager"
 import chalk from "chalk"
-import { sleep } from "../util/util"
+import { getCloudDistributionName, sleep } from "../util/util"
 import { Log } from "../logger/log-entry"
+import { findProjectConfig } from "../config/base"
+import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
 
 export const defaultServerPort = 9700
 
@@ -74,13 +76,45 @@ export class ServeCommand<
     return false
   }
 
-  async action({ log, opts }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<R>> {
+  async action({ garden, log, opts }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<R>> {
+    const projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
+
+    const manager = this.getManager(log)
+    manager.defaultProjectRoot = projectConfig?.path || process.cwd()
+    manager.defaultEnv = opts.env
+
+    const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
+
     this.server = await startServer({
       log,
       manager: this.getManager(log),
       port: opts.port,
       defaultProjectRoot: process.cwd(),
     })
+
+    try {
+      const cloudApi = await CloudApi.factory({ log, cloudDomain, globalConfigStore: garden.globalConfigStore })
+      await cloudApi?.registerSession({
+        parentSessionId: null,
+        sessionId: garden.sessionId,
+        commandInfo: garden.commandInfo,
+        localServerPort: this.server.port,
+        environment: "garden-" + this.name,
+        namespace: "default",
+      })
+    } catch (err) {
+      if (err instanceof CloudApiTokenRefreshError) {
+        const distroName = getCloudDistributionName(cloudDomain)
+        log.warn(dedent`
+          ${chalk.yellow(`Unable to authenticate against ${distroName} with the current session token.`)}
+          The dashboard will not be available until you authenticate again. Please try logging out with
+          ${chalk.bold("garden logout")} and back in again with ${chalk.bold("garden login")}.
+        `)
+      } else {
+        // Unhandled error when creating the cloud api
+        throw err
+      }
+    }
 
     // Print nicer error message when address is not available
     process.on("uncaughtException", (err: any) => {

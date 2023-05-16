@@ -12,7 +12,7 @@ import React, { FC, useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
 import { serveArgs, ServeCommand, serveOpts } from "./serve"
 import { LoggerType } from "../logger/logger"
-import { ParameterError, RuntimeError } from "../exceptions"
+import { ParameterError } from "../exceptions"
 import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer"
 import { CommandLine } from "../cli/command-line"
 import chalk from "chalk"
@@ -23,7 +23,6 @@ import moment from "moment"
 import { dedent } from "../util/string"
 import Spinner from "ink-spinner"
 import type { Log } from "../logger/log-entry"
-import { findProjectConfig } from "../config/base"
 
 const devCommandArgs = {
   ...serveArgs,
@@ -77,22 +76,6 @@ Let's get your development environment wired up.
 
   async action(params: ActionParams): Promise<CommandResult> {
     const { log } = params
-
-    const projectConfig = await findProjectConfig({ log, path: params.garden.projectRoot })
-
-    // Fail if this is not run within a garden project
-    if (!projectConfig) {
-      throw new RuntimeError(
-        `Not a project directory (or any of the parent directories): ${params.garden.projectRoot}`,
-        {
-          root: params.garden.projectRoot,
-        }
-      )
-    }
-
-    const manager = this.getManager(log)
-    manager.defaultProjectRoot = projectConfig.path
-    manager.defaultEnv = params.opts.env
 
     const logger = log.root
     const terminalWriter = logger.getWriters().display
@@ -206,7 +189,7 @@ Let's get your development environment wired up.
     const cl = (this.commandLine = new CommandLine({
       log,
       manager,
-      cwd: manager.defaultProjectRoot!,
+      cwd: process.cwd(),
       // Add some command-line specific commands
       extraCommands: [new HelpCommand(), new QuitCommand(quit), new QuietCommand(), new QuiteCommand()],
       globalOpts: pick(opts, Object.keys(globalOptions)),
