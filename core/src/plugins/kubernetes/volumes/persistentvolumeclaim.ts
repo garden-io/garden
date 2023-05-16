@@ -45,6 +45,9 @@ const commonSpecKeys = () => ({
     ),
 })
 
+
+
+
 interface PersistentVolumeClaimSpec extends PersistentVolumeClaimDeploySpec {
   dependencies: string[]
 }
