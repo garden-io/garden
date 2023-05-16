@@ -5,83 +5,82 @@ title: Actions
 
 # Actions
 
-_Actions_ were introduced in `0.13` and are the basic **unit of work** in Garden. They are usually the first thing you
-add after creating the project-level configuration.
+_Actions_ were introduced in `0.13` and are the basic **building blocks** of a Garden project. They are usually the first thing you
+add after creating the [project configuration](./projects.md).
+
+## Motivation
+
+Before we dive in, let's consider what's involved in building and testing an app that runs on Kubernetes—in a realistic way, like people typically do in their CI pipelines.
+
+First, we _build_ a Docker image from source.
+
+Then we _deploy_ the app to a Kubernetes cluster using a deployment tool like `kubectl` or `helm`. We also deploy any _dependencies_ the app may require, like databases.
+
+Next, we may need to _run some scripts_ to load the database with a schema and some test data.
+
+Finally, we run all our _test_ suites. Some of these (e.g. unit tests) don't require our services to be running, but others (like end-to-end tests) require several services to be running first.
+
+This sequence of steps (some of which can be run in parallel) boils down to a set of _actions_ that need to be run in dependency order: Builds, Deploys, Tests and Runs (the last of which referes to glue steps, like the one for seeding the DB).
+
+The same applies to large systems with tens or even hundreds of services. The only difference is that the dependency graph is correspondingly larger.
+
+Garden is all about making your workweek more fun and productive by capturing this executable graph of actions.
 
 ## Action kinds
 
-There are 4 different _kinds_ of the actions supported by Garden:
+There are four different _kinds_ of actions in Garden.
 
-* `Build` action to _build_ something, e.g. a Docker container. It is a replacement for [module](./modules.md)
-  -based build configuration.
-* `Deploy` action to _deploy_ something, e.g. a built and configured application container. It is a replacement for old
-  module-based [services](./services.md) configuration.
-* `Run` action to _run_ something, e.g. some custom scripts. It is a replacement for old
-  module-based [tasks](./tasks.md) configuration.
-* `Test` action to _test_ something, e.g. run a single application's test suite. It is a replacement for old
-  module-based [test](./tests.md) configuration.
+Each of them is generic, and has several implementations in Garden via its built-in plugins.
 
-Generally, a Garden project may contain multiple _components_ like applications, databases, etc.
-Each component can have multiple actions. For example, a single application can have different build and deployment
-scenarios (`Build` snd `Deploy` actions), multiple test suites (`Test` actions), and various helper scripts (`Run`
-actions).
+For example, `helm` Deploys (i.e. those with `type: helm` in their configuration) deploy a Helm chart to a Kubernetes cluster, `exec` Deploys start a local process (a great fit for local development), and `terraform` Deploys apply a Terraform stack.
 
-Each action can be defined in it's own Garden configuration file, but for the sake of simplicity and maintainability it
-might be easier to have one `garden.yml` configuration file per project's component.
+The four action kinds in Garden are:
 
-Below is a simple example of the action configurations of the `backend` application (from
-the [`demo-project`](../../examples/demo-project) example project):
+* `Build` actions, e.g. to build a Docker image or to run a local build script.
+* `Deploy` actions to _deploy_ a service, e.g. a Kubernetes Deployment, Helm chart or Terraform stack.
+    *  For those of you who have been using Garden for a while: These correspond to [services](./services.md) in 0.12.
+* `Run` actions for arbitrary scripts, e.g. to perform stateful operations (load test data into databases), download tools or any other miscellaneous steps.
+  * These correspond to [tasks](./tasks.md) in 0.12.
+* `Test` actions to _test_ components, e.g. run unit tests, end-to-end tests or any other test suite you may have defined.
+
+Below is a sample of the action configurations for the API service in the [`vote-helm` example project](../../examples/demo-project):
 
 ```yaml
+# from examples/vote-helm/api-image/garden.yml 
 kind: Build
-name: backend
-description: Backend app container image
-type: container
+description: Image for the API backend for the voting UI
+type: container # This makes Garden aware that there's a Dockerfile here that needs to be built.
+name: api-image
 
----
-
+# from examples/vote-helm/api.garden.yml 
 kind: Deploy
-name: backend
-description: Backend app container deployment
-type: container
-
-build: backend
-
-# You can specify variables here at the action level
-variables:
-  ingressPath: /hello-backend
-
+description: The API backend for the voting UI
+# This action makes Garden aware there's a Helm chart here that should be deployed with the provided values.
+type: helm 
+name: api
+dependencies:
+  - deploy.redis
 spec:
-  healthCheck:
-    httpGet:
-      path: /hello-backend
-      port: http
-  ports:
-    - name: http
-      containerPort: 8080
-      servicePort: 80
-  ingresses:
-    - path: ${var.ingressPath}
-      port: http
-
----
-
-kind: Run
-name: backend-test
-type: container
-build: backend
-spec:
-  command: [ "sh", "-c", "echo task output" ]
+  chart:
+    path: ./base-chart/
+  values:
+    name: api
+    image:
+      # Here, we're using Garden's templating to dynamically provide the newest tag from the api-image Docker build.
+      repository: ${actions.build.api-image.outputs.deployment-image-name}
+      tag: ${actions.build.api-image.version}
+    ingress:
+      enabled: true
+      paths: [/]
+      # Here, we reference a shared variable from the project config at examples/vote-helm/garden.yml.
+      hosts: ["api.${var.baseHostname}"]
+    healthCheckPath: /api
 ```
-
-The action configuration style above resembles the old-fashioned [module-based](./modules.md) configuration
-where [services](./services.md), [tasks](./tasks.md), and [tests](./tests.md) were configured in the same file. Such
-configuration style pattern makes the migration to `0.13` easier and faster.
 
 ## How it Works
 
-A Garden project is usually split up into the project-level configuration file and several action-level configuration
-files, each in the root directory of the respective part of the project:
+A Garden project is usually split up into the project-level config file and several action config
+files (which usually sit next to their corresponding Dockerfile/Helm chart/Terraform stack/script etc.).
 
 ```console
 .
@@ -90,8 +89,12 @@ files, each in the root directory of the respective part of the project:
 │   ├── actions.garden.yml
 │   └── ...
 ├── application-b
-│   └── actions.garden.yml
-│   └── ...
+│   └── build.garden.yml
+|   └── Dockerfile
+│   └── helm_charts
+|       └── some-chart.garden.yml
+|        ...
+|   ...
 ├── application-c
      └── actions.garden.yml
      └── ...
@@ -116,24 +119,24 @@ Each [`kind`](#action-kinds) of action must have a _type_. Different action _typ
 
 Garden is pluggable and features a number of action types. You can find all of them and their full reference
 documentation [here](../reference/action-types/README.md), but we'll provide a high-level overview of the most commonly
-used types below:
+used types below.
 
+Generally, we recommend using the same deployment tools you use in CI or in production. That way, you can get up and running with Garden more easily, and also minimize the difference between your Garden environment and your production environment.
+
+- [kubernetes](../k8s-plugins/action-types/kubernetes.md) action types use Kubernetes manifests for Deploys, Tests and Runs. These support [Kustomize](https://kustomize.io/) out of the box. Use these actions when you prefer the more lightweight deployment approach of using Kubernetes manifests directly, which is a valid alternative to the Helm chart-based `helm` actions.
+- [helm](../k8s-plugins/action-types/helm.md) action type allow you to deploy your own Helm charts, or 3rd-party
+  charts from remote repositories. [Helm](https://helm.sh/) is a powerful tool, especially when deploying 3rd-party (or
+  otherwise external) charts. You can also make your own charts, but we recommend only doing so when you need its
+  flexible templating capabilities, or if you aim to publish the charts.
+- `exec` actions offer a flexible way to weave in arbitrary scripts and
+  commands that are executed locally. These can be custom build steps, unit tests, scripts, tests or really anything else. The
+  caveat is that they always run on the same machine as the Garden CLI, and not e.g. in a Kubernetes cluster, and thus
+  not quite as portable. See the reference guide for the `exec` [Build](../reference/action-types/Build/exec.md), [Deploy](../reference/action-types/Deploy/exec.md), [Test](../reference/action-types/Test/exec.md) and [Run](../reference/action-types/Run/exec.md) actions for more details.
 - [container](../other-plugins/container.md) action type is a high level and portable way to describe how container
   images are both built and deployed. When working with containers you'll at least use this to build the images, but you
   may also specify `Deploy`, `Run` and `Test` actions on them. The `kubernetes` providers, for example, can take these
   service definitions, generate Kubernetes manifests and deploy them. This is generally much easier to use than the
   below `kubernetes` and `helm` action types, but in turn loses some flexibility of those two.
-- [kubernetes](../k8s-plugins/action-types/kubernetes.md) action type is quite simple. They allow you to provide your
-  own Kubernetes manifests, which the `kubernetes` providers can then deploy. Use this for any custom manifests you need
-  or already have, and when you don't need the capabilities of the more complex `helm` type.
-- [helm](../k8s-plugins/action-types/helm.md) action type allow you to deploy your own Helm charts, or 3rd-party
-  charts from remote repositories. [Helm](https://helm.sh/) is a powerful tool, especially when deploying 3rd-party (or
-  otherwise external) charts. You can also make your own charts, but we recommend only doing so when you need its
-  flexible templating capabilities, or if you aim to publish the charts.
-- [exec](../reference/action-types/Run/exec.md) `Run` actions offer a flexible way to weave in arbitrary scripts and
-  commands that are executed locally. These can be custom build steps, scripts, tests or really anything else. The
-  caveat is that they always run on the same machine as the Garden CLI, and not e.g. in a Kubernetes cluster, and thus
-  not quite as portable.
 - [terraform](../reference/action-types/Deploy/terraform.md)  offer a powerful way to deploy any cloud resources as part
   of your project. See the [Terraform guide](../terraform-plugin/README.md) for more information.
 
@@ -251,12 +254,22 @@ using template strings. For example, to disable a particular action for a specif
 like this:
 
 ```yaml
-kind: Build
-name: postgres-db
-description: Postgres DB container
-type: container
+kind: Deploy
+description: Postgres container for storing voting results
+type: helm
+name: db
 disabled: ${environment.name == "prod"}
-image: postgres:11.7-alpine
+spec:
+  chart:
+    name: postgresql
+    repo: https://charts.bitnami.com/bitnami
+    version: "12.4.2"
+  values:
+    # This is a more digestable name than the default one in the template
+    fullnameOverride: postgres
+    auth:
+      # This should of course not be used in production
+      postgresPassword: postgres
 ```
 
 If a disabled action is referenced as a _build_ dependency of another action it will still
