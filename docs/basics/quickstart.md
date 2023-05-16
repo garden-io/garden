@@ -142,11 +142,13 @@ And then change into the directory of the quickstart example with:
 cd quickstart-example
 ```
 
-And finally deploy the project with Garden in sync mode:
+Garden ships with a command center for your project enabling an interactive control flow. To start the REPL, run:
 
 ```sh
-garden deploy --sync
+garden dev
 ```
+
+The first time you run `garden dev`, Garden will deploy your project to Kubernetes then await further instructions inside a [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop). You can replicate this from inside the REPL by typing `deploy` and hitting enter.
 
 You should now be able to visit the example project at [http://vote.local.demo.garden](http://vote.local.demo.garden).
 
