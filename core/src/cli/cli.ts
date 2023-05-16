@@ -379,6 +379,7 @@ ${renderCommands(commands)}
       result = await command.run({
         cli: this,
         garden,
+        log: garden.log,
         args: parsedArgs,
         opts: parsedOpts,
         sessionId,
