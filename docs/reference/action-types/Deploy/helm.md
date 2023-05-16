@@ -152,9 +152,6 @@ build:
 
 kind:
 
-# Timeout for the deploy to complete, in seconds.
-timeout: 300
-
 spec:
   # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
   # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63
@@ -674,14 +671,6 @@ This would mean that instead of looking for manifest files relative to this acti
 | Type     | Allowed Values | Required |
 | -------- | -------------- | -------- |
 | `string` | "Deploy"       | Yes      |
-
-### `timeout`
-
-Timeout for the deploy to complete, in seconds.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `300`   | No       |
 
 ### `spec`
 

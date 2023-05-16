@@ -150,9 +150,6 @@ build:
 
 kind:
 
-# Timeout for the deploy to complete, in seconds.
-timeout: 300
-
 spec:
   # If `true`, runs file inside of a shell. Uses `/bin/sh` on UNIX and `cmd.exe` on Windows. A different shell can be
   # specified as a string. The shell should understand the `-c` switch on UNIX or `/d /s /c` on Windows.
@@ -203,6 +200,9 @@ spec:
   # Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of
   # the Build action. If no `build` reference is set, the command is run from the source directory of this action.
   cleanupCommand:
+
+  # The maximum duration (in seconds) to wait for `deployCommand` to exit. Ignored if `persistent: false`.
+  timeout: 600
 
   # The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if no
   # `statusCommand` is set.
@@ -431,14 +431,6 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------------- | -------- |
 | `string` | "Deploy"       | Yes      |
 
-### `timeout`
-
-Timeout for the deploy to complete, in seconds.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `300`   | No       |
-
 ### `spec`
 
 | Type     | Required |
@@ -516,6 +508,16 @@ Note that if a Build is referenced in the `build` field, the command will be run
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
+
+### `spec.timeout`
+
+[spec](#spec) > timeout
+
+The maximum duration (in seconds) to wait for `deployCommand` to exit. Ignored if `persistent: false`.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `spec.statusTimeout`
 
