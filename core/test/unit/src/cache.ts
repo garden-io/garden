@@ -252,12 +252,12 @@ describe("BoundedCache", () => {
     // We expect the first 5 keys to have been removed.
     expect(cache["keys"]).to.eql(["5", "6", "7", "8", "9", "10"])
     expect(cache["cache"]).to.eql({
-      "5": "val#5",
-      "6": "val#6",
-      "7": "val#7",
-      "8": "val#8",
-      "9": "val#9",
-      "10": "val#10",
+      5: "val#5",
+      6: "val#6",
+      7: "val#7",
+      8: "val#8",
+      9: "val#9",
+      10: "val#10",
     })
   })
 })

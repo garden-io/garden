@@ -20,7 +20,6 @@ describe("build actions", () => {
   let graph: ConfigGraph
   let log: ActionLog
   let actionRouter: ActionRouter
-  // eslint-disable-next-line no-unused
   let returnWrongOutputsCfgKey: string
   let resolvedBuildAction: ResolvedBuildAction
   let module: GardenModule

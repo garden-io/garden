@@ -3714,7 +3714,7 @@ describe("Garden", () => {
       expect(test.getInternal()).to.eql(internal)
     })
 
-    it.only("throws with helpful message if action type doesn't exist", async () => {
+    it("throws with helpful message if action type doesn't exist", async () => {
       const garden = await TestGarden.factory(pathFoo, {
         config: createProjectConfig({
           name: "test",
@@ -3737,10 +3737,7 @@ describe("Garden", () => {
       ])
 
       await expectError(() => garden.resolveModules({ log: garden.log }), {
-        contains: [
-          "Unrecognized action type 'invalidtype'",
-          "Are you missing a provider configuration?",
-        ],
+        contains: ["Unrecognized action type 'invalidtype'", "Are you missing a provider configuration?"],
       })
     })
 

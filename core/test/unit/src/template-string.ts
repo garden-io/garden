@@ -18,8 +18,6 @@ import { ConfigContext } from "../../../src/config/template-contexts/base"
 import { expectError } from "../../helpers"
 import { dedent } from "../../../src/util/string"
 
-/* eslint-disable no-invalid-template-strings */
-
 class TestContext extends ConfigContext {
   constructor(context) {
     super()
