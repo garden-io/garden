@@ -27,7 +27,7 @@ For your convenience, we build and publish Docker containers that contain the Ga
 |-----------------------------------|------------------------------------------------------------------|
 | `latest`                          | Latest stable release of Garden CLI 0.13 (Codename Bonsai), the container is based on Alpine Linux.
 | `bonsai-*` or `0.13-*`             | Garden CLI version is 0.13 (Codename Bonsai). If the tag name does not contain edge, this is the latest stable release. |
-| `acorn-*` or `0.12-*`              | Garden CLI version is 0.12 (Codename Bonsai). If the tag name does not contain `edge`, this is the latest stable release. |
+| `acorn-*` or `0.12-*`              | Garden CLI version is 0.12 (Codename Acorn). If the tag name does not contain `edge`, this is the latest stable release. |
 | `x.y.z-n-*`, e.g. `0.13.0-0`      | Garden CLI prerelease (Full semver version with prerelease modifier) |
 | `x.y.z-*`, e.g. `0.13.0`          | Garden CLI stable release (Semver version without prerelease)    |
 | `*-edge-*`                        | Edge tags contain the latest, potentially still unreleased changes to the Garden CLI in our development branches. |
