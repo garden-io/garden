@@ -25,15 +25,8 @@ RUN set -ex; \
   apt-get install -y docker-ce-cli; \
   rm -rf /var/lib/apt/lists/*;
 
-# Note: This Dockerfile is run with dist/linux-amd64 as the context root
-ADD . /garden
-
-WORKDIR /project
-
-RUN ln -s /garden/garden /bin/garden \
-  && chmod +x /bin/garden \
-  && cd /garden/static \
-  && git init
+ENV USER=root
+ENV HOME=/root
 
 ENTRYPOINT ["/garden/garden"]
 
@@ -42,10 +35,17 @@ FROM buster-base-root as buster-base-rootless
 ENV USER=gardenuser
 ENV HOME=/home/gardenuser
 RUN useradd -ms /bin/bash $USER
+
 USER $USER
-WORKDIR $HOME
 
 FROM buster-base-$VARIANT as buster-base
 
-RUN git config --global --add safe.directory /garden/static
+# Note: This Dockerfile is run with dist/linux-amd64 as the context root
+ADD --chown=$USER:root . /garden
+ENV PATH /garden:$PATH
+RUN cd /garden/static && git init
+
+WORKDIR $HOME
 RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util fetch-tools --all --garden-image-build
+
+WORKDIR /project

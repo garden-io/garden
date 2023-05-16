@@ -28,15 +28,8 @@ RUN apk add --no-cache \
   groff \
   py3-crcmod
 
-# Note: This is run with the dist/alpine-amd64 directory as the context root
-ADD . /garden
-WORKDIR /project
-
-RUN chmod +x /garden/garden \
-  && ln -s /garden/garden /usr/local/bin/garden \
-  && chmod +x /usr/local/bin/garden \
-  && cd /garden/static \
-  && git init
+ENV USER=root
+ENV HOME=/root
 
 ENTRYPOINT ["/garden/garden"]
 
@@ -46,12 +39,18 @@ ENV USER=gardenuser
 ENV HOME=/home/gardenuser
 RUN adduser -D $USER
 USER $USER
-WORKDIR $HOME
 
 FROM garden-alpine-base-$VARIANT as garden-alpine-base
 
-RUN git config --global --add safe.directory /garden/static
+# Note: This Dockerfile is run with dist/linux-amd64 as the context root
+ADD --chown=$USER:root . /garden
+ENV PATH /garden:$PATH
+RUN cd /garden/static && git init
+
+WORKDIR $HOME
 RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util fetch-tools --all --garden-image-build
+
+WORKDIR /project
 
 FROM python:3.8-alpine@sha256:4912e629ee15ae93787756afb2e02b040448a86eadcb00bb542a7e81cbb2d8f8 AS aws-builder
 
@@ -80,8 +79,8 @@ RUN curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/
 #
 FROM garden-alpine-base as garden-aws-base
 
-COPY --from=aws-builder /aws-cli /aws-cli
-COPY --from=aws-builder /usr/bin/aws-iam-authenticator /usr/bin/aws-iam-authenticator
+COPY --chown=$USER:root --from=aws-builder /aws-cli /aws-cli
+COPY --chown=$USER:root --from=aws-builder /usr/bin/aws-iam-authenticator /usr/bin/aws-iam-authenticator
 
 #
 # gcloud base
@@ -118,10 +117,10 @@ RUN az aks install-cli
 #
 FROM garden-alpine-base as garden-azure
 
-COPY --from=garden-azure-base /azure-cli /azure-cli
-COPY --from=garden-azure-base /usr/local/bin/az /usr/local/bin/az
-COPY --from=garden-azure-base /usr/local/bin/kubectl /usr/local/bin/kubectl
-COPY --from=garden-azure-base /usr/local/bin/kubelogin /usr/local/bin/kubelogin
+COPY --chown=$USER:root --from=garden-azure-base /azure-cli /azure-cli
+COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/az /usr/local/bin/az
+COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubectl /usr/local/bin/kubectl
+COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubelogin /usr/local/bin/kubelogin
 
 # Required by Azure DevOps to tell the system where node is installed
 LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
@@ -132,8 +131,8 @@ LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
 FROM garden-alpine-base as garden-aws
 
 # Copy aws cli
-COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
-COPY --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin
+COPY --chown=$USER:root --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
+COPY --chown=$USER:root --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin
 ENV PATH /aws-cli:$PATH
 
 
@@ -144,7 +143,7 @@ FROM garden-alpine-base as garden-gcloud
 
 ENV CLOUDSDK_PYTHON=python3
 
-COPY --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
+COPY --chown=$USER:root --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
 ENV PATH /google-cloud-sdk/bin:$PATH
 
 #
@@ -153,13 +152,13 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 FROM garden-alpine-base as garden-aws-gcloud
 
 # Copy aws cli
-COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
-COPY --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin
+COPY --chown=$USER:root --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
+COPY --chown=$USER:root --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin
 ENV PATH /aws-cli:$PATH
 
 ENV CLOUDSDK_PYTHON=python3
 
-COPY --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
+COPY --chown=$USER:root --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
 ENV PATH /google-cloud-sdk/bin:$PATH
 
 
@@ -169,19 +168,19 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 FROM garden-alpine-base as garden-aws-gcloud-azure
 
 # Copy aws cli
-COPY --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
-COPY --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin
+COPY --chown=$USER:root --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
+COPY --chown=$USER:root --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin
 ENV PATH /aws-cli:$PATH
 
 ENV CLOUDSDK_PYTHON=python3
 
-COPY --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
+COPY --chown=$USER:root --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
 ENV PATH /google-cloud-sdk/bin:$PATH
 
-COPY --from=garden-azure-base /azure-cli /azure-cli
-COPY --from=garden-azure-base /usr/local/bin/az /usr/local/bin/az
-COPY --from=garden-azure-base /usr/local/bin/kubectl /usr/local/bin/kubectl
-COPY --from=garden-azure-base /usr/local/bin/kubelogin /usr/local/bin/kubelogin
+COPY --chown=$USER:root --from=garden-azure-base /azure-cli /azure-cli
+COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/az /usr/local/bin/az
+COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubectl /usr/local/bin/kubectl
+COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubelogin /usr/local/bin/kubelogin
 
 # Required by Azure DevOps to tell the system where node is installed
 LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
