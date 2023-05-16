@@ -5,34 +5,23 @@ order: 1
 
 # Quickstart Guide
 
-In this quickstart guide we'll install Garden and deploy an example application using the `local-kubernetes` plugin.
+In this quickstart guide we'll install Garden and deploy an example application to Kubernetes.
 
-Garden is pluggable by design and most often used with the (remote) Kubernetes plugin and the Terraform and/or Pulumi plugins.
-
-Getting started with those requires a bit more set up and the goal here is to get you quickly started and to demonstrate Garden's main capabilities.
-
-In the guide we'll:
+In this quickstart we'll:
 
 * Install Garden
-* Install local Kubernetes
+* Run a local, [supported flavor](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes
 * Deploy an example application
 
 ## Step 1 — Install Garden
 
-You need the following dependencies on your local machine to use Garden:
-
-* Git (v2.14 or newer)
-* _[Windows only]_ rsync (v3.1.0 or newer)
-
-Run `git version` and `rsync --version` to verify that a recent enough version of Git and rsync is installed.
-
-Then install the Garden CLI for your platform:
+Install the Garden CLI for your platform:
 
 {% tabs %}
 
 {% tab title="macOS (Homebrew)" %}
 ```sh
-brew tap garden-io/garden && brew install garden-cli
+brew install garden-io/garden/garden-cli
 ```
 
 {% hint style="info" %}
