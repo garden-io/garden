@@ -109,7 +109,7 @@ Let's get your development environment wired up.
       })
 
       useInput((input, key) => {
-        commandLine.keyStroke(input, key)
+        commandLine.handleInput(input, key)
       })
 
       const width = stdout ? stdout.columns - 2 : 50
