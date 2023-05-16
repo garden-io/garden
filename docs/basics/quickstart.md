@@ -19,7 +19,8 @@ Install the Garden CLI for your platform:
 
 {% tabs %}
 
-{% tab title="macOS (Homebrew)" %}
+{% tab title="macOS" %}
+
 ```sh
 brew install garden-io/garden/garden-cli
 ```
