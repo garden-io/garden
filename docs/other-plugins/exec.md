@@ -96,26 +96,27 @@ spec:
 
 ### Local services
 
-The `exec` action type can also be used to start long-running processes like so:
+The `exec Deploy` action type can also be used to start long-running processes:
 
 ```yaml
-kind: Module
+kind: Deploy
 name: web-local
 type: exec
-local: true
-include: [ ]
-services:
-  - name: web-local
-    syncMode:
-      command: [ "yarn", "run", "dev" ] # <--- This is the command Garden runs to start the process in sync mode
-      statusCommand: [ ./check-local-status.sh ] # <--- Optionally set a status command that checks whether the local service is ready
-    deployCommand: [ ] # <--- A no op since we only want to deploy it when we're in sync mode
-    env: ${modules.frontend.env} # <--- Reference the env variable defined above
+spec:
+  persistent: true
+  deployCommand: [ "yarn", "run", "dev" ] # <--- This is the command Garden runs to start the process in persistent mode.
 ```
+
+Set `spec.persistent: true` if the `spec.deployCommand` is not expected to return, and should run until the Garden
+command is manually terminated. The `spec.persistent` flag replaces the previously supported `devMode` from [`exec`
+_modules_](../reference/module-types/exec.md).
+
+See the [reference guide](../reference/action-types/Deploy/exec.md) for more details on the `exec Deploy` action
+configuration.
 
 See also this [example project](../../examples/local-service).
 
 ## Next Steps
 
-For some advanced `exec` use cases, check out [this recording](https://www.youtube.com/watch?v=npE0FWJwcno) of our
-community office hours on the topic.
+For some advanced `exec` _module_ use cases, check out [this recording](https://www.youtube.com/watch?v=npE0FWJwcno) of
+our community office hours on the topic.
