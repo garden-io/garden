@@ -83,16 +83,10 @@ See the [official Docker docs](https://docs.docker.com/desktop/kubernetes/) for 
 
 Now that we have Garden installed and Kubernetes running locally, we can deploy our example application.
 
-First, clone the Garden repo with:
+Clone the example project from GitHub:
 
 ```sh
-git clone https://github.com/garden-io/quickstart-example.git
-```
-
-And then change into the directory of the quickstart example with:
-
-```sh
-cd quickstart-example
+git clone https://github.com/garden-io/quickstart-example.git && cd quickstart-example
 ```
 
 Garden ships with a command center for your project enabling an interactive control flow. To start the REPL, run:
@@ -105,7 +99,7 @@ The first time you run `garden dev`, Garden will deploy your project to Kubernet
 
 You should now be able to visit the example project at [http://vote.local.demo.garden](http://vote.local.demo.garden).
 
-If the page doesn't load because the DNS address can't be found, you'll need to go to step 4 and update your hostfile. Otherwise, you're done!
+If the page doesn't load, you'll need to go to step 4 and update your hostfile. Otherwise, you're done!
 
 The project itself doubles as an interactive guide that walks you through some common Garden commands and workflows. We encourage you to give it a spin!
 
