@@ -64,7 +64,7 @@
 
 * [About](./terraform-plugin/about.md)
 * [Provider Configuration](./terraform-plugin/configure-provider.md)
-* [Module Configuration](./terraform-plugin/configure-modules.md)
+* [Deploy action Configuration](./terraform-plugin/configure-deploys.md)
 
 ## ☘️ Pulumi Plugin
 

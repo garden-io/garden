@@ -38,7 +38,7 @@ garden --env=<env-name> plugins terraform plan-root                      # Runs 
 garden --env=<env-name> plugins terraform plan-deploy -- <action-name>   # Runs `terraform plan` for the specified terraform Deploy action.
 ```
 
-Each command automatically applies any variables configured on the provider/module in question. Any additional arguments you specify for the command are passed directly to the `terraform` CLI command, but you need to place them after a `--` so that they aren't parsed as Garden options. For example, to apply the root stack with `-auto-approve`:
+Each command automatically applies any variables configured on the provider or action in question. Any additional arguments you specify for the command are passed directly to the `terraform` CLI command, but you need to place them after a `--` so that they aren't parsed as Garden options. For example, to apply the root stack with `-auto-approve`:
 
 ```console
 garden --env=<env-name> plugins terraform apply-root -- -auto-approve
