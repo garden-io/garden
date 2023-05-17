@@ -8,7 +8,7 @@
 
 import { joiIdentifier, joi, joiSparseArray, joiStringMap } from "../../../config/common"
 import { dedent } from "../../../util/string"
-import { BaseVolumeSpec, baseVolumeSpecKeys } from "../../base-volume"
+import { BaseVolumeSpec, accessModesSchemaKeys } from "../../base-volume"
 import { V1ConfigMap } from "@kubernetes/client-node"
 import { ModuleTypeDefinition } from "../../../plugin/plugin"
 import { baseBuildSpecSchema } from "../../../config/module"
@@ -32,7 +32,7 @@ export interface ConfigmapDeploySpec extends BaseVolumeSpec {
 }
 
 const commonSpecKeys = () => ({
-  ...baseVolumeSpecKeys(),
+  ...accessModesSchemaKeys(),
   namespace: joiIdentifier().description(
     "The namespace to deploy the ConfigMap in. Note that any module referencing the ConfigMap must be in the same namespace, so in most cases you should leave this unset."
   ),
