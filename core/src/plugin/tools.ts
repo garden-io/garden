@@ -29,7 +29,12 @@ const toolBuildSchema = () =>
       .required()
       .example("linux")
       .description("The platform this build is for."),
-    architecture: joi.string().allow("amd64").required().example("amd64").description("The architecture of the build."),
+    architecture: joi
+      .string()
+      .allow("amd64", "arm64")
+      .required()
+      .example("amd64")
+      .description("The architecture of the build."),
     url: joi
       .string()
       .uri({ allowRelative: false })
