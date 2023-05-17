@@ -116,8 +116,11 @@ following:
 
 ## Deploying applications
 
-The Kubernetes plugins (local or remote) can execute `Deploy` actions of `container` type. You'll find the relevant
-information in [this guide](../k8s-plugins/action-types/container.md) and the full spec in
+After your software has been built, you might also want to deploy it somewhere.
+For this, check out our [guide](../k8s-plugins/action-types/container.md) on deploying to Kubernetes using `Deploy`
+actions.
+
+See the full spec of the `Deploy` action of `container` type in
 our [reference docs](../reference/action-types/Deploy/container.md).
 
 ## Running tests
