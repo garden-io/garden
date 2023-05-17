@@ -28,7 +28,6 @@ import { ConfigurationError } from "../exceptions"
 import { EnvironmentConfig, getNamespace } from "./project"
 import { omitUndefined } from "../util/objects"
 import { BaseGardenResource, GardenResource } from "./base"
-import { GardenApiVersion } from "../constants"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu
