@@ -25,7 +25,7 @@ ECS etc. This will come in handy as we add more providers, that can then use the
 
 ## Building images
 
-A bare minimum `container Build` action just specifies common required fields:
+Following is a bare minimum `container Build` action configuration using the required fields:
 
 ```yaml
 # garden.yml
