@@ -25,7 +25,7 @@ ECS etc. This will come in handy as we add more providers, that can then use the
 
 ## Building images
 
-Following is a bare minimum `container Build` action configuration using the required fields:
+Following is a bare minimum `Build` action using the `container` type:
 
 ```yaml
 # garden.yml
@@ -116,8 +116,8 @@ following:
 
 ## Deploying applications
 
-The Kubernetes plugins (local or remote) can deploy `container Deploy` actions. You'll find the relevant information
-in [this guide](../k8s-plugins/action-types/container.md) and the full spec in
+The Kubernetes plugins (local or remote) can execute `Deploy` actions of `container` type. You'll find the relevant
+information in [this guide](../k8s-plugins/action-types/container.md) and the full spec in
 our [reference docs](../reference/action-types/Deploy/container.md).
 
 ## Running tests
@@ -160,7 +160,7 @@ The names and commands to run are of course completely up to you, but we suggest
 across your different action configurations.
 
 See the [reference](../reference/action-types/Test/container.md) for all the configurable parameters
-for `container Test` actions.
+for `Test` actions of `container` type.
 
 ## Running arbitrary workloads
 
@@ -188,7 +188,7 @@ action
 multiple times should be safe.
 
 See the [reference](../reference/action-types/Run/container.md#tasks) for all the configurable parameters
-for `container Run` actions.
+for `Run` actions of `container` type.
 
 ## Referencing from other actions
 
