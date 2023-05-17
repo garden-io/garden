@@ -205,7 +205,7 @@ spec:
 ```
 
 Here we do not need to declare an explicit _build_ dependency on `my-image` like `dependencies: [ build.my-app ]`.
-Instead, we do it implicitly via the references to the `Build` action outputs in `spec.value.image`.
+Instead, we do it implicitly via the references to the `Build` action outputs in `spec.values.image`.
 
 For a full list of keys that are available for the `container` action type, take a look at
 the _outputs_ reference
