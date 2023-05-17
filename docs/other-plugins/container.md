@@ -170,7 +170,7 @@ action:
 ```yaml
 kind: Run
 type: container
-name: my-container
+name: db-migrate
 dependencies: [ deploy.my-database ]
 spec:
   command: [ rake, db:migrate ]
