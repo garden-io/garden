@@ -63,8 +63,8 @@ version of action being built.
 
 ## Using remote images
 
-If you're not building the container image yourself and just need to deploy an external image, you do not need to
-define a `Build` action. You only need to define a `Deploy` action:
+If you're not building the container image yourself and just need to deploy an external image, you need to specify
+the `image` in the `Deploy` action's `spec`:
 
 ```yaml
 # garden.yml
