@@ -34,7 +34,8 @@ type: container
 name: my-container
 ```
 
-If you have a `Dockerfile` next to this file, this is enough to tell Garden to build it. However, you can override the `Dockerfile` name or path by specifying `spec.dockerfile: <path-to-Dockerfile>`.
+If you have a `Dockerfile` next to this file, this is enough to tell Garden to build it. However, you can override
+the `Dockerfile` name or path by specifying `spec.dockerfile: <path-to-Dockerfile>`.
 You might also want to
 explicitly [include or exclude](../using-garden/configuration-overview.md#includingexcluding-files-and-directories)
 files in the build context.
@@ -57,7 +58,8 @@ spec:
     baseImageVersion: ${actions.build.base-image.version}
 ```
 
-Additionally, Garden automatically sets `GARDEN_ACTION_VERSION` as a build argument, which you can use to reference the version of action being built.
+Additionally, Garden automatically sets `GARDEN_ACTION_VERSION` as a build argument, which you can use to reference the
+version of action being built.
 
 ## Using remote images
 
@@ -162,7 +164,8 @@ for `container Test` actions.
 
 ## Running arbitrary workloads
 
-To run arbitrary workloads, any scripts or jobs, you can use the `Run` action which is defined similarly to the `Test` action:
+To run arbitrary workloads, any scripts or jobs, you can use the `Run` action which is defined similarly to the `Test`
+action:
 
 ```yaml
 kind: Run
@@ -180,7 +183,8 @@ action, so that Garden will make sure the database is deployed before running th
 Since Garden `0.13` `Test` actions can also be dependencies for any other kinds of actions, e.g `Build`, `Deploy`
 and `Run` actions.
 
-One thing to note, is that `Run` actions should in most cases be _idempotent_, meaning that running the same `Run` action
+One thing to note, is that `Run` actions should in most cases be _idempotent_, meaning that running the same `Run`
+action
 multiple times should be safe.
 
 See the [reference](../reference/action-types/Run/container.md#tasks) for all the configurable parameters
