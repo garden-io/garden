@@ -285,11 +285,14 @@ export const projectSchema = createSchema({
     apiVersion: joi.string().valid(GardenApiVersion.v0, GardenApiVersion.v1).description(dedent`
       The Garden apiVersion for this project.
 
-      The value ${GardenApiVersion.v0} is the default for backwards compatibility with Garden Acorn (0.12) when not explicitly specified.
+      The value ${GardenApiVersion.v0} is the default for backwards compatibility with
+      Garden Acorn (0.12) when not explicitly specified.
 
-      Configuring ${GardenApiVersion.v1} explicitly in your project configuration allows you to start using the new Action configs introduced in Garden B.
+      Configuring ${GardenApiVersion.v1} explicitly in your project configuration allows
+      you to start using the new Action configs introduced in Garden Bonsai (0.13).
 
-      Note that the value ${GardenApiVersion.v1} will break compatibility of your project with Garden Acorn (0.12).
+      Note that the value ${GardenApiVersion.v1} will break compatibility of your project
+      with Garden Acorn (0.12).
     `),
     kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
     path: projectRootSchema().meta({ internal: true }),

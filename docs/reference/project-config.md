@@ -22,13 +22,14 @@ The values in the schema below are the default values.
 ```yaml
 # The Garden apiVersion for this project.
 #
-# The value garden.io/v0 is the default for backwards compatibility with Garden Acorn (0.12) when not explicitly
-# specified.
+# The value garden.io/v0 is the default for backwards compatibility with
+# Garden Acorn (0.12) when not explicitly specified.
 #
-# Configuring garden.io/v1 explicitly in your project configuration allows you to start using the new Action configs
-# introduced in Garden B.
+# Configuring garden.io/v1 explicitly in your project configuration allows
+# you to start using the new Action configs introduced in Garden Bonsai (0.13).
 #
-# Note that the value garden.io/v1 will break compatibility of your project with Garden Acorn (0.12).
+# Note that the value garden.io/v1 will break compatibility of your project
+# with Garden Acorn (0.12).
 apiVersion:
 
 # Indicate what kind of config this is.
@@ -211,11 +212,14 @@ variables: {}
 
 The Garden apiVersion for this project.
 
-The value garden.io/v0 is the default for backwards compatibility with Garden Acorn (0.12) when not explicitly specified.
+The value garden.io/v0 is the default for backwards compatibility with
+Garden Acorn (0.12) when not explicitly specified.
 
-Configuring garden.io/v1 explicitly in your project configuration allows you to start using the new Action configs introduced in Garden B.
+Configuring garden.io/v1 explicitly in your project configuration allows
+you to start using the new Action configs introduced in Garden Bonsai (0.13).
 
-Note that the value garden.io/v1 will break compatibility of your project with Garden Acorn (0.12).
+Note that the value garden.io/v1 will break compatibility of your project
+with Garden Acorn (0.12).
 
 | Type     | Allowed Values                 | Required |
 | -------- | ------------------------------ | -------- |
