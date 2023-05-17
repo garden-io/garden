@@ -17,7 +17,7 @@ export interface BaseVolumeSpec extends ModuleSpec {
   accessModes: VolumeAccessMode[]
 }
 
-export const baseVolumeSpecKeys = () => ({
+export const accessModesSchemaKeys = () => ({
   accessModes: joi
     .sparseArray()
     .items(joi.string().allow("ReadOnlyMany", "ReadWriteOnce", "ReadWriteMany"))
@@ -35,7 +35,7 @@ export const baseVolumeSpecKeys = () => ({
 
 export const baseVolumeSpecSchema = () =>
   baseModuleSpecSchema().keys({
-    ...baseVolumeSpecKeys(),
+    ...accessModesSchemaKeys(),
   })
 
 export const gardenPlugin = () =>

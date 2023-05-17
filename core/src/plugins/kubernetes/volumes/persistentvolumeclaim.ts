@@ -8,7 +8,6 @@
 
 import { joiIdentifier, joi, joiSparseArray, createSchema } from "../../../config/common"
 import { dedent } from "../../../util/string"
-import { BaseVolumeSpec, baseVolumeSpecKeys, VolumeAccessMode } from "../../base-volume"
 import { V1PersistentVolumeClaimSpec, V1PersistentVolumeClaim } from "@kubernetes/client-node"
 import { readFileSync } from "fs-extra"
 import { join } from "path"
@@ -26,23 +25,17 @@ import { getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/
 import { Resolved } from "../../../actions/types"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 
-export interface PersistentVolumeClaimDeploySpec extends BaseVolumeSpec {
+export interface PersistentVolumeClaimDeploySpec {
   namespace?: string
   spec: V1PersistentVolumeClaimSpec
 }
 
 const commonSpecKeys = () => ({
-  ...baseVolumeSpecKeys(),
   namespace: joiIdentifier().description(
     "The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset."
   ),
-  spec: joi
-    .object()
-    .jsonSchema({ ...jsonSchema().properties.spec, type: "object" })
-    .required()
-    .description(
-      "The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec schema may include (or even require) additional fields, depending on the used `storageClass`. See the [PersistentVolumeClaim docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details."
-    ),
+  // TODO: validation for this doesn't work, but kubernetes does the validation for us on apply
+  spec: kubernetesPVCSchema,
 })
 
 interface PersistentVolumeClaimSpec extends PersistentVolumeClaimDeploySpec {
@@ -54,11 +47,25 @@ type PersistentVolumeClaimModule = GardenModule<PersistentVolumeClaimSpec, Persi
 type PersistentVolumeClaimActionConfig = DeployActionConfig<"persistentvolumeclaim", PersistentVolumeClaimDeploySpec>
 type PersistentVolumeClaimAction = DeployAction<PersistentVolumeClaimActionConfig, {}>
 
-// Need to use a sync read to avoid having to refactor createGardenPlugin()
-// The `persistentvolumeclaim.json` file is copied from the handy
-// kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.17.0-standalone).
-const jsonSchema = () =>
-  JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "persistentvolumeclaim.json")).toString())
+const getPVCJsonSchema = () => {
+  // Need to use a sync read to avoid having to refactor createGardenPlugin()
+  // The `persistentvolumeclaim.json` file is copied from the handy
+  // kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.17.0-standalone).
+  const jsonSchemaRaw = () =>
+    JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "persistentvolumeclaim.json")).toString())
+
+  const jsonSchema = { ...jsonSchemaRaw().properties.spec, type: "object" }
+
+  return jsonSchema
+}
+
+const kubernetesPVCSchema = joi
+  .object()
+  .jsonSchema(getPVCJsonSchema())
+  .required()
+  .description(
+    "The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec schema may include (or even require) additional fields, depending on the used `storageClass`. See the [PersistentVolumeClaim docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details."
+  )
 
 export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<PersistentVolumeClaimAction> => ({
   name: "persistentvolumeclaim",
@@ -72,9 +79,6 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
     configure: async ({ config }) => {
       // No need to scan for files
       config.include = []
-
-      // Copy the access modes field to match the BaseVolumeSpec schema
-      config.spec.accessModes = <VolumeAccessMode[]>config.spec.spec.accessModes || ["ReadWriteOnce"]
 
       return { config, supportedModes: {} }
     },
@@ -162,7 +166,6 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
 
               timeout: KUBECTL_DEFAULT_TIMEOUT,
               spec: {
-                accessModes: module.spec.accessModes,
                 namespace: module.spec.namespace,
                 spec: module.spec.spec,
               },
