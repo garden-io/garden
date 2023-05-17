@@ -5,6 +5,10 @@ tocTitle: "`hadolint`"
 
 # `hadolint` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Runs `hadolint` on the specified Dockerfile.
