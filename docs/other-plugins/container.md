@@ -59,7 +59,9 @@ spec:
 ```
 
 Additionally, Garden automatically sets `GARDEN_ACTION_VERSION` as a build argument, which you can use to reference the
-version of action being built.
+version of action being built. You use it internally as
+a [Docker buildArg](https://docs.docker.com/engine/reference/commandline/build/#build-arg). For instance, to set
+versions, render docs, or clear caches.
 
 ## Using remote images
 
