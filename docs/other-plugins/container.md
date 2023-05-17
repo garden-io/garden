@@ -180,7 +180,7 @@ action, so that Garden will make sure the database is deployed before running th
 Since Garden `0.13` `Test` actions can also be dependencies for any other kinds of actions, e.g `Build`, `Deploy`
 and `Run` actions.
 
-One thing to note, is that `Run` actions should in most cases be _idempotent_, meaning that running the same action
+One thing to note, is that `Run` actions should in most cases be _idempotent_, meaning that running the same `Run` action
 multiple times should be safe.
 
 See the [reference](../reference/action-types/Run/container.md#tasks) for all the configurable parameters
