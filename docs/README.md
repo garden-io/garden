@@ -168,6 +168,7 @@
 * [Module Template Configuration](./reference/module-template-config.md)
 * [RenderTemplate Reference](./reference/render-template-config.md)
 * [Workflow Configuration](./reference/workflow-config.md)
+* [Garden Containers on Docker Hub](./reference/dockerhub-containers.md)
 
 ## 🎋 Misc
 
