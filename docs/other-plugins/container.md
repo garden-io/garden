@@ -177,8 +177,7 @@ spec:
 ```
 
 In this example, we define a `db-migrate` `Run` action that executes `rake db:migrate` (which is commonly used for
-database migrations, but you can run anything you like of course). The action has a dependency on `my-database` `Deploy`
-action, so that Garden will make sure the database is deployed before running the migration job.
+database migrations, but you can run anything you like of course). The action has a dependency on the `my-database` deployment, so that Garden will make sure the database is deployed before running the migration job.
 
 Since Garden `0.13` `Test` actions can also be dependencies for any other kinds of actions, e.g `Build`, `Deploy`
 and `Run` actions.
