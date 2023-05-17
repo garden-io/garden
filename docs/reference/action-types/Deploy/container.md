@@ -202,8 +202,8 @@ spec:
       # config source directory (or absolute).
       hostPath:
 
-      # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are
-      # `persistentvolumeclaim` and `configmap`, for example.
+      # The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported
+      # action types are `persistentvolumeclaim` and `configmap`.
       #
       # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
       # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
@@ -836,7 +836,7 @@ spec:
 
 [spec](#spec) > [volumes](#specvolumes) > action
 
-The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`, for example.
+The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`.
 
 Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
 
