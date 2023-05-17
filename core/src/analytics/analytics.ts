@@ -9,6 +9,7 @@
 import codenamize = require("@codenamize/codenamize")
 import { platform, release } from "os"
 import ci = require("ci-info")
+import env from "env-var"
 import { uniq } from "lodash"
 import { AnalyticsGlobalConfig } from "../config-store/global"
 import { getPackageVersion, sleep, getDurationMsec } from "../util/util"
@@ -26,6 +27,7 @@ import { uuidv4 } from "../util/random"
 import { GardenBaseError } from "../exceptions"
 import { ActionConfigMap } from "../actions/types"
 import { actionKinds } from "../actions/types"
+import { pathExists } from "fs-extra"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 const CI_USER = "ci-user"
@@ -75,6 +77,33 @@ function getIsRecurringUser(firstRunAt?: Date, latestRunAt?: Date) {
   return hoursSinceFirstRun > 12
 }
 
+export type ContainerRuntime =
+  | "docker"
+  | "oci"
+  | "kubernetes-docker"
+  | "kubernetes-oci"
+  // we know its in kubernetes, but could not properly detect the runtime
+  | "kubernetes"
+
+/**
+ * Trying to detect if we are running in a container. We do this by a combination
+ * of env vars and checking for the existance of certain files.
+ */
+export async function detectContainerRuntime(): Promise<ContainerRuntime | undefined> {
+  const isKubernetes = env.get("POD_IP") ? true : false
+
+  if (await pathExists("/.dockerenv")) {
+    // Docker uses a filesystem path /.dockerenv
+    return isKubernetes ? "kubernetes-docker" : "docker"
+  } else if (await pathExists("/run/.containerenv")) {
+    // OCI containers has a file at /run/.containerenv
+    // Note that this is not implemented consistently
+    return isKubernetes ? "kubernetes-oci" : "oci"
+  }
+
+  return isKubernetes ? "kubernetes" : undefined
+}
+
 interface CiInfo {
   isCi: boolean
   ciName: string | null
@@ -84,6 +113,9 @@ interface SystemInfo {
   gardenVersion: string
   platform: string
   platformVersion: string
+  // undefined means that the heuristics did not find any
+  // indication that we are running in a container
+  containerRuntime: ContainerRuntime | undefined
 }
 
 // Note that we pluralise the entity names in the count fields (e.g. modulesCount, tasksCount).
@@ -261,6 +293,7 @@ export class AnalyticsHandler {
     cloudUser,
     isEnabled,
     ciInfo,
+    containerRuntime,
   }: {
     garden: Garden
     log: Log
@@ -271,6 +304,7 @@ export class AnalyticsHandler {
     isEnabled: boolean
     cloudUser?: UserResult
     ciInfo: CiInfo
+    containerRuntime?: ContainerRuntime
   }) {
     const segmentClient = require("analytics-node")
     this.segment = new segmentClient(API_KEY, { flushAt: 20, flushInterval: 300 })
@@ -312,6 +346,7 @@ export class AnalyticsHandler {
       platform: platform(),
       platformVersion: release(),
       gardenVersion: getPackageVersion().toString(),
+      containerRuntime,
     }
 
     this.isCI = ciInfo.isCi
@@ -458,6 +493,8 @@ export class AnalyticsHandler {
 
     await garden.globalConfigStore.set("analytics", analyticsConfig)
 
+    const containerRuntime = await detectContainerRuntime()
+
     return new AnalyticsHandler({
       garden,
       log,
@@ -468,6 +505,7 @@ export class AnalyticsHandler {
       isEnabled,
       ciInfo,
       anonymousUserId,
+      containerRuntime,
     })
   }
 
