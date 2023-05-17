@@ -682,7 +682,7 @@ joi = joi.extend({
     } catch (err) {
       const error = opts.error("validation")
       error.message = err.message
-      return error
+      return { errors: error }
     }
   },
   rules: {
