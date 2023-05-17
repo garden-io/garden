@@ -39,6 +39,13 @@ export const getBundledPlugins = (): GardenPluginReference[] => [
     },
   },
   {
+    name: "docker-compose",
+    callback: async () => {
+      const plugin = await import("@garden-io/garden-docker-compose")
+      return plugin.gardenPlugin.getSpec()
+    },
+  },
+  {
     name: "jib",
     callback: async () => {
       const plugin = await import("@garden-io/garden-jib")

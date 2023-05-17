@@ -26,6 +26,7 @@
     "@garden-io/garden-conftest": "*",
     "@garden-io/garden-conftest-container": "*",
     "@garden-io/garden-conftest-kubernetes": "*",
+    "@garden-io/garden-docker-compose": "*",
     "@garden-io/garden-jib": "*",
     "@garden-io/garden-pulumi": "*",
     "@garden-io/garden-terraform": "*",

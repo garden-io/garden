@@ -51,7 +51,7 @@ class ProviderContext extends ConfigContext {
   constructor(root: ConfigContext, provider: Provider) {
     super(root)
     this.config = provider.config
-    this.outputs = provider.status.outputs
+    this.outputs = provider.status?.outputs || {}
   }
 }
 

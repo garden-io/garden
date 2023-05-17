@@ -11,10 +11,10 @@ import { fromPairs, mapValues, omit } from "lodash"
 import pProps from "p-props"
 
 import { validateSchema } from "../config/validation"
-import { defaultProvider } from "../config/provider"
+import { Provider, defaultProvider } from "../config/provider"
 import { ParameterError, PluginError } from "../exceptions"
-import { Log } from "../logger/log-entry"
-import { PluginActionParamsBase } from "../plugin/base"
+import type { Log } from "../logger/log-entry"
+import type { PluginActionParamsBase } from "../plugin/base"
 import {
   ProviderActionOutputs,
   ProviderActionParams,
@@ -25,21 +25,22 @@ import {
   getProviderHandlerNames,
   ProviderHandlers,
 } from "../plugin/plugin"
-import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../plugin/handlers/Provider/cleanupEnvironment"
-import {
+import type { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../plugin/handlers/Provider/cleanupEnvironment"
+import type {
   EnvironmentStatusMap,
   GetEnvironmentStatusParams,
   EnvironmentStatus,
 } from "../plugin/handlers/Provider/getEnvironmentStatus"
-import { Omit } from "../util/util"
-import { DebugInfoMap } from "../plugin/handlers/Provider/getDebugInfo"
-import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../plugin/handlers/Provider/prepareEnvironment"
-import { ConfigureProviderParams, ConfigureProviderResult } from "../plugin/handlers/Provider/configureProvider"
-import { PluginContext, PluginEventBroker } from "../plugin-context"
-import { AugmentGraphResult, AugmentGraphParams } from "../plugin/handlers/Provider/augmentGraph"
+import type { Omit } from "../util/util"
+import type { DebugInfoMap } from "../plugin/handlers/Provider/getDebugInfo"
+import type { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../plugin/handlers/Provider/prepareEnvironment"
+import type { ConfigureProviderParams, ConfigureProviderResult } from "../plugin/handlers/Provider/configureProvider"
+import type { PluginContext, PluginEventBroker } from "../plugin-context"
+import type { AugmentGraphResult, AugmentGraphParams } from "../plugin/handlers/Provider/augmentGraph"
 import { Profile } from "../util/profiling"
-import { GetDashboardPageParams, GetDashboardPageResult } from "../plugin/handlers/Provider/getDashboardPage"
+import type { GetDashboardPageParams, GetDashboardPageResult } from "../plugin/handlers/Provider/getDashboardPage"
 import { BaseRouter, BaseRouterParams, CommonParams } from "./base"
+import type { SuggestCommandsParams, SuggestCommandsResult } from "../plugin/handlers/Provider/suggestCommands"
 
 /**
  * The ProviderRouter takes care of choosing which plugin should be responsible for handling a provider action,
@@ -160,6 +161,18 @@ export class ProviderRouter extends BaseRouter {
     })
   }
 
+  async suggestCommands(
+    params: ActionRouterParams<SuggestCommandsParams> & { provider: Provider }
+  ): Promise<SuggestCommandsResult> {
+    const { provider } = params
+    return this.callPluginActionHandler({
+      handlerType: "suggestCommands",
+      pluginName: provider.name,
+      params,
+      defaultHandler: async () => ({ commands: [] }),
+    })
+  }
+
   //endregion
 
   //===========================================================================
@@ -189,7 +202,16 @@ export class ProviderRouter extends BaseRouter {
 
     const debugInfoMap = pProps(
       mapValues(handlers, async (h) =>
-        h({ ...(await this.commonParams(h, log, undefined, undefined)), includeProject })
+        h({
+          ...(await this.commonParams({
+            handler: h,
+            log,
+            templateContext: undefined,
+            events: undefined,
+            provider: undefined,
+          })),
+          includeProject,
+        })
       )
     )
 
@@ -219,7 +241,13 @@ export class ProviderRouter extends BaseRouter {
     })
 
     const handlerParams: ProviderActionParams[T] = {
-      ...(await this.commonParams(handler!, params.log, undefined, params.events)),
+      ...(await this.commonParams({
+        handler: handler!,
+        log: params.log,
+        templateContext: undefined,
+        events: params.events,
+        provider: params.provider,
+      })),
       ...(<any>params),
     }
 

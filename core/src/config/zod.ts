@@ -6,10 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Schema, z, infer as inferZodType, ZodType } from "zod"
+import { Schema, z, infer as inferZodType, ZodArray, ZodType } from "zod"
 import { envVarRegex, identifierRegex, joiIdentifierDescription, userIdentifierRegex } from "./constants"
+import { filter, includes } from "lodash"
 
-// Add metadata support to schemas. See https://github.com/colinhacks/zod/issues/273#issuecomment-1434077058
+// Add additional helpers and methods. See https://github.com/colinhacks/zod/issues/273#issuecomment-1434077058
+// - metadata support for all schemas
+// - unique() method for array schemas
+type UniquenessComparator<T extends z.ZodTypeAny> = keyof any | ((v: T) => keyof any)
+
 declare module "zod" {
   interface ZodType {
     getMetadata(): Record<string, any>
@@ -17,7 +22,12 @@ declare module "zod" {
     getExample(): any
     example(value: any): this
   }
+
+  interface ZodArray<T extends z.ZodTypeAny, Cardinality extends z.ArrayCardinality = "many"> {
+    unique(comparator: UniquenessComparator<T>): z.ZodEffects<z.ZodArray<T, "many">, T["_output"][], T["_input"][]>
+  }
 }
+
 Schema.prototype.getMetadata = function () {
   return this._def.meta
 }
@@ -52,6 +62,26 @@ Schema.prototype.describe = function (description: string) {
   return this
 }
 
+ZodArray.prototype.unique = function (comparator: UniquenessComparator<any>) {
+  return this.superRefine((value, ctx) => {
+    const values =
+      comparator === undefined
+        ? value
+        : typeof comparator === "function"
+        ? value.map(comparator)
+        : value.map((v) => v[comparator])
+
+    const duplicates = filter(values, (val, i, iteratee) => includes(iteratee, val, i + 1))
+
+    if (duplicates.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Found duplicate values in array: " + duplicates.join(","),
+      })
+    }
+  })
+}
+
 // Add custom methods
 // TODO: get to full parity with custom joi methods+types (just doing it gradually as needed for now)
 
@@ -65,7 +95,7 @@ export interface PosixPathOpts {
 
 type GardenSchema = typeof z & {
   envVars: () => z.ZodRecord<z.ZodString, z.ZodString>
-  posixPath: (opts: PosixPathOpts) => z.ZodEffects<z.ZodString, string, string>
+  posixPath: (opts?: PosixPathOpts) => z.ZodEffects<z.ZodString, string, string>
   identifier: () => z.ZodString
   userIdentifier: () => z.ZodString
   sparseArray: <T extends z.ZodTypeAny>(
@@ -77,6 +107,10 @@ type GardenSchema = typeof z & {
 // This should be imported instead of z because we augment zod with custom methods
 export const s = z as GardenSchema
 export type inferType<T extends ZodType<any, any, any>> = inferZodType<T>
+
+export namespace s {
+  export type infer<T extends z.ZodType<any, any, any>> = z.infer<T>
+}
 
 s.envVars = () => s.record(s.string().regex(envVarRegex).min(1), z.string())
 

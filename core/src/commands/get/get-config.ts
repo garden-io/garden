@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams, suggestedCommandSchema } from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 import { ConfigDump } from "../../garden"
 import { environmentNameSchema, projectSourceSchema } from "../../config/project"
 import { joiIdentifier, joiVariables, joiArray, joi, joiStringMap } from "../../config/common"
@@ -19,6 +19,7 @@ import { buildActionConfigSchema } from "../../actions/build"
 import { deployActionConfigSchema } from "../../actions/deploy"
 import { runActionConfigSchema } from "../../actions/run"
 import { testActionConfigSchema } from "../../actions/test"
+import { suggestedCommandSchema } from "../../plugin/handlers/Provider/suggestCommands"
 
 export const getConfigOptions = {
   "exclude-disabled": new BooleanParameter({

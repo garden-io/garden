@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("@hapi/joi")
+import type Joi from "@hapi/joi"
 import { joiArray, joiIdentifier, joi, joiSchema, createSchema } from "../config/common"
 import { mapValues } from "lodash"
 import { dedent } from "../util/string"
@@ -26,9 +26,9 @@ import {
   createActionTypesSchema,
   extendActionTypesSchema,
 } from "./action-types"
-import { PluginContext } from "../plugin-context"
+import type { PluginContext } from "../plugin-context"
 import { join } from "path"
-import { GardenSdkPlugin } from "./sdk"
+import type { GardenSdkPlugin } from "./sdk"
 import { providerConfigBaseSchema } from "../config/provider"
 
 // FIXME: Reduce number of import updates needed

@@ -186,6 +186,13 @@ export type DeployActionHandler<
   T extends DeployAction = DeployAction,
 > = GetActionTypeHandler<DeployActionDescriptions<T>[N], N>
 
+export function createDeployHandler<T extends DeployAction, N extends keyof DeployActionDescriptions>(
+  name: N,
+  handler: GetActionTypeHandler<DeployActionDescriptions<T>[N], N>
+) {
+  return handler
+}
+
 export type DeployActionParams<
   N extends keyof DeployActionDescriptions,
   C extends DeployAction = DeployAction,

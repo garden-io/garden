@@ -22,3 +22,10 @@ export { GardenPluginSpec as GardenPlugin } from "@garden-io/core/build/src/plug
 export { ConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 export { PluginCommand, PluginCommandParams } from "@garden-io/core/build/src/plugin/command"
 export { ModuleActionHandlers, ProviderHandlers } from "@garden-io/core/build/src/plugin/plugin"
+export { GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
+export {
+  BuildActionHandler,
+  DeployActionHandler,
+  TestActionHandler,
+  RunActionHandler,
+} from "@garden-io/core/build/src/plugin/action-types"

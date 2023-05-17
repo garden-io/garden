@@ -91,7 +91,7 @@ export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> ext
   moduleConfigs: ModuleConfig[]
   config: T
   state: ActionState
-  status: EnvironmentStatus
+  status: EnvironmentStatus | null
   dashboardPages: DashboardPage[]
   outputs: any
 }
@@ -143,7 +143,7 @@ export function providerFromConfig({
   config: GenericProviderConfig
   dependencies: ProviderMap
   moduleConfigs: ModuleConfig[]
-  status: EnvironmentStatus
+  status: EnvironmentStatus | null
 }): Provider {
   return {
     name: config.name,
@@ -151,10 +151,10 @@ export function providerFromConfig({
     dependencies,
     moduleConfigs,
     config,
-    state: status.ready ? "ready" : "not-ready",
+    state: status ? (status.ready ? "ready" : "not-ready") : "unknown",
     status,
     dashboardPages: plugin.dashboardPages,
-    outputs: status.outputs,
+    outputs: status?.outputs || {},
   }
 }
 

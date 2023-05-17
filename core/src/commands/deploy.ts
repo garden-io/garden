@@ -280,7 +280,7 @@ export class DeployCommand extends Command<Args, Opts> {
           const executedAction = result?.executedAction
           const mode = executedAction.mode()
 
-          if (forward) {
+          if (forward && result.detail?.forwardablePorts?.length) {
             // Start port forwards for ready deployments
             const portForwardMonitor = new PortForwardMonitor({
               garden,

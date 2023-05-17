@@ -33,9 +33,17 @@ const pluginArgs = {
   }),
 }
 
-type Args = typeof pluginArgs
+const pluginOpts = {
+  cwd: new StringOption({
+    help: "Set the working directory to run from.",
+    required: false,
+  }),
+}
 
-export class PluginsCommand extends Command<Args> {
+type Args = typeof pluginArgs
+type Opts = typeof pluginOpts
+
+export class PluginsCommand extends Command<Args, Opts> {
   name = "plugins"
   help = "Plugin-specific commands."
   override aliases = ["plugin"]
@@ -58,12 +66,13 @@ export class PluginsCommand extends Command<Args> {
   `
 
   override arguments = pluginArgs
+  override options = pluginOpts
 
   override printHeader({ log }) {
     printHeader(log, "Plugins", "⚙️")
   }
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
     const providerConfigs = garden.getRawProviderConfigs()
     const configuredPlugins = providerConfigs.map((p) => p.name)
 
@@ -115,10 +124,14 @@ export class PluginsCommand extends Command<Args> {
     log.info("")
 
     try {
-      const { result, errors = [] } = await command.handler({ garden, ctx, log, args: commandArgs, graph })
-      return { result, errors: errors.map(toGardenError) }
+      const {
+        result,
+        exitCode,
+        errors = [],
+      } = await command.handler({ garden, ctx, log, args: commandArgs, graph, cwd: opts.cwd })
+      return { result, exitCode, errors: errors.map(toGardenError) }
     } catch (err) {
-      return { errors: [toGardenError(err)] }
+      return { exitCode: err.exitCode, errors: [toGardenError(err)] }
     }
   }
 }

@@ -22,6 +22,7 @@ export interface PluginCommandParams<C extends BaseProviderConfig = any> {
   args: string[]
   log: Log
   graph: ConfigGraph
+  cwd?: string
 }
 
 export const pluginParamsSchema = createSchema({
@@ -40,6 +41,7 @@ export const pluginParamsSchema = createSchema({
 
 export interface PluginCommandResult<T extends object = object> {
   result: T
+  exitCode?: number
   errors?: Error[]
 }
 
@@ -51,15 +53,15 @@ export const pluginCommandResultSchema = createSchema({
   }),
 })
 
-export interface PluginCommandHandler<C extends BaseProviderConfig = any, T extends object = object> {
-  (params: PluginCommandParams<C>): PluginCommandResult<T> | Promise<PluginCommandResult<T>>
+export interface PluginCommandHandler<C extends BaseProviderConfig = any, R extends object = object> {
+  (params: PluginCommandParams<C>): PluginCommandResult<R> | Promise<PluginCommandResult<R>>
 }
 
-export interface PluginCommand<C extends BaseProviderConfig = any, T extends object = object> {
+export interface PluginCommand<C extends BaseProviderConfig = any, R extends object = object> {
   base?: PluginCommand<any>
   name: string
   description: string
-  handler: PluginCommandHandler<C, T>
+  handler: PluginCommandHandler<C, R>
   resolveGraph?: boolean
   title?: string | ((params: { args: string[]; environmentName: string }) => string | Promise<string>)
 }

@@ -9,6 +9,7 @@ title: Providers
 * [`conftest-container`](./conftest-container.md)
 * [`conftest-kubernetes`](./conftest-kubernetes.md)
 * [`container`](./container.md)
+* [`docker-compose`](./docker-compose.md)
 * [`exec`](./exec.md)
 * [`hadolint`](./hadolint.md)
 * [`jib`](./jib.md)

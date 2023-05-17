@@ -35,7 +35,7 @@ import { ParameterError, PluginError, InternalError } from "../exceptions"
 import { validateSchema } from "../config/validation"
 import { getActionTypeBases, getPluginBases, getPluginDependencies } from "../plugins"
 import { getNames, MaybeUndefined } from "../util/util"
-import { defaultProvider } from "../config/provider"
+import { Provider, defaultProvider } from "../config/provider"
 import type { ConfigGraph } from "../graph/config-graph"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import type { NamespaceStatus } from "../types/namespace"
@@ -64,13 +64,22 @@ export abstract class BaseRouter {
     this.loadedPlugins = keyBy(params.loadedPlugins, "name")
   }
 
-  protected async commonParams(
-    handler: WrappedActionHandler<any, any> | WrappedActionTypeHandler<any, any>,
-    log: Log,
-    templateContext: ConfigContext | undefined,
+  protected async commonParams({
+    handler,
+    log,
+    templateContext,
+    events,
+    provider,
+  }: {
+    handler: WrappedActionHandler<any, any> | WrappedActionTypeHandler<any, any>
+    log: Log
+    templateContext: ConfigContext | undefined
     events: PluginEventBroker | undefined
-  ): Promise<PluginActionParamsBase> {
-    const provider = await this.garden.resolveProvider(log, handler.pluginName)
+    provider: Provider | undefined
+  }): Promise<PluginActionParamsBase> {
+    if (!provider) {
+      provider = await this.garden.resolveProvider(log, handler.pluginName)
+    }
 
     const ctx = await this.garden.getPluginContext({ provider, templateContext, events })
 
@@ -249,7 +258,13 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
     const templateContext = new TemplatableConfigContext(this.garden, config)
 
-    const commonParams = await this.commonParams(handler, log, templateContext, undefined)
+    const commonParams = await this.commonParams({
+      handler,
+      log,
+      templateContext,
+      events: undefined,
+      provider: undefined,
+    })
 
     // Note: this is called by preprocessActionConfig(), and outputs are validated there
     return handler({
@@ -315,7 +330,13 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         })
 
     const handlerParams = {
-      ...(await this.commonParams(handler, params.log, templateContext, params.events)),
+      ...(await this.commonParams({
+        handler,
+        log: params.log,
+        templateContext,
+        events: params.events,
+        provider: undefined,
+      })),
       ...params,
     }
 

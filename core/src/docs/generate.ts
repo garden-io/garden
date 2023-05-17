@@ -56,6 +56,7 @@ export async function writeConfigReferenceDocs(
     { name: "conftest-container" },
     { name: "conftest-kubernetes" },
     { name: "container" },
+    { name: "docker-compose" },
     { name: "exec" },
     { name: "hadolint" },
     { name: "jib" },

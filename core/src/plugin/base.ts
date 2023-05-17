@@ -14,10 +14,10 @@ import type { BuildAction } from "../actions/build"
 import type { DeployAction } from "../actions/deploy"
 import type { RunAction } from "../actions/run"
 import type { TestAction } from "../actions/test"
-import { NamespaceStatus } from "../types/namespace"
-import Joi from "@hapi/joi"
+import type { NamespaceStatus } from "../types/namespace"
+import type Joi from "@hapi/joi"
 import { memoize } from "lodash"
-import { BaseProviderConfig } from "../config/provider"
+import type { BaseProviderConfig, Provider } from "../config/provider"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>
@@ -40,6 +40,7 @@ export interface PluginActionContextParams<C extends BaseProviderConfig = any> e
 
 export interface PluginActionParamsBase<C extends BaseProviderConfig = any> extends PluginActionContextParams<C> {
   log: Log
+  provider?: Provider<C>
 }
 
 export interface ResolvedActionHandlerDescription<N = string> {

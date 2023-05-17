@@ -36,6 +36,8 @@ export interface CustomCommandOption extends BaseParameter {
 }
 
 export interface CommandResource extends BaseGardenResource {
+  kind: "Command"
+
   description: {
     short: string
     long?: string

@@ -8,3 +8,4 @@ title: Build
   * [`container`](./container.md)
   * [`jib-container`](./jib-container.md)
   * [`exec`](./exec.md)
+  * [`docker-compose-service`](./docker-compose-service.md)

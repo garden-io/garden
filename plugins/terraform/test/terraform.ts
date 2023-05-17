@@ -69,7 +69,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         expect(messages).to.include(
           "Terraform stack is not up-to-date and autoApply is not enabled. Please run garden plugins terraform apply-root to make sure the stack is in the intended state."
         )
-        expect(provider.status.disableCache).to.be.true
+        expect(provider.status?.disableCache).to.be.true
       })
 
       it("should expose outputs to template contexts after applying", async () => {
@@ -91,7 +91,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
         const _provider = await _garden.resolveProvider(_garden.log, "terraform")
 
-        expect(_provider.status.outputs).to.eql({
+        expect(_provider.status!.outputs).to.eql({
           "my-output": "workspace: default, input: foo",
           "test-file-path": "./test.log",
         })
@@ -268,7 +268,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
       it("should expose outputs to template contexts", async () => {
         const provider = await garden.resolveProvider(garden.log, "terraform")
-        expect(provider.status.outputs).to.eql({
+        expect(provider.status!.outputs).to.eql({
           "my-output": "workspace: default, input: foo",
           "test-file-path": "./test.log",
         })
