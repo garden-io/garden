@@ -27,7 +27,15 @@ import { TypedEventEmitter } from "../util/events"
 import { uuidv4 } from "../util/random"
 import { sleep } from "../util/util"
 import { AutocompleteSuggestion } from "./autocomplete"
-import { parseCliArgs, pickCommand, processCliArgs, renderCommandErrors, renderCommands } from "./helpers"
+import {
+  getOtherCommands,
+  getPopularCommands,
+  parseCliArgs,
+  pickCommand,
+  processCliArgs,
+  renderCommandErrors,
+  renderCommands,
+} from "./helpers"
 import type { GlobalOptions, ParameterValues } from "./params"
 
 const defaultMessageDuration = 3000
@@ -476,17 +484,18 @@ ${renderDivider({ width, char, color })}
   }
 
   showHelp() {
-    // TODO: group commands by category?
-    const renderedCommands = renderCommands(
-      this.getCommands().filter(
-        (c) => !(c.hidden || c instanceof CommandGroup || hideCommands.includes(c.getFullName()))
-      )
-    )
+    const commandsToRender = this.getCommands().filter((c) => {
+      return !(c.hidden || c instanceof CommandGroup || hideCommands.includes(c.getFullName()))
+    })
 
     const helpText = `
-${chalk.white.underline("Available commands:")}
+${chalk.white.underline("Popular commands:")}
 
-${renderedCommands}
+${renderCommands(getPopularCommands(commandsToRender))}
+
+${chalk.white.underline("Other commands:")}
+
+${renderCommands(getOtherCommands(commandsToRender))}
 
 ${chalk.white.underline("Keys:")}
 

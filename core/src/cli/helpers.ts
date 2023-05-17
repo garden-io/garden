@@ -10,7 +10,7 @@ import chalk from "chalk"
 import ci = require("ci-info")
 import dotenv = require("dotenv")
 import { pathExists } from "fs-extra"
-import { range, sortBy, max, isEqual, mapValues, pickBy } from "lodash"
+import { range, sortBy, max, isEqual, mapValues, pickBy, memoize, indexOf } from "lodash"
 import moment from "moment"
 import { platform, release } from "os"
 import qs from "qs"
@@ -423,14 +423,60 @@ export function optionsWithAliasValues<A extends Parameters, O extends Parameter
   return withAliases
 }
 
+export function getPopularCommands(commands: Command[]): Command[] {
+  const popular = popularCommandFullNames()
+  return sortBy(
+    commands.filter((cmd) => popular.includes(cmd.getFullName())),
+    (cmd) => indexOf(popular, cmd.getFullName())
+  )
+}
+
+export function getOtherCommands(commands: Command[]): Command[] {
+  const popular = popularCommandFullNames()
+  return sortBy(
+    commands.filter((cmd) => !popular.includes(cmd.getFullName())),
+    (cmd) => cmd.getFullName()
+  )
+}
+
+// These commands are rendered first in the help text, since they're more commonly used than the others.
+const popularCommandFullNames = memoize(() => {
+  return [
+    "build",
+    "deploy",
+    "test",
+    "run",
+    "up",
+    "logs",
+    "sync start",
+    "sync status",
+    "sync stop",
+    "exec",
+    "login",
+    "logout",
+    "quit",
+    "reload",
+    "hide",
+    "log-level",
+    "cleanup deploy",
+    "cleanup namespace",
+    "community",
+    "create module",
+    "create project",
+    "options",
+    "publish",
+    "self-update",
+    "validate",
+    "workflow",
+  ]
+})
+
 export function renderCommands(commands: Command[]) {
   if (commands.length === 0) {
     return "\n"
   }
 
-  const sortedCommands = sortBy(commands, (cmd) => cmd.getFullName())
-
-  const rows = sortedCommands.map((command) => {
+  const rows = commands.map((command) => {
     return [` ${chalk.cyan(command.getFullName())}`, command.help]
   })
 

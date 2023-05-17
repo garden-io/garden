@@ -61,6 +61,9 @@ export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
 ${renderDivider({ color: chalk.green, title: chalk.green.bold("🌳  garden dev 🌳 "), width })}
 
 ${chalk.bold(`Good ${getGreetingTime()}! Welcome to the Garden interactive development console.`)}
+
+Here, you can ${chalk.white("build")}, ${chalk.white("deploy")}, ${chalk.white("test")} and ${chalk.white("run")} anything in your project, start code syncing, stream live logs and more.
+
 Let's get your development environment wired up.
     `)
     )
