@@ -203,10 +203,10 @@ export class DeployCommand extends Command<Args, Opts> {
     const disabled = deployActions.filter((s) => s.isDisabled()).map((s) => s.name)
 
     if (disabled.length > 0) {
-      const bold = disabled.map((d) => chalk.bold(d))
+      const bold = disabled.map((d) => chalk.white(d))
       const msg =
         disabled.length === 1 ? `Deploy action ${bold} is disabled` : `Deploy actions ${naturalList(bold)} are disabled`
-      log.info(chalk.white(msg))
+      log.info(chalk.gray(msg))
     }
 
     const skipped = opts.skip || []

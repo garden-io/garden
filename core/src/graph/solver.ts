@@ -18,7 +18,7 @@ import { GraphResult, GraphResults, resultToString, TaskEventBase } from "./resu
 import { gardenEnv } from "../constants"
 import type { Garden } from "../garden"
 import { GraphResultEventPayload, toGraphResultEventPayload } from "../events"
-import { renderDivider, renderMessageWithDivider } from "../logger/util"
+import { renderDivider, renderDuration, renderMessageWithDivider } from "../logger/util"
 import { formatGardenErrorWithDetail } from "../exceptions"
 import chalk from "chalk"
 import {
@@ -496,8 +496,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   private logTaskError(node: TaskNode, err: Error) {
-    const prefix = `Failed ${node.describe()}. Here is the output:`
-    this.logError(node.task.log, err, prefix)
+    const log = node.task.log
+    const prefix = `Failed ${node.describe()} ${renderDuration(log.getDuration())}. Here is the output:`
+    this.logError(log, err, prefix)
   }
 
   private logInternalError(node: TaskNode, err: Error) {
@@ -508,8 +509,12 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   private logError(log: Log, err: Error, errMessagePrefix: string) {
     const error = toGardenError(err)
     const errorMessage = error.message.trim()
-    const msg = renderMessageWithDivider(errMessagePrefix, errorMessage, true)
-    log.error({ msg, error })
+    const msg = renderMessageWithDivider({
+      prefix: errMessagePrefix,
+      msg: errorMessage,
+      isError: true
+    })
+    log.error({ msg, error, showDuration: false })
     const divider = renderDivider()
     log.silly(chalk.gray(`Full error with stack trace:\n${divider}\n${formatGardenErrorWithDetail(error)}\n${divider}`))
   }

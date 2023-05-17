@@ -572,7 +572,7 @@ export function printResult({
   description: string
 }) {
   const prefix = success ? `${capitalize(description)} output:` : `${capitalize(description)} failed with error:`
-  const msg = renderMessageWithDivider(prefix, result, !success)
+  const msg = renderMessageWithDivider({ prefix, msg: result, isError: !success })
   success ? log.info(chalk.white(msg)) : log.error(msg)
 }
 

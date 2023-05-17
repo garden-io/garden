@@ -55,7 +55,12 @@ export const buildExecAction: BuildActionHandler<"build", ExecBuild> = async ({ 
     output.outputs.log = output.detail?.buildLog
 
     const prefix = `Finished building ${chalk.white(action.name)}. Here is the full output:`
-    log.verbose(renderMessageWithDivider(prefix, output.detail?.buildLog, false, chalk.gray))
+    log.verbose(renderMessageWithDivider({
+      prefix,
+      msg: output.detail?.buildLog,
+      isError: false,
+      color: chalk.gray
+    }))
   }
 
   return output
@@ -73,7 +78,12 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
   const outputLog = result.all?.trim() || ""
   if (outputLog) {
     const prefix = `Finished executing ${chalk.white(action.key())}. Here is the full output:`
-    log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
+    log.verbose(renderMessageWithDivider({
+      prefix,
+      msg: outputLog,
+      isError: false,
+      color: chalk.gray
+    }))
   }
 
   const detail = {
@@ -117,7 +127,12 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
 
   if (outputLog) {
     const prefix = `Finished running task ${chalk.white(action.name)}. Here is the full output:`
-    log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
+    log.verbose(renderMessageWithDivider({
+      prefix,
+      msg: outputLog,
+      isError: false,
+      color: chalk.gray
+    }))
   }
 
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
