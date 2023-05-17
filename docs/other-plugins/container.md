@@ -43,7 +43,7 @@ files in the build context.
 ### Build arguments
 
 You can specify
-[build arguments](https://docs.docker.com/engine/reference/commandline/build/#set-build-time-variables---build-arg)
+[build arguments](https://docs.docker.com/engine/reference/commandline/build/#build-arg)
 using the [`spec.buildArgs`](../reference/action-types/Build/container.md#specbuildargs) field. This can be quite handy,
 especially when e.g. referencing other `Build` action as build dependencies:
 
