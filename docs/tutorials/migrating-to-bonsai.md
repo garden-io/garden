@@ -10,7 +10,6 @@ On the other hand, the optional new configuration format is easier to read and w
 
 Here is the list of breaking changes when upgrading your `garden` CLI tool. This lets you use your old Module-style configuration files with minimal changes.
 
-- `apiVersion` is now mandatory in project config files for new action-Kind configs. It's recommended to set the value to `garden.io/v1` for new projects. For backwards compatibility, garden will assume the apiVersion `garden.io/v0`.
 - `cert-manager` integration has been removed. New documentation has been created in the [ext dns and cert manager example](../../examples/cert-manager-ext-dns)
 - `dev-mode` has been renamed to `sync`, both in the configuration as well as on the CLI
 - `garden delete` has been renamed to `garden cleanup`
@@ -310,3 +309,13 @@ spec:
 ```
 
 </div>
+
+## Mixed use of Garden Acorn (0.12) and Bonsai (0.13)
+
+For backwards compatibility, garden Bonsai will default to `apiVersion: garden.io/v0` in your project configuration  (`kind: Project`).
+
+Using `apiVersion: garden.io/v0` enables teams to gradually move to Bonsai, one team member at a time, because members can already choose to use Bonsai, while still being able to use Acorn (`0.12`) when necessary.
+
+As soon as your project is using [Actions](../using-garden/actions.md), `apiVersion: garden.io/v1` becomes mandatory in the project configuration.. From that point on, team members can no longer use Acorn (`0.12`) as it does not recognize `apiVersion: garden.io/v1`. Therefore team members are forced to update to Bonsai (`0.13`).
+
+When using Garden Cloud, features like triggered workflows or 1-Click Preview Environments, Garden Cloud will use Bonsai (`0.13`) with `apiVersion: garden.io/v1` or Acorn (`0.12`) with `apiVersion: garden.io/v0`. See also the [Garden Cloud workflows documentation](https://cloud.docs.garden.io/features/workflows).
