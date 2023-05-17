@@ -29,8 +29,8 @@ spec:
     - name: configuration
       containerPath: /config
 
-      # The name of a the configmap Deploy that should be mounted at `containerPath`.
-      action: my-configmap
+      # The reference to the configmap Deploy
+      action: deploy.my-configmap
 ...
 ```
 
