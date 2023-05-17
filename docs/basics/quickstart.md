@@ -89,15 +89,17 @@ Clone the example project from GitHub:
 git clone https://github.com/garden-io/quickstart-example.git && cd quickstart-example
 ```
 
-Garden ships with a command center for your project enabling an interactive control flow. To start the REPL, run:
+Garden ships with a command center for your project enabling an interactive control flow we call the **dev console**. To start the dev console, run:
 
 ```sh
 garden dev
 ```
 
-The first time you run `garden dev`, Garden will deploy your project to Kubernetes then await further instructions inside a [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop). You can replicate this from inside the REPL by typing `deploy` and hitting enter.
+The first time you run `garden dev`, Garden will initialize then await further instructions inside a [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop). From inside the REPL you can command Garden to build, test, and deploy your project. Deploy your project by typing, `deploy`.
 
 You should now be able to visit the example project at [http://vote.local.demo.garden](http://vote.local.demo.garden).
+
+The quickstart also comes with some tests of the unit and end-to-end variety. To run your unit test, just run `test unit`. To run your end-to-end test, run `test e2e`. Easy!
 
 If the page doesn't load, you'll need to go to step 4 and update your hostfile. Otherwise, you're done!
 
