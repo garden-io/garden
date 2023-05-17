@@ -122,8 +122,7 @@ our [reference docs](../reference/action-types/Deploy/container.md).
 
 ## Running tests
 
-For `container` type, you can define both `Test` and `Run` actions. The two are configured in a very similar way.
-Here is a configuration example for two different test suites:
+For `container` type, you can define the `Test` actions. Here is a configuration example for two different test suites:
 
 ```yaml
 kind: Test
