@@ -164,8 +164,8 @@ for `Test` actions of `container` type.
 
 ## Running arbitrary workloads
 
-To run arbitrary workloads, any scripts or jobs, you can use the `Run` action which is defined similarly to the `Test`
-action:
+To run arbitrary workloads, you can use the `Run` actions. These can include any scripts or commands, and will be run
+within a container. The configuration is very similar to the `Test` actions:
 
 ```yaml
 kind: Run
@@ -177,7 +177,8 @@ spec:
 ```
 
 In this example, we define a `db-migrate` action that executes `rake db:migrate` (which is commonly used for
-database migrations, but you can run anything you like of course). The action has a dependency on the `my-database` deployment, so that Garden will make sure the database is deployed before running the migration job.
+database migrations, but you can run anything you like of course). The action has a dependency on the `my-database`
+deployment, so that Garden will make sure the database is deployed before running the migration job.
 
 Since Garden `0.13` `Test` actions can also be dependencies for any other kinds of actions, e.g `Build`, `Deploy`
 and `Run` actions.
