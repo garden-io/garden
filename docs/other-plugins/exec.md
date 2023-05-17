@@ -5,10 +5,10 @@ order: 2
 
 # Exec
 
-The `exec` plugin and corresponding `exec` action type allow you to run commands locally on the host (e.g. your laptop
-or on your CI runner).
+The `exec` plugin and corresponding `exec` actions allow you to run commands locally on the host (e.g. your laptop
+or your CI runner)—this is in contrast to running in a container.
 
-It's built-in which means you don't need to specify it in the project level configuration and you can simply add `exec`
+This plugin is built-in which means you don't need to specify it in your project configuration. You can simply add `exec`
 actions right away.
 
 It's great for running auth scripts as well as executing various scaffolding scripts that need to run "locally".
@@ -24,6 +24,9 @@ Usually you don't need to configure the `exec` plugin because it's built-in and 
 
 However, it can be used to run init scripts ahead of other Garden execution. This is useful if you need to
 authenticate against a remote environment before Garden initializes other plugins.
+
+Another set of popular use-cases are local build flows for shared libraries ahead of Docker builds, along with any
+sort of glue script you may need between steps.
 
 Here's an example where we run a script to authenticate against a Kubernetes cluster before initializing the Kubernetes
 plugin:
@@ -44,9 +47,9 @@ providers:
 
 ## Action Configuration
 
-### Exec tasks
+### Exec Runs
 
-Here's an example configuration for an `exec` actions that's used for running various scripts:
+Following are some example `exec` Run actions for executing various scripts:
 
 ```yaml
 kind: Run
@@ -65,14 +68,13 @@ spec:
   command: [ "sh", "-c", "./scripts/prepare-data-locally.sh" ]
 ```
 
-Other actions can depend on these tasks:
+Other actions can depend on these Runs:
 
 ```yaml
 kind: Run
 name: db-init
 type: exec
 dependencies: [ run.auth, run.prepare-data ]
-
 spec:
   command: [ yarn, run, db-init ]
 ```
