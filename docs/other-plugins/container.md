@@ -57,8 +57,7 @@ spec:
     baseImageVersion: ${actions.build.base-image.version}
 ```
 
-Garden will also automatically set `GARDEN_ACTION_VERSION` as a build argument, so that you can reference the version of
-the action being built.
+Additionally, Garden automatically sets `GARDEN_ACTION_VERSION` as a build argument, which you can use to reference the version of action being built.
 
 ## Using remote images
 
