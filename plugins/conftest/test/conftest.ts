@@ -11,19 +11,20 @@ import stripAnsi from "strip-ansi"
 import { join } from "path"
 
 import { dedent } from "@garden-io/sdk/util/string"
-import { defaultApiVersion, defaultNamespace } from "@garden-io/sdk/constants"
+import { defaultNamespace } from "@garden-io/sdk/constants"
 import { gardenPlugin } from ".."
 import { ProjectConfig } from "@garden-io/sdk/types"
 import { makeTestGarden } from "@garden-io/sdk/testing"
 
 import { TestTask } from "@garden-io/core/build/src/tasks/test"
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
+import { GardenApiVersion } from "@garden-io/core/src/constants"
 
 describe("conftest provider", () => {
   const projectRoot = join(__dirname, "test-project")
 
   const projectConfig: ProjectConfig = {
-    apiVersion: defaultApiVersion,
+    apiVersion: GardenApiVersion.v1,
     kind: "Project",
     name: "test",
     path: projectRoot,

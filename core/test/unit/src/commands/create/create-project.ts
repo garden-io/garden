@@ -15,7 +15,7 @@ import { basename, join } from "path"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { safeLoadAll } from "js-yaml"
 import { safeDumpYaml } from "../../../../../src/util/serialization"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import { GardenApiVersion } from "../../../../../src/constants"
 
 describe("CreateProjectCommand", () => {
   const command = new CreateProjectCommand()
@@ -58,7 +58,7 @@ describe("CreateProjectCommand", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name,
         environments: [{ name: "default" }],
@@ -135,7 +135,7 @@ describe("CreateProjectCommand", () => {
     const parsed = safeLoadAll((await readFile(configPath)).toString())
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "foo",
         environments: [{ name: "default" }],
@@ -171,7 +171,7 @@ describe("CreateProjectCommand", () => {
     expect(parsed).to.eql([
       existing,
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name,
         environments: [{ name: "default" }],
@@ -202,7 +202,7 @@ describe("CreateProjectCommand", () => {
 
   it("should throw if a project is already in the directory", async () => {
     const existing = {
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v1,
       kind: "Project",
       name: "foo",
     }

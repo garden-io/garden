@@ -26,7 +26,7 @@ import {
   defaultDockerfileName,
 } from "../../../../../src/plugins/container/moduleConfig"
 import { containerHelpers as helpers } from "../../../../../src/plugins/container/helpers"
-import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../src/constants"
 import { dedent } from "../../../../../src/util/string"
 import { ModuleVersion } from "../../../../../src/vcs/vcs"
 
@@ -39,7 +39,7 @@ describe("containerHelpers", () => {
 
   const baseConfig: ModuleConfig<ContainerModuleSpec, any, any> = {
     allowPublish: false,
-    apiVersion: DEFAULT_API_VERSION,
+    apiVersion: GardenApiVersion.v0,
     build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
     disabled: false,
     name: "test",
@@ -341,7 +341,7 @@ describe("containerHelpers", () => {
       tmpDir = await tmp.dir({ unsafeCleanup: true })
       dockerfilePath = join(tmpDir.path, defaultDockerfileName)
       config = {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         type: "container",
         allowPublish: false,
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },

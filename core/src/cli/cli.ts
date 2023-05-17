@@ -47,10 +47,10 @@ import {
 } from "../config/project"
 import {
   ERROR_LOG_FILENAME,
-  DEFAULT_API_VERSION,
   DEFAULT_GARDEN_DIR_NAME,
   LOGS_DIR_NAME,
   gardenEnv,
+  GardenApiVersion,
 } from "../constants"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
@@ -83,7 +83,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
 
   const config: ProjectConfig = {
     path: root,
-    apiVersion: DEFAULT_API_VERSION,
+    apiVersion: GardenApiVersion.v0,
     kind: "Project",
     name: "no-project",
     defaultEnvironment: "",

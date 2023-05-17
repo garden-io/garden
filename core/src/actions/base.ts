@@ -11,7 +11,6 @@ import titleize from "titleize"
 import type { ConfigGraph, GetActionOpts, ResolvedConfigGraph } from "../graph/config-graph"
 import {
   ActionReference,
-  apiVersionSchema,
   DeepPrimitiveMap,
   includeGuideLink,
   joi,
@@ -22,6 +21,7 @@ import {
   joiVariables,
   parseActionReference,
   createSchema,
+  unusedApiVersionSchema,
 } from "../config/common"
 import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList, stableStringify } from "../util/string"
@@ -117,7 +117,7 @@ export const baseActionConfigSchema = createSchema({
   name: "action-config-base",
   keys: {
     // Basics
-    apiVersion: apiVersionSchema().meta({ templateContext: null }),
+    apiVersion: unusedApiVersionSchema().meta({ templateContext: null }),
     kind: joi
       .string()
       .required()

@@ -35,7 +35,7 @@ import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginP
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, gardenEnv } from "../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion, gardenEnv } from "../src/constants"
 import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../src/cli/params"
 import { ConfigureModuleParams } from "../src/plugin/handlers/Module/configure"
 import { ExternalSourceType, getRemoteSourceLocalPath, hashRepoUrl } from "../src/util/ext-source-util"
@@ -386,7 +386,7 @@ export const testPluginC = () => {
 
 export const getDefaultProjectConfig = (): ProjectConfig =>
   cloneDeep({
-    apiVersion: DEFAULT_API_VERSION,
+    apiVersion: GardenApiVersion.v1,
     kind: "Project",
     name: "test",
     path: "tmp",
@@ -403,7 +403,7 @@ export const createProjectConfig = (partialCustomConfig: Partial<ProjectConfig>)
 }
 
 export const defaultModuleConfig: ModuleConfig = {
-  apiVersion: DEFAULT_API_VERSION,
+  apiVersion: GardenApiVersion.v0,
   type: "test",
   name: "test",
   path: "bla",
@@ -450,7 +450,10 @@ export const makeTestModule = (params: Partial<ModuleConfig> = {}): ModuleConfig
  */
 export function makeModuleConfig<M extends ModuleConfig = ModuleConfig>(path: string, from: Partial<M>): ModuleConfig {
   return {
-    apiVersion: DEFAULT_API_VERSION,
+    // NOTE: this apiVersion field is distinct from the apiVersion field in the
+    // project configuration, is currently unused and has no meaning.
+    // It is hidden in our reference docs.
+    apiVersion: GardenApiVersion.v0,
     allowPublish: false,
     build: { dependencies: [] },
     disabled: false,

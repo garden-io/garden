@@ -20,7 +20,7 @@ import { EventBus, Events } from "../events"
 import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
-import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT } from "../constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants"
 import { getRootLogger } from "../logger/logger"
 import stripAnsi from "strip-ansi"
 import { VcsHandler } from "../vcs/vcs"
@@ -61,7 +61,10 @@ type PartialModuleConfig = Partial<ModuleConfig> & { name: string; path: string 
 
 const moduleConfigDefaults: ModuleConfig = {
   allowPublish: false,
-  apiVersion: DEFAULT_API_VERSION,
+  // NOTE: this apiVersion field is distinct from the apiVersion field in the
+  // project configuration, is currently unused and has no meaning.
+  // It is hidden in our reference docs.
+  apiVersion: GardenApiVersion.v0,
   build: {
     dependencies: [],
     timeout: DEFAULT_BUILD_TIMEOUT_SEC,

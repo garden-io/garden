@@ -14,9 +14,9 @@ import { validate as validateUuid } from "uuid"
 import { makeTestGardenA, TestGarden, enableAnalytics, getDataDir, makeTestGarden, freezeTime } from "../../../helpers"
 import { AnalyticsHandler, getAnonymousUserId } from "../../../../src/analytics/analytics"
 import {
-  DEFAULT_API_VERSION,
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_GARDEN_CLOUD_DOMAIN,
+  GardenApiVersion,
   gardenEnv,
 } from "../../../../src/constants"
 import { CloudApi } from "../../../../src/cloud/api"
@@ -487,7 +487,7 @@ describe("AnalyticsHandler", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,

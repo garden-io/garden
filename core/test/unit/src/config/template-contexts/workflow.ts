@@ -11,7 +11,7 @@ import { ConfigContext } from "../../../../../src/config/template-contexts/base"
 import { expectError, makeTestGardenA, TestGarden } from "../../../../helpers"
 import { WorkflowConfigContext, WorkflowStepConfigContext } from "../../../../../src/config/template-contexts/workflow"
 import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import { GardenApiVersion } from "../../../../../src/constants"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -77,7 +77,7 @@ describe("WorkflowStepConfigContext", () => {
   let garden: TestGarden
 
   const workflow: WorkflowConfig = {
-    apiVersion: DEFAULT_API_VERSION,
+    apiVersion: GardenApiVersion.v0,
     kind: "Workflow",
     name: "test",
     steps: [],

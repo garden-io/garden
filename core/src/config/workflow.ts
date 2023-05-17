@@ -16,8 +16,8 @@ import {
   PrimitiveMap,
   joiSparseArray,
   createSchema,
+  unusedApiVersionSchema,
 } from "./common"
-import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
 import { ServiceLimitSpec } from "../plugins/container/moduleConfig"
 import { Garden } from "../garden"
@@ -28,6 +28,7 @@ import { ConfigurationError } from "../exceptions"
 import { EnvironmentConfig, getNamespace } from "./project"
 import { omitUndefined } from "../util/objects"
 import { BaseGardenResource, GardenResource } from "./base"
+import { GardenApiVersion } from "../constants"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu
@@ -108,11 +109,7 @@ export const workflowConfigSchema = createSchema({
   name: "workflow-config",
   description: "Configure a workflow for this project.",
   keys: () => ({
-    apiVersion: joi
-      .string()
-      .default(DEFAULT_API_VERSION)
-      .valid(DEFAULT_API_VERSION)
-      .description("The schema version of this workflow's config (currently not used)."),
+    apiVersion: unusedApiVersionSchema(),
     kind: joi.string().default("Workflow").valid("Workflow"),
     name: joiUserIdentifier().required().description("The name of this workflow.").example("my-workflow"),
     description: joi.string().description("A description of the workflow."),

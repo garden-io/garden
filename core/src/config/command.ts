@@ -8,7 +8,6 @@
 
 import { BaseGardenResource, baseInternalFieldsSchema } from "./base"
 import {
-  apiVersionSchema,
   DeepPrimitiveMap,
   joi,
   joiArray,
@@ -18,6 +17,7 @@ import {
   joiVariables,
   StringMap,
   createSchema,
+  unusedApiVersionSchema,
 } from "./common"
 
 interface BaseParameter {
@@ -94,7 +94,7 @@ export const customCommandGardenCommandSchema = () =>
 export const customCommandSchema = createSchema({
   name: "custom-command",
   keys: {
-    apiVersion: apiVersionSchema(),
+    apiVersion: unusedApiVersionSchema(),
     kind: joi.string().default("Command").valid("Command").description("Indicate what kind of config this is."),
     name: joiUserIdentifier()
       .required()

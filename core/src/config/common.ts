@@ -12,10 +12,10 @@ import addFormats from "ajv-formats"
 import { splitLast, deline, dedent, naturalList, titleize } from "../util/string"
 import { cloneDeep, isArray, isPlainObject, isString, mapValues, memoize } from "lodash"
 import { joiPathPlaceholder } from "./validation"
-import { DEFAULT_API_VERSION, PREVIOUS_API_VERSION } from "../constants"
 import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
 import { ConfigurationError, InternalError } from "../exceptions"
 import type { ConfigContextType } from "./template-contexts/base"
+import { GardenApiVersion } from "../constants"
 
 export const objectSpreadKey = "$merge"
 export const conditionalKey = "$if"
@@ -856,10 +856,22 @@ export const moduleVersionSchema = createSchema({
   }),
 })
 
-export const apiVersionSchema = () => apiVersionSchemaWithoutDefault().default(DEFAULT_API_VERSION)
+/**
+ * use this schema apiSchema when the apiVersion is part of the schema for potential future use, but is yet to be used.
+ * The apiVersion field will be allowed, but hidden in the reference documentation.
+ *
+ * Only the value garden.io/v0 will be allowed.
+ *
+ * As soon as you start using the apiVersion field, you need to create a separate schema for your use case.
+ **/
+export const unusedApiVersionSchema = () =>
+  joi
+    .string()
+    .valid(GardenApiVersion.v0)
+    .description("The schema version of this config (currently unused).")
+    // hide the unused apiVersion field in the reference documentation, as it does not have an effect.
+    .meta({ internal: true })
 
-export const apiVersionSchemaWithoutDefault = () =>
-  joi.string().valid(PREVIOUS_API_VERSION, DEFAULT_API_VERSION).description("The schema version of this config.")
 
 /**
  * A little hack to allow unknown fields on the schema and recursively on all object schemas nested in it.

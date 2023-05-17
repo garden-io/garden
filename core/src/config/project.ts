@@ -9,7 +9,6 @@
 import { apply, merge } from "json-merge-patch"
 import { dedent, deline, naturalList } from "../util/string"
 import {
-  apiVersionSchema,
   createSchema,
   DeepPrimitiveMap,
   includeGuideLink,
@@ -31,7 +30,7 @@ import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
 import { cloneDeep, memoize } from "lodash"
 import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
-import { DOCS_BASE_URL } from "../constants"
+import { DOCS_BASE_URL, GardenApiVersion, GardenApiVersionType } from "../constants"
 import { defaultDotIgnoreFile } from "../util/fs"
 import type { CommandInfo } from "../plugin-context"
 import type { VcsInfo } from "../vcs/vcs"
@@ -191,7 +190,7 @@ export interface ProxyConfig {
 }
 
 export interface ProjectConfig {
-  apiVersion: string
+  apiVersion: GardenApiVersionType["v0"] | GardenApiVersionType["v1"]
   kind: "Project"
   name: string
   path: string
@@ -283,7 +282,15 @@ export const projectSchema = createSchema({
     "Configuration for a Garden project. This should be specified in the garden.yml file in your project root.",
   required: true,
   keys: () => ({
-    apiVersion: apiVersionSchema().description("Schema version of the config."),
+    apiVersion: joi.string().valid(GardenApiVersion.v0, GardenApiVersion.v1).description(dedent`
+      The Garden apiVersion for this project.
+
+      The value ${GardenApiVersion.v0} is the default for backwards compatibility with Garden Acorn (0.12) when not explicitly specified.
+
+      Configuring ${GardenApiVersion.v1} explicitly in your project configuration allows you to start using the new Action configs introduced in Garden B.
+
+      Note that the value ${GardenApiVersion.v1} will break compatibility of your project with Garden Acorn (0.12).
+    `),
     kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
     path: projectRootSchema().meta({ internal: true }),
     configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
