@@ -162,7 +162,7 @@ for `container Test` actions.
 
 ## Running arbitrary workloads
 
-`Run` actons are defined very similarly to `Test` actions:
+To run arbitrary workloads, any scripts or jobs, you can use the `Run` action which is defined similarly to the `Test` action:
 
 ```yaml
 kind: Run
