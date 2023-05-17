@@ -258,13 +258,6 @@ ${renderCommands(commands)}
     const commandLoggerType = command.getTerminalWriterType({ opts: parsedOpts, args: parsedArgs })
     getRootLogger().setTerminalWriter(getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType }))
 
-    if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
-      log.warn(
-        chalk.yellow(dedent`Garden v0.13 is a major release with significant changes. Please help us improve it by reporting any issues/bugs here:
-        https://github.com/garden-io/garden/issues/new?labels=0.13&template=0-13-issue-template.md&title=0.13%3A+%5BBug%5D%3A`)
-      )
-    }
-
     const globalConfigStore = new GlobalConfigStore()
 
     await validateRuntimeRequirementsCached(log, globalConfigStore, checkRequirements)
@@ -368,6 +361,16 @@ ${renderCommands(commands)}
           garden = await makeDummyGarden(workingDir, contextOpts)
         } else {
           garden = await this.getGarden(workingDir, contextOpts)
+
+          if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
+            await garden.emitWarning({
+              key: "0.13-bonsai",
+              log,
+              message:
+                chalk.yellow(dedent`Garden v0.13 is a major release with significant changes. Please help us improve it by reporting any issues/bugs here:
+              https://github.com/garden-io/garden/issues/new?labels=0.13&template=0-13-issue-template.md&title=0.13%3A+%5BBug%5D%3A`),
+            })
+          }
 
           nsLog.info(`Running in Garden environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`)
 
