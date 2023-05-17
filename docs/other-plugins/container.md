@@ -75,11 +75,6 @@ spec:
   image: redis:5.0.5-alpine   # <- replace with any docker image ID
 ```
 
-{% hint style="warning" %}
-Note that if there is a _Dockerfile_ in the same directory as the action configuration, and you still don't want to
-build it, you have to tell Garden not to pick it up by setting `include: []` in your action configuration.
-{% endhint %}
-
 ## Publishing images
 
 You can publish images that have been built in your cluster using the `garden publish` command.
