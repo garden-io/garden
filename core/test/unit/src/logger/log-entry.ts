@@ -72,7 +72,7 @@ describe("Log", () => {
     it("should print the duration if showDuration=true", () => {
       const errorLog = log.createLog({ name: "test-log", showDuration: true })
       const entry = errorLog.error("error").getLatestEntry()
-      expect(entry.msg).to.include("(in ")
+      expect(entry.msg).to.include("(took ")
     })
   })
   describe("success", () => {
@@ -92,7 +92,7 @@ describe("Log", () => {
     it("should print the duration if showDuration=true", () => {
       const successLog = log.createLog({ name: "success-log", showDuration: true })
       const entry = successLog.success("success").getLatestEntry()
-      expect(entry.msg).to.include("(in ")
+      expect(entry.msg).to.include("(took ")
     })
   })
   describe("general logging", () => {

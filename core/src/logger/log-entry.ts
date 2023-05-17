@@ -17,6 +17,7 @@ import chalk from "chalk"
 import { GardenError } from "../exceptions"
 import hasAnsi from "has-ansi"
 import { omitUndefined } from "../util/objects"
+import { renderDuration } from "./util"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
@@ -153,7 +154,8 @@ export interface LogEntry<C extends BaseContext = LogContext>
 
 interface LogParams
   extends Pick<LogEntry, "metadata" | "msg" | "symbol" | "data" | "dataFormat" | "error" | "skipEmit">,
-    Pick<LogContext, "origin"> {}
+    Pick<LogContext, "origin">,
+    Pick<LogConfig<LogContext>, "showDuration"> {}
 
 interface CreateLogEntryParams extends LogParams {
   level: LogLevel
@@ -287,8 +289,14 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
    * That is, the time from when the log instance got created until now.
    */
   private getMsgWithDuration(params: CreateLogEntryParams) {
-    if (this.showDuration && params.msg) {
-      return params.msg + ` (in ${this.getDuration(1)} sec)`
+    // If params.showDuration is set, it takes precedence over this.duration (since it's set at the call site for the
+    // log line in question).
+    const showDuration = params.showDuration !== undefined
+      ? params.showDuration
+      : this.showDuration
+    if (showDuration && params.msg) {
+      const msg = hasAnsi(params.msg) ? params.msg : chalk.green(params.msg)
+      return msg + " " + chalk.white(renderDuration(this.getDuration(1)))
     }
     return params.msg
   }

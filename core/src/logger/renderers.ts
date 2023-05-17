@@ -30,9 +30,9 @@ export function padSection(section: string, width: number = SECTION_PADDING) {
   return diff <= 0 ? section : section + repeat(" ", diff)
 }
 
-export const msgStyle = (s: string) => (hasAnsi(s) ? s : chalk.gray(s))
-export const errorStyle = (s: string) => (hasAnsi(s) ? s : chalk.red(s))
-export const warningStyle = (s: string) => (hasAnsi(s) ? s : chalk.yellow(s))
+export const msgStyle = (s: string) => chalk.gray(s)
+export const errorStyle = (s: string) => chalk.red(s)
+export const warningStyle = (s: string) => chalk.yellow(s)
 
 /*** RENDER HELPERS ***/
 
@@ -60,6 +60,10 @@ export function renderError(entry: LogEntry): string {
 
 export function renderSymbol(entry: LogEntry): string {
   const section = getSection(entry)
+
+  if (!section) {
+    return ""
+  }
 
   let symbol = entry.symbol
 

@@ -117,7 +117,12 @@ export const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async
     const outputLog = (result.stdout + result.stderr).trim()
     if (outputLog) {
       const prefix = `Finished deploying service ${chalk.white(action.name)}. Here is the output:`
-      log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
+      log.verbose(renderMessageWithDivider({
+        prefix,
+        msg: outputLog,
+        isError: false,
+        color: chalk.gray
+      }))
     }
 
     return {

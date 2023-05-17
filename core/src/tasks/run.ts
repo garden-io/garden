@@ -47,7 +47,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       }
 
       if (status.state === "ready" && !statusOnly && !this.force) {
-        this.log.success("Already complete.")
+        this.log.success("Already complete")
       }
 
       return {

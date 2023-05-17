@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { cloneDeep, flatten, last, repeat, size } from "lodash"
-import { printHeader, getTerminalWidth, renderMessageWithDivider } from "../logger/util"
+import { printHeader, getTerminalWidth, renderMessageWithDivider, renderDuration } from "../logger/util"
 import { Command, CommandParams, CommandResult } from "./base"
 import { dedent, wordWrap, deline } from "../util/string"
 import { Garden } from "../garden"
@@ -452,11 +452,11 @@ export function logErrors(
   log.debug("")
   for (const error of errors) {
     if (error.type === "workflow-script") {
-      const scriptErrMsg = renderMessageWithDivider(
-        `Script exited with code ${error.detail.exitCode}`,
-        error.detail.stderr,
-        true
-      )
+      const scriptErrMsg = renderMessageWithDivider({
+        prefix: `Script exited with code ${error.detail.exitCode} ${renderDuration(log.getDuration())}`,
+        msg: error.detail.stderr,
+        isError: true
+    })
       log.error(scriptErrMsg)
     } else {
       // Error comes from a command step.
