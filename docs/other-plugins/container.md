@@ -96,7 +96,7 @@ spec:
   publishId: my-repo/my-image:v1.2.3   # <- if you omit the tag here, the Garden action version will be used by default
 ```
 
-By default, we use the tag specified in the `container` action's `spec.publishId` field, if any. If none is set there,
+By default, we use the tag specified in the `container` action's `spec.publishId` field. If none is set,
 we default to the Garden `Build` action version.
 
 You can also set the `--tag` option on the `garden publish` command to override the tag used for images. You can both
