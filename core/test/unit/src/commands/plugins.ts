@@ -89,7 +89,7 @@ describe("PluginsCommand", () => {
       garden,
       log,
       args: { plugin: undefined, command: undefined },
-      opts: withDefaultGlobalOpts({}),
+      opts: withDefaultGlobalOpts({ cwd: undefined }),
     })
 
     const infoLog = getLogMessages(log, (entry) => entry.level === LogLevel.info)
@@ -122,7 +122,7 @@ describe("PluginsCommand", () => {
       garden,
       log,
       args: { "plugin": "test-plugin-a", "command": "command-a", "--": ["foo"] },
-      opts: withDefaultGlobalOpts({}),
+      opts: withDefaultGlobalOpts({ cwd: undefined }),
     })
 
     expect(result).to.eql({ args: ["foo"] })
@@ -136,7 +136,7 @@ describe("PluginsCommand", () => {
       garden,
       log,
       args: { plugin: undefined, command: undefined },
-      opts: withDefaultGlobalOpts({ env: "invalid-env" }),
+      opts: withDefaultGlobalOpts({ env: "invalid-env", cwd: undefined }),
     })
 
     expect(result.errors).to.be.undefined

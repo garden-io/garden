@@ -1,0 +1,21 @@
+name: my-project
+services:
+  redis:
+    image: redislabs/redismod
+    ports:
+      - '6378:6379'
+  web:
+    build:
+      context: .
+      target: builder
+    # flask requires SIGINT to stop gracefully
+    # (default stop signal from Compose is SIGTERM)
+    stop_signal: SIGINT
+    environment:
+      WIZARD: ${WIZARD:-saruman}
+    ports:
+      - '8000:8000'
+    volumes:
+      - .:/code
+    depends_on:
+      - redis

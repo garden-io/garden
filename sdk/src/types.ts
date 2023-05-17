@@ -13,6 +13,9 @@ export { GardenService } from "@garden-io/core/build/src/types/service.js"
 export { GraphResults } from "@garden-io/core/build/src/graph/results.js"
 export { PluginTask, PluginActionTask } from "@garden-io/core/build/src/tasks/plugin.js"
 export { BuildTask } from "@garden-io/core/build/src/tasks/build.js"
+export { DeployTask } from "@garden-io/core/build/src/tasks/deploy.js"
+export { TestTask } from "@garden-io/core/build/src/tasks/test.js"
+export { RunTask } from "@garden-io/core/build/src/tasks/run.js"
 export { LogLevel } from "@garden-io/core/build/src/logger/logger.js"
 export { Log, ActionLog } from "@garden-io/core/build/src/logger/log-entry.js"
 export { PluginContext } from "@garden-io/core/build/src/plugin-context.js"
@@ -22,3 +25,9 @@ export { GardenPluginSpec as GardenPlugin } from "@garden-io/core/build/src/plug
 export { ConfigGraph } from "@garden-io/core/build/src/graph/config-graph.js"
 export { PluginCommand, PluginCommandParams } from "@garden-io/core/build/src/plugin/command.js"
 export { ModuleActionHandlers, ProviderHandlers } from "@garden-io/core/build/src/plugin/plugin.js"
+export {
+  BuildActionHandler,
+  DeployActionHandler,
+  TestActionHandler,
+  RunActionHandler,
+} from "@garden-io/core/build/src/plugin/action-types.js"

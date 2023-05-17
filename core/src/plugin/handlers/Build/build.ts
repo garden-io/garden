@@ -15,7 +15,9 @@ import type { Resolved } from "../../../actions/types.js"
 import type { BuildStatus } from "./get-status.js"
 import { getBuildStatusSchema } from "./get-status.js"
 
-export type DoBuildActionParams<T extends BuildAction> = PluginBuildActionParamsBase<T>
+export interface DoBuildActionParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {
+  force?: boolean
+}
 
 export class DoBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "Build",
@@ -26,6 +28,10 @@ export class DoBuildAction<T extends BuildAction = BuildAction> extends ActionTy
     Build the current version of a Build action. This must wait until the build is complete before returning.
   `
 
-  paramsSchema = () => actionParamsSchema()
+  paramsSchema = () =>
+    actionParamsSchema().keys({
+      force: joi.boolean().description("Whether to force a rebuild, even if the build is already available."),
+    })
+
   resultSchema = () => getBuildStatusSchema()
 }

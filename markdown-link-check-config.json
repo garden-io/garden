@@ -7,6 +7,10 @@
       "reason": "Ignore example URL"
     },
     {
+      "pattern": "localhost",
+      "reason": "Ignore example URL"
+    },
+    {
       "pattern": "^http://my-service",
       "reason": "Ignore example URL"
     },

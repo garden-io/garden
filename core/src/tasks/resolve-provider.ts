@@ -53,6 +53,7 @@ interface Params extends CommonTaskParams {
   config: GenericProviderConfig
   forceRefresh: boolean
   forceInit: boolean
+  noInit?: boolean
 }
 
 interface CachedStatus extends EnvironmentStatus {
@@ -79,6 +80,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
   private plugin: GardenPluginSpec
   private forceRefresh: boolean
   private forceInit: boolean
+  private noInit: boolean
   private allPlugins: GardenPluginSpec[]
 
   constructor(params: Params) {
@@ -88,6 +90,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     this.allPlugins = params.allPlugins
     this.forceRefresh = params.forceRefresh
     this.forceInit = params.forceInit
+    this.noInit = params.noInit || false
   }
 
   getName() {
@@ -178,9 +181,9 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     const resolvedProviders: ProviderMap = keyBy(providerResults.map((r) => r.result).filter(isNotNull), "name")
 
     // Return immediately if the provider has been previously resolved
-    const alreadyResolvedProviders = this.garden["resolvedProviders"][this.config.name]
-    if (alreadyResolvedProviders) {
-      return alreadyResolvedProviders
+    const alreadyResolvedProvider = this.garden["resolvedProviders"][this.config.name]
+    if (alreadyResolvedProvider && (this.noInit || alreadyResolvedProvider.status)) {
+      return alreadyResolvedProvider
     }
 
     const context = new ProviderConfigContext(this.garden, resolvedProviders, this.garden.variables)
@@ -300,7 +303,12 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       moduleConfigs,
       status: defaultEnvironmentStatus,
     })
-    const status = await this.ensurePrepared(tmpProvider)
+
+    let status: EnvironmentStatus | null = null
+
+    if (!this.noInit) {
+      status = await this.ensurePrepared(tmpProvider)
+    }
 
     return providerFromConfig({
       plugin: this.plugin,

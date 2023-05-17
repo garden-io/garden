@@ -18,7 +18,7 @@ import type { TestAction } from "../actions/test.js"
 import type { NamespaceStatus } from "../types/namespace.js"
 import type Joi from "@hapi/joi"
 import { memoize } from "lodash-es"
-import type { BaseProviderConfig } from "../config/provider.js"
+import type { BaseProviderConfig, Provider } from "../config/provider.js"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>
@@ -41,6 +41,7 @@ export interface PluginActionContextParams<C extends BaseProviderConfig = any> e
 
 export interface PluginActionParamsBase<C extends BaseProviderConfig = any> extends PluginActionContextParams<C> {
   log: Log
+  provider?: Provider<C>
 }
 
 export interface ResolvedActionHandlerDescription<N = string> {

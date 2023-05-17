@@ -61,7 +61,7 @@ describe("ResolveProviderTask", () => {
 
   it("should resolve status if no cached status exists", async () => {
     const provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
-    expect(provider.status.cached).to.be.undefined
+    expect(provider.status!.cached).to.be.undefined
   })
 
   it("should cache the provider status", async () => {
@@ -82,7 +82,7 @@ describe("ResolveProviderTask", () => {
   it("should return with cached provider status if the config hash matches and TTL is within range", async () => {
     await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
     const provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
-    expect(provider.status.cached).to.be.true
+    expect(provider.status!.cached).to.be.true
   })
 
   it("should not use cached status if the cached data is invalid", async () => {
@@ -90,7 +90,7 @@ describe("ResolveProviderTask", () => {
     await writeFile(cachePath, serialize({ foo: "bla" }))
 
     const provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
-    expect(provider.status.cached).to.be.undefined
+    expect(provider.status!.cached).to.be.undefined
   })
 
   it("should not use cached status if the config hash doesn't match", async () => {
@@ -102,7 +102,7 @@ describe("ResolveProviderTask", () => {
     await writeFile(cachePath, serialize({ ...cachedStatus, configHash: "abcdef", resolvedAt: new Date() }))
 
     provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
-    expect(provider.status.cached).to.be.undefined
+    expect(provider.status!.cached).to.be.undefined
   })
 
   it("should use cached status if the cache is just within the TTL", async () => {
@@ -119,7 +119,7 @@ describe("ResolveProviderTask", () => {
     await writeFile(cachePath, serialize({ ...cachedStatus, configHash, resolvedAt }))
 
     provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
-    expect(provider.status.cached).to.be.true
+    expect(provider.status!.cached).to.be.true
   })
 
   it("should not use cached status if the cache is expired", async () => {
@@ -136,7 +136,7 @@ describe("ResolveProviderTask", () => {
     await writeFile(cachePath, serialize({ ...cachedStatus, configHash, resolvedAt }))
 
     provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
-    expect(provider.status.cached).to.be.undefined
+    expect(provider.status!.cached).to.be.undefined
   })
 
   it("should not use cached status if forceRefresh=true", async () => {
@@ -145,7 +145,7 @@ describe("ResolveProviderTask", () => {
     task["forceRefresh"] = true
 
     const provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
-    expect(provider.status.cached).to.be.undefined
+    expect(provider.status!.cached).to.be.undefined
   })
 })
 

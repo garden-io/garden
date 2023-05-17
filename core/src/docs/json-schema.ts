@@ -44,8 +44,12 @@ export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
     }
 
     // FIXME: We only use the first type if there are multiple possible schemas
-    if (schema.oneOf) {
-      schema = schema.oneOf[0]
+    while (schema.anyOf || schema.oneOf) {
+      if (schema.oneOf) {
+        schema = schema.oneOf[0]
+      } else if (schema.anyOf) {
+        schema = schema.anyOf[0]
+      }
     }
 
     // FIXME: We only use the first type if there are multiple possible schemas

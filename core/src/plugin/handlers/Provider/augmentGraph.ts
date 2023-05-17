@@ -14,10 +14,10 @@ import type { ProviderMap, BaseProviderConfig } from "../../../config/provider.j
 import { providerSchema } from "../../../config/provider.js"
 import type { BaseAction } from "../../../actions/base.js"
 import { baseActionConfigSchema } from "../../../actions/base.js"
-import type { ActionKind, BaseActionConfig } from "../../../actions/types.js"
+import type { Action, ActionKind, BaseActionConfig } from "../../../actions/types.js"
 
 export interface AugmentGraphParams<C extends BaseProviderConfig = any> extends PluginActionParamsBase<C> {
-  actions: BaseAction[]
+  actions: Action[]
   providers: ProviderMap
 }
 
@@ -82,7 +82,7 @@ export const augmentGraph = () => ({
       ),
     addActions: joi
       .array()
-      .items(baseActionConfigSchema().optional())
+      .items(baseActionConfigSchema().unknown(true).optional())
       .description(
         dedent`
           Add actions (of any defined kind) to the stack graph. Each should be an action spec in the same format as a normal action specified in a \`garden.yml\` config file (which will later be passed to the appropriate \`configure\` handler(s) for the action type).

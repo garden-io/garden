@@ -93,7 +93,13 @@ export class ModuleRouter extends BaseRouter {
     })
 
     const handlerParams = {
-      ...(await this.commonParams(handler, log, undefined, params.events)),
+      ...(await this.commonParams({
+        handler,
+        log,
+        templateContext: undefined,
+        events: params.events,
+        provider: undefined,
+      })),
       ...params,
     }
 
@@ -128,7 +134,13 @@ export class ModuleRouter extends BaseRouter {
     })
 
     const handlerParams = {
-      ...(await this.commonParams(handler, log, undefined, params.events)),
+      ...(await this.commonParams({
+        handler,
+        log,
+        templateContext: undefined,
+        events: params.events,
+        provider: undefined,
+      })),
       ...params,
     }
 
@@ -155,7 +167,13 @@ export class ModuleRouter extends BaseRouter {
     })
 
     const handlerParams = {
-      ...(await this.commonParams(handler, log, undefined, params.events)),
+      ...(await this.commonParams({
+        handler,
+        log,
+        templateContext: undefined,
+        events: params.events,
+        provider: undefined,
+      })),
       ...params,
     }
 

@@ -24,6 +24,7 @@ import type { GetDashboardPageParams, GetDashboardPageResult } from "./handlers/
 import { getDashboardPage } from "./handlers/Provider/getDashboardPage.js"
 import { baseHandlerSchema } from "./handlers/base/base.js"
 import type { BaseProviderConfig } from "../config/provider.js"
+import { SuggestCommandsParams, SuggestCommandsResult, suggestCommands } from "./handlers/Provider/suggestCommands.js"
 
 export type ProviderHandlers<C extends BaseProviderConfig = any, O extends object = any> = {
   [P in keyof ProviderActionParams]: ActionHandler<ProviderActionParams<C>[P], ProviderActionOutputs<C, O>[P]>
@@ -41,6 +42,7 @@ export interface ProviderActionParams<C extends BaseProviderConfig = any> {
 
   getDashboardPage: GetDashboardPageParams<C>
   getDebugInfo: GetDebugInfoParams<C>
+  suggestCommands: SuggestCommandsParams<C>
 }
 
 export interface ProviderActionOutputs<C extends BaseProviderConfig = any, O extends object = any> {
@@ -53,6 +55,7 @@ export interface ProviderActionOutputs<C extends BaseProviderConfig = any, O ext
 
   getDashboardPage: GetDashboardPageResult
   getDebugInfo: DebugInfo
+  suggestCommands: SuggestCommandsResult
 }
 
 // It takes a short while to resolve all these schemas, so we cache the result
@@ -73,6 +76,7 @@ export function getProviderActionDescriptions(): ResolvedActionHandlerDescriptio
 
     getDashboardPage,
     getDebugInfo,
+    suggestCommands,
   }
 
   _providerActionDescriptions = <ResolvedActionHandlerDescriptions>mapValues(descriptions, (f, name) => {

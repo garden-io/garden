@@ -1,0 +1,36 @@
+{
+  "name": "@garden-io/garden-docker-compose",
+  "version": "0.12.51",
+  "description": "Docker Compose plugin for Garden",
+  "main": "build/src/index.js",
+  "dependencies": {
+    "@garden-io/core": "*",
+    "@garden-io/sdk": "*",
+    "async-lock": "^1.4.0",
+    "bluebird": "^3.7.2",
+    "execa": "^5.1.1",
+    "fs-extra": "^11.1.0",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@types/async-lock": "^1.4.0",
+    "@types/chai": "^4.3.4",
+    "@types/fs-extra": "^11.0.1",
+    "@types/lodash": "^4.14.191",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^18",
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
+    "source-map-support": "^0.5.21",
+    "strip-ansi": "^6.0.0"
+  },
+  "scripts": {
+    "clean": "rm -f *.js *.d.ts *.map tsconfig.buildinfo tsconfig.tsbuildinfo",
+    "fix-format": "prettier --write \"**/*.ts\"",
+    "lint": "eslint -c ../../.eslintrc  --ext .ts .",
+    "test": "mocha"
+  },
+  "author": "Garden Technologies, Inc. <info@garden.io>",
+  "license": "MPL-2.0",
+  "homepage": "https://github.com/garden-io/garden"
+}

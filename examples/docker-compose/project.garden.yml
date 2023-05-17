@@ -1,0 +1,55 @@
+kind: Run
+type: docker-run
+name: seed-votes
+description: |
+  Seed Postgres with some test data. We don't use the seed service in the compose project here, but reference
+  an image from a `container` Build instead.
+dependencies: [deploy.vote-compose]
+spec:
+  projectName: ${var.projectName}
+  image: ${actions.build.seed-votes.outputs.deployment-image-id}
+  networks: ["front-tier"]
+
+---
+
+kind: Run
+type: docker-compose-exec
+name: clear-db
+dependencies: [deploy.db-compose]
+description: |
+  Clear the votes table. This is executed in the running db container (since it's a docker-compose-exec action).
+spec:
+  service: db
+  projectName: ${var.projectName}
+  command: [psql, -U, "${var.db.username}", -d, "${var.db.dbName}", "-c", "TRUNCATE VOTES"]
+
+---
+
+kind: Test
+type: docker-run
+name: vote-integ
+dependencies: [deploy.vote-compose]
+spec:
+  # The build action here is located in ./result/tests/build.garden.yml
+  projectName: ${var.projectName}
+  image: ${actions.build.vote-tests.outputs.deployment-image-id}
+  networks: [front-tier]
+
+---
+
+apiVersion: garden.io/v1
+kind: Project
+name: docker-compose
+environments:
+- name: local
+  variables:
+    db:
+      username: postgres
+      dbName: postgres
+providers:
+- name: docker-compose
+  environments: [local]
+variables:
+  projectName: vote
+
+

@@ -10,7 +10,7 @@ import { fromPairs, mapValues, omit } from "lodash-es"
 import pProps from "p-props"
 
 import { validateSchema } from "../config/validation.js"
-import { defaultProvider } from "../config/provider.js"
+import { Provider, defaultProvider } from "../config/provider.js"
 import { ParameterError, PluginError } from "../exceptions.js"
 import type { Log } from "../logger/log-entry.js"
 import type { PluginActionParamsBase } from "../plugin/base.js"
@@ -45,6 +45,7 @@ import { Profile } from "../util/profiling.js"
 import type { GetDashboardPageParams, GetDashboardPageResult } from "../plugin/handlers/Provider/getDashboardPage.js"
 import type { CommonParams, BaseRouterParams } from "./base.js"
 import { BaseRouter } from "./base.js"
+import { SuggestCommandsParams, SuggestCommandsResult } from "../plugin/handlers/Provider/suggestCommands.js"
 
 /**
  * The ProviderRouter takes care of choosing which plugin should be responsible for handling a provider action,
@@ -165,6 +166,18 @@ export class ProviderRouter extends BaseRouter {
     })
   }
 
+  async suggestCommands(
+    params: ActionRouterParams<SuggestCommandsParams> & { provider: Provider }
+  ): Promise<SuggestCommandsResult> {
+    const { provider } = params
+    return this.callPluginActionHandler({
+      handlerType: "suggestCommands",
+      pluginName: provider.name,
+      params,
+      defaultHandler: async () => ({ commands: [] }),
+    })
+  }
+
   //endregion
 
   //===========================================================================
@@ -194,7 +207,16 @@ export class ProviderRouter extends BaseRouter {
 
     const debugInfoMap = pProps(
       mapValues(handlers, async (h) =>
-        h({ ...(await this.commonParams(h, log, undefined, undefined)), includeProject })
+        h({
+          ...(await this.commonParams({
+            handler: h,
+            log,
+            templateContext: undefined,
+            events: undefined,
+            provider: undefined,
+          })),
+          includeProject,
+        })
       )
     )
 
@@ -224,7 +246,13 @@ export class ProviderRouter extends BaseRouter {
     })
 
     const handlerParams: ProviderActionParams[T] = {
-      ...(await this.commonParams(handler!, params.log, undefined, params.events)),
+      ...(await this.commonParams({
+        handler: handler!,
+        log: params.log,
+        templateContext: undefined,
+        events: params.events,
+        provider: params.provider,
+      })),
       ...(<any>params),
     }
 

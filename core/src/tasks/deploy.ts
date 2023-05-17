@@ -25,7 +25,7 @@ export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {
 
 function printIngresses(status: DeployStatus, log: ActionLog) {
   for (const ingress of status.detail?.ingresses || []) {
-    log.info(`Ingress: ${styles.link(getLinkUrl(ingress))}`)
+    log.info(`URL: ${styles.link(getLinkUrl(ingress))}`)
   }
 }
 

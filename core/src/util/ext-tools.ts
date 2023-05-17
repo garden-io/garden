@@ -28,6 +28,9 @@ import { LogLevel } from "../logger/logger.js"
 import { uuidv4 } from "./random.js"
 import { streamLogs, waitForProcess } from "./process.js"
 import { pipeline } from "node:stream/promises"
+import chalk from "chalk/index.js"
+import hasAnsi from "has-ansi"
+import split2 from "split2"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 const lock = new AsyncLock()
@@ -42,6 +45,12 @@ export interface ExecParams {
   ignoreError?: boolean
   stdout?: Writable
   stderr?: Writable
+  streamLogs?: {
+    ctx: PluginContext
+    emitEvent?: boolean
+    print?: boolean
+    logLevel?: LogLevel
+  }
 }
 
 export interface SpawnParams extends ExecParams {
@@ -66,7 +75,7 @@ export class CliWrapper {
    * @throws RuntimeError on EMFILE (Too many open files)
    * @throws ChildProcessError on any other error condition
    */
-  async exec({ args, cwd, env, log, timeoutSec, input, ignoreError, stdout, stderr }: ExecParams) {
+  async exec({ args, cwd, env, log, timeoutSec, input, ignoreError, stdout, stderr, streamLogs }: ExecParams) {
     const path = await this.getPath(log)
 
     if (!args) {
@@ -77,6 +86,38 @@ export class CliWrapper {
     }
 
     log.silly(() => `Execing '${path} ${args!.join(" ")}' in ${cwd}`)
+
+    if (streamLogs) {
+      const logEventContext = {
+        origin: this.name,
+        log: log.createLog({ fixLevel: streamLogs.logLevel || LogLevel.verbose }),
+      }
+
+      // Default to emitting log events here.
+      const emitEvent = streamLogs.emitEvent === undefined ? true : streamLogs.emitEvent
+
+      const outputStream = split2()
+      outputStream.on("error", () => {})
+      outputStream.on("data", (data: Buffer) => {
+        const msg = data.toString()
+
+        if (streamLogs.print && msg && msg.length > 0) {
+          logEventContext.log.info(hasAnsi(msg) ? msg : chalk.white(msg))
+        }
+
+        if (emitEvent) {
+          streamLogs.ctx.events.emit("log", {
+            level: "verbose",
+            timestamp: new Date().toISOString(),
+            msg,
+            ...logEventContext,
+          })
+        }
+      })
+
+      stdout = outputStream
+      stderr = outputStream
+    }
 
     return exec(path, args, {
       cwd,

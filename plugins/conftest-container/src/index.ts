@@ -60,7 +60,7 @@ export const gardenPlugin = () =>
                   policyPath: provider.config.policyPath,
                   namespace: provider.config.namespace,
                   combine: false,
-                  files: [action.getConfig("spec").dockerfilePath],
+                  files: [action.getConfig().spec.dockerfilePath],
                 },
               }
             }),

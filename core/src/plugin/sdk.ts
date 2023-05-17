@@ -13,10 +13,10 @@ import type { DeployAction, DeployActionConfig } from "../actions/deploy.js"
 import type { RunAction, RunActionConfig } from "../actions/run.js"
 import type { TestAction, TestActionConfig } from "../actions/test.js"
 import { joi, zodObjectToJoi } from "../config/common.js"
-import type { BaseProviderConfig } from "../config/provider.js"
+import type { BaseProviderConfig, GenericProviderConfig, Provider } from "../config/provider.js"
 import { baseProviderConfigSchemaZod } from "../config/provider.js"
 import { s } from "../config/zod.js"
-import { ValidationError } from "../exceptions.js"
+import { ConfigurationError, ValidationError, toGardenError } from "../exceptions.js"
 import type {
   ActionKind,
   ActionTypeDefinition,
@@ -42,8 +42,14 @@ import type {
   ProviderHandlers,
 } from "./plugin.js"
 import type { PluginToolSpec } from "./tools.js"
-import { dedent } from "../util/string.js"
+import { dedent, deline, splitLast } from "../util/string.js"
 import type { BuildStatus as _BuildStatus } from "./handlers/Build/get-status.js"
+import { LogLevel } from "../logger/logger.js"
+import { BuildTask } from "../tasks/build.js"
+import { DeployTask } from "../tasks/deploy.js"
+import { RunTask } from "../tasks/run.js"
+import { TestTask } from "../tasks/test.js"
+import { joinWithPosix } from "../util/fs.js"
 
 type ObjectBaseZod = z.ZodObject<{}>
 
@@ -143,7 +149,7 @@ export class GardenSdkPlugin {
     this.spec.dependencies.push(dep)
   }
 
-  addTool(spec: PluginToolSpec) {
+  addTool(spec: _PluginToolSpec) {
     this.spec.tools.push(spec)
   }
 
@@ -161,6 +167,12 @@ export class GardenSdkProvider<
   ProviderConfigType extends BaseProviderConfig,
   ProviderOutputsType extends {},
 > {
+  T!: {
+    Config: ProviderConfigType
+    Outputs: ProviderOutputsType
+    Provider: Provider<ProviderConfigType>
+  }
+
   constructor(
     public readonly name: string,
     private readonly spec: GardenPluginSpec,
@@ -303,7 +315,7 @@ export class GardenSdkActionDefinition<
       GetActionTypeParams<
         GetActionTypeDescriptions<GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>>[HandlerType]
       > &
-        PluginActionParamsBase<GardenSdkProdiverConfigType<P>>,
+        PluginActionParamsBase<P["T"]["Outputs"]>,
       GetActionTypeResults<
         GetActionTypeDescriptions<GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>>[HandlerType]
       >
@@ -389,6 +401,8 @@ export const sdk = {
   schema: s,
   s, // Shorthand
 
+  LogLevel,
+
   createGardenPlugin(spec: GardenSdkPluginSpec) {
     return new GardenSdkPlugin(spec)
   },
@@ -396,7 +410,38 @@ export const sdk = {
   createProvider,
   createActionType,
 
+  exceptions: {
+    ConfigurationError,
+    toGardenError,
+  },
+
   util: {
     dedent,
+    deline,
+    joinPathWithPosix: joinWithPosix,
+    splitLast,
   },
+
+  testing: {
+    BuildTask,
+    DeployTask,
+    TestTask,
+    RunTask,
+  },
+}
+
+export namespace sdk {
+  export namespace types {
+    export type BuildStatus = _BuildStatus
+    export type Log = _Log
+    export type PluginContext<C extends GenericProviderConfig = GenericProviderConfig> = _PluginContext<C>
+    export type PluginToolSpec = _PluginToolSpec
+    export type ServiceIngress = _ServiceIngress
+
+    export type infer<T extends z.ZodType<any, any, any>> = z.infer<T>
+  }
+
+  export namespace testing {
+    export type TestGarden = _TestGarden
+  }
 }

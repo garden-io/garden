@@ -24,6 +24,9 @@
       "path": "../plugins/conftest-kubernetes"
     },
     {
+      "path": "../plugins/docker-compose"
+    },
+    {
       "path": "../plugins/jib"
     },
     {

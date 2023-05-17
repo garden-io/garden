@@ -720,7 +720,7 @@ export class Garden {
 
     this.log.silly(() => `Resolving provider ${name}`)
 
-    const providers = await this.resolveProviders(log, false, [name])
+    const providers = await this.resolveProviders(log, { names: [name] })
     const provider = providers[name]
 
     if (!provider) {
@@ -736,10 +736,20 @@ export class Garden {
     return provider
   }
 
+  /**
+   * Resolve all or specified providers. If noInit=true is set, the environment status is not resolved
+   * and `prepareEnvironment` is not called.
+   */
   @OtelTraced({
     name: "resolveProviders",
   })
-  async resolveProviders(log: Log, forceInit = false, names?: string[]): Promise<ProviderMap> {
+  async resolveProviders(
+    log: Log,
+    opts: { forceInit?: boolean; names?: string[]; noInit?: boolean } = {}
+  ): Promise<ProviderMap> {
+    const { forceInit = false, noInit = false } = opts
+    let names = opts.names
+
     // TODO: split this out of the Garden class
     let providers: Provider[] = []
 
@@ -753,7 +763,18 @@ export class Garden {
       throwOnMissingSecretKeys(rawConfigs, this.secrets, "Provider", log)
 
       // As an optimization, we return immediately if all requested providers are already resolved
-      const alreadyResolvedProviders = names.map((name) => this.resolvedProviders[name]).filter(Boolean)
+      const alreadyResolvedProviders = names
+        .map((name) => this.resolvedProviders[name])
+        .filter((p) => {
+          if (!p) {
+            return false
+          }
+          // If noInit=false and status is missing, we need to resolve the provider fully
+          if (!noInit && !p.status) {
+            return false
+          }
+          return true
+        })
       if (alreadyResolvedProviders.length === names.length) {
         providers = cloneDeep(alreadyResolvedProviders)
         return
@@ -763,7 +784,7 @@ export class Garden {
       if (this.forceRefresh) {
         providerLog.info("Resolving providers (will force refresh statuses)...")
       } else {
-        providerLog.info("Resolving providers...")
+        providerLog.info(opts.names ? `Resolving providers ${naturalList(names)}...` : "Resolving all providers...")
       }
 
       const plugins = keyBy(await this.getAllPlugins(), "name")
@@ -816,6 +837,7 @@ export class Garden {
           force: false,
           forceRefresh: this.forceRefresh,
           forceInit,
+          noInit,
           allPlugins: Object.values(plugins),
         })
       })
@@ -918,7 +940,7 @@ export class Garden {
    */
   async getEnvironmentStatus(log: Log) {
     const providers = await this.resolveProviders(log)
-    return mapValues(providers, (p) => p.status)
+    return mapValues(providers, (p) => p.status!)
   }
 
   @pMemoizeDecorator()
@@ -982,13 +1004,13 @@ export class Garden {
     name: "getConfigGraph",
   })
   async getConfigGraph({ log, graphResults, emit, actionModes = {} }: GetConfigGraphParams): Promise<ConfigGraph> {
+    const graphLog = log.createLog({ name: "graph", showDuration: true }).info(`Resolving actions and modules...`)
+
     // TODO: split this out of the Garden class
     await this.scanAndAddConfigs()
 
     const resolvedProviders = await this.resolveProviders(log)
     const rawModuleConfigs = await this.getRawModuleConfigs()
-
-    const graphLog = log.createLog({ name: "graph", showDuration: true }).info(`Resolving actions and modules...`)
 
     // Resolve the project module configs
     const resolver = new ModuleResolver({
@@ -1100,35 +1122,34 @@ export class Garden {
       let updated = false
 
       // Resolve actions from augmentGraph specs and add to the list
-      await Promise.all(
-        (addActions || []).map(async (config) => {
-          // There is no actual config file for plugin modules (which the prepare function assumes)
-          delete config.internal?.configFilePath
+      // Note: Looping sequentially here to allow actions to depend on one another in the addActions list.
+      for (const config of addActions || []) {
+        // There is no actual config file for plugin modules (which the prepare function assumes)
+        delete config.internal?.configFilePath
 
-          if (!config.internal.basePath) {
-            config.internal.basePath = this.projectRoot
-          }
+        if (!config.internal.basePath) {
+          config.internal.basePath = this.projectRoot
+        }
 
-          const key = actionReferenceToString(config)
+        const key = actionReferenceToString(config)
 
-          const action = await actionFromConfig({
-            garden: this,
-            graph,
-            config,
-            router,
-            log: graphLog,
-            configsByKey: actionConfigs,
-            mode: actionModes[key] || "default",
-            linkedSources,
-            scanRoot: config.internal.basePath,
-          })
-
-          graph.addAction(action)
-          actionConfigs[key] = config
-
-          updated = true
+        const action = await actionFromConfig({
+          garden: this,
+          graph,
+          config,
+          router,
+          log: graphLog,
+          configsByKey: actionConfigs,
+          mode: actionModes[key] || "default",
+          linkedSources,
+          scanRoot: config.internal.basePath,
         })
-      )
+
+        graph.addAction(action)
+        actionConfigs[key] = config
+
+        updated = true
+      }
 
       for (const dependency of addDependencies || []) {
         for (const key of ["by", "on"]) {
@@ -1188,7 +1209,12 @@ export class Garden {
 
   async getResolvedConfigGraph(params: GetConfigGraphParams): Promise<ResolvedConfigGraph> {
     const graph = await this.getConfigGraph(params)
-    const resolved = await this.resolveActions({ graph, actions: graph.getActions(), log: params.log })
+    const actions = graph.getActions()
+    const resolved = await this.resolveActions({
+      graph,
+      actions: actions.filter((a) => !a.isDisabled()),
+      log: params.log,
+    })
     return new ResolvedConfigGraph({
       actions: Object.values(resolved),
       moduleGraph: graph.moduleGraph,
@@ -1471,12 +1497,15 @@ export class Garden {
     const existing = this.actionConfigs[config.kind][config.name]
 
     if (existing) {
-      if (actionIsDisabled(config, this.environmentName)) {
-        this.log.silly(
-          () => `Skipping action ${key} because it is disabled and another action with the same key exists`
-        )
+      const disabled = actionIsDisabled(config, this.environmentName)
+      const existingDisabled = actionIsDisabled(existing, this.environmentName)
+
+      if (disabled) {
+        this.log.silly(() => `Skipping action ${key} because it is disabled and another action with the same key exists`)
         return
-      } else if (!actionIsDisabled(existing, this.environmentName)) {
+      } else if (existingDisabled) {
+        this.log.silly(() => `Overriding disabled action ${key} because another enabled action with the same key exists`)
+      } else if (!existingDisabled) {
         const paths = [
           existing.internal.configFilePath || existing.internal.basePath,
           config.internal.configFilePath || config.internal.basePath,
@@ -1662,6 +1691,7 @@ export class Garden {
     resolveWorkflows?: boolean
   }): Promise<ConfigDump> {
     let providers: ConfigDump["providers"] = []
+    let suggestedCommands: SuggestedCommand[] = []
     let moduleConfigs: ModuleConfig[]
     let workflowConfigs: WorkflowConfig[]
     let actionConfigs: ActionConfigMap = {
@@ -1672,9 +1702,10 @@ export class Garden {
     }
 
     await this.scanAndAddConfigs()
-
     if (resolveProviders) {
-      providers = Object.values(await this.resolveProviders(log))
+      const resolvedProviders = Object.values(await this.resolveProviders(log))
+      suggestedCommands = await this.getSuggestedCommands(log, resolvedProviders)
+      providers = resolvedProviders
     } else {
       providers = this.getRawProviderConfigs()
     }
@@ -1698,10 +1729,7 @@ export class Garden {
         workflowConfigs = await this.getRawWorkflowConfigs()
       }
     } else {
-      providers = this.getRawProviderConfigs()
-      moduleConfigs = await this.getRawModuleConfigs()
       workflowConfigs = await this.getRawWorkflowConfigs()
-      actionConfigs = this.actionConfigs
     }
 
     const allEnvironmentNames = this.projectConfig.environments.map((c) => c.name)
@@ -1720,11 +1748,11 @@ export class Garden {
       projectId: this.projectId,
       domain: this.cloudDomain,
       sources: this.projectSources,
-      suggestedCommands: await this.getSuggestedCommands(),
+      suggestedCommands,
     }
   }
 
-  public async getSuggestedCommands(): Promise<SuggestedCommand[]> {
+  public async getSuggestedCommands(log: Log, providers: Provider[]): Promise<SuggestedCommand[]> {
     const suggestions: SuggestedCommand[] = [
       {
         name: "deploy",
@@ -1733,7 +1761,15 @@ export class Garden {
       },
     ]
 
-    // TODO: call plugin handlers to get plugin-specific suggestions
+    // Call plugin handlers to get plugin-specific suggestions
+    const router = await this.getActionRouter()
+
+    await Promise.all(
+      providers.map(async (provider) => {
+        const { commands } = await router.provider.suggestCommands({ log, provider })
+        suggestions.push(...commands.map((c) => ({ ...c, source: c.source || provider.name })))
+      })
+    )
 
     return suggestions
   }
