@@ -179,17 +179,15 @@ In this example, we define a `db-migrate` action that executes `rake db:migrate`
 database migrations, but you can run anything you like of course). The action has a dependency on the `my-database`
 deployment, so that Garden will make sure the database is deployed before running the migration job.
 
-Since Garden `0.13` `Test` actions can also be dependencies for any other kinds of actions, e.g `Build`, `Deploy`
-and `Run` actions.
-
 One thing to note, is that `Run` actions should in most cases be _idempotent_, meaning that running the same `Run`
-action
-multiple times should be safe.
+action multiple times should be safe.
 
 See the [reference](../reference/action-types/Run/container.md#tasks) for all the configurable parameters
 for `Run` actions of `container` type.
 
 ## Referencing from other actions
+
+Since Garden version `0.13` any action (of any `kind` and `type`) can depend on any other action.
 
 Actions can reference outputs from each other
 using [template strings](../using-garden/variables-and-templating.md#template-string-basics).
