@@ -368,7 +368,7 @@ ${renderCommands(commands)}
               log,
               message:
                 chalk.yellow(dedent`Garden v0.13 is a major release with significant changes. Please help us improve it by reporting any issues/bugs here:
-              https://github.com/garden-io/garden/issues/new?labels=0.13&template=0-13-issue-template.md&title=0.13%3A+%5BBug%5D%3A`),
+                https://go.garden.io/report-bonsai`),
             })
           }
 
