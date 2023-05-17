@@ -160,7 +160,7 @@ across your different action configurations.
 See the [reference](../reference/action-types/Test/container.md) for all the configurable parameters
 for `container Test` actions.
 
-## Running arbitrary scripts and jobs
+## Running arbitrary workloads
 
 `Run` actons are defined very similarly to `Test` actions:
 
