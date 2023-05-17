@@ -219,12 +219,12 @@ and [`Test`](../reference/action-types/Test/container.md#outputs) action kinds.
 
 ## Mounting volumes and Kubernetes ConfigMaps
 
-_Runtime_ `container` actions (i.e. `Deploy`, `Run`, and `Test`) can all mount volumes and Kubernetes Configmaps.
+Volumes and ConfigMaps can be mounted in all `Deploy`, `Run`, and `Test` actions of the `container` type.
 
 For mounting volumes, check out our guide on
 the [`persistentvolumeclaim` action type](../k8s-plugins/action-types/persistentvolumeclaim.md), supported by
 the `kubernetes` provider.
 
-And for `ConfigMap`s, check out this guide on the [`configmap` action type](../k8s-plugins/action-types/configmap.md),
+And for ConfigMaps, check out this guide on the [`configmap` action type](../k8s-plugins/action-types/configmap.md),
 also supported by the `kubernetes` provider.
 
