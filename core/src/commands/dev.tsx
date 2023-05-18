@@ -22,6 +22,7 @@ import Divider from "ink-divider"
 import moment from "moment"
 import { getBuiltinCommands } from "./commands"
 import { dedent } from "../util/string"
+import Spinner from "ink-spinner"
 
 const devCommandArgs = {
   ...serveArgs,
@@ -100,12 +101,16 @@ Let's get your development environment wired up.
       const [line, setLine] = useState("🌸  Initializing...")
       const [status, setStatus] = useState("")
       const [message, setMessage] = useState("")
+      const [spin, setSpin] = useState(false)
 
       // Note: Using callbacks here instead of events to make keypresses a bit more responsive
       commandLine.setCallbacks({
         commandLine: setLine,
         message: setMessage,
-        status: setStatus,
+        status: (s: string) => {
+          setSpin(!!s)
+          setStatus(s)
+        },
       })
 
       useInput((input, key) => {
@@ -121,6 +126,12 @@ Let's get your development environment wired up.
             <Text>{line}</Text>
           </Box>
           <Box height={1} marginTop={1} marginLeft={2}>
+            {spin && (
+              <Text color="cyanBright">
+                <Spinner type="dots"></Spinner>
+                &nbsp;&nbsp;
+              </Text>
+            )}
             <Text>{message || status}</Text>
           </Box>
         </Box>
@@ -159,8 +170,12 @@ Let's get your development environment wired up.
         log,
         key: "dev-syncs-active",
         message: chalk.yellow(
-          `Syncs started during this session may still be active when this command terminates. You can run ${chalk.white("garden sync stop '*'")} to stop all code syncs. Hint: To stop code syncing when exiting ${chalk.white("garden dev")}, use ${chalk.white("Control-D")} or the ${chalk.white(`exit`)} command.`
-          )
+          `Syncs started during this session may still be active when this command terminates. You can run ${chalk.white(
+            "garden sync stop '*'"
+          )} to stop all code syncs. Hint: To stop code syncing when exiting ${chalk.white(
+            "garden dev"
+          )}, use ${chalk.white("Control-D")} or the ${chalk.white(`exit`)} command.`
+        ),
       })
       quit()
     }

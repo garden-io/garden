@@ -25,7 +25,7 @@ import { parseCliArgs, pickCommand, processCliArgs, renderCommandErrors, renderC
 import { GlobalOptions, ParameterValues } from "./params"
 import { ServeCommand } from "../commands/serve"
 
-const defaultMessageDuration = 2000
+const defaultMessageDuration = 3000
 const commandLinePrefix = chalk.yellow("🌼  > ")
 const emptyCommandLinePlaceholder = chalk.gray("<enter command> (enter help for more info)")
 const inputHistoryLength = 100
@@ -433,10 +433,10 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
     // TODO: show spinner here
     if (runningCommands.length === 1) {
-      status = chalk.cyan(`🕙  Running ${styles.command(runningCommands[0].command.getFullName())} command...`)
+      status = chalk.cyan(`Running ${styles.command(runningCommands[0].command.getFullName())} command...`)
     } else if (runningCommands.length > 1) {
       status =
-        chalk.cyan(`🕙  Running ${runningCommands.length} commands: `) +
+        chalk.cyan(`Running ${runningCommands.length} commands: `) +
         styles.command(runningCommands.map((c) => c.command.getFullName()).join(", "))
     }
 
@@ -513,7 +513,7 @@ ${chalk.white.underline("Keys:")}
   flashMessage(message: string, opts: FlashOpts = {}) {
     this.clearTimeout()
 
-    const prefix = opts.prefix || chalk.cyan("ℹ︎ ")
+    const prefix = opts.prefix || ""
     this.messageCallback(prefix + message)
 
     this.messageTimeout = setTimeout(() => {
