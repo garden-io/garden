@@ -689,4 +689,8 @@ export class CloudApi {
     const path = `/projects/${projectId}?sessionId=${sessionId}&userId=${userId}`
     return new URL(path, this.domain)
   }
+
+  getRegisteredSession(sessionId: string) {
+    return this.registeredSessions.get(sessionId)
+  }
 }

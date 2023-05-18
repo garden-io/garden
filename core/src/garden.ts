@@ -250,6 +250,7 @@ export class Garden {
   public configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
+  public cloudApi: CloudApi | null
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -280,7 +281,6 @@ export class Garden {
   public readonly username?: string
   public readonly version: string
   private readonly forceRefresh: boolean
-  public readonly cloudApi: CloudApi | null
   public readonly commandInfo: CommandInfo
   public readonly monitors: MonitorManager
   public readonly nestedSessions: Map<string, Garden>
@@ -421,7 +421,7 @@ export class Garden {
     return Object.assign(Object.create(Object.getPrototypeOf(this)), this)
   }
 
-  cloneForCommand(sessionId: string): Garden {
+  cloneForCommand(sessionId: string, cloudApi?: CloudApi): Garden {
     // Make an instance clone to override anything that needs to be scoped to a specific command run
     // TODO: this could be made more elegant
     const garden = this.clone()
@@ -432,6 +432,10 @@ export class Garden {
     garden.log = garden.log.createLog()
     garden.log.context.sessionId = sessionId
     garden.log.context.parentSessionId = parentSessionId
+
+    if (cloudApi) {
+      garden.cloudApi = cloudApi
+    }
 
     const parentEvents = garden.events
     garden.events = new EventBus({ gardenKey: garden.getInstanceKey(), sessionId })
