@@ -73,6 +73,7 @@
     "indent-string": "^4.0.0",
     "ink": "^3.2.0",
     "ink-divider": "^3.0.0",
+    "ink-spinner": "^4.0.3",
     "inquirer": "^7.3.3",
     "ip": "^1.1.8",
     "is-glob": "^4.0.3",
