@@ -244,6 +244,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     const cloudEventStream = new BufferedEventStream({
       log,
       cloudApi: garden.cloudApi || undefined,
+      cloudSession,
       maxLogLevel: eventLogLevel,
       garden,
       streamEvents: this.streamEvents,
