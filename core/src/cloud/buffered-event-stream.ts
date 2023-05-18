@@ -14,7 +14,7 @@ import { got } from "../util/http"
 
 import type { LogLevel } from "../logger/logger"
 import type { Garden } from "../garden"
-import type { CloudApi, CloudSession } from "./api"
+import type { CloudSession } from "./api"
 import { getSection } from "../logger/renderers"
 import { registerCleanupFunction } from "../util/util"
 import { makeAuthHeader } from "./auth"
@@ -97,8 +97,7 @@ export interface ApiLogBatch extends ApiBatchBase {
 export interface BufferedEventStreamParams {
   log: Log
   maxLogLevel: LogLevel
-  cloudApi?: CloudApi
-  cloudSession?: CloudSession
+  cloudSession: CloudSession | undefined
   garden: Garden
   streamEvents?: boolean
   streamLogEntries?: boolean
@@ -116,7 +115,6 @@ export interface BufferedEventStreamParams {
  */
 export class BufferedEventStream {
   protected log: Log
-  protected cloudApi?: CloudApi
   protected cloudSession?: CloudSession
   protected maxLogLevel: LogLevel
 
@@ -139,7 +137,6 @@ export class BufferedEventStream {
   constructor({
     log,
     maxLogLevel,
-    cloudApi,
     cloudSession,
     garden,
     targets,
@@ -148,7 +145,6 @@ export class BufferedEventStream {
   }: BufferedEventStreamParams) {
     this.log = log
     this.maxLogLevel = maxLogLevel
-    this.cloudApi = cloudApi
     this.cloudSession = cloudSession
     this.garden = garden
     this._targets = targets || []
@@ -260,7 +256,7 @@ export class BufferedEventStream {
   }
 
   private getTargets() {
-    if (this.cloudApi && this.cloudSession) {
+    if (this.cloudSession) {
       return [{ enterprise: true }, ...this._targets]
     } else {
       return this._targets
@@ -308,10 +304,11 @@ export class BufferedEventStream {
 
     try {
       await Bluebird.map(this.getTargets(), (target) => {
-        if (target.enterprise && this.cloudApi?.domain) {
+        const api = this.cloudSession?.api
+        if (target.enterprise && api?.domain) {
           // Need to cast so the compiler doesn't complain that the two returns from the map
           // aren't equivalent. Shouldn't matter in this case since we're not collecting the return value.
-          return this.cloudApi.post<any>(path, {
+          return api.post<any>(path, {
             body: data,
             retry: true,
             retryDescription: `Flushing ${description}`,

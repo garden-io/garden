@@ -27,7 +27,7 @@ describe("BufferedEventStream", () => {
 
     const garden = await makeTestGardenA()
 
-    const bufferedEventStream = new BufferedEventStream({ log, garden, maxLogLevel })
+    const bufferedEventStream = new BufferedEventStream({ log, garden, maxLogLevel, cloudSession: undefined })
 
     bufferedEventStream["getTargets"] = () => {
       return [{ enterprise: true }]
@@ -66,7 +66,13 @@ describe("BufferedEventStream", () => {
       const recordSizeKb = 0.5
       const log = getRootLogger().createLog()
       const garden = await makeTestGardenA()
-      const bufferedEventStream = new BufferedEventStream({ log, garden, targets, maxLogLevel })
+      const bufferedEventStream = new BufferedEventStream({
+        log,
+        garden,
+        targets,
+        maxLogLevel,
+        cloudSession: undefined,
+      })
       await bufferedEventStream.close()
       bufferedEventStream["maxBatchBytes"] = maxBatchBytes
       // Total size is ~3MB, which exceeds MAX_BATCH_BYTES
@@ -82,7 +88,13 @@ describe("BufferedEventStream", () => {
       const recordSizeKb = 0.5
       const log = getRootLogger().createLog()
       const garden = await makeTestGardenA()
-      const bufferedEventStream = new BufferedEventStream({ log, garden, targets, maxLogLevel })
+      const bufferedEventStream = new BufferedEventStream({
+        log,
+        garden,
+        targets,
+        maxLogLevel,
+        cloudSession: undefined,
+      })
       await bufferedEventStream.close()
       bufferedEventStream["maxBatchBytes"] = maxBatchBytes
       // This record's size, exceeds MAX_BATCH_BYTES, so it should be dropped by `makeBatch`.

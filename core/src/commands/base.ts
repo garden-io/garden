@@ -211,12 +211,12 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
       })
     }
 
-    if (garden.projectId && garden.cloudApi?.sessionRegistered(garden.sessionId)) {
-      const distroName = getCloudDistributionName(garden.cloudApi.domain)
-      const userId = (await garden.cloudApi.getProfile()).id
-      const commandResultUrl = garden.cloudApi.getCommandResultUrl({
+    if (cloudSession) {
+      const distroName = getCloudDistributionName(cloudSession.api.domain)
+      const userId = (await cloudSession.api.getProfile()).id
+      const commandResultUrl = cloudSession.api.getCommandResultUrl({
         sessionId: garden.sessionId,
-        projectId: garden.projectId,
+        projectId: cloudSession.projectId,
         userId,
       }).href
       const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
@@ -243,7 +243,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
 
     const cloudEventStream = new BufferedEventStream({
       log,
-      cloudApi: garden.cloudApi || undefined,
       cloudSession,
       maxLogLevel: eventLogLevel,
       garden,
@@ -254,14 +253,14 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     let result: CommandResult<R>
 
     try {
-      if (garden.cloudApi && garden.projectId && cloudSession && this.streamEvents) {
+      if (cloudSession && this.streamEvents) {
         log.silly(`Connecting Garden instance events to Cloud API`)
         cloudEventStream.emit("commandInfo", {
           ...commandInfo,
           environmentName: garden.environmentName,
           environmentId: cloudSession.environmentId,
           projectName: garden.projectName,
-          projectId: garden.projectId,
+          projectId: cloudSession.projectId,
           namespaceName: garden.namespace,
           namespaceId: cloudSession.namespaceId,
           coreVersion: getPackageVersion(),

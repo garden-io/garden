@@ -303,7 +303,6 @@ ${renderCommands(commands)}
       log,
       args: parsedArgs,
       opts: parsedOpts,
-      cloudApi,
     }
 
     const persistent = command.maybePersistent(prepareParams)
