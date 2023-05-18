@@ -8,7 +8,7 @@ order: 5
 Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace
 that can be referenced and mounted by other resources and [`container` actions](./container.md).
 
-`container` Deploys, tasks and tests can all mount volumes using this action type. To mount a volume, you need to define a volume Deploy
+`container` Deploys, Runs and Tests can all mount volumes using this action type. To mount a volume, you need to define a volume Deploy
 and reference it using the `volumes` key on your Deploys, Runs or Tests.
 
 Example:
