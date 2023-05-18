@@ -1608,7 +1608,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
     const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), showDuration: true })
-    cloudLog.info(`Initializing ${distroName}...`)
+    cloudLog.debug(`Initializing ${distroName}...`)
 
     let project: CloudProject | undefined
 

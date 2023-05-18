@@ -208,7 +208,7 @@ export class CloudApi {
     const api = new CloudApi(log, cloudDomain, globalConfigStore)
     const tokenIsValid = await api.checkClientAuthToken()
 
-    cloudFactoryLog.info("Authorizing...")
+    cloudFactoryLog.debug("Authorizing...")
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
       // Throw if using an invalid "CI" access token
@@ -233,8 +233,6 @@ export class CloudApi {
       cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
       api.startInterval()
     }
-
-    cloudFactoryLog.success("Done")
 
     return api
   }
