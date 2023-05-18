@@ -5,7 +5,7 @@ order: 6
 
 ## Mounting Kubernetes ConfigMaps
 
-Very similarly to the [PeristentVolumeClaim action type](./persistentvolumeclaim.md), you can also mount Kubernetes ConfigMaps on `container` deploy actions using the `configmap` action type. ([see here for the full reference](../../reference/module-types/configmap.md)). 
+Very similarly to the [PeristentVolumeClaim action type](./persistentvolumeclaim.md), you can also mount Kubernetes ConfigMaps on `container` deploy actions using the `configmap` action type. ([see here for the full reference](../../reference/action-types/Deploy/configmap.md)). 
 
 Example:
 

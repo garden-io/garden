@@ -39,7 +39,7 @@ spec:
 
 This may be all you need for a chart to be deployed with the rest of your stack. You can also list `deploy.redis` as a dependency of one of your other actions. That will ensure redis being up and running before the other actions are executed.
 
-A specific chart repository can be referenced via the `repo` field. This may be useful if you run your own chart repository for your organization, or are referencing a module that isn't contained in the default Helm repo.
+A specific chart repository can be referenced via the `repo` field. This may be useful if you run your own chart repository for your organization, or are referencing an action that isn't contained in the default Helm repo.
 
 ## Local charts
 
@@ -143,7 +143,7 @@ some:
 
 In this example, `some.key` is set to `"prod-value"` for the `prod` environment, and `other.key` maintains the default value set in `values.default.yaml`.
 
-If you also set the `values` field in the Module configuration, the values there take precedence over both of the value files.
+If you also set the `values` field in the Action configuration, the values there take precedence over both of the value files.
 
 ## Linking container builds and Helm deploy actions
 

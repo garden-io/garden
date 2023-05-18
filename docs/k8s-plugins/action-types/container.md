@@ -40,7 +40,7 @@ spec:
 
 The `build` field is used to specify a build action that builds the contianer that's used for the deploy. We also configure a health check, a couple of ingress endpoints, and specify that this deploy depends on the `backend` deploy. There is a number of other options, which you can find in the `container` action [reference](../../reference/action-types/Deploy/container.md).
 
-If you need to use advanced (or otherwise very specific) features of the underlying platform, you may need to use more platform-specific module types (e.g. `kubernetes` or `helm`). The `container` module type is not intended to capture all those features.
+If you need to use advanced (or otherwise very specific) features of the underlying platform, you may need to use more platform-specific action types (e.g. `kubernetes` or `helm`). The `container` action type is not intended to capture all those features.
 
 ## Environment variables
 

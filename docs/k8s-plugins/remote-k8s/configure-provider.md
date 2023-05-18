@@ -78,4 +78,4 @@ And that's it! Your Kubernetes plugin is now configured
 and you can proceed to deploying your project to
 Kubernetes with Garden.
 
-Next, we recommend learning more about configuring [Kubernetes modules](../../reference/action-types/README.md).
+Next, we recommend learning more about configuring [Kubernetes actions](../action-types/kubernetes.md).
