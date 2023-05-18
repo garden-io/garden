@@ -208,7 +208,7 @@ spec:
       spec:
         containers:
         - name: worker
-          image: ${actions.build.worker-image.outputs.deployment-image-id} # <--- Here we're referencing the output from the api-image module. This will also work in manifest files.
+          image: ${actions.build.worker-image.outputs.deployment-image-id} # <--- Here we're referencing the output from the api-image Build. This will also work in manifest files.
           # ...
 ```
 
