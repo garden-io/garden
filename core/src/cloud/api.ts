@@ -90,9 +90,15 @@ export type ApiFetchResponse<T> = T & {
 }
 
 // TODO: Read this from the `api-types` package once the session registration logic has been released in Cloud.
-export interface CloudSession {
+export interface CloudSessionResponse {
   environmentId: number
   namespaceId: number
+}
+
+export interface CloudSession extends CloudSessionResponse {
+  api: CloudApi
+  id: string
+  projectId: string
 }
 
 // Represents a cloud environment
@@ -587,7 +593,7 @@ export class CloudApi {
     environment: string
     namespace: string
   }): Promise<CloudSession | undefined> {
-    const session = this.registeredSessions.get(sessionId)
+    let session = this.registeredSessions.get(sessionId)
 
     if (session) {
       return session
@@ -604,15 +610,16 @@ export class CloudApi {
         namespace,
       }
       this.log.debug(`Registering session with ${this.distroName} for ${projectId} in ${environment}/${namespace}.`)
-      const res: CloudSession = await this.post("sessions", {
+      const res: CloudSessionResponse = await this.post("sessions", {
         body,
         retry: true,
         retryDescription: "Registering session",
       })
       this.log.debug(`Successfully registered session with ${this.distroName}.`)
 
-      this.registeredSessions.set(sessionId, res)
-      return res
+      session = { api: this, id: sessionId, projectId, ...res }
+      this.registeredSessions.set(sessionId, session)
+      return session
     } catch (err) {
       // We don't want the command to fail when an error occurs during session registration.
       if (isGotError(err, 422)) {

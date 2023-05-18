@@ -677,7 +677,6 @@ export class GardenServer extends EventEmitter {
 
       const cloudEventStream = new BufferedEventStream({
         log,
-        cloudApi: garden.cloudApi || undefined,
         cloudSession,
         maxLogLevel: eventLogLevel,
         garden,
