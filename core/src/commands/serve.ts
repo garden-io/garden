@@ -112,7 +112,8 @@ export class ServeCommand<
           await cloudApi.registerSession({
             parentSessionId: undefined,
             projectId,
-            sessionId: garden.sessionId,
+            // Use the process (i.e. parent command) session ID for the serve command session
+            sessionId: manager.sessionId,
             commandInfo: garden.commandInfo,
             localServerPort: this.server.port,
             environment: "garden-" + this.name,
