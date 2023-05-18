@@ -60,7 +60,6 @@ export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAct
   handlers: {
     configure: async ({ config }) => {
       config.include = []
-      config.spec.accessModes = ["ReadOnlyMany"]
       return { config, supportedModes: {} }
     },
 
