@@ -38,6 +38,7 @@ import { join } from "path"
 import { GlobalConfigStore } from "../config-store/global"
 import { validateSchema } from "../config/validation"
 import { ConfigGraph } from "../graph/config-graph"
+import { getGardenCloudDomain } from "../cloud/api"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -664,11 +665,20 @@ export class GardenServer extends EventEmitter {
       const resolved = await this.resolveRequest(ctx, omit(request, "type"))
       let { garden, log } = resolved
 
-      garden = garden.cloneForCommand(request.id)
+      const cloudApi = await this.manager.getCloudApi({
+        log,
+        cloudDomain: getGardenCloudDomain(garden.cloudDomain),
+        globalConfigStore: garden.globalConfigStore,
+      })
+
+      garden = garden.cloneForCommand(garden.sessionId, cloudApi)
+
+      const cloudSession = garden.cloudApi?.getRegisteredSession(garden.sessionId)
 
       const cloudEventStream = new BufferedEventStream({
         log,
         cloudApi: garden.cloudApi || undefined,
+        cloudSession,
         maxLogLevel: eventLogLevel,
         garden,
         streamEvents: true,
