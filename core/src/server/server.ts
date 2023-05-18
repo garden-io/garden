@@ -413,14 +413,14 @@ export class GardenServer extends EventEmitter {
 
       const eventListener: EventPipeListener = (name, payload) => {
         const gardenKey = payload?.$context?.gardenKey
-        if (pipedEventNamesSet.has(name) && gardenKey && subscribedGardenKeys.has(gardenKey)) {
+        if (pipedEventNamesSet.has(name) && gardenKey) {
           send("event", { name, payload })
         }
       }
 
       const logListener = (name: EventName, payload: any) => {
         const gardenKey = payload?.context?.gardenKey
-        if (name === "logEntry" && gardenKey && subscribedGardenKeys.has(gardenKey)) {
+        if (name === "logEntry" && gardenKey) {
           send(name, payload)
         }
       }
