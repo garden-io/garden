@@ -13,7 +13,7 @@ It's strongly recommended that you [learn about Terraform](https://www.terraform
 
 Under the hood, Garden simply wraps Terraform, so there's no magic involved. Garden just automates its execution and makes stack outputs available to your Garden providers and actions.
 
-The `terraform` provider can both provision a Terraform stack when initializing Garden, or through `terraform` actions that are utilized like other actions in your stack.
+Terraform resources can be provisioned through the `terraform` provider when initializing Garden, or via `terraform` actions that are utilized like other actions in your stack.
 
 The former, having a single Terraform stack for your whole project, is most helpful if other provider configurations need to reference the outputs from your Terraform stack, or if most/all of your services depend on the infrastructure provisioned in your Terraform stack. A good example of this is the [terraform-gke example](https://github.com/garden-io/garden/tree/0.12.51/examples/terraform-gke) project, which provisions a GKE cluster that the `kubernetes` provider then runs on, along with the services in the project. The drawback is that Garden doesn't currently watch for changes in those Terraform files, and you need to restart to apply new changes, or apply them manually.
 
