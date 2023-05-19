@@ -11,7 +11,7 @@ import { join } from "path"
 import split2 = require("split2")
 import { PrimitiveMap } from "../../config/common"
 import { dedent } from "../../util/string"
-import { ExecOpts, sleep, spawn } from "../../util/util"
+import { ExecOpts, sleep } from "../../util/util"
 import { TimeoutError } from "../../exceptions"
 import { Log } from "../../logger/log-entry"
 import execa from "execa"

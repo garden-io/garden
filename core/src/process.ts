@@ -76,7 +76,7 @@ export async function registerProcess(
 
 /**
  * Kills the process with the provided pid, and any of its child processes.
- * 
+ *
  * `signalName` should be a POSIX kill signal, e.g. + `INT` or `KILL`
  *
  * See: https://github.com/sindresorhus/execa/issues/96#issuecomment-776280798

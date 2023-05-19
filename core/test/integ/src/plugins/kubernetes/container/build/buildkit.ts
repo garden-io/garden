@@ -7,7 +7,11 @@
  */
 
 import { getContainerTestGarden } from "../container"
-import { ClusterBuildkitCacheConfig, KubernetesPluginContext, KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
+import {
+  ClusterBuildkitCacheConfig,
+  KubernetesPluginContext,
+  KubernetesProvider
+} from "../../../../../../../src/plugins/kubernetes/config"
 import { Garden } from "../../../../../../../src"
 import { PluginContext } from "../../../../../../../src/plugin-context"
 import {

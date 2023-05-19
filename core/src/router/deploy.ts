@@ -198,7 +198,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "startSync",
         defaultHandler: async () => {
-          log.warn(chalk.yellow(`No startSync handler available for action type ${action.type}`))
+          log.debug(chalk.yellow(`No startSync handler available for action type ${action.type}`))
           return {}
         },
       })
@@ -211,7 +211,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "stopSync",
         defaultHandler: async () => {
-          log.warn(chalk.yellow(`No stopSync handler available for action type ${action.type}`))
+          log.debug(chalk.yellow(`No stopSync handler available for action type ${action.type}`))
           return {}
         },
       })
