@@ -34,7 +34,17 @@ interface ProjectRootContext {
   configDump?: ConfigDump
 }
 
+interface GardenInstanceManagerParams {
+  log: Log
+  sessionId: string
+  serveCommand?: ServeCommand
+  extraCommands?: Command[]
+  defaultOpts?: Partial<GardenOpts>
+}
+
 // TODO: clean up unused instances after some timeout since last request and when no monitors are active
+
+let _manager: GardenInstanceManager | undefined
 
 export class GardenInstanceManager {
   public readonly sessionId: string
@@ -45,7 +55,7 @@ export class GardenInstanceManager {
   private lastRequested: Map<string, Date>
   private lock: AsyncLock
   private builtinCommands: Command[]
-  private monitors: MonitorManager
+  public readonly monitors: MonitorManager
   private defaultOpts: Partial<GardenOpts> // Used for testing
 
   /**
@@ -57,19 +67,7 @@ export class GardenInstanceManager {
   public defaultProjectRoot?: string
   public defaultEnv?: string
 
-  constructor({
-    log,
-    sessionId,
-    serveCommand,
-    extraCommands,
-    defaultOpts,
-  }: {
-    log: Log
-    sessionId: string
-    serveCommand: ServeCommand
-    extraCommands?: Command[]
-    defaultOpts?: Partial<GardenOpts>
-  }) {
+  private constructor({ log, sessionId, serveCommand, extraCommands, defaultOpts }: GardenInstanceManagerParams) {
     this.sessionId = sessionId
     this.instances = new Map()
     this.projectRoots = new Map()
@@ -91,6 +89,13 @@ export class GardenInstanceManager {
       ]),
       ...(extraCommands || []),
     ]
+  }
+
+  static getInstance(params: GardenInstanceManagerParams) {
+    if (!_manager) {
+      _manager = new GardenInstanceManager(params)
+    }
+    return _manager
   }
 
   getKey(params: GardenInstanceKeyParams): string {

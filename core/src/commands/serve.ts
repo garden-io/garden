@@ -178,7 +178,7 @@ export class ServeCommand<
 
   getManager(log: Log): GardenInstanceManager {
     if (!this._manager) {
-      this._manager = new GardenInstanceManager({
+      this._manager = GardenInstanceManager.getInstance({
         log,
         sessionId: this.sessionId || uuidv4(),
         serveCommand: this,

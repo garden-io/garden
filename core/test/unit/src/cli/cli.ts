@@ -393,7 +393,7 @@ describe("cli", () => {
           this.server = await startServer({
             log: _log,
             defaultProjectRoot: projectRootA,
-            manager: new GardenInstanceManager({ log, sessionId, serveCommand: new ServeCommand() }),
+            manager: GardenInstanceManager.getInstance({ log, sessionId, serveCommand: new ServeCommand() }),
           })
         }
 

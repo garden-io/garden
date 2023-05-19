@@ -651,12 +651,11 @@ export class GardenServer extends EventEmitter {
       })
     } else if (requestType === "abortCommand") {
       // Abort a running persistent command
-      const { garden } = await this.resolveRequest(ctx, omit(request, "command", "type"))
       const req = this.activePersistentRequests[requestId]
 
       if (req) {
         req.command.terminate()
-        garden!.monitors.unsubscribe(req.command)
+        this.manager.monitors.unsubscribe(req.command)
       }
 
       delete this.activePersistentRequests[requestId]

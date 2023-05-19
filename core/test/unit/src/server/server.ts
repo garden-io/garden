@@ -52,7 +52,7 @@ describe("GardenServer", () => {
   before(async () => {
     port = await getPort()
     garden = await makeTestGardenA()
-    manager = new GardenInstanceManager({
+    manager = GardenInstanceManager.getInstance({
       log: garden.log,
       sessionId: garden.sessionId,
       serveCommand: command,
