@@ -33,9 +33,9 @@ To manually plan and apply stacks, we provide the following commands:
 
 ```console
 garden --env=<env-name> plugins terraform apply-root                     # Runs `terraform apply` for the provider root stack.
-garden --env=<env-name> plugins terraform apply-deploy -- <action-name>  # Runs `terraform apply` for the specified terraform Deploy action.
+garden --env=<env-name> plugins terraform apply-action -- <action-name>  # Runs `terraform apply` for the specified terraform Deploy action.
 garden --env=<env-name> plugins terraform plan-root                      # Runs `terraform plan` for the provider root stack.
-garden --env=<env-name> plugins terraform plan-deploy -- <action-name>   # Runs `terraform plan` for the specified terraform Deploy action.
+garden --env=<env-name> plugins terraform plan-action -- <action-name>   # Runs `terraform plan` for the specified terraform Deploy action.
 ```
 
 Each command automatically applies any variables configured on the provider or action in question. Any additional arguments you specify for the command are passed directly to the `terraform` CLI command, but you need to place them after a `--` so that they aren't parsed as Garden options. For example, to apply the root stack with `-auto-approve`:

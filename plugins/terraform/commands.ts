@@ -21,7 +21,7 @@ const commandsToWrap = ["apply", "plan", "destroy"]
 const initCommand = chalk.bold("terraform init")
 
 export const getTerraformCommands = (): PluginCommand[] =>
-  commandsToWrap.flatMap((commandName) => [makeRootCommand(commandName), makeDeployCommand(commandName)])
+  commandsToWrap.flatMap((commandName) => [makeRootCommand(commandName), makeActionCommand(commandName)])
 
 function makeRootCommand(commandName: string): PluginCommand {
   const terraformCommand = chalk.bold("terraform " + commandName)
@@ -68,12 +68,12 @@ function makeRootCommand(commandName: string): PluginCommand {
   }
 }
 
-function makeDeployCommand(commandName: string): PluginCommand {
+function makeActionCommand(commandName: string): PluginCommand {
   const terraformCommand = chalk.bold("terraform " + commandName)
 
   return {
-    name: commandName + "-deploy",
-    description: `Runs ${terraformCommand} for the specified terraform Deploy action, with variables automatically configured as inputs. Use the Deploy name as first argument, followed by any arguments you want to pass to the command. If necessary, ${initCommand} is run first.`,
+    name: commandName + "-action",
+    description: `Runs ${terraformCommand} for the specified terraform Deploy action, with variables automatically configured as inputs. Use the action name as first argument, followed by any arguments you want to pass to the command. If necessary, ${initCommand} is run first.`,
     resolveGraph: true,
 
     title: ({ args }) =>
