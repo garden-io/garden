@@ -25,7 +25,7 @@ import { pathExists } from "fs-extra"
 import type { ProjectConfig, ProjectResource } from "../config/project"
 import { findProjectConfig } from "../config/base"
 import type { GlobalConfigStore } from "../config-store/global"
-import { CloudApi, getGardenCloudDomain } from "../cloud/api"
+import { getGardenCloudDomain } from "../cloud/api"
 import type { ParsedArgs } from "minimist"
 import type { ServeCommand } from "../commands/serve"
 import { uuidv4 } from "../util/random"
@@ -87,12 +87,13 @@ export class ReloadCommand extends ConsoleCommand {
 
   noProject = true
 
-  constructor(private serveCommand: ServeCommand) {
+  constructor(private serveCommand?: ServeCommand) {
     super(serveCommand)
   }
 
   async action({ log }: CommandParams) {
-    await this.serveCommand.reload(log)
+    // No-op except when running serve or dev command
+    await this.serveCommand?.reload(log)
     return {}
   }
 }
@@ -345,6 +346,8 @@ export async function resolveRequest({
 
   const cmdLog = serverLogger.createLog({})
 
+  const sessionId = request.id || uuidv4()
+
   const garden = await getGardenForRequest({
     command,
     log: cmdLog,
@@ -354,10 +357,11 @@ export async function resolveRequest({
     args: cmdArgs,
     opts: cmdOpts,
     environmentString: request.environment,
+    sessionId,
   })
 
   cmdLog.context.gardenKey = garden.getInstanceKey()
-  cmdLog.context.sessionId = request.id || uuidv4()
+  cmdLog.context.sessionId = sessionId
 
   return {
     garden,
@@ -381,8 +385,9 @@ export async function getGardenForRequest({
   args,
   opts,
   environmentString,
+  sessionId,
 }: {
-  command: Command | undefined
+  command?: Command
   manager: GardenInstanceManager
   projectConfig: ProjectConfig
   globalConfigStore: GlobalConfigStore
@@ -390,16 +395,13 @@ export async function getGardenForRequest({
   args: ParameterValues<any>
   opts: ParameterValues<any>
   environmentString?: string
+  sessionId: string
 }) {
-  let cloudApi: CloudApi | undefined
-
-  if (command && !command.noProject) {
-    cloudApi = await manager.getCloudApi({
-      log,
-      cloudDomain: getGardenCloudDomain(projectConfig.domain),
-      globalConfigStore,
-    })
-  }
+  const cloudApi = await manager.getCloudApi({
+    log,
+    cloudDomain: getGardenCloudDomain(projectConfig.domain),
+    globalConfigStore,
+  })
 
   const gardenOpts: GardenOpts = {
     cloudApi,
@@ -409,6 +411,7 @@ export async function getGardenForRequest({
     globalConfigStore,
     log,
     variableOverrides: parseCliVarFlags(opts.var),
+    sessionId,
   }
 
   const projectRoot = projectConfig.path

@@ -685,6 +685,8 @@ ${chalk.white.underline("Keys:")}
       this.renderStatus()
     }
 
+    const sessionId = uuidv4()
+
     let garden: Garden
 
     try {
@@ -721,6 +723,7 @@ ${chalk.white.underline("Keys:")}
         log: this.log,
         args,
         opts,
+        sessionId,
       })
     } catch (error) {
       this.flashError(getCmdFailMsg(name))
@@ -735,8 +738,6 @@ ${chalk.white.underline("Keys:")}
     garden.localConfigStore.set("devCommandHistory", this.commandHistory).catch((error) => {
       this.log.warn(chalk.yellow(`Could not persist command history: ${error}`))
     })
-
-    const sessionId = uuidv4()
 
     command
       .run({
