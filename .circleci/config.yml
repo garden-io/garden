@@ -53,11 +53,11 @@ orbs:
       tags:
         ignore: /.*/
 
-  # Only run jobs on main
-  only-main: &only-main
+  # Only run jobs on the 0.12 branch
+  only-acorn: &only-acorn
     filters:
       branches:
-        only: main
+        only: "0.12"
       tags:
         ignore: /.*/
 
@@ -957,18 +957,18 @@ workflows:
       ### MAIN ONLY ###
 
       - build-dist-edge:
-          <<: *only-main
+          <<: *only-acorn
           requires: [build]
       - dockerhub-release:
-          <<: *only-main
+          <<: *only-acorn
           context: docker
           requires: [build-dist-edge]
       - test-docker-gcloud:
-          <<: *only-main
+          <<: *only-acorn
           context: docker
           requires: [dockerhub-release]
       - github-edge-prerelease:
-          <<: *only-main
+          <<: *only-acorn
           requires: [build-dist-edge]
 
   tags:
