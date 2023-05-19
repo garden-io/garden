@@ -1,9 +1,5 @@
 # Custom Commands
 
-{% hint style="warning" %}
-This is currently considered experimental. Please try it out and post feedback via GitHub issues or in our community!
-{% endhint %}
-
 As part of a Garden project, you can define _custom commands_. You can think of these like Makefile targets, npm package scripts etc., except you have the full power of Garden's templating syntax to work with, and can easily declare the exact arguments and options the command accepts. The custom commands come up when you run `garden help`, which helps make your project easier to use and more self-documenting.
 
 You'll find more examples and details below, but here's a simple example to illustrate the idea:
@@ -47,7 +43,7 @@ We may later lift some of these limitations. Please post a [GitHub issue](https:
 
 ## Basics
 
-Each command has to define a `name`, which must be a valid identifier (following the same rules as module names etc.). A short description must also be provided with `description.short`, and you can also provide a longer description on `description.long` which is shown when you run the command with `--help`. For example:
+Each command has to define a `name`, which must be a valid identifier (following the same rules as action names etc.). A short description must also be provided with `description.short`, and you can also provide a longer description on `description.long` which is shown when you run the command with `--help`. For example:
 
 ```yaml
 kind: Command
@@ -61,7 +57,7 @@ description:
 ...
 ```
 
-Then, you must define _one or both_ of `exec` and/or `gardenCommand`. The former simply executes some command on your system, e.g. a shell command. The latter, as you might have guessed, runs a Garden command.
+Then, you must define `exec`, `gardenCommand`, or both. The former simply executes some command on your system, e.g. a shell command. The latter, as you might have guessed, runs a Garden command.
 
 If you specify both `exec` and `gardenCommand`, the `exec` part is run before the `gardenCommand`.
 
@@ -108,12 +104,12 @@ You can explicitly define positional arguments and options that are expected or 
 
 ```yaml
 kind: Command
-name: run-task
+name: wrapped
 description:
-  short: Run a task ad-hoc
+  short: Execute a Run action with arguments and option flags
 args:
-  - name: task-name
-    description: The name of the task to run
+  - name: action-name
+    description: The name of the Run action
     required: true
 opts:
   - name: db
@@ -121,13 +117,12 @@ opts:
     type: string
 gardenCommand:
   - run
-  - task
-  - ${args.task-name}
+  - ${args.action-name}
   - --var
   - dbHostname=${opts.db || "db"}
 ```
 
-Here we've made a wrapper command for running tasks in your project. We require one positional argument for the name of the task to run. Then we define an option for overriding a project variable. For the example, we imagine there's a project variable that's templated into the tasks that controls the hostname of a database they need to connect to. The last lines in the example override the variable and default to `"db"` if the option flag isn't set. To run this command, you could run e.g. `garden run-task my-task --db test`, which would run `my-task` with the `dbHostname` variable set to `test`.
+Here we've made a wrapper command for executing `Run` actions in your project. We require one positional argument for the name of the action to run. Then we define an option for overriding a project variable. For the example, we imagine there's a project variable that's templated into the `Run` actions that controls the hostname of a database they need to connect to. The last lines in the example override the variable and default to `"db"` if the option flag isn't set. To run this command, you could run e.g. `garden wrapped my-action --db test`, which would run `my-action` with the `dbHostname` variable set to `test`.
 
 You might want to augment this example to further accept any additional arguments and append to the Garden command. To do that, you could add the following:
 
@@ -135,17 +130,16 @@ You might want to augment this example to further accept any additional argument
 ...
 gardenCommand:
   - run
-  - task
-  - ${args.task-name}
+  - ${args.action-name}
   - --var
   - dbHostname=${opts.db || "db"}
   - $concat: ${args.$rest}  # <- pass any additional parameters through to the command without validation
 ```
 
-Now you could, for example, run `garden run-task my-task --db test --force` and the additional `--force` parameter gets passed to the underlying Garden command.
+Now you could, for example, run `garden wrapped my-action --db test --force` and the additional `--force` parameter gets passed to the underlying Garden command.
 
 As you can see, you can do a whole lot here! Read on for more examples.
 
 ## Using variables
 
-You can specify a `variables` field, and reference those in the `exec` and `gardenCommand` fields using `${var.*}`, similar to module variables. Note that _project variables_ are not available, since the Garden project is not resolved ahead of resolving the custom command.
+You can specify a `variables` field, and reference those in the `exec` and `gardenCommand` fields using `${var.*}`, similar to action variables. Note that _project variables_ are not available, since the Garden project is not resolved ahead of resolving the custom command.
