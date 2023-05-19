@@ -4,7 +4,7 @@ We have a dedicated release branch, `latest-release-0.12`, off of which we creat
 
 This procedure allows us to continue merging features into `0.12` without them being included in the release.
 
-On every merge to `0.12` we also publish an **unstable** release with the version `edge` that is always flagged as a pre-release.
+On every merge to `0.12` we also publish an **unstable** release with the version `edge-acorn` that is always flagged as a pre-release.
 
 ## Release script
 
