@@ -27,8 +27,7 @@ export const serveArgs = {}
 
 export const serveOpts = {
   port: new IntegerParameter({
-    help: `The port number for the server to listen on.`,
-    defaultValue: defaultServerPort,
+    help: `The port number for the server to listen on (defaults to ${defaultServerPort} if available).`,
   }),
   cmd: new StringsParameter({ help: "(Only used by dev command for now)", hidden: true }),
 }
