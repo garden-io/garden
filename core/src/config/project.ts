@@ -115,7 +115,7 @@ export const environmentSchema = createSchema({
       )
       .example("custom.env"),
     variables: joiVariables().description(deline`
-          A key/value map of variables that modules can reference when using this environment. These take precedence
+          A key/value map of variables that actions can reference when using this environment. These take precedence
           over variables defined in the top-level \`variables\` field, but may also reference the top-level variables in
           template strings.
         `),
@@ -242,7 +242,7 @@ const projectScanSchema = createSchema({
 
         Also note that specifying an empty list here means _no paths_ should be included.`
       )
-      .example(["modules/**/*"]),
+      .example(["actions/**/*"]),
     exclude: joi
       .array()
       .items(joi.posixPath().allowGlobs().subPathOnly())
@@ -276,7 +276,7 @@ const projectOutputSchema = createSchema({
         The value for the output. Must be a primitive (string, number, boolean or null). May also be any valid template
         string.`
       )
-      .example("${modules.my-module.outputs.some-output}"),
+      .example("${actions.build.my-build.outputs.deployment-image-name}"),
   }),
 })
 
@@ -327,7 +327,7 @@ export const projectSchema = createSchema({
       .default([])
       .description(
         deline`
-      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources.
+      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
 
       Note: This field has been deprecated in 0.13 in favor of the \`dotIgnoreFile\` field, and as of 0.13 only one filename is allowed here. If a single filename is specified, the conversion is done automatically. If multiple filenames are provided, an error will be thrown.
       Otherwise, an error will be thrown.
@@ -343,11 +343,11 @@ export const projectSchema = createSchema({
       .default(defaultDotIgnoreFile)
       .description(
         deline`
-      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources.
+      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
 
       Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the \`dotIgnoreFiles\` field in the project configuration.
 
-      Note that this take precedence over the project \`module.include\` field, and module \`include\` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
+      Note that this take precedence over the project \`scan.include\` field, and action \`include\` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
 
       See the [Configuration Files guide](${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
     `
@@ -373,7 +373,7 @@ export const projectSchema = createSchema({
         dedent`
       A list of output values that the project should export. These are exported by the \`garden get outputs\` command, as well as when referencing a project as a sub-project within another project.
 
-      You may use any template strings to specify the values, including references to provider outputs, module
+      You may use any template strings to specify the values, including references to provider outputs, action
       outputs and runtime outputs. For a full reference, see the [Output configuration context](./template-strings/project-outputs.md) section in the Template String Reference.
 
       Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run if necessary when resolving the outputs.
