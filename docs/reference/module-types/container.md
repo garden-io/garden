@@ -244,8 +244,8 @@ services:
 
     # List of volumes that should be mounted when starting the container.
     #
-    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-    # deploying the container.
+    # Note: If neither `hostPath` nor `module` is specified,
+    # an empty ephemeral volume is created and mounted when deploying the container.
     volumes:
       - # The name of the allocated volume.
         name:
@@ -282,7 +282,7 @@ services:
     # POSIX capabilities to remove when running the container.
     dropCapabilities:
 
-    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
     tty: false
 
     # Specifies the container's deployment strategy.
@@ -539,8 +539,8 @@ tests:
 
     # List of volumes that should be mounted when starting the container.
     #
-    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-    # deploying the container.
+    # Note: If neither `hostPath` nor `module` is specified,
+    # an empty ephemeral volume is created and mounted when deploying the container.
     volumes:
       - # The name of the allocated volume.
         name:
@@ -577,7 +577,7 @@ tests:
     # POSIX capabilities to remove when running the container.
     dropCapabilities:
 
-    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
     tty: false
 
     # Specifies the container's deployment strategy.
@@ -658,8 +658,8 @@ tasks:
 
     # List of volumes that should be mounted when starting the container.
     #
-    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-    # deploying the container.
+    # Note: If neither `hostPath` nor `module` is specified,
+    # an empty ephemeral volume is created and mounted when deploying the container.
     volumes:
       - # The name of the allocated volume.
         name:
@@ -696,7 +696,7 @@ tasks:
     # POSIX capabilities to remove when running the container.
     dropCapabilities:
 
-    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
     tty: false
 
     # Specifies the container's deployment strategy.
@@ -718,9 +718,9 @@ tasks:
     # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
     image:
 
-    # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
-    # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its
-    # version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+    # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
+    # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
+    # changes, or when you run `garden run`.
     cacheResult: true
 ```
 
@@ -1232,7 +1232,8 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 
 List of volumes that should be mounted when starting the container.
 
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+Note: If neither `hostPath` nor `module` is specified,
+an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -1326,7 +1327,7 @@ POSIX capabilities to remove when running the container.
 
 [services](#services) > tty
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -2158,7 +2159,8 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 
 List of volumes that should be mounted when starting the container.
 
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+Note: If neither `hostPath` nor `module` is specified,
+an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -2252,7 +2254,7 @@ POSIX capabilities to remove when running the container.
 
 [tests](#tests) > tty
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -2521,7 +2523,8 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 
 List of volumes that should be mounted when starting the container.
 
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+Note: If neither `hostPath` nor `module` is specified,
+an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -2615,7 +2618,7 @@ POSIX capabilities to remove when running the container.
 
 [tasks](#tasks) > tty
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -2703,7 +2706,7 @@ Specify an image ID to deploy. Should be a valid Docker image identifier. Requir
 
 [tasks](#tasks) > cacheResult
 
-Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

@@ -25,7 +25,7 @@ import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { cacheResultSchema } from "../../config/task"
 import { dedent, deline } from "../../util/string"
 import { syncGuideLink } from "../kubernetes/sync"
-import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
+import { k8sDeploymentTimeoutSchema, runCacheResultSchema } from "../kubernetes/config"
 import { localModeGuideLink } from "../kubernetes/local-mode"
 import { BuildAction, BuildActionConfig } from "../../actions/build"
 import { DeployAction, DeployActionConfig } from "../../actions/deploy"
@@ -640,7 +640,8 @@ export function getContainerVolumesSchema(schema: Joi.ObjectSchema) {
   return joiSparseArray(schema).unique("name").description(dedent`
     List of volumes that should be mounted when starting the container.
 
-    Note: If neither \`hostPath\` nor \`module\` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+    Note: If neither \`hostPath\` nor \`action\` is specified,
+    an empty ephemeral volume is created and mounted when deploying the container.
   `)
 }
 
@@ -736,7 +737,7 @@ const containerCommonRuntimeSchemaKeys = memoize(() => ({
     .boolean()
     .default(false)
     .description(
-      "Specify if containers in this module have TTY support enabled (which implies having stdin support enabled)."
+      "Specify if containers in this action have TTY support enabled (which implies having stdin support enabled)."
     ),
   deploymentStrategy: joi
     .string()
@@ -916,8 +917,9 @@ export type ContainerRunAction = RunAction<ContainerRunActionConfig, ContainerRu
 
 export const containerRunSpecKeys = memoize(() => ({
   ...containerTestSpecKeys(),
-  cacheResult: cacheResultSchema(),
+  cacheResult: runCacheResultSchema(),
 }))
+
 export const containerRunActionSchema = createSchema({
   name: "container:Run",
   keys: containerRunSpecKeys,
@@ -943,23 +945,23 @@ export const containerBuildOutputSchemaKeys = memoize(() => ({
   "localImageName": joi
     .string()
     .required()
-    .description("The name of the image (without tag/version) that the module uses for local builds and deployments.")
-    .example("my-module"),
+    .description("The name of the image (without tag/version) that the Build uses for local builds and deployments.")
+    .example("my-build"),
   "localImageId": joi
     .string()
     .required()
-    .description("The full ID of the image (incl. tag/version) that the module uses for local builds and deployments.")
-    .example("my-module:v-abf3f8dca"),
+    .description("The full ID of the image (incl. tag/version) that the Build uses for local builds and deployments.")
+    .example("my-build:v-abf3f8dca"),
   "deploymentImageName": joi
     .string()
     .required()
-    .description("The name of the image (without tag/version) that the module will use during deployment.")
-    .example("my-deployment-registry.io/my-org/my-module"),
+    .description("The name of the image (without tag/version) that the Build will use during deployment.")
+    .example("my-deployment-registry.io/my-org/my-build"),
   "deploymentImageId": joi
     .string()
     .required()
-    .description("The full ID of the image (incl. tag/version) that the module will use during deployment.")
-    .example("my-deployment-registry.io/my-org/my-module:v-abf3f8dca"),
+    .description("The full ID of the image (incl. tag/version) that the Build will use during deployment.")
+    .example("my-deployment-registry.io/my-org/my-build:v-abf3f8dca"),
 
   // Aliases
   "local-image-name": joi.string().required().description("Alias for localImageName, for backward compatibility."),

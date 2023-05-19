@@ -85,7 +85,7 @@ const commonSchemaKeys = () => ({
     .description(
       dedent`
         POSIX-style path to a directory containing the policies to match the config against, or a
-        specific .rego file, relative to the module root.
+        specific .rego file, relative to the action root.
         Must be a relative path, and should in most cases be within the project root.
         Defaults to the \`policyPath\` set in the provider config.
       `
@@ -202,7 +202,7 @@ export const gardenPlugin = () =>
           docs: dedent`
           Special Test type for validating helm deploys with conftest. This is necessary in addition to the \`conftest\` Test type in order to be able to properly render the Helm chart ahead of validation, including all runtime values.
 
-          If the helm Deploy requires runtime outputs from other modules, you must list the corresponding dependencies with the \`dependencies\` field.
+          If the helm Deploy requires runtime outputs from other actions, you must list the corresponding dependencies with the \`dependencies\` field.
 
           > Note: In most cases, you'll let the [\`conftest-kubernetes\`](../../providers/conftest-kubernetes.md) provider create this Test automatically, but you may in some cases want or need to manually specify files to test.
 
@@ -322,7 +322,7 @@ export const gardenPlugin = () =>
         Creates a test that runs \`conftest\` on the specified files, with the specified (or default) policy and
         namespace.
 
-        > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](../providers/conftest-container.md) and [\`conftest-kubernetes\`](../providers/conftest-kubernetes.md) create this module type automatically, but you may in some cases want or need to manually specify files to test.
+        > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](../providers/conftest-container.md) and [\`conftest-kubernetes\`](../providers/conftest-kubernetes.md) create this action type automatically, but you may in some cases want or need to manually specify files to test.
 
         See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
       `,
@@ -370,9 +370,9 @@ export const gardenPlugin = () =>
         docs: dedent`
         Special module type for validating helm modules with conftest. This is necessary in addition to the \`conftest\` module type in order to be able to properly render the Helm chart ahead of validation, including all runtime values.
 
-        If the helm module requires runtime outputs from other modules, you must list the corresponding dependencies with the \`runtimeDependencies\` field.
+        If the helm module requires runtime outputs from other actions, you must list the corresponding dependencies with the \`runtimeDependencies\` field.
 
-        > Note: In most cases, you'll let the [\`conftest-kubernetes\`](../providers/conftest-kubernetes.md) provider create this module type automatically, but you may in some cases want or need to manually specify files to test.
+        > Note: In most cases, you'll let the [\`conftest-kubernetes\`](../providers/conftest-kubernetes.md) provider create this action type automatically, but you may in some cases want or need to manually specify files to test.
 
         See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
       `,

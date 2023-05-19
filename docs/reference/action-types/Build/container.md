@@ -639,7 +639,7 @@ The variables configured on the action.
 
 ### `${actions.build.<name>.outputs.localImageName}`
 
-The name of the image (without tag/version) that the module uses for local builds and deployments.
+The name of the image (without tag/version) that the Build uses for local builds and deployments.
 
 | Type     |
 | -------- |
@@ -653,7 +653,7 @@ my-variable: ${actions.build.my-build.outputs.localImageName}
 
 ### `${actions.build.<name>.outputs.localImageId}`
 
-The full ID of the image (incl. tag/version) that the module uses for local builds and deployments.
+The full ID of the image (incl. tag/version) that the Build uses for local builds and deployments.
 
 | Type     |
 | -------- |
@@ -667,7 +667,7 @@ my-variable: ${actions.build.my-build.outputs.localImageId}
 
 ### `${actions.build.<name>.outputs.deploymentImageName}`
 
-The name of the image (without tag/version) that the module will use during deployment.
+The name of the image (without tag/version) that the Build will use during deployment.
 
 | Type     |
 | -------- |
@@ -681,7 +681,7 @@ my-variable: ${actions.build.my-build.outputs.deploymentImageName}
 
 ### `${actions.build.<name>.outputs.deploymentImageId}`
 
-The full ID of the image (incl. tag/version) that the module will use during deployment.
+The full ID of the image (incl. tag/version) that the Build will use during deployment.
 
 | Type     |
 | -------- |

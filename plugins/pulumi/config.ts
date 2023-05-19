@@ -95,7 +95,6 @@ const yamlFileRegex = /(\.yaml)|(\.yml)$/
 
 export const pulumiDeploySpecSchema = () =>
   joi.object().keys({
-    build: baseBuildSpecSchema(),
     allowDestroy: joi.boolean().default(true).description(dedent`
       If set to true, Garden will destroy the stack when calling \`garden cleanup namespace\` or \`garden cleanup deploy <deploy action name>\`.
       This is useful to prevent unintentional destroys in production or shared environments.
@@ -107,7 +106,6 @@ export const pulumiDeploySpecSchema = () =>
     createStack: joi.boolean().default(false).description(dedent`
       If set to true, Garden will automatically create the stack if it doesn't already exist.
     `),
-    dependencies: dependenciesSchema(),
     root: joi.posixPath().subPathOnly().default(".").description(dedent`
       Specify the path to the Pulumi project root, relative to the deploy action's root.
     `),

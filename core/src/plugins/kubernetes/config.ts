@@ -897,8 +897,15 @@ export const portForwardsSchema = () =>
 
 export const runPodSpecWhitelistDescription = () => runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
 
+export const runCacheResultSchema = () =>
+  cacheResultSchema().description(
+    dedent`
+Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run \`garden run\`.
+`
+  )
+
 export const kubernetesCommonRunSchemaKeys = () => ({
-  cacheResult: cacheResultSchema(),
+  cacheResult: runCacheResultSchema(),
   command: joi
     .sparseArray()
     .items(joi.string().allow(""))

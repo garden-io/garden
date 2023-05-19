@@ -33,7 +33,7 @@ export interface PersistentVolumeClaimDeploySpec {
 
 const commonSpecKeys = memoize(() => ({
   namespace: joiIdentifier().description(
-    "The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset."
+    "The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in most cases you should leave this unset."
   ),
   // TODO: validation for this doesn't work, but kubernetes does the validation for us on apply
   spec: kubernetesPVCSchema(),

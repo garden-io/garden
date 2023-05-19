@@ -159,7 +159,7 @@ timeout: 600
 
 spec:
   # POSIX-style path to a directory containing the policies to match the config against, or a
-  # specific .rego file, relative to the module root.
+  # specific .rego file, relative to the action root.
   # Must be a relative path, and should in most cases be within the project root.
   # Defaults to the `policyPath` set in the provider config.
   policyPath:
@@ -415,7 +415,7 @@ Set a timeout for the test to complete, in seconds.
 [spec](#spec) > policyPath
 
 POSIX-style path to a directory containing the policies to match the config against, or a
-specific .rego file, relative to the module root.
+specific .rego file, relative to the action root.
 Must be a relative path, and should in most cases be within the project root.
 Defaults to the `policyPath` set in the provider config.
 

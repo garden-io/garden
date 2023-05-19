@@ -14,7 +14,7 @@ Modules are deprecated and will be removed in version `0.14`. Please use [action
 Creates a test that runs `conftest` on the specified files, with the specified (or default) policy and
 namespace.
 
-> Note: In many cases, you'll let specific conftest providers (e.g. [`conftest-container`](../providers/conftest-container.md) and [`conftest-kubernetes`](../providers/conftest-kubernetes.md) create this module type automatically, but you may in some cases want or need to manually specify files to test.
+> Note: In many cases, you'll let specific conftest providers (e.g. [`conftest-container`](../providers/conftest-container.md) and [`conftest-kubernetes`](../providers/conftest-kubernetes.md) create this action type automatically, but you may in some cases want or need to manually specify files to test.
 
 See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
 
@@ -164,7 +164,7 @@ varfile:
 sourceModule:
 
 # POSIX-style path to a directory containing the policies to match the config against, or a
-# specific .rego file, relative to the module root.
+# specific .rego file, relative to the action root.
 # Must be a relative path, and should in most cases be within the project root.
 # Defaults to the `policyPath` set in the provider config.
 policyPath:
@@ -479,7 +479,7 @@ Specify a module whose sources we want to test.
 ### `policyPath`
 
 POSIX-style path to a directory containing the policies to match the config against, or a
-specific .rego file, relative to the module root.
+specific .rego file, relative to the action root.
 Must be a relative path, and should in most cases be within the project root.
 Defaults to the `policyPath` set in the provider config.
 

@@ -160,7 +160,7 @@ varfile:
 # List of services and tasks to deploy/run before deploying this PVC.
 dependencies: []
 
-# The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in
+# The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in
 # most cases you should leave this unset.
 namespace:
 
@@ -522,7 +522,7 @@ List of services and tasks to deploy/run before deploying this PVC.
 
 ### `namespace`
 
-The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
+The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
 
 | Type     | Required |
 | -------- | -------- |

@@ -218,7 +218,7 @@ atomicInstall: true
 # Each of those can be overridden in this module. They will be merged with a JSON Merge Patch (RFC 7396).
 base:
 
-# A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain the
+# A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain the
 # Helm chart itself.
 chart:
 
@@ -411,9 +411,9 @@ tasks:
     # Maximum duration (in seconds) of the task's execution.
     timeout: 600
 
-    # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
-    # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its
-    # version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+    # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
+    # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
+    # changes, or when you run `garden run`.
     cacheResult: true
 
     # The command/entrypoint used to run inside the container.
@@ -1035,7 +1035,7 @@ base: "my-base-chart"
 
 ### `chart`
 
-A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain the Helm chart itself.
+A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain the Helm chart itself.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1528,7 +1528,7 @@ Maximum duration (in seconds) of the task's execution.
 
 [tasks](#tasks) > cacheResult
 
-Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

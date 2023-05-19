@@ -169,7 +169,7 @@ spec:
   kustomize:
     # The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to
     # an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the
-    # module root. Defaults to the module root. If you set this to null, kustomize will not be run.
+    # action root. Defaults to the action root. If you set this to null, kustomize will not be run.
     path: .
 
     # A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output'
@@ -695,7 +695,7 @@ Resolve the specified kustomization and include the resulting resources. Note th
 
 [spec](#spec) > [kustomize](#speckustomize) > path
 
-The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module root. Defaults to the module root. If you set this to null, kustomize will not be run.
+The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the action root. Defaults to the action root. If you set this to null, kustomize will not be run.
 
 | Type                  | Default | Required |
 | --------------------- | ------- | -------- |

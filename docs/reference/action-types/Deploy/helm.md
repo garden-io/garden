@@ -218,7 +218,7 @@ spec:
   #
   # One of `chart.name`, `chart.path` or `chart.url` must be specified.
   chart:
-    # A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain
+    # A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain
     # the Helm chart itself.
     name:
 
@@ -829,7 +829,7 @@ One of `chart.name`, `chart.path` or `chart.url` must be specified.
 
 [spec](#spec) > [chart](#specchart) > name
 
-A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain the Helm chart itself.
+A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain the Helm chart itself.
 
 | Type     | Required |
 | -------- | -------- |

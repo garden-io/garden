@@ -35,7 +35,7 @@ export type TerraformDeploy = DeployAction<TerraformDeployConfig, {}>
 
 export const terraformDeploySchemaKeys = () => ({
   allowDestroy: joi.boolean().default(false).description(dedent`
-    If set to true, Garden will run \`terraform destroy\` on the stack when calling \`garden delete env\` or \`garden delete service <module name>\`.
+    If set to true, Garden will run \`terraform destroy\` on the stack when calling \`garden delete namespace\` or \`garden delete deploy <deploy name>\`.
   `),
   autoApply: joi.boolean().allow(null).default(null).description(dedent`
     If set to true, Garden will automatically run \`terraform apply -auto-approve\` when the stack is not
