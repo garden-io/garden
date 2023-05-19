@@ -129,7 +129,7 @@ export const execDeployActionSchema = createSchema({
         dedent`
         Set this to true if the \`deployCommand\` is not expected to return, and should run until the Garden command is manually terminated.
 
-        This replaces the previously supported \`devMode\` from \`exec\` modules.
+        This replaces the previously supported \`devMode\` from \`exec\` actions.
 
         If this is set to true, it is highly recommended to also define \`statusCommand\` if possible. Otherwise the Deploy is considered to be immediately ready once the \`deployCommand\` is started.
         `

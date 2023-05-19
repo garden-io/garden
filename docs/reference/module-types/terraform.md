@@ -169,8 +169,8 @@ varfile:
 # executed before this service is deployed.
 dependencies: []
 
-# If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete
-# service <module name>`.
+# If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete namespace` or `garden
+# delete deploy <deploy name>`.
 allowDestroy: false
 
 # If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not
@@ -499,7 +499,7 @@ The names of any services that this service depends on at runtime, and the names
 
 ### `allowDestroy`
 
-If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete service <module name>`.
+If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete namespace` or `garden delete deploy <deploy name>`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

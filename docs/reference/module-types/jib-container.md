@@ -15,7 +15,7 @@ Extends the [container type](./container.md) to build the image with [Jib](https
 
 The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
-By default (and when not using remote building), the image is pushed to the local Docker daemon, to match the behavior of and stay compatible with normal `container` modules.
+By default (and when not using remote building), the image is pushed to the local Docker daemon, to match the behavior of and stay compatible with normal `container` actions.
 
 When using remote building with the `kubernetes` provider, the image is synced to the cluster (where individual layers are cached) and then pushed to the deployment registry from there. This is to make sure any registry auth works seamlessly and exactly like for normal Docker image builds.
 
@@ -23,7 +23,7 @@ Please consult the [Jib documentation](https://github.com/GoogleContainerTools/j
 
 To provide additional arguments to Gradle/Maven when building, you can set the `extraFlags` field.
 
-**Important note:** Unlike many other types, `jib-container` builds are done from the _source_ directory instead of the build staging directory, because of how Java projects are often laid out across a repository. This means build dependency copy directives are effectively ignored, and any include/exclude statements and .gardenignore files will not impact the build result. _Note that you should still configure includes, excludes and/or a .gardenignore to tell Garden which files to consider as part of the module version hash, to correctly detect whether a new build is required._
+**Important note:** Unlike many other types, `jib-container` builds are done from the _source_ directory instead of the build staging directory, because of how Java projects are often laid out across a repository. This means build dependency copy directives are effectively ignored, and any include/exclude statements and .gardenignore files will not impact the build result. _Note that you should still configure includes, excludes and/or a .gardenignore to tell Garden which files to consider as part of the Build version hash, to correctly detect whether a new build is required.**
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
@@ -68,7 +68,7 @@ build:
   timeout: 600
 
   # The type of project to build. Defaults to auto-detecting between gradle and maven (based on which
-  # files/directories are found in the module root), but in some cases you may need to specify it.
+  # files/directories are found in the action root), but in some cases you may need to specify it.
   projectType: auto
 
   # The JDK version to use.
@@ -297,8 +297,8 @@ services:
 
     # List of volumes that should be mounted when starting the container.
     #
-    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-    # deploying the container.
+    # Note: If neither `hostPath` nor `module` is specified,
+    # an empty ephemeral volume is created and mounted when deploying the container.
     volumes:
       - # The name of the allocated volume.
         name:
@@ -335,7 +335,7 @@ services:
     # POSIX capabilities to remove when running the container.
     dropCapabilities:
 
-    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
     tty: false
 
     # Specifies the container's deployment strategy.
@@ -592,8 +592,8 @@ tests:
 
     # List of volumes that should be mounted when starting the container.
     #
-    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-    # deploying the container.
+    # Note: If neither `hostPath` nor `module` is specified,
+    # an empty ephemeral volume is created and mounted when deploying the container.
     volumes:
       - # The name of the allocated volume.
         name:
@@ -630,7 +630,7 @@ tests:
     # POSIX capabilities to remove when running the container.
     dropCapabilities:
 
-    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
     tty: false
 
     # Specifies the container's deployment strategy.
@@ -711,8 +711,8 @@ tasks:
 
     # List of volumes that should be mounted when starting the container.
     #
-    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-    # deploying the container.
+    # Note: If neither `hostPath` nor `module` is specified,
+    # an empty ephemeral volume is created and mounted when deploying the container.
     volumes:
       - # The name of the allocated volume.
         name:
@@ -749,7 +749,7 @@ tasks:
     # POSIX capabilities to remove when running the container.
     dropCapabilities:
 
-    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
     tty: false
 
     # Specifies the container's deployment strategy.
@@ -771,9 +771,9 @@ tasks:
     # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
     image:
 
-    # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
-    # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its
-    # version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+    # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
+    # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
+    # changes, or when you run `garden run`.
     cacheResult: true
 ```
 
@@ -903,7 +903,7 @@ Maximum time in seconds to wait for build to finish.
 
 [build](#build) > projectType
 
-The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
+The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the action root), but in some cases you may need to specify it.
 
 | Type     | Allowed Values                             | Default  | Required |
 | -------- | ------------------------------------------ | -------- | -------- |
@@ -1400,7 +1400,8 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 
 List of volumes that should be mounted when starting the container.
 
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+Note: If neither `hostPath` nor `module` is specified,
+an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -1494,7 +1495,7 @@ POSIX capabilities to remove when running the container.
 
 [services](#services) > tty
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -2326,7 +2327,8 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 
 List of volumes that should be mounted when starting the container.
 
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+Note: If neither `hostPath` nor `module` is specified,
+an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -2420,7 +2422,7 @@ POSIX capabilities to remove when running the container.
 
 [tests](#tests) > tty
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -2689,7 +2691,8 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 
 List of volumes that should be mounted when starting the container.
 
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+Note: If neither `hostPath` nor `module` is specified,
+an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -2783,7 +2786,7 @@ POSIX capabilities to remove when running the container.
 
 [tasks](#tasks) > tty
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -2871,7 +2874,7 @@ Specify an image ID to deploy. Should be a valid Docker image identifier. Requir
 
 [tasks](#tasks) > cacheResult
 
-Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

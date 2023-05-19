@@ -7,7 +7,7 @@ tocTitle: "`configmap` Deploy"
 
 ## Description
 
-Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
+Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container actions](./container.md).
 
 See the [Mounting Kubernetes ConfigMaps](../../../k8s-plugins/action-types/configmap.md) guide for more info and usage examples.
 
@@ -156,7 +156,7 @@ kind:
 timeout: 300
 
 spec:
-  # The namespace to deploy the ConfigMap in. Note that any module referencing the ConfigMap must be in the same
+  # The namespace to deploy the ConfigMap in. Note that any resource referencing the ConfigMap must be in the same
   # namespace, so in most cases you should leave this unset.
   namespace:
 
@@ -401,7 +401,7 @@ Timeout for the deploy to complete, in seconds.
 
 [spec](#spec) > namespace
 
-The namespace to deploy the ConfigMap in. Note that any module referencing the ConfigMap must be in the same namespace, so in most cases you should leave this unset.
+The namespace to deploy the ConfigMap in. Note that any resource referencing the ConfigMap must be in the same namespace, so in most cases you should leave this unset.
 
 | Type     | Required |
 | -------- | -------- |

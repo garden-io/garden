@@ -111,7 +111,12 @@ const moduleVolumesSchema = () =>
         ),
       })
       .oxor("hostPath", "module")
-  )
+  ).description(dedent`
+    List of volumes that should be mounted when starting the container.
+
+    Note: If neither \`hostPath\` nor \`module\` is specified,
+    an empty ephemeral volume is created and mounted when deploying the container.
+`)
 
 const containerServiceSchema = () =>
   baseServiceSpecSchema()
