@@ -212,8 +212,8 @@ providers:
 
     # Configuration options for the `kaniko` build mode.
     kaniko:
-      # Specify extra flags to use when building the container image with kaniko. Flags set on `container` modules
-      # take precedence over these.
+      # Specify extra flags to use when building the container image with kaniko. Flags set on `container` Builds take
+      # precedence over these.
       extraFlags:
 
       # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
@@ -340,12 +340,12 @@ providers:
         # more information.
         group:
 
-    # Require SSL on all `container` module services. If set to true, an error is raised when no certificate is
-    # available for a configured hostname on a `container` module.
+    # Require SSL on all `container` Deploys. If set to true, an error is raised when no certificate is available for
+    # a configured hostname on a `container`Deploy.
     forceSsl: false
 
     # References to `docker-registry` secrets to use for authenticating with remote registries when pulling
-    # images. This is necessary if you reference private images in your module configuration, and is required
+    # images. This is necessary if you reference private images in your action configuration, and is required
     # when configuring a remote Kubernetes environment with buildMode=local.
     imagePullSecrets:
       - # The name of the Kubernetes secret.
@@ -942,7 +942,7 @@ Configuration options for the `kaniko` build mode.
 
 [providers](#providers) > [kaniko](#providerskaniko) > extraFlags
 
-Specify extra flags to use when building the container image with kaniko. Flags set on `container` modules take precedence over these.
+Specify extra flags to use when building the container image with kaniko. Flags set on `container` Builds take precedence over these.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -1314,7 +1314,7 @@ Set the default group on files and directories at the target. Specify either an 
 
 [providers](#providers) > forceSsl
 
-Require SSL on all `container` module services. If set to true, an error is raised when no certificate is available for a configured hostname on a `container` module.
+Require SSL on all `container` Deploys. If set to true, an error is raised when no certificate is available for a configured hostname on a `container`Deploy.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -1325,7 +1325,7 @@ Require SSL on all `container` module services. If set to true, an error is rais
 [providers](#providers) > imagePullSecrets
 
 References to `docker-registry` secrets to use for authenticating with remote registries when pulling
-images. This is necessary if you reference private images in your module configuration, and is required
+images. This is necessary if you reference private images in your action configuration, and is required
 when configuring a remote Kubernetes environment with buildMode=local.
 
 | Type            | Default | Required |

@@ -7,11 +7,11 @@ tocTitle: "`conftest`"
 
 ## Description
 
-This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files. The provider creates a module type of the same name, which allows you to specify files to validate. Each module then creates a Garden test that becomes part of your Stack Graph.
+This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files. The provider creates Test action types of the same name, which allow you to specify files to validate.
 
-Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your `conftest` modules, e.g. the [`conftest-container`](../module-types/conftest.md) and/or [`conftest-kubernetes`](../module-types/conftest.md) providers. See the [conftest example project](https://github.com/garden-io/garden/tree/0.12.51/examples/conftest) for a simple usage example of the latter.
+Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your `conftest` actions, e.g. the [`conftest-container`](./conftest-container.md) and/or [`conftest-kubernetes`](./conftest-kubernetes.md) providers. See the [conftest example project](https://github.com/garden-io/garden/tree/0.12.51/examples/conftest) for a simple usage example of the latter.
 
-If those don't match your needs, you can use this provider directly and manually configure your `conftest` modules. Simply add this provider to your project configuration, and see the [conftest module documentation](../module-types/conftest.md) for a detailed reference. Also, check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for all `conftest` modules.
+If those don't match your needs, you can use this provider directly and manually configure your `conftest` actions. Simply add this provider to your project configuration, and see the [conftest action documentation](../action-types/Test/conftest.md) for a detailed reference. Also, check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for all `conftest` actions.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
@@ -33,10 +33,10 @@ providers:
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
 
-    # Path to the default policy directory or rego file to use for `conftest` modules.
+    # Path to the default policy directory or rego file to use for `conftest` actions.
     policyPath: ./policy
 
-    # Default policy namespace to use for `conftest` modules.
+    # Default policy namespace to use for `conftest` actions.
     namespace:
 
     # Set this to `"warn"` if you'd like tests to be marked as failed if one or more _warn_ rules are matched.
@@ -109,7 +109,7 @@ providers:
 
 [providers](#providers) > policyPath
 
-Path to the default policy directory or rego file to use for `conftest` modules.
+Path to the default policy directory or rego file to use for `conftest` actions.
 
 | Type        | Default      | Required |
 | ----------- | ------------ | -------- |
@@ -119,7 +119,7 @@ Path to the default policy directory or rego file to use for `conftest` modules.
 
 [providers](#providers) > namespace
 
-Default policy namespace to use for `conftest` modules.
+Default policy namespace to use for `conftest` actions.
 
 | Type     | Required |
 | -------- | -------- |

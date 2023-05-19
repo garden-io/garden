@@ -347,7 +347,7 @@ serviceResource:
   # The type of Kubernetes resource to sync files to.
   kind: Deployment
 
-  # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be
+  # The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can be
   # omitted.
   name:
 
@@ -432,7 +432,7 @@ tasks:
       # The type of Kubernetes resource to sync files to.
       kind: Deployment
 
-      # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can
+      # The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can
       # be omitted.
       name:
 
@@ -532,7 +532,7 @@ tests:
       # The type of Kubernetes resource to sync files to.
       kind: Deployment
 
-      # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can
+      # The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can
       # be omitted.
       name:
 
@@ -1346,7 +1346,7 @@ The type of Kubernetes resource to sync files to.
 
 [serviceResource](#serviceresource) > name
 
-The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
+The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can be omitted.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1510,7 +1510,7 @@ The type of Kubernetes resource to sync files to.
 
 [tasks](#tasks) > [resource](#tasksresource) > name
 
-The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
+The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can be omitted.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1771,7 +1771,7 @@ The type of Kubernetes resource to sync files to.
 
 [tests](#tests) > [resource](#testsresource) > name
 
-The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
+The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can be omitted.
 
 | Type     | Required |
 | -------- | -------- |

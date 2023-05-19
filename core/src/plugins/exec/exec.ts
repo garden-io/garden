@@ -165,7 +165,7 @@ export const execPlugin = () =>
     name: "exec",
     docs: dedent`
       A simple provider that allows running arbitrary scripts when initializing providers, and provides the exec
-      action types.
+      action type.
 
       _Note: This provider is always loaded when running Garden. You only need to explicitly declare it in your provider
       configuration if you want to configure a script for it to run._

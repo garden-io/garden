@@ -173,10 +173,6 @@ autoApply: true
 # If set to true, Garden will automatically create the stack if it doesn't already exist.
 createStack: false
 
-# The names of any services that this service depends on at runtime, and the names of any tasks that should be
-# executed before this service is deployed.
-dependencies: []
-
 # Specify the path to the Pulumi project root, relative to the deploy action's root.
 root: .
 
@@ -564,14 +560,6 @@ If set to true, Garden will automatically create the stack if it doesn't already
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
-
-### `dependencies[]`
-
-The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
 
 ### `root`
 

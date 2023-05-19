@@ -45,7 +45,7 @@ providers:
     initRoot:
 
     # A map of variables to use when applying Terraform stacks. You can define these here, in individual
-    # `terraform` module configs, or you can place a `terraform.tfvars` file in each working directory.
+    # `terraform` action configs, or you can place a `terraform.tfvars` file in each working directory.
     variables:
 
     # The version of Terraform to use. Set to `null` to use whichever version of `terraform` that is on your PATH.
@@ -155,7 +155,7 @@ See the [Terraform guide](https://docs.garden.io/advanced/terraform) for more in
 [providers](#providers) > variables
 
 A map of variables to use when applying Terraform stacks. You can define these here, in individual
-`terraform` module configs, or you can place a `terraform.tfvars` file in each working directory.
+`terraform` action configs, or you can place a `terraform.tfvars` file in each working directory.
 
 | Type     | Required |
 | -------- | -------- |
