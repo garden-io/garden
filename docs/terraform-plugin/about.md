@@ -17,7 +17,7 @@ Terraform resources can be provisioned through the `terraform` provider when ini
 
 The former, having a single Terraform stack for your whole project, is most helpful if other provider configurations need to reference the outputs from your Terraform stack, or if most/all of your services depend on the infrastructure provisioned in your Terraform stack. A good example of this is the [terraform-gke example](https://github.com/garden-io/garden/tree/0.12.51/examples/terraform-gke) project, which provisions a GKE cluster that the `kubernetes` provider then runs on, along with the services in the project. The drawback is that Garden doesn't currently watch for changes in those Terraform files, and you need to restart to apply new changes, or apply them manually.
 
-The latter method, using one or more `terraform` _Deploy actions_, can be better if your other providers don't need to reference the stack outputs but your other Deploy, Run and Test actions do. In this style, you can basically create small Terraform stacks that are part of your Stack Graph much like other services. A good example would be deploying a database instance, that other services in your project can then connect to.
+Using `terraform` _Deploy actions_, can be better if your other providers don't need to reference the stack outputs but other Deploy, Run and Test actions do. In this style, you can basically create small Terraform stacks that are part of your Stack Graph much like other services. A good example would be deploying a database instance, that other services in your project can then connect to.
 
 You can also use a combination of the two if you'd like. Below we'll walk through how each of these work.
 
