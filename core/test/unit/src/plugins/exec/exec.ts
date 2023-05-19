@@ -6,10 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { spawn } from "child_process"
 import { expect } from "chai"
 import { join } from "path"
-import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
 import { ExecProvider, gardenPlugin } from "../../../../../src/plugins/exec/exec"
