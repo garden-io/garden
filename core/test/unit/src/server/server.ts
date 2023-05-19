@@ -58,6 +58,7 @@ describe("GardenServer", () => {
       serveCommand: command,
       extraCommands: [new TestCommand()],
       defaultOpts: { plugins: [...testPlugins()] },
+      force: true,
     })
     manager.set(garden.log, garden)
     gardenEnv.GARDEN_SERVER_HOSTNAME = hostname
@@ -177,7 +178,7 @@ describe("GardenServer", () => {
       const res = await request(server)
         .post("/api")
         .set({ [authTokenHeader]: gardenServer.authKey })
-        .send({ command: "get config --var foo=bar", stringArguments: [] })
+        .send({ command: "get config --var foo=bar" })
         .expect(200)
       expect(res.body.result.variables.foo).to.equal("bar")
     })

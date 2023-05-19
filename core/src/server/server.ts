@@ -304,19 +304,21 @@ export class GardenServer extends EventEmitter {
 
       await command.prepare(prepareParams)
 
-      const result = await command.run({
-        ...prepareParams,
-        garden,
-        sessionId: uuidv4(),
-        nested: true,
-      })
-
-      if (result.errors?.length) {
-        throw result.errors[0]
-      }
-
       ctx.status = 200
-      ctx.response.body = sanitizeValue(result)
+
+      try {
+        const result = await command.run({
+          ...prepareParams,
+          garden,
+          sessionId: uuidv4(),
+          nested: true,
+        })
+
+        ctx.response.body = sanitizeValue(result)
+      } catch (error) {
+        // Return 200 with errors attached, since commands can legitimately fail (e.g. tests erroring etc.)
+        ctx.response.body = sanitizeValue({ errors: [error] })
+      }
       return
     })
 
@@ -638,8 +640,9 @@ export class GardenServer extends EventEmitter {
             }
             delete this.activePersistentRequests[requestId]
           })
-      } catch (err) {
-        return send("error", { message: err.message, requestId })
+      } catch (error) {
+        this.log.error({ msg: `Unexpected error handling request ID ${requestId}: ${error.message}`, error })
+        return send("error", { message: error.message, requestId })
       }
     } else if (requestType === "commandStatus") {
       // Retrieve the status for an active persistent command
