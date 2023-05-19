@@ -310,7 +310,7 @@ const secretRef = joi
 const imagePullSecretsSchema = () =>
   joiSparseArray(secretRef).description(dedent`
     References to \`docker-registry\` secrets to use for authenticating with remote registries when pulling
-    images. This is necessary if you reference private images in your module configuration, and is required
+    images. This is necessary if you reference private images in your action configuration, and is required
     when configuring a remote Kubernetes environment with buildMode=local.
   `)
 
@@ -535,7 +535,7 @@ export const kubernetesConfigBase = () =>
             .sparseArray()
             .items(joi.string())
             .description(
-              `Specify extra flags to use when building the container image with kaniko. Flags set on \`container\` modules take precedence over these.`
+              `Specify extra flags to use when building the container image with kaniko. Flags set on \`container\` Builds take precedence over these.`
             ),
           image: joi
             .string()
@@ -611,8 +611,8 @@ export const kubernetesConfigBase = () =>
         .boolean()
         .default(false)
         .description(
-          "Require SSL on all `container` module services. If set to true, an error is raised when no certificate " +
-            "is available for a configured hostname on a `container` module."
+          "Require SSL on all `container` Deploys. If set to true, an error is raised when no certificate " +
+            "is available for a configured hostname on a `container`Deploy."
         ),
       gardenSystemNamespace: joi
         .string()
@@ -844,7 +844,7 @@ export const serviceResourceSchema = () =>
         .default("Deployment")
         .description("The type of Kubernetes resource to sync files to."),
       name: joi.string().description(
-        deline`The name of the resource to sync to. If the module contains a single resource of the specified Kind,
+        deline`The name of the resource to sync to. If the action contains a single resource of the specified Kind,
         this can be omitted.`
       ),
       containerName: targetContainerNameSchema(),

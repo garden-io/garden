@@ -7,9 +7,9 @@ tocTitle: "`conftest-container`"
 
 ## Description
 
-This provider automatically generates [conftest modules](../module-types/conftest.md) for `container` modules in your project. A `conftest` module is created for each `container` module that includes a Dockerfile that can be validated.
+This provider automatically generates [conftest Test actions](../action-types/conftest.md) for `container` Builds in your project. A `conftest` Test is created for each `container` Build that includes a Dockerfile that can be validated.
 
-Simply add this provider to your project configuration, and configure your policies. Check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for the generated modules.
+Simply add this provider to your project configuration, and configure your policies. Check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for the generated actions.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
@@ -31,10 +31,10 @@ providers:
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
 
-    # Path to the default policy directory or rego file to use for `conftest` modules.
+    # Path to the default policy directory or rego file to use for `conftest` actions.
     policyPath: ./policy
 
-    # Default policy namespace to use for `conftest` modules.
+    # Default policy namespace to use for `conftest` actions.
     namespace:
 
     # Set this to `"warn"` if you'd like tests to be marked as failed if one or more _warn_ rules are matched.
@@ -107,7 +107,7 @@ providers:
 
 [providers](#providers) > policyPath
 
-Path to the default policy directory or rego file to use for `conftest` modules.
+Path to the default policy directory or rego file to use for `conftest` actions.
 
 | Type        | Default      | Required |
 | ----------- | ------------ | -------- |
@@ -117,7 +117,7 @@ Path to the default policy directory or rego file to use for `conftest` modules.
 
 [providers](#providers) > namespace
 
-Default policy namespace to use for `conftest` modules.
+Default policy namespace to use for `conftest` actions.
 
 | Type     | Required |
 | -------- | -------- |

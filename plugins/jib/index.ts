@@ -148,7 +148,7 @@ export const gardenPlugin = () =>
     docs: dedent`
       **EXPERIMENTAL**: Please provide feedback via GitHub issues or our community forum!
 
-      Provides support for [Jib](https://github.com/GoogleContainerTools/jib) via the [jib module type](../module-types/jib-container.md).
+      Provides support for [Jib](https://github.com/GoogleContainerTools/jib) via the [jib action type](../action-types/Build/jib-container.md).
 
       Use this to efficiently build container images for Java services. Check out the [jib example](${exampleUrl}) to see it in action.
     `,
