@@ -6,7 +6,7 @@ order: 2
 # Exec
 
 The `exec` plugin and corresponding `exec` actions allow you to run commands locally on the host (e.g. your laptop
-or your CI runner)—this is in contrast to running in a container.
+or your CI runner).
 
 This plugin is built-in which means you don't need to specify it in your project configuration. You can simply add `exec`
 actions right away.
