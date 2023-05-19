@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 
-import { Events, EventName, GardenEventAnyListener, pipedEventNamesSet } from "../events"
+import { Events, EventName, GardenEventAnyListener, shouldStreamEvent } from "../events"
 import { LogMetadata, Log, LogEntry, LogContext } from "../logger/log-entry"
 import { got } from "../util/http"
 
@@ -171,7 +171,7 @@ export class BufferedEventStream {
     this.log.root.events.onAny(this.logListener)
 
     this.eventListener = (name, payload) => {
-      if (pipedEventNamesSet.has(name)) {
+      if (shouldStreamEvent(name, payload)) {
         this.emit(name, payload)
       }
     }
