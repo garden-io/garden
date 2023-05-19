@@ -29,12 +29,6 @@ function "isEdgeRelease" {
   result = PRERELEASE != "" && PATCH_VERSION == ""
 }
 
-// TODO: Remove latest from 0.12/acorn releases, once 0.13/bonsai is GA
-function "withLatest" {
-  params = [tags]
-  result = "${isProductionRelease() ? concat(tags, ["latest"]) : tags}"
-}
-
 function "tags" {
   params = [flavor]
   result = [ for tag, condition in
@@ -88,35 +82,35 @@ target "alpine-base" {
   target     = "garden-alpine-base"
   platforms  = ["linux/amd64"]
   context    = "dist/alpine-amd64"
-  tags       = repository("gardendev/garden", withLatest(tags("alpine")))
+  tags       = repository("gardendev/garden", tags("alpine"))
 }
 
 target "alpine-aws" {
   inherits = ["alpine-base"]
   target   = "garden-aws"
-  tags     = repository("gardendev/garden-aws", withLatest(tags("alpine")))
+  tags     = repository("gardendev/garden-aws", tags("alpine"))
 }
 
 target "alpine-azure" {
   inherits = ["alpine-base"]
   target   = "garden-azure"
-  tags     = repository("gardendev/garden-azure", withLatest(tags("alpine")))
+  tags     = repository("gardendev/garden-azure", tags("alpine"))
 }
 
 target "alpine-gcloud" {
   inherits = ["alpine-base"]
   target   = "garden-gcloud"
-  tags     = repository("gardendev/garden-gcloud", withLatest(tags("alpine")))
+  tags     = repository("gardendev/garden-gcloud", tags("alpine"))
 }
 
 target "alpine-aws-gcloud" {
   inherits = ["alpine-base"]
   target   = "garden-aws-gcloud"
-  tags     = repository("gardendev/garden-aws-gcloud", withLatest(tags("alpine")))
+  tags     = repository("gardendev/garden-aws-gcloud", tags("alpine"))
 }
 
 target "alpine-aws-gcloud-azure" {
   inherits = ["alpine-base"]
   target   = "garden-aws-gcloud-azure"
-  tags     = repository("gardendev/garden-aws-gcloud-azure", withLatest(tags("alpine")))
+  tags     = repository("gardendev/garden-aws-gcloud-azure", tags("alpine"))
 }
