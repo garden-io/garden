@@ -55,7 +55,7 @@ Use the [`spec.targetStage` field](../reference/action-types/Build/container.md#
 
 See [this example project](../../examples/base-image/README.md).
 
-### Can I use runtime variables in builds (e.g. from tasks)?
+### Can I use runtime variables in builds (e.g. from Runs or Tests)?
 
 Yes, but only since Garden 0.13.
 
@@ -144,7 +144,7 @@ See [this section](../k8s-plugins/advanced/in-cluster-building.md#pulling-base-i
 
 See [this section](../k8s-plugins/advanced/in-cluster-building.md#configuring-a-deployment-registry) of our docs.
 
-## Tasks and Runs
+## Tests and Runs
 
 ### Can I run a Run on only the first time a service starts but not on subsequent restarts/rebuilds?
 
@@ -154,7 +154,7 @@ So what we generally do is to make sure Runs are idempotent and exit early if th
 
 ### If a Test has a Run as a dependency, is the Run re-run every time before the Test?
 
-It is, which is why we recommend that tasks are written to be idempotent. Tasks by nature don’t really have a status check, unlike Deploys.
+It is, which is why we recommend that Runs are written to be idempotent. Runs by nature don’t really have a status check, unlike Deploys.
 
 ### Why is my Run not running on `garden deploy`?
 
