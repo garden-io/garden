@@ -10,6 +10,7 @@ import codenamize = require("@codenamize/codenamize")
 import { platform, release } from "os"
 import ci = require("ci-info")
 import { uniq } from "lodash"
+import { Analytics } from "@segment/analytics-node"
 import { AnalyticsGlobalConfig } from "../config-store/global"
 import { getPackageVersion, sleep, getDurationMsec } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants"
@@ -227,7 +228,7 @@ export interface SegmentEvent {
 @Profile()
 export class AnalyticsHandler {
   private static instance?: AnalyticsHandler
-  private segment: any // TODO
+  private segment: Analytics
   private log: Log
   private analyticsConfig: AnalyticsGlobalConfig
   private projectId: string
@@ -239,13 +240,13 @@ export class AnalyticsHandler {
   private enterpriseProjectIdV2?: string
   private enterpriseDomainV2?: string
   private isLoggedIn: boolean
+  private anonymousUserId: string
   private cloudUserId?: string
   private cloudCustomerName?: string
   private ciName: string | null
   private systemConfig: SystemInfo
   private isCI: boolean
   private sessionId: string
-  private pendingEvents: Map<string, SegmentEvent>
   protected garden: Garden
   private projectMetadata: ProjectMetadata
   public isEnabled: boolean
@@ -272,15 +273,13 @@ export class AnalyticsHandler {
     cloudUser?: UserResult
     ciInfo: CiInfo
   }) {
-    const segmentClient = require("analytics-node")
-    this.segment = new segmentClient(API_KEY, { flushAt: 20, flushInterval: 300 })
+    this.segment = new Analytics({ writeKey: API_KEY, maxEventsInBatch: 1, flushInterval: 3000 })
     this.log = log
     this.isEnabled = isEnabled
     this.garden = garden
     this.sessionId = garden.sessionId
+    this.anonymousUserId = anonymousUserId
     this.isLoggedIn = garden.isLoggedIn()
-    // Events that are queued or flushed but the network response hasn't returned
-    this.pendingEvents = new Map()
 
     this.analyticsConfig = analyticsConfig
 
@@ -348,23 +347,6 @@ export class AnalyticsHandler {
     }
 
     this.isRecurringUser = getIsRecurringUser(analyticsConfig.firstRunAt, analyticsConfig.latestRunAt)
-
-    const userIdV2 = AnalyticsHandler.hashV2(anonymousUserId)
-    this.identify({
-      userId: this.cloudUserId,
-      anonymousId: anonymousUserId,
-      traits: {
-        userIdV2,
-        customer: cloudUser?.organization.name,
-        platform: platform(),
-        platformVersion: release(),
-        gardenVersion: getPackageVersion(),
-        isCI: ciInfo.isCi,
-        firstRunAt: analyticsConfig.firstRunAt,
-        latestRunAt: analyticsConfig.latestRunAt,
-        isRecurringUser: this.isRecurringUser,
-      },
-    })
   }
 
   static async init(garden: Garden, log: Log) {
@@ -458,7 +440,7 @@ export class AnalyticsHandler {
 
     await garden.globalConfigStore.set("analytics", analyticsConfig)
 
-    return new AnalyticsHandler({
+    const analyticsHandler = new AnalyticsHandler({
       garden,
       log,
       analyticsConfig,
@@ -469,6 +451,24 @@ export class AnalyticsHandler {
       ciInfo,
       anonymousUserId,
     })
+
+    await analyticsHandler.identify({
+      userId: analyticsHandler.cloudUserId,
+      anonymousId: anonymousUserId,
+      traits: {
+        userIdV2: AnalyticsHandler.hashV2(anonymousUserId),
+        customer: cloudUser?.organization.name,
+        platform: platform(),
+        platformVersion: release(),
+        gardenVersion: getPackageVersion(),
+        isCI: ciInfo.isCi,
+        firstRunAt: analyticsConfig.firstRunAt,
+        latestRunAt: analyticsConfig.latestRunAt,
+        isRecurringUser: analyticsHandler.isRecurringUser,
+      },
+    })
+
+    return analyticsHandler
   }
 
   /**
@@ -537,14 +537,14 @@ export class AnalyticsHandler {
   /**
    * The actual segment track method.
    */
-  private track(event: AnalyticsEvent) {
+  private async track(event: AnalyticsEvent) {
     if (!this.segment || !this.isEnabled) {
       return false
     }
 
-    const segmentEvent: SegmentEvent = {
+    const segmentEvent = {
       userId: this.cloudUserId,
-      anonymousId: this.analyticsConfig.anonymousUserId,
+      anonymousId: this.anonymousUserId,
       event: event.type,
       properties: {
         ...this.getBasicAnalyticsProperties(),
@@ -552,34 +552,33 @@ export class AnalyticsHandler {
       },
     }
 
-    const eventUid = uuidv4()
-    this.pendingEvents.set(eventUid, segmentEvent)
-    this.segment.track(segmentEvent, (err: any) => {
-      this.pendingEvents.delete(eventUid)
-      this.log.silly(dedent`Tracking ${segmentEvent.event} event.
-          Payload:
-            ${JSON.stringify(segmentEvent)}
-        `)
-      if (err && this.log) {
-        this.log.debug(`Error sending ${segmentEvent.event} tracking event: ${err}`)
-      }
-    })
+    this.log.silly(dedent`Tracking ${segmentEvent.event} event.
+    Payload:
+      ${JSON.stringify(segmentEvent)}
+    `)
+
+    try {
+      await this.segment.track(segmentEvent)
+    } catch (err) {
+      this.log?.debug(`Error sending ${segmentEvent.event} tracking event: ${err}`)
+    }
+
     return event
   }
 
-  private identify(event: IdentifyEvent) {
+  private async identify(event: IdentifyEvent) {
     if (!this.segment || !this.isEnabled) {
       return false
     }
-    this.segment.identify(event)
+    await this.segment.identify(event)
     return event
   }
 
   /**
    * Tracks a Command.
    */
-  trackCommand(commandName: string) {
-    return this.track({
+  async trackCommand(commandName: string) {
+    return await this.track({
       type: "Run Command",
       properties: {
         name: commandName,
@@ -591,12 +590,12 @@ export class AnalyticsHandler {
   /**
    * Track a command result.
    */
-  trackCommandResult(commandName: string, errors: GardenBaseError[], startTime: Date, exitCode?: number) {
+  async trackCommandResult(commandName: string, errors: GardenBaseError[], startTime: Date, exitCode?: number) {
     const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
 
     const durationMsec = getDurationMsec(startTime, new Date())
 
-    return this.track({
+    return await this.track({
       type: "Command Result",
       properties: {
         name: commandName,
@@ -709,50 +708,12 @@ export class AnalyticsHandler {
    * That should be enough time for a network request to fire, even if we don't wait for the response.
    */
   async flush() {
-    if (!this.isEnabled) {
-      return
+    this.log?.silly("Analytics close and flush all remaining events")
+
+    try {
+      await this.segment.closeAndFlush()
+    } catch (err) {
+      this.log?.debug(`Error flushing analytics: ${err}`)
     }
-
-    // This is to handle an edge case where Segment flushes the events (e.g. at the interval) and
-    // Garden exits at roughly the same time. When that happens, `segment.flush()` will return immediately since
-    // the event queue is already empty. However, the network request might not have fired and the events are
-    // dropped if Garden exits before the request gets the chance to. We therefore wait until
-    // `pendingEvents.size === 0` or until we time out.
-    const waitForPending = async (retry: number = 0) => {
-      // Wait for 500 ms, for 3 retries at most, or a total of 2000 ms.
-      await sleep(500)
-      if (this.pendingEvents.size === 0 || retry >= 3) {
-        if (this.pendingEvents.size > 0) {
-          const pendingEvents = Array.from(this.pendingEvents.values())
-            .map((event) => event.event)
-            .join(", ")
-          this.log.debug(`Timed out while waiting for events to flush: ${pendingEvents}`)
-        }
-        return
-      } else {
-        return waitForPending(retry + 1)
-      }
-    }
-
-    await this.segmentFlush()
-
-    if (this.pendingEvents.size === 0) {
-      // We're done
-      return
-    } else {
-      // There are still pending events that we're waiting for
-      return waitForPending()
-    }
-  }
-
-  private async segmentFlush() {
-    return new Promise((resolve) => {
-      this.segment.flush((err: any, _data: any) => {
-        if (err && this.log) {
-          this.log.debug(`Error flushing analytics: ${err}`)
-        }
-        resolve({})
-      })
-    })
   }
 }
