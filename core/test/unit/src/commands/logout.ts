@@ -18,7 +18,7 @@ import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constant
 
 import { GlobalConfigStore } from "../../../../src/config-store/global"
 import { Garden } from "../../../../src"
-import { makeDummyGarden } from "../../../../src/cli/cli"
+import { makeDummyGarden } from "../../../../src/garden"
 
 function logoutCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: any }) {
   const log = garden.log

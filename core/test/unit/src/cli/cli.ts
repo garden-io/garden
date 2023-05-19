@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import td from "testdouble"
 
-import { makeDummyGarden, GardenCli, validateRuntimeRequirementsCached } from "../../../../src/cli/cli"
+import { GardenCli, validateRuntimeRequirementsCached } from "../../../../src/cli/cli"
 import { getDataDir, projectRootA, initTestLogger } from "../../../helpers"
 import { gardenEnv, GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join, resolve } from "path"
@@ -32,6 +32,7 @@ import { ServeCommand } from "../../../../src/commands/serve"
 import { GardenInstanceManager } from "../../../../src/server/instance-manager"
 import { mkdirp } from "fs-extra"
 import { uuidv4 } from "../../../../src/util/random"
+import { makeDummyGarden } from "../../../../src/garden"
 
 describe("cli", () => {
   let cli: GardenCli

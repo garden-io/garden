@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { withDefaultGlobalOpts, TempDirectory, makeTempDir, expectError } from "../../../../helpers"
 import { CreateProjectCommand, defaultProjectConfigFilename } from "../../../../../src/commands/create/create-project"
-import { makeDummyGarden } from "../../../../../src/cli/cli"
+import { makeDummyGarden } from "../../../../../src/garden"
 import { Garden } from "../../../../../src/garden"
 import { basename, join } from "path"
 import { pathExists, readFile, writeFile } from "fs-extra"
