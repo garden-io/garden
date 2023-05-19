@@ -30,7 +30,7 @@ import { runResultToActionState } from "../../actions/base"
 import { BuildStatus } from "../../plugin/handlers/Build/get-status"
 import { convertExecModule } from "./convert"
 import { copyArtifacts, execRun } from "./common"
-import { execDeployAction, deleteExecDeploy, getExecDeployLogs, getExecDeployStatus } from "./deploy"
+import { deployExec, deleteExecDeploy, getExecDeployLogs, getExecDeployStatus } from "./deploy"
 
 export interface ExecProviderConfig extends GenericProviderConfig {}
 
@@ -165,7 +165,7 @@ export const execPlugin = () =>
     name: "exec",
     docs: dedent`
       A simple provider that allows running arbitrary scripts when initializing providers, and provides the exec
-      module type.
+      action types.
 
       _Note: This provider is always loaded when running Garden. You only need to explicitly declare it in your provider
       configuration if you want to configure a script for it to run._
@@ -202,7 +202,7 @@ export const execPlugin = () =>
               return { config, supportedModes: { sync: !!config.spec.persistent } }
             },
 
-            deploy: execDeployAction,
+            deploy: deployExec,
             delete: deleteExecDeploy,
             getLogs: getExecDeployLogs,
             getStatus: getExecDeployStatus,
