@@ -84,12 +84,6 @@ test_release() {
   echo "→ Run a command in the prompt (ls, for example) and see if the TTY behaves as expected."
   echo ""
   ${garden_release} exec backend /bin/sh
-  echo ""
-  echo "→ Running 'garden create module' in demo project"
-  echo "→ Respond to the prompts to see if the create command works"
-  echo ""
-  ${garden_release} create module
-  revert_git_changes
 
   cd ..
   cd vote
@@ -102,14 +96,6 @@ test_release() {
   echo "→ Stopping sync for vote app"
   ${garden_release} sync stop vote
   revert_git_changes
-
-  echo ""
-  echo "→ Running 'garden serve' in disabled-configs project (the test script will continue after 1 minute)."
-  echo "→ The disabled module and test should be flagged appropriately on the Overview and Stack Graph pages."
-  echo ""
-  cd ..
-  cd disabled-configs
-  timeout 1m ${garden_release} serve
 
   # Remove the alias we set above
   if [[ "$OSTYPE" == "darwin"* ]]; then
