@@ -181,7 +181,7 @@ TEST "production release tags for alpine"
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
-    should_exist $image latest
+    should_not_exist $image latest
     should_exist $image 0.12-alpine
     should_exist $image 0.12.0-alpine
     should_exist $image acorn-alpine
