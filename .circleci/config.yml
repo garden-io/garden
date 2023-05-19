@@ -413,7 +413,7 @@ jobs:
               export CODENAME=acorn
               export PRERELEASE=edge
             else
-              if ! [[ ${CIRCLE_TAG} =~ "^0.12" ]]; then
+              if ! [[ ${CIRCLE_TAG} =~ ^0.12 ]]; then
                 echo "This pipeline should only build 0.12 releases"
                 exit 1
               fi
