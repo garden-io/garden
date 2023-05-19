@@ -100,28 +100,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
     },
 
     getResult: async (params) => {
-      const { garden, router, action } = params
-
-      const actionName = action.name
-      const actionVersion = action.versionString()
-      const actionType = API_ACTION_TYPE
-
-      const moduleName = action.moduleName()
-
-      const payloadAttrs = {
-        actionName,
-        actionVersion,
-        actionType,
-        moduleName,
-        actionUid: action.getUid(),
-        startedAt: new Date().toISOString(),
-      }
-
-      garden.events.emit("runStatus", {
-        ...payloadAttrs,
-        state: "getting-status",
-        status: { state: "unknown" },
-      })
+      const { router, action } = params
 
       const output = await router.callHandler({
         params,
@@ -129,13 +108,6 @@ export const runRouter = (baseParams: BaseRouterParams) =>
         defaultHandler: async () => ({ state: <ActionState>"unknown", detail: null, outputs: {} }),
       })
       const { result } = output
-
-      garden.events.emit("runStatus", {
-        ...payloadAttrs,
-        state: stateForCacheStatusEvent(result.state),
-        completedAt: new Date().toISOString(),
-        status: runStatusForEventPayload(result.detail),
-      })
 
       if (result) {
         await router.validateActionOutputs(action, "runtime", result.outputs)

@@ -177,32 +177,4 @@ describe("test actions", () => {
       expect(result.state).to.eql("ready")
     })
   })
-
-  it("should emit testStatus events", async () => {
-    const action = await garden.resolveAction({ action: graph.getTest("module-a-unit"), log, graph })
-    garden.events.eventLog = []
-
-    await actionRouter.test.getResult({
-      log,
-      action,
-      graph,
-    })
-    const event1 = garden.events.eventLog[0]
-    const event2 = garden.events.eventLog[1]
-
-    expect(event1).to.exist
-    expect(event2).to.exist
-
-    expect(event1.name).to.eql("testStatus")
-    expect(event1.payload.moduleName).to.eql("module-a")
-    expect(event1.payload.actionUid).to.be.ok
-    expect(event1.payload.state).to.eql("getting-status")
-    expect(event1.payload.status.state).to.eql("unknown")
-
-    expect(event2.name).to.eql("testStatus")
-    expect(event1.payload.moduleName).to.eql("module-a")
-    expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
-    expect(event2.payload.state).to.eql("cached")
-    expect(event2.payload.status.state).to.eql("succeeded")
-  })
 })

@@ -18,42 +18,16 @@ const API_ACTION_TYPE = "build"
 export const buildRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Build", baseParams, {
     getStatus: async (params) => {
-      const { router, action, garden } = params
-      const actionType = API_ACTION_TYPE
+      const { router, action } = params
 
-      const startedAt = new Date().toISOString()
-
-      // Then an actual build won't take place, so we emit a build status event to that effect.
-      const actionVersion = action.versionString()
-      const payloadAttrs = {
-        moduleName: action.moduleName(),
-        actionName: action.name,
-        actionType,
-        actionUid: action.getUid(),
-        actionVersion,
-        startedAt,
-      }
-
-      garden.events.emit("buildStatus", {
-        ...payloadAttrs,
-        state: "getting-status",
-        status: { state: "fetching" },
-      })
       const statusOutput = await router.callHandler({
         params,
         handlerType: "getStatus",
         defaultHandler: async () => ({ state: <ActionState>"unknown", detail: {}, outputs: {} }),
       })
       const status = statusOutput.result
-      const { state } = status
 
       await router.validateActionOutputs(action, "runtime", status.outputs)
-      garden.events.emit("buildStatus", {
-        ...payloadAttrs,
-        completedAt: new Date().toISOString(),
-        state: stateForCacheStatusEvent(state),
-        status: { state: state === "ready" ? "fetched" : "outdated" },
-      })
       return statusOutput
     },
 

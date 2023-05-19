@@ -131,35 +131,10 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
     },
 
     getStatus: async (params) => {
-      const { garden, router, action } = params
-      const actionName = action.name
-      const actionVersion = action.versionString()
-      const actionType = API_ACTION_TYPE
-
-      const payloadAttrs = {
-        actionName,
-        actionVersion,
-        actionType,
-        actionUid: action.getUid(),
-        moduleName: action.moduleName(),
-        startedAt: new Date().toISOString(),
-      }
-
-      garden.events.emit("deployStatus", {
-        ...payloadAttrs,
-        state: "getting-status",
-        status: { state: "unknown" },
-      })
+      const { router, action } = params
 
       const output = await router.callHandler({ params, handlerType: "getStatus" })
       const result = output.result
-
-      garden.events.emit("deployStatus", {
-        ...payloadAttrs,
-        completedAt: new Date().toISOString(),
-        state: stateForCacheStatusEvent(result.state),
-        status: omit(result.detail, "detail"),
-      })
 
       router.emitNamespaceEvents(result.detail?.namespaceStatuses)
 
