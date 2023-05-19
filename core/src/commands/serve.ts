@@ -19,6 +19,7 @@ import { Log } from "../logger/log-entry"
 import { findProjectConfig } from "../config/base"
 import { CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
 import { uuidv4 } from "../util/random"
+import { resolveGardenParams } from "../garden"
 
 export const defaultServerPort = 9700
 
@@ -109,6 +110,11 @@ export class ServeCommand<
         }
 
         if (projectId) {
+          const { environmentName, namespace } = await resolveGardenParams(projectConfig.path, {
+            commandInfo: garden.commandInfo,
+            config: projectConfig,
+          })
+
           await cloudApi.registerSession({
             parentSessionId: undefined,
             projectId,
@@ -116,8 +122,8 @@ export class ServeCommand<
             sessionId: manager.sessionId,
             commandInfo: garden.commandInfo,
             localServerPort: this.server.port,
-            environment: "garden-" + this.name,
-            namespace: "default",
+            environment: environmentName,
+            namespace,
           })
         }
       }
