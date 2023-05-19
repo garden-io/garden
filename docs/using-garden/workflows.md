@@ -5,7 +5,7 @@ title: Workflows
 
 # Workflows
 
-Workflows allow users to define simple, CI-like sequences of Garden commands and script _steps_, that can be run from a command line, in CI pipelines or directly triggered from PRs or branches using Garden Enterprise.
+Workflows allow users to define simple, CI-like sequences of Garden commands and script _steps_, that can be run from a command line, in CI pipelines or directly triggered from PRs or branches using Garden Cloud.
 
 Custom shell scripts can be used for preparation ahead of running Garden commands, handling outputs from the commands, and more.
 
@@ -31,7 +31,7 @@ We suggest making a `workflows.garden.yml` next to your project configuration in
 
 Each step in your workflow can either trigger Garden commands, or run custom scripts. The steps are executed in succession. If a step fails, the remainder of the workflow is aborted.
 
-You can run a workflow by running `garden workflow <name>`, or have it [trigger automatically](#triggers) via Garden Enterprise.
+You can run a workflow by running `garden workflow <name>`, or have it [trigger automatically](#triggers) via Garden Cloud.
 
 ### Command steps
 
@@ -185,19 +185,7 @@ steps:
 
 ### Step outputs
 
-Workflow steps can reference outputs from previous steps, using template strings. This is particularly useful when feeding command outputs to custom scripts, e.g. for custom publishing flows, handling artifacts and whatever else you can think of.
-
-For example, to retrieve a module version after a build:
-
-```yaml
-kind: Workflow
-name: my-workflow
-steps:
-  - command: [build]
-  - script: |
-      echo "Built version ${steps.step-1.outputs.builds.my-module.version}"
-```
-
+Workflow steps can reference outputs from previous steps, using template strings.
 You can also set a `name` on a step, to make it easier to reference:
 
 ```yaml
@@ -216,7 +204,7 @@ The schema of command outputs can be found in the [command reference](../referen
 
 ### Triggers
 
-Garden Enterprise can monitor your project repository for updates, and trigger workflows automatically on e.g. PR and branch updates.
+Garden Cloud can monitor your project repository for updates, and trigger workflows automatically on e.g. PR and branch updates.
 
 For example, here's how you'd trigger a workflow for PRs made from any `feature/*` branch:
 

@@ -1981,7 +1981,8 @@ moduleConfigs:
 
 # All workflow configs in the project.
 workflowConfigs:
-  - # The schema version of this workflow's config (currently not used).
+  - # The schema version of this workflow's config. Use garden.io/v1 for Garden Cloud workflows with Garden Bonsai and
+    # garden.io/v0 for Garden Cloud workflows with Garden Acorn. Defaults to garden.io/v1.
     apiVersion:
 
     kind:
