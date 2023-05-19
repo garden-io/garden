@@ -112,7 +112,8 @@ export const workflowConfigSchema = createSchema({
       .string()
       .default(DEFAULT_API_VERSION)
       .valid(DEFAULT_API_VERSION)
-      .description("The schema version of this workflow's config (currently not used)."),
+      .description(
+        "The schema version of this workflow's config. Use garden.io/v1 for Garden Cloud workflows with Garden Bonsai and garden.io/v0 for Garden Cloud workflows with Garden Acorn. Defaults to garden.io/v1."),
     kind: joi.string().default("Workflow").valid("Workflow"),
     name: joiUserIdentifier().required().description("The name of this workflow.").example("my-workflow"),
     description: joi.string().description("A description of the workflow."),
