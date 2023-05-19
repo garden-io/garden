@@ -1,14 +1,14 @@
 # Release process
 
-We have a dedicated release branch, `latest-release-0.12`, off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/main/scripts/release.ts). Once we're ready to release, we reset the `latest-release-0.12` branch to `main` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `main` and cherry-pick them to the `latest-release-0.12` branch. We repeat this process until all issues have been resolved and we can make a proper release.
+We have a dedicated release branch, `latest-release-0.12`, off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/0.12/scripts/release.ts). Once we're ready to release, we reset the `latest-release-0.12` branch to `0.12` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `0.12` and cherry-pick them to the `latest-release-0.12` branch. We repeat this process until all issues have been resolved and we can make a proper release.
 
-This procedure allows us to continue merging features into `main` without them being included in the release.
+This procedure allows us to continue merging features into `0.12` without them being included in the release.
 
-On every merge to `main` we also publish an **unstable** release with the version `edge` that is always flagged as a pre-release.
+On every merge to `0.12` we also publish an **unstable** release with the version `edge` that is always flagged as a pre-release.
 
 ## Release script
 
-The [release script](https://github.com/garden-io/garden/blob/main/scripts/release.ts) has the signature:
+The [release script](https://github.com/garden-io/garden/blob/0.12/scripts/release.ts) has the signature:
 
 ```sh
 ./scripts/release.ts <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
@@ -31,8 +31,8 @@ First, you need to prepare the release binaries and run some manual tests:
 
 1. **Checkout to the `latest-release-0.12` branch**.
 2. Make the first pre-release:
-   - Reset `latest-release-0.12` to `main` with `git reset --hard origin/main`.
-   - Run `git log` to make sure that the latest commit is the expected one and there are no unwanted changes from `main` included in the release.
+   - Reset `latest-release-0.12` to `0.12` with `git reset --hard origin/0.12`.
+   - Run `git log` to make sure that the latest commit is the expected one and there are no unwanted changes from `0.12` included in the release.
    - Run `./scripts/release.ts preminor|prepatch`.
    - Wait for the CI build job to get the binaries from the [GitHub Releases page](https://github.com/garden-io/garden/releases).
 3. Manual testing (using the pre-release/release binary)
@@ -41,8 +41,8 @@ First, you need to prepare the release binaries and run some manual tests:
    - If there are any issues with syncing, consider changing the `services[].devMode.sync[].mode` value(s) to `one-way-replica` and restarting Garden.
    - Change a file in the `vote` service and verify that the code synchronization was successful.
    - Open the dashboard, verify that the initial page loads without errors.
-4. You might need to include some additional commits here. For example, if any other fix(es) should be included from `main`, or if there are any test failures. In that case you need a new pre-release:
-   - Checkout to the most recent pre-release branch, e.g. `1.2.3-0`, and cherry-pick the appropriate commits from `main`.
+4. You might need to include some additional commits here. For example, if any other fix(es) should be included from `0.12`, or if there are any test failures. In that case you need a new pre-release:
+   - Checkout to the most recent pre-release branch, e.g. `1.2.3-0`, and cherry-pick the appropriate commits from `0.12`.
    - Run `./scripts/release.ts prerelease` - it will generate a new pre-release `1.2.3-1`.
    - Repeat the manual testing.
 5. If you’re ready to make a proper release, do the following:
