@@ -351,7 +351,7 @@ export interface Events {
 
 export type EventName = keyof Events
 
-// Note: Does not include logger events.
+// These are the events we POST over https via the BufferedEventStream
 export const pipedEventNames: EventName[] = [
   "_test",
   "_workflowRunRegistered",
@@ -383,5 +383,47 @@ export const pipedEventNames: EventName[] = [
   "workflowStepSkipped",
 ]
 
+type PipedWsEventName = Extract<
+  EventName,
+  "taskCancelled" | "taskComplete" | "taskError" | "taskProcessing"
+>
+
+// These are the events we send over a websocket connection via the Garden server
+export const pipedWsEventNames: PipedWsEventName[] = [
+  "taskCancelled",
+  "taskComplete",
+  "taskError",
+  "taskProcessing",
+]
+
 // More efficient to use in filtering
-export const pipedEventNamesSet = new Set(pipedEventNames)
+const pipedWsEventNamesSet = new Set(pipedWsEventNames)
+const pipedEventNamesSet = new Set(pipedEventNames)
+const skipTaskEventTypes = ["resolve-action", "resolve-provider"]
+
+const isPipedEvent = (name: string, _payload: any): _payload is Events[EventName] => {
+  return pipedEventNamesSet.has(<any>name)
+}
+
+const isPipedWsEvent = (name: string, _payload: any): _payload is Events[PipedWsEventName] => {
+  return pipedWsEventNamesSet.has(<any>name)
+}
+
+export function shouldStreamWsEvent(name: string, payload: any) {
+  if (!isPipedWsEvent(name, payload) || skipTaskEventTypes.includes(payload.type)) {
+    return false
+  }
+  return true
+}
+
+export function shouldStreamEvent(name: string, payload: any) {
+  // Skip the same events as the ws listener would
+  if (isPipedWsEvent(name, payload) && skipTaskEventTypes.includes(payload.type)) {
+    return false
+  }
+  if (!isPipedEvent(name, payload)) {
+    return false
+  }
+  return true
+}
+

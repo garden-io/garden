@@ -21,7 +21,7 @@ import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
 import { toGardenError, GardenError, GardenBaseError } from "../exceptions"
-import { EventName, Events, EventBus, pipedEventNamesSet } from "../events"
+import { EventName, Events, EventBus, shouldStreamWsEvent } from "../events"
 import type { ValueOf } from "../util/util"
 import { joi } from "../config/common"
 import { randomString } from "../util/string"
@@ -421,12 +421,12 @@ export class GardenServer extends EventEmitter {
 
       const eventListener: EventPipeListener = (name, payload) => {
         const gardenKey = payload?.$context?.gardenKey
-        if (pipedEventNamesSet.has(name) && gardenKey) {
+        if (shouldStreamWsEvent(name, payload) && gardenKey) {
           send("event", { name, payload })
         }
       }
 
-      const logListener = (name: EventName, payload: any) => {
+      const logListener: EventPipeListener = (name: EventName, payload) => {
         const gardenKey = payload?.context?.gardenKey
         if (name === "logEntry" && gardenKey) {
           send(name, payload)
