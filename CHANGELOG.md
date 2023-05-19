@@ -1,4 +1,21 @@
 
+<a name="0.12.56-0"></a>
+## [0.12.56-0](https://github.com/garden-io/garden/compare/0.12.55...0.12.56-0) (2023-05-13)
+
+### Bug Fixes
+
+* **circleci:** bash typo in release-dockerhub ([#4249](https://github.com/garden-io/garden/issues/4249)) ([ea454bd5e](https://github.com/garden-io/garden/commit/ea454bd5e))
+* **k8s:** stop retrying in LogFollower when Pod is in terminal phase ([#4131](https://github.com/garden-io/garden/issues/4131)) ([1dea5419a](https://github.com/garden-io/garden/commit/1dea5419a))
+
+### Features
+
+* add self-managed state backends to pulumi stacks ([#4107](https://github.com/garden-io/garden/issues/4107)) ([d52b821e6](https://github.com/garden-io/garden/commit/d52b821e6))
+* **plugins:** set the manifest to unknown if repository is not found ([cac507311](https://github.com/garden-io/garden/commit/cac507311))
+
+### Improvements
+
+* **container:** redeploy when spec changes ([f0bd691d9](https://github.com/garden-io/garden/commit/f0bd691d9))
+
 <a name="0.12.55"></a>
 ## [0.12.55](https://github.com/garden-io/garden/compare/0.12.54...0.12.55) (2023-04-24)
 
