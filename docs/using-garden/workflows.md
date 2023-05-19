@@ -223,7 +223,7 @@ For a full description of how to configure triggers, check out the [workflows re
 
 ## Workflows and the Stack Graph
 
-Unlike _modules_, workflows stand outside of the Stack Graph. They cannot currently depend on each other, and nothing in the Stack Graph can reference or otherwise depend on workflows.
+Unlike _actions_, workflows stand outside of the Stack Graph. They cannot currently depend on each other, and nothing in the Stack Graph can reference or otherwise depend on workflows.
 
 ## Examples
 
