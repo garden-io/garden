@@ -1,4 +1,7 @@
 
+<a name="0.12.56-1"></a>
+## [0.12.56-1](https://github.com/garden-io/garden/compare/0.12.56-0...0.12.56-1) (2023-05-19)
+
 <a name="0.12.56-0"></a>
 ## [0.12.56-0](https://github.com/garden-io/garden/compare/0.12.55...0.12.56-0) (2023-05-13)
 
