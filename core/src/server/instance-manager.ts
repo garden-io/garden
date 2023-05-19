@@ -91,8 +91,8 @@ export class GardenInstanceManager {
     ]
   }
 
-  static getInstance(params: GardenInstanceManagerParams) {
-    if (!_manager) {
+  static getInstance(params: GardenInstanceManagerParams & { force?: boolean }) {
+    if (!_manager || params.force) {
       _manager = new GardenInstanceManager(params)
     }
     return _manager
