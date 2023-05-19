@@ -31,7 +31,15 @@ export interface SyncStatus {
 }
 
 // TODO: maybe this should be the same as an ActionState
-export const syncStates = ["active", "not-active", "failed", "unknown", "outdated", "not-configured"] as const
+export const syncStates = [
+  "not-deployed",
+  "active",
+  "not-active",
+  "failed",
+  "unknown",
+  "outdated",
+  "not-configured"
+] as const
 export type SyncState = (typeof syncStates)[number]
 
 export interface GetSyncStatusResult<D extends object = {}> {
@@ -67,7 +75,7 @@ export const getSyncStatusResultSchema = createSchema({
         syncCount: joi.number().description("The number of successful syncs. May not be availabe for all plugins."),
         mode: syncModeSchema(),
       })
-    ),
+    ).description("Should include an entry for every configured sync, also when their target isn't deployed in sync mode."),
     error: joi.string().description("Set to an error message if the sync is failed."),
     detail: joiVariables().description("Any additional detail to be included and printed with status checks."),
   },

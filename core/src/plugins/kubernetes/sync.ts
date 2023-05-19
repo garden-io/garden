@@ -20,6 +20,7 @@ import {
   syncDefaultGroupSchema,
   syncDefaultOwnerSchema,
   syncExcludeSchema,
+  SyncMode,
   syncModeSchema,
   syncTargetPathSchema,
 } from "../container/moduleConfig"
@@ -497,9 +498,9 @@ interface GetSyncStatusParams extends StartSyncsParams {
 
 interface PrepareSyncParams extends SyncParamsBase {
   action: Resolved<SupportedRuntimeAction>
+  target: SyncableResource
   resourceSpec: KubernetesTargetResourceSpec
   spec: KubernetesDeployDevModeSyncSpec
-  manifests: KubernetesResource[]
 }
 
 export function getLocalSyncPath(sourcePath: string, basePath: string) {
@@ -508,7 +509,7 @@ export function getLocalSyncPath(sourcePath: string, basePath: string) {
 }
 
 export async function startSyncs(params: StartSyncsParams) {
-  const { ctx, log, basePath, action, defaultNamespace, actionDefaults, defaultTarget, syncs } = params
+  const { ctx, log, basePath, action, manifests, defaultNamespace, actionDefaults, defaultTarget, syncs } = params
 
   if (syncs.length === 0) {
     return
@@ -528,11 +529,20 @@ export async function startSyncs(params: StartSyncsParams) {
       // This will have been caught and warned about elsewhere
       return
     }
+    const target = await getTargetResource({
+      ctx,
+      log,
+      provider,
+      manifests,
+      action,
+      query: resourceSpec,
+    })
 
-    const { key, description, sourceDescription, targetDescription, target, resourceName, containerName } =
+    const { key, description, sourceDescription, targetDescription, resourceName, containerName } =
       await prepareSync({
         ...params,
         resourceSpec,
+        target,
         spec: s,
       })
 
@@ -610,6 +620,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
     log,
     basePath,
     action,
+    manifests,
     defaultNamespace,
     actionDefaults,
     defaultTarget,
@@ -630,7 +641,6 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
   let failed = false
   const expectedKeys: string[] = []
 
-  // TODO: dedupe from startSync
   await Bluebird.map(syncs, async (s) => {
     const resourceSpec = s.target || defaultTarget
 
@@ -639,22 +649,51 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
       return
     }
 
-    const { key, sourceDescription, targetDescription, target, resourceName, containerName } = await prepareSync({
+    let target: SyncableResource
+    try {
+      target = await getTargetResource({
+        ctx,
+        log,
+        provider,
+        manifests,
+        action,
+        query: resourceSpec,
+      })
+    } catch (err) {
+      log.debug(`Could not find deployed resource - returning not-active status for sync ${JSON.stringify(s)}.`)
+      const { sourceDescription, targetDescription } = getEndpointDescriptions(
+        s.mode,
+        s.sourcePath,
+        `${s.containerPath} (not deployed with sync mode)`,
+      )
+      syncStatuses.push({
+        source: sourceDescription,
+        targetDescription,
+        state: "not-deployed",
+        mode: s.mode,
+      })
+      allActive = false
+      return
+    }
+
+    const { key, sourceDescription, targetDescription, resourceName, containerName } = await prepareSync({
       ...params,
       resourceSpec,
+      target,
       spec: s,
     })
 
-    // Validate the target
-    if (!isConfiguredForSyncMode(target)) {
-      log.debug(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
+    if (!isConfiguredForSyncMode(target) || !containerName) {
+      syncStatuses.push({
+        source: sourceDescription,
+        targetDescription: stripAnsi(targetDescription),
+        state: "not-active",
+        mode: s.mode,
+        syncCount: session?.successfulCycles
+      })
       return
     }
 
-    if (!containerName) {
-      log.debug(chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`))
-      return
-    }
 
     const namespace = target.metadata.namespace || defaultNamespace
 
@@ -734,6 +773,8 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
     state = "active"
   } else if (extraSyncs || someActive) {
     state = "outdated"
+  } else if (!someActive) {
+    state = "not-deployed"
   }
 
   return {
@@ -772,17 +813,8 @@ function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableRe
 }
 
 async function prepareSync(params: PrepareSyncParams) {
-  const { ctx, log, manifests, action, resourceSpec, spec } = params
-  const provider = ctx.provider
+  const { target, spec } = params
 
-  const target = await getTargetResource({
-    ctx,
-    log,
-    provider,
-    manifests,
-    action,
-    query: resourceSpec,
-  })
 
   const resourceName = getResourceKey(target)
 
@@ -791,18 +823,11 @@ async function prepareSync(params: PrepareSyncParams) {
   const localPathDescription = chalk.white(spec.sourcePath)
   const remoteDestinationDescription = `${chalk.white(spec.containerPath)} in ${chalk.white(resourceName)}`
 
-  let sourceDescription: string
-  let targetDescription: string
-
-  const mode = spec.mode || defaultSyncMode
-
-  if (isReverseMode(mode)) {
-    sourceDescription = remoteDestinationDescription
-    targetDescription = localPathDescription
-  } else {
-    sourceDescription = localPathDescription
-    targetDescription = remoteDestinationDescription
-  }
+  const { sourceDescription, targetDescription } = getEndpointDescriptions(
+    spec.mode,
+    localPathDescription,
+    remoteDestinationDescription
+  )
 
   const description = `${sourceDescription} to ${targetDescription}`
 
@@ -817,6 +842,24 @@ async function prepareSync(params: PrepareSyncParams) {
     resourceName,
     containerName,
   }
+}
+
+function getEndpointDescriptions(
+  mode: SyncMode | undefined,
+  localPathDescription: string,
+  remoteDestinationDescription: string
+) {
+  let sourceDescription: string
+  let targetDescription: string
+
+  if (isReverseMode(mode || defaultSyncMode)) {
+    sourceDescription = remoteDestinationDescription
+    targetDescription = localPathDescription
+  } else {
+    sourceDescription = localPathDescription
+    targetDescription = remoteDestinationDescription
+  }
+  return { sourceDescription, targetDescription }
 }
 
 export function makeSyncConfig({
