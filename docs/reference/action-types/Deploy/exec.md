@@ -541,7 +541,7 @@ Environment variables to set when running the deploy and status commands.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `exec`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

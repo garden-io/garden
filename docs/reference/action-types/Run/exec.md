@@ -494,7 +494,7 @@ Environment variables to set when running the command.
 ## Outputs
 
 The following keys are available via the `${actions.run.<name>}` template string key for `exec`
-modules.
+action.
 
 ### `${actions.run.<name>.name}`
 

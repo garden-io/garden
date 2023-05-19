@@ -786,7 +786,7 @@ Specify an image ID to deploy. Should be a valid Docker image identifier. Requir
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `container`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

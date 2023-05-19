@@ -411,7 +411,7 @@ POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `hadolint`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

@@ -482,7 +482,7 @@ The Helm Deploy action to validate.
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `conftest-helm`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

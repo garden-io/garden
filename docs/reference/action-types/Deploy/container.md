@@ -1549,7 +1549,7 @@ Note: This setting may be overridden or ignored in some cases. For example, when
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `container`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

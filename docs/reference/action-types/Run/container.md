@@ -801,7 +801,7 @@ Set to false if you don't want the task's result to be cached. Use this if the t
 ## Outputs
 
 The following keys are available via the `${actions.run.<name>}` template string key for `container`
-modules.
+action.
 
 ### `${actions.run.<name>.name}`
 
