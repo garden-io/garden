@@ -116,7 +116,7 @@ _modules_](../reference/module-types/exec.md).
 See the [reference guide](../reference/action-types/Deploy/exec.md) for more details on the `exec Deploy` action
 configuration.
 
-See also this [example project](../../examples/local-service).
+Also check out the [local-service example project](../../examples/local-service).
 
 ## Next Steps
 
