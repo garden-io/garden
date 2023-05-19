@@ -19,7 +19,7 @@ import { naturalList } from "../util/string"
 import { isMatch } from "micromatch"
 import type { GardenInstanceManager } from "./instance-manager"
 import { omitUndefined } from "../util/objects"
-import { GardenOpts, resolveGardenParamsPartial } from "../garden"
+import { GardenOpts, makeDummyGarden, resolveGardenParamsPartial } from "../garden"
 import { isDirectory } from "../util/fs"
 import { pathExists } from "fs-extra"
 import type { ProjectConfig, ProjectResource } from "../config/project"
@@ -415,6 +415,11 @@ export async function getGardenForRequest({
   }
 
   const projectRoot = projectConfig.path
+
+  if (command && command.noProject) {
+    return makeDummyGarden(projectRoot, gardenOpts)
+  }
+
   const gardenParams = await resolveGardenParamsPartial(projectRoot, gardenOpts)
 
   return manager.ensureInstance(

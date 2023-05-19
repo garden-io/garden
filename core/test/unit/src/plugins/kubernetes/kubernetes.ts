@@ -12,8 +12,7 @@ import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/sy
 import { expect } from "chai"
 import { TempDirectory, makeTempDir } from "../../../../helpers"
 import { providerFromConfig } from "../../../../../src/config/provider"
-import { Garden } from "../../../../../src/garden"
-import { makeDummyGarden } from "../../../../../src/cli/cli"
+import { Garden, makeDummyGarden } from "../../../../../src/garden"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {

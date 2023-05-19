@@ -14,7 +14,7 @@ import { getBuiltinCommands } from "../commands/commands"
 import { shutdown, getPackageVersion, getCloudDistributionName } from "../util/util"
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
 import { PluginError, toGardenError, GardenBaseError } from "../exceptions"
-import { Garden, GardenOpts, DummyGarden } from "../garden"
+import { Garden, GardenOpts, makeDummyGarden } from "../garden"
 import { getRootLogger, getTerminalWriterType, LogLevel, parseLogLevel, RootLogger } from "../logger/logger"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
 
@@ -32,23 +32,10 @@ import {
   cliStyles,
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
-import {
-  ProjectConfig,
-  defaultNamespace,
-  parseEnvironment,
-  ProjectResource,
-  defaultEnvironment,
-} from "../config/project"
-import {
-  ERROR_LOG_FILENAME,
-  DEFAULT_API_VERSION,
-  DEFAULT_GARDEN_DIR_NAME,
-  LOGS_DIR_NAME,
-  gardenEnv,
-} from "../constants"
+import { ProjectResource } from "../config/project"
+import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME, gardenEnv } from "../constants"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
-import { defaultDotIgnoreFile } from "../util/fs"
 import { GardenPluginReference } from "../plugin/plugin"
 import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
 import { findProjectConfig } from "../config/base"
@@ -62,31 +49,6 @@ import { dedent } from "../util/string"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
-
-export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
-  if (!gardenOpts.environmentName) {
-    gardenOpts.environmentName = `${defaultEnvironment}.${defaultNamespace}`
-  }
-
-  const parsed = parseEnvironment(gardenOpts.environmentName)
-  const environmentName = parsed.environment || defaultEnvironment
-  const _defaultNamespace = parsed.namespace || defaultNamespace
-
-  const config: ProjectConfig = {
-    path: root,
-    apiVersion: DEFAULT_API_VERSION,
-    kind: "Project",
-    name: "no-project",
-    defaultEnvironment: "",
-    dotIgnoreFile: defaultDotIgnoreFile,
-    environments: [{ name: environmentName, defaultNamespace: _defaultNamespace, variables: {} }],
-    providers: [],
-    variables: {},
-  }
-  gardenOpts.config = config
-
-  return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
-}
 
 export interface RunOutput {
   argv: any

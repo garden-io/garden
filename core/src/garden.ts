@@ -29,6 +29,7 @@ import {
   projectSourcesSchema,
   ProxyConfig,
   defaultNamespace,
+  defaultEnvironment,
 } from "./config/project"
 import {
   findByName,
@@ -81,6 +82,7 @@ import {
   detectModuleOverlap,
   ModuleOverlap,
   defaultConfigFilename,
+  defaultDotIgnoreFile,
 } from "./util/fs"
 import {
   Provider,
@@ -1909,6 +1911,31 @@ export class DummyGarden extends Garden {
   async getRepoRoot() {
     return ""
   }
+}
+
+export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
+  if (!gardenOpts.environmentName) {
+    gardenOpts.environmentName = `${defaultEnvironment}.${defaultNamespace}`
+  }
+
+  const parsed = parseEnvironment(gardenOpts.environmentName)
+  const environmentName = parsed.environment || defaultEnvironment
+  const _defaultNamespace = parsed.namespace || defaultNamespace
+
+  const config: ProjectConfig = {
+    path: root,
+    apiVersion: DEFAULT_API_VERSION,
+    kind: "Project",
+    name: "no-project",
+    defaultEnvironment: "",
+    dotIgnoreFile: defaultDotIgnoreFile,
+    environments: [{ name: environmentName, defaultNamespace: _defaultNamespace, variables: {} }],
+    providers: [],
+    variables: {},
+  }
+  gardenOpts.config = config
+
+  return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
 }
 
 export interface ConfigDump {

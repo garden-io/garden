@@ -22,7 +22,7 @@ import { ToolsCommand } from "../../../../src/commands/tools"
 import { LogLevel } from "../../../../src/logger/logger"
 import { dedent } from "../../../../src/util/string"
 import { Log } from "../../../../src/logger/log-entry"
-import { makeDummyGarden } from "../../../../src/cli/cli"
+import { makeDummyGarden } from "../../../../src/garden"
 import { getLogMessages } from "../../../../src/util/testing"
 
 describe("ToolsCommand", () => {
