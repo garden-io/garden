@@ -467,7 +467,7 @@ A list of files to test with the given policy. Must be POSIX-style paths, and ma
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `conftest`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

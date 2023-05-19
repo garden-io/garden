@@ -1409,7 +1409,7 @@ The name of a container in the target. Specify this if the target contains more 
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `kubernetes`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

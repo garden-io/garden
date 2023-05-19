@@ -551,7 +551,7 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 ## Outputs
 
 The following keys are available via the `${actions.build.<name>}` template string key for `exec`
-modules.
+action.
 
 ### `${actions.build.<name>.name}`
 

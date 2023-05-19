@@ -731,7 +731,7 @@ Specify extra flags to pass to maven/gradle when building the container image.
 ## Outputs
 
 The following keys are available via the `${actions.build.<name>}` template string key for `jib-container`
-modules.
+action.
 
 ### `${actions.build.<name>.name}`
 

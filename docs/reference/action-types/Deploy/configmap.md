@@ -421,7 +421,7 @@ The ConfigMap data, as a key/value map of string values.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `configmap`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

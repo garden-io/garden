@@ -759,7 +759,7 @@ The name of the pulumi stack to use. Defaults to the current environment name.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `pulumi`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

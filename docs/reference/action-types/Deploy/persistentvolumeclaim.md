@@ -613,7 +613,7 @@ VolumeName is the binding reference to the PersistentVolume backing this claim.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `persistentvolumeclaim`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

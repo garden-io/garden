@@ -863,7 +863,7 @@ Time in seconds to wait for Helm to render templates.
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `helm-pod`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

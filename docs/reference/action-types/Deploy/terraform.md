@@ -617,7 +617,7 @@ Use the specified Terraform workspace.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `terraform`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

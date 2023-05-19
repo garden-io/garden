@@ -1758,7 +1758,7 @@ List of volumes that can be mounted by containers belonging to the pod. More inf
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `kubernetes-pod`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 
