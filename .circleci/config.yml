@@ -308,7 +308,7 @@ jobs:
     resource_class: large
     steps:
       - build_dist:
-          version: edge
+          version: edge-acorn
 
   lint:
     <<: *node-config
@@ -483,13 +483,13 @@ jobs:
     steps:
       - *attach-workspace
       - run:
-          name: Publish a pre-release on GitHub with the tag 'edge'
+          name: Publish a pre-release on GitHub with the tag 'edge-acorn'
           command: |
             # We assume that the tag already exists. We update the existing tag
             # using the gh cli, and then we upload the artifacts using ghr.
             # We do not create a new release here, as this would spam our fellow coder's
             # GitHub timelines
-            VERSION=edge
+            VERSION=edge-acorn
 
             # Update the release hash
             gh release edit ${VERSION} \
