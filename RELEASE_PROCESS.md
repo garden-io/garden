@@ -1,6 +1,6 @@
 # Release process
 
-We have a dedicated release branch, `latest-release`, off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/main/scripts/release.ts). Once we're ready to release, we reset the `latest-release` branch to `main` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `main` and cherry-pick them to the `latest-release` branch. We repeat this process until all issues have been resolved and we can make a proper release.
+We have a dedicated release branch, `latest-release-0.12`, off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/main/scripts/release.ts). Once we're ready to release, we reset the `latest-release-0.12` branch to `main` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `main` and cherry-pick them to the `latest-release-0.12` branch. We repeat this process until all issues have been resolved and we can make a proper release.
 
 This procedure allows us to continue merging features into `main` without them being included in the release.
 
@@ -29,9 +29,9 @@ To make a new release, set your current working directory to the garden root dir
 
 First, you need to prepare the release binaries and run some manual tests:
 
-1. **Checkout to the `latest-release` branch**.
+1. **Checkout to the `latest-release-0.12` branch**.
 2. Make the first pre-release:
-   - Reset `latest-release` to `main` with `git reset --hard origin/main`.
+   - Reset `latest-release-0.12` to `main` with `git reset --hard origin/main`.
    - Run `git log` to make sure that the latest commit is the expected one and there are no unwanted changes from `main` included in the release.
    - Run `./scripts/release.ts preminor|prepatch`.
    - Wait for the CI build job to get the binaries from the [GitHub Releases page](https://github.com/garden-io/garden/releases).
@@ -66,7 +66,7 @@ Once the release CI job is done, a draft release will appear in GitHub. That dra
      - Remember to put the list of features on top of the list of bug fixes in the changelog.
 3. Click the **Publish release** button.
 4. Make a pull request for the branch that was pushed by the script and make sure it's merged as soon as possible.
-5. Make sure the `latest-release` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
+5. Make sure the `latest-release-0.12` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
 6. Check the `update-homebrew` GitHub Action run successfully and merge the relevant PR in the [homebrew repo](https://github.com/garden-io/homebrew-garden/pulls).
 7. Install the Homebrew package and make sure it works okay:
     - `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli`
