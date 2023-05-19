@@ -608,13 +608,17 @@ tests:
         # config source directory (or absolute).
         hostPath:
 
-        # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types
-        # are `persistentvolumeclaim` and `configmap`, for example.
+        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
+        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
+        # module](./persistentvolumeclaim.md), for example.
+        #
+        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
+        # dependency of this service, as well as a build dependency of this module.
         #
         # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
         # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
         # services at the same time. Refer to the documentation of the module type in question to learn more.
-        action:
+        module:
 
     # If true, run the main container in privileged mode. Processes in privileged containers are essentially
     # equivalent to root on the host. Defaults to false.
@@ -723,13 +727,17 @@ tasks:
         # config source directory (or absolute).
         hostPath:
 
-        # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types
-        # are `persistentvolumeclaim` and `configmap`, for example.
+        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
+        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
+        # module](./persistentvolumeclaim.md), for example.
+        #
+        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
+        # dependency of this service, as well as a build dependency of this module.
         #
         # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
         # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
         # services at the same time. Refer to the documentation of the module type in question to learn more.
-        action:
+        module:
 
     # If true, run the main container in privileged mode. Processes in privileged containers are essentially
     # equivalent to root on the host. Defaults to false.
@@ -2364,17 +2372,19 @@ tests:
       - hostPath: "/some/dir"
 ```
 
-### `tests[].volumes[].action`
+### `tests[].volumes[].module`
 
-[tests](#tests) > [volumes](#testsvolumes) > action
+[tests](#tests) > [volumes](#testsvolumes) > module
 
-The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`, for example.
+The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
+
+When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
 
 Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `actionReference` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `tests[].privileged`
 
@@ -2725,17 +2735,19 @@ tasks:
       - hostPath: "/some/dir"
 ```
 
-### `tasks[].volumes[].action`
+### `tasks[].volumes[].module`
 
-[tasks](#tasks) > [volumes](#tasksvolumes) > action
+[tasks](#tasks) > [volumes](#tasksvolumes) > module
 
-The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`, for example.
+The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
+
+When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
 
 Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `actionReference` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `tasks[].privileged`
 
