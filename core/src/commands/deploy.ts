@@ -173,7 +173,7 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const monitor = this.maybePersistent(params)
-    if (monitor && !params.commandLine) {
+    if (monitor && !params.parentCommand) {
       // Then we're not in the dev command yet, so we call that instead with the appropriate initial command.
       // TODO: Abstract this delegation process into a helper if we write more commands that do this sort of thing.
       params.opts.cmd = ["deploy " + params.args.$all!.join(" ")]

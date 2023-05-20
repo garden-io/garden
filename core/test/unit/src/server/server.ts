@@ -31,13 +31,13 @@ describe("GardenServer", () => {
 
   const hostname = "127.0.0.1"
 
-  const command = new ServeCommand()
+  const serveCommand = new ServeCommand()
 
   class TestCommand extends Command {
     name = "_test"
     help = "foo"
 
-    async action({ garden: _garden, log }: CommandParams) {
+    async action({ garden: _garden, log, parentCommand }: CommandParams) {
       log.info("Info log")
       log.debug("Debug log")
       log.silly("Silly log")
@@ -45,7 +45,7 @@ describe("GardenServer", () => {
       _garden.log.debug("Garden debug log")
       _garden.log.silly("Garden silly log")
 
-      return {}
+      return { result: { parentCommandName: parentCommand?.getFullName() } }
     }
   }
 
@@ -55,7 +55,7 @@ describe("GardenServer", () => {
     manager = GardenInstanceManager.getInstance({
       log: garden.log,
       sessionId: garden.sessionId,
-      serveCommand: command,
+      serveCommand,
       extraCommands: [new TestCommand()],
       defaultOpts: { plugins: [...testPlugins()] },
       force: true,
@@ -67,6 +67,7 @@ describe("GardenServer", () => {
       manager,
       defaultProjectRoot: garden.projectRoot,
       port,
+      serveCommand,
     })
     await gardenServer.start()
     server = gardenServer["server"]
@@ -106,6 +107,7 @@ describe("GardenServer", () => {
         port,
         manager,
         defaultProjectRoot: garden.projectRoot,
+        serveCommand,
       })
       await gardenServerCustomPort.start()
 
@@ -504,6 +506,33 @@ describe("GardenServer", () => {
           type: "command",
           id,
           command: "get config --var foo=bar",
+        })
+      )
+    })
+
+    it("passes the underlying ServeCommand as parentCommand to command action", (done) => {
+      const id = uuidv4()
+      onMessageAfterReady({
+        cb: (msg) => {
+          // Ignore other events such as taskPending and taskProcessing and wait for the command result
+          if (msg.type !== "commandResult") {
+            return
+          }
+
+          try {
+            expect(msg.result.parentCommandName).to.equal("serve")
+            done()
+          } catch (error) {
+            done(error)
+          }
+        },
+        skipType: "logEntry",
+      })
+      ws.send(
+        JSON.stringify({
+          type: "command",
+          id,
+          command: "_test",
         })
       )
     })

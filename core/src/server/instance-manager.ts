@@ -57,6 +57,7 @@ export class GardenInstanceManager {
   private builtinCommands: Command[]
   public readonly monitors: MonitorManager
   private defaultOpts: Partial<GardenOpts> // Used for testing
+  public readonly serveCommand: ServeCommand
 
   /**
    * Events from every managed Garden instance are piped to this EventBus. Each event emitted implicitly includes

@@ -14,6 +14,7 @@ import sliceAnsi from "slice-ansi"
 import stringArgv from "string-argv"
 import stringWidth from "string-width"
 import { BuiltinArgs, Command, CommandGroup, CommandResult, PrepareParams } from "../commands/base"
+import { ServeCommand } from "../commands/serve"
 import { GlobalConfigStore } from "../config-store/global"
 import { findProjectConfig } from "../config/base"
 import { toGardenError } from "../exceptions"
@@ -124,6 +125,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private messageCallback: SetStringCallback
   private messageTimeout: NodeJS.Timeout
 
+  private serveCommand: ServeCommand
   private extraCommands: Command[]
   private cwd: string
   private manager: GardenInstanceManager
@@ -136,6 +138,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     manager,
     log,
     globalOpts,
+    serveCommand,
     extraCommands,
     history = [],
   }: {
@@ -143,6 +146,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     manager: GardenInstanceManager
     log: Log
     globalOpts: Partial<ParameterValues<GlobalOptions>>
+    serveCommand: ServeCommand
     extraCommands: Command[]
     history?: string[]
   }) {
@@ -155,6 +159,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.log = log
     this.globalOpts = globalOpts
     this.extraCommands = extraCommands
+    this.serveCommand = serveCommand
 
     this.enabled = false
     this.currentCommand = ""
@@ -670,6 +675,7 @@ ${chalk.white.underline("Keys:")}
       args,
       opts,
       commandLine: this,
+      parentCommand: this.serveCommand,
     }
 
     const name = command.getFullName()
