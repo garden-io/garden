@@ -662,7 +662,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
     } catch (err) {
       log.debug(`Could not find deployed resource - returning not-active status for sync ${JSON.stringify(s)}.`)
       const remoteDestination = s.containerPath
-      const { sourceDescription, targetDescription } = orientEndpoints({
+      const { source, target } = orientEndpoints({
         mode: s.mode,
         localPath: s.sourcePath,
         localPathDescription: s.sourcePath,
@@ -670,8 +670,8 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
         remoteDestinationDescription: remoteDestination,
       })
       syncStatuses.push({
-        source: sourceDescription,
-        target: targetDescription,
+        source,
+        target,
         state: "not-deployed",
         mode: s.mode,
       })
@@ -688,7 +688,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
 
     if (!isConfiguredForSyncMode(targetResource) || !containerName) {
       syncStatuses.push({
-        source: sourceDescription,
+        source,
         target,
         state: "not-active",
         mode: s.mode,
