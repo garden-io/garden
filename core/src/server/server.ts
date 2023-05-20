@@ -39,6 +39,7 @@ import { GlobalConfigStore } from "../config-store/global"
 import { validateSchema } from "../config/validation"
 import { ConfigGraph } from "../graph/config-graph"
 import { getGardenCloudDomain } from "../cloud/api"
+import type { ServeCommand } from "../commands/serve"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -76,6 +77,7 @@ interface GardenServerParams {
   log: Log
   manager: GardenInstanceManager
   defaultProjectRoot: string
+  serveCommand: ServeCommand
   port?: number
 }
 
@@ -119,6 +121,7 @@ export class GardenServer extends EventEmitter {
   private manager: GardenInstanceManager
   private incomingEvents: EventBus
   private globalConfigStore: GlobalConfigStore
+  private serveCommand: ServeCommand
 
   private defaultProjectRoot: string
   private defaultEnv?: string
@@ -130,7 +133,7 @@ export class GardenServer extends EventEmitter {
   public readonly authKey: string
   public readonly sessionId: string
 
-  constructor({ log, manager, port, defaultProjectRoot }: GardenServerParams) {
+  constructor({ log, manager, port, defaultProjectRoot, serveCommand }: GardenServerParams) {
     super()
     this.log = log
     this.debugLog = this.log.createLog({ fixLevel: LogLevel.debug })
@@ -143,6 +146,7 @@ export class GardenServer extends EventEmitter {
     this.authKey = randomString(24)
     this.incomingEvents = new EventBus()
     this.activePersistentRequests = {}
+    this.serveCommand = serveCommand
   }
 
   async start() {
@@ -294,6 +298,7 @@ export class GardenServer extends EventEmitter {
         log,
         args,
         opts,
+        parentCommand: this.serveCommand,
       }
 
       const persistent = command.maybePersistent(prepareParams)
@@ -545,6 +550,7 @@ export class GardenServer extends EventEmitter {
           log: commandLog,
           args,
           opts,
+          parentCommand: this.serveCommand,
         }
 
         const persistent = command.maybePersistent(prepareParams)

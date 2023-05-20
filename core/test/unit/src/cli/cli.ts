@@ -391,10 +391,12 @@ describe("cli", () => {
         }
 
         async prepare({ log: _log }: PrepareParams) {
+          const serveCommand = new ServeCommand()
           this.server = await startServer({
             log: _log,
             defaultProjectRoot: projectRootA,
-            manager: GardenInstanceManager.getInstance({ log, sessionId, serveCommand: new ServeCommand() }),
+            manager: GardenInstanceManager.getInstance({ log, sessionId, serveCommand }),
+            serveCommand,
           })
         }
 

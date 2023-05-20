@@ -197,6 +197,7 @@ Let's get your development environment wired up.
       extraCommands: [new HelpCommand(), new QuitCommand(quit), new QuietCommand(), new QuiteCommand()],
       globalOpts: pick(opts, Object.keys(globalOptions)),
       history: await garden.localConfigStore.get("devCommandHistory"),
+      serveCommand: this,
     }))
 
     function quitWithWarning() {

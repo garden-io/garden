@@ -62,6 +62,8 @@ export interface PrintHeaderParams<T extends Parameters = {}, U extends Paramete
 export interface PrepareParams<T extends Parameters = {}, U extends Parameters = {}> extends CommandParamsBase<T, U> {
   log: Log
   commandLine?: CommandLine
+  // The ServeCommand or DevCommand when applicable
+  parentCommand?: Command
 }
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
@@ -182,6 +184,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     commandLine,
     sessionId,
     nested,
+    parentCommand,
   }: RunCommandParams<A, O>): Promise<CommandResult<R>> {
     const commandStartTime = new Date()
     const server = this.server
@@ -284,6 +287,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
           args,
           opts: allOpts,
           commandLine,
+          parentCommand,
         })
         log.silly(`Completed command '${this.getFullName()}' action successfully`)
       } else {

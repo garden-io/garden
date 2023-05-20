@@ -95,6 +95,7 @@ export class ServeCommand<
       manager,
       port: opts.port,
       defaultProjectRoot: process.cwd(),
+      serveCommand: this,
     })
 
     try {
