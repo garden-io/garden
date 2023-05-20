@@ -20,7 +20,7 @@ interface GetSyncStatusParams<T extends DeployAction> extends PluginDeployAction
 
 export interface SyncStatus {
   source: string
-  targetDescription: string
+  target: string
   state: SyncState
   /**
    * ISO format date string
@@ -61,8 +61,9 @@ export const getSyncStatusResultSchema = createSchema({
     syncs: joi.array().items(
       joi.object().keys({
         source: joi.string().required().description("The sync source as defined in the sync spec."),
-        targetDescription: joi
+        target: joi
           .string()
+          .required()
           .description(
             "A description of the sync target. This can include plugin specific information about the target to help accurately descibe it."
           ),

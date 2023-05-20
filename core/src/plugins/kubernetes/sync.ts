@@ -649,9 +649,9 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
       return
     }
 
-    let target: SyncableResource
+    let targetResource: SyncableResource
     try {
-      target = await getTargetResource({
+      targetResource = await getTargetResource({
         ctx,
         log,
         provider,
@@ -661,14 +661,17 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
       })
     } catch (err) {
       log.debug(`Could not find deployed resource - returning not-active status for sync ${JSON.stringify(s)}.`)
-      const { sourceDescription, targetDescription } = getEndpointDescriptions(
-        s.mode,
-        s.sourcePath,
-        `${s.containerPath} (not deployed with sync mode)`,
-      )
+      const remoteDestination = s.containerPath
+      const { sourceDescription, targetDescription } = orientEndpoints({
+        mode: s.mode,
+        localPath: s.sourcePath,
+        localPathDescription: s.sourcePath,
+        remoteDestination,
+        remoteDestinationDescription: remoteDestination,
+      })
       syncStatuses.push({
         source: sourceDescription,
-        targetDescription,
+        target: targetDescription,
         state: "not-deployed",
         mode: s.mode,
       })
@@ -676,17 +679,17 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
       return
     }
 
-    const { key, sourceDescription, targetDescription, resourceName, containerName } = await prepareSync({
+    const { key, source, target, sourceDescription, targetDescription, resourceName, containerName } = await prepareSync({
       ...params,
       resourceSpec,
-      target,
+      target: targetResource,
       spec: s,
     })
 
-    if (!isConfiguredForSyncMode(target) || !containerName) {
+    if (!isConfiguredForSyncMode(targetResource) || !containerName) {
       syncStatuses.push({
         source: sourceDescription,
-        targetDescription: stripAnsi(targetDescription),
+        target,
         state: "not-active",
         mode: s.mode,
         syncCount: session?.successfulCycles
@@ -695,7 +698,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
     }
 
 
-    const namespace = target.metadata.namespace || defaultNamespace
+    const namespace = targetResource.metadata.namespace || defaultNamespace
 
     const localPath = getLocalSyncPath(s.sourcePath, basePath)
     const remoteDestination = await getKubectlExecDestination({
@@ -723,9 +726,9 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
     }
 
     syncStatuses.push({
-      source: s.sourcePath,
+      source,
       // The targetDescription variable has ANSI characters that we strip for the status result
-      targetDescription: stripAnsi(targetDescription),
+      target,
       state: syncState,
       mode: s.mode,
       syncCount: session?.successfulCycles
@@ -813,8 +816,8 @@ function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableRe
 }
 
 async function prepareSync(params: PrepareSyncParams) {
+  // The `target` value here doesn't take the sync direction into account (that's applied in `getEndpointDescriptions`).
   const { target, spec } = params
-
 
   const resourceName = getResourceKey(target)
 
@@ -823,43 +826,65 @@ async function prepareSync(params: PrepareSyncParams) {
   const localPathDescription = chalk.white(spec.sourcePath)
   const remoteDestinationDescription = `${chalk.white(spec.containerPath)} in ${chalk.white(resourceName)}`
 
-  const { sourceDescription, targetDescription } = getEndpointDescriptions(
-    spec.mode,
-    localPathDescription,
-    remoteDestinationDescription
-  )
+  const {
+    source: orientedSource,
+    sourceDescription: orientedSourceDescription,
+    target: orientedTarget,
+    targetDescription: orientedTargetDescription
+  } = orientEndpoints({
+    mode: spec.mode,
+    localPath: spec.sourcePath,
+    localPathDescription: localPathDescription,
+    remoteDestination: stripAnsi(remoteDestinationDescription),
+    remoteDestinationDescription,
+  })
 
-  const description = `${sourceDescription} to ${targetDescription}`
+  const description = `${orientedSourceDescription} to ${orientedTargetDescription}`
 
   const containerName = spec.target?.containerName || getResourcePodSpec(target)?.containers[0]?.name
 
   return {
     key,
+    source: orientedSource,
+    target: orientedTarget,
     description,
-    sourceDescription,
-    targetDescription,
-    target,
+    sourceDescription: orientedSourceDescription,
+    targetDescription: orientedTargetDescription,
     resourceName,
     containerName,
   }
 }
 
-function getEndpointDescriptions(
-  mode: SyncMode | undefined,
-  localPathDescription: string,
+function orientEndpoints({
+  mode,
+  localPath,
+  localPathDescription,
+  remoteDestination,
+  remoteDestinationDescription
+}: {
+  mode: SyncMode | undefined
+  localPath: string
+  localPathDescription: string
+  remoteDestination: string
   remoteDestinationDescription: string
-) {
+}) {
+  let source: string
   let sourceDescription: string
+  let target: string
   let targetDescription: string
 
   if (isReverseMode(mode || defaultSyncMode)) {
+    source = remoteDestination
     sourceDescription = remoteDestinationDescription
+    target = localPath
     targetDescription = localPathDescription
   } else {
+    source = localPath
     sourceDescription = localPathDescription
+    target = remoteDestination
     targetDescription = remoteDestinationDescription
   }
-  return { sourceDescription, targetDescription }
+  return { source, sourceDescription, target, targetDescription }
 }
 
 export function makeSyncConfig({
