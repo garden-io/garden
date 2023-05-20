@@ -12,6 +12,7 @@ import stripAnsi from "strip-ansi"
 import { isArray, repeat } from "lodash"
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
+import format from "date-fns/format"
 
 import { LogEntry } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
@@ -79,11 +80,8 @@ export function renderTimestamp(entry: LogEntry, logger: Logger): string {
   if (!logger.showTimestamps) {
     return ""
   }
-  return `[${getTimestamp(entry)}] `
-}
-
-export function getTimestamp(entry: LogEntry): string {
-  return entry.timestamp
+  const formattedDate = format(new Date(entry.timestamp), "HH:mm:ss")
+  return chalk.gray(formattedDate) + " "
 }
 
 export function getSection(entry: LogEntry): string | null {
@@ -189,7 +187,7 @@ export function cleanWhitespace(str: string) {
 
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
-  const { msg, metadata } = entry
+  const { msg, metadata, timestamp } = entry
   const errorDetail = entry.error && entry ? formatGardenErrorWithDetail(toGardenError(entry.error)) : undefined
   const section = renderSection(entry)
 
@@ -199,7 +197,7 @@ export function formatForJson(entry: LogEntry): JsonLogEntry {
     metadata,
     // TODO @eysi: Should we include the section here or rather just show the context?
     section: cleanForJSON(section),
-    timestamp: getTimestamp(entry),
+    timestamp,
     level: logLevelMap[entry.level],
   }
   if (errorDetail) {
