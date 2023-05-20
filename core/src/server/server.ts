@@ -673,9 +673,11 @@ export class GardenServer extends EventEmitter {
         globalConfigStore: garden.globalConfigStore,
       })
 
-      garden = garden.cloneForCommand(garden.sessionId, cloudApi)
+      // Use the server session ID. That is, the "main" session ID that belongs to the parent serve command.
+      const sessionIdForConfigLoad = this.sessionId
+      garden = garden.cloneForCommand(sessionIdForConfigLoad, cloudApi)
 
-      const cloudSession = garden.cloudApi?.getRegisteredSession(garden.sessionId)
+      const cloudSession = garden.cloudApi?.getRegisteredSession(sessionIdForConfigLoad)
 
       const cloudEventStream = new BufferedEventStream({
         log,
