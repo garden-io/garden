@@ -112,6 +112,7 @@ export class ServeCommand<
           const { environmentName, namespace } = await resolveGardenParams(projectConfig.path, {
             commandInfo: garden.commandInfo,
             config: projectConfig,
+            cloudApi,
           })
 
           await cloudApi.registerSession({
