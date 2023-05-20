@@ -700,14 +700,11 @@ export class AnalyticsHandler {
   }
 
   /**
-   * Flushes the event queue and waits if there are still pending events after flushing.
-   * This can happen if Segment has already flushed, which means the queue is empty and segment.flush()
-   * will return immediately.
+   * Flushes the event queue and shuts down the internal segment instance.
    *
-   * Waits for 2000 ms at most if there are still pending events.
-   * That should be enough time for a network request to fire, even if we don't wait for the response.
+   * This should only be used once and during shutdown.
    */
-  async flush() {
+  async shutdown() {
     this.log?.silly("Analytics close and flush all remaining events")
 
     try {
