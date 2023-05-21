@@ -32,10 +32,10 @@ const initializedEnvs: string[] = []
 let localInstance: Garden
 
 export async function getContainerTestGarden(environmentName: string = defaultEnvironment, opts?: TestGardenOpts) {
-  const garden = await makeTestGarden(root, { environmentName, noTempDir: opts?.noTempDir })
+  const garden = await makeTestGarden(root, { environmentString: environmentName, noTempDir: opts?.noTempDir })
 
   if (!localInstance) {
-    localInstance = await makeTestGarden(root, { environmentName: "local", noTempDir: opts?.noTempDir })
+    localInstance = await makeTestGarden(root, { environmentString: "local", noTempDir: opts?.noTempDir })
   }
 
   const needsInit = !environmentName.startsWith("local") && !initializedEnvs.includes(environmentName)

@@ -249,7 +249,7 @@ ${renderCommands(commands)}
 
     const contextOpts: GardenOpts = {
       commandInfo,
-      environmentName,
+      environmentString: environmentName,
       log,
       forceRefresh,
       variableOverrides: parsedCliVars,

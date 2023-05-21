@@ -55,6 +55,7 @@ export class GardenInstanceManager {
   private lastRequested: Map<string, Date>
   private lock: AsyncLock
   private builtinCommands: Command[]
+  private defaultProjectRootContext: ProjectRootContext
   public readonly monitors: MonitorManager
   private defaultOpts: Partial<GardenOpts> // Used for testing
   public readonly serveCommand: ServeCommand
@@ -90,6 +91,11 @@ export class GardenInstanceManager {
       ]),
       ...(extraCommands || []),
     ]
+
+    this.defaultProjectRootContext = {
+      commands: this.builtinCommands,
+      autocompleter: new Autocompleter({ log, commands: this.builtinCommands, configDump: undefined }),
+    }
   }
 
   static getInstance(params: GardenInstanceManagerParams & { force?: boolean }) {
@@ -139,7 +145,12 @@ export class GardenInstanceManager {
         const rootContext = this.projectRoots.get(params.projectRoot)
 
         if (opts.forceRefresh || !rootContext || !rootContext.configDump) {
-          const configDump = await garden.dumpConfig({ log, partial: true })
+          const configDump = await garden.dumpConfig({
+            log,
+            resolveGraph: false,
+            resolveProviders: false,
+            resolveWorkflows: false,
+          })
           await this.updateProjectRootContext(log, params.projectRoot, configDump)
         }
       }
@@ -205,6 +216,24 @@ export class GardenInstanceManager {
       garden.watchPaths()
     })
 
+    // Update autocompleter when config is resolved
+    garden.events.on("configGraph", ({ graph }) => {
+      garden
+        .dumpConfig({
+          log: garden.log,
+          graph,
+          resolveGraph: false,
+          resolveProviders: false,
+          resolveWorkflows: false,
+        })
+        .then((configDump) => {
+          return this.updateProjectRootContext(garden.log, garden.projectRoot, configDump)
+        })
+        .catch((error) => {
+          garden.log.debug(`Error when updating config for autocompleter: ${error}`)
+        })
+    })
+
     const listener =
       existing?.listener ||
       ((name, payload) => {
@@ -250,12 +279,7 @@ export class GardenInstanceManager {
 
   private getProjectRootContext(log: Log, projectRoot?: string) {
     if (!projectRoot || !this.projectRoots.get(projectRoot)) {
-      const commands = this.builtinCommands
-
-      return {
-        commands,
-        autocompleter: new Autocompleter({ log, commands, configDump: undefined }),
-      }
+      return this.defaultProjectRootContext
     }
 
     return this.projectRoots.get(projectRoot)!
@@ -267,6 +291,7 @@ export class GardenInstanceManager {
     const context: ProjectRootContext = {
       commands,
       autocompleter: new Autocompleter({ log, commands, configDump }),
+      configDump,
     }
     this.projectRoots.set(projectRoot, context)
     return context

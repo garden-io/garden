@@ -50,7 +50,7 @@ const styles = {
 
 export type SetStringCallback = (data: string) => void
 
-type KeyHandler = (input: string, key: Key) => void
+type KeyHandler = (input: string, key: Partial<Key>) => void
 
 const directInputKeys = [
   "upArrow",
@@ -127,7 +127,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
   private serveCommand: ServeCommand
   private extraCommands: Command[]
-  private cwd: string
+  public cwd: string
   private manager: GardenInstanceManager
   private globalConfigStore: GlobalConfigStore
   private readonly log: Log
@@ -204,7 +204,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     return commandLinePrefix + emptyCommandLinePlaceholder
   }
 
-  handleInput(input: string, key: Key) {
+  handleInput(input: string, key: Partial<Key>) {
     if (!this.enabled) {
       return
     }
@@ -267,7 +267,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.commandLineCallback(commandLinePrefix + this.currentCommand)
   }
 
-  private isValidInput(input: string, key?: Key) {
+  private isValidInput(input: string, key?: Partial<Key>) {
     // TODO: this is most likely not quite sufficient, nor the most efficient way to handle the inputs
     // FIXME: for one, typing an umlaut character does not appear to work on international English keyboards
     return (
@@ -790,7 +790,12 @@ ${chalk.white.underline("Keys:")}
     }
 
     const input = this.currentCommand.substring(0, from)
-    return this.manager.getAutocompleteSuggestions({ log: this.log, input, ignoreGlobalFlags: true })
+    return this.manager.getAutocompleteSuggestions({
+      log: this.log,
+      projectRoot: this.cwd,
+      input,
+      ignoreGlobalFlags: true,
+    })
   }
 
   private isSuggestedCommand(suggestions: AutocompleteSuggestion[]) {

@@ -189,7 +189,7 @@ Let's get your development environment wired up.
 
     const manager = this.getManager(log)
 
-    const cl = (this.commandLine = new CommandLine({
+    const cl = new CommandLine({
       log,
       manager,
       cwd: process.cwd(),
@@ -198,11 +198,13 @@ Let's get your development environment wired up.
       globalOpts: pick(opts, Object.keys(globalOptions)),
       history: await garden.localConfigStore.get("devCommandHistory"),
       serveCommand: this,
-    }))
+    })
+    this.commandLine = cl
 
     function quitWithWarning() {
       // We ensure that the process exits at most 5 seconds after a SIGINT / ctrl-c.
       setTimeout(() => {
+        // eslint-disable-next-line no-console
         console.error(chalk.red("\nTimed out waiting for Garden to exit. This is a bug, please report it!"))
         process.exit(1)
       }, 5000)

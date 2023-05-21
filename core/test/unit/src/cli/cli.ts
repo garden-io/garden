@@ -948,7 +948,7 @@ describe("cli", () => {
       const path = join(GARDEN_CORE_ROOT, "tmp", "foobarbas")
       await mkdirp(path)
       const garden = await makeDummyGarden(path, {
-        environmentName: "test.foo",
+        environmentString: "test.foo",
         commandInfo: { name: "foo", args: {}, opts: {} },
       })
       expect(garden).to.be.ok

@@ -60,7 +60,7 @@ export async function getSystemGarden(
 
   return Garden.factory(systemProjectPath, {
     gardenDirPath: join(ctx.gardenDirPath, "kubernetes.garden"),
-    environmentName: "default",
+    environmentString: "default",
     noEnterprise: true, // we don't want to e.g. verify a client auth token or fetch secrets here
     config: {
       path: systemProjectPath,

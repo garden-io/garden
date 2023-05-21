@@ -19,7 +19,8 @@ import { Log } from "../logger/log-entry"
 import { findProjectConfig } from "../config/base"
 import { CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
 import { uuidv4 } from "../util/random"
-import { resolveGardenParams } from "../garden"
+import { Garden } from "../garden"
+import { getGardenForRequest } from "../server/commands"
 
 export const defaultServerPort = 9700
 
@@ -84,9 +85,32 @@ export class ServeCommand<
 
     const projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
 
+    let defaultGarden: Garden | undefined
+
     const manager = this.getManager(log)
     manager.defaultProjectRoot = projectConfig?.path || process.cwd()
     manager.defaultEnv = opts.env
+
+    if (projectConfig) {
+      // Try loading the default Garden instance based on found project config, to populate autocompleter etc.
+      try {
+        defaultGarden = await getGardenForRequest({
+          manager,
+          projectConfig,
+          globalConfigStore: garden.globalConfigStore,
+          log,
+          args: {},
+          opts: {},
+          sessionId,
+          environmentString: opts.env,
+        })
+        if (this.commandLine) {
+          this.commandLine.cwd = defaultGarden.projectRoot
+        }
+      } catch (error) {
+        log.warn(`Unable to load Garden project found at ${projectConfig.path}: ${error}`)
+      }
+    }
 
     const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
 
@@ -101,7 +125,7 @@ export class ServeCommand<
     try {
       const cloudApi = await manager.getCloudApi({ log, cloudDomain, globalConfigStore: garden.globalConfigStore })
 
-      if (projectConfig && cloudApi) {
+      if (projectConfig && cloudApi && defaultGarden) {
         let projectId = projectConfig?.id
 
         if (!projectId) {
@@ -109,13 +133,7 @@ export class ServeCommand<
           projectId = cloudProject?.id
         }
 
-        if (projectId) {
-          const { environmentName, namespace } = await resolveGardenParams(projectConfig.path, {
-            commandInfo: garden.commandInfo,
-            config: projectConfig,
-            cloudApi,
-          })
-
+        if (projectId && defaultGarden) {
           await cloudApi.registerSession({
             parentSessionId: undefined,
             projectId,
@@ -123,8 +141,8 @@ export class ServeCommand<
             sessionId: manager.sessionId,
             commandInfo: garden.commandInfo,
             localServerPort: this.server.port,
-            environment: environmentName,
-            namespace,
+            environment: defaultGarden.environmentName,
+            namespace: defaultGarden.namespace,
           })
         }
       }
