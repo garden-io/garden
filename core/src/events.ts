@@ -351,11 +351,15 @@ export interface Events {
 
 export type EventName = keyof Events
 
+type GraphEventName = Extract<EventName, "taskCancelled" | "taskComplete" | "taskError" | "taskProcessing">
+type ConfigEventName = Extract<EventName, "configChanged" | "configsScanned">
+
 // These are the events we POST over https via the BufferedEventStream
-export const pipedEventNames: EventName[] = [
+const pipedEventNamesSet = new Set<EventName>([
   "_test",
   "_workflowRunRegistered",
   "configsScanned",
+  "configChanged",
   "sessionCompleted",
   "sessionFailed",
   "sessionCancelled",
@@ -381,47 +385,40 @@ export const pipedEventNames: EventName[] = [
   "workflowStepError",
   "workflowStepProcessing",
   "workflowStepSkipped",
-]
+])
 
-type PipedWsEventName = Extract<
-  EventName,
-  "taskCancelled" | "taskComplete" | "taskError" | "taskProcessing"
->
+// We send graph and config events over a websocket connection via the Garden server
+const taskGraphEventNames = new Set<GraphEventName>(["taskCancelled", "taskComplete", "taskError", "taskProcessing"])
+const configEventNames = new Set<ConfigEventName>(["configsScanned", "configChanged"])
 
-// These are the events we send over a websocket connection via the Garden server
-export const pipedWsEventNames: PipedWsEventName[] = [
-  "taskCancelled",
-  "taskComplete",
-  "taskError",
-  "taskProcessing",
-]
-
-// More efficient to use in filtering
-const pipedWsEventNamesSet = new Set(pipedWsEventNames)
-const pipedEventNamesSet = new Set(pipedEventNames)
-const skipTaskEventTypes = ["resolve-action", "resolve-provider"]
+// We do not emit these task graph events because they're simply not needed, and there's a lot of them.
+const skipTaskGraphEventTypes = ["resolve-action", "resolve-provider"]
 
 const isPipedEvent = (name: string, _payload: any): _payload is Events[EventName] => {
   return pipedEventNamesSet.has(<any>name)
 }
 
-const isPipedWsEvent = (name: string, _payload: any): _payload is Events[PipedWsEventName] => {
-  return pipedWsEventNamesSet.has(<any>name)
+const isConfigEvent = (name: string, _payload: any): _payload is Events[ConfigEventName] => {
+  return configEventNames.has(<any>name)
+}
+
+const isTaskGraphEvent = (name: string, _payload: any): _payload is Events[GraphEventName] => {
+  return taskGraphEventNames.has(<any>name)
 }
 
 export function shouldStreamWsEvent(name: string, payload: any) {
-  if (!isPipedWsEvent(name, payload) || skipTaskEventTypes.includes(payload.type)) {
-    return false
+  if (isTaskGraphEvent(name, payload) && !skipTaskGraphEventTypes.includes(payload.type)) {
+    return true
+  } else if (isConfigEvent(name, payload)) {
+    return true
   }
-  return true
+  return false
 }
 
 export function shouldStreamEvent(name: string, payload: any) {
-  // Skip the same events as the ws listener would
-  if (isPipedWsEvent(name, payload) && skipTaskEventTypes.includes(payload.type)) {
+  if (isTaskGraphEvent(name, payload) && skipTaskGraphEventTypes.includes(payload.type)) {
     return false
-  }
-  if (!isPipedEvent(name, payload)) {
+  } else if (!isPipedEvent(name, payload)) {
     return false
   }
   return true
