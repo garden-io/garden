@@ -7,6 +7,7 @@
  */
 
 import { expect } from "chai"
+import { join } from "path"
 import sinon from "sinon"
 import { ResolvedBuildAction, BuildActionConfig } from "../../../../../src/actions/build"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
@@ -99,7 +100,9 @@ context("build.ts", () => {
 
     it("should build image using the user specified Dockerfile path", async () => {
       const action = await getAction()
-      action.getSpec().dockerfile = "docker-dir/Dockerfile"
+
+      action["_config"].spec.dockerfile = "docker-dir/Dockerfile"
+      action.treeVersion().files.push(join(action.basePath(), "docker-dir", "Dockerfile"))
 
       sinon.replace(action, "getOutputs", () => ({ localImageId: "some/image" }))
 
