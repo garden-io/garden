@@ -21,7 +21,7 @@ import {
 } from "./base"
 import { printEmoji, printHeader } from "../logger/util"
 import { watchParameter, watchRemovedWarning } from "./helpers"
-import { DeployTask, isDeployTask } from "../tasks/deploy"
+import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
@@ -30,7 +30,6 @@ import { SyncMonitor } from "../monitors/sync"
 import { warnOnLinkedActions } from "../actions/helpers"
 import { PluginEventBroker } from "../plugin-context"
 import { HandlerMonitor } from "../monitors/handler"
-import { GraphResultFromTask } from "../graph/results"
 import { PortForwardMonitor } from "../monitors/port-forward"
 import { LogMonitor } from "../monitors/logs"
 import { LoggerType, parseLogLevel } from "../logger/logger"
@@ -233,28 +232,6 @@ export class DeployCommand extends Command<Args, Opts> {
 
     await warnOnLinkedActions(garden, log, deployActions)
 
-    if (forward) {
-      // Start port forwards for ready deployments
-      garden.events.on("taskReady", (graphResult) => {
-        const { task } = graphResult
-        const typedResult = graphResult as GraphResultFromTask<DeployTask>
-
-        if (!isDeployTask(task) || !graphResult.result) {
-          return
-        }
-
-        const action = typedResult.result!.executedAction
-
-        const portForwardMonitor = new PortForwardMonitor({
-          garden,
-          log,
-          graph,
-          action,
-        })
-        garden.monitors.addAndSubscribe(portForwardMonitor, this)
-      })
-    }
-
     if (streamLogs) {
       const resolved = await garden.resolveActions({ actions: deployActions, graph, log })
       for (const action of Object.values(resolved)) {
@@ -293,6 +270,17 @@ export class DeployCommand extends Command<Args, Opts> {
         task.on("ready", ({ result }) => {
           const executedAction = result?.executedAction
           const mode = executedAction.mode()
+
+          if (forward) {
+            // Start port forwards for ready deployments
+            const portForwardMonitor = new PortForwardMonitor({
+              garden,
+              log,
+              graph,
+              action: executedAction,
+            })
+            garden.monitors.addAndSubscribe(portForwardMonitor, this)
+          }
 
           if (mode === "sync") {
             const syncMonitor = new SyncMonitor({
