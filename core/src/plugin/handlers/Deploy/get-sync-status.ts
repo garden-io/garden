@@ -22,6 +22,7 @@ export interface SyncStatus {
   source: string
   target: string
   state: SyncState
+  message?: string
   /**
    * ISO format date string
    */
@@ -75,6 +76,7 @@ export const getSyncStatusResultSchema = createSchema({
         lastSyncAt: joi.string().description("ISO format date string for the last successful sync event. May not be availabe for all plugins."),
         syncCount: joi.number().description("The number of successful syncs. May not be availabe for all plugins."),
         mode: syncModeSchema(),
+        message: joi.string().description("An optional message describing the latest status or error relating to this sync.")
       })
     ).description("Should include an entry for every configured sync, also when their target isn't deployed in sync mode."),
     error: joi.string().description("Set to an error message if the sync is failed."),

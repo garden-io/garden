@@ -27,6 +27,7 @@ import EventEmitter from "events"
 import split2 from "split2"
 import { TypedEventEmitter } from "./util/events"
 import pMemoize from "./lib/p-memoize"
+import { deline } from "./util/string"
 
 const maxRestarts = 10
 const mutagenLogSection = "<mutagen>"
@@ -48,14 +49,20 @@ export const mutagenModeMap = {
   "two-way-resolved": "two-way-resolved",
 }
 
+const restartInstructions = (description: string) => deline`
+  Once you've examined the source and/or target directories and ${description}, you can
+  restart the sync using the garden sync restart command, or by stopping and starting the sync
+  using garden sync stop and then garden sync start.`
+
 // This is basically copied from:
 // https://github.com/mutagen-io/mutagen/blob/19e087599f187d85416d453cd50e2a9df1602132/pkg/synchronization/state.go
 // with an updated description to match Garden's context.
-const mutagenStatusDescriptions = {
+
+export const mutagenStatusDescriptions = {
   "disconnected": "Sync disconnected",
-  "halted-on-root-emptied": "Sync halted because either the source or target directory was emptied",
-  "halted-on-root-deletion": "Sync halted because either the source or target was deleted",
-  "halted-on-root-type-change": "Sync halted because either the source or target changed type",
+  "halted-on-root-emptied": `Sync halted because either the source or target directory was emptied. ${restartInstructions("made sure they're not empty")}`,
+  "halted-on-root-deletion": `Sync halted because either the source or target was deleted. ${restartInstructions("made sure they exist")}`,
+  "halted-on-root-type-change": `Sync halted because either the source or target changed type (e.g. from a directory to a file or vice versa). ${restartInstructions("made sure their type is what it should be")}`,
   "connecting-alpha": "Sync connected to source",
   "connecting-beta": "Sync connected to target",
   "watching": "Watching for changes",
@@ -79,6 +86,12 @@ interface MonitorProc extends EventEmitter {
 
 type MutagenStatus = keyof typeof mutagenStatusDescriptions
 
+export const haltedStatuses: MutagenStatus[] = [
+  "halted-on-root-emptied",
+  "halted-on-root-deletion",
+  "halted-on-root-type-change"
+]
+
 export interface SyncConfig {
   alpha: string
   beta: string
@@ -100,6 +113,7 @@ interface ActiveSync {
   config: SyncConfig
   lastProblems: string[]
   lastStatus?: string
+  lastStatusMsg?: string
   lastSyncCount: number
   initialSyncComplete: boolean
   paused: boolean
@@ -392,6 +406,7 @@ export class Mutagen {
 
       if (statusMsg) {
         syncLog.info(`${syncLogPrefix} ${statusMsg}`)
+        activeSync.lastStatusMsg = statusMsg
       }
 
       activeSync.lastSyncCount = syncCount

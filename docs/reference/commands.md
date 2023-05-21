@@ -3488,6 +3488,31 @@ Examples:
 
 
 
+### garden sync restart
+
+**Restart any active syncs to the given Deploy action(s).**
+
+Restarts one or more active syncs.
+
+Examples:
+    # Restart syncing to the 'api' Deploy
+    garden sync restart api
+
+    # Restart all active syncs
+    garden sync restart
+
+#### Usage
+
+    garden sync restart <names> 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | Yes | The name(s) of one or more Deploy(s) (or services if using modules) whose syncs you want to restart. You may specify multiple names, separated by spaces. To restart all possible syncs, specify &#x27;*&#x27; as an argument.
+
+
+
 ### garden sync status
 
 **Get sync statuses.**

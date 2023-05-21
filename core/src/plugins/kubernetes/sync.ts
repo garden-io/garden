@@ -52,7 +52,7 @@ import {
 } from "./config"
 import { isConfiguredForSyncMode } from "./status/status"
 import { PluginContext } from "../../plugin-context"
-import { mutagenAgentPath, Mutagen, SyncConfig, SyncSession } from "../../mutagen"
+import { mutagenAgentPath, Mutagen, SyncConfig, SyncSession, haltedStatuses, mutagenStatusDescriptions } from "../../mutagen"
 import { k8sSyncUtilImageName } from "./constants"
 import { templateStringLiteral } from "../../docs/common"
 import { resolve } from "path"
@@ -713,7 +713,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
     let syncState: SyncStatus["state"] = "active"
 
     if (session) {
-      if (session.status === "disconnected") {
+      if (session.status && ["disconnected", ...haltedStatuses].includes(session.status)) {
         failed = true
         syncState = "failed"
       } else {
@@ -724,14 +724,19 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
       allActive = false
     }
 
-    syncStatuses.push({
+    const syncStatus: SyncStatus = {
       source,
-      // The targetDescription variable has ANSI characters that we strip for the status result
       target,
       state: syncState,
       mode: s.mode,
       syncCount: session?.successfulCycles
-    })
+    }
+
+    if (session.status) {
+      syncStatus.message = mutagenStatusDescriptions[session.status]
+    }
+
+    syncStatuses.push(syncStatus)
 
     expectedKeys.push(key)
 
