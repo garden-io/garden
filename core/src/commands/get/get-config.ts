@@ -74,10 +74,14 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<ConfigDump>> {
+    const partial = opts["resolve"] === "partial"
+
     const config = await garden.dumpConfig({
       log,
       includeDisabled: !opts["exclude-disabled"],
-      partial: opts["resolve"] === "partial",
+      resolveGraph: !partial,
+      resolveProviders: !partial,
+      resolveWorkflows: !partial,
     })
 
     // Also filter out service, task, and test configs

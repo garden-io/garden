@@ -13,7 +13,7 @@ import type { DeployState, DeployStatusForEventPayload } from "./types/service"
 import type { RunState, RunStatusForEventPayload } from "./plugin/base"
 import type { Omit } from "./util/util"
 import type { AuthTokenResponse } from "./cloud/api"
-import type { RenderedActionGraph } from "./graph/config-graph"
+import type { ConfigGraph, RenderedActionGraph } from "./graph/config-graph"
 import type { CommandInfo } from "./plugin-context"
 import type { GraphResult } from "./graph/results"
 import { NamespaceStatus } from "./types/namespace"
@@ -237,6 +237,7 @@ export interface Events {
     path: string
   }
 
+  configGraph: { graph: ConfigGraph }
   configsScanned: {}
 
   // Command/project metadata events

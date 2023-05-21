@@ -224,11 +224,11 @@ describe("Garden", () => {
     })
 
     it("should throw if the specified environment isn't configured", async () => {
-      await expectError(async () => makeTestGarden(projectRootA, { environmentName: "bla" }), { type: "parameter" })
+      await expectError(async () => makeTestGarden(projectRootA, { environmentString: "bla" }), { type: "parameter" })
     })
 
     it("should throw if environment starts with 'garden-'", async () => {
-      await expectError(async () => makeTestGarden(projectRootA, { environmentName: "garden-bla" }), {
+      await expectError(async () => makeTestGarden(projectRootA, { environmentString: "garden-bla" }), {
         type: "parameter",
       })
     })
@@ -313,7 +313,7 @@ describe("Garden", () => {
 
       await _garden.localConfigStore.set("defaultEnv", "remote")
 
-      const garden = await TestGarden.factory(_garden.projectRoot, { config, environmentName: "local" })
+      const garden = await TestGarden.factory(_garden.projectRoot, { config, environmentString: "local" })
 
       expect(garden.environmentName).to.equal("local")
     })
@@ -398,7 +398,7 @@ describe("Garden", () => {
 
     it("should set the namespace attribute, if specified", async () => {
       const projectRoot = getDataDir("test-project-empty")
-      const garden = await makeTestGarden(projectRoot, { plugins: [testPlugin()], environmentName: "foo.local" })
+      const garden = await makeTestGarden(projectRoot, { plugins: [testPlugin()], environmentString: "foo.local" })
       expect(garden.environmentName).to.equal("local")
       expect(garden.namespace).to.equal("foo")
     })
@@ -410,7 +410,7 @@ describe("Garden", () => {
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
       })
-      const garden = await TestGarden.factory(pathFoo, { config, environmentName: "default" })
+      const garden = await TestGarden.factory(pathFoo, { config, environmentString: "default" })
 
       expect(garden.environmentName).to.equal("default")
       expect(garden.namespace).to.equal("foo")
@@ -423,7 +423,7 @@ describe("Garden", () => {
         environments: [{ name: "default", defaultNamespace: null, variables: {} }],
         providers: [{ name: "foo" }],
       })
-      await expectError(() => TestGarden.factory(pathFoo, { config, environmentName: "default" }), {
+      await expectError(() => TestGarden.factory(pathFoo, { config, environmentString: "default" }), {
         contains:
           "Environment default has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default).",
       })
@@ -439,7 +439,7 @@ describe("Garden", () => {
       })
       const garden = await TestGarden.factory(pathFoo, {
         config,
-        environmentName: "default",
+        environmentString: "default",
         variableOverrides: { foo: "override" },
       })
 
@@ -461,7 +461,7 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(pathFoo, {
         config,
-        environmentName: "default",
+        environmentString: "default",
         variableOverrides: { foo: "override" },
       })
 
@@ -486,7 +486,7 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(pathFoo, {
         config,
-        environmentName: "default",
+        environmentString: "default",
         variableOverrides: { foo: "override" },
       })
 
@@ -525,13 +525,13 @@ describe("Garden", () => {
 
         const gardenWithProxyConfig = await TestGarden.factory(pathFoo, {
           config: configWithProxy,
-          environmentName: "default",
+          environmentString: "default",
           variableOverrides: { foo: "override" },
           noCache: true,
         })
         const gardenNoProxyConfig = await TestGarden.factory(pathFoo, {
           config: configNoProxy,
-          environmentName: "default",
+          environmentString: "default",
           variableOverrides: { foo: "override" },
           noCache: true,
         })

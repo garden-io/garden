@@ -407,7 +407,7 @@ export async function getGardenForRequest({
     cloudApi,
     commandInfo: { name: command ? command.getFullName() : "serve", args, opts: omitUndefined(opts) },
     config: projectConfig,
-    environmentName: opts.env || environmentString || manager.defaultEnv,
+    environmentString: opts.env || environmentString || manager.defaultEnv,
     globalConfigStore,
     log,
     variableOverrides: parseCliVarFlags(opts.var),

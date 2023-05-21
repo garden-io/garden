@@ -50,7 +50,7 @@ describe("Terraform provider", () => {
       await reset()
       garden = await makeTestGarden(testRoot, {
         plugins: [gardenPlugin()],
-        environmentName: "prod",
+        environmentString: "prod",
         forceRefresh: true,
       })
       tfRoot = join(garden.projectRoot, "tf")
@@ -84,7 +84,7 @@ describe("Terraform provider", () => {
         graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
       })
 
-      const _garden = await makeTestGarden(testRoot, { environmentName: "prod", plugins: [gardenPlugin()] })
+      const _garden = await makeTestGarden(testRoot, { environmentString: "prod", plugins: [gardenPlugin()] })
       const _provider = await _garden.resolveProvider(_garden.log, "terraform")
 
       expect(_provider.status.outputs).to.eql({
@@ -227,7 +227,7 @@ describe("Terraform provider", () => {
     before(async () => {
       garden = await makeTestGarden(testRoot, {
         plugins: [gardenPlugin()],
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
       })
     })
@@ -248,7 +248,7 @@ describe("Terraform provider", () => {
 
     it("sets the workspace before applying the stack", async () => {
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
         variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
@@ -377,7 +377,7 @@ describe("Terraform module type", () => {
 
     it("sets the workspace before running the command", async () => {
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
         variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
@@ -422,7 +422,7 @@ describe("Terraform module type", () => {
 
     it("sets the workspace before running the command", async () => {
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
         variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
@@ -467,7 +467,7 @@ describe("Terraform module type", () => {
 
     it("sets the workspace before running the command", async () => {
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
         variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
@@ -558,7 +558,7 @@ describe("Terraform module type", () => {
 
     it("sets the workspace before getting the status and returning outputs", async () => {
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
         variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
@@ -609,7 +609,7 @@ describe("Terraform module type", () => {
 
     it("sets the workspace before applying", async () => {
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
         variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
@@ -681,7 +681,7 @@ describe("Terraform module type", () => {
       await runTestTask(true, true)
 
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
         variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],

@@ -170,7 +170,7 @@ export type PluginActionMap = {
 export interface GardenOpts {
   commandInfo: CommandInfo
   config?: ProjectConfig
-  environmentName?: string // TODO: rename to avoid confusion (this is a full environment string)
+  environmentString?: string // Note: This is the string, as e.g. passed with the --env flag
   forceRefresh?: boolean
   gardenDirPath?: string
   globalConfigStore?: GlobalConfigStore
@@ -1087,8 +1087,12 @@ export class Garden {
     graph.validate()
 
     if (emit) {
+      // This is meant for consumption by Garden Cloud
       this.events.emit("stackGraph", graph.render())
     }
+
+    // This event is internal only, not to be streamed
+    this.events.emit("configGraph", { graph })
 
     graphLog.success(chalk.green("Done"))
 
@@ -1539,12 +1543,18 @@ export class Garden {
    */
   public async dumpConfig({
     log,
+    graph,
     includeDisabled = false,
-    partial = false,
+    resolveGraph = true,
+    resolveProviders = true,
+    resolveWorkflows = true,
   }: {
     log: Log
+    graph?: ConfigGraph
     includeDisabled?: boolean
-    partial?: boolean
+    resolveGraph?: boolean
+    resolveProviders?: boolean
+    resolveWorkflows?: boolean
   }): Promise<ConfigDump> {
     let providers: ConfigDump["providers"] = []
     let moduleConfigs: ModuleConfig[]
@@ -1558,27 +1568,31 @@ export class Garden {
 
     await this.scanAndAddConfigs()
 
-    if (partial) {
-      providers = this.getRawProviderConfigs()
-      moduleConfigs = await this.getRawModuleConfigs()
-      workflowConfigs = await this.getRawWorkflowConfigs()
-      actionConfigs = this.actionConfigs
+    if (resolveProviders) {
+      providers = Object.values(await this.resolveProviders(log))
     } else {
-      const graph = await this.getResolvedConfigGraph({ log, emit: false })
+      providers = this.getRawProviderConfigs()
+    }
 
+    if (!graph && resolveGraph) {
+      graph = await this.getResolvedConfigGraph({ log, emit: false })
+    }
+
+    if (graph) {
       for (const action of graph.getActions()) {
         actionConfigs[action.kind][action.name] = action.getConfig()
       }
-
       const modules = graph.getModules({ includeDisabled })
       moduleConfigs = sortBy(
         modules.map((m) => m._config),
         "name"
       )
-
       workflowConfigs = (await this.getRawWorkflowConfigs()).map((config) => resolveWorkflowConfig(this, config))
-
-      providers = Object.values(await this.resolveProviders(log))
+    } else {
+      providers = this.getRawProviderConfigs()
+      moduleConfigs = await this.getRawModuleConfigs()
+      workflowConfigs = await this.getRawWorkflowConfigs()
+      actionConfigs = this.actionConfigs
     }
 
     const allEnvironmentNames = this.projectConfig.environments.map((c) => c.name)
@@ -1611,7 +1625,7 @@ export class Garden {
  * instance based on request inputs.
  */
 export async function resolveGardenParamsPartial(currentDirectory: string, opts: GardenOpts) {
-  let { environmentName: environmentStr, config, gardenDirPath } = opts
+  let { environmentString: environmentStr, config, gardenDirPath } = opts
   const log = (opts.log || getRootLogger()).createLog()
 
   if (!config) {
@@ -1915,11 +1929,11 @@ export class DummyGarden extends Garden {
 }
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
-  if (!gardenOpts.environmentName) {
-    gardenOpts.environmentName = `${defaultEnvironment}.${defaultNamespace}`
+  if (!gardenOpts.environmentString) {
+    gardenOpts.environmentString = `${defaultEnvironment}.${defaultNamespace}`
   }
 
-  const parsed = parseEnvironment(gardenOpts.environmentName)
+  const parsed = parseEnvironment(gardenOpts.environmentString)
   const environmentName = parsed.environment || defaultEnvironment
   const _defaultNamespace = parsed.namespace || defaultNamespace
 
