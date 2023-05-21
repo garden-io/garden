@@ -38,6 +38,8 @@ import type { VcsInfo } from "../vcs/vcs"
 import { profileAsync } from "../util/profiling"
 import { loadVarfile, varfileDescription } from "./base"
 import chalk = require("chalk")
+import { Log } from "../logger/log-entry"
+import { renderDivider } from "../logger/util"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -427,6 +429,7 @@ export function getDefaultEnvironmentName(defaultName: string, config: ProjectCo
  * @param config raw project configuration
  */
 export function resolveProjectConfig({
+  log,
   defaultEnvironmentName,
   config,
   artifactsPath,
@@ -437,6 +440,7 @@ export function resolveProjectConfig({
   secrets,
   commandInfo,
 }: {
+  log: Log
   defaultEnvironmentName: string
   config: ProjectConfig
   artifactsPath: string
@@ -450,26 +454,33 @@ export function resolveProjectConfig({
   // Resolve template strings for non-environment-specific fields (apart from `sources`).
   const { environments = [], name, sources = [] } = config
 
-  const globalConfig = resolveTemplateStrings(
-    {
-      apiVersion: config.apiVersion,
-      varfile: config.varfile,
-      variables: config.variables,
-      environments: [],
-      sources: [],
-    },
-    new ProjectConfigContext({
-      projectName: name,
-      projectRoot: config.path,
-      artifactsPath,
-      vcsInfo,
-      username,
-      loggedIn,
-      enterpriseDomain,
-      secrets,
-      commandInfo,
-    })
-  )
+  let globalConfig: any
+  try {
+    globalConfig = resolveTemplateStrings(
+      {
+        apiVersion: config.apiVersion,
+        varfile: config.varfile,
+        variables: config.variables,
+        environments: [],
+        sources: [],
+      },
+      new ProjectConfigContext({
+        projectName: name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn,
+        enterpriseDomain,
+        secrets,
+        commandInfo,
+      })
+    )
+  } catch (err) {
+    log.error("Failed to resolve project configuration.")
+    log.error(chalk.red.bold(renderDivider()))
+    throw err
+  }
 
   // Validate after resolving global fields
   config = validateWithPath({

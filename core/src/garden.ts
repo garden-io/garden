@@ -1799,6 +1799,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   const loggedIn = !!cloudApi
 
   config = resolveProjectConfig({
+    log,
     defaultEnvironmentName: configDefaultEnvironment,
     config,
     artifactsPath,
