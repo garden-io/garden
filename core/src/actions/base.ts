@@ -212,10 +212,9 @@ export const baseActionConfigSchema = createSchema({
       .default(() => undefined)
       .description(
         dedent`
-      A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that order. They may reference group-scoped and project-scoped variables, and generally can use any template strings normally allowed when resolving the action.
-    `
-      )
-      .meta({ templateContext: ActionConfigContext }),
+          A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that order. They may reference group-scoped and project-scoped variables, and generally can use any template strings normally allowed when resolving the action.
+        `
+      ),
     varfiles: joiSparseArray(joi.posixPath())
       .description(
         dedent`
