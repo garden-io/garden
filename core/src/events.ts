@@ -19,7 +19,6 @@ import type { GraphResult } from "./graph/results"
 import { NamespaceStatus } from "./types/namespace"
 import { BuildState, BuildStatusForEventPayload } from "./plugin/handlers/Build/get-status"
 import { ActionStateForEvent } from "./actions/types"
-import { sanitizeValue } from "./util/logging"
 
 interface EventContext {
   gardenKey?: string
@@ -150,7 +149,7 @@ export class EventBus extends EventEmitter2 {
  * Supported logger events and their interfaces.
  */
 
-export type GraphResultEventPayload = Omit<GraphResult, "task" | "dependencyResults" | "error"> & {
+export type GraphResultEventPayload = Omit<GraphResult, "result" | "task" | "dependencyResults" | "error"> & {
   error: string | null
 }
 
@@ -169,23 +168,10 @@ export interface CommandInfoPayload extends CommandInfo {
 }
 
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
-  const payload = sanitizeValue({
-    ...omit(result, "dependencyResults", "task"),
+  return {
+    ...omit(result, "result", "dependencyResults", "task"),
     error: result.error ? String(result.error) : null,
-  })
-  if (payload.result) {
-    // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
-    payload.result = omit(
-      result.result,
-      "dependencyResults",
-      "log",
-      "buildLog",
-      "detail",
-      "resolvedAction",
-      "executedAction"
-    )
   }
-  return payload
 }
 
 export type ActionStatusDetailedState = DeployState | BuildState | RunState
