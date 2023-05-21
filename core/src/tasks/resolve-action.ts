@@ -39,7 +39,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     return this.action.key()
   }
 
-  async getStatus({}: ActionTaskStatusParams<T>) {
+  getStatus({}: ActionTaskStatusParams<T>) {
     return null
   }
 

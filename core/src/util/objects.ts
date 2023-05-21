@@ -54,3 +54,10 @@ export function omitUndefined(o: object) {
 export function deepOmitUndefined(obj: object) {
   return deepFilter(obj, (v) => v !== undefined)
 }
+
+/**
+ * Returns true if `obj` is a Promise, otherwise false.
+ */
+export function isPromise(obj: any): obj is Promise<any> {
+  return !!obj && (typeof obj === "object" || typeof obj === "function") && typeof obj.then === "function"
+}

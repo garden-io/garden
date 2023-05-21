@@ -463,7 +463,11 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const node = params.node
     const result = node.complete(params)
     delete this.inProgress[node.getKey()]
-    this.emit("taskComplete", toGraphResultEventPayload(result))
+
+    const taskCompletePayload = toGraphResultEventPayload(result)
+    this.emit("taskComplete", taskCompletePayload)
+    this.garden.events.emit("taskComplete", taskCompletePayload)
+
     if (node.executionType === "request" && result.success && result.result?.state === "ready") {
       node.task.emit("ready", { result: <any>result.result })
       this.emit("taskReady", result)
