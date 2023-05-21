@@ -799,9 +799,9 @@ describe("exec plugin", () => {
           })
 
           // Since the `kill` CLI command exits immediately (before the process terminates), we need to wait a little.
-          await sleep(500)
+          await sleep(2000)
 
-          expect(isRunning(pid)).to.eql(false)
+          expect(isRunning(pid)).to.be.false
         })
         it("should write logs to a local file with the proper format", async () => {
           // This services just echos a string N times before exiting.
