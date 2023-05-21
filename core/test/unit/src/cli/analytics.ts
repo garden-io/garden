@@ -90,7 +90,7 @@ describe("cli analytics", () => {
           },
         ])
       })
-      .reply(200)
+      .reply(201)
 
     const command = new TestCommand()
     cli.addCommand(command)

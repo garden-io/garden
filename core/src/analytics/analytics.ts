@@ -12,7 +12,7 @@ import ci = require("ci-info")
 import { uniq } from "lodash"
 import { Analytics } from "@segment/analytics-node"
 import { AnalyticsGlobalConfig } from "../config-store/global"
-import { getPackageVersion, sleep, getDurationMsec } from "../util/util"
+import { getPackageVersion, getDurationMsec } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import hasha = require("hasha")
@@ -228,7 +228,7 @@ export interface SegmentEvent {
 @Profile()
 export class AnalyticsHandler {
   private static instance?: AnalyticsHandler
-  private segment: Analytics
+  public segment: Analytics
   private log: Log
   private analyticsConfig: AnalyticsGlobalConfig
   private projectId: string
@@ -273,7 +273,7 @@ export class AnalyticsHandler {
     cloudUser?: UserResult
     ciInfo: CiInfo
   }) {
-    this.segment = new Analytics({ writeKey: API_KEY, maxEventsInBatch: 1, flushInterval: 3000 })
+    this.segment = new Analytics({ writeKey: API_KEY, maxEventsInBatch: 5, flushInterval: 3000 })
     this.log = log
     this.isEnabled = isEnabled
     this.garden = garden
@@ -537,9 +537,9 @@ export class AnalyticsHandler {
   /**
    * The actual segment track method.
    */
-  private async track(event: AnalyticsEvent) {
+  private async track(event: AnalyticsEvent): Promise<AnalyticsEvent | undefined> {
     if (!this.segment || !this.isEnabled) {
-      return false
+      return
     }
 
     const segmentEvent = {
@@ -557,21 +557,33 @@ export class AnalyticsHandler {
       ${JSON.stringify(segmentEvent)}
     `)
 
-    try {
-      await this.segment.track(segmentEvent)
-    } catch (err) {
-      this.log?.debug(`Error sending ${segmentEvent.event} tracking event: ${err}`)
-    }
+    return new Promise<AnalyticsEvent>((resolve, reject) =>
+      this.segment.track(segmentEvent, (err) => {
+        if (err) {
+          this.log?.debug(`Error sending ${segmentEvent.event} tracking event: ${err}`)
+          reject()
+        }
 
-    return event
+        resolve(event)
+      })
+    )
   }
 
-  private async identify(event: IdentifyEvent) {
+  private async identify(event: IdentifyEvent): Promise<IdentifyEvent | undefined> {
     if (!this.segment || !this.isEnabled) {
-      return false
+      return
     }
-    await this.segment.identify(event)
-    return event
+
+    return new Promise<IdentifyEvent>((resolve, reject) => {
+      this.segment.identify(event, (err) => {
+        if (err) {
+          this.log?.debug(`Error sending identify event: ${err}`)
+          reject(err)
+        }
+
+        resolve(event)
+      })
+    })
   }
 
   /**
@@ -708,7 +720,7 @@ export class AnalyticsHandler {
     this.log?.silly("Analytics close and flush all remaining events")
 
     try {
-      await this.segment.closeAndFlush()
+      await this.segment.closeAndFlush({ timeout: 2000 })
     } catch (err) {
       this.log?.debug(`Error flushing analytics: ${err}`)
     }
