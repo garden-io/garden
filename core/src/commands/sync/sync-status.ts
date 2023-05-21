@@ -136,18 +136,28 @@ export class SyncStatusCommand extends Command<Args> {
             "not-active": chalk.yellow,
           }[syncStatus.state] || chalk.bold.dim
 
+        const verbMap = {
+          "active": "is",
+          "failed": "has",
+          "not-active": "is",
+        }
+
         log.info(
           `The ${chalk.cyan(action.name)} Deploy has ${chalk.cyan(syncStatus.syncs.length)} syncs(s) configured:`
         )
         const leftPad = "  →"
         syncs.forEach((sync, idx) => {
+          const state = sync.state
           log.info(
-            `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.target)} is ${styleFn(
-              syncStatus.state
+            `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.target)} ${verbMap[state]} ${styleFn(
+              state
             )}`
           )
           sync.mode && log.info(chalk.bold(`${leftPad} Mode: ${sync.mode}`))
           sync.syncCount && log.info(chalk.bold(`${leftPad} Sync count: ${sync.syncCount}`))
+          if (state === "failed" && sync.message) {
+            log.info(`${chalk.bold(leftPad)} ${chalk.yellow(sync.message)}`)
+          }
           idx !== syncs.length - 1 && log.info("")
         })
         log.info("")
