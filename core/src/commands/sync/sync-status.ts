@@ -123,8 +123,8 @@ export class SyncStatusCommand extends Command<Args> {
 
         // Return the syncs sorted
         const sorted = syncs.sort((a, b) => {
-          const keyA = a.source + a.targetDescription + a.mode
-          const keyB = b.source + b.targetDescription + b.mode
+          const keyA = a.source + a.target + a.mode
+          const keyB = b.source + b.target + b.mode
           return keyA > keyB ? 1 : -1
         })
         syncStatus["syncs"] = sorted
@@ -142,7 +142,7 @@ export class SyncStatusCommand extends Command<Args> {
         const leftPad = "  →"
         syncs.forEach((sync, idx) => {
           log.info(
-            `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.targetDescription)} is ${styleFn(
+            `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.target)} is ${styleFn(
               syncStatus.state
             )}`
           )
