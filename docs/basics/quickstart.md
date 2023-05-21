@@ -5,7 +5,7 @@ order: 1
 
 # Quickstart Guide
 
-Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow. In this quickstart, we'll introduce you to the one interactive command you'll spend 90% of your time in as a developer: `garden dev`.
+Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow. In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
 
 In just 3 steps, we'll:
 
