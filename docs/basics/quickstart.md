@@ -97,8 +97,7 @@ garden dev
 
 The first time you run `garden dev`, Garden will initialize then await further instructions inside a [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop). From inside the REPL you can command Garden to build, test, and deploy your project. Deploy your project by typing, `deploy`.
 
-test
-![something](https://ce-content.s3.fr-par.scw.cloud/dev-mode.gif)
+![Garden dev deploy](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/d8095ad1a8615edf49e721b8afcd901f3056e127/dev-mode.gif)
 
 You should now be able to visit the example project at [http://vote.local.demo.garden](http://vote.local.demo.garden).
 
