@@ -172,7 +172,6 @@ export function formatForTerminal(entry: LogEntry, logger: Logger): string {
     renderSymbol,
     renderSection,
     renderMsg,
-    renderError,
     renderData,
     () => "\n",
   ])
