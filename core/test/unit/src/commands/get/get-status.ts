@@ -23,7 +23,10 @@ describe("GetStatusCommand", () => {
       const { result } = await garden.runCommand({
         command,
         args: {},
-        opts: {},
+        opts: {
+          "skip-detail": false,
+          "only-deploys": false,
+        },
       })
 
       expect(result).to.eql({
@@ -178,7 +181,10 @@ describe("GetStatusCommand", () => {
         garden,
         log,
         args: {},
-        opts: withDefaultGlobalOpts({}),
+        opts: withDefaultGlobalOpts({
+          "skip-detail": false,
+          "only-deploys": false,
+        }),
       })
 
       const logMessages = getLogMessages(log, (l) => l.level === LogLevel.warn)

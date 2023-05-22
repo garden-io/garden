@@ -9,7 +9,7 @@
 import Bluebird from "bluebird"
 import chalk from "chalk"
 
-import { StringsParameter } from "../../cli/params"
+import { BooleanParameter, StringsParameter } from "../../cli/params"
 import { joi } from "../../config/common"
 import { printHeader } from "../../logger/util"
 import { dedent, deline, naturalList } from "../../util/string"
@@ -18,7 +18,7 @@ import { createActionLog } from "../../logger/log-entry"
 import { PluginEventBroker } from "../../plugin-context"
 import { resolvedActionToExecuted } from "../../actions/helpers"
 import { GetSyncStatusResult } from "../../plugin/handlers/Deploy/get-sync-status"
-import { isEmpty } from "lodash"
+import { isEmpty, omit } from "lodash"
 
 const syncStatusArgs = {
   names: new StringsParameter({
@@ -33,7 +33,18 @@ const syncStatusArgs = {
     },
   }),
 }
+
+const syncStatusOpts = {
+  "skip-detail": new BooleanParameter({
+    help: deline`
+      Skip plugin specific sync details. Only applicable when using the --output=json|yaml option.
+      Useful for trimming down the output.
+    `,
+  }),
+}
+
 type Args = typeof syncStatusArgs
+type Opts = typeof syncStatusOpts
 
 interface SyncStatusCommandResult {
   result: {
@@ -43,13 +54,14 @@ interface SyncStatusCommandResult {
   }
 }
 
-export class SyncStatusCommand extends Command<Args> {
+export class SyncStatusCommand extends Command<Args, Opts> {
   name = "status"
   help = "Get sync statuses."
 
   protected = true
 
   arguments = syncStatusArgs
+  options = syncStatusOpts
 
   description = dedent`
     Get the current status of the configured syncs for this project.
@@ -74,9 +86,10 @@ export class SyncStatusCommand extends Command<Args> {
     printHeader(log, "Getting sync statuses", "📟")
   }
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<SyncStatusCommandResult> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<SyncStatusCommandResult> {
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
+    const skipDetail = opts["skip-detail"]
 
     const deployActions = graph
       .getDeploys({ includeDisabled: false, names: args.names })
@@ -106,15 +119,18 @@ export class SyncStatusCommand extends Command<Args> {
           log: actionLog,
         })
         const executedAction = resolvedActionToExecuted(action, { status })
-        const syncStatus = (
-          await router.deploy.getSyncStatus({
-            log: actionLog,
-            action: executedAction,
-            monitor: false,
-            graph,
-            events,
-          })
-        ).result
+        const syncStatus = omit(
+          (
+            await router.deploy.getSyncStatus({
+              log: actionLog,
+              action: executedAction,
+              monitor: false,
+              graph,
+              events,
+            })
+          ).result,
+          skipDetail ? "detail" : ""
+        )
 
         const syncs = syncStatus.syncs
         if (!syncs || syncs.length === 0) {

@@ -2537,8 +2537,13 @@ modules:
 
 #### Usage
 
-    garden get status 
+    garden get status [options]
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--skip-detail` |  | boolean | Skip plugin specific details. Only applicable when using the --output&#x3D;json|yaml option. Useful for trimming down the output.
 
 #### Outputs
 
@@ -3534,7 +3539,7 @@ Examples:
 
 #### Usage
 
-    garden sync status [names] 
+    garden sync status [names] [options]
 
 #### Arguments
 
@@ -3542,6 +3547,11 @@ Examples:
 | -------- | -------- | ----------- |
   | `names` | No | The name(s) of the Deploy(s) to get the sync status for (skip to get status from all Deploys in the project). You may specify multiple names, separated by space.
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--skip-detail` |  | boolean | Skip plugin specific sync details. Only applicable when using the --output&#x3D;json|yaml option. Useful for trimming down the output.
 
 
 ### garden test

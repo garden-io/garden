@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { fromPairs } from "lodash"
+import { fromPairs, omit } from "lodash"
 import { deepFilter } from "../../util/objects"
 import { Command, CommandResult, CommandParams } from "../base"
 import { ResolvedConfigGraph } from "../../graph/config-graph"
@@ -24,6 +24,7 @@ import { getRunResultSchema, RunStatusMap } from "../../plugin/handlers/Run/get-
 import { DeployStatusMap, getDeployStatusSchema } from "../../plugin/handlers/Deploy/get-status"
 import { ActionRouter } from "../../router/router"
 import { sanitizeValue } from "../../util/logging"
+import { BooleanParameter } from "../../cli/params"
 
 // Value is "completed" if the test/task has been run for the current version.
 export interface StatusCommandResult {
@@ -36,11 +37,30 @@ export interface StatusCommandResult {
   }
 }
 
+const getStatusOpts = {
+  "skip-detail": new BooleanParameter({
+    help: deline`
+      Skip plugin specific details. Only applicable when using the --output=json|yaml option.
+      Useful for trimming down the output.
+    `,
+  }),
+  "only-deploys": new BooleanParameter({
+    hidden: true,
+    help: deline`
+      [INTERNAL]: Only return statuses of deploy actions. Currently only used by Cloud and Desktop apps.
+      Will be replaced by a new, top level \`garden status\` command.
+    `,
+  }),
+}
+
+type Opts = typeof getStatusOpts
+
 export class GetStatusCommand extends Command {
   name = "status"
   help = "Outputs the full status of your project/environment and all actions."
 
-  streamEvents = true
+  streamEvents = false
+  options = getStatusOpts
 
   outputsSchema = () =>
     joi.object().keys({
@@ -59,20 +79,32 @@ export class GetStatusCommand extends Command {
     printHeader(log, "Get status", "📟")
   }
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult<StatusCommandResult>> {
+  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<StatusCommandResult>> {
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
 
-    const envStatus = await garden.getEnvironmentStatus(log)
-
-    let result: StatusCommandResult = {
-      providers: envStatus,
-      actions: await Bluebird.props({
-        Build: getBuildStatuses(router, graph, log),
-        Deploy: router.getDeployStatuses({ log, graph }),
-        Test: getTestStatuses(router, graph, log),
-        Run: getRunStatuses(router, graph, log),
-      }),
+    let result: StatusCommandResult
+    if (opts["only-deploys"]) {
+      result = {
+        providers: {},
+        actions: await Bluebird.props({
+          Build: {},
+          Deploy: router.getDeployStatuses({ log, graph }),
+          Test: {},
+          Run: {},
+        }),
+      }
+    } else {
+      const envStatus = await garden.getEnvironmentStatus(log)
+      result = {
+        providers: envStatus,
+        actions: await Bluebird.props({
+          Build: getBuildStatuses(router, graph, log),
+          Deploy: router.getDeployStatuses({ log, graph }),
+          Test: getTestStatuses(router, graph, log),
+          Run: getRunStatuses(router, graph, log),
+        }),
+      }
     }
 
     const deployStatuses = result.actions.Deploy
@@ -89,6 +121,20 @@ export class GetStatusCommand extends Command {
           )
         )
       }
+    }
+
+    // We only skip detail for Deploy actions. Note that this is mostly used internally and that this command
+    // will be replaced by a top-level "garden status" command. For that one we'll probably wan to pass the
+    // --skip-detail flag to the plugin handlers.
+    if (opts["skip-detail"]) {
+      const deployActions = Object.entries(result.actions["Deploy"]).reduce((acc, val) => {
+        const [name, status] = val
+        const statusWithOutDetail = omit(status, "detail.detail")
+        acc[name] = statusWithOutDetail
+
+        return acc
+      }, {} as StatusCommandResult["actions"]["Deploy"])
+      result["actions"]["Deploy"] = deployActions
     }
 
     // TODO: we should change the status format because this will remove services called "detail"
