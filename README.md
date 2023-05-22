@@ -109,14 +109,14 @@ garden deploy --sync
 
 Garden is *pluggable*: how actions are executed depends on the plugins used. Our Kubernetes plugin is currently the most popular, followed by our Terraform and Pulumi plugins. For a more thorough introduction to Garden and its plugins, visit our docs:
 
-- [Kubernetes plugin](https://docs.garden.io/guides/remote-kubernetes).
-- [Terraform plugin](https://docs.garden.io/terraform-plugin/about).
-- [Pulumi plugin](https://docs.garden.io/pulumi-plugin/about).
+- [Kubernetes plugin](https://docs.garden.io/guides/remote-kubernetes)
+- [Terraform plugin](https://docs.garden.io/terraform-plugin/about)
+- [Pulumi plugin](https://docs.garden.io/pulumi-plugin/about)
 
 For a deeper dive on how Garden works in general, we recommend:
 
-- [How Garden Works](https://docs.garden.io/basics/how-garden-works).
-- [A video tour of Garden's directed acyclic graph and getting started](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8).
+- [How Garden Works](https://docs.garden.io/basics/how-garden-works)
+- [A video tour of Garden's directed acyclic graph and getting started](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8)
 
 ## Community
 
