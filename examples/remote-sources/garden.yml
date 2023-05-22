@@ -6,7 +6,7 @@ sources:
     # use #your-branch to specify a branch, #v0.3.0 for a tag or a full length commit SHA1
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#0.13
   - name: db-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#0.13
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#main
 environments:
   - name: local
     variables:
