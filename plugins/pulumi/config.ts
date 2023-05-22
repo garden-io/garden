@@ -7,9 +7,7 @@
  */
 
 import { DeepPrimitiveMap, joi, joiSparseArray, joiVariables } from "@garden-io/core/build/src/config/common"
-import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
-import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
 import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
 import { GardenModule } from "@garden-io/sdk/types"
 import { dedent } from "@garden-io/sdk/util/string"

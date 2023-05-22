@@ -22,7 +22,6 @@ import {
 import { ArtifactSpec } from "../../config/validation"
 import { ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
-import { cacheResultSchema } from "../../config/task"
 import { dedent, deline } from "../../util/string"
 import { syncGuideLink } from "../kubernetes/sync"
 import { k8sDeploymentTimeoutSchema, runCacheResultSchema } from "../kubernetes/config"
