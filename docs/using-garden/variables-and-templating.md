@@ -594,7 +594,7 @@ Check out the individual [action type reference](../reference/action-types/READM
 
 ## Action Runtime outputs
 
-Some actions (namely Runs) expose template keys prefixed with `actions.<kind>.<name>.putputs.` which some special semantics. They are used to expose _runtime outputs_ from actions and therefore are resolved later than other template strings. _This means that you cannot use them for some fields, such as most identifiers, because those need to be resolved before validating the configuration._
+Some actions (namely Runs) expose template keys prefixed with `actions.<kind>.<name>.outputs.` which some special semantics. They are used to expose _runtime outputs_ from actions and therefore are resolved later than other template strings. _This means that you cannot use them for some fields, such as most identifiers, because those need to be resolved before validating the configuration._
 
 That caveat aside, they can be very handy for passing information between actions. For example, you can pass log outputs from one task to another:
 
