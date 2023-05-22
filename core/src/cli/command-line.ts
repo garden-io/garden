@@ -759,7 +759,7 @@ ${chalk.white.underline("Keys:")}
         ...prepareParams,
         garden,
         sessionId,
-        nested: true,
+        parentSessionId: this.manager.sessionId,
       })
       .then((output: CommandResult) => {
         if (output.errors?.length) {

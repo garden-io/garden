@@ -344,7 +344,7 @@ ${renderCommands(commands)}
         args: parsedArgs,
         opts: parsedOpts,
         sessionId,
-        nested: false,
+        parentSessionId: null,
       })
 
       if (garden.monitors.anyMonitorsActive()) {

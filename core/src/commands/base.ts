@@ -73,7 +73,12 @@ export interface CommandParams<T extends Parameters = {}, U extends Parameters =
 
 export interface RunCommandParams<A extends Parameters = {}, O extends Parameters = {}> extends CommandParams<A, O> {
   sessionId: string
-  nested: boolean // Set to true if running in dev command or WS server
+  /**
+   * The session ID of the parent serve command (e.g. the 'garden dev' command that started the CLI process and the server)
+   * if applicable.
+   * Only defined if running in dev command or WS server.
+   */
+  parentSessionId: string | null
 }
 
 type DataCallback = (data: string) => void
@@ -183,20 +188,18 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     cli,
     commandLine,
     sessionId,
-    nested,
     parentCommand,
+    parentSessionId,
   }: RunCommandParams<A, O>): Promise<CommandResult<R>> {
     const commandStartTime = new Date()
     const server = this.server
 
     let garden = parentGarden
-    let parentSessionId: string | undefined
 
-    if (nested) {
+    if (parentSessionId) {
       // Make an instance clone to override anything that needs to be scoped to a specific command run
       // TODO: this could be made more elegant
       garden = parentGarden.cloneForCommand(sessionId)
-      parentSessionId = parentGarden.sessionId
     }
 
     const log = garden.log
@@ -204,7 +207,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
 
     if (garden.cloudApi && garden.projectId && this.streamEvents) {
       cloudSession = await garden.cloudApi.registerSession({
-        parentSessionId,
+        parentSessionId: parentSessionId || undefined,
         sessionId: garden.sessionId,
         projectId: garden.projectId,
         commandInfo: garden.commandInfo,
@@ -306,7 +309,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
       cloudEventStream.emit("sessionFailed", {})
       throw err
     } finally {
-      if (nested) {
+      if (parentSessionId) {
         garden.close()
         parentGarden.nestedSessions.delete(sessionId)
       }
