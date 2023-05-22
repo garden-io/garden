@@ -124,6 +124,7 @@ describe("DeployCommand", () => {
     "timestamps": false,
     "port": defaultServerPort,
     "cmd": undefined,
+    "disable-port-forwards": false,
   })
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
@@ -137,8 +138,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -194,8 +193,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: ["service-b"],
       },
@@ -233,8 +230,6 @@ describe("DeployCommand", () => {
       const { result, errors } = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: ["service-b", "service-c"],
         },
@@ -276,8 +271,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -305,8 +298,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -329,8 +320,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -353,8 +342,6 @@ describe("DeployCommand", () => {
       const log = getRootLogger().createLog()
       const persistent = cmd.maybePersistent({
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: undefined,
         },
@@ -371,8 +358,6 @@ describe("DeployCommand", () => {
       const log = getRootLogger().createLog()
       const persistent = cmd.maybePersistent({
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: undefined,
         },
@@ -389,8 +374,6 @@ describe("DeployCommand", () => {
       const log = getRootLogger().createLog()
       const persistent = cmd.maybePersistent({
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: undefined,
         },

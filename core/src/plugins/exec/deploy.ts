@@ -28,8 +28,7 @@ import { DeployActionHandler } from "../../plugin/action-types"
 import { deployStateToActionState, DeployStatus } from "../../plugin/handlers/Deploy/get-status"
 import { Resolved } from "../../actions/types"
 import { convertCommandSpec, execRun, getDefaultEnvVars } from "./common"
-import { kill } from "process"
-import { isRunning } from "../../process"
+import { isRunning, killRecursive } from "../../process"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -93,7 +92,7 @@ export const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = asy
   return {}
 }
 
-export const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async (params) => {
+export const deployExec: DeployActionHandler<"deploy", ExecDeploy> = async (params) => {
   const { action, log, ctx } = params
   const spec = action.getSpec()
 
@@ -117,7 +116,12 @@ export const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async
     const outputLog = (result.stdout + result.stderr).trim()
     if (outputLog) {
       const prefix = `Finished deploying service ${chalk.white(action.name)}. Here is the output:`
-      log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
+      log.verbose(renderMessageWithDivider({
+        prefix,
+        msg: outputLog,
+        isError: false,
+        color: chalk.gray
+      }))
     }
 
     return {
@@ -282,8 +286,13 @@ async function killProcess(log: Log, pidFilePath: string, deployName: string) {
     if (pidString) {
       const oldPid = parseInt(pidString, 10)
       if (isRunning(oldPid)) {
-        kill(oldPid, "SIGINT")
-        log.debug(`Sent SIGINT to existing ${deployName} process (PID ${oldPid})`)
+        try {
+          await killRecursive("INT", oldPid)
+          log.debug(`Sent SIGINT to existing ${deployName} process (PID ${oldPid})`)
+        } catch (err) {
+          // This most likely means that the process had already been terminated, which is fine for our purposes here.
+          log.debug(`An error occurred while deleting existing ${deployName} process (PID ${oldPid}): ${err.message}`)
+        }
       }
     }
   } catch (err) {

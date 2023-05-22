@@ -46,8 +46,6 @@ describe("commands", () => {
         const res = await command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { "config-paths": [] },
           opts: withDefaultGlobalOpts({
             root: projectPath,
@@ -214,8 +212,6 @@ describe("commands", () => {
           command.action({
             garden,
             log,
-            headerLog: log,
-            footerLog: log,
             args: { "config-paths": ["./project-varfile/garden.yml"] },
             opts: withDefaultGlobalOpts({
               root: projectPathErrors,
@@ -250,8 +246,6 @@ describe("commands", () => {
           command.action({
             garden,
             log,
-            headerLog: log,
-            footerLog: log,
             args: { "config-paths": [] },
             opts: withDefaultGlobalOpts({
               write: true,
@@ -273,8 +267,6 @@ describe("commands", () => {
         const res = await command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { "config-paths": ["./garden.yml"] },
           opts: withDefaultGlobalOpts({
             root: projectPath,

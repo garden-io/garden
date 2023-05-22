@@ -90,8 +90,8 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
   arguments = createModuleArgs
   options = createModuleOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Create new module", "✏️")
+  printHeader({ log }) {
+    printHeader(log, "Create new module", "✏️")
   }
 
   allowInDevCommand() {
@@ -207,7 +207,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     // Warn if module type is defined by provider that isn't configured OR if not in a project, ask to make sure
     // it is configured in the project that will use the module.
-    const projectConfig = await findProjectConfig(log, configDir)
+    const projectConfig = await findProjectConfig({ log, path: configDir })
     const pluginName = definition.plugin.name
 
     if (!fixedPlugins.includes(pluginName)) {

@@ -8,8 +8,9 @@
 
 import chalk from "chalk"
 import ci = require("ci-info")
+import dotenv = require("dotenv")
 import { pathExists } from "fs-extra"
-import { range, sortBy, max, isEqual, mapValues, pickBy } from "lodash"
+import { range, sortBy, max, isEqual, mapValues, pickBy, memoize, indexOf } from "lodash"
 import moment from "moment"
 import { platform, release } from "os"
 import qs from "qs"
@@ -17,7 +18,7 @@ import stringWidth from "string-width"
 import { maxBy, zip } from "lodash"
 import { Logger } from "../logger/logger"
 
-import { ParameterValues, Parameter, Parameters } from "./params"
+import { ParameterValues, Parameter, Parameters, globalDisplayOptions } from "./params"
 import { GardenBaseError, InternalError, ParameterError, toGardenError } from "../exceptions"
 import { getPackageVersion, removeSlice } from "../util/util"
 import { Log } from "../logger/log-entry"
@@ -383,7 +384,8 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
 
     if (warnOnGlobalOpts && log) {
       const usedGlobalOptions = Object.entries(parsedArgs)
-        .filter(([name, value]) => globalOptions[name] && !!value)
+        // Note: Only some global options are outright ignored in e.g. the dev/serve command now
+        .filter(([name, value]) => globalDisplayOptions[name] && !!value)
         .map(([name, _]) => `--${name}`)
 
       if (usedGlobalOptions.length > 0) {
@@ -396,6 +398,14 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
     args: <BuiltinArgs & ParameterValues<A>>processedArgs,
     opts,
   }
+}
+
+/**
+ * Parse command line --var input, return as an object.
+ * TODO: fix/improve handling of nested variables
+ */
+export function parseCliVarFlags(cliVars: string[] | undefined) {
+  return cliVars ? dotenv.parse(cliVars.join("\n")) : {}
 }
 
 export function optionsWithAliasValues<A extends Parameters, O extends Parameters>(
@@ -413,14 +423,60 @@ export function optionsWithAliasValues<A extends Parameters, O extends Parameter
   return withAliases
 }
 
+export function getPopularCommands(commands: Command[]): Command[] {
+  const popular = popularCommandFullNames()
+  return sortBy(
+    commands.filter((cmd) => popular.includes(cmd.getFullName())),
+    (cmd) => indexOf(popular, cmd.getFullName())
+  )
+}
+
+export function getOtherCommands(commands: Command[]): Command[] {
+  const popular = popularCommandFullNames()
+  return sortBy(
+    commands.filter((cmd) => !popular.includes(cmd.getFullName())),
+    (cmd) => cmd.getFullName()
+  )
+}
+
+// These commands are rendered first in the help text, since they're more commonly used than the others.
+const popularCommandFullNames = memoize(() => {
+  return [
+    "build",
+    "deploy",
+    "test",
+    "run",
+    "up",
+    "logs",
+    "sync start",
+    "sync status",
+    "sync stop",
+    "exec",
+    "login",
+    "logout",
+    "quit",
+    "reload",
+    "hide",
+    "log-level",
+    "cleanup deploy",
+    "cleanup namespace",
+    "community",
+    "create module",
+    "create project",
+    "options",
+    "publish",
+    "self-update",
+    "validate",
+    "workflow",
+  ]
+})
+
 export function renderCommands(commands: Command[]) {
   if (commands.length === 0) {
     return "\n"
   }
 
-  const sortedCommands = sortBy(commands, (cmd) => cmd.getFullName())
-
-  const rows = sortedCommands.map((command) => {
+  const rows = commands.map((command) => {
     return [` ${chalk.cyan(command.getFullName())}`, command.help]
   })
 

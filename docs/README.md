@@ -39,7 +39,7 @@
     * [AWS](./k8s-plugins/remote-k8s/create-cluster/aws.md)
     * [GCP](./k8s-plugins/remote-k8s/create-cluster/gcp.md)
     * [Azure](./k8s-plugins/remote-k8s/create-cluster/azure.md)
-  * [2. Configure Container Registry (Optional)](./k8s-plugins/remote-k8s/configure-registry/README.md)
+  * [2. Configure Container Registry](./k8s-plugins/remote-k8s/configure-registry/README.md)
     * [AWS](./k8s-plugins/remote-k8s/configure-registry/aws.md)
     * [GCP](./k8s-plugins/remote-k8s/configure-registry/gcp.md)
     * [Azure](./k8s-plugins/remote-k8s/configure-registry/azure.md)
@@ -64,7 +64,7 @@
 
 * [About](./terraform-plugin/about.md)
 * [Provider Configuration](./terraform-plugin/configure-provider.md)
-* [Module Configuration](./terraform-plugin/configure-modules.md)
+* [Deploy action Configuration](./terraform-plugin/configure-deploy-actions.md)
 
 ## ☘️ Pulumi Plugin
 

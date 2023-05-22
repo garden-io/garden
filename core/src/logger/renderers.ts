@@ -12,6 +12,7 @@ import stripAnsi from "strip-ansi"
 import { isArray, repeat } from "lodash"
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
+import format from "date-fns/format"
 
 import { LogEntry } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
@@ -30,9 +31,9 @@ export function padSection(section: string, width: number = SECTION_PADDING) {
   return diff <= 0 ? section : section + repeat(" ", diff)
 }
 
-export const msgStyle = (s: string) => (hasAnsi(s) ? s : chalk.gray(s))
-export const errorStyle = (s: string) => (hasAnsi(s) ? s : chalk.red(s))
-export const warningStyle = (s: string) => (hasAnsi(s) ? s : chalk.yellow(s))
+export const msgStyle = (s: string) => chalk.gray(s)
+export const errorStyle = (s: string) => chalk.red(s)
+export const warningStyle = (s: string) => chalk.yellow(s)
 
 /*** RENDER HELPERS ***/
 
@@ -44,16 +45,26 @@ export function combineRenders(entry: LogEntry, logger: Logger, renderers: Rende
 }
 
 export function renderError(entry: LogEntry): string {
-  const { error } = entry
+  const { msg, error } = entry
+
+  let out = ""
+
   if (error) {
-    return formatGardenErrorWithDetail(toGardenError(error))
+    if (msg) {
+      out += "\n\n"
+    }
+    out += formatGardenErrorWithDetail(toGardenError(error))
   }
 
-  return entry.msg || ""
+  return out
 }
 
 export function renderSymbol(entry: LogEntry): string {
   const section = getSection(entry)
+
+  if (!section) {
+    return ""
+  }
 
   let symbol = entry.symbol
 
@@ -73,11 +84,8 @@ export function renderTimestamp(entry: LogEntry, logger: Logger): string {
   if (!logger.showTimestamps) {
     return ""
   }
-  return `[${getTimestamp(entry)}] `
-}
-
-export function getTimestamp(entry: LogEntry): string {
-  return entry.timestamp
+  const formattedDate = format(new Date(entry.timestamp), "HH:mm:ss")
+  return chalk.gray(formattedDate) + " "
 }
 
 export function getSection(entry: LogEntry): string | null {
@@ -182,7 +190,7 @@ export function cleanWhitespace(str: string) {
 
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
-  const { msg, metadata } = entry
+  const { msg, metadata, timestamp } = entry
   const errorDetail = entry.error && entry ? formatGardenErrorWithDetail(toGardenError(entry.error)) : undefined
   const section = renderSection(entry)
 
@@ -192,7 +200,7 @@ export function formatForJson(entry: LogEntry): JsonLogEntry {
     metadata,
     // TODO @eysi: Should we include the section here or rather just show the context?
     section: cleanForJSON(section),
-    timestamp: getTimestamp(entry),
+    timestamp,
     level: logLevelMap[entry.level],
   }
   if (errorDetail) {

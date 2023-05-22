@@ -8,7 +8,7 @@
 
 import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
-import { joi } from "../../../config/common"
+import { createSchema, joi } from "../../../config/common"
 import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { ActionStatus, Executed } from "../../../actions/types"
@@ -26,14 +26,17 @@ export interface PublishActionDetail {
 
 export type PublishActionResult = ActionStatus<BuildAction, PublishActionDetail>
 
-export const publishResultSchema = () =>
-  actionStatusSchema().keys({
+export const publishResultSchema = createSchema({
+  name: "publish-result",
+  extend: actionStatusSchema,
+  keys: () => ({
     detail: joi.object().keys({
       published: joi.boolean().required().description("Set to true if the build was published."),
       message: joi.string().description("Optional result message from the provider."),
       identifier: joi.string().description("The published artifact identifier, if applicable."),
     }),
-  })
+  }),
+})
 
 export class PublishBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "Build",

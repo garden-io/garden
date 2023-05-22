@@ -16,6 +16,14 @@ import getPort = require("get-port")
 import { Log } from "../logger/log-entry"
 import { AuthTokenResponse } from "./api"
 import { isArray } from "lodash"
+import { gardenEnv } from "../constants"
+
+// If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
+// switch to ci-token authentication method.
+export const authTokenHeader =
+  gardenEnv.GARDEN_AUTH_TOKEN && !gardenEnv.GARDEN_GE_SCHEDULED ? "x-ci-token" : "x-access-auth-token"
+
+export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]: clientAuthToken })
 
 // TODO: Add analytics tracking
 export class AuthRedirectServer {

@@ -62,8 +62,9 @@ import minimatch from "minimatch"
 import { ConfigContext } from "../config/template-contexts/base"
 import { LinkedSource, LinkedSourceMap } from "../config-store/local"
 import { relative } from "path"
+import { profileAsync } from "../util/profiling"
 
-export async function actionConfigsToGraph({
+export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
   garden,
   log,
   groupConfigs,
@@ -172,9 +173,9 @@ export async function actionConfigsToGraph({
   graph.validate()
 
   return graph
-}
+})
 
-export async function actionFromConfig({
+export const actionFromConfig = profileAsync(async function actionFromConfig({
   garden,
   graph,
   config: inputConfig,
@@ -262,7 +263,7 @@ export async function actionFromConfig({
   }
 
   const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
-  const treeVersion = await garden.vcs.getTreeVersion(log, garden.projectName, config)
+  const treeVersion = config.internal.treeVersion || (await garden.vcs.getTreeVersion(log, garden.projectName, config))
 
   const variables = await resolveVariables({
     basePath: config.internal.basePath,
@@ -304,7 +305,7 @@ export async function actionFromConfig({
   }
 
   return action
-}
+})
 
 export function actionNameConflictError(configA: ActionConfig, configB: ActionConfig, rootPath: string) {
   return new ConfigurationError(
@@ -450,7 +451,7 @@ function getActionSchema(kind: ActionKind) {
   }
 }
 
-async function preprocessActionConfig({
+const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
   garden,
   config,
   router,
@@ -561,7 +562,7 @@ async function preprocessActionConfig({
   }
 
   return { config, supportedModes, templateContext: builtinFieldContext }
-}
+})
 
 function dependenciesFromActionConfig(
   log: Log,

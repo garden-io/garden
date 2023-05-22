@@ -8,10 +8,10 @@
 
 import Joi = require("@hapi/joi")
 import { ConfigureModuleParams, ConfigureModuleResult, configure } from "./handlers/Module/configure"
-import { joiIdentifier, joi, joiSchema } from "../config/common"
+import { joiIdentifier, joi, joiSchema, createSchema } from "../config/common"
 import { GardenModule } from "../types/module"
 import { ActionHandlerParamsBase, outputSchemaDocs, WrappedActionHandler } from "./base"
-import { mapValues } from "lodash"
+import { mapValues, memoize } from "lodash"
 import { dedent } from "../util/string"
 import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "./handlers/Module/suggest"
 import { templateStringLiteral } from "../docs/common"
@@ -122,21 +122,26 @@ export interface ModuleTypeDefinition<T extends GardenModule = GardenModule> ext
   title?: string
 }
 
-export const moduleHandlersSchema = () =>
+export const moduleHandlersSchema = memoize(() =>
   joi
     .object()
     .keys(mapValues(getModuleHandlerDescriptions(), () => joi.func()))
     .description("A map of module action handlers provided by the plugin.")
+)
 
-export const extendModuleTypeSchema = () =>
-  joi.object().keys({
+export const extendModuleTypeSchema = createSchema({
+  name: "extend-module-type",
+  keys: () => ({
     name: joiIdentifier().required().description("The name of module type."),
     handlers: moduleHandlersSchema(),
     needsBuild: joi.boolean().required().description("Specify whether this module type needs to be built."),
-  })
+  }),
+})
 
-export const createModuleTypeSchema = () =>
-  extendModuleTypeSchema().keys({
+export const createModuleTypeSchema = createSchema({
+  name: "create-module-type",
+  extend: extendModuleTypeSchema,
+  keys: () => ({
     base: joiIdentifier().description(dedent`
         Name of module type to use as a base for this module type.
 
@@ -183,4 +188,5 @@ export const createModuleTypeSchema = () =>
       .description(
         "Readable title for the module type. Defaults to the title-cased type name, with dashes replaced by spaces."
       ),
-  })
+  }),
+})

@@ -155,25 +155,6 @@ kind:
 timeout: 300
 
 spec:
-  # Specify how to build the module. Note that plugins may define additional keys on this object.
-  build:
-    # A list of modules that must be built before this module is built.
-    dependencies:
-      - # Module name to build ahead of this module.
-        name:
-
-        # Specify one or more files or directories to copy from the built dependency to this module.
-        copy:
-          - # POSIX-style path or filename of the directory or file(s) to copy to the target.
-            source:
-
-            # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-            # Defaults to the same as source path.
-            target:
-
-    # Maximum time in seconds to wait for build to finish.
-    timeout: 600
-
   # If set to true, Garden will destroy the stack when calling `garden cleanup namespace` or `garden cleanup deploy
   # <deploy action name>`.
   # This is useful to prevent unintentional destroys in production or shared environments.
@@ -187,10 +168,6 @@ spec:
 
   # If set to true, Garden will automatically create the stack if it doesn't already exist.
   createStack: false
-
-  # The names of any services that this service depends on at runtime, and the names of any tasks that should be
-  # executed before this service is deployed.
-  dependencies: []
 
   # Specify the path to the Pulumi project root, relative to the deploy action's root.
   root: .
@@ -488,88 +465,6 @@ Timeout for the deploy to complete, in seconds.
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.build`
-
-[spec](#spec) > build
-
-Specify how to build the module. Note that plugins may define additional keys on this object.
-
-| Type     | Default               | Required |
-| -------- | --------------------- | -------- |
-| `object` | `{"dependencies":[]}` | No       |
-
-### `spec.build.dependencies[]`
-
-[spec](#spec) > [build](#specbuild) > dependencies
-
-A list of modules that must be built before this module is built.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  build:
-    ...
-    dependencies:
-      - name: some-other-module-name
-```
-
-### `spec.build.dependencies[].name`
-
-[spec](#spec) > [build](#specbuild) > [dependencies](#specbuilddependencies) > name
-
-Module name to build ahead of this module.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `spec.build.dependencies[].copy[]`
-
-[spec](#spec) > [build](#specbuild) > [dependencies](#specbuilddependencies) > copy
-
-Specify one or more files or directories to copy from the built dependency to this module.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `spec.build.dependencies[].copy[].source`
-
-[spec](#spec) > [build](#specbuild) > [dependencies](#specbuilddependencies) > [copy](#specbuilddependenciescopy) > source
-
-POSIX-style path or filename of the directory or file(s) to copy to the target.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-### `spec.build.dependencies[].copy[].target`
-
-[spec](#spec) > [build](#specbuild) > [dependencies](#specbuilddependencies) > [copy](#specbuilddependenciescopy) > target
-
-POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-Defaults to the same as source path.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | No       |
-
-### `spec.build.timeout`
-
-[spec](#spec) > [build](#specbuild) > timeout
-
-Maximum time in seconds to wait for build to finish.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `600`   | No       |
-
 ### `spec.allowDestroy`
 
 [spec](#spec) > allowDestroy
@@ -601,16 +496,6 @@ If set to true, Garden will automatically create the stack if it doesn't already
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
-
-### `spec.dependencies[]`
-
-[spec](#spec) > dependencies
-
-The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
 
 ### `spec.root`
 
@@ -748,7 +633,7 @@ The name of the pulumi stack to use. Defaults to the current environment name.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `pulumi`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

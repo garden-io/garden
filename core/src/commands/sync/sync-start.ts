@@ -81,8 +81,8 @@ export class SyncStartCommand extends Command<Args, Opts> {
 
   outputsSchema = () => joi.object()
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Starting sync(s)", "🔁")
+  printHeader({ log }) {
+    printHeader(log, "Starting sync(s)", "🔁")
   }
 
   maybePersistent({ opts }: PrepareParams<Args, Opts>) {

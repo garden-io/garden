@@ -153,8 +153,8 @@ kind:
 timeout: 300
 
 spec:
-  # The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in
-  # most cases you should leave this unset.
+  # The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so
+  # in most cases you should leave this unset.
   namespace:
 
   # The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec
@@ -442,7 +442,7 @@ Timeout for the deploy to complete, in seconds.
 
 [spec](#spec) > namespace
 
-The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
+The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
 
 | Type     | Required |
 | -------- | -------- |
@@ -602,7 +602,7 @@ VolumeName is the binding reference to the PersistentVolume backing this claim.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `persistentvolumeclaim`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

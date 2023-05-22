@@ -60,7 +60,7 @@ describe("sync mode deployments and sync behavior", () => {
 
   afterEach(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
       const dataDir = join(garden.gardenDirPath, MUTAGEN_DIR_NAME)
       await getMutagenMonitor({ log: garden.log, dataDir }).stop()
       await cleanProject(garden.gardenDirPath)

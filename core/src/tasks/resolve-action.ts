@@ -39,7 +39,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     return this.action.key()
   }
 
-  async getStatus({}: ActionTaskStatusParams<T>) {
+  getStatus({}: ActionTaskStatusParams<T>) {
     return null
   }
 
@@ -145,7 +145,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     const variables = groupVariables
     merge(variables, actionVariables)
     // Override with CLI-set variables
-    merge(variables, this.garden.cliVariables)
+    merge(variables, this.garden.variableOverrides)
 
     // Resolve spec
     let spec = resolveTemplateStrings(

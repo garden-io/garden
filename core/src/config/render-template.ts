@@ -65,7 +65,7 @@ export interface RenderTemplateConfig extends BaseGardenResource {
 // TODO: remove in 0.14
 export const templatedModuleSpecSchema = createSchema({
   name: "templated-module",
-  keys: {
+  keys: () => ({
     disabled: joi.boolean().default(false).description("Set to true to skip rendering this template."),
     template: joiIdentifier()
       .required()
@@ -77,7 +77,7 @@ export const templatedModuleSpecSchema = createSchema({
       Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting config names and other top-level identifiers must be resolvable when scanning for configs, and thus cannot reference other actions, modules or runtime variables. See the [environment configuration context reference](../template-strings/environments.md) to see template strings that are safe to use for inputs used to generate config identifiers.
       `
     ),
-  },
+  }),
 })
 
 export function convertTemplatedModuleToRender(config: TemplatedModuleConfig): RenderTemplateConfig {

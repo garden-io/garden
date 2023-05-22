@@ -60,8 +60,8 @@ export class PluginsCommand extends Command<Args> {
 
   arguments = pluginArgs
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Plugins", "⚙️")
+  printHeader({ log }) {
+    printHeader(log, "Plugins", "⚙️")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {

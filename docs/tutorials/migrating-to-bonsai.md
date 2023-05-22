@@ -1,43 +1,50 @@
 # Migrating your configuration for Bonsai
 
-**Bonsai** is the codename for the Garden command line tool release version 0.13.
+**Bonsai** is the codename for Garden 0.13.
 
-There are some changes in the configuration format in this version, but fear not: Bonsai is _mostly backwards compatible_ with the old configuration. There are very few breaking changes that require editing the existing configuration files - your projects should mostly just work when updating the Garden command line tool.
+In Garden Bonsai, _actions_ replace _modules_ as the recommended way to describe components in your your Garden projects. The top-level project configuration is mostly unchanged.
 
-On the other hand, the optional new configuration format is easier to read and write, provides much more flexibility, and adds some completely new functionalities. We encourage migrating to the new configuration format when you feel the time is right in your project.
+But fear not: Bonsai is _mostly backwards compatible_ with the old configuration! There are very few breaking changes that require editing any existing module-based configuration files - your projects should mostly just work when updating Garden.
+
+On the other hand, the new configuration format is easier to read and write, provides much more flexibility, and adds some completely new functionality. We encourage you to incrementally convert your module configs to actions when you feel the time is right in your project.
+
+If you'd like to learn more about actions before proceeding, check out the [actions guide](../using-garden/) (which describes actions in depth).
 
 ## Breaking changes first
 
-Here is the list of breaking changes when upgrading your `garden` CLI tool. This lets you use your old Module-style configuration files with minimal changes.
+Here is the list of breaking changes from Garden Acorn (0.12) to Bonsai (0.13). This lets you use your old module configs with minimal changes.
 
-- `cert-manager` integration has been removed. New documentation has been created in the [ext dns and cert manager example](../../examples/cert-manager-ext-dns)
-- `dev-mode` has been renamed to `sync`, both in the configuration as well as on the CLI
-- `garden delete` has been renamed to `garden cleanup`
-- `garden delete env` has been renamed to `garden cleanup namespace` with an alias of `garden cleanup ns`
-- `dotIgnoreFiles` has been renamed to `dotIgnoreFile` and only supports one file. The old `dotIgnoreFiles` field is still supported with a deprecation warning. Now it supports only 1 filename defined in the array, otherwise an error will be thrown.
-- project config `modules.*` has been renamed to `scan.*`. The old syntax is still supported with a deprecation warning.
-- removed default `environments`, please specify the field in project configuration
-- template configurations will use `camelCase` everywhere, no more `snake_case` or `kebab-case`: [tracking issue](https://github.com/garden-io/garden/issues/3513)
-- the deprecated `hot-reload` has been removed, use `sync` instead
-- the deprecated `cluster-docker` build mode has been removed, use `cluster-buildkit` or `kaniko` instead
-- dropped support for deploying an in-cluster registry, see the [in-cluster build documentation](../k8s-plugins/remote-k8s/configure-registry/README.md)
-- dropped support for the following providers:
+- The `cert-manager` integration has been removed. New documentation has been created in the [ext dns and cert manager example](../../examples/cert-manager-ext-dns)
+- `dev-mode` has been renamed to `sync` (and is now referred to as sync mode), both in configuration as well as in CLI command options.
+- The `garden delete` command has been renamed to `garden cleanup`.
+- `garden delete env` has been renamed to `garden cleanup namespace`, with an alias of `garden cleanup ns`
+- Changes to project configuration:
+  - The `dotIgnoreFiles` field has been renamed to `dotIgnoreFile` and only supports one file. The old `dotIgnoreFiles` field is still supported with a deprecation warning. Now it supports only 1 filename defined in the array, otherwise an error will be thrown.
+  - The `modules.*` field has been renamed to `scan.*`. The old syntax is still supported with a deprecation warning.
+  - Removed default `environments` (this might require you to explicitly specify a plugin name or two in your project config that were previously inferred implicitly).
+- Template variable names will use `camelCase` everywhere, no more `snake_case` or `kebab-case`: [tracking issue](https://github.com/garden-io/garden/issues/3513)
+- The deprecated `hot-reload` mode has been removed: Use `sync` instead.
+  - Sync mode is faster, more reliable and more full-featured than the old hot reload mode, so we feel confident that you'll be happy with the upgrade.
+- The deprecated `cluster-docker` build mode has been removed. Please use `cluster-buildkit` or `kaniko` instead.
+- Dropped support for deploying an in-cluster registry
+  - See the [in-cluster build documentation](../k8s-plugins/remote-k8s/configure-registry/README.md) for guidance on how to set up a container registry for using Garden with a remote Kubernetes cluster.
+- Dropped support for the following providers:
   - `google-app-engine`
   - `google-cloud-functions`
   - `local-google-cloud-functions`
-  - `maven-container`
-  - `npm-package`
+  - `maven-container` (superseded by the the `jib-container` plugin)
+  - `npm-package` (the `exec` provider is a good replacement there)
   - `openfaas`
 
 ## Note before continuing
 
-It is possible to use both the old Module configuration and new Action configuration in the same project. This should make it easier to convert projects piece by piece.
+It is possible to use both module and action configs in the same project. This should make it easier to convert projects piece by piece.
 
-However, there are some caveats:
-
-- Modules cannot depend on actions
-- Modules cannot reference actions
-- Actions can reference and depend on modules, by referencing the actions that are generated from modules
+Internally, Garden converts modules into actions:
+- The build step of a module (if any) becomes a Build action.
+- Services become Deploy actions.
+- Tests become Test actions.
+- Tasks become Run actions.
 
 This means that converting your project to the actions config can be performed gradually by starting from the end of the dependency tree.
 
@@ -47,9 +54,15 @@ The general flow of the Garden runtime is as follows:
 - Modules are converted to actions
 - Actions are resolved
 
+However, there are some caveats:
+
+- Modules cannot depend on actions
+- Modules cannot reference actions
+- Actions can reference and depend on modules, by referencing the actions that are generated from modules.
+
 ## Opt in to the new format
 
-Here are a couple of examples of converting existing Module-style configuration to the new Action-based configuration format. This requires more effort, but should be pretty rewarding.
+Here are a couple of examples of converting module configs to action configs.
 
 The added granularity and flexibility should make it easier to configure complex projects, and significantly reduce the number of unnecessary rebuilds.
 
@@ -68,7 +81,7 @@ type: container
 name: api
 description: The backend for the voting UI
 
-# The services section becomes a Deploy action
+# The services section is converted into a Deploy action
 services:
   - name: api
     args: [python, app.py]
@@ -87,7 +100,7 @@ services:
     dependencies:
       - redis
 
-# The tests list becomes individual Test actions
+# The tests are converted into Test actions
 tests:
   - name: unit
     args: [echo, ok]
@@ -297,7 +310,7 @@ type: container
 name: worker
 description: The worker that collects votes and stores results in a postgres table
 build: worker
-# Note here the much more granular dependency control
+# Note the much more granular dependency control!
 dependencies:
   - deploy.redis
   - run.db-init
@@ -312,7 +325,7 @@ spec:
 
 ## Mixed use of Garden Acorn (0.12) and Bonsai (0.13)
 
-For backwards compatibility, garden Bonsai will default to `apiVersion: garden.io/v0` in your project configuration  (`kind: Project`).
+For backwards compatibility, Garden Bonsai will default to `apiVersion: garden.io/v0` in your project configuration  (`kind: Project`).
 
 Using `apiVersion: garden.io/v0` enables teams to gradually move to Bonsai, one team member at a time, because members can already choose to use Bonsai, while still being able to use Acorn (`0.12`) when necessary.
 

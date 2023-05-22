@@ -7,25 +7,39 @@
  */
 
 import chalk from "chalk"
-import { Key } from "ink"
-import { keyBy, max } from "lodash"
+import type { Key } from "ink"
+import { max } from "lodash"
+import { resolve } from "path"
 import sliceAnsi from "slice-ansi"
+import stringArgv from "string-argv"
 import stringWidth from "string-width"
-import { BuiltinArgs, Command, CommandGroup, CommandParams, CommandResult } from "../commands/base"
+import { BuiltinArgs, Command, CommandGroup, CommandResult, PrepareParams } from "../commands/base"
+import { ServeCommand } from "../commands/serve"
+import { GlobalConfigStore } from "../config-store/global"
+import { findProjectConfig } from "../config/base"
 import { toGardenError } from "../exceptions"
-import { ConfigDump, Garden } from "../garden"
-import { Log } from "../logger/log-entry"
+import { Garden } from "../garden"
+import type { Log } from "../logger/log-entry"
 import { getRootLogger } from "../logger/logger"
 import { renderDivider } from "../logger/util"
+import { getGardenForRequest } from "../server/commands"
+import type { GardenInstanceManager } from "../server/instance-manager"
 import { TypedEventEmitter } from "../util/events"
 import { uuidv4 } from "../util/random"
 import { sleep } from "../util/util"
-import { Autocompleter, AutocompleteSuggestion } from "./autocomplete"
-import { parseCliArgs, pickCommand, processCliArgs, renderCommandErrors, renderCommands } from "./helpers"
-import { GlobalOptions, ParameterValues } from "./params"
-import { ServeCommand } from "../commands/serve"
+import { AutocompleteSuggestion } from "./autocomplete"
+import {
+  getOtherCommands,
+  getPopularCommands,
+  parseCliArgs,
+  pickCommand,
+  processCliArgs,
+  renderCommandErrors,
+  renderCommands,
+} from "./helpers"
+import type { GlobalOptions, ParameterValues } from "./params"
 
-const defaultMessageDuration = 2000
+const defaultMessageDuration = 3000
 const commandLinePrefix = chalk.yellow("🌼  > ")
 const emptyCommandLinePlaceholder = chalk.gray("<enter command> (enter help for more info)")
 const inputHistoryLength = 100
@@ -36,7 +50,7 @@ const styles = {
 
 export type SetStringCallback = (data: string) => void
 
-type KeyHandler = (input: string, key: Key) => void
+type KeyHandler = (input: string, key: Partial<Key>) => void
 
 const directInputKeys = [
   "upArrow",
@@ -66,7 +80,7 @@ function getCmdSuccessMsg(commandName: string) {
 }
 
 function getCmdFailMsg(commandName: string) {
-  return `Failed running the ${commandName} command. Please see above for the logs.`
+  return `Failed running the ${commandName} command. Please see above for the logs. ☝️`
 }
 
 export function logCommandStart({ commandName, log, width }: { commandName: string; log: Log; width: number }) {
@@ -89,6 +103,7 @@ export function logCommandError({ error, log, width }: { error: Error; log: Log;
   log.error({ msg: renderDivider({ width, color: chalk.red, char: "┈" }) })
 }
 
+// TODO-0.13.1+: support --root flag in commands
 export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   public needsReload = false // Set to true when a config change is detected, and set back to false after reloading.
   private enabled: boolean
@@ -100,7 +115,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private autocompletingFrom: number
   private commandHistory: string[]
   private showCursor: boolean
-  private runningCommands: { [id: string]: { command: Command; params: CommandParams } }
+  private runningCommands: { [id: string]: { command: Command; params: PrepareParams } }
   private persistentStatus: string
 
   private keyHandlers: { [key: string]: KeyHandler }
@@ -110,37 +125,41 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private messageCallback: SetStringCallback
   private messageTimeout: NodeJS.Timeout
 
-  private autocompleter: Autocompleter
-  private garden: Garden
-  private serverCommand: ServeCommand
+  private serveCommand: ServeCommand
+  private extraCommands: Command[]
+  public cwd: string
+  private manager: GardenInstanceManager
+  private globalConfigStore: GlobalConfigStore
   private readonly log: Log
-  private commands: Command[]
   private readonly globalOpts: Partial<ParameterValues<GlobalOptions>>
 
   constructor({
-    garden,
-    serverCommand,
+    cwd,
+    manager,
     log,
-    commands,
-    configDump,
     globalOpts,
+    serveCommand,
+    extraCommands,
     history = [],
   }: {
-    garden: Garden
-    serverCommand: ServeCommand
+    cwd: string
+    manager: GardenInstanceManager
     log: Log
-    commands: Command[]
-    configDump?: ConfigDump
     globalOpts: Partial<ParameterValues<GlobalOptions>>
+    serveCommand: ServeCommand
+    extraCommands: Command[]
     history?: string[]
   }) {
     super()
 
-    this.garden = garden
-    this.serverCommand = serverCommand
+    this.globalConfigStore = new GlobalConfigStore()
+
+    this.cwd = cwd
+    this.manager = manager
     this.log = log
-    this.commands = commands
     this.globalOpts = globalOpts
+    this.extraCommands = extraCommands
+    this.serveCommand = serveCommand
 
     this.enabled = false
     this.currentCommand = ""
@@ -160,23 +179,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
     this.keyHandlers = {}
 
-    this.autocompleter = new Autocompleter({ log, commands, configDump, debug: true })
     this.init()
-  }
-
-  async update(garden: Garden, configDump: ConfigDump, commands: Command[]) {
-    const byName = keyBy(
-      this.commands.filter((c) => !c.isCustom),
-      (c) => c.getFullName()
-    )
-
-    for (const c of commands) {
-      byName[c.getFullName()] = c
-    }
-
-    this.commands = Object.values(byName)
-    this.garden = garden
-    this.autocompleter = new Autocompleter({ log: this.log, commands: this.commands, configDump, debug: true })
   }
 
   setCallbacks({
@@ -201,7 +204,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     return commandLinePrefix + emptyCommandLinePlaceholder
   }
 
-  handleInput(input: string, key: Key) {
+  handleInput(input: string, key: Partial<Key>) {
     if (!this.enabled) {
       return
     }
@@ -259,12 +262,12 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
         await sleep(sleepMs)
       }
       await sleep(250)
-      await this.handleReturn()
+      this.handleReturn()
     }
     this.commandLineCallback(commandLinePrefix + this.currentCommand)
   }
 
-  private isValidInput(input: string, key?: Key) {
+  private isValidInput(input: string, key?: Partial<Key>) {
     // TODO: this is most likely not quite sufficient, nor the most efficient way to handle the inputs
     // FIXME: for one, typing an umlaut character does not appear to work on international English keyboards
     return (
@@ -433,10 +436,10 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
     // TODO: show spinner here
     if (runningCommands.length === 1) {
-      status = chalk.cyan(`🕙  Running ${styles.command(runningCommands[0].command.getFullName())} command...`)
+      status = chalk.cyan(`Running ${styles.command(runningCommands[0].command.getFullName())} command...`)
     } else if (runningCommands.length > 1) {
       status =
-        chalk.cyan(`🕙  Running ${runningCommands.length} commands: `) +
+        chalk.cyan(`Running ${runningCommands.length} commands: `) +
         styles.command(runningCommands.map((c) => c.command.getFullName()).join(", "))
     }
 
@@ -486,15 +489,18 @@ ${renderDivider({ width, char, color })}
   }
 
   showHelp() {
-    // TODO: group commands by category?
-    const renderedCommands = renderCommands(
-      this.commands.filter((c) => !(c.hidden || c instanceof CommandGroup || hideCommands.includes(c.getFullName())))
-    )
+    const commandsToRender = this.getCommands().filter((c) => {
+      return !(c.hidden || c instanceof CommandGroup || hideCommands.includes(c.getFullName()))
+    })
 
     const helpText = `
-${chalk.white.underline("Available commands:")}
+${chalk.white.underline("Popular commands:")}
 
-${renderedCommands}
+${renderCommands(getPopularCommands(commandsToRender))}
+
+${chalk.white.underline("Other commands:")}
+
+${renderCommands(getOtherCommands(commandsToRender))}
 
 ${chalk.white.underline("Keys:")}
 
@@ -513,7 +519,7 @@ ${chalk.white.underline("Keys:")}
   flashMessage(message: string, opts: FlashOpts = {}) {
     this.clearTimeout()
 
-    const prefix = opts.prefix || chalk.cyan("ℹ︎ ")
+    const prefix = opts.prefix || ""
     this.messageCallback(prefix + message)
 
     this.messageTimeout = setTimeout(() => {
@@ -574,30 +580,17 @@ ${chalk.white.underline("Keys:")}
     this.renderCommandLine()
   }
 
+  private getCommands() {
+    return [...this.manager.getCommands(this.log, this.cwd), ...this.extraCommands]
+  }
+
   private handleReturn() {
     if (this.currentCommand.trim() === "") {
       return
     }
-    return this.reloadIfConfigChanged()
-      .catch((error: Error) => {
-        logCommandError({ error, width: this.getTermWidth(), log: this.log })
-      })
-      .then(() => this.parseAndRunCommand())
-  }
 
-  private async reloadIfConfigChanged() {
-    if (this.needsReload) {
-      const currentCommand = this.currentCommand
-      await this.serverCommand.reload({ log: this.log, garden: this.garden })
-      // We want the pre-reload command to be maintained across the reload.
-      this.currentCommand = currentCommand
-      this.needsReload = false
-    }
-  }
-
-  private parseAndRunCommand() {
-    const rawArgs = this.currentCommand.trim().split(" ")
-    const { command, rest, matchedPath } = pickCommand(this.commands, rawArgs)
+    const rawArgs = stringArgv(this.currentCommand)
+    const { command, rest, matchedPath } = pickCommand(this.getCommands(), rawArgs)
 
     if (!command) {
       this.flashError(`Could not find command. Try typing ${chalk.white("help")} to see the available commands.`)
@@ -657,28 +650,37 @@ ${chalk.white.underline("Keys:")}
     // Update command line
     this.clear()
 
-    // Update persisted history
-    // Note: We're currently not resolving history across concurrent dev commands, but that's anyway not well supported
-    this.garden.localConfigStore.set("devCommandHistory", this.commandHistory).catch((error) => {
-      this.log.warn(chalk.yellow(`Could not persist command history: ${error}`))
+    this.runCommand({ command, rawArgs, args, opts }).catch((error) => {
+      this.flashError("Unexpected error while running command :/ Please see above for error logs ☝️")
+      this.log.error({ error })
     })
+  }
 
+  private async runCommand({
+    command,
+    rawArgs,
+    args,
+    opts,
+  }: {
+    command: Command
+    rawArgs: string[]
+    args: ParameterValues<any>
+    opts: ParameterValues<any>
+  }) {
     const id = uuidv4()
     const width = this.getTermWidth() - 2
 
-    const params = {
-      garden: this.garden,
+    const prepareParams = {
       log: this.log,
-      headerLog: this.log,
-      footerLog: this.log,
       args,
       opts,
       commandLine: this,
+      parentCommand: this.serveCommand,
     }
 
     const name = command.getFullName()
 
-    if (!command.allowInDevCommand(params)) {
+    if (!command.allowInDevCommand(prepareParams)) {
       if ((name === "test" || name === "run") && opts["interactive"]) {
         // Specific error for interactive commands
         this.flashError(`Commands cannot be run in interactive mode in the dev console. Please run those separately.`)
@@ -692,26 +694,80 @@ ${chalk.white.underline("Keys:")}
 
     // Execute the command
     if (!command.isDevCommand) {
-      // this.flashMessage(getCmdStartMsg(name))
-      // logCommandStart({ commandName: name, width, log: this.log })
-      const msg = `Running command: ${chalk.white.bold(rawArgs.join(" "))}`
-      this.flashMessage(msg)
-      this.log.info({ msg: "\n" + renderDivider({ width, title: msg, color: chalk.blueBright, char: "┈" }) })
-      this.runningCommands[id] = { command, params }
+      this.flashMessage(getCmdStartMsg(name))
+      logCommandStart({ commandName: rawArgs.join(" "), width, log: this.log })
+      this.runningCommands[id] = { command, params: prepareParams }
       this.renderStatus()
     }
-    // Clear the VCS handler's tree cache to make sure we pick up any changed sources.
-    this.garden.clearTreeCache()
+
+    const sessionId = uuidv4()
+
+    let garden: Garden
+
+    try {
+      let scan = true
+      let path = this.cwd
+
+      if (opts.root) {
+        scan = false
+        path = resolve(path, opts.root)
+      }
+
+      const projectConfig = await findProjectConfig({
+        log: this.log,
+        path,
+        scan,
+      })
+
+      if (!projectConfig) {
+        const msg = opts.root
+          ? `Could not find project at specified --root '${opts.root}'`
+          : `Could not find project in current directory or any parent directoty`
+        this.flashError(getCmdFailMsg(name))
+        this.log.error(msg)
+        delete this.runningCommands[id]
+        this.renderStatus()
+        return
+      }
+
+      garden = await getGardenForRequest({
+        command,
+        manager: this.manager,
+        projectConfig,
+        globalConfigStore: this.globalConfigStore,
+        log: this.log,
+        args,
+        opts,
+        sessionId,
+      })
+    } catch (error) {
+      this.flashError(getCmdFailMsg(name))
+      this.log.error({ error })
+      delete this.runningCommands[id]
+      this.renderStatus()
+      return
+    }
+
+    // Update persisted history
+    // Note: We're currently not resolving history across concurrent dev commands, but that's anyway not well supported
+    garden.localConfigStore.set("devCommandHistory", this.commandHistory).catch((error) => {
+      this.log.warn(chalk.yellow(`Could not persist command history: ${error}`))
+    })
 
     command
-      .action(params)
+      .run({
+        ...prepareParams,
+        garden,
+        sessionId,
+        nested: true,
+      })
       .then((output: CommandResult) => {
         if (output.errors?.length) {
           logCommandOutputErrors({ errors: output.errors, log: this.log, width })
           this.flashError(getCmdFailMsg(name))
         } else if (!command.isDevCommand) {
           // TODO: print this differently if monitors from the command are active
-          // const monitorsAdded = this.garden.monitors.getByCommand(command).length
+          // const monitorsAdded = garden.monitors.getByCommand(command).length
           this.flashSuccess(getCmdSuccessMsg(name))
           logCommandSuccess({ commandName: name, width, log: this.log })
         }
@@ -722,7 +778,7 @@ ${chalk.white.underline("Keys:")}
         this.flashError(getCmdFailMsg(name))
       })
       .finally(() => {
-        this.garden.events.clearKey(this.garden.sessionId)
+        garden.events.clearKey(sessionId)
         delete this.runningCommands[id]
         this.renderStatus()
       })
@@ -734,7 +790,12 @@ ${chalk.white.underline("Keys:")}
     }
 
     const input = this.currentCommand.substring(0, from)
-    return this.autocompleter.getSuggestions(input, { ignoreGlobalFlags: true })
+    return this.manager.getAutocompleteSuggestions({
+      log: this.log,
+      projectRoot: this.cwd,
+      input,
+      ignoreGlobalFlags: true,
+    })
   }
 
   private isSuggestedCommand(suggestions: AutocompleteSuggestion[]) {

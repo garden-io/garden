@@ -552,7 +552,7 @@ A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (
 ## Outputs
 
 The following keys are available via the `${actions.run.<name>}` template string key for `kubernetes-exec`
-modules.
+action.
 
 ### `${actions.run.<name>.name}`
 

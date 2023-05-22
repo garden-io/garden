@@ -483,7 +483,7 @@ A POSIX-style path to copy the artifacts to, relative to the project artifacts d
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `exec`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

@@ -34,8 +34,9 @@ interface BuildCopySpec {
 
 // TODO: allow : delimited string (e.g. some.file:some-dir/)
 // FIXME: target should not default to source if source contains wildcards
-const copySchema = () =>
-  joi.object().keys({
+const copySchema = createSchema({
+  name: "copy-spec",
+  keys: () => ({
     // TODO: allow array of strings here
     source: joi
       .posixPath()
@@ -50,7 +51,8 @@ const copySchema = () =>
         POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
         Defaults to the same as source path.
       `),
-  })
+  }),
+})
 
 export interface BuildDependencyConfig {
   name: string
@@ -146,7 +148,7 @@ export const generatedFileSchema = createSchema({
       ),
     value: joi.string().description("The desired file contents as a string."),
   }),
-  xor: ["value", "sourcePath"],
+  xor: [["value", "sourcePath"]],
 })
 
 export const baseBuildSpecSchema = createSchema({

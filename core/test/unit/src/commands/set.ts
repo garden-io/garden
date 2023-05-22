@@ -26,8 +26,6 @@ describe("SetDefaultEnvCommand", () => {
     await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { env: "other" },
       opts: withDefaultGlobalOpts({}),
     })
@@ -43,8 +41,6 @@ describe("SetDefaultEnvCommand", () => {
     await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { env: undefined },
       opts: withDefaultGlobalOpts({}),
     })
@@ -60,8 +56,6 @@ describe("SetDefaultEnvCommand", () => {
     await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { env: "" },
       opts: withDefaultGlobalOpts({}),
     })

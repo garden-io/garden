@@ -52,9 +52,9 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
       })
       .description("The output from the Run. May also return null if no Run result is found.")
 
-  printHeader({ headerLog, args }) {
+  printHeader({ log, args }) {
     const taskName = args.name
-    printHeader(headerLog, `Run result for ${chalk.cyan(taskName)}`, "🚀")
+    printHeader(log, `Run result for ${chalk.cyan(taskName)}`, "🚀")
   }
 
   async action({ garden, log, args }: CommandParams<Args>) {

@@ -47,8 +47,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { sources: undefined },
         opts: withDefaultOpts({}),
       })
@@ -62,8 +60,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { sources: undefined },
         opts: withDefaultOpts({ parallel: true }),
       })
@@ -77,8 +73,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { sources: ["source-a"] },
         opts: withDefaultOpts({}),
       })
@@ -89,8 +83,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { sources: ["source-a"] },
         opts: withDefaultOpts({ parallel: true }),
       })
@@ -103,8 +95,6 @@ describe("UpdateRemoteCommand", () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { sources: undefined },
         opts: withDefaultOpts({}),
       })
@@ -117,8 +107,6 @@ describe("UpdateRemoteCommand", () => {
           await cmd.action({
             garden,
             log,
-            headerLog: log,
-            footerLog: log,
             args: { sources: ["banana"] },
             opts: withDefaultOpts({}),
           }),
@@ -142,8 +130,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { actions: undefined },
         opts: withDefaultOpts({}),
       })
@@ -157,8 +143,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { actions: undefined },
         opts: withDefaultOpts({ parallel: true }),
       })
@@ -172,8 +156,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { actions: ["build.a"] },
         opts: withDefaultOpts({}),
       })
@@ -184,8 +166,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { actions: ["build.a"] },
         opts: withDefaultOpts({ parallel: true }),
       })
@@ -198,8 +178,6 @@ describe("UpdateRemoteCommand", () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { actions: undefined },
         opts: withDefaultOpts({}),
       })
@@ -212,8 +190,6 @@ describe("UpdateRemoteCommand", () => {
           await cmd.action({
             garden,
             log,
-            headerLog: log,
-            footerLog: log,
             args: { actions: ["build.banana"] },
             opts: withDefaultOpts({}),
           }),
@@ -237,8 +213,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { modules: undefined },
         opts: withDefaultOpts({}),
       })
@@ -252,8 +226,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { modules: undefined },
         opts: withDefaultOpts({ parallel: true }),
       })
@@ -267,8 +239,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { modules: ["module-a"] },
         opts: withDefaultOpts({}),
       })
@@ -279,8 +249,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { modules: ["module-a"] },
         opts: withDefaultOpts({ parallel: true }),
       })
@@ -293,8 +261,6 @@ describe("UpdateRemoteCommand", () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { modules: undefined },
         opts: withDefaultOpts({}),
       })
@@ -307,8 +273,6 @@ describe("UpdateRemoteCommand", () => {
           await cmd.action({
             garden,
             log,
-            headerLog: log,
-            footerLog: log,
             args: { modules: ["banana"] },
             opts: withDefaultOpts({}),
           }),

@@ -12,7 +12,6 @@ import { expect } from "chai"
 import { readdir } from "fs-extra"
 import getPort from "get-port"
 import { dirname } from "path"
-import { makeDummyGarden } from "../../../../src/cli/cli"
 import { ParameterValues } from "../../../../src/cli/params"
 import {
   isEdgeVersion,
@@ -22,7 +21,7 @@ import {
   SelfUpdateOpts,
   VersionScope,
 } from "../../../../src/commands/self-update"
-import { DummyGarden } from "../../../../src/garden"
+import { DummyGarden, makeDummyGarden } from "../../../../src/garden"
 import { makeTempDir, TempDirectory } from "../../../../src/util/fs"
 import { getPackageVersion } from "../../../../src/util/util"
 import { getDataDir, withDefaultGlobalOpts } from "../../../helpers"
@@ -113,8 +112,6 @@ describe("SelfUpdateCommand", () => {
     return command.action({
       garden,
       log: garden.log,
-      headerLog: garden.log,
-      footerLog: garden.log,
       args,
       opts: withDefaultGlobalOpts(opts),
     })

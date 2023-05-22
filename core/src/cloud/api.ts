@@ -21,24 +21,17 @@ import {
   CreateProjectsForRepoResponse,
   ListProjectsResponse,
 } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
+import { getCloudDistributionName, getCloudLogSectionName } from "../util/util"
 import { CommandInfo } from "../plugin-context"
-import { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
+import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
 import { add } from "date-fns"
 import { LogLevel } from "../logger/logger"
+import { makeAuthHeader } from "./auth"
 
 const gardenClientName = "garden-core"
-const gardenClientVersion = getPackageVersion()
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 export class CloudApiTokenRefreshError extends CloudApiError {}
-
-// If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
-// switch to ci-token authentication method.
-export const authTokenHeader =
-  gardenEnv.GARDEN_AUTH_TOKEN && !gardenEnv.GARDEN_GE_SCHEDULED ? "x-ci-token" : "x-access-auth-token"
-
-export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]: clientAuthToken })
 
 export function isGotError(error: any, statusCode: number): error is GotHttpError {
   return error instanceof GotHttpError && error.response.statusCode === statusCode
@@ -97,9 +90,15 @@ export type ApiFetchResponse<T> = T & {
 }
 
 // TODO: Read this from the `api-types` package once the session registration logic has been released in Cloud.
-export interface RegisterSessionResponse {
+export interface CloudSessionResponse {
   environmentId: number
   namespaceId: number
+}
+
+export interface CloudSession extends CloudSessionResponse {
+  api: CloudApi
+  id: string
+  projectId: string
 }
 
 // Represents a cloud environment
@@ -149,6 +148,13 @@ export function getGardenCloudDomain(configuredDomain: string | undefined): stri
   return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
 }
 
+export interface CloudApiFactoryParams {
+  log: Log
+  cloudDomain: string
+  globalConfigStore: GlobalConfigStore
+  skipLogging?: boolean
+}
+
 /**
  * The Enterprise API client.
  *
@@ -159,16 +165,24 @@ export class CloudApi {
   private intervalId: NodeJS.Timer | null
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private apiPrefix = "api"
-  private _project?: CloudProject
   private _profile?: GetProfileResponse["data"]
-  public projectId: string | undefined
 
-  // Set when/if the Core session is registered with Cloud
-  public environmentId?: number
-  public namespaceId?: number
-  public sessionRegistered = false
+  private projects: Map<string, CloudProject> // keyed by project ID
+  private registeredSessions: Map<string, CloudSession> // keyed by session ID
 
-  constructor(private log: Log, public domain: string, private globalConfigStore: GlobalConfigStore) {}
+  private log: Log
+  public readonly domain: string
+  public readonly distroName: string
+  private globalConfigStore: GlobalConfigStore
+
+  constructor({ log, domain, globalConfigStore }: { log: Log; domain: string; globalConfigStore: GlobalConfigStore }) {
+    this.log = log
+    this.domain = domain
+    this.distroName = getCloudDistributionName(domain)
+    this.globalConfigStore = globalConfigStore
+    this.projects = new Map()
+    this.registeredSessions = new Map()
+  }
 
   /**
    * Initialize the Cloud API.
@@ -179,17 +193,7 @@ export class CloudApi {
    * Optionally skip logging during initialization. Useful for noProject commands that need to use the class
    * without all the "flair".
    */
-  static async factory({
-    log,
-    cloudDomain,
-    globalConfigStore,
-    skipLogging = false,
-  }: {
-    log: Log
-    cloudDomain: string
-    globalConfigStore: GlobalConfigStore
-    skipLogging?: boolean
-  }) {
+  static async factory({ log, cloudDomain, globalConfigStore, skipLogging = false }: CloudApiFactoryParams) {
     const distroName = getCloudDistributionName(cloudDomain)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
     const cloudFactoryLog = log.createLog({ fixLevel, name: getCloudLogSectionName(distroName), showDuration: true })
@@ -202,13 +206,13 @@ export class CloudApi {
       log.debug(
         `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
       )
-      return null
+      return
     }
 
-    const api = new CloudApi(log, cloudDomain, globalConfigStore)
+    const api = new CloudApi({ log, domain: cloudDomain, globalConfigStore })
     const tokenIsValid = await api.checkClientAuthToken()
 
-    cloudFactoryLog.info("Authorizing...")
+    cloudFactoryLog.debug("Authorizing...")
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
       // Throw if using an invalid "CI" access token
@@ -234,8 +238,6 @@ export class CloudApi {
       api.startInterval()
     }
 
-    cloudFactoryLog.success("Done")
-
     return api
   }
 
@@ -245,10 +247,12 @@ export class CloudApi {
     tokenResponse: AuthTokenResponse,
     domain: string
   ) {
+    const distroName = getCloudDistributionName(domain)
+
     if (!tokenResponse.token) {
       const errMsg = deline`
         Received a null/empty client auth token while logging in. This indicates that either your user account hasn't
-        yet been created in Garden Cloud, or that there's a problem with your account's VCS username / login
+        yet been created in ${distroName}, or that there's a problem with your account's VCS username / login
         credentials.
       `
       throw new CloudApiError(errMsg, { tokenResponse })
@@ -325,29 +329,11 @@ export class CloudApi {
     }
   }
 
-  /**
-   * Verifies the projectId against Garden Cloud and assigns it
-   * to the active API instance. Returns the project metadata or throws
-   * an error if the project does not exist.
-   */
-  async verifyAndConfigureProject(projectId: string): Promise<CloudProject> {
-    let project: CloudProject | undefined
-    try {
-      this.projectId = projectId
-      project = await this.getProject()
-    } catch (err) {
-      this.projectId = undefined
-      throw err
-    }
-
-    if (!project) {
-      throw new CloudApiError(`Garden Cloud has no project with ${projectId}`, {})
-    }
-
-    return project
+  sessionRegistered(id: string) {
+    return this.registeredSessions.has(id)
   }
 
-  async getProjectByName(projectName: string): Promise<CloudProject | undefined> {
+  async getAllProjects(): Promise<CloudProject[]> {
     let response: ListProjectsResponse
 
     try {
@@ -357,9 +343,20 @@ export class CloudApi {
       throw err
     }
 
-    let projects: ListProjectsResponse["data"] = response.data
+    let projectList: ListProjectsResponse["data"] = response.data
 
-    projects = projects.filter((p) => p.name === projectName)
+    return projectList.map((p) => {
+      const project = toCloudProject(p)
+      // Cache the entry by ID
+      this.projects.set(project.id, project)
+      return project
+    })
+  }
+
+  async getProjectByName(projectName: string): Promise<CloudProject | undefined> {
+    const allProjects = await this.getAllProjects()
+
+    const projects = allProjects.filter((p) => p.name === projectName)
 
     // Expect a single project, otherwise we fail with an error
     if (projects.length > 1) {
@@ -371,13 +368,7 @@ export class CloudApi {
       )
     }
 
-    let project: ListProjectsResponse["data"][0] | undefined = projects[0]
-
-    if (!project) {
-      return undefined
-    }
-
-    return toCloudProject(project)
+    return projects[0]
   }
 
   async createProject(projectName: string): Promise<CloudProject> {
@@ -403,16 +394,12 @@ export class CloudApi {
     return toCloudProject(project)
   }
 
-  async getOrCreateProject(projectName: string): Promise<CloudProject> {
+  async getOrCreateProjectByName(projectName: string): Promise<CloudProject> {
     let project: CloudProject | undefined = await this.getProjectByName(projectName)
 
     if (!project) {
       project = await this.createProject(projectName)
     }
-
-    // This is necessary to internally configure the project for this instance
-    this._project = project
-    this.projectId = project.id
 
     return project
   }
@@ -590,42 +577,55 @@ export class CloudApi {
   }
 
   async registerSession({
+    parentSessionId,
     sessionId,
+    projectId,
     commandInfo,
     localServerPort,
     environment,
     namespace,
   }: {
+    parentSessionId: string | undefined
     sessionId: string
+    projectId: string
     commandInfo: CommandInfo
     localServerPort?: number
     environment: string
     namespace: string
-  }): Promise<void> {
+  }): Promise<CloudSession | undefined> {
+    let session = this.registeredSessions.get(sessionId)
+
+    if (session) {
+      return session
+    }
+
     try {
       const body = {
         sessionId,
+        parentSessionId,
         commandInfo,
         localServerPort,
-        projectUid: this.projectId,
+        projectUid: projectId,
         environment,
         namespace,
       }
-      this.log.debug(`Registering session with Garden Cloud for ${this.projectId} in ${environment}/${namespace}.`)
-      const res: RegisterSessionResponse = await this.post("sessions", {
+      this.log.debug(`Registering session with ${this.distroName} for ${projectId} in ${environment}/${namespace}.`)
+      const res: CloudSessionResponse = await this.post("sessions", {
         body,
         retry: true,
         retryDescription: "Registering session",
       })
-      this.environmentId = res.environmentId
-      this.namespaceId = res.namespaceId
-      this.log.debug("Successfully registered session with Garden Cloud.")
+      this.log.debug(`Successfully registered session with ${this.distroName}.`)
+
+      session = { api: this, id: sessionId, projectId, ...res }
+      this.registeredSessions.set(sessionId, session)
+      return session
     } catch (err) {
       // We don't want the command to fail when an error occurs during session registration.
       if (isGotError(err, 422)) {
         const errMsg = deline`
           Session registration skipped due to mismatch between CLI and API versions. Please make sure your Garden CLI
-          version is compatible with your version of Garden Cloud.
+          version is compatible with your version of ${this.distroName}.
         `
         this.log.debug(errMsg)
       } else {
@@ -633,30 +633,25 @@ export class CloudApi {
         // the Core version.
         this.log.verbose(`An error occurred while registering the session: ${err.message}`)
       }
-    }
-    this.sessionRegistered = true
-  }
-
-  async getProject(): Promise<CloudProject | undefined> {
-    if (!this.projectId) {
-      this.log.debug(`No project ID set. Will not fetch project.`)
       return
     }
+  }
 
-    // If we are using a new project ID, retrieve again from the API
-    // NOTE: If we wan't to use this with multiple project IDs we need
-    // a cache supporting that + check if the remote project metadata
-    // was updated.
-    if (this._project && this._project.id === this.projectId) {
-      return this._project
+  async getProjectById(projectId: string): Promise<CloudProject | undefined> {
+    const existing = this.projects.get(projectId)
+
+    if (existing) {
+      return existing
     }
 
-    const res = await this.get<GetProjectResponse>(`/projects/uid/${this.projectId}`)
-    const project: GetProjectResponse["data"] = res.data
+    const res = await this.get<GetProjectResponse>(`/projects/uid/${projectId}`)
+    const projectData: GetProjectResponse["data"] = res.data
 
-    this._project = toCloudProject(project)
+    const project = toCloudProject(projectData)
 
-    return this._project
+    this.projects.set(projectId, project)
+
+    return project
   }
 
   async getProfile() {
@@ -693,12 +688,16 @@ export class CloudApi {
     return valid
   }
 
-  getProjectUrl() {
-    return new URL(`/projects/${this.projectId}`, this.domain)
+  getProjectUrl(projectId: string) {
+    return new URL(`/projects/${projectId}`, this.domain)
   }
 
-  getCommandResultUrl({ sessionId, userId }: { sessionId: string; userId: string }) {
-    const path = `/projects/${this.projectId}?sessionId=${sessionId}&userId=${userId}`
+  getCommandResultUrl({ projectId, sessionId, userId }: { projectId: string; sessionId: string; userId: string }) {
+    const path = `/projects/${projectId}?sessionId=${sessionId}&userId=${userId}`
     return new URL(path, this.domain)
+  }
+
+  getRegisteredSession(sessionId: string) {
+    return this.registeredSessions.get(sessionId)
   }
 }

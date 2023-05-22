@@ -22,8 +22,8 @@ export class GetLinkedReposCommand extends Command {
   name = "linked-repos"
   help = "Outputs a list of all linked remote sources, actions and modules for this project."
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "List linked actions, modules and project sources", "📖")
+  printHeader({ log }) {
+    printHeader(log, "List linked actions, modules and project sources", "📖")
   }
 
   async action({ garden, log }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {

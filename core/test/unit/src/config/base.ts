@@ -559,29 +559,29 @@ describe("findProjectConfig", async () => {
   const customConfigPath = getDataDir("test-projects", "custom-config-names")
 
   it("should find the project config when path is projectRoot", async () => {
-    const project = await findProjectConfig(log, projectPathA)
+    const project = await findProjectConfig({ log, path: projectPathA })
     expect(project && project.path).to.eq(projectPathA)
   })
 
   it("should find the project config when path is a subdir of projectRoot", async () => {
     // modulePathA is a subdir of projectPathA
-    const project = await findProjectConfig(log, modulePathA)
+    const project = await findProjectConfig({ log, path: modulePathA })
     expect(project && project.path).to.eq(projectPathA)
   })
 
   it("should find the project config when path is projectRoot and config is in a custom-named file", async () => {
-    const project = await findProjectConfig(log, customConfigPath)
+    const project = await findProjectConfig({ log, path: customConfigPath })
     expect(project && project.path).to.eq(customConfigPath)
   })
 
   it("should find the project root from a subdir of projectRoot and config is in a custom-named file", async () => {
     const modulePath = join(customConfigPath, "module-a")
-    const project = await findProjectConfig(log, modulePath)
+    const project = await findProjectConfig({ log, path: modulePath })
     expect(project && project.path).to.eq(customConfigPath)
   })
 
   it("should throw an error if multiple projects are found", async () => {
-    await expectError(async () => await findProjectConfig(log, projectPathDuplicateProjects), {
+    await expectError(async () => await findProjectConfig({ log, path: projectPathDuplicateProjects }), {
       contains: "Multiple project declarations found",
     })
   })

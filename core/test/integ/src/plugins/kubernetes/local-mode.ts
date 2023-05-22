@@ -41,7 +41,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
     LocalModeProcessRegistry.getInstance().shutdown()
     ProxySshKeystore.getInstance(garden.log).shutdown(garden.log)
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 

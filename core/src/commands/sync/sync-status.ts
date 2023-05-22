@@ -56,7 +56,7 @@ export class SyncStatusCommand extends Command<Args> {
 
     Examples:
         # get all sync statuses
-        garden sync status 
+        garden sync status
 
         # get sync statuses for the 'api' Deploy
         garden sync status api
@@ -70,8 +70,8 @@ export class SyncStatusCommand extends Command<Args> {
 
   outputsSchema = () => joi.object()
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Getting sync statuses", "📟")
+  printHeader({ log }) {
+    printHeader(log, "Getting sync statuses", "📟")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<SyncStatusCommandResult> {
@@ -123,17 +123,18 @@ export class SyncStatusCommand extends Command<Args> {
 
         // Return the syncs sorted
         const sorted = syncs.sort((a, b) => {
-          const keyA = a.source + a.targetDescription + a.mode
-          const keyB = b.source + b.targetDescription + b.mode
+          const keyA = a.source + a.target + a.mode
+          const keyB = b.source + b.target + b.mode
           return keyA > keyB ? 1 : -1
         })
         syncStatus["syncs"] = sorted
 
-        const styleFn = {
-          "active": chalk.green,
-          "failed": chalk.red,
-          "not-active": chalk.yellow
-        }[syncStatus.state] || chalk.bold.dim
+        const styleFn =
+          {
+            "active": chalk.green,
+            "failed": chalk.red,
+            "not-active": chalk.yellow,
+          }[syncStatus.state] || chalk.bold.dim
 
         log.info(
           `The ${chalk.cyan(action.name)} Deploy has ${chalk.cyan(syncStatus.syncs.length)} syncs(s) configured:`
@@ -141,7 +142,7 @@ export class SyncStatusCommand extends Command<Args> {
         const leftPad = "  →"
         syncs.forEach((sync, idx) => {
           log.info(
-            `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.targetDescription)} is ${styleFn(
+            `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.target)} is ${styleFn(
               syncStatus.state
             )}`
           )

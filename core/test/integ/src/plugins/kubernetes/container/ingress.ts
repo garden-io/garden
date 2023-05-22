@@ -305,7 +305,7 @@ describe("createIngressResources", () => {
 
   after(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 

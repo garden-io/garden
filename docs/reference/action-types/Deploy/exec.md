@@ -167,7 +167,7 @@ spec:
   # Set this to true if the `deployCommand` is not expected to return, and should run until the Garden command is
   # manually terminated.
   #
-  # This replaces the previously supported `devMode` from `exec` modules.
+  # This replaces the previously supported `devMode` from `exec` actions.
   #
   # If this is set to true, it is highly recommended to also define `statusCommand` if possible. Otherwise the Deploy
   # is considered to be immediately ready once the `deployCommand` is started.
@@ -458,7 +458,7 @@ We recommend against using this option since it is:
 
 Set this to true if the `deployCommand` is not expected to return, and should run until the Garden command is manually terminated.
 
-This replaces the previously supported `devMode` from `exec` modules.
+This replaces the previously supported `devMode` from `exec` actions.
 
 If this is set to true, it is highly recommended to also define `statusCommand` if possible. Otherwise the Deploy is considered to be immediately ready once the `deployCommand` is started.
 
@@ -530,7 +530,7 @@ Environment variables to set when running the deploy and status commands.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `exec`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

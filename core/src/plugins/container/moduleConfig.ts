@@ -54,14 +54,17 @@ export type ContainerTestSpec = BaseTestSpec &
   ContainerTestActionSpec & {
     volumes: ContainerModuleVolumeSpec[]
   }
-export const containerModuleTestSchema = () => baseTestSpecSchema().keys(containerTestSpecKeys())
+export const containerModuleTestSchema = () =>
+  baseTestSpecSchema().keys({ ...containerTestSpecKeys(), volumes: moduleVolumesSchema() })
 
 export type ContainerTaskSpec = BaseTaskSpec &
   ContainerRunActionSpec & {
     volumes: ContainerModuleVolumeSpec[]
   }
 export const containerTaskSchema = () =>
-  baseTaskSpecSchema().keys(containerRunSpecKeys()).description("A task that can be run in the container.")
+  baseTaskSpecSchema()
+    .keys({ ...containerRunSpecKeys(), volumes: moduleVolumesSchema() })
+    .description("A task that can be run in the container.")
 
 export interface ContainerModuleBuildSpec {
   targetImage?: string
@@ -93,26 +96,34 @@ const containerBuildSpecSchema = () =>
     `),
   })
 
-const containerServiceSchema = () =>
-  baseServiceSpecSchema()
-    .keys({
-      ...containerDeploySchemaKeys(),
-      sync: containerSyncPathSchema(),
-      volumes: getContainerVolumesSchema(
-        volumeSchemaBase()
-          .keys({
-            module: joiIdentifier().description(
-              dedent`
+const moduleVolumesSchema = () =>
+  getContainerVolumesSchema(
+    volumeSchemaBase()
+      .keys({
+        module: joiIdentifier().description(
+          dedent`
             The name of a _volume module_ that should be mounted at \`containerPath\`. The supported module types will depend on which provider you are using. The \`kubernetes\` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
 
             When a \`module\` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
 
             Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
             `
-            ),
-          })
-          .oxor("hostPath", "module")
-      ),
+        ),
+      })
+      .oxor("hostPath", "module")
+  ).description(dedent`
+    List of volumes that should be mounted when starting the container.
+
+    Note: If neither \`hostPath\` nor \`module\` is specified,
+    an empty ephemeral volume is created and mounted when deploying the container.
+`)
+
+const containerServiceSchema = () =>
+  baseServiceSpecSchema()
+    .keys({
+      ...containerDeploySchemaKeys(),
+      sync: containerSyncPathSchema(),
+      volumes: moduleVolumesSchema(),
     })
     .rename("devMode", "sync")
 

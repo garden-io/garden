@@ -41,7 +41,7 @@ export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>, pro
     return containerHelpers.getBuildDeploymentImageId(
       build.name,
       undefined,
-      build.getFullVersion(),
+      build.moduleVersion(),
       provider.config.deploymentRegistry
     )
   } else {

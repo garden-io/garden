@@ -5,6 +5,10 @@ tocTitle: "`pulumi`"
 
 # `pulumi` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Deploys a Pulumi stack and either creates/updates it automatically (if `autoApply: true`) or warns when the stack resources are not up-to-date, or errors if it's missing entirely.
@@ -165,10 +169,6 @@ autoApply: true
 
 # If set to true, Garden will automatically create the stack if it doesn't already exist.
 createStack: false
-
-# The names of any services that this service depends on at runtime, and the names of any tasks that should be
-# executed before this service is deployed.
-dependencies: []
 
 # Specify the path to the Pulumi project root, relative to the deploy action's root.
 root: .
@@ -549,14 +549,6 @@ If set to true, Garden will automatically create the stack if it doesn't already
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
-
-### `dependencies[]`
-
-The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
 
 ### `root`
 

@@ -30,7 +30,7 @@ import { runResultToActionState } from "../../actions/base"
 import { BuildStatus } from "../../plugin/handlers/Build/get-status"
 import { convertExecModule } from "./convert"
 import { copyArtifacts, execRun } from "./common"
-import { execDeployAction, deleteExecDeploy, getExecDeployLogs, getExecDeployStatus } from "./deploy"
+import { deployExec, deleteExecDeploy, getExecDeployLogs, getExecDeployStatus } from "./deploy"
 
 export interface ExecProviderConfig extends GenericProviderConfig {}
 
@@ -55,7 +55,12 @@ export const buildExecAction: BuildActionHandler<"build", ExecBuild> = async ({ 
     output.outputs.log = output.detail?.buildLog
 
     const prefix = `Finished building ${chalk.white(action.name)}. Here is the full output:`
-    log.verbose(renderMessageWithDivider(prefix, output.detail?.buildLog, false, chalk.gray))
+    log.verbose(renderMessageWithDivider({
+      prefix,
+      msg: output.detail?.buildLog,
+      isError: false,
+      color: chalk.gray
+    }))
   }
 
   return output
@@ -73,7 +78,12 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
   const outputLog = result.all?.trim() || ""
   if (outputLog) {
     const prefix = `Finished executing ${chalk.white(action.key())}. Here is the full output:`
-    log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
+    log.verbose(renderMessageWithDivider({
+      prefix,
+      msg: outputLog,
+      isError: false,
+      color: chalk.gray
+    }))
   }
 
   const detail = {
@@ -117,7 +127,12 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
 
   if (outputLog) {
     const prefix = `Finished running task ${chalk.white(action.name)}. Here is the full output:`
-    log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
+    log.verbose(renderMessageWithDivider({
+      prefix,
+      msg: outputLog,
+      isError: false,
+      color: chalk.gray
+    }))
   }
 
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
@@ -150,7 +165,7 @@ export const execPlugin = () =>
     name: "exec",
     docs: dedent`
       A simple provider that allows running arbitrary scripts when initializing providers, and provides the exec
-      module type.
+      action type.
 
       _Note: This provider is always loaded when running Garden. You only need to explicitly declare it in your provider
       configuration if you want to configure a script for it to run._
@@ -187,7 +202,7 @@ export const execPlugin = () =>
               return { config, supportedModes: { sync: !!config.spec.persistent } }
             },
 
-            deploy: execDeployAction,
+            deploy: deployExec,
             delete: deleteExecDeploy,
             getLogs: getExecDeployLogs,
             getStatus: getExecDeployStatus,

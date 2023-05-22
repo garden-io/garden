@@ -14,9 +14,9 @@ import { ModuleConfig } from "../config/module"
 import { WorkflowConfig } from "../config/workflow"
 import { Log, LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
-import { findByName, getNames, isPromise, ValueOf } from "./util"
+import { findByName, getNames } from "./util"
 import { GardenBaseError, GardenError, InternalError } from "../exceptions"
-import { EventBus, Events } from "../events"
+import { EventBus, EventName, Events } from "../events"
 import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
@@ -34,15 +34,15 @@ import { BuiltinArgs, Command, CommandResult } from "../commands/base"
 import { validateSchema } from "../config/validation"
 import { mkdirp, remove } from "fs-extra"
 import { GlobalConfigStore } from "../config-store/global"
-import { uuidv4 } from "./random"
+import { isPromise } from "./objects"
 
 export class TestError extends GardenBaseError {
   type = "_test"
 }
 
-export interface EventLogEntry {
-  name: string
-  payload: ValueOf<Events>
+export interface EventLogEntry<N extends EventName = any> {
+  name: N
+  payload: Events[N]
 }
 
 /**
@@ -181,8 +181,6 @@ export class TestGarden extends Garden {
       }
     }
 
-    params.sessionId = uuidv4()
-
     const garden = new this(params) as InstanceType<T>
 
     if (pathIsInside(currentDirectory, repoRoot)) {
@@ -252,7 +250,7 @@ export class TestGarden extends Garden {
   }
 
   setModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
-    this.configsScanned = true
+    this.state.configsScanned = true
     this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
   }
 
@@ -378,8 +376,6 @@ export class TestGarden extends Garden {
     const result = await command.action({
       garden: this,
       log,
-      headerLog: log,
-      footerLog: log,
       args,
       opts: <ParameterValues<GlobalOptions> & C["options"]>{
         ...mapValues(globalOptions, (opt) => opt.defaultValue),

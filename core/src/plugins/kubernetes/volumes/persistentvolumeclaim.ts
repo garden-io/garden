@@ -24,19 +24,20 @@ import { DeployActionDefinition } from "../../../plugin/action-types"
 import { getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/handlers"
 import { Resolved } from "../../../actions/types"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
+import { memoize } from "lodash"
 
 export interface PersistentVolumeClaimDeploySpec {
   namespace?: string
   spec: V1PersistentVolumeClaimSpec
 }
 
-const commonSpecKeys = () => ({
+const commonSpecKeys = memoize(() => ({
   namespace: joiIdentifier().description(
-    "The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset."
+    "The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in most cases you should leave this unset."
   ),
   // TODO: validation for this doesn't work, but kubernetes does the validation for us on apply
-  spec: kubernetesPVCSchema,
-})
+  spec: kubernetesPVCSchema(),
+}))
 
 interface PersistentVolumeClaimSpec extends PersistentVolumeClaimDeploySpec {
   dependencies: string[]
@@ -47,7 +48,7 @@ type PersistentVolumeClaimModule = GardenModule<PersistentVolumeClaimSpec, Persi
 type PersistentVolumeClaimActionConfig = DeployActionConfig<"persistentvolumeclaim", PersistentVolumeClaimDeploySpec>
 type PersistentVolumeClaimAction = DeployAction<PersistentVolumeClaimActionConfig, {}>
 
-const getPVCJsonSchema = () => {
+const getPVCJsonSchema = memoize(() => {
   // Need to use a sync read to avoid having to refactor createGardenPlugin()
   // The `persistentvolumeclaim.json` file is copied from the handy
   // kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.17.0-standalone).
@@ -57,15 +58,15 @@ const getPVCJsonSchema = () => {
   const jsonSchema = { ...jsonSchemaRaw().properties.spec, type: "object" }
 
   return jsonSchema
-}
+})
 
-const kubernetesPVCSchema = joi
+const kubernetesPVCSchema = memoize(() => joi
   .object()
   .jsonSchema(getPVCJsonSchema())
   .required()
   .description(
     "The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec schema may include (or even require) additional fields, depending on the used `storageClass`. See the [PersistentVolumeClaim docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details."
-  )
+  ))
 
 export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<PersistentVolumeClaimAction> => ({
   name: "persistentvolumeclaim",
@@ -105,13 +106,13 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
 
 const pvcModuleSchema = createSchema({
   name: "kubernetes:persistentvolumeclaim:Module",
-  keys: {
+  keys: () => ({
     build: baseBuildSpecSchema(),
     dependencies: joiSparseArray(joiIdentifier()).description(
       "List of services and tasks to deploy/run before deploying this PVC."
     ),
     ...commonSpecKeys(),
-  },
+  }),
 })
 
 export const pvcModuleDefinition = (): ModuleTypeDefinition => ({

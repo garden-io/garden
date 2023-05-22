@@ -13,6 +13,7 @@ import { BuildAction } from "../actions/build"
 import pluralize from "pluralize"
 import { BuildStatus } from "../plugin/handlers/Build/get-status"
 import { resolvedActionToExecuted } from "../actions/helpers"
+import { renderDuration } from "../logger/util"
 
 @Profile()
 export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
@@ -58,7 +59,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       log: log || this.log,
     })
 
-    log.verbose(chalk.green(`Done syncing sources (took ${log.getDuration(1)} sec)`))
+    log.verbose(chalk.green(`Done syncing sources ${renderDuration(log.getDuration(1))}`))
 
     await this.garden.buildStaging.syncDependencyProducts(action, log)
 

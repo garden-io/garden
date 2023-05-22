@@ -183,8 +183,8 @@ spec:
 
   # List of volumes that should be mounted when starting the container.
   #
-  # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-  # deploying the container.
+  # Note: If neither `hostPath` nor `action` is specified,
+  # an empty ephemeral volume is created and mounted when deploying the container.
   volumes:
     - # The name of the allocated volume.
       name:
@@ -199,8 +199,8 @@ spec:
       # config source directory (or absolute).
       hostPath:
 
-      # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are
-      # `persistentvolumeclaim` and `configmap`, for example.
+      # The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported
+      # action types are `persistentvolumeclaim` and `configmap`.
       #
       # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
       # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
@@ -217,7 +217,7 @@ spec:
   # POSIX capabilities to remove when running the container.
   dropCapabilities:
 
-  # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+  # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
   tty: false
 
   # Specifies the container's deployment strategy.
@@ -239,9 +239,9 @@ spec:
   # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
   image:
 
-  # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your
-  # project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version
-  # changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+  # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
+  # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
+  # changes, or when you run `garden run`.
   cacheResult: true
 ```
 
@@ -596,7 +596,8 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 
 List of volumes that should be mounted when starting the container.
 
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+Note: If neither `hostPath` nor `action` is specified,
+an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -647,7 +648,7 @@ spec:
 
 [spec](#spec) > [volumes](#specvolumes) > action
 
-The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`, for example.
+The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`.
 
 Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
 
@@ -689,7 +690,7 @@ POSIX capabilities to remove when running the container.
 
 [spec](#spec) > tty
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -780,7 +781,7 @@ Specify an image ID to deploy. Should be a valid Docker image identifier. Requir
 
 [spec](#spec) > cacheResult
 
-Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -790,7 +791,7 @@ Set to false if you don't want the task's result to be cached. Use this if the t
 ## Outputs
 
 The following keys are available via the `${actions.run.<name>}` template string key for `container`
-modules.
+action.
 
 ### `${actions.run.<name>.name}`
 

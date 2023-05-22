@@ -12,10 +12,10 @@ import addFormats from "ajv-formats"
 import { splitLast, deline, dedent, naturalList, titleize } from "../util/string"
 import { cloneDeep, isArray, isPlainObject, isString, mapValues, memoize } from "lodash"
 import { joiPathPlaceholder } from "./validation"
+import { GardenApiVersion } from "../constants"
 import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
 import { ConfigurationError, InternalError } from "../exceptions"
 import type { ConfigContextType } from "./template-contexts/base"
-import { GardenApiVersion } from "../constants"
 
 export const objectSpreadKey = "$merge"
 export const conditionalKey = "$if"
@@ -481,15 +481,17 @@ type SchemaCallback = () => Joi.Schema
 export interface CreateSchemaParams {
   name: string
   description?: string
-  keys: SchemaKeys | (() => SchemaKeys)
+  keys: () => SchemaKeys
   extend?: () => Joi.ObjectSchema
   default?: any
   meta?: MetadataKeys
   allowUnknown?: boolean
   required?: boolean
   rename?: [string, string][]
-  or?: string[]
-  xor?: string[]
+  or?: string[][]
+  xor?: string[][]
+  oxor?: string[][]
+  options?: Joi.ValidationOptions
 }
 
 export interface CreateSchemaOutput {
@@ -506,10 +508,10 @@ interface SchemaRegistry {
 const schemaRegistry: SchemaRegistry = {}
 
 export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
-  let { name, keys } = spec
+  let { name } = spec
 
   if (schemaRegistry[name]) {
-    throw new InternalError(`Object schema ${name} defined multiple times`, { name, keys })
+    throw new InternalError(`Object schema ${name} defined multiple times`, { name })
   }
 
   schemaRegistry[name] = { spec }
@@ -520,11 +522,7 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
       const meta: MetadataKeys = { ...spec.meta }
       meta.name = name
 
-      if (typeof keys === "function") {
-        keys = keys()
-      }
-
-      keys = mapValues(keys, (v) => {
+      const keys = mapValues(spec.keys(), (v) => {
         return typeof v === "function" ? v() : v
       })
 
@@ -551,6 +549,9 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
       if (spec.allowUnknown) {
         schema = schema.unknown(true)
       }
+      if (spec.options) {
+        schema = schema.options(spec.options)
+      }
       if (spec.default) {
         schema = schema.default(spec.default)
       }
@@ -565,11 +566,14 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
           schema = schema.rename(r[0], r[1])
         }
       }
-      if (spec.or) {
-        schema = schema.or(...spec.or)
+      for (const or of spec.or || []) {
+        schema = schema.or(...or)
       }
-      if (spec.xor) {
-        schema = schema.xor(...spec.xor)
+      for (const xor of spec.xor || []) {
+        schema = schema.xor(...xor)
+      }
+      for (const oxor of spec.oxor || []) {
+        schema = schema.oxor(...oxor)
       }
 
       schemaRegistry[name].schema = schema
@@ -682,7 +686,7 @@ joi = joi.extend({
     } catch (err) {
       const error = opts.error("validation")
       error.message = err.message
-      return error
+      return { errors: error }
     }
   },
   rules: {
@@ -755,12 +759,12 @@ const moduleIncludeDescription = (extraDescription?: string) => {
 export const joiModuleIncludeDirective = (extraDescription?: string) =>
   joi.array().items(joi.posixPath().allowGlobs().subPathOnly()).description(moduleIncludeDescription(extraDescription))
 
-export const joiProviderName = (name: string) =>
-  joiIdentifier().required().description("The name of the provider plugin to use.").default(name).example(name)
+export const joiProviderName = memoize((name: string) =>
+  joiIdentifier().required().description("The name of the provider plugin to use.").default(name).example(name))
 
-export const joiStringMap = (valueSchema: Joi.Schema) => joi.object().pattern(/.+/, valueSchema)
+export const joiStringMap = memoize((valueSchema: Joi.Schema) => joi.object().pattern(/.+/, valueSchema))
 
-export const joiUserIdentifier = () =>
+export const joiUserIdentifier = memoize(() =>
   joi
     .string()
     .regex(userIdentifierRegex)
@@ -768,29 +772,29 @@ export const joiUserIdentifier = () =>
       deline`
         Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with \`garden\`, or be longer than 63 characters.
       `
-    )
+    ))
 
-export const joiIdentifierMap = (valueSchema: Joi.Schema) =>
+export const joiIdentifierMap = memoize((valueSchema: Joi.Schema) =>
   joi
     .object()
     .pattern(identifierRegex, valueSchema)
     .default(() => ({}))
-    .description("Key/value map. Keys must be valid identifiers.")
+    .description("Key/value map. Keys must be valid identifiers."))
 
 export const joiVariablesDescription =
   "Keys may contain letters and numbers. Any values are permitted, including arrays and objects of any nesting."
 
-export const joiVariableName = () => joi.string().regex(variableNameRegex)
+export const joiVariableName = memoize(() => joi.string().regex(variableNameRegex))
 
-export const joiVariables = () =>
+export const joiVariables = memoize(() =>
   joi
     .object()
     .pattern(variableNameRegex, joi.alternatives(joiPrimitive(), joi.link("..."), joi.array().items(joi.link("..."))))
     .default(() => ({}))
     .unknown(true)
-    .description("Key/value map. " + joiVariablesDescription)
+    .description("Key/value map. " + joiVariablesDescription))
 
-export const joiEnvVars = () =>
+export const joiEnvVars = memoize(() =>
   joi
     .object()
     .pattern(envVarRegex, joiPrimitive())
@@ -799,14 +803,14 @@ export const joiEnvVars = () =>
     .description(
       "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
         "(must not start with `GARDEN`) and values must be primitives."
-    )
+    ))
 
-export const joiArray = (schema: Joi.Schema) => joi.array().items(schema).default([])
+export const joiArray = memoize((schema: Joi.Schema) => joi.array().items(schema).default([]))
 
 // This allows null, empty string or undefined values on the item values and then filters them out
-export const joiSparseArray = (schema: Joi.Schema) => joi.sparseArray().items(schema.allow(null)).default([])
+export const joiSparseArray = memoize((schema: Joi.Schema) => joi.sparseArray().items(schema.allow(null)).default([]))
 
-export const joiRepositoryUrl = () =>
+export const joiRepositoryUrl = memoize(() =>
   joi
     .alternatives(
       joi.gitUrl().requireHash(),
@@ -818,41 +822,48 @@ export const joiRepositoryUrl = () =>
         " pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>"
     )
     .example("git+https://github.com/org/repo.git#v2.0")
+)
 
 export function getSchemaDescription(schema: Joi.Schema) {
   return (<any>schema.describe().flags).description
 }
 
 // TODO
-export const joiSchema = () => joi.object().unknown(true)
+export const joiSchema = memoize(() => joi.object().unknown(true))
 
 export function isPrimitive(value: any) {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null
 }
 
-export const versionStringSchema = () =>
+export const versionStringSchema = memoize(() =>
   joi.string().regex(/^v/).required().description("A Stack Graph node (i.e. module, service, task or test) version.")
+)
 
-const fileNamesSchema = () => joiArray(joi.string()).description("List of file paths included in the version.")
+const fileNamesSchema = memoize(() => joiArray(joi.string()).description("List of file paths included in the version."))
+
+export const contentHashSchema = memoize(() =>
+  joi.string().required().description("The hash of all files belonging to the Garden action/module.")
+)
 
 export const treeVersionSchema = createSchema({
   name: "tree-version",
   keys: () => ({
-    contentHash: joi.string().required().description("The hash of all files belonging to the Garden module."),
-    files: fileNamesSchema(),
+    contentHash: contentHashSchema,
+    files: fileNamesSchema,
   }),
 })
 
 export const moduleVersionSchema = createSchema({
   name: "module-version",
   keys: () => ({
-    versionString: versionStringSchema(),
+    contentHash: contentHashSchema,
+    versionString: versionStringSchema,
     dependencyVersions: joi
       .object()
       .pattern(/.+/, versionStringSchema().description("version hash of the dependency module"))
       .default(() => ({}))
       .description("The version of each of the dependencies of the module."),
-    files: fileNamesSchema(),
+    files: fileNamesSchema,
   }),
 })
 
@@ -871,7 +882,6 @@ export const unusedApiVersionSchema = () =>
     .description("The schema version of this config (currently unused).")
     // hide the unused apiVersion field in the reference documentation, as it does not have an effect.
     .meta({ internal: true })
-
 
 /**
  * A little hack to allow unknown fields on the schema and recursively on all object schemas nested in it.

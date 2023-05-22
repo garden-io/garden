@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { memoize } from "lodash"
 import { BaseGardenResource, baseInternalFieldsSchema } from "./base"
 import {
   DeepPrimitiveMap,
@@ -52,8 +53,9 @@ export interface CommandResource extends BaseGardenResource {
   variables: DeepPrimitiveMap
 }
 
-const argumentSchema = () =>
-  joi.object().keys({
+const argumentSchema = createSchema({
+  name: "custom-command-arguments",
+  keys: () => ({
     name: joiIdentifier().required().description("Short name for the parameter."),
     description: joi.string().required().description("Help text to describe the parameter."),
     type: joi
@@ -63,37 +65,38 @@ const argumentSchema = () =>
       .default("string")
       .description("The value type, to use for validation."),
     required: joi.boolean().default(false).description("Whether the parameter is required."),
-  })
+  }),
+})
 
-export const customCommandExecSchema = () =>
-  joi
-    .object()
-    .keys({
-      command: joi
-        .array()
-        .items(joi.string())
-        .required()
-        .description(
-          'The command to run. The first part of the array should be an executable available on a global PATH or a relative path to an executable. To run a shell script, you need to specify the shell as part of the command, e.g. `["sh", "-c", "<your sript>"]` or `["bash", "-s", "<your sript>"]`'
-        )
-        .example(["sh", "-c", "echo foo"]),
-      env: joiEnvVars().description("Environment variables to set when running the command."),
-    })
-    .description(
-      "A command to run. If both this and `gardenCommand` are specified, this command is run ahead of the Garden command."
-    )
+export const customCommandExecSchema = createSchema({
+  name: "custom-command-exec",
+  description:
+    "A command to run. If both this and `gardenCommand` are specified, this command is run ahead of the Garden command.",
+  keys: () => ({
+    command: joi
+      .array()
+      .items(joi.string())
+      .required()
+      .description(
+        'The command to run. The first part of the array should be an executable available on a global PATH or a relative path to an executable. To run a shell script, you need to specify the shell as part of the command, e.g. `["sh", "-c", "<your sript>"]` or `["bash", "-s", "<your sript>"]`'
+      )
+      .example(["sh", "-c", "echo foo"]),
+    env: joiEnvVars().description("Environment variables to set when running the command."),
+  }),
+})
 
-export const customCommandGardenCommandSchema = () =>
+export const customCommandGardenCommandSchema = memoize(() =>
   joi
     .array()
     .items(joi.string())
     .description(
       "Run the specified Garden command. If both this and `exec` are specified, the script is run ahead of this command."
     )
+)
 
 export const customCommandSchema = createSchema({
   name: "custom-command",
-  keys: {
+  keys: () => ({
     apiVersion: unusedApiVersionSchema(),
     kind: joi.string().default("Command").valid("Command").description("Indicate what kind of config this is."),
     name: joiUserIdentifier()
@@ -129,6 +132,6 @@ export const customCommandSchema = createSchema({
     exec: customCommandExecSchema(),
     gardenCommand: customCommandGardenCommandSchema(),
     variables: joiVariables().description("A map of variables that can be referenced in `exec` and `gardenCommand`."),
-  },
-  or: ["exec", "gardenCommand"],
+  }),
+  or: [["exec", "gardenCommand"]],
 })

@@ -5,6 +5,10 @@ tocTitle: "`persistentvolumeclaim`"
 
 # `persistentvolumeclaim` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
@@ -153,7 +157,7 @@ varfile:
 # List of services and tasks to deploy/run before deploying this PVC.
 dependencies: []
 
-# The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in
+# The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in
 # most cases you should leave this unset.
 namespace:
 
@@ -507,7 +511,7 @@ List of services and tasks to deploy/run before deploying this PVC.
 
 ### `namespace`
 
-The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
+The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
 
 | Type     | Required |
 | -------- | -------- |

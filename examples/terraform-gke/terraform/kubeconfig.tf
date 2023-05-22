@@ -6,21 +6,17 @@ data "google_container_cluster" "gke_cluster" {
   project = var.project_id
 }
 
-data "template_file" "kubeconfig" {
-  template = file("${path.module}/kubeconfig-template.yaml")
-
-  vars = {
-    cluster_name    = module.gke.name
-    endpoint        = module.gke.endpoint
-    cluster_ca      = module.gke.ca_certificate
-    client_cert     = data.google_container_cluster.gke_cluster.master_auth.0.client_certificate
-    client_cert_key = data.google_container_cluster.gke_cluster.master_auth.0.client_key
-  }
-}
-
 resource "local_file" "kubeconfig" {
   filename = "${path.module}/kubeconfig.yaml"
-  content  = data.template_file.kubeconfig.rendered
+  content = templatefile("${path.module}/kubeconfig-template.yaml",
+    {
+      cluster_name    = module.gke.name
+      endpoint        = module.gke.endpoint
+      cluster_ca      = module.gke.ca_certificate
+      client_cert     = data.google_container_cluster.gke_cluster.master_auth.0.client_certificate
+      client_cert_key = data.google_container_cluster.gke_cluster.master_auth.0.client_key
+    }
+  )
 }
 
 # authorize client-admin for operations on K8s cluster

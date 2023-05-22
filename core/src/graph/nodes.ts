@@ -13,6 +13,7 @@ import type { GraphSolver } from "./solver"
 import { ValuesType } from "utility-types"
 import chalk from "chalk"
 import { metadataForLog } from "./common"
+import { Profile } from "../util/profiling"
 
 export interface InternalNodeTypes {
   status: StatusTaskNode
@@ -34,6 +35,7 @@ export interface TaskNodeParams<T extends Task> {
   statusOnly: boolean
 }
 
+@Profile()
 export abstract class TaskNode<T extends Task = Task> {
   abstract readonly executionType: NodeType
 
@@ -183,6 +185,7 @@ export interface TaskRequestParams<T extends Task = Task> extends TaskNodeParams
   completeHandler: CompleteHandler<T["_resultType"]>
 }
 
+@Profile()
 export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
   // FIXME: this is a bit of a TS oddity, but it does work...
   executionType = <NodeType>"request"
@@ -227,6 +230,7 @@ export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
   }
 }
 
+@Profile()
 export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
   executionType = <NodeType>"process"
 
@@ -283,6 +287,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
   }
 }
 
+@Profile()
 export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
   executionType = <NodeType>"status"
 

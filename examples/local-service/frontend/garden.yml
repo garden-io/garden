@@ -77,8 +77,7 @@ type: exec
 build: frontend-local
 
 spec:
-  syncMode:
-    command: [ "yarn", "run", "dev" ]
-    statusCommand: [ ./check-local-status.sh ]
-  deployCommand: [ ]
+  persistent: true
+  deployCommand: [ "yarn", "run", "dev" ]
+  statusCommand: [ ./check-local-status.sh ]
   env: ${actions.deploy.frontend.var.env}

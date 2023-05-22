@@ -24,6 +24,7 @@ import { createProjectConfig, expectError } from "../../../helpers"
 import { realpath, writeFile } from "fs-extra"
 import { dedent } from "../../../../src/util/string"
 import { resolve, join } from "path"
+import { getRootLogger } from "../../../../src/logger/logger"
 
 const enterpriseDomain = "https://garden.mydomain.com"
 const commandInfo = { name: "test", args: {}, opts: {} }
@@ -33,6 +34,8 @@ const vcsInfo = {
   commitHash: "abcdefgh",
   originUrl: "https://example.com/foo",
 }
+
+const log = getRootLogger().createLog()
 
 describe("resolveProjectConfig", () => {
   it("should pass through a canonical project config", async () => {
@@ -45,6 +48,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
+        log,
         defaultEnvironmentName: "default",
         config,
         artifactsPath: "/tmp",
@@ -105,6 +109,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
+        log,
         defaultEnvironmentName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
@@ -178,6 +183,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
+        log,
         defaultEnvironmentName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
@@ -238,6 +244,7 @@ describe("resolveProjectConfig", () => {
     })
 
     const result = resolveProjectConfig({
+      log,
       defaultEnvironmentName: defaultEnvironment,
       config,
       artifactsPath: "/tmp",
@@ -270,6 +277,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
+        log,
         defaultEnvironmentName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
@@ -318,6 +326,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
+        log,
         defaultEnvironmentName,
         config,
         artifactsPath: "/tmp",
@@ -352,6 +361,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
+        log,
         defaultEnvironmentName,
         config,
         artifactsPath: "/tmp",
@@ -403,6 +413,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
+        log,
         defaultEnvironmentName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",

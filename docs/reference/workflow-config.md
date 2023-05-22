@@ -16,6 +16,10 @@ The reference is divided into two sections:
 The values in the schema below are the default values.
 
 ```yaml
+# The schema version of this workflow's config. Use garden.io/v1 for Garden Cloud workflows with Garden Bonsai and
+# garden.io/v0 for Garden Cloud workflows with Garden Acorn. Defaults to garden.io/v1.
+apiVersion: garden.io/v1
+
 kind: Workflow
 
 # The name of this workflow.
@@ -173,6 +177,14 @@ triggers:
 
 ## Configuration Keys
 
+
+### `apiVersion`
+
+The schema version of this workflow's config. Use garden.io/v1 for Garden Cloud workflows with Garden Bonsai and garden.io/v0 for Garden Cloud workflows with Garden Acorn. Defaults to garden.io/v1.
+
+| Type     | Allowed Values | Default          | Required |
+| -------- | -------------- | ---------------- | -------- |
+| `string` | "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `kind`
 

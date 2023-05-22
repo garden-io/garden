@@ -31,6 +31,7 @@ import { isActionConfig } from "../actions/base"
 import type { BaseActionConfig } from "../actions/types"
 import { Garden } from "../garden"
 import chalk = require("chalk")
+import { Profile } from "../util/profiling"
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
@@ -64,15 +65,17 @@ export interface TreeVersions {
 }
 
 // TODO: rename, maybe to ResourceVersion
-export interface ModuleVersion {
+export interface ModuleVersion extends TreeVersion {
   versionString: string
   dependencyVersions: DependencyVersions
-  files: string[]
 }
 
-export interface ActionVersion extends ModuleVersion {
+export interface ActionVersion {
+  versionString: string
+  dependencyVersions: DependencyVersions
   configVersion: string
   sourceVersion: string
+  files: string[]
 }
 
 export interface NamedModuleVersion extends ModuleVersion {
@@ -124,6 +127,7 @@ export interface VcsHandlerParams {
   cache: TreeCache
 }
 
+@Profile()
 export abstract class VcsHandler {
   protected garden?: Garden
   protected projectRoot: string
@@ -156,23 +160,25 @@ export abstract class VcsHandler {
     config: ModuleConfig | BaseActionConfig,
     force = false
   ): Promise<TreeVersion> {
+    const cacheKey = getResourceTreeCacheKey(config)
+    const description = describeConfig(config)
+
+    // Note: duplicating this as an optimization (avoid the async lock)
+    if (!force) {
+      const cached = this.cache.get(log, cacheKey)
+      if (cached) {
+        log.silly(`Got cached tree version for ${description} (key ${cacheKey})`)
+        return cached
+      }
+    }
+
     const configPath = getConfigFilePath(config)
     const path = getConfigBasePath(config)
 
-    // Apply project root excludes if the module config is in the project root and `include` isn't set
-    const exclude =
-      path === this.projectRoot && !config.include
-        ? [...(config.exclude || []), ...fixedProjectExcludes]
-        : config.exclude
-
     let result: TreeVersion = { contentHash: NEW_RESOURCE_VERSION, files: [] }
-
-    const cacheKey = getResourceTreeCacheKey(config)
 
     // Make sure we don't concurrently scan the exact same context
     await scanLock.acquire(cacheKey.join(":"), async () => {
-      const description = describeConfig(config)
-
       if (!force) {
         const cached = this.cache.get(log, cacheKey)
         if (cached) {
@@ -181,6 +187,12 @@ export abstract class VcsHandler {
           return
         }
       }
+
+      // Apply project root excludes if the module config is in the project root and `include` isn't set
+      const exclude =
+        path === this.projectRoot && !config.include
+          ? [...(config.exclude || []), ...fixedProjectExcludes]
+          : config.exclude
 
       // No need to scan for files if nothing should be included
       if (!(config.include && config.include.length === 0)) {

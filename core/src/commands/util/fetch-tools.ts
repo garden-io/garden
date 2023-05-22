@@ -61,7 +61,7 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
       plugins = await garden.getAllPlugins()
       printHeader(log, "Fetching tools for all registered providers", "🛠️")
     } else {
-      const projectRoot = await findProjectConfig(log, garden.projectRoot)
+      const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
 
       if (!projectRoot) {
         throw new RuntimeError(

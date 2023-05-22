@@ -25,8 +25,6 @@ describe("HideWarningCommand", () => {
         args: { key },
         opts: withDefaultGlobalOpts({}),
         log: garden.log,
-        headerLog: garden.log,
-        footerLog: garden.log,
       })
       await garden.emitWarning({
         key,

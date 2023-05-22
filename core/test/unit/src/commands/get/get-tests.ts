@@ -21,8 +21,6 @@ describe("GetTestsCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({}),
     })
@@ -46,8 +44,6 @@ describe("GetTestsCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: ["module-a-integration"] },
       opts: withDefaultGlobalOpts({}),
     })

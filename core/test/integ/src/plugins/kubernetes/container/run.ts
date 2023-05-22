@@ -18,6 +18,7 @@ import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-res
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { ContainerRunAction } from "../../../../../../src/plugins/container/config"
 import { createActionLog } from "../../../../../../src/logger/log-entry"
+import { waitForOutputFlush } from "../../../../../../src/process"
 
 describe("runContainerTask", () => {
   let garden: TestGarden
@@ -34,7 +35,7 @@ describe("runContainerTask", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   it("should run a basic Run and emit log events", async () => {
@@ -57,6 +58,8 @@ describe("runContainerTask", () => {
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
     const result = results.results.getResult(testTask)
     const logEvent = garden.events.eventLog.find((l) => l.name === "log")
+
+    await waitForOutputFlush()
 
     expect(result).to.exist
     expect(result!.result).to.exist

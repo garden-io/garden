@@ -24,6 +24,7 @@ import {
   getTerraformStatus,
   TerraformDeployConfig,
   terraformDeployOutputsSchema,
+  terraformDeploySchemaKeys,
 } from "./action"
 
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
@@ -54,13 +55,13 @@ const configSchema = providerConfigBaseSchema()
 
         See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for more information.
       `),
-    // When you provide variables directly in \`terraform\` modules, those variables will
+    // When you provide variables directly in \`terraform\` axtions, those variables will
     // extend the ones specified here, and take precedence if the keys overlap.
     variables: variablesSchema().description(dedent`
         A map of variables to use when applying Terraform stacks. You can define these here, in individual
-        \`terraform\` module configs, or you can place a \`terraform.tfvars\` file in each working directory.
+        \`terraform\` action configs, or you can place a \`terraform.tfvars\` file in each working directory.
       `),
-    // May be overridden by individual \`terraform\` modules.
+    // May be overridden by individual \`terraform\` actions.
     version: joi
       .string()
       .allow(...supportedVersions, null)
@@ -125,7 +126,7 @@ export const gardenPlugin = () =>
 
           See the [Terraform guide](${DOCS_BASE_URL}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
           `,
-          schema: terraformModuleSchema(),
+          schema: joi.object().keys(terraformDeploySchemaKeys()),
           runtimeOutputsSchema: terraformDeployOutputsSchema(),
           handlers: {
             configure: async ({ ctx, config }) => {

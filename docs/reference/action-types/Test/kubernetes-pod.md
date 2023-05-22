@@ -153,9 +153,9 @@ kind:
 timeout: 600
 
 spec:
-  # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your
-  # project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version
-  # changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+  # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
+  # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
+  # changes, or when you run `garden run`.
   cacheResult: true
 
   # The command/entrypoint used to run inside the container.
@@ -800,7 +800,7 @@ Set a timeout for the test to complete, in seconds.
 
 [spec](#spec) > cacheResult
 
-Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -1747,7 +1747,7 @@ List of volumes that can be mounted by containers belonging to the pod. More inf
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `kubernetes-pod`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

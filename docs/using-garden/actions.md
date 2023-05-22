@@ -20,7 +20,7 @@ Next, we may need to _run some scripts_ to load the database with a schema and s
 
 Finally, we run all our _test_ suites. Some of these (e.g. unit tests) don't require our services to be running, but others (like end-to-end tests) require several services to be running first.
 
-This sequence of steps (some of which can be run in parallel) boils down to a set of _actions_ that need to be run in dependency order: Builds, Deploys, Tests and Runs (the last of which referes to glue steps, like the one for seeding the DB).
+This sequence of steps (some of which can be run in parallel) boils down to a set of _actions_ that need to be run in dependency order: Builds, Deploys, Tests and Runs (the last of which refers to glue steps, like the one for seeding the DB).
 
 The same applies to large systems with tens or even hundreds of services. The only difference is that the dependency graph is correspondingly larger.
 
@@ -46,17 +46,17 @@ The four action kinds in Garden are:
 Below is a sample of the action configurations for the API service in the [`vote-helm` example project](../../examples/demo-project):
 
 ```yaml
-# from examples/vote-helm/api-image/garden.yml 
+# from examples/vote-helm/api-image/garden.yml
 kind: Build
 description: Image for the API backend for the voting UI
 type: container # This makes Garden aware that there's a Dockerfile here that needs to be built.
 name: api-image
 
-# from examples/vote-helm/api.garden.yml 
+# from examples/vote-helm/api.garden.yml
 kind: Deploy
 description: The API backend for the voting UI
 # This action makes Garden aware there's a Helm chart here that should be deployed with the provided values.
-type: helm 
+type: helm
 name: api
 dependencies:
   - deploy.redis

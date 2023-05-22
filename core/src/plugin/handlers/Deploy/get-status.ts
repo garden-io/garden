@@ -42,9 +42,9 @@ export function deployStateToActionState(state: DeployState): ActionState {
 
 export const getDeployStatusSchema = createSchema({
   name: "get-deploy-status",
-  keys: {
+  keys: () => ({
     detail: serviceStatusSchema,
-  },
+  }),
   extend: actionStatusSchema,
 })
 

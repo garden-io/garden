@@ -190,8 +190,6 @@ describe("processCliArgs", () => {
     defaultActionParams = {
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
     }
   })
 

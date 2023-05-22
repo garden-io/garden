@@ -47,8 +47,6 @@ function makeCommandParams({
   return {
     garden,
     log,
-    headerLog: log,
-    footerLog: log,
     args,
     opts: withDefaultGlobalOpts({
       ...opts,
@@ -251,7 +249,7 @@ describe("LogsCommand", () => {
 
       const out = getLogOutput(garden, logMsg)
 
-      expect(out[0]).to.eql(`${color.bold("test-service-a")} → ${msgColor("Yes, this is log")}`)
+      expect(stripAnsi(out[0])).to.eql(`test-service-a → Yes, this is log`)
     })
     it("should optionally skip rendering the service name", async () => {
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
@@ -260,7 +258,7 @@ describe("LogsCommand", () => {
 
       const out = getLogOutput(garden, logMsg)
 
-      expect(out[0]).to.eql(msgColor("Yes, this is log"))
+      expect(stripAnsi(out[0])).to.eql("Yes, this is log")
     })
     it("should optionally show timestamps", async () => {
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
@@ -269,27 +267,9 @@ describe("LogsCommand", () => {
 
       const out = getLogOutput(garden, logMsg)
 
-      expect(out[0]).to.eql(
-        `${color.bold("test-service-a")} → ${chalk.gray(timestamp.toISOString())} → ${msgColor("Yes, this is log")}`
+      expect(stripAnsi(out[0])).to.eql(
+        `test-service-a → ${timestamp.toISOString()} → Yes, this is log`
       )
-    })
-    it("should render entries with no ansi color white", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
-        void stream.write({
-          tags: { container: "my-container" },
-          name: "test-service-a",
-          msg: logMsg, // No color
-          timestamp: undefined,
-        })
-        return {}
-      }
-      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
-      const command = new LogsCommand()
-      await command.action(makeCommandParams({ garden }))
-
-      const out = getLogOutput(garden, logMsg)
-
-      expect(out[0]).to.eql(`${color.bold("test-service-a")} → ${chalk.white("Yes, this is log")}`)
     })
     it("should set the '--tail' and since flag", async () => {
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
@@ -387,23 +367,18 @@ describe("LogsCommand", () => {
           makeDeployAction(tmpDir.path, "d-very-very-long"),
         ])
 
-        // Entries are color coded by their alphabetical order
-        const colA = chalk[logMonitorColors[0]]
-        const colB = chalk[logMonitorColors[1]]
-        const colD = chalk[logMonitorColors[3]]
-        const dc = msgColor
         const command = new LogsCommand()
         await command.action(makeCommandParams({ garden, opts: { "show-tags": true } }))
 
         const out = getLogOutput(garden, logMsg, (entry) => entry.level === LogLevel.info)
 
-        expect(out[0]).to.eql(`${colA.bold("a-short")} → ${chalk.gray("[container=short] ")}${dc(logMsg)}`)
-        expect(out[1]).to.eql(`${colB.bold("b-not-short")} → ${chalk.gray("[container=not-short] ")}${dc(logMsg)}`)
-        expect(out[2]).to.eql(`${colA.bold("a-short    ")} → ${chalk.gray("[container=short] ")}${dc(logMsg)}`)
-        expect(out[3]).to.eql(
-          `${colD.bold("d-very-very-long")} → ${chalk.gray("[container=very-very-long] ")}${dc(logMsg)}`
+        expect(stripAnsi(out[0])).to.eql(`a-short → [container=short] ${logMsg}`)
+        expect(stripAnsi(out[1])).to.eql(`b-not-short → [container=not-short] ${logMsg}`)
+        expect(stripAnsi(out[2])).to.eql(`a-short     → [container=short] ${logMsg}`)
+        expect(stripAnsi(out[3])).to.eql(
+          `d-very-very-long → [container=very-very-long] ${logMsg}`
         )
-        expect(out[4]).to.eql(`${colA.bold("a-short         ")} → ${chalk.gray("[container=short] ")}${dc(logMsg)}`)
+        expect(stripAnsi(out[4])).to.eql(`a-short          → [container=short] ${logMsg}`)
       })
     })
 

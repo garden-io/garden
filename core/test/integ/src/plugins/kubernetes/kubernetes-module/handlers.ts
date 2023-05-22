@@ -123,7 +123,7 @@ describe("kubernetes-module handlers", () => {
     garden.setModuleConfigs(moduleConfigBackup)
     await tmpDir.cleanup()
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 

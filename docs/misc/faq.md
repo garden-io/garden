@@ -7,69 +7,57 @@ title: FAQ
 
 ## Project Structure and Configuration
 
-### How do I include multiple modules with multiple Dockerfiles in the same directory?
+### How do I include Builds with multiple Dockerfiles in the same directory?
 
-You will have to use the module-level [`include`](../reference/module-types/container.md#include) directive to specify which files belong to each module. You will also have to provide the path to the Dockerfile with the [`dockerfile`](../reference/module-types/container.md#dockerfile) directive.
+You will have to use the top-level [`include`](../reference/action-types/Build/container.md#include) directive to specify which files belong to each Build. You will also have to provide the path to the Dockerfile with the [`spec.dockerfile`](../reference/action-types/Build/container.md#specdockerfile) directive.
 
-If the module only has a Dockerfile but no other files, say because it's a 3rd party image, you should set `include: []`.
-
-See [this section](../using-garden/configuration-overview.md#multiple-modules-in-the-same-file) of our docs for more.
+See the [configuration overview documentation](../using-garden/configuration-overview.md) for more.
 
 ### Should I `.gitignore` the `.garden` dir?
 
 Yes.
 
-### How do I disable modules based on environments?
+### How do I disable actions based on environments?
 
-You can use the `disabled` field to disable [modules](../using-garden/modules.md#disabling-modules), [services](../using-garden/services.md#disabling-services), [tests](../using-garden/tests.md#disabling-tests), and [tasks](../using-garden/tasks.md#disabling-tasks).
+You can use the `disabled` field to disable actions. See [this section of the actions documentation](../using-garden/actions.md#disabling-actions).
 
-### How do I use the `image` field in `container` modules? Is it for pulling or publishing images?
+### When should I use the action-level `include`/`exclude` fields? How are they different from the project-level `scan.include`/`scan.exclude` fields? What about ignore files?
 
-Both, actually.
-
-**When building:** If the `image` field is specified and Garden can't find a Dockerfile for the module, Garden will use that image when deploying the module. If there is a Dockerfile, Garden will build the image from it, regardless of whether or not the `image` field is specified.
-
-**When publishing:** If the `image` field is specified and the module has a Dockerfile, Garden will build the image from the Dockerfile and publish it to the URL specified in the `image` field. If there's no Dockerfile, the `publish` command will fail.
-
-We aim to change to this behavior and make it more user-friendly with our next major release.
-
-### When should I use the module-level `include`/`exclude` fields? How are they different from the project-level `module.include/module.exclude` fields? What about ignore files?
-
-Read all about it in [this section](../using-garden/configuration-overview.md#including-excluding-files-and-directories) of our docs.
+Read all about it in [this section](../using-garden/configuration-overview.md#includingexcluding-files-and-directories) of our docs.
 
 ### How do I share a single service (like a database) across multiple namespaces?
 
-We recommend using the Terraform module for cloud services that are shared by your team.
+We recommend using the Terraform or Pulumi actions for cloud services that are shared by your team.
 
-You can also deploy `kubernetes` and `helm` modules to their own namespaces.
+You can also deploy `kubernetes` and `helm` actions to their own namespaces.
 
-### How do I share code between modules?
+### How do I share code between Build actions?
 
-You can use the [copy directive](../reference/module-types/container.md#build-dependencies-copy) of the `build.dependencies[]` field for that. See e.g. [this example project](https://github.com/garden-io/garden/tree/0.12.51/examples/build-dependencies).
+You can use the [`copyFrom` directive](../reference/action-types/Build/container.md#copyfrom) for that. See [this example project](../../examples/build-dependencies/README.md).
 
 Alternatively you can hoist your `garden.yml` file so that it is at the same level or parent to all relevant build context and use the `include` field.
 
 See this [GitHub issue](https://github.com/garden-io/garden/issues/1954) for more discussion on the two approaches.
 
-### What do all those `v-<something>` versions mean, and why are they sometimes different between building and deploying?
+### What do all those `v-<something>` versions mean, and why are they different between building and deploying?
 
-These are the _Garden versions_ that are computed for each node in the Stack Graph at runtime, based on source files and configuration for each module, service, task and test. See [here](../basics/stack-graph.md#versions) for more information about how these work and how they're used.
+These are the _Garden versions_ that are computed for each action in the Stack Graph at runtime, based on source files and configuration for each action. See [here](../basics/stack-graph.md#versions) for more information about how these work and how they're used.
 
-You may notice that a _build version_ (e.g. an image tag for a `container` module) is generally different from the version of a _service_ defined in the same module. This is because the _service version_ also factors in the runtime configuration for that service, which often differs between environments, but we don't want those changes to require a rebuild of the container image.
+You may notice that a version of a Build action is different from the version the Deploy for that Build. This is because the Deploy's version also factors in the runtime configuration for that deploy, which often differs between environments, but we don't want those changes to require a rebuild.
 
 ## Builds
 
 ### How do I target a specific image from a multi-stage Dockerfile?
 
-Use the [`targetImage` field](../reference/module-types/container.md#build-targetimage).
+Use the [`spec.targetStage` field](../reference/action-types/Build/container.md#spectargetstage).
 
 ### How do I use base images?
 
-See [this example project](https://github.com/garden-io/garden/tree/0.12.51/examples/base-image).
+See [this example project](../../examples/base-image/README.md).
 
-### Can I use runtime variables in container builds (e.g. from tasks)?
+### Can I use runtime variables in builds (e.g. from Runs or Tests)?
 
-No, only _modules_ can be build dependencies and runtime outputs come from _tasks_, _tests_, and _services_.
+Yes, but only since Garden 0.13.
 
 ### How do I view container build logs?
 
@@ -79,11 +67,11 @@ Set the log-level to `verbose` or higher. For example:
 garden build --log-level verbose
 ```
 
-### Can I use a Dockerfile that lives outside the module root?
+### Can I use a Dockerfile that lives outside the action root?
 
-Dockerfiles need to be at the same level as the `garden.yml` file for the respective module, or in a child directory.
+Dockerfiles need to be at the same level as the `garden.yml` file for the respective action, or in a child directory.
 
-You can always hoist the `garden.yml` file to the same level as the Dockerfile and use the `include` directive to tell Garden what other files belong to the module. For example, if you have the following directory structure:
+You can always hoist the `garden.yml` file to the same level as the Dockerfile and use the `include` directive to tell Garden what other files belong to the Build. For example, if you have the following directory structure:
 
 ```console
 .
@@ -94,42 +82,47 @@ You can always hoist the `garden.yml` file to the same level as the Dockerfile a
 └── frontend
 ```
 
-You can set your `garden.yml` file at the root and define your modules likes so:
+You can set your `garden.yml` file at the root and define your actions likes so:
 
 ```yaml
-kind: Module
+kind: Build
 name: api
-dockerfile: dockerfiles/api.Dockerfile
+type: container
 include: [api/**/*]
+spec:
+  dockerfile: dockerfiles/api.Dockerfile
 
 ---
-kind: Module
+kind: Build
 name: frontend
-dockerfile: dockerfiles/frontend.Dockerfile
 include: [frontend/**/*]
+type: container
+spec:
+  dockerfile: dockerfiles/frontend.Dockerfile
 ```
 
 Note that you can put multiple Garden configuration files in the same directory, e.g. `project.garden.yml`, `api.garden.yml` and `frontend.garden.yml`.
 
-If you need the Dockerfile outside of the module root because you want to share it with other modules, you should consider having a single base image instead and then let each module have its own Dockerfile that's built on the base image. See the [base image example project](https://github.com/garden-io/garden/tree/0.12.51/examples/base-image) for an example of this.
+If you need the Dockerfile outside of the Build root because you want to share it with other Build actions, you should consider having a single base image instead and then let each action have its own Dockerfile that's built on the base image. See the [base image example project](../../examples/base-image/README.md) for an example of this.
 
-### How do I include files/dirs (e.g. shared libraries) from outside the module root with the build context?
+### How do I include files/dirs (e.g. shared libraries) from outside the action root with the build context?
 
-See [this example project](https://github.com/garden-io/garden/tree/0.12.51/examples/build-dependencies).
+See [this example project](../../examples/build-dependencies/README.md).
 
 ### How do I add Docker specific flags to the build command?
 
-Use the module-level [`extraFlags` field](../k8s-plugins/action-types/container.md#extraflags).
+Use the [`spec.extraFlags` field](../reference/action-types/Build/container.md#specextraflags).
 
 ### How do I use different Dockerfiles for different environments?
 
-You can use the `dockerfile` field. For example:
+You can use the [`spec.dockerfile`](../reference/action-types/Build/container.md#specdockerfile) field. For example:
 
 ```console
-dockerfile: "${environment.name == 'prod' ? Dockerfile.prod : Dockerfile.dev}"
+spec:
+  dockerfile: "${environment.name == 'prod' ? Dockerfile.prod : Dockerfile.dev}"
 ```
 
-See also the [base image example project](https://github.com/garden-io/garden/tree/0.12.51/examples/base-image) for an example of this.
+See also the [base image example project](../../examples/base-image/README.md) for an example of this.
 
 ## Remote Building
 
@@ -151,63 +144,60 @@ See [this section](../k8s-plugins/advanced/in-cluster-building.md#pulling-base-i
 
 See [this section](../k8s-plugins/advanced/in-cluster-building.md#configuring-a-deployment-registry) of our docs.
 
-## Tasks and Tests
+## Tests and Runs
 
-### Can I run a task on only the first time a service starts but not on subsequent restarts/rebuilds?
+### Can I run a Run on only the first time a service starts but not on subsequent restarts/rebuilds?
 
 We've been pondering this, but there are a lot of variants to consider. The key issue is really that the notion of "first time" is kind of undefined as things stand.
 
-So what we generally do is to make sure tasks are idempotent and exit early if they shouldn't run again. But that means the process still needs to be started, which is of course slower than not doing it at all.
+So what we generally do is to make sure Runs are idempotent and exit early if they shouldn't run again. But that means the process still needs to be started, which is of course slower than not doing it at all.
 
-### If tests have a task as a dependency, is the task re-run every time before the test?
+### If a Test has a Run as a dependency, is the Run re-run every time before the Test?
 
-It is, which is why we recommend that tasks are written to be idempotent. Tasks by nature don’t really have a status check, unlike services.
+It is, which is why we recommend that Runs are written to be idempotent. Runs by nature don’t really have a status check, unlike Deploys.
 
-### Why is a task not triggered on changes in watch mode?
+### Why is my Run not running on `garden deploy`?
 
-This is intentional, we don't re-run tasks on file watch events. We debated this behavior quite a bit and ultimately opted not to run task dependencies on every watch event.
-
-### Why is my task not running on `garden deploy`?
-
-The task result is likely cached. Garden won't run tasks with cached results unless `cacheResult: false` is set on the task definition.
+The Run result is likely cached. Garden won't run Runs with cached results unless `spec.cacheResult: false` is set on the Run definition.
 
 You can also run it manually with:
 
 ```console
-garden run <task-name>
+garden run <run-name>
 ```
 
-This will run the task even if the result is cached.
+This will run the Run even if the result is cached.
 
-### How do I clear cached task results?
+### How do I clear cached Run results?
 
-Garden stores the task results as a ConfigMap under the `<project-name>--metadata` namespace. You can delete them manually with this command:
+Garden stores the Run results as a ConfigMap in your namespace. You can delete them manually with this command:
 
 ```console
-kubectl delete -n <project-name>--metadata $(kubectl get configmap -n <project-name>--metadata -o name | grep task-result)
+kubectl delete -n <your-namespace> $(kubectl get configmap -n <your-namespace> -o name | grep run-result)
 ```
 
 You can also run it manually with:
 
 ```console
-garden run <task-name>
+garden run <run-name>
 ```
 
-This will run the task even if the result is cached.
+This will run the Run even if the result is cached.
 
 ## Secrets
 
-### How do I pass secrets to container modules?
+### How do I pass secrets to container actions?
 
 See [this section](../k8s-plugins/action-types/container.md#secrets) of our docs.
 
 ### How do I mount secrets as volumes?
 
-You'll need to use the [`kubernetes`](../reference/module-types/kubernetes.md) or [`helm`](../reference/module-types/helm.md) module types for that. Here's the official [Kubernetes guide](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod) for mounting secrets as files.
+You'll need to use the [`kubernetes`](../k8s-plugins/action-types/kubernetes.md) or [`helm`](../k8s-plugins/action-types/helm.md) action types for that. Here's the official [Kubernetes guide](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod) for mounting secrets as files.
 
-### Can I use Kubernetes secrets as `buildArgs`?
+### Can I use Kubernetes secrets as `buildArgs` for docker Builds?
 
-No, Kubernetes secrets can only be used at runtime, by referencing them in the `environment` field of `tasks`, `services` and `tests`. See [the secrets section](../k8s-plugins/action-types/container.md#secrets) of our docs for more.
+No, Kubernetes secrets can only be used at runtime, by referencing them in the `spec.env` field of Run, Deploy and Test Actions.
+See [the secrets section](../k8s-plugins/action-types/container.md#secrets) of our docs for more.
 
 Also note that secrets as `buildArgs` are considered a bad practice and a security risk.
 
@@ -223,23 +213,23 @@ See [this section](../k8s-plugins/action-types/container.md#mounting-volumes) of
 
 ### How do I access files that are generated at runtime (e.g. migration files that are checked into version control)?
 
-You can generate the files via a task, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](../using-garden/tests.md#test-artifacts) of this.
+You can generate the files via a Run, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](../using-garden/tests.md#test-artifacts) of this.
 
-You can also use the [`persistentvolumeclaim`](../reference/module-types/persistentvolumeclaim.md) module type to store data and share it across modules. See [this section](../k8s-plugins/action-types/container.md#mounting-volumes) of our docs for more.
+You can also use the [`persistentvolumeclaim`](../reference/action-types/Deploy/persistentvolumeclaim.md) action type to store data and share it across actions. See [this section](../k8s-plugins/action-types/persistentvolumeclaim.md) of our docs for more.
 
 ## Kubernetes
 
-### How do I annotate ingresses?
+### How do I annotate ingresses with container actions?
 
-You can set annotations on ingresses under the [`services[].ingresses[]` field](../reference/module-types/container.md#services-ingresses-annotations).
+You can set annotations on ingresses under the [`spec.ingresses[]` field](../reference/action-types/Deploy/container.md#specingresses).
 
 ### What versions and variations of Kubernetes does Garden support?
 
 Garden interfaces with your cluster via `kubectl` and by using the Kubernetes APIs directly and should therefore work with all Kubernetes clusters that implement these. Garden is committed to supporting the latest six stable versions of Kubernetes.
 
-### Can I add Kubernetes-specific fields to `container` modules (e.g. annotations and labels)?
+### Can I add Kubernetes-specific fields to `container` actions (e.g. annotations and labels)?
 
-No, you have to use the [`kubernetes`](../reference/module-types/kubernetes.md) module type for that.
+No, you have to use the [`kubernetes`](../k8s-plugins/action-types/kubernetes.md) action type for that.
 
 ## Misc
 
@@ -253,14 +243,15 @@ The `*.local.demo.garden` domain resolves to 127.0.0.1 via our DNS provider for 
 
 ### Does garden support bi-directional syncing?
 
-No, it doesn't. See [this question](#how-do-i-access-files-that-are-generated-at-runtime-eg-migration-files-that-are-checked-into-version-control) above for accessing files that are generated at runtime.
+Yes! `two-way` sync mode can be configured with Garden sync mode. See [this guide](../guides/code-synchronization.md)
 
 ### Is Garden stable or should I wait for 1.0?
 
-Garden is currently in use by many teams. We don’t have a set date or plan to label it as 1.0, but we don't expect to do it anytime soon. For comparison, very widely used tools like Terraform are still not at 1.0.
+Garden is currently in use by many teams. We don’t have a set date or plan to label it as 1.0, but we don't expect to do it anytime soon.
 
 We have a team of people working on it full-time, and we make it a priority to address all non-trivial bugs. We’re also happy to help out and answer questions via [our Discord community](https://discord.gg/FrmhuUjFs6).
 
 ### Does Garden work offline?
 
-Garden is not currently designed to work in air-gapped environments This would require a fair amount of workarounds, unfortunately.
+Garden is not currently designed to work in air-gapped environments but if you have done the initial setup and use a
+local kubernetes provider it might work.

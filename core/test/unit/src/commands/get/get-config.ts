@@ -48,8 +48,6 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
@@ -70,8 +68,6 @@ describe("GetConfigCommand", () => {
       await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
       })
@@ -109,8 +105,6 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
@@ -176,8 +170,6 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
@@ -238,8 +230,6 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
@@ -296,8 +286,6 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
@@ -362,8 +350,6 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
@@ -430,8 +416,6 @@ describe("GetConfigCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": true, "resolve": "full" }),
       })
@@ -490,8 +474,6 @@ describe("GetConfigCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": true, "resolve": "full" }),
       })
@@ -550,8 +532,6 @@ describe("GetConfigCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": true, "resolve": "full" }),
       })
@@ -635,8 +615,6 @@ describe("GetConfigCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": true, "resolve": "full" }),
       })
@@ -703,8 +681,6 @@ describe("GetConfigCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
       })
@@ -719,8 +695,6 @@ describe("GetConfigCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
       })
@@ -735,8 +709,6 @@ describe("GetConfigCommand", () => {
       await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
       })

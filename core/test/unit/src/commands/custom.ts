@@ -134,8 +134,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         a: "A",
         b: "B",
@@ -173,8 +171,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -208,8 +204,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -241,8 +235,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -274,8 +266,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -318,8 +308,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { a: "test-a", b: 123 },
       opts: withDefaultGlobalOpts({ a: "opt-a", b: true }),
     })
@@ -352,8 +340,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "log-level": "error" }),
     })
@@ -382,8 +368,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })

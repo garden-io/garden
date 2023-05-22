@@ -109,15 +109,15 @@ export class RunCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  printHeader({ headerLog }: PrepareParams<Args, Opts>) {
+  printHeader({ log }: PrepareParams<Args, Opts>) {
     const msg = `Run`
-    printHeader(headerLog, msg, "🏃‍♂️")
+    printHeader(log, msg, "🏃‍♂️")
   }
 
   async action(
     params: CommandParams<Args, Opts>
   ): Promise<CommandResult<ProcessCommandResult> | CommandResult<WorkflowRunOutput>> {
-    const { garden, log, footerLog, args, opts } = params
+    const { garden, log, args, opts } = params
 
     // Detect possible old-style invocations as early as possible
     // Needs to be done before graph init to support lazy init usecases, e.g. workflows
@@ -208,7 +208,7 @@ export class RunCommand extends Command<Args, Opts> {
 
     const results = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(garden, footerLog, "test", results)
+    return handleProcessResults(garden, log, "test", results)
   }
 }
 

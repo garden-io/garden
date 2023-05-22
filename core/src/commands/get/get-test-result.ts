@@ -59,11 +59,11 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
       })
       .description("The result from the test. May also return null if no test result is found.")
 
-  printHeader({ headerLog, args }) {
+  printHeader({ log, args }) {
     const testName = args.name
     const moduleName = args.module
 
-    printHeader(headerLog, `Test result for test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`, "✔️")
+    printHeader(log, `Test result for test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`, "✔️")
   }
 
   async action({ garden, log, args }: CommandParams<Args>) {

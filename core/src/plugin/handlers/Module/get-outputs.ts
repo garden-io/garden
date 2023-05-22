@@ -15,6 +15,7 @@ import { ModuleVersion } from "../../../vcs/vcs"
 import { Log } from "../../../logger/log-entry"
 import { pluginContextSchema } from "../../../plugin-context"
 import { baseModuleSpecSchema } from "../../../config/module"
+import { memoize } from "lodash"
 
 export interface GetModuleOutputsParams<T extends GardenModule = GardenModule> extends PluginActionContextParams {
   log: Log
@@ -26,8 +27,9 @@ export interface GetModuleOutputsResult {
   outputs: PrimitiveMap
 }
 
-export const moduleOutputsSchema = () =>
+export const moduleOutputsSchema = memoize(() =>
   joiVariables().description("The outputs defined by the module (referenceable in other module configs).")
+)
 
 export const getModuleOutputs = () => ({
   description: deline`

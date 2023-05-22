@@ -21,19 +21,18 @@ The following option flags can be used with any of the CLI commands:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--root` |  | path | Override project root directory (defaults to working directory). Can be absolute or relative to current directory.
-  | `--silent` |  | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--env` |  | string | The environment (and optionally namespace) to work against.
+  | `--force-refresh` |  | boolean | Force refresh of any caches, e.g. cached provider statuses.
+  | `--var` |  | array:string | Set a specific variable value, using the format &lt;key&gt;&#x3D;&lt;value&gt;, e.g. &#x60;--var some-key&#x3D;custom-value&#x60;. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. &#x60;--var key-a&#x3D;foo,key-b&#x3D;&quot;value with quotes&quot;&#x60;.
+  | `--yes` |  | boolean | Automatically approve any yes/no prompts during execution, and allow running protected commands against production environments.
+  | `--silent` |  | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--logger-type` |  | `quiet` `default` `basic` `json` `ink`  | Set logger type. default The default Garden logger, basic [DEPRECATED] Sames as the default Garden logger. This option will be removed in a future release, json same as default, but renders log lines as JSON, quiet suppresses all log output, same as --silent.
   | `--log-level` |  | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
   | `--output` |  | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
   | `--show-timestamps` |  | boolean | Show timestamps with log output. When enabled, Garden will use the basic logger. I.e., log status changes are rendered as new lines instead of being updated in-place.
-  | `--yes` |  | boolean | Automatically approve any yes/no prompts during execution.
-  | `--force-refresh` |  | boolean | Force refresh of any caches, e.g. cached provider statuses.
-  | `--var` |  | array:string | Set a specific variable value, using the format &lt;key&gt;&#x3D;&lt;value&gt;, e.g. &#x60;--var some-key&#x3D;custom-value&#x60;. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. &#x60;--var key-a&#x3D;foo,key-b&#x3D;&quot;value with quotes&quot;&#x60;.
   | `--version` |  | boolean | Show the current CLI version.
   | `--help` |  | boolean | Show help
-  | `--disable-port-forwards` |  | boolean | Disable automatic port forwarding when in watch mode. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS&#x3D;true in your environment.
 
 ### garden build
 
@@ -703,10 +702,11 @@ the command stays running until explicitly aborted.
 This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of Deploys you&#x27;d like to skip.
   | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
+  | `--disable-port-forwards` |  | boolean | Disable automatic port forwarding when running persistently. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS&#x3D;true in your environment.
   | `--forward` |  | boolean | Create port forwards and leave process running after deploying. This is implied if any of --sync / --local or --logs are set.
   | `--logs` |  | boolean | Stream logs from the requested Deploy(s) (or services if using modules) during deployment, and leave the log streaming process running after deploying. Note: This option implies the --forward option.
   | `--timestamps` |  | boolean | Show timestamps with log output. Should be used with the &#x60;--logs&#x60; option (has no effect if that option is not used).
-  | `--port` |  | number | The port number for the server to listen on.
+  | `--port` |  | number | The port number for the server to listen on (defaults to 9700 if available).
 
 #### Outputs
 
@@ -830,7 +830,10 @@ providers:
       environments:
 
     moduleConfigs:
-      - kind:
+      - # The schema version of this config.
+        apiVersion:
+
+        kind:
 
         # The type of this module.
         type:
@@ -1130,6 +1133,9 @@ actionConfigs:
   # Build action configs in the project.
   Build:
     <name>:
+      # The schema version of this config.
+      apiVersion:
+
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1300,6 +1306,9 @@ actionConfigs:
   # Deploy action configs in the project.
   Deploy:
     <name>:
+      # The schema version of this config.
+      apiVersion:
+
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1440,6 +1449,9 @@ actionConfigs:
   # Run action configs in the project.
   Run:
     <name>:
+      # The schema version of this config.
+      apiVersion:
+
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1580,6 +1592,9 @@ actionConfigs:
   # Test action configs in the project.
   Test:
     <name>:
+      # The schema version of this config.
+      apiVersion:
+
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1719,7 +1734,10 @@ actionConfigs:
 
 # All module configs in the project.
 moduleConfigs:
-  - kind:
+  - # The schema version of this config.
+    apiVersion:
+
+    kind:
 
     # The type of this module.
     type:
@@ -1963,7 +1981,11 @@ moduleConfigs:
 
 # All workflow configs in the project.
 workflowConfigs:
-  - kind:
+  - # The schema version of this workflow's config. Use garden.io/v1 for Garden Cloud workflows with Garden Bonsai and
+    # garden.io/v0 for Garden Cloud workflows with Garden Acorn. Defaults to garden.io/v1.
+    apiVersion:
+
+    kind:
 
     # The name of this workflow.
     name:
@@ -2218,6 +2240,9 @@ Examples:
 modules:
   # The configuration for a module.
   <name>:
+    # The schema version of this config.
+    apiVersion:
+
     kind:
 
     # The type of this module.
@@ -2467,6 +2492,9 @@ modules:
     configPath:
 
     version:
+      # The hash of all files belonging to the Garden action/module.
+      contentHash:
+
       # A Stack Graph node (i.e. module, service, task or test) version.
       versionString:
 
@@ -3493,7 +3521,7 @@ Get the current status of the configured syncs for this project.
 
 Examples:
     # get all sync statuses
-    garden sync status 
+    garden sync status
 
     # get sync statuses for the 'api' Deploy
     garden sync status api

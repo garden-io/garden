@@ -8,7 +8,6 @@
 
 import { Command, CommandParams, CommandResult } from "../base"
 import dedent = require("dedent")
-import { AnalyticsHandler } from "../../analytics/analytics"
 import { BooleanParameter } from "../../cli/params"
 
 const configAnalyticsEnabledArgs = {
@@ -47,7 +46,7 @@ export class ConfigAnalyticsEnabled extends Command {
   printHeader() {}
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
-    const analyticsClient = await AnalyticsHandler.init(garden, log)
+    const analyticsClient = await garden.getAnalyticsHandler()
     await analyticsClient.setAnalyticsOptOut(!args.enable)
 
     if (args.enable) {

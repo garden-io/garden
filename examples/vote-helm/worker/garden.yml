@@ -2,7 +2,6 @@ kind: Deploy
 description: Helm deploy for the worker container
 type: helm
 name: worker-deploy
-dependencies: [build.worker-image]
 spec:
   values:
     image:

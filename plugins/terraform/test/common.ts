@@ -41,7 +41,11 @@ describe("Terraform common", () => {
   }
 
   before(async () => {
-    garden = await makeTestGarden(testRoot, { plugins: [gardenPlugin()], environmentName: "prod", forceRefresh: true })
+    garden = await makeTestGarden(testRoot, {
+      plugins: [gardenPlugin()],
+      environmentString: "prod",
+      forceRefresh: true,
+    })
     log = garden.log
     provider = (await garden.resolveProvider(log, "terraform")) as TerraformProvider
     ctx = await garden.getPluginContext({ provider, events: undefined, templateContext: undefined })

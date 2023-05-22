@@ -58,8 +58,8 @@ export class LinkActionCommand extends Command<Args> {
         garden link action build.my-build path/to/my-build # links Build my-build to its local version at the given path
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Link action", "🔗")
+  printHeader({ log }) {
+    printHeader(log, "Link action", "🔗")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<Output>> {

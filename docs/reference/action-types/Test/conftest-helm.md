@@ -9,7 +9,7 @@ tocTitle: "`conftest-helm` Test"
 
 Special Test type for validating helm deploys with conftest. This is necessary in addition to the `conftest` Test type in order to be able to properly render the Helm chart ahead of validation, including all runtime values.
 
-If the helm Deploy requires runtime outputs from other modules, you must list the corresponding dependencies with the `dependencies` field.
+If the helm Deploy requires runtime outputs from other actions, you must list the corresponding dependencies with the `dependencies` field.
 
 > Note: In most cases, you'll let the [`conftest-kubernetes`](../../providers/conftest-kubernetes.md) provider create this Test automatically, but you may in some cases want or need to manually specify files to test.
 
@@ -158,7 +158,7 @@ timeout: 600
 
 spec:
   # POSIX-style path to a directory containing the policies to match the config against, or a
-  # specific .rego file, relative to the module root.
+  # specific .rego file, relative to the action root.
   # Must be a relative path, and should in most cases be within the project root.
   # Defaults to the `policyPath` set in the provider config.
   policyPath:
@@ -409,7 +409,7 @@ Set a timeout for the test to complete, in seconds.
 [spec](#spec) > policyPath
 
 POSIX-style path to a directory containing the policies to match the config against, or a
-specific .rego file, relative to the module root.
+specific .rego file, relative to the action root.
 Must be a relative path, and should in most cases be within the project root.
 Defaults to the `policyPath` set in the provider config.
 
@@ -471,7 +471,7 @@ The Helm Deploy action to validate.
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `conftest-helm`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

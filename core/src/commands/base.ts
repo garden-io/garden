@@ -6,28 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("@hapi/joi")
+import Joi from "@hapi/joi"
 import chalk from "chalk"
-import dedent = require("dedent")
+import dedent from "dedent"
 import stripAnsi from "strip-ansi"
-import { pickBy, size } from "lodash"
+import { mapValues, memoize, pickBy, size } from "lodash"
 
 import { createSchema, joi } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
-import { LoggerType, LoggerBase, LoggerConfigBase } from "../logger/logger"
+import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { GraphResultMapWithoutTask } from "../graph/results"
 import { capitalize } from "lodash"
-import { userPrompt } from "../util/util"
-import { renderOptions, renderCommands, renderArguments, cliStyles } from "../cli/helpers"
-import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
+import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion, userPrompt } from "../util/util"
+import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers"
+import { GlobalOptions, ParameterValues, Parameters, globalOptions } from "../cli/params"
 import { GardenCli } from "../cli/cli"
 import { CommandLine } from "../cli/command-line"
 import { SolveResult } from "../graph/solver"
 import { waitForOutputFlush } from "../process"
 import { BufferedEventStream } from "../cloud/buffered-event-stream"
+import { CommandInfo } from "../plugin-context"
+import type { GardenServer } from "../server/server"
+import { CloudSession } from "../cloud/api"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -35,7 +38,6 @@ export interface CommandConstructor {
 
 export interface CommandResult<T = any> {
   result?: T
-  restartRequired?: boolean
   errors?: GardenBaseError[]
   exitCode?: number
 }
@@ -54,20 +56,24 @@ export interface CommandParamsBase<T extends Parameters = {}, U extends Paramete
 
 export interface PrintHeaderParams<T extends Parameters = {}, U extends Parameters = {}>
   extends CommandParamsBase<T, U> {
-  headerLog: Log
+  log: Log
 }
 
 export interface PrepareParams<T extends Parameters = {}, U extends Parameters = {}> extends CommandParamsBase<T, U> {
-  headerLog: Log
-  footerLog: Log
   log: Log
   commandLine?: CommandLine
+  // The ServeCommand or DevCommand when applicable
+  parentCommand?: Command
 }
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
   cli?: GardenCli
-  bufferedEventStream?: BufferedEventStream
   garden: Garden
+}
+
+export interface RunCommandParams<A extends Parameters = {}, O extends Parameters = {}> extends CommandParams<A, O> {
+  sessionId: string
+  nested: boolean // Set to true if running in dev command or WS server
 }
 
 type DataCallback = (data: string) => void
@@ -98,6 +104,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
 
   subscribers: DataCallback[]
   terminated: boolean
+  public server?: GardenServer
 
   // FIXME: The parent command is not set via the constructor but rather needs to be set "manually" after
   // the command class has been initialised.
@@ -161,6 +168,156 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
         })
       }
     }
+  }
+
+  /**
+   * Shorthand helper to call the action method on the given command class.
+   * Also validates the result against the outputsSchema on the command, if applicable.
+   *
+   * @returns The result from the command action
+   */
+  async run({
+    garden: parentGarden,
+    args,
+    opts,
+    cli,
+    commandLine,
+    sessionId,
+    nested,
+    parentCommand,
+  }: RunCommandParams<A, O>): Promise<CommandResult<R>> {
+    const commandStartTime = new Date()
+    const server = this.server
+
+    let garden = parentGarden
+    let parentSessionId: string | undefined
+
+    if (nested) {
+      // Make an instance clone to override anything that needs to be scoped to a specific command run
+      // TODO: this could be made more elegant
+      garden = parentGarden.cloneForCommand(sessionId)
+      parentSessionId = parentGarden.sessionId
+    }
+
+    const log = garden.log
+    let cloudSession: CloudSession | undefined
+
+    if (garden.cloudApi && garden.projectId && this.streamEvents) {
+      cloudSession = await garden.cloudApi.registerSession({
+        parentSessionId,
+        sessionId: garden.sessionId,
+        projectId: garden.projectId,
+        commandInfo: garden.commandInfo,
+        localServerPort: server?.port,
+        environment: garden.environmentName,
+        namespace: garden.namespace,
+      })
+    }
+
+    if (cloudSession) {
+      const distroName = getCloudDistributionName(cloudSession.api.domain)
+      const userId = (await cloudSession.api.getProfile()).id
+      const commandResultUrl = cloudSession.api.getCommandResultUrl({
+        sessionId: garden.sessionId,
+        projectId: cloudSession.projectId,
+        userId,
+      }).href
+      const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
+
+      const msg = dedent`🌸  Connected to ${distroName}. View logs and command results at: \n\n${chalk.cyan(
+        commandResultUrl
+      )}\n`
+      cloudLog.info(msg)
+    }
+
+    const analytics = await garden.getAnalyticsHandler()
+    await analytics.trackCommand(this.getFullName())
+
+    const allOpts = <ParameterValues<GlobalOptions & O>>{
+      ...mapValues(globalOptions, (opt) => opt.defaultValue),
+      ...opts,
+    }
+
+    const commandInfo: CommandInfo = {
+      name: this.getFullName(),
+      args,
+      opts: optionsWithAliasValues(this, allOpts),
+    }
+
+    const cloudEventStream = new BufferedEventStream({
+      log,
+      cloudSession,
+      maxLogLevel: eventLogLevel,
+      garden,
+      streamEvents: this.streamEvents,
+      streamLogEntries: this.streamLogEntries,
+    })
+
+    let result: CommandResult<R>
+
+    try {
+      if (cloudSession && this.streamEvents) {
+        log.silly(`Connecting Garden instance events to Cloud API`)
+        cloudEventStream.emit("commandInfo", {
+          ...commandInfo,
+          environmentName: garden.environmentName,
+          environmentId: cloudSession.environmentId,
+          projectName: garden.projectName,
+          projectId: cloudSession.projectId,
+          namespaceName: garden.namespace,
+          namespaceId: cloudSession.namespaceId,
+          coreVersion: getPackageVersion(),
+          vcsBranch: garden.vcsInfo.branch,
+          vcsCommitHash: garden.vcsInfo.commitHash,
+          vcsOriginUrl: garden.vcsInfo.originUrl,
+        })
+      }
+
+      // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
+      if (await this.isAllowedToRun(garden, log, allOpts)) {
+        // Clear the VCS handler's tree cache to make sure we pick up any changed sources.
+        // FIXME: use file watching to be more surgical here, this is suboptimal
+        garden.treeCache.invalidateDown(log, ["path"])
+
+        log.silly(`Starting command '${this.getFullName()}' action`)
+        result = await this.action({
+          garden,
+          cli,
+          log,
+          args,
+          opts: allOpts,
+          commandLine,
+          parentCommand,
+        })
+        log.silly(`Completed command '${this.getFullName()}' action successfully`)
+      } else {
+        // The command is protected and the user decided to not continue with the exectution.
+        log.info("\nCommand aborted.")
+        return {}
+      }
+
+      // Track the result of the command run
+      const allErrors = result.errors || []
+      await analytics.trackCommandResult(this.getFullName(), allErrors, commandStartTime, result.exitCode)
+
+      cloudEventStream.emit("sessionCompleted", {})
+    } catch (err) {
+      await analytics.trackCommandResult(this.getFullName(), [err], commandStartTime || new Date(), 1)
+      cloudEventStream.emit("sessionFailed", {})
+      throw err
+    } finally {
+      if (nested) {
+        garden.close()
+        parentGarden.nestedSessions.delete(sessionId)
+      }
+      await cloudEventStream.close()
+    }
+
+    // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to
+    // fire, which may be needed to e.g. capture monitors added in event handlers
+    await waitForOutputFlush()
+
+    return result
   }
 
   getFullName(): string {
@@ -419,7 +576,7 @@ export function printResult({
   description: string
 }) {
   const prefix = success ? `${capitalize(description)} output:` : `${capitalize(description)} failed with error:`
-  const msg = renderMessageWithDivider(prefix, result, !success)
+  const msg = renderMessageWithDivider({ prefix, msg: result, isError: !success })
   success ? log.info(chalk.white(msg)) : log.error(msg)
 }
 
@@ -441,13 +598,14 @@ export const processCommandResultKeys = () => ({
   error: joi.string().description("An error message, if the action failed."),
 })
 
-export const graphResultsSchema = () =>
+export const graphResultsSchema = memoize(() =>
   joi
     .object()
     .description(
       "A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead."
     )
     .meta({ keyPlaceholder: "<key>" })
+)
 
 export const processCommandResultSchema = createSchema({
   name: "process-command-result",
@@ -483,7 +641,7 @@ export async function handleProcessResults(
 
   if (!success) {
     const error = new RuntimeError(`${failedCount} ${taskType} action(s) failed!`, { results: failed })
-    return { result, errors: [error], restartRequired: false }
+    return { result, errors: [error] }
   }
 
   await waitForOutputFlush()

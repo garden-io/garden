@@ -80,6 +80,7 @@ const testDataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
 const testNow = new Date()
 const testModuleVersionString = "v-1234512345"
 export const testModuleVersion: ModuleVersion = {
+  contentHash: testModuleVersionString,
   versionString: testModuleVersionString,
   dependencyVersions: {},
   files: [],
@@ -129,20 +130,20 @@ export const testModuleSpecSchema = createSchema({
 export const testDeploySchema = createSchema({
   name: "test.Deploy",
   extend: execDeployActionSchema,
-  keys: {
+  keys: () => ({
     // Making this optional for tests
     deployCommand: execDeployCommandSchema().optional(),
-  },
+  }),
 })
 export const testRunSchema = createSchema({
   name: "test.Run",
   extend: execRunActionSchema,
-  keys: {},
+  keys: () => ({}),
 })
 export const testTestSchema = createSchema({
   name: "test.Test",
   extend: execTestActionSchema,
-  keys: {},
+  keys: () => ({}),
 })
 
 export async function configureTestModule({ moduleConfig }: ConfigureModuleParams) {
@@ -836,8 +837,6 @@ export function makeCommandParams<T extends Parameters = {}, U extends Parameter
     cli,
     garden,
     log,
-    headerLog: log,
-    footerLog: log,
     args,
     opts: withDefaultGlobalOpts(opts),
   }

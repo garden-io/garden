@@ -13,15 +13,22 @@ import type { DeployState, DeployStatusForEventPayload } from "./types/service"
 import type { RunState, RunStatusForEventPayload } from "./plugin/base"
 import type { Omit } from "./util/util"
 import type { AuthTokenResponse } from "./cloud/api"
-import type { RenderedActionGraph } from "./graph/config-graph"
+import type { ConfigGraph, RenderedActionGraph } from "./graph/config-graph"
 import type { CommandInfo } from "./plugin-context"
 import type { GraphResult } from "./graph/results"
 import { NamespaceStatus } from "./types/namespace"
 import { BuildState, BuildStatusForEventPayload } from "./plugin/handlers/Build/get-status"
 import { ActionStateForEvent } from "./actions/types"
-import { sanitizeValue } from "./util/logging"
 
-export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
+interface EventContext {
+  gardenKey?: string
+  sessionId?: string
+}
+
+type EventPayload<T extends EventName> = Events[T] & { $context?: EventContext }
+
+export type GardenEventListener<T extends EventName> = (payload: EventPayload<T>) => void
+export type GardenEventAnyListener<E extends EventName = any> = (name: E, payload: EventPayload<E>) => void
 
 /**
  * This simple class serves as the central event bus for a Garden instance. Its function
@@ -34,7 +41,7 @@ export class EventBus extends EventEmitter2 {
     [key: string]: { [eventName: string]: ((payload: any) => void)[] }
   }
 
-  constructor(name?: string) {
+  constructor(private context: EventContext = {}) {
     super({
       wildcard: false,
       newListener: false,
@@ -43,11 +50,12 @@ export class EventBus extends EventEmitter2 {
     this.keyIndex = {}
   }
 
-  emit<T extends EventName>(name: T, payload: Events[T]) {
-    return super.emit(name, payload)
+  emit<T extends EventName>(name: T, payload: EventPayload<T>) {
+    // The context set in the constructor is added on the $context field
+    return super.emit(name, { $context: { ...payload.$context, ...this.context }, ...payload })
   }
 
-  on<T extends EventName>(name: T, listener: (payload: Events[T]) => void) {
+  on<T extends EventName>(name: T, listener: GardenEventListener<T>) {
     return super.on(name, listener)
   }
 
@@ -56,7 +64,7 @@ export class EventBus extends EventEmitter2 {
    * plugin event broker, which is instantiated in several places and where there isn't a single obvious place to
    * remove listeners from all instances generated in a single command run.
    */
-  onKey<T extends EventName>(name: T, listener: (payload: Events[T]) => void, key: string) {
+  onKey<T extends EventName>(name: T, listener: GardenEventListener<T>, key: string) {
     if (!this.keyIndex[key]) {
       this.keyIndex[key] = {}
     }
@@ -98,11 +106,39 @@ export class EventBus extends EventEmitter2 {
     delete this.keyIndex[key]
   }
 
-  onAny(listener: <T extends EventName>(name: T, payload: Events[T]) => void) {
+  /**
+   * Add the given listener if it's not already been added.
+   * Basically an idempotent version of on(), which otherwise adds the same listener again if called twice with
+   * the same listener.
+   */
+  ensure<T extends EventName>(name: T, listener: GardenEventListener<T>) {
+    for (const l of this.listeners(name)) {
+      if (l === listener) {
+        return this
+      }
+    }
+    return super.on(name, listener)
+  }
+
+  onAny(listener: GardenEventAnyListener) {
     return super.onAny(<any>listener)
   }
 
-  once<T extends EventName>(name: T, listener: (payload: Events[T]) => void) {
+  /**
+   * Add the given listener if it's not already been added.
+   * Basically an idempotent version of onAny(), which otherwise adds the same listener again if called twice with
+   * the same listener.
+   */
+  ensureAny(listener: GardenEventAnyListener) {
+    for (const l of this.listenersAny()) {
+      if (l === listener) {
+        return this
+      }
+    }
+    return super.onAny(<any>listener)
+  }
+
+  once<T extends EventName>(name: T, listener: GardenEventListener<T>) {
     return super.once(name, listener)
   }
 
@@ -113,7 +149,7 @@ export class EventBus extends EventEmitter2 {
  * Supported logger events and their interfaces.
  */
 
-export type GraphResultEventPayload = Omit<GraphResult, "task" | "dependencyResults" | "error"> & {
+export type GraphResultEventPayload = Omit<GraphResult, "result" | "task" | "dependencyResults" | "error"> & {
   error: string | null
 }
 
@@ -132,23 +168,10 @@ export interface CommandInfoPayload extends CommandInfo {
 }
 
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
-  const payload = sanitizeValue({
-    ...omit(result, "dependencyResults", "task"),
+  return {
+    ...omit(result, "result", "dependencyResults", "task"),
     error: result.error ? String(result.error) : null,
-  })
-  if (payload.result) {
-    // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
-    payload.result = omit(
-      result.result,
-      "dependencyResults",
-      "log",
-      "buildLog",
-      "detail",
-      "resolvedAction",
-      "executedAction"
-    )
   }
-  return payload
 }
 
 export type ActionStatusDetailedState = DeployState | BuildState | RunState
@@ -171,7 +194,8 @@ export interface Events {
   // Internal test/control events
   _exit: {}
   _restart: {}
-  _test: any
+  _test: { msg?: string }
+
   _workflowRunRegistered: {
     workflowRunUid: string
   }
@@ -180,7 +204,7 @@ export interface Events {
   serversUpdated: {
     servers: { host: string; command: string; serverAuthKey: string }[]
   }
-  serverReady: {}
+  connectionReady: {}
   receivedToken: AuthTokenResponse
 
   // Session events - one of these is emitted when the command process ends
@@ -198,6 +222,9 @@ export interface Events {
   configChanged: {
     path: string
   }
+
+  configGraph: { graph: ConfigGraph }
+  configsScanned: {}
 
   // Command/project metadata events
   commandInfo: CommandInfoPayload
@@ -242,7 +269,7 @@ export interface Events {
      */
     completedAt: string
   }
-  watchingForChanges: {}
+
   /**
    * Line-by-line action log events. These are emitted by the `PluginEventBroker` instance passed to action handlers.
    *
@@ -310,10 +337,15 @@ export interface Events {
 
 export type EventName = keyof Events
 
-// Note: Does not include logger events.
-export const pipedEventNames: EventName[] = [
+type GraphEventName = Extract<EventName, "taskCancelled" | "taskComplete" | "taskError" | "taskProcessing">
+type ConfigEventName = Extract<EventName, "configChanged" | "configsScanned">
+
+// These are the events we POST over https via the BufferedEventStream
+const pipedEventNamesSet = new Set<EventName>([
   "_test",
   "_workflowRunRegistered",
+  "configsScanned",
+  "configChanged",
   "sessionCompleted",
   "sessionFailed",
   "sessionCancelled",
@@ -332,7 +364,6 @@ export const pipedEventNames: EventName[] = [
   "buildStatus",
   "runStatus",
   "testStatus",
-  "watchingForChanges",
   "workflowComplete",
   "workflowError",
   "workflowRunning",
@@ -340,4 +371,42 @@ export const pipedEventNames: EventName[] = [
   "workflowStepError",
   "workflowStepProcessing",
   "workflowStepSkipped",
-]
+])
+
+// We send graph and config events over a websocket connection via the Garden server
+const taskGraphEventNames = new Set<GraphEventName>(["taskCancelled", "taskComplete", "taskError", "taskProcessing"])
+const configEventNames = new Set<ConfigEventName>(["configsScanned", "configChanged"])
+
+// We do not emit these task graph events because they're simply not needed, and there's a lot of them.
+const skipTaskGraphEventTypes = ["resolve-action", "resolve-provider"]
+
+const isPipedEvent = (name: string, _payload: any): _payload is Events[EventName] => {
+  return pipedEventNamesSet.has(<any>name)
+}
+
+const isConfigEvent = (name: string, _payload: any): _payload is Events[ConfigEventName] => {
+  return configEventNames.has(<any>name)
+}
+
+const isTaskGraphEvent = (name: string, _payload: any): _payload is Events[GraphEventName] => {
+  return taskGraphEventNames.has(<any>name)
+}
+
+export function shouldStreamWsEvent(name: string, payload: any) {
+  if (isTaskGraphEvent(name, payload) && !skipTaskGraphEventTypes.includes(payload.type)) {
+    return true
+  } else if (isConfigEvent(name, payload)) {
+    return true
+  }
+  return false
+}
+
+export function shouldStreamEvent(name: string, payload: any) {
+  if (isTaskGraphEvent(name, payload) && skipTaskGraphEventTypes.includes(payload.type)) {
+    return false
+  } else if (!isPipedEvent(name, payload)) {
+    return false
+  }
+  return true
+}
+
