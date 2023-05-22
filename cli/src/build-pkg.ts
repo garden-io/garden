@@ -125,9 +125,9 @@ async function buildBinaries(args: string[]) {
       packageJson.dependencies[depName] = "file:" + relPath
     }
 
-    if (version === "edge") {
+    if (version === "edge" || version.startsWith("edge-")) {
       const gitHash = await exec("git", ["rev-parse", "--short", "HEAD"])
-      packageJson.version = packageJson.version + "-edge-" + gitHash.stdout
+      packageJson.version = `${packageJson.version}-${version}-${gitHash.stdout}`
       console.log("Set package version to " + packageJson.version)
     }
 
