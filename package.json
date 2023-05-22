@@ -35,7 +35,7 @@
     "dependency-graph": "^0.9.0",
     "eslint": "^8.33.0",
     "eslint-config-prettier": "^8.6.0",
-    "eslint-plugin-jsdoc": "^39.7.5",
+    "eslint-plugin-jsdoc": "^44",
     "eslint-plugin-mocha": "^10.1.0",
     "eslint-plugin-no-null": "^1.0.2",
     "eslint-plugin-react": "^7.32.2",
