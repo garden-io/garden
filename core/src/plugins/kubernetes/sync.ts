@@ -709,7 +709,9 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
       targetPath: s.containerPath,
     })
 
-    session = syncsByName[key]
+    if (syncsByName[key]) {
+      session = syncsByName[key]
+    }
     let syncState: SyncStatus["state"] = "active"
 
     if (session) {
@@ -732,8 +734,8 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
       syncCount: session?.successfulCycles
     }
 
-    if (session.status) {
-      syncStatus.message = mutagenStatusDescriptions[session.status]
+    if (session?.status) {
+      syncStatus.message = mutagenStatusDescriptions[session?.status]
     }
 
     syncStatuses.push(syncStatus)
