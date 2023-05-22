@@ -1,7 +1,7 @@
 _If you love Garden, please ★ star this repository to show your support 💖_
 
 <p align="center">
-  <img src="docs/logo.png" align="center">
+  <img src="https://github.com/garden-io/garden/assets/59834693/f62a04cb-44bc-4dd4-8426-398b6cd846fd" align="center">
 </p>
 <div align="center">
   <a href="https://docs.garden.io/basics/5-min-quickstart/?utm_source=github">Quickstart</a>
@@ -108,10 +108,14 @@ For a deeper dive on how Garden works in general, we recommend:
 - [How Garden Works](https://docs.garden.io/basics/how-garden-works).
 - [A video tour of Garden's directed acyclic graph and getting started](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8).
 
-### **Community**
+### Community
 
 Join our [Discord community](go.garden.io/discord) to ask questions, give feedback or just say hi 🙂
 
-### **License**
+### Contributing
+
+Garden accepts contributions! Please see our [contributing guide](CONTRIBUTING.md) for more information.
+
+### License
 
 Garden is licensed according to [Mozilla Public License 2.0 (MPL-2.0)](https://github.com/garden-io/garden/blob/main/LICENSE.md).
