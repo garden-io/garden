@@ -24,7 +24,7 @@ orbs:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:18.12.0@sha256:364fda04a732191ada3f3f701d89836902b621ed269eaf135b73b75f92361065
+    image: gardendev/circleci-runner:20.2.0@sha256:7c87ab74eee2941079a7c19afb7aab2d046066f91e0f4d9dd83b0e08a38a8477
 
   # Configuration for our node jobs
   node-config: &node-config
@@ -52,7 +52,6 @@ orbs:
         #ignore: main
       tags:
         ignore: /.*/
-
 
   # Only run jobs on main branch
   only-main: &only-main
@@ -458,7 +457,6 @@ jobs:
 
             # Build and publish
             docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
-
 
   test-docker-gcloud:
     docker:
