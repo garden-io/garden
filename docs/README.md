@@ -22,7 +22,6 @@
 * [Configuration Overview](./using-garden/configuration-overview.md)
 * [Projects](./using-garden/projects.md)
 * [Modules](./using-garden/modules.md)
-* [Services](./using-garden/services.md)
 * [Tests](./using-garden/tests.md)
 * [Runs](./using-garden/runs.md)
 * [Workflows](./using-garden/workflows.md)

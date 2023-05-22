@@ -9,7 +9,7 @@ This section contains short guides on Garden's main concepts and on how to confi
 
 Each guide serves as a standalone introduction to the concept but we still recommend that you go through them in order.
 
-There's no need to finish them all at once though. By adding a [project configuration](./projects.md), [modules](./modules.md), and [services](./services.md), you can already deploy your project with Garden. You can then come back when you're ready to add [tests](./tests.md), [runs](./runs.md) and [workflows](./workflows.md).
+There's no need to finish them all at once though. By adding a [project configuration](./projects.md) and [actions](./actions.md) you can already deploy your project with Garden. You can then come back when you're ready to add [tests](./tests.md), [runs](./runs.md) and [workflows](./workflows.md).
 
 The [Using the CLI guide](./using-the-cli.md) offers helpful information on how to use the CLI in your day-to-day. In fact, if you're starting with Garden but your team has already configured the project, you might want to skip directly to that.
 
@@ -31,12 +31,6 @@ In this guide you'll learn how to describe your system with actions that Garden 
 {% hint style="warning" %}
 Modules are deprecated and will be removed in version `0.14`. Please, use [action](./actions.md)-based configuration instead.
 {% endhint %}
-
-Prior to Garden `0.13`, modules had been the unit of _building_ in Garden. In this guide you'll learn how to split your project into modules that Garden can build.
-
-## [Services](./services.md)
-
-Services are the basic unit of _deployment_ in Garden. In this guide you'll learn how to add services to your modules so that you can deploy them.
 
 ## [Tests](./tests.md)
 
