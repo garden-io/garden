@@ -231,7 +231,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     }
 
     const analytics = await garden.getAnalyticsHandler()
-    await analytics.trackCommand(this.getFullName())
+    analytics.trackCommand(this.getFullName())
 
     const allOpts = <ParameterValues<GlobalOptions & O>>{
       ...mapValues(globalOptions, (opt) => opt.defaultValue),
@@ -298,11 +298,11 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
 
       // Track the result of the command run
       const allErrors = result.errors || []
-      await analytics.trackCommandResult(this.getFullName(), allErrors, commandStartTime, result.exitCode)
+      analytics.trackCommandResult(this.getFullName(), allErrors, commandStartTime, result.exitCode)
 
       cloudEventStream.emit("sessionCompleted", {})
     } catch (err) {
-      await analytics.trackCommandResult(this.getFullName(), [err], commandStartTime || new Date(), 1)
+      analytics.trackCommandResult(this.getFullName(), [err], commandStartTime || new Date(), 1)
       cloudEventStream.emit("sessionFailed", {})
       throw err
     } finally {
