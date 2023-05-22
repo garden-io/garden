@@ -368,13 +368,15 @@ export class AnalyticsHandler {
   }
 
   static async init(garden: Garden, log: Log) {
-    if (!AnalyticsHandler.instance) {
+    // Ensure that we re-initialize the analytics metadata when switching projects
+    if (!AnalyticsHandler.instance || AnalyticsHandler.instance.garden?.projectName !== garden.projectName) {
       // We're passing this explictliy to that it's easier to overwrite and test
       // in actual CI.
       const ciInfo = {
         isCi: ci.isCI,
         ciName: ci.name,
       }
+
       AnalyticsHandler.instance = await AnalyticsHandler.factory({ garden, log, ciInfo })
     } else {
       /**
