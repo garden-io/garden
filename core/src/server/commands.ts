@@ -61,6 +61,8 @@ export class AutocompleteCommand extends ConsoleCommand<AutocompleteArguments> {
 
   arguments = autocompleteArguments
 
+  enableAnalytics = false
+
   constructor(private manager: GardenInstanceManager) {
     super(manager)
   }

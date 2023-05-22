@@ -21,6 +21,12 @@ initTestLogger()
 // Global hooks
 exports.mochaHooks = {
   async beforeAll() {
+    // override fetch to handle node 18 issue when using nock
+    // https://github.com/nock/nock/issues/2336
+    // TODO: remove when we move to node 20
+    const fetch = require("node-fetch")
+    globalThis.fetch = fetch
+
     getDefaultProfiler().setEnabled(true)
     gardenEnv.GARDEN_DISABLE_ANALYTICS = true
     testFlags.expandErrors = true
