@@ -10,10 +10,10 @@ import { expect } from "chai"
 import { GardenCli } from "../../../../src/cli/cli"
 import { BooleanParameter, IntegerParameter, StringParameter } from "../../../../src/cli/params"
 import { CustomCommandWrapper } from "../../../../src/commands/custom"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { Log } from "../../../../src/logger/log-entry"
 import { expectError, TestGarden } from "../../../../src/util/testing"
 import { makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
+import { GardenApiVersion } from "../../../../src/constants"
 
 describe("CustomCommandWrapper", () => {
   let garden: TestGarden
@@ -27,7 +27,7 @@ describe("CustomCommandWrapper", () => {
 
   it("correctly converts arguments from spec", () => {
     const cmd = new CustomCommandWrapper({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Command",
       name: "test",
       internal: {
@@ -53,7 +53,7 @@ describe("CustomCommandWrapper", () => {
 
   it("correctly converts options from spec", () => {
     const cmd = new CustomCommandWrapper({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Command",
       name: "test",
       internal: {
@@ -85,7 +85,7 @@ describe("CustomCommandWrapper", () => {
     const long = "Here's the full description"
 
     const cmd = new CustomCommandWrapper({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Command",
       name: "test",
       internal: {
@@ -107,7 +107,7 @@ describe("CustomCommandWrapper", () => {
 
   it("sets the ${args.$rest} variable correctly", async () => {
     const cmd = new CustomCommandWrapper({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Command",
       name: "test",
       internal: {
@@ -134,8 +134,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         a: "A",
         b: "B",
@@ -150,7 +148,7 @@ describe("CustomCommandWrapper", () => {
 
   it("resolves template strings in command variables", async () => {
     const cmd = new CustomCommandWrapper({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Command",
       name: "test",
       internal: {
@@ -173,8 +171,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -185,7 +181,7 @@ describe("CustomCommandWrapper", () => {
 
   it("runs an exec command with resolved templates", async () => {
     const cmd = new CustomCommandWrapper({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Command",
       name: "test",
       internal: {
@@ -208,8 +204,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -220,7 +214,7 @@ describe("CustomCommandWrapper", () => {
 
   it("runs a Garden command with resolved templates", async () => {
     const cmd = new CustomCommandWrapper({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Command",
       name: "test",
       internal: {
@@ -241,8 +235,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -252,7 +244,7 @@ describe("CustomCommandWrapper", () => {
 
   it("runs exec command before Garden command if both are specified", async () => {
     const cmd = new CustomCommandWrapper({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Command",
       name: "test",
       internal: {
@@ -274,8 +266,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -285,7 +275,7 @@ describe("CustomCommandWrapper", () => {
 
   it("exposes arguments and options correctly in command templates", async () => {
     const cmd = new CustomCommandWrapper({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Command",
       name: "test",
       internal: {
@@ -318,8 +308,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { a: "test-a", b: 123 },
       opts: withDefaultGlobalOpts({ a: "opt-a", b: true }),
     })
@@ -333,7 +321,7 @@ describe("CustomCommandWrapper", () => {
 
   it("defaults to global options passed in for Garden commands but allows overriding in the command spec", async () => {
     const cmd = new CustomCommandWrapper({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Command",
       name: "test",
       internal: {
@@ -352,8 +340,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "log-level": "error" }),
     })
@@ -363,7 +349,7 @@ describe("CustomCommandWrapper", () => {
 
   it("can run nested custom commands", async () => {
     const cmd = new CustomCommandWrapper({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Command",
       name: "test",
       internal: {
@@ -382,8 +368,6 @@ describe("CustomCommandWrapper", () => {
       cli,
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -396,7 +380,7 @@ describe("CustomCommandWrapper", () => {
     void expectError(
       () =>
         new CustomCommandWrapper({
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           kind: "Command",
           name: "test",
           internal: {
@@ -420,7 +404,7 @@ describe("CustomCommandWrapper", () => {
     void expectError(
       () =>
         new CustomCommandWrapper({
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           kind: "Command",
           name: "test",
           internal: {

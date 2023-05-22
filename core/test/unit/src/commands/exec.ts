@@ -19,13 +19,11 @@ describe("ExecCommand", () => {
 
     const args = { deploy: "service-a", command: ["echo", "ok"] }
 
-    command.printHeader({ headerLog: log, args })
+    command.printHeader({ log, args })
 
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args,
       opts: withDefaultGlobalOpts({
         interactive: false,

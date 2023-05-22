@@ -27,12 +27,12 @@ export const gardenPlugin = () =>
     base: "conftest",
     dependencies: [{ name: "kubernetes" }],
     docs: dedent`
-    This provider automatically generates [conftest modules](../module-types/conftest.md) for \`kubernetes\` and
-    \`helm\` modules in your project. A \`conftest\` module is created for each of those module types.
+    This provider automatically generates [conftest Test actions](../action-types/Test/conftest.md) for \`kubernetes\` and
+    \`helm\` Deploys in your project. A \`conftest\` Test is created for each of those action types.
 
     Simply add this provider to your project configuration, and configure your policies. Check out the below
     reference for how to configure default policies, default namespaces, and test failure thresholds for the generated
-    modules.
+    actions.
 
     See the [conftest example project](${gitHubUrl}) for a simple
     usage example.

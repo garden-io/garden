@@ -20,8 +20,6 @@ describe("GetRunsCommand", () => {
     await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({}),
     })
@@ -35,8 +33,6 @@ describe("GetRunsCommand", () => {
     await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: ["task-a"] },
       opts: withDefaultGlobalOpts({}),
     })

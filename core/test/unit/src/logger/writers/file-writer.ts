@@ -9,6 +9,7 @@
 import { expect } from "chai"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
+import { RuntimeError } from "../../../../../src/exceptions"
 
 import { getRootLogger, Logger, LogLevel } from "../../../../../src/logger/logger"
 import { renderError } from "../../../../../src/logger/renderers"
@@ -26,8 +27,11 @@ describe("FileWriter", () => {
       const entry = logger.createLog().info(chalk.red("hello")).getLatestEntry()
       expect(render(LogLevel.info, entry)).to.equal("hello")
     })
-    it("should render error message if entry level is error", () => {
-      const entry = logger.createLog().error("error").getLatestEntry()
+    it("should render error object if passed", () => {
+      const entry = logger
+        .createLog()
+        .error({ error: new RuntimeError("oh no", { foo: "bar" }) })
+        .getLatestEntry()
       const expectedOutput = stripAnsi(renderError(entry))
       expect(render(LogLevel.info, entry)).to.equal(expectedOutput)
     })

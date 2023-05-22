@@ -9,13 +9,13 @@
 import { makeTestGarden, withDefaultGlobalOpts, getDataDir } from "../../../../helpers"
 import { expect } from "chai"
 import { GetWorkflowsCommand } from "../../../../../src/commands/get/get-workflows"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { defaultWorkflowResources } from "../../../../../src/config/workflow"
+import { GardenApiVersion } from "../../../../../src/constants"
 
 describe("GetWorkflowsCommand", () => {
   const projectRoot = getDataDir("test-project-a")
   const defaultWorkflowConf = {
-    apiVersion: DEFAULT_API_VERSION,
+    apiVersion: GardenApiVersion.v0,
     kind: "Workflow" as "Workflow",
     envVars: {},
     resources: defaultWorkflowResources,
@@ -38,8 +38,6 @@ describe("GetWorkflowsCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { workflows: undefined },
       opts: withDefaultGlobalOpts({}),
     })
@@ -66,8 +64,6 @@ describe("GetWorkflowsCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { workflows: ["a"] },
       opts: withDefaultGlobalOpts({}),
     })
@@ -90,8 +86,6 @@ describe("GetWorkflowsCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { workflows: ["a", "c"] },
       opts: withDefaultGlobalOpts({}),
     })

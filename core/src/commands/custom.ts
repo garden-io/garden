@@ -89,8 +89,8 @@ export class CustomCommandWrapper extends Command {
     this.options = mapValues(keyBy(spec.opts, "name"), convertArgSpec)
   }
 
-  printHeader({ headerLog }: PrintHeaderParams) {
-    headerLog.info(chalk.cyan(this.name))
+  printHeader({ log }: PrintHeaderParams) {
+    log.info(chalk.cyan(this.name))
   }
 
   async action({ garden, cli, log, args, opts }: CommandParams<any, any>): Promise<CommandResult<CustomCommandResult>> {

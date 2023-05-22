@@ -23,8 +23,8 @@ export class ValidateCommand extends Command {
     Throws an error and exits with code 1 if something's not right in your garden config files.
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Validate", "✔️")
+  printHeader({ log }) {
+    printHeader(log, "Validate", "✔️")
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult> {

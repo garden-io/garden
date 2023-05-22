@@ -21,9 +21,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config.
-apiVersion: garden.io/v1
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -188,14 +185,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config.
-
-| Type     | Allowed Values                 | Default          | Required |
-| -------- | ------------------------------ | ---------------- | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `type`
 
@@ -494,7 +483,7 @@ A POSIX-style path to copy the artifacts to, relative to the project artifacts d
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `exec`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

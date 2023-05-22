@@ -5,6 +5,10 @@ tocTitle: "`hadolint`"
 
 # `hadolint` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Runs `hadolint` on the specified Dockerfile.
@@ -29,9 +33,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config.
-apiVersion: garden.io/v1
-
 kind: Module
 
 # The type of this module.
@@ -164,14 +165,6 @@ dockerfilePath:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config.
-
-| Type     | Allowed Values                 | Default          | Required |
-| -------- | ------------------------------ | ---------------- | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `kind`
 

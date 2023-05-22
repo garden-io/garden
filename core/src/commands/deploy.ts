@@ -21,7 +21,7 @@ import {
 } from "./base"
 import { printEmoji, printHeader } from "../logger/util"
 import { watchParameter, watchRemovedWarning } from "./helpers"
-import { DeployTask, isDeployTask } from "../tasks/deploy"
+import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
@@ -30,12 +30,12 @@ import { SyncMonitor } from "../monitors/sync"
 import { warnOnLinkedActions } from "../actions/helpers"
 import { PluginEventBroker } from "../plugin-context"
 import { HandlerMonitor } from "../monitors/handler"
-import { GraphResultFromTask } from "../graph/results"
 import { PortForwardMonitor } from "../monitors/port-forward"
 import { LogMonitor } from "../monitors/logs"
 import { LoggerType, parseLogLevel } from "../logger/logger"
 import { serveOpts } from "./serve"
 import { DevCommand } from "./dev"
+import { gardenEnv } from "../constants"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -92,6 +92,9 @@ export const deployOpts = {
     `,
     aliases: ["nodeps"],
   }),
+  "disable-port-forwards": new BooleanParameter({
+    help: "Disable automatic port forwarding when running persistently. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS=true in your environment.",
+  }),
   "forward": new BooleanParameter({
     help: `Create port forwards and leave process running after deploying. This is implied if any of --sync / --local or --logs are set.`,
   }),
@@ -147,8 +150,8 @@ export class DeployCommand extends Command<Args, Opts> {
     return !!opts["sync"] || !!opts["local-mode"] || !!opts.forward || !!opts.logs
   }
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Deploy", "🚀")
+  printHeader({ log }) {
+    printHeader(log, "Deploy", "🚀")
   }
 
   getTerminalWriterType(params): LoggerType {
@@ -161,7 +164,7 @@ export class DeployCommand extends Command<Args, Opts> {
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
-    const { garden, log, footerLog, args, opts } = params
+    const { garden, log, args, opts } = params
 
     this.garden = garden
 
@@ -170,7 +173,7 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const monitor = this.maybePersistent(params)
-    if (monitor && !params.commandLine) {
+    if (monitor && !params.parentCommand) {
       // Then we're not in the dev command yet, so we call that instead with the appropriate initial command.
       // TODO: Abstract this delegation process into a helper if we write more commands that do this sort of thing.
       params.opts.cmd = ["deploy " + params.args.$all!.join(" ")]
@@ -181,7 +184,10 @@ export class DeployCommand extends Command<Args, Opts> {
       return devCmd.action(params)
     }
 
-    const forward = monitor
+    const disablePortForwards = gardenEnv.GARDEN_DISABLE_PORT_FORWARDS || opts["disable-port-forwards"] || false
+
+    // TODO-0.13.0: make these both explicit options
+    let forward = monitor && !disablePortForwards
     const streamLogs = opts.logs
 
     const actionModes: ActionModeMap = {
@@ -196,10 +202,10 @@ export class DeployCommand extends Command<Args, Opts> {
     const disabled = deployActions.filter((s) => s.isDisabled()).map((s) => s.name)
 
     if (disabled.length > 0) {
-      const bold = disabled.map((d) => chalk.bold(d))
+      const bold = disabled.map((d) => chalk.white(d))
       const msg =
         disabled.length === 1 ? `Deploy action ${bold} is disabled` : `Deploy actions ${naturalList(bold)} are disabled`
-      log.info(chalk.white(msg))
+      log.info(chalk.gray(msg))
     }
 
     const skipped = opts.skip || []
@@ -225,28 +231,6 @@ export class DeployCommand extends Command<Args, Opts> {
     const startSync = !!opts.sync
 
     await warnOnLinkedActions(garden, log, deployActions)
-
-    if (forward) {
-      // Start port forwards for ready deployments
-      garden.events.on("taskReady", (graphResult) => {
-        const { task } = graphResult
-        const typedResult = graphResult as GraphResultFromTask<DeployTask>
-
-        if (!isDeployTask(task) || !graphResult.result) {
-          return
-        }
-
-        const action = typedResult.result!.executedAction
-
-        const portForwardMonitor = new PortForwardMonitor({
-          garden,
-          log,
-          graph,
-          action,
-        })
-        garden.monitors.addAndSubscribe(portForwardMonitor, this)
-      })
-    }
 
     if (streamLogs) {
       const resolved = await garden.resolveActions({ actions: deployActions, graph, log })
@@ -286,6 +270,17 @@ export class DeployCommand extends Command<Args, Opts> {
         task.on("ready", ({ result }) => {
           const executedAction = result?.executedAction
           const mode = executedAction.mode()
+
+          if (forward) {
+            // Start port forwards for ready deployments
+            const portForwardMonitor = new PortForwardMonitor({
+              garden,
+              log,
+              graph,
+              action: executedAction,
+            })
+            garden.monitors.addAndSubscribe(portForwardMonitor, this)
+          }
 
           if (mode === "sync") {
             const syncMonitor = new SyncMonitor({
@@ -327,6 +322,6 @@ export class DeployCommand extends Command<Args, Opts> {
 
     const results = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(garden, footerLog, "deploy", results)
+    return handleProcessResults(garden, log, "deploy", results)
   }
 }

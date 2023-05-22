@@ -20,7 +20,7 @@ import {
   makeTempDir,
   getDataDir,
 } from "../../../helpers"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { GardenApiVersion } from "../../../../src/constants"
 import { WorkflowCommand, shouldBeDropped } from "../../../../src/commands/workflow"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { joi } from "../../../../src/config/common"
@@ -43,8 +43,6 @@ describe("RunWorkflowCommand", () => {
       cli: new TestGardenCli(),
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       opts: withDefaultGlobalOpts({}),
     }
   })
@@ -52,7 +50,7 @@ describe("RunWorkflowCommand", () => {
   it("should run a workflow", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         envVars: {},
@@ -89,13 +87,11 @@ describe("RunWorkflowCommand", () => {
     const _defaultParams = {
       garden: _garden,
       log: _log,
-      headerLog: _log,
-      footerLog: _log,
       opts: withDefaultGlobalOpts({}),
     }
     _garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         envVars: {},
@@ -116,7 +112,7 @@ describe("RunWorkflowCommand", () => {
 
     expect(stepHeaderEntries.map((e) => e.metadata)).to.eql([undefined, undefined], "stepHeaderEntries")
 
-    const stepBodyEntriesMetadata = stepBodyEntries.map((e) => e.metadata)
+    const stepBodyEntriesMetadata = stepBodyEntries.map((e) => e.metadata).filter(Boolean)
     expect(stepBodyEntriesMetadata).to.eql(
       [{ workflowStep: { index: 0 } }, { workflowStep: { index: 1 } }],
       "stepBodyEntries"
@@ -133,13 +129,11 @@ describe("RunWorkflowCommand", () => {
     const _defaultParams = {
       garden: _garden,
       log: _log,
-      headerLog: _log,
-      footerLog: _log,
       opts: withDefaultGlobalOpts({}),
     }
     _garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         envVars: {},
@@ -180,7 +174,7 @@ describe("RunWorkflowCommand", () => {
   it("should collect log outputs from a command step", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         envVars: {},
@@ -329,7 +323,7 @@ describe("RunWorkflowCommand", () => {
     const log = garden.log
     _garden.setActionConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Run",
         name: "some-task",
         type: "test",
@@ -342,7 +336,7 @@ describe("RunWorkflowCommand", () => {
         },
       },
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Test",
         name: "test-unit",
         type: "test",
@@ -357,7 +351,7 @@ describe("RunWorkflowCommand", () => {
     ])
     _garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         envVars: {},
@@ -372,8 +366,6 @@ describe("RunWorkflowCommand", () => {
     await cmd.action({
       garden: _garden,
       log,
-      headerLog: log,
-      footerLog: log,
       opts: withDefaultGlobalOpts({}),
       args: { workflow: "workflow-a" },
     })
@@ -413,7 +405,7 @@ describe("RunWorkflowCommand", () => {
 
     _garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -433,7 +425,7 @@ describe("RunWorkflowCommand", () => {
     garden.secrets.test = "super secret value"
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -458,7 +450,7 @@ describe("RunWorkflowCommand", () => {
   it("should throw if a file references a secret that doesn't exist", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -479,7 +471,7 @@ describe("RunWorkflowCommand", () => {
   it("should throw if attempting to write a file with a directory path that contains an existing file", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -500,7 +492,7 @@ describe("RunWorkflowCommand", () => {
   it("should throw if attempting to write a file to an existing directory path", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -521,7 +513,7 @@ describe("RunWorkflowCommand", () => {
   it("should run a script step in the project root", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -544,7 +536,7 @@ describe("RunWorkflowCommand", () => {
   it("should run a custom command in a command step", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -567,7 +559,7 @@ describe("RunWorkflowCommand", () => {
   it("should support global parameters for custom commands", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -595,7 +587,7 @@ describe("RunWorkflowCommand", () => {
   it("should include env vars from the workflow config, if provided", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -621,7 +613,7 @@ describe("RunWorkflowCommand", () => {
   it("should override env vars from the workflow config with script step env vars, if provided", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -647,7 +639,7 @@ describe("RunWorkflowCommand", () => {
   it("should apply configured envVars when running script steps", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -672,7 +664,7 @@ describe("RunWorkflowCommand", () => {
   it("should skip disabled steps", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -776,7 +768,7 @@ describe("RunWorkflowCommand", () => {
   it("should collect log outputs, including stderr, from a script step", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -806,7 +798,7 @@ describe("RunWorkflowCommand", () => {
   it("should throw if a script step fails", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -829,7 +821,7 @@ describe("RunWorkflowCommand", () => {
   it("should throw if a script step fails and add log to output with --output flag set", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -855,7 +847,7 @@ describe("RunWorkflowCommand", () => {
   it("should return script logs with the --output flag set", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -881,7 +873,7 @@ describe("RunWorkflowCommand", () => {
   it("should include outputs from steps in the command output", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -911,7 +903,7 @@ describe("RunWorkflowCommand", () => {
   it("should use explicit names for steps if specified", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -938,7 +930,7 @@ describe("RunWorkflowCommand", () => {
   it("should resolve references to previous steps when running a command step", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -964,7 +956,7 @@ describe("RunWorkflowCommand", () => {
   it("should resolve references to previous steps when running a script step", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         internal: {
@@ -990,7 +982,7 @@ describe("RunWorkflowCommand", () => {
   it("should only resolve the workflow that's being run", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-to-run",
         kind: "Workflow",
         internal: {
@@ -1001,7 +993,7 @@ describe("RunWorkflowCommand", () => {
         steps: [{ command: ["deploy"] }],
       },
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "some-other-workflow",
         kind: "Workflow",
         internal: {
@@ -1030,8 +1022,6 @@ describe("Lazy provider initialization in RunWorkflowCommand", () => {
       cli: new TestGardenCli(),
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       opts: withDefaultGlobalOpts({}),
     }
   })
@@ -1039,7 +1029,7 @@ describe("Lazy provider initialization in RunWorkflowCommand", () => {
   it("should run script steps before initializing providers", async () => {
     garden.setWorkflowConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "test",
         kind: "Workflow",
         envVars: {},

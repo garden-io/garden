@@ -7,9 +7,7 @@
  */
 
 import { DeepPrimitiveMap, joi, joiSparseArray, joiVariables } from "@garden-io/core/build/src/config/common"
-import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
-import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
 import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
 import { GardenModule } from "@garden-io/sdk/types"
 import { dedent } from "@garden-io/sdk/util/string"
@@ -41,7 +39,7 @@ export const pulumiProviderConfigSchema = providerConfigBaseSchema()
       .description(
         dedent`
         Overrides the default plan directory path used when deploying with the \`deployFromPreview\` option for pulumi
-        modules.
+        deploy actions.
 
         Must be a relative path to a directory inside the project root.
 
@@ -49,12 +47,12 @@ export const pulumiProviderConfigSchema = providerConfigBaseSchema()
     `
       ),
     orgName: joi.string().optional().empty(["", null]).description(dedent`
-      The name of the pulumi organization to use. This option can also be set on the module level, in which case it
+      The name of the pulumi organization to use. This option can also be set on the deploy action level, in which case it
       overrides this provider-level option. Note that setting the organization name is only necessary when using
       pulumi managed backend with an organization.
     `),
     backendURL: joi.string().optional().uri().empty(["", null]).default("https://api.pulumi.com").description(dedent`
-      The URL of the state backend endpoint used. This option can also be set on the module level, in which case it
+      The URL of the state backend endpoint used. This option can also be set on the deploy action level, in which case it
       overrides this  provider-level option. Set this option as per list of available self-managed state backends on
       https://www.pulumi.com/docs/intro/concepts/state/#using-a-self-managed-backend
     `),
@@ -95,35 +93,33 @@ const yamlFileRegex = /(\.yaml)|(\.yml)$/
 
 export const pulumiDeploySpecSchema = () =>
   joi.object().keys({
-    build: baseBuildSpecSchema(),
     allowDestroy: joi.boolean().default(true).description(dedent`
-      If set to true, Garden will destroy the stack when calling \`garden delete env\` or \`garden delete service <module name>\`.
+      If set to true, Garden will destroy the stack when calling \`garden cleanup namespace\` or \`garden cleanup deploy <deploy action name>\`.
       This is useful to prevent unintentional destroys in production or shared environments.
     `),
     autoApply: joi.boolean().default(true).description(dedent`
-      If set to false, deployments will fail unless a \`planPath\` is provided for this module. This is useful when deploying to
-      production or shared environments, or when the module deploys infrastructure that you don't want to unintentionally update/create.
+      If set to false, deployments will fail unless a \`planPath\` is provided for this deploy action. This is useful when deploying to
+      production or shared environments, or when the action deploys infrastructure that you don't want to unintentionally update/create.
     `),
     createStack: joi.boolean().default(false).description(dedent`
       If set to true, Garden will automatically create the stack if it doesn't already exist.
     `),
-    dependencies: dependenciesSchema(),
     root: joi.posixPath().subPathOnly().default(".").description(dedent`
-      Specify the path to the Pulumi project root, relative to the module root.
+      Specify the path to the Pulumi project root, relative to the deploy action's root.
     `),
     pulumiVariables: joiVariables().default({}).description(dedent`
       A map of config variables to use when applying the stack. These are merged with the contents of any \`pulumiVarfiles\` provided
-      for this module. The module's stack config will be overwritten with the resulting merged config.
-      Variables declared here override any conflicting config variables defined in this module's \`pulumiVarfiles\`.
+      for this deploy action. The deploy action's stack config will be overwritten with the resulting merged config.
+      Variables declared here override any conflicting config variables defined in this deploy action's \`pulumiVarfiles\`.
 
-      Note: \`pulumiVariables\` should not include runtime outputs from other pulumi modules when \`cacheStatus\` is set to true, since
-      the outputs may change from the time the stack status of the dependency module is initially queried to when it's been deployed.
+      Note: \`pulumiVariables\` should not include action outputs from other pulumi deploy actions when \`cacheStatus\` is set to true, since
+      the outputs may change from the time the stack status of the dependency action is initially queried to when it's been deployed.
 
       Instead, use pulumi stack references when using the \`cacheStatus\` config option.
     `),
     pulumiVarfiles: joiSparseArray(joi.posixPath().pattern(yamlFileRegex)).description(
       dedent`
-          Specify one or more paths (relative to the module root) to YAML files containing pulumi config variables.
+          Specify one or more paths (relative to the deploy action's root) to YAML files containing pulumi config variables.
 
           Templated paths that resolve to \`null\`, \`undefined\` or an empty string are ignored.
 
@@ -152,10 +148,10 @@ export const pulumiDeploySpecSchema = () =>
         the subsequent deploy is skipped.
 
         Note that this will not pick up changes to stack outputs referenced via stack references in your pulumi stack,
-        unless they're referenced via template strings in the module configuration.
+        unless they're referenced via template strings in the deploy action configuration.
 
-        When using stack references to other pulumi modules in your project, we recommend including them in this
-        module's \`stackReferences\` config field (see the documentation for that field on this page).
+        When using stack references to other pulumi deploy actions in your project, we recommend including them in this
+        deploy action's \`stackReferences\` config field (see the documentation for that field on this page).
 
         \`cacheStatus: true\` is not supported for self-managed state backends.
     `
@@ -163,16 +159,16 @@ export const pulumiDeploySpecSchema = () =>
     stackReferences: joiSparseArray(joi.string())
       .description(
         dedent`
-        When setting \`cacheStatus\` to true for this module, you should include all stack references used by this
-        module's pulumi stack in this field.
+        When setting \`cacheStatus\` to true for this deploy action, you should include all stack references used by this
+        deploy action's pulumi stack in this field.
 
         This lets Garden know to redeploy the pulumi stack if the output values of one or more of these stack references
         have changed since the last deployment.
       `
       )
       .example([
-        "${runtime.services.some-pulumi-module.outputs.ip-address}",
-        "${runtime.services.some-other-pulumi-module.outputs.database-url}",
+        "${actions.deploy.some-pulumi-deploy-action.outputs.ip-address}",
+        "${actions.deploy.some-other-pulumi-deploy-action.outputs.database-url}",
       ]),
     deployFromPreview: joi
       .boolean()
@@ -180,7 +176,7 @@ export const pulumiDeploySpecSchema = () =>
       .description(
         dedent`
         When set to true, will use pulumi plans generated by the \`garden plugins pulumi preview\` command when
-        deploying, and will fail if no plan exists locally for the module.
+        deploying, and will fail if no plan exists locally for the deploy action.
 
         When this option is used, the pulumi plugin bypasses the status check altogether and passes the plan directly
         to \`pulumi up\` (via the \`--plan\` option, which is experimental as of March 2022). You should therefore

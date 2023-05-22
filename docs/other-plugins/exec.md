@@ -5,23 +5,31 @@ order: 2
 
 # Exec
 
-The `exec` plugin and corresponding `exec` module type allow you to run commands locally on the host (e.g. your laptop or on your CI runner).
+The `exec` plugin and corresponding `exec` actions allow you to run commands locally on the host (e.g. your laptop
+or your CI runner).
 
-It's built-in which means you don't need to specify it in the project level configuration and you can simply add `exec` modules right away.
+This plugin is built-in which means you don't need to specify it in your project configuration. You can simply add `exec`
+actions right away.
 
 It's great for running auth scripts as well as executing various scaffolding scripts that need to run "locally".
 
-It can also be used to start services locally (e.g. by executing commands like `yarn dev`).
+It can also be used to start applications locally (e.g. by executing commands like `yarn dev`).
 
-This can be very useful for hybrid environments where you have, say, your backend running in a remote production-like environment but your frontend running locally.
+This can be very useful for hybrid environments where you have, say, your backend running in a remote production-like
+environment but your frontend running locally.
 
 ## Plugin Configuration
 
-Usually you don't need to configure the exec plugin because it's built-in and you can use exec modules directly.
+Usually you don't need to configure the `exec` plugin because it's built-in and you can use `exec` actions directly.
 
-However, it can be used to run init scripts ahead of other Garden execution. This is e.g. useful if you need to authenticate against a remote environment before Garden initializes other plugins.
+However, it can be used to run init scripts ahead of other Garden execution. This is useful if you need to
+authenticate against a remote environment before Garden initializes other plugins.
 
-Here's an example where we run a script to authenticate against a Kubernetes cluster before initializing the Kubernetes plugin:
+Another set of popular use-cases are local build flows for shared libraries ahead of Docker builds, along with any
+sort of glue script you may need between steps.
+
+Here's an example where we run a script to authenticate against a Kubernetes cluster before initializing the Kubernetes
+plugin:
 
 ```yaml
 # In your project level Garden config file
@@ -31,77 +39,86 @@ name: my-project
 
 providers:
   - name: exec
-    initScript: [./scripts/auth.sh]
+    initScript: [ "sh", "-c", "./scripts/auth.sh" ]
   - name: kubernetes
-    dependencies: [exec] # <--- This ensures the init script runs before the K8s plugin is initialized.
+    dependencies: [ exec ] # <--- This ensures the init script runs before the K8s plugin is initialized.
     # ...
 ```
 
-## Module Configuration
+## Action Configuration
 
-### Exec tasks
+### Exec Runs
 
-Here's an example configuration for an exec module that's used for running various scripts:
+Following are some example `exec` Run actions for executing various scripts:
 
 ```yaml
-kind: Module
-name: scripts
+kind: Run
+name: auth
 type: exec
-local: true # <--- Run the script relative to the source dir (don't worry about this)
-include: [] # <--- No source files are needed
-tasks: # <--- The scripts are defined as exec tasks
-  - name: authenticate
-    command: [./scripts/auth.sh]
-  - name: prepare-data
-    command: [./scripts/prepare-data-locally.sh]
+include: [ ] # <--- No source files are needed
+spec:
+  command: [ "sh", "-c", "./scripts/auth.sh" ]
+
+---
+kind: Run
+name: prepare-data
+type: exec
+include: [ ]
+spec:
+  command: [ "sh", "-c", "./scripts/prepare-data-locally.sh" ]
 ```
 
-Other actions can depend on these tasks:
+Other actions can depend on these Runs:
 
 ```yaml
-kind: Module
-name: api
-type: kubernetes
-
-dependencies: [authenticate]
-tasks:
-  - name: db-init
-    command: [yarn, run, db-init]
-    dependencies: [prepare-data]
+kind: Run
+name: db-init
+type: exec
+dependencies: [ run.auth, run.prepare-data ]
+spec:
+  command: [ yarn, run, db-init ]
 ```
 
-It's also possible to reference the output from exec module tasks:
+It's also possible to reference the output from `exec` actions:
 
 ```yaml
-kind: Module
-name: api
+kind: Deploy
+name: postgres
 type: container
-services:
+spec:
+  image: postgres:15.3-alpine
+  ports:
+    - name: db
+      containerPort: 5432
   env:
-    AUTH_KEY: ${runtime.tasks.authenticate.outputs.log}
+    POSTGRES_DATABASE: postgres
+    POSTGRES_USERNAME: postgres
+    POSTGRES_PASSWORD: ${actions.run.auth.outputs.log}
 ```
 
 ### Local services
 
-The exec module can also be used to start long running services like so:
+The `exec Deploy` action type can also be used to start long-running processes:
 
 ```yaml
-kind: Module
+kind: Deploy
 name: web-local
 type: exec
-local: true
-include: []
-services:
-  - name: web-local
-    syncMode:
-      command: ["yarn", "run", "dev"] # <--- This is the command Garden runs to start the process in sync mode
-      statusCommand: [./check-local-status.sh] # <--- Optionally set a status command that checks whether the local service is ready
-    deployCommand: [] # <--- A no op since we only want to deploy it when we're in sync mode
-    env: ${modules.frontend.env} # <--- Reference the env variable defined above
+spec:
+  persistent: true
+  deployCommand: [ "yarn", "run", "dev" ] # <--- This is the command Garden runs to start the process in persistent mode.
 ```
 
-See also this [example project](https://github.com/garden-io/garden/tree/0.12.51/examples/local-service).
+Set `spec.persistent: true` if the `spec.deployCommand` is not expected to return, and should run until the Garden
+command is manually terminated. The `spec.persistent` flag replaces the previously supported `devMode` from [`exec`
+_modules_](../reference/module-types/exec.md).
+
+See the [reference guide](../reference/action-types/Deploy/exec.md) for more details on the `exec Deploy` action
+configuration.
+
+Also check out the [local-service example project](../../examples/local-service).
 
 ## Next Steps
 
-For some advanced exec use cases, check out [this recording](https://www.youtube.com/watch?v=npE0FWJwcno) of our community office hours on the topic.
+For some advanced `exec` _module_ use cases, check out [this recording](https://www.youtube.com/watch?v=npE0FWJwcno) of
+our community office hours on the topic.

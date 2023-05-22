@@ -11,7 +11,7 @@ import { sum, sortBy } from "lodash"
 import { gardenEnv } from "../constants"
 import { renderTable, tablePresets } from "./string"
 import chalk from "chalk"
-import { isPromise } from "./util"
+import { isPromise } from "./objects"
 
 const skipProfiling = process.env.GARDEN_SKIP_TEST_PROFILING
 

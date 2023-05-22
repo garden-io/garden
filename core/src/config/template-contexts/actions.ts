@@ -253,7 +253,7 @@ export class ActionSpecContext extends OutputConfigContext {
     const mergedVariables: DeepPrimitiveMap = {}
     merge(mergedVariables, garden.variables)
     merge(mergedVariables, variables)
-    merge(mergedVariables, garden.cliVariables)
+    merge(mergedVariables, garden.variableOverrides)
 
     super({
       ...params,

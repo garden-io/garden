@@ -34,8 +34,8 @@ export class GetRunsCommand extends Command<Args, {}, ActionDescriptionMap> {
 
   arguments = getRunsArgs
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Runs", "📖")
+  printHeader({ log }) {
+    printHeader(log, "Runs", "📖")
   }
 
   async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult<ActionDescriptionMap>> {

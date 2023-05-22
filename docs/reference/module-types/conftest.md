@@ -5,12 +5,16 @@ tocTitle: "`conftest`"
 
 # `conftest` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Creates a test that runs `conftest` on the specified files, with the specified (or default) policy and
 namespace.
 
-> Note: In many cases, you'll let specific conftest providers (e.g. [`conftest-container`](../providers/conftest-container.md) and [`conftest-kubernetes`](../providers/conftest-kubernetes.md) create this module type automatically, but you may in some cases want or need to manually specify files to test.
+> Note: In many cases, you'll let specific conftest providers (e.g. [`conftest-container`](../providers/conftest-container.md) and [`conftest-kubernetes`](../providers/conftest-kubernetes.md) create this action type automatically, but you may in some cases want or need to manually specify files to test.
 
 See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
 
@@ -26,9 +30,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config.
-apiVersion: garden.io/v1
-
 kind: Module
 
 # The type of this module.
@@ -160,7 +161,7 @@ varfile:
 sourceModule:
 
 # POSIX-style path to a directory containing the policies to match the config against, or a
-# specific .rego file, relative to the module root.
+# specific .rego file, relative to the action root.
 # Must be a relative path, and should in most cases be within the project root.
 # Defaults to the `policyPath` set in the provider config.
 policyPath:
@@ -173,14 +174,6 @@ combine: false
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config.
-
-| Type     | Allowed Values                 | Default          | Required |
-| -------- | ------------------------------ | ---------------- | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `kind`
 
@@ -475,7 +468,7 @@ Specify a module whose sources we want to test.
 ### `policyPath`
 
 POSIX-style path to a directory containing the policies to match the config against, or a
-specific .rego file, relative to the module root.
+specific .rego file, relative to the action root.
 Must be a relative path, and should in most cases be within the project root.
 Defaults to the `policyPath` set in the provider config.
 

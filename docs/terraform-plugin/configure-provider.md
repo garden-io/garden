@@ -17,7 +17,7 @@ providers:
   ...
 ```
 
-If you'd like to apply the stack when starting Garden, and then reference the stack outputs in other providers (or modules), you need to add a couple of more flags. Here's the project config from the aforementioned [terraform-gke example](https://github.com/garden-io/garden/tree/0.12.51/examples/terraform-gke):
+If you'd like to apply the stack when starting Garden, and then reference the stack outputs in other providers (or actions), you need to add a couple of more flags. Here's the project config from the aforementioned [terraform-gke example](https://github.com/garden-io/garden/tree/0.12.56/examples/terraform-gke):
 
 ```yaml
 apiVersion: garden.io/v1
@@ -41,5 +41,4 @@ providers:
 
 The `initRoot` parameter tells Garden that there is a Terraform working directory at the specified path. If you don't specify this, Garden doesn't attempt to apply a stack when initializing the provider.
 
-Notice also that we're providing an output value from the stack to the `kubernetes` provider. This can be very powerful, and allows you to fully codify your full project setup, not just the services running in your environment. Any Garden module can also reference the provider outputs in the exact same way, so you can easily provide your services with any information they need to operate.
-
+Notice also that we're providing an output value from the stack to the `kubernetes` provider. This can be very powerful, and allows you to fully codify your full project setup, not just the services running in your environment. Any Garden action can also reference the provider outputs in the exact same way, so you can easily provide your services with any information they need to operate.

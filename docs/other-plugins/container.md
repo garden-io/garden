@@ -2,180 +2,254 @@
 title: Container
 order: 1
 ---
+
 # Container
 
-Garden includes a `container` plugin, which provides a high-level abstraction around container-based services, that's easy to understand and use.
+Garden includes a `container` plugin, which provides:
+
+* A `Build` action for Docker builds.
+* `Test` and `Run` actions for running scripts or tests in one-off containers.
+* A `Deploy` action that provides a simple way to define a Kubernetes Deployment, Service and Ingress in a single
+  config.
+  * Note: `container`-type `Deploy`s are mostly intended to help users get up and running on Kubernetes quickly, and
+    don't support the full range of configuration options for the underlying resources.
+  * If you're already using Kubernetes in production, we strongly recommend using the `Deploy` actions of `kubernetes`
+    or `helm` type instead.
+  * This ensures you're developing and testing in a production-like environment, and lets you reuse your production
+    manifests and charts during development and CI.
 
 The plugin is built-in and doesn't require any configuration.
 
-The corresponding `container` module type can be used to just _build_ container images, or it can specify deployable services through the optional `services` key, as well as `tasks` and `tests`. So you might in one scenario use a `container` module to both build and deploy services, and in another you might only build the image using a `container` module, and then refer to that image in a `helm` or `kubernetes` module.
+The corresponding `container` action type can be used to
 
-Below we'll walk through some usage examples. For a full reference of the `container` module type, please take a look at the [reference](../reference/module-types/container.md).
+* [build](../reference/action-types/Build/container.md) container images
+* [deploy](../reference/action-types/Deploy/container.md) container-based applications
+* [run scripts](../reference/action-types/Run/container.md) inside deployed container-based applications
+* [run tests](../reference/action-types/Test/container.md) inside deployed container-based applications
 
-_Note: Even though we've spent the most time on supporting Kubernetes, we've tried to design this module type in a way that makes it generically applicable to other container orchestrators as well, such as Docker Swarm, Docker Compose, AWS ECS etc. This will come in handy as we add more providers, that can then use the same module type._
+Below we'll walk through some usage examples. For a full reference of the `container` action type, please take a look at
+the [reference guides](../reference/action-types).
+
+_Note: Despite the `container` action types being mostly Kubernetes-oriented up to this point, we've tried to design
+this action type in a way that makes it generically deployable to other container orchestrators as well, such as
+Docker Swarm, AWS ECS etc._
 
 ## Building images
 
-A bare minimum `container` module just specifies common required fields:
+Following is a bare minimum `Build` action using the `container` type:
 
 ```yaml
 # garden.yml
-kind: Module
+kind: Build
 type: container
 name: my-container
 ```
 
-If you have a `Dockerfile` next to this file, this is enough to tell Garden to build it. You can also specify `dockerfile: <path-to-Dockerfile>` if you need to override the Dockerfile name. You might also want to explicitly [include or exclude](../using-garden/configuration-overview.md#includingexcluding-files-and-directories) files in the build context.
+If you have a `Dockerfile` in the same directory as this file, this is enough to tell Garden to build it. However, you
+can override the `Dockerfile` name or path by specifying `spec.dockerfile: <path-to-Dockerfile>`.
+You might also want to
+explicitly [include or exclude](../using-garden/configuration-overview.md#includingexcluding-files-and-directories)
+files in the build context.
 
 ### Build arguments
 
-You can specify [build arguments](https://docs.docker.com/engine/reference/commandline/build/#set-build-time-variables---build-arg) using the [`buildArgs`](../reference/module-types/container.md#buildArgs) field. This can be quite handy, especially when e.g. referencing other modules such as build dependencies:
+You can specify
+[build arguments](https://docs.docker.com/engine/reference/commandline/build/#build-arg)
+using the [`spec.buildArgs`](../reference/action-types/Build/container.md#specbuildargs) field. This can be quite handy,
+especially when e.g. referencing other `Build` action as build dependencies:
 
 ```yaml
 # garden.yml
-kind: Module
+kind: Build
 type: container
 name: my-container
-build:
-  dependencies: [base-image]
-buildArgs:
-  baseImageVersion: ${modules.base-image.version}
+# Here, we ensure that the base image is built first. This is useful e.g. when you want to build a prod and a
+# dev/testing variant of the image in your pipeline.
+dependencies: [ build.base-image ]
+spec:
+  buildArgs:
+    baseImageVersion: ${actions.build.base-image.version}
 ```
 
-Garden will also automatically set `GARDEN_ACTION_VERSION` as a build argument, so that you can reference the version of the action being built.
+Additionally, Garden automatically sets `GARDEN_ACTION_VERSION` as a build argument, which you can use to reference the
+version of action being built. You use it internally as
+a [Docker buildArg](https://docs.docker.com/engine/reference/commandline/build/#build-arg). For instance, to set
+versions, render docs, or clear caches.
 
 ## Using remote images
 
-If you're not building the container image yourself and just need to deploy an external image, you can skip the Dockerfile and specify the `image` field:
+If you're not building the container image yourself and just need to deploy an image that already exists in a registry,
+you need to specify the `image` in the `Deploy` action's `spec`:
 
 ```yaml
 # garden.yml
-kind: Module
+kind: Deploy
 type: container
 name: redis
-image: redis:5.0.5-alpine   # <- replace with any docker image ID
-services:
-  ...
+spec:
+  image: redis:5.0.5-alpine   # <- replace with any docker image ID
 ```
-
-{% hint style="warning" %}
-Note that if there is a _Dockerfile_ in the same directory as the module configuration, and you still don't want to build it, you have to tell Garden not to pick it up by setting `include: []` in your module configuration.
-{% endhint %}
 
 ## Publishing images
 
 You can publish images that have been built in your cluster using the `garden publish` command.
 
-Unless you're publishing to your configured deployment registry (when using the `kubernetes` provider), you need to specify the `image` field on the `container` module in question to indicate where the image should be published. For example:
+Unless you're publishing to your configured deployment registry (when using the `kubernetes` provider), you need to
+specify the `publishId` field on the `container` action's `spec` in question to indicate where the image should be
+published. For example:
 
 ```yaml
-kind: Module
-name: my-module
-image: my-repo/my-image:v1.2.3   # <- if you omit the tag here, the Garden module version will be used by default
-...
+kind: Build
+name: my-build
+type: container
+spec:
+  publishId: my-repo/my-image:v1.2.3   # <- if you omit the tag here, the Garden action version will be used by default
 ```
 
-By default, we use the tag specified in the `container` module `image` field, if any. If none is set there, we default to the Garden module version.
+By default, we use the tag specified in the `container` action's `spec.publishId` field. If none is set,
+we default to the corresponding `Build` action's version.
 
-You can also set the `--tag` option on the `garden publish` command to override the tag used for images. You can both set a specific tag or you can _use template strings for the tag_. For example, you can
+You can also set the `--tag` option on the `garden publish` command to override the tag used for images. You can both
+set a specific tag or you can _use template strings for the tag_. For example, you can
 
-- Set a specific tag on all published modules: `garden publish --tag "v1.2.3"`
-- Set a custom prefix on tags but include the Garden version hash: `garden publish --tag 'v0.1-${module.hash}'`
+- Set a specific tag on all published builds: `garden publish --tag "v1.2.3"`
+- Set a custom prefix on tags but include the Garden version hash: `garden publish --tag 'v0.1-${build.hash}'`
 - Set a custom prefix on tags with the current git branch: `garden publish --tag 'v0.1-${git.branch}'`
 
 {% hint style="warning" %}
-Note that you most likely need to wrap templated tags with single quotes, to prevent your shell from attempting to perform its own substitution.
+Note that you most likely need to wrap templated tags with single quotes, to prevent your shell from attempting to
+perform its own substitution.
 {% endhint %}
 
-Generally, you can use any template strings available for module configs for the tags, with the addition of the following:
+Generally, you can use any template strings available for action configs for the tags, with the addition of the
+following:
 
-- `${module.name}` — the name of the module being tagged
-- `${module.version}` — the full Garden version of the module being tagged, e.g. `v-abcdef1234`
-- `${module.hash}` — the Garden version hash of the module being tagged, e.g. `abcdef1234` (i.e. without the `v-` prefix)
+- `${build.name}` — the name of the build being tagged
+- `${build.version}` — the full Garden version of the build being tagged, e.g. `v-abcdef1234`
+- `${build.hash}` — the Garden version hash of the build being tagged, e.g. `abcdef1234` (i.e. without the `v-`
+  prefix)
 
-## Deploying services
+## Deploying applications
 
-The Kubernetes plugins (local or remote) can deploy container modules. You'll find the relevant information in [this guide](../k8s-plugins/action-types/container.md) and the full spec in our [reference docs](../reference/module-types/container.md#services).
+After your application has been built, you probably also want to deploy it.
+For this, check out our [guide on deploying to Kubernetes using `container` `Deploy`
+actions](../k8s-plugins/action-types/container.md), or the [`kubernetes`](../k8s-plugins/action-types/kubernetes.md)
+or [`helm`](../k8s-plugins/action-types/helm.md) type of `Deploy` actions for more advanced capabilities.
+
+See the full spec of the `Deploy` action of `container` type in
+our [reference docs](../reference/action-types/Deploy/container.md).
 
 ## Running tests
 
-You can define both tests and tasks as part of any container module. The two are configured in very similar ways, using the `tests` and `tasks` keys, respectively. Here, for example, is a configuration for two different test suites:
+`Test` actions of `container` type run the command you specify in a one-off Kubernetes Pod, stream the logs and monitor
+for success or failure.
+
+This is a great way to run tests in a standardized environment, especially integration tests, API tests or end-to-end
+tests (since Garden's ability to build, deploy and test in dependency order can easily be used to spin up the required
+components for a test suite before running it).
+
+Here is a configuration example for two different test suites:
 
 ```yaml
-kind: Module
+kind: Test
+name: my-app-unit
 type: container
-name: my-container
-...
-tests:
-  - name: unit
-    command: [npm, test]
-  - name: integ
-    command: [npm, run, integ]
-    dependencies:
-      - some-service
-...
+build: my-app
+spec:
+  args: [ npm, test ]
+
+---
+
+kind: Test
+name: my-app-integ
+type: container
+build: my-app
+dependencies:
+  - deploy.my-app
+spec:
+  args: [ npm, run, integ ]
+
 ```
 
-Here we first define a `unit` test suite, which has no dependencies, and simply runs `npm test` in the container. The `integ` suite is similar but adds a _runtime dependency_. This means that before the `integ` test is run, Garden makes sure that `some-service` is running and up-to-date.
+Here we first define a `unit` test suite, which has no dependencies, and simply runs `npm test` in the `my-app`
+container.
 
-When you run `garden test`, we will run those tests. The tests will be executed by running the container with the specified command _in your configured environment_ (as opposed to locally on the machine you're running the `garden` CLI from).
+The `integ` suite is similar but adds a _runtime dependency_. This means that before the `integ` test is run, Garden
+makes sure that `my-app` is running and up-to-date.
 
-The names and commands to run are of course completely up to you, but we suggest naming the test suites consistently across your different modules.
+When you run `garden test`, we will run those tests. The tests will be executed by running the container with the
+specified command _in your configured environment_ (as opposed to locally on the machine you're running the `garden` CLI
+from). Typically, this is a local or remote Kubernetes cluster—whatever you specify in your project configuration.
 
-See the [reference](../reference/module-types/container.md#tests) for all the configurable parameters for container tests.
+The names and commands to run are of course completely up to you, but we suggest naming the test suites consistently
+across your project's action configurations.
 
-## Running tasks
+See the [reference](../reference/action-types/Test/container.md) for all the configurable parameters
+for `Test` actions of `container` type.
 
-Tasks are defined very similarly to tests:
+## Running arbitrary workloads
+
+To run arbitrary workloads, you can use the `Run` actions. These can include any scripts or commands, and will be run
+within a container. The configuration is very similar to the `Test` actions:
 
 ```yaml
-kind: Module
+kind: Run
 type: container
-name: my-container
-...
-tasks:
-  - name: db-migrate
-    command: [rake, db:migrate]
-    dependencies:
-      - my-database
-...
+name: db-migrate
+dependencies: [ deploy.my-database ]
+spec:
+  command: [ rake, db:migrate ]
 ```
 
-In this example, we define a `db-migrate` task that runs `rake db:migrate` (which is commonly used for database migrations, but you can run anything you like of course). The task has a dependency on `my-database`, so that Garden will make sure the database is up and running before running the migration task.
+In this example, we define a `db-migrate` action that executes `rake db:migrate` (which is commonly used for
+database migrations in Ruby, but you can run anything you like of course). The action has a dependency on
+the `my-database` deployment, so that Garden will make sure the database is deployed before running the migration job.
 
-Unlike tests, tasks can also be dependencies for services and other tasks. For example, you might define another task or a service with `db-migrate` as a dependency, so that it only runs after the migrations have been executed.
+One thing to note, is that `Run` actions should in most cases be _idempotent_, meaning that running the same Run
+action multiple times should be safe. This can be achieved by making sure that the script or tool your `Run` executes
+performs the relevant checks to decide if it should run (e.g. whether the DB exists and has the right schema already).
 
-One thing to note, is that tasks should in most cases be _idempotent_, meaning that running the same task multiple times should be safe.
+See the [reference](../reference/action-types/Run/container.md) for all the configurable parameters
+for `Run` actions of `container` type.
 
-See the [reference](../reference/module-types/container.md#tasks) for all the configurable parameters for container tasks.
+## Referencing from other actions
 
-## Referencing from other modules
+Since Garden version `0.13` any action (of any `kind` and `type`) can depend on any other action.
 
-Modules can reference outputs from each other using [template strings](../using-garden/variables-and-templating.md#template-string-basics). `container` modules are, for instance, often referenced by other module types such as `helm` module types. For example:
+Actions can reference outputs from each other
+using [template strings](../using-garden/variables-and-templating.md#template-string-basics).
+For example, `Build` actions of `container` type are often referenced by `Deploy` actions of `helm` type:
 
 ```yaml
-kind: Module
+kind: Deploy
 description: Helm chart for the worker container
 type: helm
-name: my-service
-...
-build:
-  dependencies: [my-image]
-values:
-  image:
-    name: ${modules.my-image.outputs.deployment-image-name}
-    tag: ${modules.my-image.version}
+name: my-app
+spec:
+  values:
+    image:
+      name: ${actions.build.my-image.outputs.deployment-image-name}
+      tag: ${actions.build.my-image.version}
 ```
 
-Here, we declare `my-image` as a dependency for the `my-service` Helm chart. In order for the Helm chart to be able to reference the built container image, we must provide the correct image name and version.
+Here, we do not need to declare an explicit _build_ dependency on `my-image` like `dependencies: [ build.my-app ]`.
+Instead, we do it implicitly via the references to the `Build` action outputs in `spec.values.image`.
 
-For a full list of keys that are available for the `container` module type, take a look at the [outputs reference](../reference/module-types/container.md#outputs).
+For a full list of keys that are available for the `container` action type, take a look at
+the _outputs_ reference
+of [`Build`](../reference/action-types/Build/container.md#outputs),
+[`Deploy`](../reference/action-types/Deploy/container.md#outputs),
+[`Run`](../reference/action-types/Run/container.md#outputs),
+and [`Test`](../reference/action-types/Test/container.md#outputs) action kinds.
 
 ## Mounting volumes and Kubernetes ConfigMaps
 
-`container` services, tasks and tests can all mount volumes and Kubernetes Configmaps.
+Volumes and ConfigMaps can be mounted in all `Deploy`, `Run`, and `Test` actions of the `container` type.
 
-For mounting volumes, check out our guide on the [`persistentvolumeclaim` module type](../k8s-plugins/action-types/persistentvolumeclaim.md), supported by the `kubernetes` provider.
+For mounting volumes, check out our guide on
+the [`persistentvolumeclaim` action type](../k8s-plugins/action-types/persistentvolumeclaim.md), supported by
+the `kubernetes` provider.
 
-And for ConfigMaps, check out this guide on the [`configmap` module type](../k8s-plugins/action-types/configmap.md), also supported by the `kubernetes` provider.
+And for ConfigMaps, check out this guide on the [`configmap` action type](../k8s-plugins/action-types/configmap.md),
+also supported by the `kubernetes` provider.
 

@@ -9,7 +9,7 @@
 import tmp from "tmp-promise"
 import { ProjectConfig } from "../../../../../../src/config/project"
 import execa = require("execa")
-import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants"
 import { expect } from "chai"
 import { TestGarden, makeTempDir, createProjectConfig } from "../../../../../helpers"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
@@ -47,7 +47,7 @@ describe("configmap module", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "test",
         type: "configmap",
         allowPublish: false,

@@ -150,7 +150,7 @@ describe("util", () => {
         const services = flatten(pods.map((pod) => pod.spec.containers.map((container) => container.name)))
         expect(services).to.eql(["simple-service"])
       } finally {
-        await garden.close()
+        garden.close()
       }
     })
 
@@ -188,7 +188,7 @@ describe("util", () => {
         expect(pods[0].kind).to.equal("Pod")
         expect(pods[0].metadata.name).to.equal(pod.metadata.name)
       } finally {
-        await garden.close()
+        garden.close()
       }
     })
   })

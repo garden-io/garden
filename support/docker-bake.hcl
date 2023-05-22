@@ -75,28 +75,55 @@ group "all" {
   targets = ["alpine", "buster"]
 }
 
+group "buster" {
+  targets = [
+    "buster-base",
+    "buster-rootless",
+  ]
+}
+
 group "alpine" {
   targets = [
+    # Root
     "alpine-base",
     "alpine-aws",
     "alpine-azure",
     "alpine-gcloud",
     "alpine-aws-gcloud",
-    "alpine-aws-gcloud-azure"
+    "alpine-aws-gcloud-azure",
+    # Rootless
+    "alpine-rootless",
+    "alpine-aws-rootless",
+    "alpine-azure-rootless",
+    "alpine-gcloud-rootless",
+    "alpine-aws-gcloud-rootless",
+    "alpine-aws-gcloud-azure-rootless",
   ]
 }
 
 ##
-## Images
+## Buster Images
 ##
 
-target "buster" {
+target "buster-base" {
   dockerfile = "../../support/buster.Dockerfile"
   target     = "buster-base"
   platforms  = ["linux/amd64"]
   context    = "dist/linux-amd64"
   tags       = repository("gardendev/garden", tags("buster"))
 }
+
+target "buster-rootless" {
+  inherits = ["buster-base"]
+  tags     = repository("gardendev/garden", tags("buster-rootless"))
+  args = {
+    VARIANT: "rootless"
+  }
+}
+
+##
+## Alpine Images
+##
 
 target "alpine-base" {
   dockerfile = "../../support/alpine.Dockerfile"
@@ -134,4 +161,41 @@ target "alpine-aws-gcloud-azure" {
   inherits   = ["alpine-base"]
   target     = "garden-aws-gcloud-azure"
   tags       = repository("gardendev/garden-aws-gcloud-azure", withLatest(tags("alpine")))
+}
+
+##
+## Alpine Images (Rootless)
+##
+
+target "alpine-rootless" {
+  inherits   = ["alpine-base"]
+  tags       = repository("gardendev/garden", tags("alpine-rootless"))
+  args = {
+    VARIANT: "rootless"
+  }
+}
+
+target "alpine-aws-rootless" {
+  inherits   = ["alpine-rootless", "alpine-aws"]
+  tags       = repository("gardendev/garden-aws", tags("alpine-rootless"))
+}
+
+target "alpine-azure-rootless" {
+  inherits   = ["alpine-rootless", "alpine-azure"]
+  tags       = repository("gardendev/garden-azure", tags("alpine-rootless"))
+}
+
+target "alpine-gcloud-rootless" {
+  inherits   = ["alpine-rootless", "alpine-gcloud"]
+  tags       = repository("gardendev/garden-gcloud", tags("alpine-rootless"))
+}
+
+target "alpine-aws-gcloud-rootless" {
+  inherits   = ["alpine-rootless", "alpine-aws-gcloud"]
+  tags       = repository("gardendev/garden-aws-gcloud", tags("alpine-rootless"))
+}
+
+target "alpine-aws-gcloud-azure-rootless" {
+  inherits   = ["alpine-rootless", "alpine-aws-gcloud-azure"]
+  tags       = repository("gardendev/garden-aws-gcloud-azure", tags("alpine-rootless"))
 }

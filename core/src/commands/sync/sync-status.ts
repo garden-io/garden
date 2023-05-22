@@ -56,7 +56,7 @@ export class SyncStatusCommand extends Command<Args> {
 
     Examples:
         # get all sync statuses
-        garden sync status 
+        garden sync status
 
         # get sync statuses for the 'api' Deploy
         garden sync status api
@@ -70,16 +70,19 @@ export class SyncStatusCommand extends Command<Args> {
 
   outputsSchema = () => joi.object()
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Getting sync statuses", "📟")
+  printHeader({ log }) {
+    printHeader(log, "Getting sync statuses", "📟")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<SyncStatusCommandResult> {
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
 
+    // We default to getting the sync status for all actions
+    const names = args.names || ["*"]
+
     const deployActions = graph
-      .getDeploys({ includeDisabled: false, names: args.names })
+      .getDeploys({ includeDisabled: false, names })
       .sort((a, b) => (a.name > b.name ? 1 : -1))
     // This is fairly arbitrary
     const concurrency = 5
@@ -90,7 +93,7 @@ export class SyncStatusCommand extends Command<Args> {
     log.info(
       chalk.white(deline`
       Getting sync statuses. For more detailed debug information, run this command with
-      the \`--json\` or \`--yaml\` flags.
+      the \`--output json\` or \`--output yaml\` flags.
     `)
     )
     log.info("")
@@ -123,30 +126,41 @@ export class SyncStatusCommand extends Command<Args> {
 
         // Return the syncs sorted
         const sorted = syncs.sort((a, b) => {
-          const keyA = a.source + a.targetDescription + a.mode
-          const keyB = b.source + b.targetDescription + b.mode
+          const keyA = a.source + a.target + a.mode
+          const keyB = b.source + b.target + b.mode
           return keyA > keyB ? 1 : -1
         })
         syncStatus["syncs"] = sorted
 
-        const styleFn = {
-          "active": chalk.green,
-          "failed": chalk.red,
-          "not-active": chalk.yellow
-        }[syncStatus.state] || chalk.bold.dim
+        const styleFn =
+          {
+            "active": chalk.green,
+            "failed": chalk.red,
+            "not-active": chalk.yellow,
+          }[syncStatus.state] || chalk.bold.dim
+
+        const verbMap = {
+          "active": "is",
+          "failed": "has",
+          "not-active": "is",
+        }
 
         log.info(
           `The ${chalk.cyan(action.name)} Deploy has ${chalk.cyan(syncStatus.syncs.length)} syncs(s) configured:`
         )
         const leftPad = "  →"
         syncs.forEach((sync, idx) => {
+          const state = sync.state
           log.info(
-            `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.targetDescription)} is ${styleFn(
-              syncStatus.state
+            `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.target)} ${verbMap[state]} ${styleFn(
+              state
             )}`
           )
           sync.mode && log.info(chalk.bold(`${leftPad} Mode: ${sync.mode}`))
           sync.syncCount && log.info(chalk.bold(`${leftPad} Sync count: ${sync.syncCount}`))
+          if (state === "failed" && sync.message) {
+            log.info(`${chalk.bold(leftPad)} ${chalk.yellow(sync.message)}`)
+          }
           idx !== syncs.length - 1 && log.info("")
         })
         log.info("")

@@ -35,8 +35,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -66,8 +64,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -89,8 +85,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: ["module-a-unit"] }, // <---
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -112,8 +106,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -155,8 +147,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: ["module-a-unit"] },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -180,8 +170,6 @@ describe("TestCommand", () => {
         command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { names: undefined },
           opts: withDefaultGlobalOpts({
             "name": undefined,
@@ -205,8 +193,6 @@ describe("TestCommand", () => {
         command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { names: ["module-a-unit", "module-a-integration"] },
           opts: withDefaultGlobalOpts({
             "name": undefined,
@@ -235,8 +221,6 @@ describe("TestCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -265,8 +249,6 @@ describe("TestCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -296,8 +278,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: ["module-a-*"] },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -319,8 +299,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: [] },
       opts: withDefaultGlobalOpts({
         "name": ["unit"],
@@ -344,8 +322,6 @@ describe("TestCommand", () => {
         command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { names: undefined },
           opts: withDefaultGlobalOpts({
             "name": undefined,
@@ -399,8 +375,6 @@ describe("TestCommand", () => {
       const { result, errors } = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { names: ["module-a-*"] },
         opts: withDefaultGlobalOpts({
           "name": undefined,

@@ -51,8 +51,8 @@ export class UnlinkActionCommand extends Command<Args, Opts> {
         garden unlink action --all           # unlink all actions
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Unlink action", "⛓️")
+  printHeader({ log }) {
+    printHeader(log, "Unlink action", "⛓️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {

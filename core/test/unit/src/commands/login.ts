@@ -26,7 +26,7 @@ import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constant
 import { CloudApiError } from "../../../../src/exceptions"
 import { getLogMessages } from "../../../../src/util/testing"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
-import { makeDummyGarden } from "../../../../src/cli/cli"
+import { makeDummyGarden } from "../../../../src/garden"
 import { Garden } from "../../../../src"
 
 function loginCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: any }) {
@@ -34,8 +34,6 @@ function loginCommandParams({ garden, opts = { "disable-project-check": false } 
   return {
     garden,
     log,
-    headerLog: log,
-    footerLog: log,
     args: {},
     opts: withDefaultGlobalOpts({
       ...opts,

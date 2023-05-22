@@ -14,7 +14,7 @@ import { pathExists, readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
 import { coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig, ModuleConfig } from "./module"
 import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions"
-import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, PREVIOUS_API_VERSION } from "../constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants"
 import { ProjectConfig, ProjectResource } from "../config/project"
 import { validateWithPath } from "./validation"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs"
@@ -60,13 +60,13 @@ export interface BaseGardenResource {
 
 export const baseInternalFieldsSchema = createSchema({
   name: "base-internal-fields",
-  keys: {
+  keys: () => ({
     basePath: joi.string().required().meta({ internal: true }),
     configFilePath: joi.string().optional().meta({ internal: true }),
     inputs: joi.object().optional().meta({ internal: true }),
     parentName: joi.string().optional().meta({ internal: true }),
     templateName: joi.string().optional().meta({ internal: true }),
-  },
+  }),
   allowUnknown: true,
   meta: { internal: true },
 })
@@ -310,19 +310,19 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectResource): Projec
   if (projectSpec["apiVersion"] === undefined) {
     emitNonRepeatableWarning(
       log,
-      `"apiVersion" is missing in the Project config. Assuming "${PREVIOUS_API_VERSION}" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at https://docs.garden.io/tutorials/migrating-to-bonsai`
+      `"apiVersion" is missing in the Project config. Assuming "${GardenApiVersion.v0}" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at https://docs.garden.io/tutorials/migrating-to-bonsai`
     )
 
-    return { ...projectSpec, apiVersion: PREVIOUS_API_VERSION }
+    return { ...projectSpec, apiVersion: GardenApiVersion.v0 }
   } else {
-    if (projectSpec["apiVersion"] === PREVIOUS_API_VERSION) {
+    if (projectSpec["apiVersion"] === GardenApiVersion.v0) {
       emitNonRepeatableWarning(
         log,
-        `Project is configured with \`apiVersion: ${PREVIOUS_API_VERSION}\`, running with backwards compatibility.`
+        `Project is configured with \`apiVersion: ${GardenApiVersion.v0}\`, running with backwards compatibility.`
       )
-    } else if (projectSpec["apiVersion"] !== DEFAULT_API_VERSION) {
+    } else if (projectSpec["apiVersion"] !== GardenApiVersion.v1) {
       throw new ConfigurationError(
-        `Project configuration with \`apiVersion: ${projectSpec["apiVersion"]}\` is not supported. Valid values are ${DEFAULT_API_VERSION} or ${PREVIOUS_API_VERSION}.`,
+        `Project configuration with \`apiVersion: ${projectSpec["apiVersion"]}\` is not supported. Valid values are ${GardenApiVersion.v1} or ${GardenApiVersion.v0}.`,
         {
           projectSpec,
         }
@@ -374,7 +374,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
   // Built-in keys are validated here and the rest are put into the `spec` field
   const path = dirname(configPath)
   const config: ModuleConfig = {
-    apiVersion: spec.apiVersion || PREVIOUS_API_VERSION,
+    apiVersion: spec.apiVersion || GardenApiVersion.v0,
     kind: "Module",
     allowPublish: spec.allowPublish,
     build: {
@@ -429,11 +429,17 @@ export function prepareBuildDependencies(buildDependencies: any[]): BuildDepende
     .filter(isTruthy)
 }
 
-export async function findProjectConfig(
-  log: Log,
-  path: string,
-  allowInvalid = false
-): Promise<ProjectResource | undefined> {
+export async function findProjectConfig({
+  log,
+  path,
+  allowInvalid = false,
+  scan = true,
+}: {
+  log: Log
+  path: string
+  allowInvalid?: boolean
+  scan?: boolean
+}): Promise<ProjectResource | undefined> {
   let sepCount = path.split(sep).length - 1
 
   for (let i = 0; i < sepCount; i++) {
@@ -451,6 +457,10 @@ export async function findProjectConfig(
       } else if (projectSpecs.length > 0) {
         return <ProjectResource>projectSpecs[0]
       }
+    }
+
+    if (!scan) {
+      break
     }
 
     path = resolve(path, "..")

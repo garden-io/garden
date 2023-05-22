@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi, apiVersionSchema, joiUserIdentifier, CustomObjectSchema, createSchema } from "./common"
+import { joi, joiUserIdentifier, CustomObjectSchema, createSchema, unusedApiVersionSchema } from "./common"
 import { baseModuleSpecSchema, BaseModuleSpec } from "./module"
 import { dedent, naturalList } from "../util/string"
 import { configTemplateKind, renderTemplateKind, BaseGardenResource, baseInternalFieldsSchema } from "./base"
@@ -119,7 +119,7 @@ export async function resolveConfigTemplate(
 export const configTemplateSchema = createSchema({
   name: configTemplateKind,
   keys: () => ({
-    apiVersion: apiVersionSchema(),
+    apiVersion: unusedApiVersionSchema(),
     kind: joi.string().allow(configTemplateKind, "ModuleTemplate").only().default(configTemplateKind),
     name: joiUserIdentifier().description("The name of the template."),
 
@@ -168,8 +168,10 @@ export const configTemplateSchema = createSchema({
   }),
 })
 
-const moduleSchema = () =>
-  baseModuleSpecSchema().keys({
+const moduleSchema = createSchema({
+  name: "module",
+  extend: baseModuleSpecSchema,
+  keys: () => ({
     path: joi
       .posixPath()
       .relativeOnly()
@@ -177,13 +179,14 @@ const moduleSchema = () =>
       .description(
         "POSIX-style path of a sub-directory to set as the module root. If the directory does not exist, it is automatically created."
       ),
-  })
+  }),
+})
 
 // Note: Further validation is performed with more specific schemas after parsing
 const templatedResourceSchema = createSchema({
   name: "templated-resource",
-  keys: {
-    apiVersion: apiVersionSchema,
+  keys: () => ({
+    apiVersion: unusedApiVersionSchema(),
     kind: joi
       .string()
       .allow(...templatableKinds)
@@ -191,5 +194,5 @@ const templatedResourceSchema = createSchema({
       .description("The kind of resource to create."),
     name: joiUserIdentifier().description("The name of the resource."),
     unknown: true,
-  },
+  }),
 })

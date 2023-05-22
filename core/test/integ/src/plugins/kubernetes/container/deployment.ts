@@ -74,7 +74,7 @@ describe("kubernetes container deployment handlers", () => {
 
   after(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 

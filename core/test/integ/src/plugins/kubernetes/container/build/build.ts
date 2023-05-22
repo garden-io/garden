@@ -36,7 +36,7 @@ describe("kubernetes build flow", () => {
 
   after(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 

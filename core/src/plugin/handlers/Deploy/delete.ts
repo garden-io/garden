@@ -21,9 +21,9 @@ type DeleteDeployStatus<T extends DeployAction = DeployAction> = ActionStatus<T,
 
 export const getDeleteDeployResultSchema = createSchema({
   name: "delete-deploy-result",
-  keys: {
+  keys: () => ({
     detail: serviceStatusSchema,
-  },
+  }),
   extend: actionStatusSchema,
 })
 

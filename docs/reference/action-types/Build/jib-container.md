@@ -7,11 +7,11 @@ tocTitle: "`jib-container` Build"
 
 ## Description
 
-Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.51/examples/jib-container) to see it in action.
+Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.56/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
-By default (and when not using remote building), the image is pushed to the local Docker daemon, to match the behavior of and stay compatible with normal `container` modules.
+By default (and when not using remote building), the image is pushed to the local Docker daemon, to match the behavior of and stay compatible with normal `container` actions.
 
 When using remote building with the `kubernetes` provider, the image is synced to the cluster (where individual layers are cached) and then pushed to the deployment registry from there. This is to make sure any registry auth works seamlessly and exactly like for normal Docker image builds.
 
@@ -19,7 +19,7 @@ Please consult the [Jib documentation](https://github.com/GoogleContainerTools/j
 
 To provide additional arguments to Gradle/Maven when building, you can set the `extraFlags` field.
 
-**Important note:** Unlike many other types, `jib-container` builds are done from the _source_ directory instead of the build staging directory, because of how Java projects are often laid out across a repository. This means build dependency copy directives are effectively ignored, and any include/exclude statements and .gardenignore files will not impact the build result. _Note that you should still configure includes, excludes and/or a .gardenignore to tell Garden which files to consider as part of the module version hash, to correctly detect whether a new build is required._
+**Important note:** Unlike many other types, `jib-container` builds are done from the _source_ directory instead of the build staging directory, because of how Java projects are often laid out across a repository. This means build dependency copy directives are effectively ignored, and any include/exclude statements and .gardenignore files will not impact the build result. _Note that you should still configure includes, excludes and/or a .gardenignore to tell Garden which files to consider as part of the Build version hash, to correctly detect whether a new build is required.**
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
@@ -33,9 +33,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config.
-apiVersion: garden.io/v1
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -217,7 +214,7 @@ spec:
   dockerfile: Dockerfile
 
   # The type of project to build. Defaults to auto-detecting between gradle and maven (based on which
-  # files/directories are found in the module root), but in some cases you may need to specify it.
+  # files/directories are found in the action root), but in some cases you may need to specify it.
   projectType: auto
 
   # The JDK version to use.
@@ -269,14 +266,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config.
-
-| Type     | Allowed Values                 | Default          | Required |
-| -------- | ------------------------------ | ---------------- | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `type`
 
@@ -606,7 +595,7 @@ POSIX-style name of a Dockerfile, relative to the action's source root.
 
 [spec](#spec) > projectType
 
-The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
+The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the action root), but in some cases you may need to specify it.
 
 | Type     | Allowed Values                             | Default  | Required |
 | -------- | ------------------------------------------ | -------- | -------- |
@@ -731,7 +720,7 @@ Specify extra flags to pass to maven/gradle when building the container image.
 ## Outputs
 
 The following keys are available via the `${actions.build.<name>}` template string key for `jib-container`
-modules.
+action.
 
 ### `${actions.build.<name>.name}`
 

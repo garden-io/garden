@@ -5,9 +5,13 @@ tocTitle: "`configmap`"
 
 # `configmap` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
-Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
+Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container actions](./container.md).
 
 See the [Mounting Kubernetes ConfigMaps](../../k8s-plugins/action-types/configmap.md) guide for more info and usage examples.
 
@@ -23,9 +27,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config.
-apiVersion: garden.io/v1
-
 kind: Module
 
 # The type of this module.
@@ -156,17 +157,7 @@ varfile:
 # List of services and tasks to deploy/run before deploying this ConfigMap.
 dependencies: []
 
-# A list of access modes supported by the volume when mounting. At least one must be specified. The available modes
-# are as follows:
-#
-#  ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
-#  ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
-#  ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
-#
-# At least one mode must be specified.
-accessModes:
-
-# The namespace to deploy the ConfigMap in. Note that any module referencing the ConfigMap must be in the same
+# The namespace to deploy the ConfigMap in. Note that any resource referencing the ConfigMap must be in the same
 # namespace, so in most cases you should leave this unset.
 namespace:
 
@@ -175,14 +166,6 @@ data:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config.
-
-| Type     | Allowed Values                 | Default          | Required |
-| -------- | ------------------------------ | ---------------- | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `kind`
 
@@ -474,23 +457,9 @@ List of services and tasks to deploy/run before deploying this ConfigMap.
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
 
-### `accessModes[]`
-
-A list of access modes supported by the volume when mounting. At least one must be specified. The available modes are as follows:
-
- ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
- ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
- ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
-
-At least one mode must be specified.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
 ### `namespace`
 
-The namespace to deploy the ConfigMap in. Note that any module referencing the ConfigMap must be in the same namespace, so in most cases you should leave this unset.
+The namespace to deploy the ConfigMap in. Note that any resource referencing the ConfigMap must be in the same namespace, so in most cases you should leave this unset.
 
 | Type     | Required |
 | -------- | -------- |

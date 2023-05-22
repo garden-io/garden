@@ -11,27 +11,16 @@ import Bluebird from "bluebird"
 import { Garden } from "./garden"
 import { Log } from "./logger/log-entry"
 import { GardenProcess, GlobalConfigStore } from "./config-store/global"
-import { sleep } from "./util/util"
+import { SpawnOutput, sleep, spawn } from "./util/util"
+import psTree from "ps-tree"
 
 export async function waitForExitEvent(garden: Garden, log: Log) {
-  let restartRequired = false
-
   await new Promise((resolve) => {
-    garden.events.on("_restart", () => {
-      log.debug(`Manual restart triggered`)
-      restartRequired = true
-      resolve({})
-    })
-
     garden.events.on("_exit", () => {
       log.debug(`Manual exit triggered`)
       resolve({})
     })
   })
-
-  return {
-    restartRequired,
-  }
 }
 
 /**
@@ -83,6 +72,28 @@ export async function registerProcess(
   await globalConfigStore.set("activeProcesses", String(pid), record)
 
   return record
+}
+
+/**
+ * Kills the process with the provided pid, and any of its child processes.
+ *
+ * `signalName` should be a POSIX kill signal, e.g. + `INT` or `KILL`
+ *
+ * See: https://github.com/sindresorhus/execa/issues/96#issuecomment-776280798
+ */
+export async function killRecursive(signalName: string, pid: number) {
+  return new Promise<SpawnOutput>((resolve, reject) => {
+    psTree(pid, function (_err, children) {
+      const killArgs = ["-s", signalName, "" + pid].concat(
+          children.map(function (p) {
+            return p.PID
+          })
+        )
+      spawn("kill", killArgs)
+        .then(resolve)
+        .catch(reject)
+    })
+  })
 }
 
 export function isRunning(pid: number) {

@@ -10,7 +10,6 @@ import { expect } from "chai"
 import { join } from "path"
 
 import { createGardenPlugin } from "@garden-io/sdk"
-import { defaultApiVersion } from "@garden-io/sdk/constants"
 import { makeTestGarden } from "@garden-io/sdk/testing"
 import { gardenPlugin } from ".."
 import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest"
@@ -18,13 +17,13 @@ import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest"
 import { ProjectConfig, defaultNamespace } from "@garden-io/core/build/src/config/project"
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 import { defaultDockerfileName } from "@garden-io/core/build/src/plugins/container/config"
-import { DEFAULT_BUILD_TIMEOUT_SEC } from "@garden-io/core/build/src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "@garden-io/core/build/src/constants"
 
 describe("conftest-container provider", () => {
   const projectRoot = join(__dirname, "test-project")
 
   const projectConfig: ProjectConfig = {
-    apiVersion: defaultApiVersion,
+    apiVersion: GardenApiVersion.v1,
     kind: "Project",
     name: "test",
     path: projectRoot,
@@ -83,7 +82,7 @@ describe("conftest-container provider", () => {
 
     garden["moduleConfigs"] = {
       foo: {
-        apiVersion: defaultApiVersion,
+        apiVersion: GardenApiVersion.v0,
         name: "foo",
         type: "foo",
         allowPublish: false,

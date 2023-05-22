@@ -25,9 +25,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config.
-apiVersion: garden.io/v1
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -159,7 +156,7 @@ timeout: 600
 
 spec:
   # POSIX-style path to a directory containing the policies to match the config against, or a
-  # specific .rego file, relative to the module root.
+  # specific .rego file, relative to the action root.
   # Must be a relative path, and should in most cases be within the project root.
   # Defaults to the `policyPath` set in the provider config.
   policyPath:
@@ -178,14 +175,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config.
-
-| Type     | Allowed Values                 | Default          | Required |
-| -------- | ------------------------------ | ---------------- | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `type`
 
@@ -415,7 +404,7 @@ Set a timeout for the test to complete, in seconds.
 [spec](#spec) > policyPath
 
 POSIX-style path to a directory containing the policies to match the config against, or a
-specific .rego file, relative to the module root.
+specific .rego file, relative to the action root.
 Must be a relative path, and should in most cases be within the project root.
 Defaults to the `policyPath` set in the provider config.
 
@@ -467,7 +456,7 @@ A list of files to test with the given policy. Must be POSIX-style paths, and ma
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `conftest`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

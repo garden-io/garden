@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import { GardenBaseError, ConfigurationError, TemplateStringError } from "../exceptions"
 import {
   ConfigContext,
@@ -200,12 +201,10 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
 
     return resolved
   } catch (err) {
-    const prefix = `Invalid template string (${truncate(string, 35).replace(/\n/g, "\\n")}): `
+    const prefix = `Invalid template string (${chalk.white(truncate(string, 35).replace(/\n/g, "\\n"))}): `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 
-    throw new TemplateStringError(message, {
-      err,
-    })
+    throw new TemplateStringError(message, {})
   }
 }
 

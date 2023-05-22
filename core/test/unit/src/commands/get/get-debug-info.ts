@@ -67,8 +67,6 @@ describe("GetDebugInfoCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "format": "json", "include-project": false }),
       })

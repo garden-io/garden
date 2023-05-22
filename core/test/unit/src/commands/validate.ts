@@ -18,8 +18,6 @@ describe("commands.validate", () => {
     await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -42,8 +40,6 @@ describe("commands.validate", () => {
         await command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: {},
           opts: withDefaultGlobalOpts({}),
         }),
@@ -62,8 +58,6 @@ describe("commands.validate", () => {
         await command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: {},
           opts: withDefaultGlobalOpts({}),
         }),

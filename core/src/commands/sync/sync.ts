@@ -7,6 +7,7 @@
  */
 
 import { CommandGroup } from "../base"
+import { SyncRestartCommand } from "./sync-restart"
 import { SyncStartCommand } from "./sync-start"
 import { SyncStatusCommand } from "./sync-status"
 import { SyncStopCommand } from "./sync-stop"
@@ -15,5 +16,5 @@ export class SyncCommand extends CommandGroup {
   name = "sync"
   help = "Manage synchronization to running actions."
 
-  subCommands = [SyncStartCommand, SyncStopCommand, SyncStatusCommand]
+  subCommands = [SyncStartCommand, SyncStopCommand, SyncRestartCommand, SyncStatusCommand]
 }

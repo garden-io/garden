@@ -35,8 +35,8 @@ export class LogOutCommand extends Command<{}, Opts> {
   `
   options = logoutOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Log out", "☁️")
+  printHeader({ log }) {
+    printHeader(log, "Log out", "☁️")
   }
 
   async action({ garden, log, opts }: CommandParams): Promise<CommandResult> {
@@ -47,7 +47,7 @@ export class LogOutCommand extends Command<{}, Opts> {
     const forceProjectCheck = !opts["disable-project-check"]
 
     if (forceProjectCheck) {
-      projectConfig = await findProjectConfig(log, garden.projectRoot)
+      projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
 
       // Fail if this is not run within a garden project
       if (!projectConfig) {

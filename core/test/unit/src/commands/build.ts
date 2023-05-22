@@ -29,14 +29,11 @@ describe("BuildCommand", () => {
   it("should build everything in a project and output the results", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const footerLog = garden.log
     const command = new BuildCommand()
 
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
@@ -95,14 +92,11 @@ describe("BuildCommand", () => {
   it("should optionally run single build and its dependencies", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const footerLog = garden.log
     const command = new BuildCommand()
 
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog,
       args: { names: ["module-b"] },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
@@ -119,7 +113,6 @@ describe("BuildCommand", () => {
   it("should skip disabled modules", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const footerLog = garden.log
     const command = new BuildCommand()
 
     await garden.scanAndAddConfigs()
@@ -128,8 +121,6 @@ describe("BuildCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
@@ -140,7 +131,6 @@ describe("BuildCommand", () => {
   it("should build disabled modules if they are dependencies of enabled modules", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const footerLog = garden.log
     const command = new BuildCommand()
 
     await garden.scanAndAddConfigs()
@@ -150,8 +140,6 @@ describe("BuildCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
@@ -163,7 +151,6 @@ describe("BuildCommand", () => {
   it("should build dependant modules when using the --with-dependants flag", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const footerLog = garden.log
     const command = new BuildCommand()
 
     const moduleConfigs: ModuleConfig[] = [
@@ -214,8 +201,6 @@ describe("BuildCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": true }), // <---
     })
@@ -235,15 +220,13 @@ describe("BuildCommand", () => {
     let projectPath: string
     let defaultOpts: {
       log: Log
-      headerLog: Log
-      footerLog: Log
     }
 
     beforeEach(async () => {
       const tmpGarden = await makeTestGardenBuildDependants([], { noCache: true })
       log = tmpGarden.log
       buildCommand = new BuildCommand()
-      defaultOpts = { log, headerLog: log, footerLog: log }
+      defaultOpts = { log }
       projectPath = join(tmpGarden.gardenDirPath, "../")
     })
 

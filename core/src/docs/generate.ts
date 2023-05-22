@@ -24,10 +24,10 @@ import { workflowConfigSchema } from "../config/workflow"
 import { configTemplateSchema } from "../config/config-template"
 import { renderActionTypeReference } from "./action-type"
 import { ActionKind } from "../plugin/action-types"
-import { DEFAULT_API_VERSION } from "../constants"
 import { renderTemplateConfigSchema } from "../config/render-template"
 import { pMemoizeClearAll } from "../lib/p-memoize"
 import { makeDocsLinkOpts } from "./common"
+import { GardenApiVersion } from "../constants"
 
 /* eslint-disable no-console */
 
@@ -69,7 +69,7 @@ export async function writeConfigReferenceDocs(
       commandInfo: { name: "generate-docs", args: {}, opts: {} },
       config: {
         path: __dirname,
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "generate-docs",
         defaultEnvironment,

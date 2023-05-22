@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { Autocompleter } from "../../../../src/cli/autocomplete"
-import { globalOptions } from "../../../../src/cli/params"
+import { globalDisplayOptions, globalOptions } from "../../../../src/cli/params"
 import { BuildCommand } from "../../../../src/commands/build"
 import { getBuiltinCommands } from "../../../../src/commands/commands"
 import { ConfigDump } from "../../../../src/garden"
@@ -79,6 +79,18 @@ describe("Autocompleter", () => {
     expect(lines).to.eql(["build --force", "build --force-refresh"])
   })
 
+  it("returns option flag alias if no canonical flag name is matched", () => {
+    const result = ac.getSuggestions("deploy --dev")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.eql(["deploy --dev", "deploy --dev-mode"])
+  })
+
+  it("returns single char alias", () => {
+    const result = ac.getSuggestions("build -f")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.eql(["build -f"])
+  })
+
   it("returns the command itself when matched verbatim", () => {
     const result = ac.getSuggestions("build")
     const lines = result.map((s) => s.line)
@@ -122,7 +134,7 @@ describe("Autocompleter", () => {
 
       const lines = result.map((s) => s.line)
 
-      for (const s of globalFlags.map((f) => "--" + f)) {
+      for (const s of Object.keys(globalDisplayOptions).map((f) => "--" + f)) {
         expect(lines).to.not.include("build " + s)
       }
     })

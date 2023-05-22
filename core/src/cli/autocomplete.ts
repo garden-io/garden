@@ -11,7 +11,7 @@ import { Command, CommandGroup } from "../commands/base"
 import { ConfigDump } from "../garden"
 import { Log } from "../logger/log-entry"
 import { parseCliArgs, pickCommand } from "./helpers"
-import { globalOptions, Parameter, Parameters } from "./params"
+import { globalDisplayOptions, globalGardenInstanceOptions, globalOptions, Parameter, Parameters } from "./params"
 
 export interface AutocompleteSuggestion {
   // What's being suggested in the last item in the split array
@@ -265,20 +265,34 @@ export class Autocompleter {
     }
 
     const opts: Parameters = {
-      ...(ignoreGlobalFlags ? {} : globalOptions),
+      ...(ignoreGlobalFlags ? {} : globalDisplayOptions),
+      ...globalGardenInstanceOptions,
       ...command.options,
     }
 
     let keys = Object.keys(opts)
+    let aliases = Object.values(opts).flatMap((o) => o.aliases || [])
+
+    let prefix = "--"
 
     // Filter on partial option flag entered
-    if (lastArg && lastArg.startsWith("--") && lastArg.length > 2) {
-      keys = keys.filter((k) => k.startsWith(lastArg.slice(2)))
+    if ((lastArg === "--" || lastArg?.startsWith("-")) && lastArg.length > 2) {
+      const slice = lastArg.slice(prefix.length)
+      keys = keys.filter((k) => k.startsWith(slice))
+
+      if (keys.length === 0) {
+        // Check aliases if no canonical key was matched
+        keys = aliases.filter((k) => k.startsWith(slice))
+      }
+    } else if (lastArg?.startsWith("-") && lastArg.length === 2) {
+      // Handle single-char aliases (e.g. -f, -d)
+      prefix = "-"
+      keys = aliases.filter((k) => k === lastArg.slice(1))
     }
 
     return keys.map((k) => {
       const stringArguments = [...rest]
-      const s = "--" + k
+      const s = prefix + k
 
       if (rest.length === 0) {
         stringArguments.push(s)

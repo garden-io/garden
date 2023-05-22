@@ -39,7 +39,7 @@
     * [AWS](./k8s-plugins/remote-k8s/create-cluster/aws.md)
     * [GCP](./k8s-plugins/remote-k8s/create-cluster/gcp.md)
     * [Azure](./k8s-plugins/remote-k8s/create-cluster/azure.md)
-  * [2. Configure Container Registry (Optional)](./k8s-plugins/remote-k8s/configure-registry/README.md)
+  * [2. Configure Container Registry](./k8s-plugins/remote-k8s/configure-registry/README.md)
     * [AWS](./k8s-plugins/remote-k8s/configure-registry/aws.md)
     * [GCP](./k8s-plugins/remote-k8s/configure-registry/gcp.md)
     * [Azure](./k8s-plugins/remote-k8s/configure-registry/azure.md)
@@ -64,13 +64,13 @@
 
 * [About](./terraform-plugin/about.md)
 * [Provider Configuration](./terraform-plugin/configure-provider.md)
-* [Module Configuration](./terraform-plugin/configure-modules.md)
+* [Deploy action Configuration](./terraform-plugin/configure-deploy-actions.md)
 
 ## ☘️ Pulumi Plugin
 
 * [About](./pulumi-plugin/about.md)
 * [Provider Configuration](./pulumi-plugin/configure-provider.md)
-* [Module Configuration](./pulumi-plugin/configure-modules.md)
+* [Deploy action Configuration](./pulumi-plugin/configure-deploy-actions.md)
 
 ## 🌹 Other Plugins
 
@@ -168,6 +168,7 @@
 * [Module Template Configuration](./reference/module-template-config.md)
 * [RenderTemplate Reference](./reference/render-template-config.md)
 * [Workflow Configuration](./reference/workflow-config.md)
+* [Garden Containers on Docker Hub](./reference/dockerhub-containers.md)
 
 ## 🎋 Misc
 

@@ -39,7 +39,7 @@ import { createGardenPlugin, ProviderActionName } from "../../../src/plugin/plug
 import { ConfigureProviderParams } from "../../../src/plugin/handlers/Provider/configureProvider"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { ModuleConfig, baseModuleSpecSchema } from "../../../src/config/module"
-import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, PREVIOUS_API_VERSION, gardenEnv } from "../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion, gardenEnv } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set, mapValues, omit, cloneDeep } from "lodash"
 import { joi } from "../../../src/config/common"
@@ -224,11 +224,11 @@ describe("Garden", () => {
     })
 
     it("should throw if the specified environment isn't configured", async () => {
-      await expectError(async () => makeTestGarden(projectRootA, { environmentName: "bla" }), { type: "parameter" })
+      await expectError(async () => makeTestGarden(projectRootA, { environmentString: "bla" }), { type: "parameter" })
     })
 
     it("should throw if environment starts with 'garden-'", async () => {
-      await expectError(async () => makeTestGarden(projectRootA, { environmentName: "garden-bla" }), {
+      await expectError(async () => makeTestGarden(projectRootA, { environmentString: "garden-bla" }), {
         type: "parameter",
       })
     })
@@ -313,7 +313,7 @@ describe("Garden", () => {
 
       await _garden.localConfigStore.set("defaultEnv", "remote")
 
-      const garden = await TestGarden.factory(_garden.projectRoot, { config, environmentName: "local" })
+      const garden = await TestGarden.factory(_garden.projectRoot, { config, environmentString: "local" })
 
       expect(garden.environmentName).to.equal("local")
     })
@@ -361,8 +361,8 @@ describe("Garden", () => {
       const projectRoot = getDataDir("test-projects", "module-varfiles")
 
       const garden = await makeTestGarden(projectRoot)
-      // In the normal flow, `garden.cliVariables` is populated with variables passed via the `--var` CLI option.
-      garden.cliVariables["d"] = "from-cli-var"
+      // In the normal flow, `garden.variableOverrides` is populated with variables passed via the `--var` CLI option.
+      garden.variableOverrides["d"] = "from-cli-var"
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("module-a")
       expect({ ...garden.variables, ...module.variables }).to.eql({
@@ -398,7 +398,7 @@ describe("Garden", () => {
 
     it("should set the namespace attribute, if specified", async () => {
       const projectRoot = getDataDir("test-project-empty")
-      const garden = await makeTestGarden(projectRoot, { plugins: [testPlugin()], environmentName: "foo.local" })
+      const garden = await makeTestGarden(projectRoot, { plugins: [testPlugin()], environmentString: "foo.local" })
       expect(garden.environmentName).to.equal("local")
       expect(garden.namespace).to.equal("foo")
     })
@@ -410,7 +410,7 @@ describe("Garden", () => {
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
       })
-      const garden = await TestGarden.factory(pathFoo, { config, environmentName: "default" })
+      const garden = await TestGarden.factory(pathFoo, { config, environmentString: "default" })
 
       expect(garden.environmentName).to.equal("default")
       expect(garden.namespace).to.equal("foo")
@@ -423,7 +423,7 @@ describe("Garden", () => {
         environments: [{ name: "default", defaultNamespace: null, variables: {} }],
         providers: [{ name: "foo" }],
       })
-      await expectError(() => TestGarden.factory(pathFoo, { config, environmentName: "default" }), {
+      await expectError(() => TestGarden.factory(pathFoo, { config, environmentString: "default" }), {
         contains:
           "Environment default has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default).",
       })
@@ -439,8 +439,8 @@ describe("Garden", () => {
       })
       const garden = await TestGarden.factory(pathFoo, {
         config,
-        environmentName: "default",
-        variables: { foo: "override" },
+        environmentString: "default",
+        variableOverrides: { foo: "override" },
       })
 
       expect(garden.variables).to.eql({ foo: "override", bar: "something" })
@@ -448,7 +448,7 @@ describe("Garden", () => {
 
     it("should set the default proxy config if non is specified", async () => {
       const config: ProjectConfig = {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "test",
         path: pathFoo,
@@ -461,8 +461,8 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(pathFoo, {
         config,
-        environmentName: "default",
-        variables: { foo: "override" },
+        environmentString: "default",
+        variableOverrides: { foo: "override" },
       })
 
       expect(garden.proxy).to.eql({ hostname: "localhost" })
@@ -470,7 +470,7 @@ describe("Garden", () => {
 
     it("should optionally read the proxy config from the project config", async () => {
       const config: ProjectConfig = {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "test",
         path: pathFoo,
@@ -486,8 +486,8 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(pathFoo, {
         config,
-        environmentName: "default",
-        variables: { foo: "override" },
+        environmentString: "default",
+        variableOverrides: { foo: "override" },
       })
 
       expect(garden.proxy).to.eql({ hostname: "127.0.0.1" })
@@ -498,7 +498,7 @@ describe("Garden", () => {
       try {
         gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS = "example.com"
         const configNoProxy: ProjectConfig = {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v1,
           kind: "Project",
           name: "test",
           path: pathFoo,
@@ -509,7 +509,7 @@ describe("Garden", () => {
           variables: { foo: "default", bar: "something" },
         }
         const configWithProxy: ProjectConfig = {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v1,
           kind: "Project",
           name: "test",
           path: pathFoo,
@@ -525,14 +525,14 @@ describe("Garden", () => {
 
         const gardenWithProxyConfig = await TestGarden.factory(pathFoo, {
           config: configWithProxy,
-          environmentName: "default",
-          variables: { foo: "override" },
+          environmentString: "default",
+          variableOverrides: { foo: "override" },
           noCache: true,
         })
         const gardenNoProxyConfig = await TestGarden.factory(pathFoo, {
           config: configNoProxy,
-          environmentName: "default",
-          variables: { foo: "override" },
+          environmentString: "default",
+          variableOverrides: { foo: "override" },
           noCache: true,
         })
 
@@ -2254,7 +2254,7 @@ describe("Garden", () => {
   describe("scanForConfigs", () => {
     it("should find all garden configs in the project directory", async () => {
       const garden = await makeTestGardenA()
-      const files = await garden.scanForConfigs(garden.projectRoot)
+      const files = await garden.scanForConfigs(garden.log, garden.projectRoot)
       expect(files).to.eql([
         join(garden.projectRoot, "commands.garden.yml"),
         join(garden.projectRoot, "garden.yml"),
@@ -2267,14 +2267,14 @@ describe("Garden", () => {
     it("should respect the include option, if specified", async () => {
       const garden = await makeTestGardenA()
       set(garden, "moduleIncludePatterns", ["module-a/**/*"])
-      const files = await garden.scanForConfigs(garden.projectRoot)
+      const files = await garden.scanForConfigs(garden.log, garden.projectRoot)
       expect(files).to.eql([join(garden.projectRoot, "module-a", "garden.yml")])
     })
 
     it("should respect the exclude option, if specified", async () => {
       const garden = await makeTestGardenA()
       set(garden, "moduleExcludePatterns", ["module-a/**/*"])
-      const files = await garden.scanForConfigs(garden.projectRoot)
+      const files = await garden.scanForConfigs(garden.log, garden.projectRoot)
       expect(files).to.eql([
         join(garden.projectRoot, "commands.garden.yml"),
         join(garden.projectRoot, "garden.yml"),
@@ -2287,7 +2287,7 @@ describe("Garden", () => {
       const garden = await makeTestGardenA()
       set(garden, "moduleIncludePatterns", ["module*/**/*"])
       set(garden, "moduleExcludePatterns", ["module-a/**/*"])
-      const files = await garden.scanForConfigs(garden.projectRoot)
+      const files = await garden.scanForConfigs(garden.log, garden.projectRoot)
       expect(files).to.eql([
         join(garden.projectRoot, "module-b", "garden.yml"),
         join(garden.projectRoot, "module-c", "garden.yml"),
@@ -2393,7 +2393,7 @@ describe("Garden", () => {
 
       // note that module config versions should default to v0 (previous version)
       expect(omitUndefined(configA)).to.eql({
-        apiVersion: PREVIOUS_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Module",
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         include: [],
@@ -2425,7 +2425,7 @@ describe("Garden", () => {
         },
       })
       expect(omitUndefined(configB)).to.eql({
-        apiVersion: PREVIOUS_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Module",
         build: { dependencies: [{ name: "foo-test-a", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         include: [],
@@ -2633,7 +2633,7 @@ describe("Garden", () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "config-action-kind-v0"))
 
       await expectError(() => garden.scanAndAddConfigs(), {
-        contains: `Action kinds are only supported in project configurations with "apiVersion: ${DEFAULT_API_VERSION}"`,
+        contains: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}"`,
       })
     })
 
@@ -2717,7 +2717,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -2764,7 +2764,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -2810,7 +2810,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -2856,7 +2856,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -2903,7 +2903,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -2961,7 +2961,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -2975,7 +2975,7 @@ describe("Garden", () => {
           spec: {},
         },
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-b",
           type: "test",
           allowPublish: false,
@@ -3036,7 +3036,7 @@ describe("Garden", () => {
       it("resolves referenced project variables", async () => {
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3060,7 +3060,7 @@ describe("Garden", () => {
       it("resolves referenced module variables", async () => {
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3087,7 +3087,7 @@ describe("Garden", () => {
       it("prefers module variables over project variables", async () => {
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3114,7 +3114,7 @@ describe("Garden", () => {
       it("resolves project variables in module variables", async () => {
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3141,7 +3141,7 @@ describe("Garden", () => {
       it("exposes module vars to other modules", async () => {
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3158,7 +3158,7 @@ describe("Garden", () => {
             },
           },
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-b",
             type: "test",
             allowPublish: false,
@@ -3243,7 +3243,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -3285,7 +3285,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -3319,7 +3319,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -3369,7 +3369,7 @@ describe("Garden", () => {
 
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3428,7 +3428,7 @@ describe("Garden", () => {
 
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3612,7 +3612,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "foo",
           allowPublish: false,
@@ -3660,7 +3660,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "foo",
           allowPublish: false,
@@ -3714,7 +3714,7 @@ describe("Garden", () => {
       expect(test.getInternal()).to.eql(internal)
     })
 
-    it.only("throws with helpful message if action type doesn't exist", async () => {
+    it("throws with helpful message if action type doesn't exist", async () => {
       const garden = await TestGarden.factory(pathFoo, {
         config: createProjectConfig({
           name: "test",
@@ -3737,10 +3737,7 @@ describe("Garden", () => {
       ])
 
       await expectError(() => garden.resolveModules({ log: garden.log }), {
-        contains: [
-          "Unrecognized action type 'invalidtype'",
-          "Are you missing a provider configuration?",
-        ],
+        contains: ["Unrecognized action type 'invalidtype'", "Are you missing a provider configuration?"],
       })
     })
 
@@ -3789,7 +3786,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "exec",
           allowPublish: false,
@@ -3802,7 +3799,7 @@ describe("Garden", () => {
           spec: {},
         },
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-b",
           type: "exec",
           allowPublish: false,
@@ -3899,7 +3896,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "foo",
           allowPublish: false,
@@ -3964,7 +3961,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "foo",
           allowPublish: false,
@@ -4049,7 +4046,7 @@ describe("Garden", () => {
 
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "foo",
             type: "foo",
             allowPublish: false,
@@ -4127,7 +4124,7 @@ describe("Garden", () => {
 
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "foo",
             type: "foo",
             allowPublish: false,
@@ -4474,11 +4471,12 @@ describe("Garden", () => {
       const garden = await makeTestGardenA()
       const config = await garden.resolveModule("module-a")
       const version: ModuleVersion = {
+        contentHash: "banana",
         versionString: "banana",
         dependencyVersions: {},
         files: [],
       }
-      garden.cache.set(garden.log, ["moduleVersions", config.name], version, getModuleCacheContext(config))
+      garden.treeCache.set(garden.log, ["moduleVersions", config.name], version, getModuleCacheContext(config))
 
       const result = await garden.resolveModuleVersion(garden.log, config, [])
 
@@ -4489,7 +4487,7 @@ describe("Garden", () => {
       const garden = await makeTestGardenA()
       await garden.scanAndAddConfigs()
 
-      garden.cache.delete(garden.log, ["moduleVersions", "module-b"])
+      garden.treeCache.delete(garden.log, ["moduleVersions", "module-b"])
 
       const config = await garden.resolveModule("module-b")
       garden.vcs.getTreeVersion = async () => ({
@@ -4509,11 +4507,12 @@ describe("Garden", () => {
       const garden = await makeTestGardenA()
       const config = await garden.resolveModule("module-a")
       const version: ModuleVersion = {
+        contentHash: "banana",
         versionString: "banana",
         dependencyVersions: {},
         files: [],
       }
-      garden.cache.set(garden.log, ["moduleVersions", config.name], version, getModuleCacheContext(config))
+      garden.treeCache.set(garden.log, ["moduleVersions", config.name], version, getModuleCacheContext(config))
 
       const result = await garden.resolveModuleVersion(garden.log, config, [], true)
 
@@ -4548,11 +4547,7 @@ describe("Garden", () => {
 
         const treeVersion = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, module)
 
-        expect(result).to.eql({
-          versionString: getModuleVersionString(module, { ...treeVersion, name: "module-a" }, []),
-          dependencyVersions: {},
-          files: [],
-        })
+        expect(result.versionString).to.equal(getModuleVersionString(module, { ...treeVersion, name: "module-a" }, []))
       })
 
       it("should hash together the version of the module and all dependencies", async () => {
@@ -4568,6 +4563,7 @@ describe("Garden", () => {
         gardenA.clearCaches()
 
         const moduleVersionA: ModuleVersion = {
+          contentHash: treeVersionA.contentHash,
           versionString: treeVersionA.contentHash,
           files: [],
           dependencyVersions: {},
@@ -4577,6 +4573,7 @@ describe("Garden", () => {
 
         const versionStringB = "qwerty"
         const moduleVersionB: ModuleVersion = {
+          contentHash: versionStringB,
           versionString: versionStringB,
           files: [],
           dependencyVersions: { "module-a": moduleVersionA.versionString },
@@ -4590,19 +4587,17 @@ describe("Garden", () => {
         handlerA.setTestTreeVersion(moduleC.path, treeVersionC)
 
         const gardenResolvedModuleVersion = await gardenA.resolveModuleVersion(gardenA.log, moduleC, [moduleA, moduleB])
-        const manuallyResolvedModuleVersion = {
-          versionString: getModuleVersionString(moduleC, { ...treeVersionC, name: "module-c" }, [
+
+        expect(gardenResolvedModuleVersion.versionString).to.equal(
+          getModuleVersionString(moduleC, { ...treeVersionC, name: "module-c" }, [
             { ...moduleVersionA, name: "module-a" },
             { ...moduleVersionB, name: "module-b" },
-          ]),
-          dependencyVersions: {
-            "module-a": moduleVersionA.versionString,
-            "module-b": moduleVersionB.versionString,
-          },
-          files: [],
-        }
-
-        expect(gardenResolvedModuleVersion).to.eql(manuallyResolvedModuleVersion)
+          ])
+        )
+        expect(gardenResolvedModuleVersion.dependencyVersions).to.eql({
+          "module-a": moduleVersionA.versionString,
+          "module-b": moduleVersionB.versionString,
+        })
       })
 
       it("should not include module's garden.yml in version file list", async () => {

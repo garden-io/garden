@@ -20,8 +20,6 @@ describe("build actions", () => {
   let graph: ConfigGraph
   let log: ActionLog
   let actionRouter: ActionRouter
-  // eslint-disable-next-line no-unused
-  let returnWrongOutputsCfgKey: string
   let resolvedBuildAction: ResolvedBuildAction
   let module: GardenModule
 
@@ -31,13 +29,12 @@ describe("build actions", () => {
     graph = data.graph
     log = data.log
     actionRouter = data.actionRouter
-    returnWrongOutputsCfgKey = data.returnWrongOutputsCfgKey
     resolvedBuildAction = data.resolvedBuildAction
     module = data.module
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   describe("build.getStatus", () => {

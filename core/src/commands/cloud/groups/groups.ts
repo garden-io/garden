@@ -54,8 +54,8 @@ export class GroupsListCommand extends Command<{}, Opts> {
 
   options = groupsListOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "List groups", "")
+  printHeader({ log }) {
+    printHeader(log, "List groups", "")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<Groups[]>> {

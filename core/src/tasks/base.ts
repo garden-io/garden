@@ -129,7 +129,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
 
   abstract getDescription(): string
 
-  abstract getStatus(params: TaskProcessParams): Promise<O | null>
+  abstract getStatus(params: TaskProcessParams): null | Promise<O | null>
 
   abstract process(params: TaskProcessParams): Promise<O>
 
@@ -228,7 +228,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
     }
   }
 
-  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<O | null>
+  abstract getStatus(params: ActionTaskStatusParams<T>): null | Promise<O | null>
 
   abstract process(params: ActionTaskProcessParams<T, O>): Promise<O>
 

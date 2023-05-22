@@ -383,16 +383,12 @@ export function describeParameters(args?: Parameters) {
   }))
 }
 
-export const globalOptions = {
-  "root": new PathParameter({
-    help: "Override project root directory (defaults to working directory). Can be absolute or relative to current directory.",
-  }),
+export const globalDisplayOptions = {
   "silent": new BooleanParameter({
     help: "Suppress log output. Same as setting --logger-type=quiet.",
     defaultValue: false,
     cliOnly: true,
   }),
-  "env": new EnvironmentParameter(),
   "logger-type": new ChoicesParameter({
     choices: [...LOGGER_TYPES],
     help: deline`
@@ -431,18 +427,6 @@ export const globalOptions = {
       )} logger. I.e., log status changes are rendered as new lines instead of being updated in-place.`,
     defaultValue: false,
   }),
-  "yes": new BooleanParameter({
-    aliases: ["y"],
-    help: "Automatically approve any yes/no prompts during execution.",
-    defaultValue: false,
-  }),
-  "force-refresh": new BooleanParameter({
-    help: "Force refresh of any caches, e.g. cached provider statuses.",
-    defaultValue: false,
-  }),
-  "var": new StringsParameter({
-    help: 'Set a specific variable value, using the format <key>=<value>, e.g. `--var some-key=custom-value`. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. `--var key-a=foo,key-b="value with quotes"`.',
-  }),
   "version": new BooleanParameter({
     aliases: ["V"],
     help: "Show the current CLI version.",
@@ -451,9 +435,30 @@ export const globalOptions = {
     aliases: ["h"],
     help: "Show help",
   }),
-  "disable-port-forwards": new BooleanParameter({
-    help: "Disable automatic port forwarding when in watch mode. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS=true in your environment.",
+}
+
+export const globalGardenInstanceOptions = {
+  "root": new PathParameter({
+    help: "Override project root directory (defaults to working directory). Can be absolute or relative to current directory.",
   }),
+  "env": new EnvironmentParameter(),
+  "force-refresh": new BooleanParameter({
+    help: "Force refresh of any caches, e.g. cached provider statuses.",
+    defaultValue: false,
+  }),
+  "var": new StringsParameter({
+    help: 'Set a specific variable value, using the format <key>=<value>, e.g. `--var some-key=custom-value`. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. `--var key-a=foo,key-b="value with quotes"`.',
+  }),
+  "yes": new BooleanParameter({
+    aliases: ["y"],
+    help: "Automatically approve any yes/no prompts during execution, and allow running protected commands against production environments.",
+    defaultValue: false,
+  }),
+}
+
+export const globalOptions = {
+  ...globalGardenInstanceOptions,
+  ...globalDisplayOptions,
 }
 
 export type GlobalOptions = typeof globalOptions

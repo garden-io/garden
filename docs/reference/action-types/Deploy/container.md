@@ -23,9 +23,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config.
-apiVersion: garden.io/v1
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -186,8 +183,8 @@ spec:
 
   # List of volumes that should be mounted when starting the container.
   #
-  # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-  # deploying the container.
+  # Note: If neither `hostPath` nor `action` is specified,
+  # an empty ephemeral volume is created and mounted when deploying the container.
   volumes:
     - # The name of the allocated volume.
       name:
@@ -202,8 +199,8 @@ spec:
       # config source directory (or absolute).
       hostPath:
 
-      # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are
-      # `persistentvolumeclaim` and `configmap`, for example.
+      # The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported
+      # action types are `persistentvolumeclaim` and `configmap`.
       #
       # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
       # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
@@ -220,7 +217,7 @@ spec:
   # POSIX capabilities to remove when running the container.
   dropCapabilities:
 
-  # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+  # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
   tty: false
 
   # Specifies the container's deployment strategy.
@@ -427,14 +424,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config.
-
-| Type     | Allowed Values                 | Default          | Required |
-| -------- | ------------------------------ | ---------------- | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `type`
 
@@ -785,7 +774,8 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 
 List of volumes that should be mounted when starting the container.
 
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+Note: If neither `hostPath` nor `action` is specified,
+an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -836,7 +826,7 @@ spec:
 
 [spec](#spec) > [volumes](#specvolumes) > action
 
-The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`, for example.
+The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`.
 
 Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
 
@@ -878,7 +868,7 @@ POSIX capabilities to remove when running the container.
 
 [spec](#spec) > tty
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -1549,7 +1539,7 @@ Note: This setting may be overridden or ignored in some cases. For example, when
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `container`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

@@ -47,24 +47,21 @@ orbs:
   only-prs: &only-prs
     filters:
       branches:
+        # TODO: remove regex once 0.13 is merged to main.
         ignore: /^main|0\.13$/
+        #ignore: main
       tags:
         ignore: /.*/
 
 
-  # Only run jobs on main
+  # Only run jobs on main branch
   only-main: &only-main
     filters:
       branches:
-        only: main
-      tags:
-        ignore: /.*/
-
-  # Only run jobs on 0.13 (bonsai)
-  only-bonsai: &only-bonsai
-    filters:
-      branches:
-        only: "0.13"
+        only:
+          - main
+          # TODO: remove 0.13 once 0.13 is merged to main.
+          - "0.13"
       tags:
         ignore: /.*/
 
@@ -74,7 +71,7 @@ orbs:
       branches:
         ignore: /.*/
       tags:
-        only: /\d+\.\d+\.\d+(-\d+)?/
+        only: /\d+\.\d+\.\d+(-[a-zA-Z0-9]+)?/
 
   # Only run for PRs from core team
   only-internal-prs: &only-internal-prs
@@ -426,17 +423,42 @@ jobs:
       - deploy:
           name: Release docker images
           command: |
-            # bonsai edge
-            if [ "$CIRCLE_BRANCH" == "0.13" ]; then
-              MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai \
-                docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
+            # TODO: read minor version from package.json file, instead of hardcoding.
+            export MAJOR_VERSION=0
+            export MINOR_VERSION=13
+            export CODENAME=bonsai
+
+            if [[ "${CIRCLE_TAG}" = "" ]]; then
+              # If we don't have a tag, this is an edge release
+              export PRERELEASE=edge
+            else
+              # We have a tag.
+
+              # Double check that this is an 0.13 version number, because otherwise
+              # it would be inconsistent with the hardcoded CODENAME export above.
+              if ! [[ ${CIRCLE_TAG} =~ ^0.13 ]]; then
+                echo "This pipeline should only build 0.13 releases"
+                exit 1
+              fi
+
+              # Parse SemVer tag into different parts
+              regex="^([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9A-Za-z-]+))?(\+([0-9A-Za-z-]+))?$"
+
+              # production release, or prerelease
+              if [[ ${CIRCLE_TAG} =~ $regex ]]; then
+                  export MAJOR_VERSION=${BASH_REMATCH[1]}
+                  export MINOR_VERSION=${BASH_REMATCH[2]}
+                  export PATCH_VERSION=${BASH_REMATCH[3]}
+                  export PRERELEASE=${BASH_REMATCH[5]}
+              else
+                  echo "Invalid SemVer tag."
+                  exit 1
+              fi
             fi
 
-            # TODO: Handle $CIRCLE_TAG as well
-            if [ "$CIRCLE_TAG" != "" ]; then
-              echo "TODO: implement bonsai production release"
-              exit 1
-            fi
+            # Build and publish
+            docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
+
 
   test-docker-gcloud:
     docker:
@@ -967,11 +989,6 @@ workflows:
           requires: [build]
           kubernetesVersion: "1.23.3"
           minikubeVersion: "v1.25.2"
-      - test-minikube:
-          name: vm-1.19-minikube
-          requires: [build]
-          kubernetesVersion: "1.19.7"
-          minikubeVersion: "v1.16.0"
       - test-microk8s:
           name: vm-1.24-microk8s
           requires: [build]
@@ -1014,21 +1031,20 @@ workflows:
       #     requires: [build]
       #     kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
 
-      # TODO-0.13.0: revert to edge version and main branch
+      # This is only for edge release (Overrides version to edge-bonsai)
       - build-dist:
-          <<: *only-bonsai
+          <<: *only-main
           name: build-dist-edge
           version: edge-bonsai
           requires: [build]
 
       - github-edge-prerelease:
-          <<: *only-bonsai
+          <<: *only-main
           version: edge-bonsai
           requires: [build-dist-edge]
-      # end of TODO-0.13.0
 
       - dockerhub-release:
-          <<: *only-bonsai
+          <<: *only-main
           context: docker
           requires:
             - build-dist-edge

@@ -23,9 +23,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config.
-apiVersion: garden.io/v1
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -156,18 +153,8 @@ kind:
 timeout: 300
 
 spec:
-  # A list of access modes supported by the volume when mounting. At least one must be specified. The available modes
-  # are as follows:
-  #
-  #  ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
-  #  ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
-  #  ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
-  #
-  # At least one mode must be specified.
-  accessModes:
-
-  # The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in
-  # most cases you should leave this unset.
+  # The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so
+  # in most cases you should leave this unset.
   namespace:
 
   # The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec
@@ -227,14 +214,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config.
-
-| Type     | Allowed Values                 | Default          | Required |
-| -------- | ------------------------------ | ---------------- | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `type`
 
@@ -459,27 +438,11 @@ Timeout for the deploy to complete, in seconds.
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.accessModes[]`
-
-[spec](#spec) > accessModes
-
-A list of access modes supported by the volume when mounting. At least one must be specified. The available modes are as follows:
-
- ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
- ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
- ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
-
-At least one mode must be specified.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
 ### `spec.namespace`
 
 [spec](#spec) > namespace
 
-The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
+The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
 
 | Type     | Required |
 | -------- | -------- |
@@ -639,7 +602,7 @@ VolumeName is the binding reference to the PersistentVolume backing this claim.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `persistentvolumeclaim`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

@@ -74,7 +74,7 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new ValidateCommand(),
 ]
 
-export function flattenCommands(commands: (Command | CommandGroup)[]) {
+export function flattenCommands(commands: (Command | CommandGroup)[]): Command[] {
   return commands.flatMap((cmd) => (cmd instanceof CommandGroup ? [cmd, ...cmd.getSubCommands()] : [cmd]))
 }
 

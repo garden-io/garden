@@ -30,6 +30,7 @@ import stripAnsi = require("strip-ansi")
 import { highlightYaml, safeDumpYaml } from "../../../../src/util/serialization"
 import { freezeTime } from "../../../helpers"
 import chalk = require("chalk")
+import format from "date-fns/format"
 
 const logger: Logger = getRootLogger()
 
@@ -145,7 +146,7 @@ describe("renderers", () => {
         const now = freezeTime()
         const entry = logger.createLog().info("hello world").getLatestEntry()
 
-        expect(formatForTerminal(entry, logger)).to.equal(`[${now.toISOString()}] ${msgStyle("hello world")}\n`)
+        expect(formatForTerminal(entry, logger)).to.equal(`${chalk.gray(format(now, "HH:mm:ss"))} ${msgStyle("hello world")}\n`)
       })
       after(() => {
         logger.showTimestamps = false

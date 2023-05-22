@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi, joiIdentifier } from "../config/common"
+import { createSchema, joi, joiIdentifier } from "../config/common"
 import { deline } from "../util/string"
 import { PluginTool } from "../util/ext-tools"
 
@@ -21,15 +21,21 @@ export interface ToolBuildSpec {
   }
 }
 
-const toolBuildSchema = () =>
-  joi.object().keys({
+const toolBuildSchema = createSchema({
+  name: "plugin-tool-build",
+  keys: () => ({
     platform: joi
       .string()
       .allow("darwin", "linux", "windows")
       .required()
       .example("linux")
       .description("The platform this build is for."),
-    architecture: joi.string().allow("amd64").required().example("amd64").description("The architecture of the build."),
+    architecture: joi
+      .string()
+      .allow("amd64", "arm64")
+      .required()
+      .example("amd64")
+      .description("The architecture of the build."),
     url: joi
       .string()
       .uri({ allowRelative: false })
@@ -52,7 +58,8 @@ const toolBuildSchema = () =>
           .description("The path to the binary within the archive, if applicable."),
       })
       .description("Specify instructions for extraction, if the URL points to an archive."),
-  })
+  }),
+})
 
 export interface PluginToolSpec {
   name: string
@@ -66,8 +73,9 @@ export interface PluginTools {
   [name: string]: PluginTool
 }
 
-export const toolSchema = () =>
-  joi.object().keys({
+export const toolSchema = createSchema({
+  name: "plugin-tool",
+  keys: () => ({
     name: joiIdentifier().description("The name of the tool. This must be unique within the provider."),
     description: joi.string().required().description("A short description of the tool, used for help texts."),
     type: joi
@@ -84,4 +92,5 @@ export const toolSchema = () =>
       .boolean()
       .description("Set to true if this tool should be pre-fetched during Garden container image builds.")
       .meta({ internal: true }),
-  })
+  }),
+})

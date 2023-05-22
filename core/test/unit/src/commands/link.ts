@@ -47,8 +47,6 @@ describe("LinkCommand", () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           action: "build.a",
           path: localActionPath,
@@ -72,8 +70,6 @@ describe("LinkCommand", () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           action: "build.a",
           path: join("..", "test-projects", "local-action-sources", "build.a"),
@@ -97,8 +93,6 @@ describe("LinkCommand", () => {
           cmd.action({
             garden,
             log,
-            headerLog: log,
-            footerLog: log,
             args: {
               action: "build.c",
               path: "",
@@ -115,8 +109,6 @@ describe("LinkCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           action: "build.a",
           path,
@@ -155,8 +147,6 @@ describe("LinkCommand", () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           module: "module-a",
           path: localModulePath,
@@ -180,8 +170,6 @@ describe("LinkCommand", () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           module: "module-a",
           path: join("..", "test-projects", "local-module-sources", "module-a"),
@@ -205,8 +193,6 @@ describe("LinkCommand", () => {
           cmd.action({
             garden,
             log,
-            headerLog: log,
-            footerLog: log,
             args: {
               module: "banana",
               path: "",
@@ -223,8 +209,6 @@ describe("LinkCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           module: "module-a",
           path,
@@ -264,8 +248,6 @@ describe("LinkCommand", () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           source: "source-a",
           path: localSourcePath,
@@ -287,8 +269,6 @@ describe("LinkCommand", () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           source: "source-a",
           path: join("..", "test-projects", "local-project-sources"),
@@ -312,8 +292,6 @@ describe("LinkCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           source: "source-a",
           path,

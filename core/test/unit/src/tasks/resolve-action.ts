@@ -230,7 +230,7 @@ describe("ResolveActionTask", () => {
 
       garden.variables.a = 1
       garden.variables.b = 200
-      garden.cliVariables.b = 2000 // <-- should win
+      garden.variableOverrides.b = 2000 // <-- should win
 
       const task = await getTask("Build", "foo")
       const result = await garden.processTask(task, log, { throwOnError: true })

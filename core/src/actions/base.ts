@@ -11,7 +11,6 @@ import titleize from "titleize"
 import type { ConfigGraph, GetActionOpts, ResolvedConfigGraph } from "../graph/config-graph"
 import {
   ActionReference,
-  apiVersionSchema,
   DeepPrimitiveMap,
   includeGuideLink,
   joi,
@@ -22,6 +21,7 @@ import {
   joiVariables,
   parseActionReference,
   createSchema,
+  unusedApiVersionSchema,
 } from "../config/common"
 import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList, stableStringify } from "../util/string"
@@ -33,7 +33,7 @@ import { actionOutputsSchema } from "../plugin/handlers/base/base"
 import type { GraphResult, GraphResults } from "../graph/results"
 import type { RunResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
-import { cloneDeep, flatten, fromPairs, isString, omit, sortBy } from "lodash"
+import { cloneDeep, flatten, fromPairs, isString, memoize, omit, sortBy } from "lodash"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import { relative } from "path"
 import { InternalError } from "../exceptions"
@@ -69,55 +69,53 @@ import { LinkedSource } from "../config-store/local"
 const actionInternalFieldsSchema = createSchema({
   name: "action-config-internal-fields",
   extend: baseInternalFieldsSchema,
-  keys: {
+  keys: () => ({
     groupName: joi.string().optional().meta({ internal: true }),
     moduleName: joi.string().optional().meta({ internal: true }),
     resolved: joi.boolean().optional().meta({ internal: true }),
-  },
+  }),
   allowUnknown: true,
   meta: { internal: true },
 })
 
-const actionSourceSpecSchema = () =>
-  joi
-    .object()
-    .keys({
-      path: joi
-        .posixPath()
-        .relativeOnly()
-        .description(
-          `A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!`
-        ),
-      repository: joi
-        .object()
-        .keys({
-          url: joiRepositoryUrl().required(),
-        })
-        .description(
-          `When set, Garden will import the action source from this repository, but use this action configuration (and not scan for configs in the separate repository).`
-        ),
-    })
-    .description(
-      dedent`
-        By default, the directory where the action is defined is used as the source for the build context.
+const actionSourceSpecSchema = createSchema({
+  name: "action-source-spec",
+  description: dedent`
+    By default, the directory where the action is defined is used as the source for the build context.
 
-        You can override this by setting either \`source.path\` to another (POSIX-style) path relative to the action source directory, or \`source.repository\` to get the source from an external repository.
+    You can override this by setting either \`source.path\` to another (POSIX-style) path relative to the action source directory, or \`source.repository\` to get the source from an external repository.
 
-        If using \`source.path\`, you must make sure the target path is in a git repository.
+    If using \`source.path\`, you must make sure the target path is in a git repository.
 
-        For \`source.repository\` behavior, please refer to the [Remote Sources guide](${DOCS_BASE_URL}/advanced/using-remote-sources).
-      `
-    )
-    .oxor("path", "repository")
-    .meta({ name: "action-source", advanced: true, templateContext: ActionConfigContext })
+    For \`source.repository\` behavior, please refer to the [Remote Sources guide](${DOCS_BASE_URL}/advanced/using-remote-sources).
+  `,
+  keys: () => ({
+    path: joi
+      .posixPath()
+      .relativeOnly()
+      .description(
+        `A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!`
+      ),
+    repository: joi
+      .object()
+      .keys({
+        url: joiRepositoryUrl().required(),
+      })
+      .description(
+        `When set, Garden will import the action source from this repository, but use this action configuration (and not scan for configs in the separate repository).`
+      ),
+  }),
+  oxor: [["path", "repository"]],
+  meta: { name: "action-source", advanced: true, templateContext: ActionConfigContext },
+})
 
-export const includeExcludeSchema = () => joi.array().items(joi.posixPath().allowGlobs().subPathOnly())
+export const includeExcludeSchema = memoize(() => joi.array().items(joi.posixPath().allowGlobs().subPathOnly()))
 
 export const baseActionConfigSchema = createSchema({
   name: "action-config-base",
-  keys: {
+  keys: () => ({
     // Basics
-    apiVersion: apiVersionSchema().meta({ templateContext: null }),
+    apiVersion: unusedApiVersionSchema().meta({ templateContext: null }),
     kind: joi
       .string()
       .required()
@@ -214,10 +212,9 @@ export const baseActionConfigSchema = createSchema({
       .default(() => undefined)
       .description(
         dedent`
-      A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that order. They may reference group-scoped and project-scoped variables, and generally can use any template strings normally allowed when resolving the action.
-    `
-      )
-      .meta({ templateContext: ActionConfigContext }),
+          A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that order. They may reference group-scoped and project-scoped variables, and generally can use any template strings normally allowed when resolving the action.
+        `
+      ),
     varfiles: joiSparseArray(joi.posixPath())
       .description(
         dedent`
@@ -240,7 +237,7 @@ export const baseActionConfigSchema = createSchema({
       .unknown(true)
       .description("The spec for the specific action type.")
       .meta({ templateContext: ActionSpecContext }),
-  },
+  }),
 })
 
 export interface BaseRuntimeActionConfig<K extends ActionKind = ActionKind, N = string, S = any>
@@ -250,7 +247,7 @@ export interface BaseRuntimeActionConfig<K extends ActionKind = ActionKind, N = 
 
 export const baseRuntimeActionConfigSchema = createSchema({
   name: "runtime-action-base",
-  keys: {
+  keys: () => ({
     build: joiUserIdentifier()
       .description(
         dedent(
@@ -263,13 +260,13 @@ export const baseRuntimeActionConfigSchema = createSchema({
         )
       )
       .meta({ templateContext: ActionConfigContext }),
-  },
+  }),
   extend: baseActionConfigSchema,
 })
 
 export const actionStatusSchema = createSchema({
   name: "action-status",
-  keys: {
+  keys: () => ({
     state: joi
       .string()
       .allow(...actionStateTypes)
@@ -287,7 +284,7 @@ export const actionStatusSchema = createSchema({
       .description(
         "Set to true if the action handler is running a process persistently and attached to the Garden process after returning."
       ),
-  },
+  }),
 })
 
 /**
@@ -312,7 +309,7 @@ export interface ActionDescription {
   moduleName: string | null
   name: string
   treeVersion: TreeVersion
-  version: ModuleVersion
+  version: ActionVersion
 }
 
 export interface ActionDescriptionMap {
@@ -458,7 +455,17 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   moduleVersion(): ModuleVersion {
-    return this._moduleVersion || this.getFullVersion()
+    if (this._moduleVersion) {
+      return this._moduleVersion
+    } else {
+      const version = this.getFullVersion()
+      return {
+        contentHash: version.sourceVersion,
+        versionString: version.versionString,
+        dependencyVersions: version.dependencyVersions,
+        files: version.files,
+      }
+    }
   }
 
   getDependencyReferences(): ActionDependency[] {

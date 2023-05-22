@@ -23,8 +23,8 @@ The first step to using Garden is to create a project-level `garden.yml` configu
 
 ## [Actions](./actions.md)
 
-Since Garden `0.13`, actions have become the default **unit of work** in Garden.
-In this guide you'll learn how to split your project into actions that Garden can process and execute.
+Since Garden `0.13`, actions have become the default **building block** of Garden projects. These represent the steps needed to build, deploy and test your project (and the dependencies between them).
+In this guide you'll learn how to describe your system with actions that Garden can process and execute in dependency order.
 
 ## [Modules](./modules.md)
 

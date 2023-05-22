@@ -115,7 +115,7 @@ export const helmChartNameSchema = () =>
   joi
     .string()
     .description(
-      "A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain the Helm chart itself."
+      "A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain the Helm chart itself."
     )
     .example("ingress-nginx")
 
@@ -228,7 +228,7 @@ export const helmPodRunSchema = (kind: string) => {
         .default(defaultHelmTimeout)
         .description("Time in seconds to wait for Helm to render templates."),
     }),
-    xor: ["resource", "podSpec"],
+    xor: [["resource", "podSpec"]],
   })()
   runSchemas[name] = schema
   return schema

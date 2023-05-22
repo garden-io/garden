@@ -11,7 +11,7 @@ spec:
   cacheStatus: true
   stack: k8s-deployment
   stackReferences:
-    - ${runtime.services.k8s-namespace.outputs.namespace}
+    - ${actions.deploy.k8s-namespace.outputs.namespace}
   pulumiVarfiles: [varfile1.yaml, varfile2.yaml]
   pulumiVariables:
     kubernetes:context: docker-desktop

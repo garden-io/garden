@@ -5,6 +5,10 @@ tocTitle: "`terraform`"
 
 # `terraform` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Resolves a Terraform stack and either applies it automatically (if `autoApply: true`) or warns when the stack resources are not up-to-date.
@@ -29,9 +33,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config.
-apiVersion: garden.io/v1
-
 kind: Module
 
 # The type of this module.
@@ -165,8 +166,8 @@ varfile:
 # executed before this service is deployed.
 dependencies: []
 
-# If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete
-# service <module name>`.
+# If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete namespace` or `garden
+# delete deploy <deploy name>`.
 allowDestroy: false
 
 # If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not
@@ -190,14 +191,6 @@ workspace:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config.
-
-| Type     | Allowed Values                 | Default          | Required |
-| -------- | ------------------------------ | ---------------- | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `kind`
 
@@ -495,7 +488,7 @@ The names of any services that this service depends on at runtime, and the names
 
 ### `allowDestroy`
 
-If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete service <module name>`.
+If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete namespace` or `garden delete deploy <deploy name>`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

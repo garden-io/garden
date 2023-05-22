@@ -5,6 +5,10 @@ tocTitle: "`kubernetes`"
 
 # `kubernetes` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Specify one or more Kubernetes manifests to deploy.
@@ -27,9 +31,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config.
-apiVersion: garden.io/v1
-
 kind: Module
 
 # The type of this module.
@@ -168,8 +169,8 @@ files: []
 # `manifests` as well, these are also included.
 kustomize:
   # The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an
-  # overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module
-  # root. Defaults to the module root. If you set this to null, kustomize will not be run.
+  # overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the action
+  # root. Defaults to the action root. If you set this to null, kustomize will not be run.
   path: .
 
   # A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output'
@@ -343,7 +344,7 @@ serviceResource:
   # The type of Kubernetes resource to sync files to.
   kind: Deployment
 
-  # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be
+  # The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can be
   # omitted.
   name:
 
@@ -428,7 +429,7 @@ tasks:
       # The type of Kubernetes resource to sync files to.
       kind: Deployment
 
-      # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can
+      # The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can
       # be omitted.
       name:
 
@@ -441,9 +442,9 @@ tasks:
       # type.
       podSelector:
 
-    # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
-    # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its
-    # version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+    # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
+    # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
+    # changes, or when you run `garden run`.
     cacheResult: true
 
     # The command/entrypoint used to run inside the container.
@@ -528,7 +529,7 @@ tests:
       # The type of Kubernetes resource to sync files to.
       kind: Deployment
 
-      # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can
+      # The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can
       # be omitted.
       name:
 
@@ -563,14 +564,6 @@ tests:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config.
-
-| Type     | Allowed Values                 | Default          | Required |
-| -------- | ------------------------------ | ---------------- | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `kind`
 
@@ -877,7 +870,7 @@ Resolve the specified kustomization and include the resulting resources. Note th
 
 [kustomize](#kustomize) > path
 
-The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module root. Defaults to the module root. If you set this to null, kustomize will not be run.
+The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the action root. Defaults to the action root. If you set this to null, kustomize will not be run.
 
 | Type                  | Default | Required |
 | --------------------- | ------- | -------- |
@@ -1342,7 +1335,7 @@ The type of Kubernetes resource to sync files to.
 
 [serviceResource](#serviceresource) > name
 
-The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
+The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can be omitted.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1506,7 +1499,7 @@ The type of Kubernetes resource to sync files to.
 
 [tasks](#tasks) > [resource](#tasksresource) > name
 
-The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
+The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can be omitted.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1536,7 +1529,7 @@ A map of string key/value labels to match on any Pods in the namespace. When spe
 
 [tasks](#tasks) > cacheResult
 
-Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -1767,7 +1760,7 @@ The type of Kubernetes resource to sync files to.
 
 [tests](#tests) > [resource](#testsresource) > name
 
-The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
+The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can be omitted.
 
 | Type     | Required |
 | -------- | -------- |

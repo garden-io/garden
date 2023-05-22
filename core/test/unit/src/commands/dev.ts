@@ -24,15 +24,13 @@ describe("DevCommand", () => {
   // ) {
   //   const log = garden.log
 
-  //   await command.prepare({ log, footerLog: log, headerLog: log, args, opts })
+  //   await command.prepare({ log, args, opts })
 
   //   const promise = command
   //     .action({
   //       garden,
   //       log,
-  //       headerLog: log,
-  //       footerLog: log,
-  //       args,
+  //         //         //       args,
   //       opts,
   //     })
   //     .then(({ errors }) => {

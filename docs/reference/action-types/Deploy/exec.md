@@ -21,9 +21,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config.
-apiVersion: garden.io/v1
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -170,7 +167,7 @@ spec:
   # Set this to true if the `deployCommand` is not expected to return, and should run until the Garden command is
   # manually terminated.
   #
-  # This replaces the previously supported `devMode` from `exec` modules.
+  # This replaces the previously supported `devMode` from `exec` actions.
   #
   # If this is set to true, it is highly recommended to also define `statusCommand` if possible. Otherwise the Deploy
   # is considered to be immediately ready once the `deployCommand` is started.
@@ -213,14 +210,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config.
-
-| Type     | Allowed Values                 | Default          | Required |
-| -------- | ------------------------------ | ---------------- | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `type`
 
@@ -469,7 +458,7 @@ We recommend against using this option since it is:
 
 Set this to true if the `deployCommand` is not expected to return, and should run until the Garden command is manually terminated.
 
-This replaces the previously supported `devMode` from `exec` modules.
+This replaces the previously supported `devMode` from `exec` actions.
 
 If this is set to true, it is highly recommended to also define `statusCommand` if possible. Otherwise the Deploy is considered to be immediately ready once the `deployCommand` is started.
 
@@ -541,7 +530,7 @@ Environment variables to set when running the deploy and status commands.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `exec`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

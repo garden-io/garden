@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { makeDummyGarden } from "../../../../src/cli/cli"
+import { makeDummyGarden } from "../../../../src/garden"
 import { joi } from "../../../../src/config/common"
 import type { Log } from "../../../../src/logger/log-entry"
 import { getRootLogger, Logger } from "../../../../src/logger/logger"

@@ -71,7 +71,7 @@ export function k8sGetContainerBuildActionOutputs({
   outputs.deploymentImageId = outputs["deployment-image-id"] = containerHelpers.getBuildDeploymentImageId(
     action.name,
     localId,
-    action.getFullVersion(),
+    action.moduleVersion(),
     provider.config.deploymentRegistry
   )
 

@@ -23,9 +23,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config.
-apiVersion: garden.io/v1
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -218,7 +215,7 @@ spec:
   #
   # One of `chart.name`, `chart.path` or `chart.url` must be specified.
   chart:
-    # A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain
+    # A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain
     # the Helm chart itself.
     name:
 
@@ -457,14 +454,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config.
-
-| Type     | Allowed Values                 | Default          | Required |
-| -------- | ------------------------------ | ---------------- | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `type`
 
@@ -829,7 +818,7 @@ One of `chart.name`, `chart.path` or `chart.url` must be specified.
 
 [spec](#spec) > [chart](#specchart) > name
 
-A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain the Helm chart itself.
+A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain the Helm chart itself.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1465,7 +1454,7 @@ The name of a container in the target. Specify this if the target contains more 
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `helm`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

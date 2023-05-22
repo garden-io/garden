@@ -26,18 +26,18 @@ export interface GardenTest<M extends GardenModule = GardenModule> {
   version: string
 }
 
-export const testSchema = () =>
-  joi
-    .object()
-    .options({ presence: "required" })
-    .keys({
-      name: joiUserIdentifier().description("The name of the test."),
-      module: joi.object().unknown(true), // This causes a stack overflow: joi.lazy(() => moduleSchema()),
-      disabled: joi.boolean().default(false).description("Set to true if the test is disabled."),
-      config: testConfigSchema(),
-      spec: joi.object().description("The raw configuration of the test (specific to each plugin)."),
-      version: versionStringSchema().description("The version of the test."),
-    })
+export const testSchema = createSchema({
+  name: "module-test",
+  keys: () => ({
+    name: joiUserIdentifier().description("The name of the test."),
+    module: joi.object().unknown(true), // This causes a stack overflow: joi.lazy(() => moduleSchema()),
+    disabled: joi.boolean().default(false).description("Set to true if the test is disabled."),
+    config: testConfigSchema(),
+    spec: joi.object().description("The raw configuration of the test (specific to each plugin)."),
+    version: versionStringSchema().description("The version of the test."),
+  }),
+  options: { presence: "required" },
+})
 
 export function testFromConfig<M extends GardenModule = GardenModule>(
   module: M,
@@ -84,6 +84,6 @@ export interface TestResult extends RunResult {}
 
 export const testResultSchema = createSchema({
   name: "test-result",
-  keys: {},
+  keys: () => ({}),
   extend: runResultSchema,
 })

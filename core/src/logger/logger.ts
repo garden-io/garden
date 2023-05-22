@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogMetadata, LogEntry, CoreLog } from "./log-entry"
+import { LogMetadata, LogEntry, CoreLog, CoreLogContext } from "./log-entry"
 import { Writer } from "./writers/base"
 import { CommandError, InternalError, ParameterError } from "../exceptions"
 import { TerminalWriter } from "./writers/terminal-writer"
@@ -72,7 +72,7 @@ export function logLevelToString(level: LogLevel): StringLogLevel {
   return logLevelMap[level] as StringLogLevel
 }
 
-const eventLogLevel = LogLevel.debug
+export const eventLogLevel = LogLevel.debug
 
 /**
  * Return the logger type, depending on what command line args have been set
@@ -260,6 +260,7 @@ export abstract class LoggerBase implements Logger {
     fixLevel,
     name,
     origin,
+    context,
   }: {
     metadata?: LogMetadata
     fixLevel?: LogLevel
@@ -269,15 +270,17 @@ export abstract class LoggerBase implements Logger {
      */
     name?: string
     origin?: string
+    context?: Partial<CoreLogContext>
   } = {}): CoreLog {
     return new CoreLog({
       parentConfigs: [],
       fixLevel,
       metadata,
       context: {
-        type: "coreLog",
         name,
         origin,
+        ...context,
+        type: "coreLog",
       },
       root: this,
     })

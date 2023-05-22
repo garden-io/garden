@@ -25,7 +25,7 @@ import {
 } from "../../../../../src/plugins/kubernetes/sync"
 import { HelmModuleConfig } from "../../../../../src/plugins/kubernetes/helm/module-config"
 import { KubernetesModuleConfig } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config"
-import { TestGarden } from "../../../../helpers"
+import { TestGarden, cleanProject } from "../../../../helpers"
 import { ContainerDeployActionConfig } from "../../../../../src/plugins/container/moduleConfig"
 import { resolveAction } from "../../../../../src/graph/actions"
 import { DeployTask } from "../../../../../src/tasks/deploy"
@@ -60,14 +60,15 @@ describe("sync mode deployments and sync behavior", () => {
 
   afterEach(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
       const dataDir = join(garden.gardenDirPath, MUTAGEN_DIR_NAME)
       await getMutagenMonitor({ log: garden.log, dataDir }).stop()
+      await cleanProject(garden.gardenDirPath)
     }
   })
 
   const init = async (environmentName: string) => {
-    garden = await getContainerTestGarden(environmentName)
+    garden = await getContainerTestGarden(environmentName, { noTempDir: true})
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,
@@ -82,7 +83,7 @@ describe("sync mode deployments and sync behavior", () => {
     )
   }
 
-  // TODO-G2: https://github.com/orgs/garden-io/projects/5/views/1?pane=issue&itemId=23082896
+  // todo: fix this test, It works locally, fails on ci
   it.skip("should deploy a service in sync mode and successfully set a two-way sync", async () => {
     await init("local")
     const action = graph.getDeploy("sync-mode")
@@ -93,6 +94,7 @@ describe("sync mode deployments and sync behavior", () => {
       log,
       action,
       force: true,
+      startSync: true,
     })
 
     await garden.processTasks({ tasks: [deployTask], throwOnError: true })
@@ -101,7 +103,7 @@ describe("sync mode deployments and sync behavior", () => {
       log: garden.log,
       graph: await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.sync-mode"] } }),
     })
-    const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
+    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
     const status = await k8sGetContainerDeployStatus({
       ctx,
@@ -138,7 +140,7 @@ describe("sync mode deployments and sync behavior", () => {
     }
   })
 
-  // TODO-G2: https://github.com/orgs/garden-io/projects/5/views/1?pane=issue&itemId=23082896
+  // todo: fix this test, It works locally, fails on ci.
   it.skip("should apply ignore rules from the sync spec and the provider-level sync defaults", async () => {
     await init("local")
     const action = graph.getDeploy("sync-mode")
@@ -157,6 +159,7 @@ describe("sync mode deployments and sync behavior", () => {
       log,
       action,
       force: true,
+      startSync: true,
     })
 
     await garden.processTasks({ tasks: [deployTask], throwOnError: true })
@@ -165,7 +168,7 @@ describe("sync mode deployments and sync behavior", () => {
       log: garden.log,
       graph: await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.sync-mode"] } }),
     })
-    const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
+    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
     const status = await k8sGetContainerDeployStatus({
       ctx,
       action: resolvedAction,

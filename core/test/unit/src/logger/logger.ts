@@ -48,6 +48,7 @@ describe("Logger", () => {
         const e = logWriterEvents[0]
         expect(logWriterEvents.length).to.eql(1)
         expect(e).to.eql({
+          $context: {},
           key: e.key,
           timestamp: now.toISOString(),
           level: 2,

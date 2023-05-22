@@ -51,7 +51,7 @@ describe("helmDeploy in local-mode", () => {
     const actions = await garden.getActionRouter()
     await actions.deleteDeploys({ graph, log: garden.log })
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 
@@ -123,7 +123,7 @@ describe("helmDeploy", () => {
       const actions = await garden.getActionRouter()
       await actions.deleteDeploys({ graph, log: garden.log })
       if (garden) {
-        await garden.close()
+        garden.close()
       }
     } catch {}
   })
@@ -284,11 +284,11 @@ describe("helmDeploy", () => {
   })
 
   it("should mark a chart that has been paused by Garden Cloud AEC as outdated", async () => {
-    const fakeCloudApi = new CloudApi(
-      getRootLogger().createLog(),
-      "https://test.cloud.garden.io",
-      new GlobalConfigStore()
-    )
+    const fakeCloudApi = new CloudApi({
+      log: getRootLogger().createLog(),
+      domain: "https://test.cloud.garden.io",
+      globalConfigStore: new GlobalConfigStore(),
+    })
     const projectRoot = getDataDir("test-projects", "helm")
     const gardenWithCloudApi = await makeTestGarden(projectRoot, { cloudApi: fakeCloudApi, noCache: true })
 

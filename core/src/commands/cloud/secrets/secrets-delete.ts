@@ -36,8 +36,8 @@ export class SecretsDeleteCommand extends Command<Args> {
 
   arguments = secretsDeleteArgs
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Delete secrets", "🔒")
+  printHeader({ log }) {
+    printHeader(log, "Delete secrets", "🔒")
   }
 
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {

@@ -2,7 +2,7 @@ apiVersion: garden.io/v1
 kind: Project
 name: pulumi
 variables:
-   pulumiAppOrg: gordon-garden-bot # <--- replace with your own org name
+   pulumiAppOrg: garden # <--- replace with your own org name
 environments:
   - name: local
 providers:

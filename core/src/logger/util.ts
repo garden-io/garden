@@ -124,11 +124,21 @@ export function renderDivider({
   return paddingString + dividerSideString + titleString + dividerSideString + paddingString
 }
 
-export function renderMessageWithDivider(prefix: string, msg: string, isError: boolean, color?: Chalk) {
+export function renderDuration(duration: number): string {
+  return `(took ${duration} sec)`
+}
+
+export function renderMessageWithDivider({
+  prefix,
+  msg,
+  isError,
+  color,
+}
+  : { prefix: string; msg: string; isError: boolean; color?: Chalk }) {
   // Allow overwriting color as an escape hatch. Otherwise defaults to white or red in case of errors.
   const msgColor = color || (isError ? chalk.red : chalk.white)
   return dedent`
-  \n${msgColor.bold(prefix)}
+  ${msgColor.bold(prefix)}\n
   ${msgColor.bold(renderDivider())}
   ${hasAnsi(msg) ? msg : msgColor(msg)}
   ${msgColor.bold(renderDivider())}

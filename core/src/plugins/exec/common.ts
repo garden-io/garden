@@ -52,7 +52,7 @@ export async function execRun({
 }) {
   const logEventContext = {
     origin: command[0],
-    level: "info" as const,
+    level: "verbose" as const,
   }
 
   const outputStream = split2()

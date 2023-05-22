@@ -33,7 +33,7 @@ import { gardenAnnotationKey } from "../../../../../../src/util/string"
 import { getDeployStatuses } from "../../../../../../src/tasks/helpers"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
 import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
-import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants"
 import { ActionModeMap } from "../../../../../../src/actions/types"
 
 describe("kubernetes-module handlers", () => {
@@ -75,7 +75,7 @@ describe("kubernetes-module handlers", () => {
     garden = await getKubernetesTestGarden()
     moduleConfigBackup = await garden.getRawModuleConfigs()
     log = garden.log
-    actionLog = createActionLog({ log: log, actionName: "", actionKind: "" })
+    actionLog = createActionLog({ log, actionName: "", actionKind: "" })
     const provider = <KubernetesProvider>await garden.resolveProvider(log, "local-kubernetes")
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -84,7 +84,7 @@ describe("kubernetes-module handlers", () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
     nsModuleConfig = {
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Module",
       disabled: false,
       allowPublish: false,
@@ -123,7 +123,7 @@ describe("kubernetes-module handlers", () => {
     garden.setModuleConfigs(moduleConfigBackup)
     await tmpDir.cleanup()
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 

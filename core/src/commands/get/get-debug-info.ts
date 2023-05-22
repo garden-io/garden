@@ -43,7 +43,7 @@ export const PROVIDER_INFO_FILENAME_NO_EXT = "info"
  */
 export async function collectBasicDebugInfo(root: string, gardenDirPath: string, log: Log) {
   // Find project definition
-  const projectConfig = await findProjectConfig(log, root, true)
+  const projectConfig = await findProjectConfig({ log, path: root, allowInvalid: true })
   if (!projectConfig) {
     throw new ValidationError(
       "Couldn't find a Project definition. Please run this command from the root of your Garden project.",
@@ -258,8 +258,8 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
   arguments = debugInfoArguments
   options = debugInfoOptions
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Get debug info", "information_source")
+  printHeader({ log }) {
+    printHeader(log, "Get debug info", "information_source")
   }
 
   async action({ garden, log, opts }: CommandParams<Args, Opts>) {

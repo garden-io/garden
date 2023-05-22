@@ -20,8 +20,9 @@ import { globalOptions, StringsParameter } from "../cli/params"
 import { pick } from "lodash"
 import Divider from "ink-divider"
 import moment from "moment"
-import { getBuiltinCommands } from "./commands"
 import { dedent } from "../util/string"
+import Spinner from "ink-spinner"
+import type { Log } from "../logger/log-entry"
 
 const devCommandArgs = {
   ...serveArgs,
@@ -50,16 +51,19 @@ export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
   arguments = devCommandArgs
   options = devCommandOpts
 
-  printHeader({ headerLog }) {
+  printHeader({ log }) {
     const width = process.stdout?.columns ? process.stdout?.columns - 2 : 100
 
     console.clear()
 
-    headerLog.info(
+    log.info(
       chalk.magenta(`
 ${renderDivider({ color: chalk.green, title: chalk.green.bold("🌳  garden dev 🌳 "), width })}
 
 ${chalk.bold(`Good ${getGreetingTime()}! Welcome to the Garden interactive development console.`)}
+
+Here, you can ${chalk.white("build")}, ${chalk.white("deploy")}, ${chalk.white("test")} and ${chalk.white("run")} anything in your project, start code syncing, stream live logs and more.
+
 Let's get your development environment wired up.
     `)
     )
@@ -74,7 +78,9 @@ Let's get your development environment wired up.
   }
 
   async action(params: ActionParams): Promise<CommandResult> {
-    const logger = params.log.root
+    const { log } = params
+
+    const logger = log.root
     const terminalWriter = logger.getWriters().display
 
     let inkWriter: InkTerminalWriter
@@ -100,16 +106,20 @@ Let's get your development environment wired up.
       const [line, setLine] = useState("🌸  Initializing...")
       const [status, setStatus] = useState("")
       const [message, setMessage] = useState("")
+      const [spin, setSpin] = useState(false)
 
       // Note: Using callbacks here instead of events to make keypresses a bit more responsive
       commandLine.setCallbacks({
         commandLine: setLine,
         message: setMessage,
-        status: setStatus,
+        status: (s: string) => {
+          setSpin(!!s)
+          setStatus(s)
+        },
       })
 
       useInput((input, key) => {
-        commandLine.keyStroke(input, key)
+        commandLine.handleInput(input, key)
       })
 
       const width = stdout ? stdout.columns - 2 : 50
@@ -121,6 +131,12 @@ Let's get your development environment wired up.
             <Text>{line}</Text>
           </Box>
           <Box height={1} marginTop={1} marginLeft={2}>
+            {spin && (
+              <Text color="cyanBright">
+                <Spinner type="dots"></Spinner>
+                &nbsp;&nbsp;
+              </Text>
+            )}
             <Text>{message || status}</Text>
           </Box>
         </Box>
@@ -134,35 +150,79 @@ Let's get your development environment wired up.
     return {}
   }
 
+  async reload(log: Log) {
+    this.commandLine?.disable("🌸  Loading Garden project...")
+
+    const manager = this.getManager(log)
+
+    try {
+      await manager.reload(log)
+
+      // TODO: reload the last used project immediately
+      // if (this.defaultGarden) {
+      //   const newGarden = await manager.ensureInstance(
+      //     log,
+      //     this.defaultGarden.getInstanceKeyParams(),
+      //     this.defaultGarden.opts
+      //   )
+
+      //   this.defaultGarden = newGarden
+
+      //   // TODO: restart monitors
+      // }
+
+      this.commandLine?.flashSuccess(`Project successfully loaded!`)
+    } catch (error) {
+      log.error(`Failed loading the project: ${error}`)
+      log.error({ error })
+      this.commandLine?.flashError(
+        `Failed loading the project. See above logs for details. Type ${chalk.white("reload")} to try again.`
+      )
+    } finally {
+      this.commandLine?.enable()
+    }
+  }
+
   private async initCommandHandler(params: ActionParams) {
     const _this = this
     const { garden, log, opts } = params
 
-    // Custom commands are loaded later, along with the project config
-    const commands = getBuiltinCommands()
+    const manager = this.getManager(log)
 
-    /**
-     * Help/utility commands
-     */
-    const cl = (this.commandLine = new CommandLine({
-      garden,
-      serverCommand: this,
+    const cl = new CommandLine({
       log,
-      commands: [...commands, new HelpCommand(), new QuitCommand(quit), new QuietCommand(), new QuiteCommand()],
-      configDump: undefined, // This gets loaded later
+      manager,
+      cwd: process.cwd(),
+      // Add some command-line specific commands
+      extraCommands: [new HelpCommand(), new QuitCommand(quit), new QuietCommand(), new QuiteCommand()],
       globalOpts: pick(opts, Object.keys(globalOptions)),
       history: await garden.localConfigStore.get("devCommandHistory"),
-    }))
+      serveCommand: this,
+    })
+    this.commandLine = cl
 
     function quitWithWarning() {
-      garden.emitWarning({
-        log,
-        key: "dev-syncs-active",
-        message: chalk.yellow(
-          `Syncs started during this session may still be active when this command terminates. You can run ${chalk.white("garden sync stop '*'")} to stop all code syncs. Hint: To stop code syncing when exiting ${chalk.white("garden dev")}, use ${chalk.white("Control-D")} or the ${chalk.white(`exit`)} command.`
-          )
-      })
-      quit()
+      // We ensure that the process exits at most 5 seconds after a SIGINT / ctrl-c.
+      setTimeout(() => {
+        // eslint-disable-next-line no-console
+        console.error(chalk.red("\nTimed out waiting for Garden to exit. This is a bug, please report it!"))
+        process.exit(1)
+      }, 5000)
+
+      garden
+        .emitWarning({
+          log,
+          key: "dev-syncs-active",
+          message: chalk.yellow(
+            `Syncs started during this session may still be active when this command terminates. You can run ${chalk.white(
+              "garden sync stop '*'"
+            )} to stop all code syncs. Hint: To stop code syncing when exiting ${chalk.white(
+              "garden dev"
+            )}, use ${chalk.white("Ctrl-D")} or the ${chalk.white(`exit`)} command.`
+          ),
+        })
+        .catch(() => {})
+        .finally(() => quit())
     }
 
     function quit() {
@@ -180,6 +240,9 @@ Let's get your development environment wired up.
   }
 }
 
+/**
+ * Help/utility commands
+ */
 class HelpCommand extends ConsoleCommand {
   name = "help"
   help = ""

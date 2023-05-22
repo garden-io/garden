@@ -32,7 +32,7 @@ import { resolve, join } from "path"
 import td from "testdouble"
 import tmp from "tmp-promise"
 import { realpath, readFile, writeFile } from "fs-extra"
-import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_VERSIONFILE_NAME, GardenApiVersion } from "../../../../src/constants"
 import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs"
 import { Log } from "../../../../src/logger/log-entry"
 import { BaseActionConfig } from "../../../../src/actions/types"
@@ -126,7 +126,7 @@ describe("VcsHandler", () => {
         projectRoot: garden.projectRoot,
         gardenDirPath: garden.gardenDirPath,
         ignoreFile: garden.dotIgnoreFile,
-        cache: garden.cache,
+        cache: garden.treeCache,
       })
 
       const version = await handler.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
@@ -146,7 +146,7 @@ describe("VcsHandler", () => {
         projectRoot: garden.projectRoot,
         gardenDirPath: garden.gardenDirPath,
         ignoreFile: garden.dotIgnoreFile,
-        cache: garden.cache,
+        cache: garden.treeCache,
       })
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
@@ -164,7 +164,7 @@ describe("VcsHandler", () => {
         projectRoot: garden.projectRoot,
         gardenDirPath: garden.gardenDirPath,
         ignoreFile: garden.dotIgnoreFile,
-        cache: garden.cache,
+        cache: garden.treeCache,
       })
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
@@ -247,6 +247,7 @@ describe("VcsHandler", () => {
 describe("getModuleVersionString", () => {
   const namedVersionA: NamedModuleVersion = {
     name: "module-a",
+    contentHash: "qwerty",
     versionString: "qwerty",
     dependencyVersions: {},
     files: [],
@@ -258,6 +259,7 @@ describe("getModuleVersionString", () => {
   }
   const namedVersionB: NamedModuleVersion = {
     name: "module-b",
+    contentHash: "qwerty",
     versionString: "qwerty",
     dependencyVersions: { "module-a": namedVersionA.versionString },
     files: [],
@@ -265,6 +267,7 @@ describe("getModuleVersionString", () => {
 
   const namedVersionC: NamedModuleVersion = {
     name: "module-c",
+    contentHash: "qwerty",
     versionString: "qwerty",
     dependencyVersions: { "module-b": namedVersionB.versionString },
     files: [],
@@ -388,7 +391,7 @@ describe("writeTreeVersionFile", () => {
 describe("hashModuleVersion", () => {
   function baseConfig() {
     return {
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       type: "test",
       path: "/tmp",
       name: "foo",
@@ -434,7 +437,7 @@ describe("hashModuleVersion", () => {
       }
       const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
       const b = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [
-        { name: "dep", versionString: "blabalbalba", files: [], dependencyVersions: {} },
+        { name: "dep", contentHash: "abcdefabced", versionString: "blabalbalba", files: [], dependencyVersions: {} },
       ])
       expect(a).to.not.equal(b)
     })
@@ -481,7 +484,7 @@ describe("hashModuleVersion", () => {
       }
       const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
       const b = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [
-        { name: "dep", versionString: "blabalbalba", files: [], dependencyVersions: {} },
+        { name: "dep", contentHash: "abcdefabced", versionString: "blabalbalba", files: [], dependencyVersions: {} },
       ])
       expect(a).to.not.equal(b)
     })
@@ -518,7 +521,7 @@ describe("helpers", () => {
   context("ModuleConfig", () => {
     const moduleConfig: ModuleConfig = {
       allowPublish: false,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       disabled: false,
       name: "module-a",

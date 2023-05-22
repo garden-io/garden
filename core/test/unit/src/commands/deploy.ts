@@ -123,7 +123,8 @@ describe("DeployCommand", () => {
     "logs": false,
     "timestamps": false,
     "port": defaultServerPort,
-    "cmd": undefined
+    "cmd": undefined,
+    "disable-port-forwards": false,
   })
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
@@ -137,8 +138,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -194,12 +193,10 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: ["service-b"],
       },
-      opts: defaultDeployOpts
+      opts: defaultDeployOpts,
     })
 
     if (errors) {
@@ -233,15 +230,13 @@ describe("DeployCommand", () => {
       const { result, errors } = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: ["service-b", "service-c"],
         },
         opts: {
           ...defaultDeployOpts,
           "skip-dependencies": true,
-        }
+        },
       })
 
       if (errors) {
@@ -276,8 +271,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -305,8 +298,6 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -329,14 +320,12 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
       opts: {
         ...defaultDeployOpts,
-        "skip": ["service-b"],
+        skip: ["service-b"],
       },
     })
 
@@ -353,8 +342,6 @@ describe("DeployCommand", () => {
       const log = getRootLogger().createLog()
       const persistent = cmd.maybePersistent({
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: undefined,
         },
@@ -371,15 +358,13 @@ describe("DeployCommand", () => {
       const log = getRootLogger().createLog()
       const persistent = cmd.maybePersistent({
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: undefined,
         },
         opts: {
           ...defaultDeployOpts,
           "local-mode": [],
-        }
+        },
       })
       expect(persistent).to.be.true
     })
@@ -389,15 +374,13 @@ describe("DeployCommand", () => {
       const log = getRootLogger().createLog()
       const persistent = cmd.maybePersistent({
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: undefined,
         },
         opts: {
           ...defaultDeployOpts,
           forward: true,
-        }
+        },
       })
       expect(persistent).to.be.true
     })

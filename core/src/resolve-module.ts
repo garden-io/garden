@@ -557,7 +557,7 @@ export class ModuleResolver {
     // Make sure version is re-computed after writing new/updated files
     if (updatedFiles) {
       const cacheContext = pathToCacheContext(resolvedConfig.path)
-      this.garden.cache.invalidateUp(this.log, cacheContext)
+      this.garden.treeCache.invalidateUp(this.log, cacheContext)
     }
 
     const module = await moduleFromConfig({
@@ -606,7 +606,7 @@ export class ModuleResolver {
   /**
    * Resolves module variables with the following precedence order:
    *
-   *   garden.cliVariables > module varfile > config.variables
+   *   garden.variableOverrides > module varfile > config.variables
    */
   private async resolveVariables(
     config: ModuleConfig,
@@ -626,7 +626,9 @@ export class ModuleResolver {
 
     const rawVariables = config.variables
     const moduleVariables = resolveTemplateStrings(cloneDeep(rawVariables || {}), moduleConfigContext, resolveOpts)
-    const mergedVariables: DeepPrimitiveMap = <any>merge(moduleVariables, merge(varfileVars, this.garden.cliVariables))
+    const mergedVariables: DeepPrimitiveMap = <any>(
+      merge(moduleVariables, merge(varfileVars, this.garden.variableOverrides))
+    )
     return mergedVariables
   }
 }
@@ -831,8 +833,11 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   if (module.repositoryUrl) {
     action.internal.remoteClonePath = module.path // This is set to the source local path during module resolution
   }
-  if (isBuildActionConfig(action) && !module.allowPublish) {
-    action.allowPublish = false
+  if (isBuildActionConfig(action)) {
+    if (!module.allowPublish) {
+      action.allowPublish = false
+    }
+    action.internal.treeVersion = module.version
   }
   if (!action.varfiles && module.varfile) {
     action.varfiles = [module.varfile]

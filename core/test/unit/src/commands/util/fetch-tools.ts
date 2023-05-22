@@ -82,8 +82,6 @@ describe("FetchToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "all": false, "garden-image-build": false }),
     })
@@ -114,8 +112,6 @@ describe("FetchToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "all": false, "garden-image-build": false }),
     })
@@ -143,8 +139,6 @@ describe("FetchToolsCommand", () => {
     const result = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "all": true, "garden-image-build": false }),
     })
@@ -182,8 +176,6 @@ describe("FetchToolsCommand", () => {
     const result = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "all": true, "garden-image-build": true }),
     })

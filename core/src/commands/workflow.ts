@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { cloneDeep, flatten, last, repeat, size } from "lodash"
-import { printHeader, getTerminalWidth, renderMessageWithDivider } from "../logger/util"
+import { printHeader, getTerminalWidth, renderMessageWithDivider, renderDuration } from "../logger/util"
 import { Command, CommandParams, CommandResult } from "./base"
 import { dedent, wordWrap, deline } from "../util/string"
 import { Garden } from "../garden"
@@ -69,8 +69,8 @@ export class WorkflowCommand extends Command<Args, {}> {
 
   arguments = runWorkflowArgs
 
-  printHeader({ headerLog, args }) {
-    printHeader(headerLog, `Running workflow ${chalk.white(args.workflow)}`, "🏃‍♂️")
+  printHeader({ log, args }) {
+    printHeader(log, `Running workflow ${chalk.white(args.workflow)}`, "🏃‍♂️")
   }
 
   async action({ cli, garden, log, args, opts }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
@@ -112,9 +112,7 @@ export class WorkflowCommand extends Command<Args, {}> {
       const metadata = {
         workflowStep: { index },
       }
-      const stepHeaderLog = outerLog.createLog({ metadata })
       const stepBodyLog = outerLog.createLog({ metadata })
-      const stepFooterLog = outerLog.createLog({ metadata })
       garden.log.info({ metadata })
 
       if (step.skip) {
@@ -138,9 +136,7 @@ export class WorkflowCommand extends Command<Args, {}> {
         stepCount: steps.length,
         inheritedOpts,
         outerLog,
-        headerLog: stepHeaderLog,
         bodyLog: stepBodyLog,
-        footerLog: stepFooterLog,
       }
 
       let stepResult: CommandResult
@@ -227,9 +223,7 @@ export interface RunStepParams {
   cli?: GardenCli
   garden: Garden
   outerLog: Log
-  headerLog: Log
   bodyLog: Log
-  footerLog: Log
   inheritedOpts: ParameterValues<GlobalOptions>
   step: WorkflowStepSpec
   stepIndex: number
@@ -318,7 +312,7 @@ function printResult({
 }
 
 export async function runStepCommand(params: RunStepCommandParams): Promise<CommandResult<any>> {
-  const { cli, garden, bodyLog, footerLog, headerLog, inheritedOpts, step } = params
+  const { cli, garden, bodyLog, inheritedOpts, step } = params
   let rawArgs = step.command!
 
   let { command, rest, matchedPath } = pickCommand(getBuiltinCommands(), rawArgs)
@@ -353,9 +347,7 @@ export async function runStepCommand(params: RunStepCommandParams): Promise<Comm
   const commandParams = {
     cli,
     garden,
-    footerLog,
     log: bodyLog,
-    headerLog,
     args,
     opts,
   }
@@ -460,11 +452,11 @@ export function logErrors(
   log.debug("")
   for (const error of errors) {
     if (error.type === "workflow-script") {
-      const scriptErrMsg = renderMessageWithDivider(
-        `Script exited with code ${error.detail.exitCode}`,
-        error.detail.stderr,
-        true
-      )
+      const scriptErrMsg = renderMessageWithDivider({
+        prefix: `Script exited with code ${error.detail.exitCode} ${renderDuration(log.getDuration())}`,
+        msg: error.detail.stderr,
+        isError: true
+    })
       log.error(scriptErrMsg)
     } else {
       // Error comes from a command step.
