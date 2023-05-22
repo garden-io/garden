@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 RUN npm install -g gatsby-cli
 WORKDIR /app
