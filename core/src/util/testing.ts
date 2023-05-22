@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,14 +14,14 @@ import { ModuleConfig } from "../config/module"
 import { WorkflowConfig } from "../config/workflow"
 import { Log, LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
-import { findByName, getNames, isPromise, ValueOf } from "./util"
+import { findByName, getNames } from "./util"
 import { GardenBaseError, GardenError, InternalError } from "../exceptions"
-import { EventBus, Events } from "../events"
+import { EventBus, EventName, Events } from "../events"
 import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
-import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../constants"
-import { getLogger } from "../logger/logger"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants"
+import { getRootLogger } from "../logger/logger"
 import stripAnsi from "strip-ansi"
 import { VcsHandler } from "../vcs/vcs"
 import { ConfigGraph } from "../graph/config-graph"
@@ -34,15 +34,15 @@ import { BuiltinArgs, Command, CommandResult } from "../commands/base"
 import { validateSchema } from "../config/validation"
 import { mkdirp, remove } from "fs-extra"
 import { GlobalConfigStore } from "../config-store/global"
-import { uuidv4 } from "./random"
+import { isPromise } from "./objects"
 
 export class TestError extends GardenBaseError {
   type = "_test"
 }
 
-export interface EventLogEntry {
-  name: string
-  payload: ValueOf<Events>
+export interface EventLogEntry<N extends EventName = any> {
+  name: N
+  payload: Events[N]
 }
 
 /**
@@ -61,9 +61,13 @@ type PartialModuleConfig = Partial<ModuleConfig> & { name: string; path: string 
 
 const moduleConfigDefaults: ModuleConfig = {
   allowPublish: false,
-  apiVersion: DEFAULT_API_VERSION,
+  // NOTE: this apiVersion field is distinct from the apiVersion field in the
+  // project configuration, is currently unused and has no meaning.
+  // It is hidden in our reference docs.
+  apiVersion: GardenApiVersion.v0,
   build: {
     dependencies: [],
+    timeout: DEFAULT_BUILD_TIMEOUT_SEC,
   },
   disabled: false,
   name: "foo",
@@ -157,7 +161,7 @@ export class TestGarden extends Garden {
     opts?: TestGardenOpts
   ): Promise<InstanceType<T>> {
     // Cache the resolved params to save a bunch of time during tests
-    // TODO-G2: re-instate this after we're done refactoring
+    // TODO: re-instate this after we're done refactoring
     const cacheKey = undefined
     // const cacheKey = opts?.noCache
     //   ? undefined
@@ -168,7 +172,7 @@ export class TestGarden extends Garden {
     if (cacheKey && paramCache[cacheKey]) {
       params = cloneDeep(paramCache[cacheKey])
       // Need to do these separately to avoid issues around cloning
-      params.log = opts?.log || getLogger().createLog()
+      params.log = opts?.log || getRootLogger().createLog()
       params.plugins = opts?.plugins || []
     } else {
       params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })
@@ -176,8 +180,6 @@ export class TestGarden extends Garden {
         paramCache[cacheKey] = cloneDeep({ ...params, log: <any>{}, plugins: [] })
       }
     }
-
-    params.sessionId = uuidv4()
 
     const garden = new this(params) as InstanceType<T>
 
@@ -208,7 +210,7 @@ export class TestGarden extends Garden {
       noCache?: boolean
     }
   ): Promise<ConfigGraph> {
-    // TODO-G2: re-instate this after we're done refactoring
+    // TODO: re-instate this after we're done refactoring
     // let cacheKey: string | undefined = undefined
 
     // if (this.cacheKey && !params.noCache) {
@@ -248,7 +250,7 @@ export class TestGarden extends Garden {
   }
 
   setModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
-    this.configsScanned = true
+    this.state.configsScanned = true
     this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
   }
 
@@ -263,6 +265,9 @@ export class TestGarden extends Garden {
       this.addActionConfig({
         spec: {},
         ...ac,
+        // TODO: consider making `timeout` mandatory in `PartialActionConfig`.
+        //  It will require extra code changes in tests.
+        timeout: ac.timeout || 10,
         internal: {
           basePath: this.projectRoot,
           ...ac.internal,
@@ -371,8 +376,6 @@ export class TestGarden extends Garden {
     const result = await command.action({
       garden: this,
       log,
-      headerLog: log,
-      footerLog: log,
       args,
       opts: <ParameterValues<GlobalOptions> & C["options"]>{
         ...mapValues(globalOptions, (opt) => opt.defaultValue),
@@ -395,6 +398,10 @@ export function expectFuzzyMatch(str: string, sample: string | string[]) {
   const errorMessageNonAnsi = stripAnsi(str)
   const samples = typeof sample === "string" ? [sample] : sample
   samples.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
+}
+
+export function expectLogsContain(logs: string[], sample: string) {
+  expect(logs.some((line) => line.includes(sample))).to.be.true
 }
 
 type ExpectErrorAssertion =

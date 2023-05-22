@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,7 +24,7 @@ import { runResultToActionState } from "../../actions/base"
 import { HelmPodTestAction } from "./helm/config"
 import { KubernetesTestAction } from "./kubernetes-type/config"
 
-// TODO-G2: figure out how to get rid of the any case
+// TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
   const { ctx, log } = params
   const action = <ContainerTestAction>params.action
@@ -84,8 +84,8 @@ export async function storeTestResult({ ctx, log, action, result }: StoreTestRes
       namespace: testResultNamespace,
       key: getTestResultKey(k8sCtx, action),
       labels: {
-        [gardenAnnotationKey("module")]: action.moduleName() || "",
-        [gardenAnnotationKey("test")]: action.name,
+        [gardenAnnotationKey("action")]: action.key(),
+        [gardenAnnotationKey("actionType")]: action.type,
         [gardenAnnotationKey("version")]: action.versionString(),
       },
       data,

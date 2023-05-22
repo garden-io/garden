@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
-import { joiArray, joi } from "../../../config/common"
+import { joiArray, joi, createSchema } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { Executed } from "../../../actions/types"
@@ -25,13 +25,15 @@ export interface ExecInDeployResult {
   stderr?: string
 }
 
-export const execInDeployResultSchema = () =>
-  joi.object().keys({
+export const execInDeployResultSchema = createSchema({
+  name: "exec-in-deploy-result",
+  keys: () => ({
     code: joi.number().required().description("The exit code of the command executed."),
     output: joi.string().allow("").required().description("The output of the executed command."),
     stdout: joi.string().allow("").description("The stdout output of the executed command (if available)."),
     stderr: joi.string().allow("").description("The stderr output of the executed command (if available)."),
-  })
+  }),
+})
 
 export class ExecInDeploy<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",

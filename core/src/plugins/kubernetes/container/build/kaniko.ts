@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,10 +7,10 @@
  */
 
 import { V1PodSpec } from "@kubernetes/client-node"
-import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName } from "../../constants"
+import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName, defaultKanikoImageName } from "../../constants"
 import { KubeApi } from "../../api"
 import { Log } from "../../../../logger/log-entry"
-import { KubernetesProvider, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } from "../../config"
+import { KubernetesProvider, KubernetesPluginContext } from "../../config"
 import { BuildError, ConfigurationError } from "../../../../exceptions"
 import { PodRunner } from "../../run"
 import { ensureNamespace, getNamespaceStatus, getSystemNamespace } from "../../namespace"
@@ -33,7 +33,6 @@ import {
 } from "./common"
 import { differenceBy, isEmpty } from "lodash"
 import chalk from "chalk"
-import { LogLevel } from "../../../../logger/logger"
 import { getDockerBuildFlags } from "../../../container/build"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { stringifyResources } from "../util"
@@ -52,7 +51,7 @@ export const getKanikoBuildStatus: BuildStatusHandler = async (params) => {
   const provider = k8sCtx.provider
 
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   await ensureUtilDeployment({
     ctx,
@@ -78,8 +77,9 @@ export const kanikoBuild: BuildHandler = async (params) => {
   const { ctx, action, log } = params
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
+  const k8sCtx = ctx as KubernetesPluginContext
 
-  const projectNamespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const projectNamespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   const spec = action.getSpec()
   const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
@@ -110,14 +110,14 @@ export const kanikoBuild: BuildHandler = async (params) => {
   let kanikoNamespace = provider.config.kaniko?.namespace || projectNamespace
 
   if (!kanikoNamespace) {
-    kanikoNamespace = await getSystemNamespace(ctx, provider, log)
+    kanikoNamespace = await getSystemNamespace(k8sCtx, provider, log)
   }
 
   if (kanikoNamespace !== projectNamespace) {
     // Make sure the Kaniko Pod namespace has the auth secret ready
     const secretRes = await ensureBuilderSecret({
       provider,
-      log: log.createLog({}),
+      log: log.createLog(),
       api,
       namespace: kanikoNamespace,
     })
@@ -125,7 +125,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     authSecret = secretRes.authSecret
   }
 
-  await ensureNamespace(api, { name: kanikoNamespace }, log)
+  await ensureNamespace(api, k8sCtx, { name: kanikoNamespace }, log)
 
   // Execute the build
   const args = [
@@ -234,7 +234,7 @@ export function getKanikoBuilderPodManifest({
   podName: string
   commandStr: string
 }) {
-  const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
+  const kanikoImage = provider.config.kaniko?.image || defaultKanikoImageName
   const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
 
   const spec: V1PodSpec = {
@@ -372,14 +372,12 @@ async function runKaniko({
     pod.spec.nodeSelector = provider.config.kaniko?.nodeSelector
   }
 
-  const logEventContext = {
-    origin: "kaniko",
-    log: log.createLog({ fixLevel: LogLevel.verbose }),
-  }
-
   const runner = new PodRunner({
     ctx,
-    logEventContext,
+    logEventContext: {
+      origin: "kaniko",
+      level: "verbose",
+    },
     api,
     pod,
     provider,

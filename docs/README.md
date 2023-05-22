@@ -28,6 +28,7 @@
 * [Workflows](./using-garden/workflows.md)
 * [Variables and templating](./using-garden/variables-and-templating.md)
 * [Config Templates](./using-garden/config-templates.md)
+* [Actions](./using-garden/actions.md)
 * [Using the CLI](./using-garden/using-the-cli.md)
 
 ## 🌿 Kubernetes Plugins
@@ -38,7 +39,7 @@
     * [AWS](./k8s-plugins/remote-k8s/create-cluster/aws.md)
     * [GCP](./k8s-plugins/remote-k8s/create-cluster/gcp.md)
     * [Azure](./k8s-plugins/remote-k8s/create-cluster/azure.md)
-  * [2. Configure Container Registry (Optional)](./k8s-plugins/remote-k8s/configure-registry/README.md)
+  * [2. Configure Container Registry](./k8s-plugins/remote-k8s/configure-registry/README.md)
     * [AWS](./k8s-plugins/remote-k8s/configure-registry/aws.md)
     * [GCP](./k8s-plugins/remote-k8s/configure-registry/gcp.md)
     * [Azure](./k8s-plugins/remote-k8s/configure-registry/azure.md)
@@ -47,12 +48,13 @@
 * [Local K8s Plugin Configuration](./k8s-plugins/local-k8s/README.md)
   * [1. Install Local Kubernetes](./k8s-plugins/local-k8s/install.md)
   * [2. Configure the Provider](./k8s-plugins/local-k8s/configure-provider.md)
-* [Module Configuration](./k8s-plugins/module-types/README.md)
-  * [Container](./k8s-plugins/module-types/container.md)
-  * [Kubernetes](./k8s-plugins/module-types/kubernetes.md)
-  * [Helm](./k8s-plugins/module-types/helm.md)
-  * [PersistentVolumeClaim](./k8s-plugins/module-types/persistentvolumeclaim.md)
-  * [ConfigMap](./k8s-plugins/module-types/configmap.md)
+* [Action Configuration](./k8s-plugins/action-types/README.md)
+  * [Container](./k8s-plugins/action-types/container.md)
+  * [Kubernetes](./k8s-plugins/action-types/kubernetes.md)
+  * [Helm](./k8s-plugins/action-types/helm.md)
+  * [PersistentVolumeClaim](./k8s-plugins/action-types/persistentvolumeclaim.md)
+  * [ConfigMap](./k8s-plugins/action-types/configmap.md)
+  * [Kubernetes-exec](./k8s-plugins/action-types/kubernetes-exec.md)
 * [Advanced](./k8s-plugins/advanced/README.md)
   * [In-Cluster Building](./k8s-plugins/advanced/in-cluster-building.md)
   * [Minimal RBAC Configuration for Development Clusters](./k8s-plugins/advanced/rbac-config.md)
@@ -62,13 +64,13 @@
 
 * [About](./terraform-plugin/about.md)
 * [Provider Configuration](./terraform-plugin/configure-provider.md)
-* [Module Configuration](./terraform-plugin/configure-modules.md)
+* [Deploy action Configuration](./terraform-plugin/configure-deploy-actions.md)
 
 ## ☘️ Pulumi Plugin
 
 * [About](./pulumi-plugin/about.md)
 * [Provider Configuration](./pulumi-plugin/configure-provider.md)
-* [Module Configuration](./pulumi-plugin/configure-modules.md)
+* [Deploy action Configuration](./pulumi-plugin/configure-deploy-actions.md)
 
 ## 🌹 Other Plugins
 
@@ -80,15 +82,13 @@
 * [Installing Garden](./guides/installation.md)
 * [Adopting Garden](./guides/adopting-garden.md)
 * [Code Synchronization](./guides/code-synchronization.md)
-* [Connecting a local service to a K8s cluster (Local Mode)](./guides/running-service-in-local-mode.md)
+* [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
 * [Environments and namespaces](./guides/namespaces.md)
-* [Hot Reload](./guides/hot-reload.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
 
 ## 🌷 Advanced
 
-* [cert-manager Integration](./advanced/cert-manager-integration.md)
 * [Using Remote Sources](./advanced/using-remote-sources.md)
 * [Custom Commands](./advanced/custom-commands.md)
 
@@ -168,6 +168,7 @@
 * [Module Template Configuration](./reference/module-template-config.md)
 * [RenderTemplate Reference](./reference/render-template-config.md)
 * [Workflow Configuration](./reference/workflow-config.md)
+* [Garden Containers on Docker Hub](./reference/dockerhub-containers.md)
 
 ## 🎋 Misc
 

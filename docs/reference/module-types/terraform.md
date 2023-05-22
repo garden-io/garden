@@ -5,6 +5,10 @@ tocTitle: "`terraform`"
 
 # `terraform` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Resolves a Terraform stack and either applies it automatically (if `autoApply: true`) or warns when the stack resources are not up-to-date.
@@ -29,9 +33,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 kind: Module
 
 # The type of this module.
@@ -57,7 +58,7 @@ build:
           target:
 
   # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
+  timeout: 600
 
 # A description of the module.
 description:
@@ -97,8 +98,8 @@ include:
 # Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-# directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+# Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+# directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
 # directories that should not be watched for changes.
 exclude:
 
@@ -165,8 +166,8 @@ varfile:
 # executed before this service is deployed.
 dependencies: []
 
-# If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete
-# service <module name>`.
+# If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete namespace` or `garden
+# delete deploy <deploy name>`.
 allowDestroy: false
 
 # If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not
@@ -190,14 +191,6 @@ workspace:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 ### `kind`
 
@@ -309,7 +302,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `description`
 
@@ -357,7 +350,7 @@ Specify a list of POSIX-style paths or glob patterns that should be excluded fro
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
-Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large directories that should not be watched for changes.
+Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -495,7 +488,7 @@ The names of any services that this service depends on at runtime, and the names
 
 ### `allowDestroy`
 
-If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete service <module name>`.
+If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete namespace` or `garden delete deploy <deploy name>`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

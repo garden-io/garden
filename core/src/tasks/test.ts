@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -44,11 +44,16 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     this.interactive = interactive
   }
 
+  protected getDependencyParams(): TestTaskParams {
+    return { ...super.getDependencyParams(), silent: this.silent, interactive: this.interactive }
+  }
+
   getDescription() {
     return this.action.longDescription()
   }
 
   async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
+    this.log.verbose("Checking status...")
     const action = this.getResolvedAction(this.action, dependencyResults)
     const router = await this.garden.getActionRouter()
 
@@ -58,10 +63,14 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       action,
     })
 
+    this.log.verbose("Status check complete")
+
     const testResult = status?.detail
 
     if (testResult && testResult.success) {
-      this.log.createLog().success("Already passed")
+      if (!this.force) {
+        this.log.success("Already passed")
+      }
       return {
         ...status,
         version: action.versionString(),
@@ -75,14 +84,14 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
 
-    const taskLog = this.log.createLog().info(`Running...`)
+    this.log.info(`Running...`)
 
     const router = await this.garden.getActionRouter()
 
     let status: GetTestResult<TestAction>
     try {
       const output = await router.test.run({
-        log: taskLog,
+        log: this.log,
         action,
         graph: this.graph,
         silent: this.silent,
@@ -90,15 +99,15 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       })
       status = output.result
     } catch (err) {
-      taskLog.error(`Failed running test`)
+      this.log.error(`Failed running test`)
       throw err
     }
     if (status.detail?.success) {
-      taskLog.success(`Success`)
+      this.log.success(`Success`)
     } else {
       const exitCode = status.detail?.exitCode
       const failedMsg = !!exitCode ? `Failed with code ${exitCode}!` : `Failed!`
-      taskLog.error(`${failedMsg} (took ${taskLog.getDuration(1)} sec)`)
+      this.log.error(failedMsg)
       throw new TestError(status.detail?.log)
     }
 

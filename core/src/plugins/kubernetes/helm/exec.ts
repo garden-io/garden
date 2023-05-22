@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,19 +15,21 @@ import { getHelmDeployStatus } from "./status"
 import { getChartResources } from "./common"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { HelmDeployAction } from "./config"
+import chalk from "chalk"
 
 export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = async (params) => {
   const { ctx, log, action, command, interactive } = params
-
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
 
-  // TODO-G2: We should allow for alternatives here
+  // TODO: We should allow for alternatives here
   const defaultTarget = action.getSpec("defaultTarget")
 
   if (!defaultTarget) {
     throw new ConfigurationError(
-      `${action.longDescription()} does not specify a defaultTarget. This is currently necessary for the exec command to work with helm Deploy actions.`,
+      `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with. This is currently necessary for the ${chalk.white(
+        "exec"
+      )} command to work with helm Deploy actions.`,
       {
         name: action.name,
       }
@@ -44,11 +46,10 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
   const manifests = await getChartResources({
     ctx: k8sCtx,
     action,
-
     log,
   })
 
-  const serviceResource = await getTargetResource({
+  const target = await getTargetResource({
     ctx,
     log,
     provider,
@@ -58,12 +59,12 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
   })
 
   // TODO: this check should probably live outside of the plugin
-  if (!serviceResource || !includes(["ready", "outdated"], status.state)) {
+  if (!target || !includes(["ready", "outdated"], status.detail?.state)) {
     throw new DeploymentError(`${action.longDescription()} is not running`, {
       name: action.name,
       state: status.detail?.state || status.state,
     })
   }
 
-  return execInWorkload({ ctx, provider, log, namespace, workload: serviceResource, command, interactive })
+  return execInWorkload({ ctx, provider, log, namespace, workload: target, command, interactive })
 }

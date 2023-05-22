@@ -27,7 +27,7 @@ This happens because Azure with [RBAC enabled](https://docs.microsoft.com/en-us/
 
 This issue often comes up on Linux, and in other scenarios where the filesystem doesn't support event-based file watching.
 
-Thankfully, you can in most cases avoid this problem using the `modules.exclude` field in your project config, and/or the `exclude` field in your individual module configs. See the [Including/excluding files and directories](../using-garden/configuration-overview.md#includingexcluding-files-and-directories) section in our Configuration Files guide for details.
+Thankfully, you can in most cases avoid this problem using the `scan.exclude` field in your project config, and/or the `exclude` field in your individual action and module configs. See the [Including/excluding files and directories](../using-garden/configuration-overview.md#includingexcluding-files-and-directories) section in our Configuration Files guide for details.
 
 ### I'm getting an "EPERM: operation not permitted, rename..." error on Windows.
 
@@ -44,13 +44,13 @@ or `set -g default-terminal "tmux-256color"` to your `~/.tmux.conf` file.
 
 ### Garden hangs after resolving providers.
 
-This could be because Garden is scanning the project files. Make sure you exclude things like `node_modules` or other large vendor directories. See this [section of our docs](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories).
+This could be because Garden is scanning the project files. Make sure you exclude things like `node_modules` or other large vendor directories. See this [section of our docs](../using-garden/configuration-overview.md#including-excluding-files-and-directories).
 
 ### Ingress not working for `helm` and `kubernetes` modules.
 
 Garden does create the ingress at the Kubernetes level. However, it does not print the ingresses with the CLI output and the Garden command call won't work. This is a [known issue](https://github.com/garden-io/garden/issues/718).
 
-Pinging the service will still work and you'll see the Ingress resource if you run `kubectl get ingress --namespace <my-namspace>`.
+Pinging the service will still work, and you'll see the Ingress resource if you run `kubectl get ingress --namespace <my-namspace>`.
 
 ### A deployment is failing with: `<release-name> has no deployed releases`.
 
@@ -60,7 +60,17 @@ There's an [open pull request](https://github.com/helm/helm/pull/7653) for a fix
 
 ### Files are missing from build context.
 
-This is likely because they're being excluded somewhere, e.g. in `.gitignore` or `.gardenignore`. Garden currently respects `.gitignore` but we plan to change that in our next major release.
+This is likely because they're being excluded somewhere, e.g. in `.gitignore` or `.gardenignore`.
+
+{% hint style="warning" %}
+Prior to Garden 0.13.0, `.gitignore` files were respected by default.
+In Garden 0.13.0 that behaviour was changed.
+Now it's possible to only specify a [single ".ignore" file](../using-garden/configuration-overview.md#ignore-file)
+in the [project-level configuration](../reference/project-config.md#dotIgnoreFile).
+{% endhint %}
+
+Please check your [dotIgnoreFile(s) configuration](../using-garden/configuration-overview.md#ignore-file)
+and the [project-level file exclusions](../using-garden/configuration-overview.md#including-and-excluding-files-across-the-project).
 
 ### `ErrImagePull` when referencing an image from a `container` module in a `helm` module.
 
@@ -102,7 +112,7 @@ This is a bug in Docker CE (i.e. Docker for Desktop), version `2.4.x.y`. See thi
 
 In some container repositories, you may need to create the cache repo manually.
 
-See [this section](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building#kaniko) of our docs and this [GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) for more details.
+See [this section](../k8s-plugins/advanced/in-cluster-building.md#kaniko) of our docs and this [GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) for more details.
 
 ### Can't reach my services on existing ingress URLs after re-installing Garden system services.
 

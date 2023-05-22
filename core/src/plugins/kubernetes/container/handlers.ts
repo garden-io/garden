@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -71,14 +71,13 @@ export function k8sGetContainerBuildActionOutputs({
   outputs.deploymentImageId = outputs["deployment-image-id"] = containerHelpers.getBuildDeploymentImageId(
     action.name,
     localId,
-    action.getFullVersion(),
+    action.moduleVersion(),
     provider.config.deploymentRegistry
   )
 
   return outputs
 }
 
-// TODO-G2: handle at action level as well
 function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {
   // validate ingress specs
   const moduleConfig = params.moduleConfig

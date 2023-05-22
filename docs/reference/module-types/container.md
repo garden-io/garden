@@ -5,6 +5,10 @@ tocTitle: "`container`"
 
 # `container` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Specify a container image to build or pull from a remote registry.
@@ -27,9 +31,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 kind: Module
 
 # The type of this module.
@@ -55,7 +56,7 @@ build:
           target:
 
   # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
+  timeout: 600
 
   # For multi-stage Dockerfiles, specify which image/stage to build (see
   # https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
@@ -106,8 +107,8 @@ include:
 # Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-# directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+# Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+# directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
 # directories that should not be watched for changes.
 exclude:
 
@@ -240,8 +241,8 @@ services:
 
     # List of volumes that should be mounted when starting the container.
     #
-    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-    # deploying the container.
+    # Note: If neither `hostPath` nor `module` is specified,
+    # an empty ephemeral volume is created and mounted when deploying the container.
     volumes:
       - # The name of the allocated volume.
         name:
@@ -278,7 +279,7 @@ services:
     # POSIX capabilities to remove when running the container.
     dropCapabilities:
 
-    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
     tty: false
 
     # Specifies the container's deployment strategy.
@@ -503,7 +504,7 @@ tests:
     disabled: false
 
     # Maximum duration (in seconds) of the test run.
-    timeout: null
+    timeout: 600
 
     # The command/entrypoint to run the container with.
     command:
@@ -535,8 +536,8 @@ tests:
 
     # List of volumes that should be mounted when starting the container.
     #
-    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-    # deploying the container.
+    # Note: If neither `hostPath` nor `module` is specified,
+    # an empty ephemeral volume is created and mounted when deploying the container.
     volumes:
       - # The name of the allocated volume.
         name:
@@ -551,13 +552,17 @@ tests:
         # config source directory (or absolute).
         hostPath:
 
-        # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types
-        # are `persistentvolumeclaim` and `configmap`, for example.
+        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
+        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
+        # module](./persistentvolumeclaim.md), for example.
+        #
+        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
+        # dependency of this service, as well as a build dependency of this module.
         #
         # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
         # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
         # services at the same time. Refer to the documentation of the module type in question to learn more.
-        action:
+        module:
 
     # If true, run the main container in privileged mode. Processes in privileged containers are essentially
     # equivalent to root on the host. Defaults to false.
@@ -569,7 +574,7 @@ tests:
     # POSIX capabilities to remove when running the container.
     dropCapabilities:
 
-    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
     tty: false
 
     # Specifies the container's deployment strategy.
@@ -618,7 +623,7 @@ tasks:
     disabled: false
 
     # Maximum duration (in seconds) of the task's execution.
-    timeout: null
+    timeout: 600
 
     # The command/entrypoint to run the container with.
     command:
@@ -650,8 +655,8 @@ tasks:
 
     # List of volumes that should be mounted when starting the container.
     #
-    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-    # deploying the container.
+    # Note: If neither `hostPath` nor `module` is specified,
+    # an empty ephemeral volume is created and mounted when deploying the container.
     volumes:
       - # The name of the allocated volume.
         name:
@@ -666,13 +671,17 @@ tasks:
         # config source directory (or absolute).
         hostPath:
 
-        # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types
-        # are `persistentvolumeclaim` and `configmap`, for example.
+        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
+        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
+        # module](./persistentvolumeclaim.md), for example.
+        #
+        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
+        # dependency of this service, as well as a build dependency of this module.
         #
         # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
         # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
         # services at the same time. Refer to the documentation of the module type in question to learn more.
-        action:
+        module:
 
     # If true, run the main container in privileged mode. Processes in privileged containers are essentially
     # equivalent to root on the host. Defaults to false.
@@ -684,7 +693,7 @@ tasks:
     # POSIX capabilities to remove when running the container.
     dropCapabilities:
 
-    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
     tty: false
 
     # Specifies the container's deployment strategy.
@@ -706,21 +715,13 @@ tasks:
     # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
     image:
 
-    # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
-    # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its
-    # version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+    # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
+    # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
+    # changes, or when you run `garden run`.
     cacheResult: true
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 ### `kind`
 
@@ -832,7 +833,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `build.targetImage`
 
@@ -897,7 +898,7 @@ Specify a list of POSIX-style paths or glob patterns that should be excluded fro
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
-Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large directories that should not be watched for changes.
+Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -1220,7 +1221,8 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 
 List of volumes that should be mounted when starting the container.
 
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+Note: If neither `hostPath` nor `module` is specified,
+an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -1314,7 +1316,7 @@ POSIX capabilities to remove when running the container.
 
 [services](#services) > tty
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -2021,7 +2023,7 @@ Maximum duration (in seconds) of the test run.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `null`  | No       |
+| `number` | `600`   | No       |
 
 ### `tests[].command[]`
 
@@ -2146,7 +2148,8 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 
 List of volumes that should be mounted when starting the container.
 
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+Note: If neither `hostPath` nor `module` is specified,
+an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -2192,17 +2195,19 @@ tests:
       - hostPath: "/some/dir"
 ```
 
-### `tests[].volumes[].action`
+### `tests[].volumes[].module`
 
-[tests](#tests) > [volumes](#testsvolumes) > action
+[tests](#tests) > [volumes](#testsvolumes) > module
 
-The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`, for example.
+The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
+
+When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
 
 Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `actionReference` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `tests[].privileged`
 
@@ -2238,7 +2243,7 @@ POSIX capabilities to remove when running the container.
 
 [tests](#tests) > tty
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -2382,7 +2387,7 @@ Maximum duration (in seconds) of the task's execution.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `null`  | No       |
+| `number` | `600`   | No       |
 
 ### `tasks[].command[]`
 
@@ -2507,7 +2512,8 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 
 List of volumes that should be mounted when starting the container.
 
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+Note: If neither `hostPath` nor `module` is specified,
+an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -2553,17 +2559,19 @@ tasks:
       - hostPath: "/some/dir"
 ```
 
-### `tasks[].volumes[].action`
+### `tasks[].volumes[].module`
 
-[tasks](#tasks) > [volumes](#tasksvolumes) > action
+[tasks](#tasks) > [volumes](#tasksvolumes) > module
 
-The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`, for example.
+The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
+
+When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
 
 Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `actionReference` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `tasks[].privileged`
 
@@ -2599,7 +2607,7 @@ POSIX capabilities to remove when running the container.
 
 [tasks](#tasks) > tty
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -2687,7 +2695,7 @@ Specify an image ID to deploy. Should be a valid Docker image identifier. Requir
 
 [tasks](#tasks) > cacheResult
 
-Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

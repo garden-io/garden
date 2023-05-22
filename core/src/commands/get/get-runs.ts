@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,12 +30,12 @@ export class GetRunsCommand extends Command<Args, {}, ActionDescriptionMap> {
   help = "Lists the Runs (or tasks, if using modules) defined in your project."
   aliases = ["tasks"]
 
-  // TODO-G2: add output schema
+  // TODO-0.13.0: add output schema
 
   arguments = getRunsArgs
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Runs", "📖")
+  printHeader({ log }) {
+    printHeader(log, "Runs", "📖")
   }
 
   async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult<ActionDescriptionMap>> {

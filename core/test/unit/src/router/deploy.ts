@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ import { expect } from "chai"
 import Stream from "ts-stream"
 import { ResolvedDeployAction } from "../../../../src/actions/deploy"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { Log } from "../../../../src/logger/log-entry"
+import { ActionLog } from "../../../../src/logger/log-entry"
 import { ActionRouter } from "../../../../src/router/router"
 import { DeployLogEntry } from "../../../../src/types/service"
 import { TestGarden, expectError } from "../../../helpers"
@@ -19,7 +19,7 @@ import { getRouterTestData } from "./_helpers"
 describe("deploy actions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: Log
+  let log: ActionLog
   let actionRouter: ActionRouter
   let resolvedDeployAction: ResolvedDeployAction
   let returnWrongOutputsCfgKey: string
@@ -35,7 +35,7 @@ describe("deploy actions", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   afterEach(() => {
@@ -121,7 +121,6 @@ describe("deploy actions", () => {
         graph,
         force: true,
       })
-      const moduleVersion = resolvedDeployAction.moduleVersion().versionString
       const event1 = garden.events.eventLog[0]
       const event2 = garden.events.eventLog[1]
       expect(event1).to.exist

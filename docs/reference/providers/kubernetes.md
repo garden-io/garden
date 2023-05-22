@@ -7,11 +7,11 @@ tocTitle: "`kubernetes`"
 
 ## Description
 
-The `kubernetes` provider allows you to deploy [`container` modules](../module-types/container.md) to
-Kubernetes clusters, and adds the [`helm`](../module-types/helm.md) and
-[`kubernetes`](../module-types/kubernetes.md) module types.
+The `kubernetes` provider allows you to deploy [`container` actions](../../k8s-plugins/action-types/container.md) to
+Kubernetes clusters, and adds the [`helm`](../../k8s-plugins/action-types/helm.md) and
+[`kubernetes`](../../k8s-plugins/action-types/kubernetes.md) action types.
 
-For usage information, please refer to the [guides section](https://docs.garden.io/guides). A good place to start is
+For usage information, please refer to the [guides section](../../guides). A good place to start is
 the [Remote Kubernetes guide](../../k8s-plugins/remote-k8s/README.md) guide if you're connecting to remote clusters.
 The [Quickstart guide](../../basics/quickstart.md) guide is also helpful as an introduction.
 
@@ -212,12 +212,13 @@ providers:
 
     # Configuration options for the `kaniko` build mode.
     kaniko:
-      # Specify extra flags to use when building the container image with kaniko. Flags set on `container` modules
-      # take precedence over these.
+      # Specify extra flags to use when building the container image with kaniko. Flags set on `container` Builds take
+      # precedence over these.
       extraFlags:
 
       # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
-      image: 'gcr.io/kaniko-project/executor:v1.8.1-debug'
+      image: >-
+  gcr.io/kaniko-project/executor:v1.8.1-debug@sha256:3bc3f3a05f803cac29164ce12617a7be64931748c944f6c419565f500b65e8db
 
       # Choose the namespace where the Kaniko pods will be run. Defaults to the project namespace.
       namespace:
@@ -339,12 +340,12 @@ providers:
         # more information.
         group:
 
-    # Require SSL on all `container` module services. If set to true, an error is raised when no certificate is
-    # available for a configured hostname on a `container` module.
+    # Require SSL on all `container` Deploys. If set to true, an error is raised when no certificate is available for
+    # a configured hostname on a `container`Deploy.
     forceSsl: false
 
     # References to `docker-registry` secrets to use for authenticating with remote registries when pulling
-    # images. This is necessary if you reference private images in your module configuration, and is required
+    # images. This is necessary if you reference private images in your action configuration, and is required
     # when configuring a remote Kubernetes environment with buildMode=local.
     imagePullSecrets:
       - # The name of the Kubernetes secret.
@@ -941,7 +942,7 @@ Configuration options for the `kaniko` build mode.
 
 [providers](#providers) > [kaniko](#providerskaniko) > extraFlags
 
-Specify extra flags to use when building the container image with kaniko. Flags set on `container` modules take precedence over these.
+Specify extra flags to use when building the container image with kaniko. Flags set on `container` Builds take precedence over these.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -953,9 +954,9 @@ Specify extra flags to use when building the container image with kaniko. Flags 
 
 Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
 
-| Type     | Default                                         | Required |
-| -------- | ----------------------------------------------- | -------- |
-| `string` | `"gcr.io/kaniko-project/executor:v1.8.1-debug"` | No       |
+| Type     | Default                                                                                                                 | Required |
+| -------- | ----------------------------------------------------------------------------------------------------------------------- | -------- |
+| `string` | `"gcr.io/kaniko-project/executor:v1.8.1-debug@sha256:3bc3f3a05f803cac29164ce12617a7be64931748c944f6c419565f500b65e8db"` | No       |
 
 ### `providers[].kaniko.namespace`
 
@@ -1313,7 +1314,7 @@ Set the default group on files and directories at the target. Specify either an 
 
 [providers](#providers) > forceSsl
 
-Require SSL on all `container` module services. If set to true, an error is raised when no certificate is available for a configured hostname on a `container` module.
+Require SSL on all `container` Deploys. If set to true, an error is raised when no certificate is available for a configured hostname on a `container`Deploy.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -1324,7 +1325,7 @@ Require SSL on all `container` module services. If set to true, an error is rais
 [providers](#providers) > imagePullSecrets
 
 References to `docker-registry` secrets to use for authenticating with remote registries when pulling
-images. This is necessary if you reference private images in your module configuration, and is required
+images. This is necessary if you reference private images in your action configuration, and is required
 when configuring a remote Kubernetes environment with buildMode=local.
 
 | Type            | Default | Required |
@@ -2043,152 +2044,6 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 | Type     | Default     | Required |
 | -------- | ----------- | -------- |
 | `string` | `"default"` | No       |
-
-### `providers[].tlsCertificates[].managedBy`
-
-[providers](#providers) > [tlsCertificates](#providerstlscertificates) > managedBy
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
-certificate. See our
-[cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-Example:
-
-```yaml
-providers:
-  - tlsCertificates:
-      - managedBy: "cert-manager"
-```
-
-### `providers[].certManager`
-
-[providers](#providers) > certManager
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-cert-manager configuration, for creating and managing TLS certificates. See the
-[cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `providers[].certManager.install`
-
-[providers](#providers) > [certManager](#providerscertmanager) > install
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Automatically install `cert-manager` on initialization. See the
-[cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `false` | No       |
-
-### `providers[].certManager.email`
-
-[providers](#providers) > [certManager](#providerscertmanager) > email
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-The email to use when requesting Let's Encrypt certificates.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-Example:
-
-```yaml
-providers:
-  - certManager:
-      ...
-      email: "yourname@example.com"
-```
-
-### `providers[].certManager.issuer`
-
-[providers](#providers) > [certManager](#providerscertmanager) > issuer
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-The type of issuer for the certificate (only ACME is supported for now).
-
-| Type     | Default  | Required |
-| -------- | -------- | -------- |
-| `string` | `"acme"` | No       |
-
-Example:
-
-```yaml
-providers:
-  - certManager:
-      ...
-      issuer: "acme"
-```
-
-### `providers[].certManager.acmeServer`
-
-[providers](#providers) > [certManager](#providerscertmanager) > acmeServer
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod servers are supported.
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `string` | `"letsencrypt-staging"` | No       |
-
-Example:
-
-```yaml
-providers:
-  - certManager:
-      ...
-      acmeServer: "letsencrypt-staging"
-```
-
-### `providers[].certManager.acmeChallengeType`
-
-[providers](#providers) > [certManager](#providerscertmanager) > acmeChallengeType
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-The type of ACME challenge used to validate hostnames and generate the certificates (only HTTP-01 is supported for now).
-
-| Type     | Default     | Required |
-| -------- | ----------- | -------- |
-| `string` | `"HTTP-01"` | No       |
-
-Example:
-
-```yaml
-providers:
-  - certManager:
-      ...
-      acmeChallengeType: "HTTP-01"
-```
 
 ### `providers[].systemNodeSelector`
 

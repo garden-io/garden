@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,16 +23,16 @@ export class ValidateCommand extends Command {
     Throws an error and exits with code 1 if something's not right in your garden config files.
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Validate", "✔️")
+  printHeader({ log }) {
+    printHeader(log, "Validate", "✔️")
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult> {
     // This implicitly validates modules and actions.
-    await garden.getConfigGraph({ log, emit: false })
+    await garden.getResolvedConfigGraph({ log, emit: false })
 
     /*
-     * Normally, workflow configs are only resolved when they're run via the `run-workflow` command (and only the
+     * Normally, workflow configs are only resolved when they're run via the `workflow` command (and only the
      * workflow being run).
      *
      * Here, we want to validate all workflow configs (so we try resolving them all).

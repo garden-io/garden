@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -48,6 +48,7 @@ export const augmentGraph = () => ({
   `,
   paramsSchema: projectActionParamsSchema().keys({
     // allow unknown because BaseAction-s are passed not BaseActionConfigs
+    // FIXME: consider fixing this by passing the values of a correct type
     actions: joiArray(baseActionConfigSchema().unknown(true)).description(
       dedent`
           A list of all previously defined actions in the project, including all actions added by any \`augmentGraph\`

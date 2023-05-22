@@ -1,6 +1,7 @@
+apiVersion: garden.io/v1
 kind: Project
 name: login
-domain: http://example.invalid
+domain: https://example.invalid
 id: dummy-id
 environments:
   - name: test

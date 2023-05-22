@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,7 +15,7 @@ import { join, relative, isAbsolute } from "path"
 import { GARDEN_VERSIONFILE_NAME as GARDEN_TREEVERSION_FILENAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
-import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } from "../util/ext-source-util"
+import { ExternalSourceType, getRemoteSourceLocalPath, getRemoteSourcesPath } from "../util/ext-source-util"
 import { ModuleConfig, serializeConfig } from "../config/module"
 import type { Log } from "../logger/log-entry"
 import { treeVersionSchema } from "../config/common"
@@ -30,6 +30,8 @@ import { validateInstall } from "../util/validateInstall"
 import { isActionConfig } from "../actions/base"
 import type { BaseActionConfig } from "../actions/types"
 import { Garden } from "../garden"
+import chalk = require("chalk")
+import { Profile } from "../util/profiling"
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
@@ -62,16 +64,18 @@ export interface TreeVersions {
   [moduleName: string]: TreeVersion
 }
 
-// TODO-G2: rename, maybe to ResourceVersion
-export interface ModuleVersion {
+// TODO: rename, maybe to ResourceVersion
+export interface ModuleVersion extends TreeVersion {
   versionString: string
   dependencyVersions: DependencyVersions
-  files: string[]
 }
 
-export interface ActionVersion extends ModuleVersion {
+export interface ActionVersion {
+  versionString: string
+  dependencyVersions: DependencyVersions
   configVersion: string
   sourceVersion: string
+  files: string[]
 }
 
 export interface NamedModuleVersion extends ModuleVersion {
@@ -123,6 +127,7 @@ export interface VcsHandlerParams {
   cache: TreeCache
 }
 
+@Profile()
 export abstract class VcsHandler {
   protected garden?: Garden
   protected projectRoot: string
@@ -145,29 +150,35 @@ export abstract class VcsHandler {
   abstract updateRemoteSource(params: RemoteSourceParams): Promise<void>
   abstract getPathInfo(log: Log, path: string): Promise<VcsInfo>
 
+  clearTreeCache() {
+    this.cache.clear()
+  }
+
   async getTreeVersion(
     log: Log,
     projectName: string,
     config: ModuleConfig | BaseActionConfig,
     force = false
   ): Promise<TreeVersion> {
+    const cacheKey = getResourceTreeCacheKey(config)
+    const description = describeConfig(config)
+
+    // Note: duplicating this as an optimization (avoid the async lock)
+    if (!force) {
+      const cached = this.cache.get(log, cacheKey)
+      if (cached) {
+        log.silly(`Got cached tree version for ${description} (key ${cacheKey})`)
+        return cached
+      }
+    }
+
     const configPath = getConfigFilePath(config)
     const path = getConfigBasePath(config)
 
-    // Apply project root excludes if the module config is in the project root and `include` isn't set
-    const exclude =
-      path === this.projectRoot && !config.include
-        ? [...(config.exclude || []), ...fixedProjectExcludes]
-        : config.exclude
-
     let result: TreeVersion = { contentHash: NEW_RESOURCE_VERSION, files: [] }
-
-    const cacheKey = getResourceTreeCacheKey(config)
 
     // Make sure we don't concurrently scan the exact same context
     await scanLock.acquire(cacheKey.join(":"), async () => {
-      const description = describeConfig(config)
-
       if (!force) {
         const cached = this.cache.get(log, cacheKey)
         if (cached) {
@@ -176,6 +187,12 @@ export abstract class VcsHandler {
           return
         }
       }
+
+      // Apply project root excludes if the module config is in the project root and `include` isn't set
+      const exclude =
+        path === this.projectRoot && !config.include
+          ? [...(config.exclude || []), ...fixedProjectExcludes]
+          : config.exclude
 
       // No need to scan for files if nothing should be included
       if (!(config.include && config.include.length === 0)) {
@@ -188,14 +205,14 @@ export abstract class VcsHandler {
         })
 
         if (files.length > fileCountWarningThreshold) {
-          // TODO-G2: This will be repeated for modules and actions resulting from module conversion
+          // TODO-0.13.0: This will be repeated for modules and actions resulting from module conversion
           await this.garden?.emitWarning({
             key: `${projectName}-filecount-${config.name}`,
             log,
-            message: dedent`
+            message: chalk.yellow(dedent`
               Large number of files (${files.length}) found in ${description}. You may need to configure file exclusions.
               See https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories for details.
-            `,
+            `),
           })
         }
 
@@ -220,15 +237,18 @@ export abstract class VcsHandler {
     return fileVersion || (await this.getTreeVersion(log, projectName, moduleConfig))
   }
 
-  getRemoteSourcesDirname(type: ExternalSourceType) {
-    return getRemoteSourcesDirname(type)
+  /**
+   * Returns the absolute path to the local directory for all remote sources
+   */
+  getRemoteSourcesLocalPath(type: ExternalSourceType) {
+    return getRemoteSourcesPath({ gardenDirPath: this.gardenDirPath, type })
   }
 
   /**
-   * Returns the path to the remote source directory, relative to the project level Garden directory (.garden)
+   * Returns the absolute path to the local directory for the remote source
    */
-  getRemoteSourceRelPath(name: string, url: string, sourceType: ExternalSourceType) {
-    return getRemoteSourceRelPath({ name, url, sourceType })
+  getRemoteSourceLocalPath(name: string, url: string, type: ExternalSourceType) {
+    return getRemoteSourceLocalPath({ gardenDirPath: this.gardenDirPath, name, url, type })
   }
 }
 

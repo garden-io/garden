@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,6 +25,8 @@ import { PartialBy } from "../../../../../../src/util/util"
 import { Resolved } from "../../../../../../src/actions/types"
 import { actionFromConfig } from "../../../../../../src/graph/actions"
 import { DeployAction } from "../../../../../../src/actions/deploy"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants"
+import { uuidv4 } from "../../../../../../src/util/random"
 
 const namespace = "my-namespace"
 const ports = [
@@ -41,9 +43,9 @@ type PartialConfig = PartialBy<KubernetesConfig, "context">
 const basicConfig: PartialConfig = {
   name: "local-kubernetes",
   buildMode: "local-docker",
-  defaultHostname: "my.domain.com",
+  defaultHostname: "hostname.invalid",
   deploymentRegistry: {
-    hostname: "foo.garden",
+    hostname: "registry.invalid",
     port: 5000,
     namespace: "boo",
     insecure: true,
@@ -303,7 +305,7 @@ describe("createIngressResources", () => {
 
   after(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 
@@ -316,6 +318,7 @@ describe("createIngressResources", () => {
 
     basicProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: { ...basicConfig, context },
       dependencies: {},
       moduleConfigs: [],
@@ -327,6 +330,7 @@ describe("createIngressResources", () => {
 
     multiTlsProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: { ...multiTlsConfig, context },
       dependencies: {},
       moduleConfigs: [],
@@ -338,6 +342,7 @@ describe("createIngressResources", () => {
 
     singleTlsProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: { ...singleTlsConfig, context },
       dependencies: {},
       moduleConfigs: [],
@@ -367,6 +372,7 @@ describe("createIngressResources", () => {
         kind: "Deploy",
         name: "my-service",
         type: "container",
+        timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
         spec: {
           image: "busybox:1.31.1",
           ingresses,
@@ -374,6 +380,7 @@ describe("createIngressResources", () => {
         },
       },
       mode: "default",
+      linkedSources: {},
     })) as DeployAction
 
     return await garden.resolveAction({ action: unresolved, graph, log })
@@ -401,6 +408,7 @@ describe("createIngressResources", () => {
       annotations: {},
       path: "/",
       port: "http",
+      hostname: "hostname.invalid",
     })
 
     const api = await getKubeApi(basicProvider)
@@ -421,7 +429,7 @@ describe("createIngressResources", () => {
       expect(ingress.metadata.annotations?.["kubernetes.io/ingress.class"]).to.be.undefined
       expect(ingress.spec.rules).to.eql([
         {
-          host: "my.domain.com",
+          host: "hostname.invalid",
           http: {
             paths: [
               {
@@ -444,7 +452,7 @@ describe("createIngressResources", () => {
       expect(ingress.metadata.annotations?.["kubernetes.io/ingress.class"]).to.equal("nginx")
       expect(ingress.spec.rules).to.eql([
         {
-          host: "my.domain.com",
+          host: "hostname.invalid",
           http: {
             paths: [
               {
@@ -481,6 +489,7 @@ describe("createIngressResources", () => {
         annotations: {},
         path: "/",
         port: "http",
+        hostname: "hostname.invalid",
       },
       {
         annotations: {},
@@ -496,7 +505,7 @@ describe("createIngressResources", () => {
     expect(ingresses.length).to.equal(2)
 
     expect(ingresses[0].metadata.name).to.equal(`${action.name}-0`)
-    expect(ingresses[0].spec?.rules?.[0].host).to.equal("my.domain.com")
+    expect(ingresses[0].spec?.rules?.[0].host).to.equal("hostname.invalid")
     expect(ingresses[0].spec?.rules?.[0].http?.paths[0].path).to.equal("/")
 
     expect(ingresses[1].metadata.name).to.equal(`${action.name}-1`)
@@ -509,6 +518,7 @@ describe("createIngressResources", () => {
       annotations: {},
       path: "/",
       port: "http",
+      hostname: "my.domain.com",
     })
 
     const api = await getKubeApi(singleTlsProvider)
@@ -537,6 +547,7 @@ describe("createIngressResources", () => {
 
     const provider: KubernetesProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: {
         ...basicConfig,
         context,
@@ -575,6 +586,7 @@ describe("createIngressResources", () => {
 
     const provider: KubernetesProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: {
         ...basicConfig,
         context,
@@ -615,6 +627,7 @@ describe("createIngressResources", () => {
 
     const provider: KubernetesProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: {
         ...basicConfig,
         context,
@@ -680,6 +693,7 @@ describe("createIngressResources", () => {
 
     const provider: KubernetesProvider = {
       name: "kubernetes",
+      uid: uuidv4(),
       config: {
         ...basicConfig,
         context,

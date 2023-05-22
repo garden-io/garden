@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -42,7 +42,7 @@ const configSchema = providerConfigBaseSchema()
       .default(true)
       .description(
         dedent`
-          By default, the provider automatically creates a \`hadolint\` module for every \`container\` module in your
+          By default, the provider automatically creates a \`hadolint\` Test for every \`container\` Build in your
           project. Set this to \`false\` to disable this behavior.
         `
       ),
@@ -71,14 +71,16 @@ const isHadolintTest = (action: BaseAction): action is HadolintTest =>
 
 const gitHubUrl = getGitHubUrl("examples/hadolint")
 
+const defaultHadolintTimeoutSec = 10
+
 export const gardenPlugin = () =>
   createGardenPlugin({
     name: "hadolint",
     dependencies: [{ name: "container" }],
     docs: dedent`
-    This provider creates a [\`hadolint\`](../action-types/Test/hadolint.md) Test action type, and (by default) generates one such action for each \`container\` module that contains a Dockerfile in your project. Each module creates a single test that runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to ensure that the Dockerfile is valid and follows best practices.
+    This provider creates a [\`hadolint\`](../action-types/Test/hadolint.md) Test action type, and (by default) generates one such action for each \`container\` Build that contains a Dockerfile in your project. Each Test runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to ensure that the Dockerfile is valid and follows best practices.
 
-    To configure \`hadolint\`, you can use \`.hadolint.yaml\` config files. For each test, we first look for one in the relevant module root. If none is found there, we check the project root, and if none is there we fall back to default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
+    To configure \`hadolint\`, you can use \`.hadolint.yaml\` config files. For each Test, we first look for one in the relevant action's root. If none is found there, we check the project root, and if none is there we fall back to default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
     See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the [hadolint example project](${gitHubUrl}) for a usage example.
   `,
@@ -142,6 +144,7 @@ export const gardenPlugin = () =>
             internal: {
               basePath: action.basePath(),
             },
+            timeout: action.getConfig().timeout,
             spec: {
               dockerfilePath,
             },
@@ -160,7 +163,7 @@ export const gardenPlugin = () =>
           docs: dedent`
           Runs \`hadolint\` on the specified Dockerfile.
 
-          > Note: In most cases, you'll let the [provider](../../providers/hadolint.md) create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
+          > Note: In most cases, you'll let the [provider](../../providers/hadolint.md) create this action type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
 
           To configure \`hadolint\`, you can use \`.hadolint.yaml\` config files. For each test, we first look for one in the action source directory. If none is found there, we check the project root, and if none is there we fall back to   configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
@@ -342,7 +345,7 @@ export const gardenPlugin = () =>
 
               include: [module.spec.dockerfilePath],
 
-              timeout: 10,
+              timeout: defaultHadolintTimeoutSec,
 
               spec: {
                 dockerfilePath: module.spec.dockerfilePath,

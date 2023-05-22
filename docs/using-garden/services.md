@@ -33,7 +33,7 @@ If you specify a `port` for a given service, other services from inside the clus
 
 If you specify an `ingress`, your can reach your service from outside the cluster. For example with `curl` or in a browser.
 
-The default ingress for local development is `http://demo-project.local.app.garden/<ingress-name>`. You can override this by setting a `hostname` under the `ingress` directive.
+The default ingress for local development is `http://demo-project.local.demo.garden/<ingress-name>`. You can override this by setting a `hostname` under the `ingress` directive.
 
 ## Services in the Stack Graph
 

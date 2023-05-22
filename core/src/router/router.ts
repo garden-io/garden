@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -93,7 +93,7 @@ export class ActionRouter extends BaseRouter {
 
     const output = await router.callHandler({
       handlerType: "getOutputs",
-      // TODO-G2: figure out why the typing clashes here
+      // TODO: figure out why the typing clashes here
       params: { ...params, action: <any>params.action, events: undefined },
       defaultHandler: async ({}) => ({ outputs: {} }),
     })

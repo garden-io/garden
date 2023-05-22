@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,7 +25,7 @@ import { RunActionHandler } from "../../plugin/action-types"
 import { HelmPodRunAction } from "./helm/config"
 import { KubernetesRunAction } from "./kubernetes-type/config"
 
-// TODO-G2: figure out how to get rid of the any cast here
+// TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
   const { ctx, log } = params
   const action = <ContainerRunAction>params.action
@@ -82,7 +82,7 @@ interface StoreTaskResultParams {
 export async function storeRunResult({ ctx, log, action, result }: StoreTaskResultParams): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = await getAppNamespace(ctx, log, provider)
+  const namespace = await getAppNamespace(ctx as KubernetesPluginContext, log, provider)
 
   // FIXME: We should store the logs separately, because of the 1MB size limit on ConfigMaps.
   const data = trimRunOutput(result)
@@ -93,7 +93,7 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
       namespace,
       key: getRunResultKey(ctx, action),
       labels: {
-        [gardenAnnotationKey("action")]: "deploy.service-a",
+        [gardenAnnotationKey("action")]: action.key(),
         [gardenAnnotationKey("actionType")]: action.type,
         [gardenAnnotationKey("version")]: action.versionString(),
       },
@@ -120,7 +120,7 @@ export async function clearRunResult({
 }): Promise<void> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = await getAppNamespace(ctx, log, provider)
+  const namespace = await getAppNamespace(ctx as KubernetesPluginContext, log, provider)
 
   const key = getRunResultKey(ctx, action)
 

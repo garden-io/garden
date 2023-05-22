@@ -1,11 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import { GardenBaseError, ConfigurationError, TemplateStringError } from "../exceptions"
 import {
   ConfigContext,
@@ -200,12 +201,10 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
 
     return resolved
   } catch (err) {
-    const prefix = `Invalid template string (${truncate(string, 35).replace(/\n/g, "\\n")}): `
+    const prefix = `Invalid template string (${chalk.white(truncate(string, 35).replace(/\n/g, "\\n"))}): `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 
-    throw new TemplateStringError(message, {
-      err,
-    })
+    throw new TemplateStringError(message, {})
   }
 }
 
@@ -487,14 +486,14 @@ interface ActionTemplateReference extends ActionReference {
  * Collects every reference to another action in the given config object, including translated runtime.* references.
  * An error is thrown if a reference is not resolvable, i.e. if a nested template is used as a reference.
  *
- * TODO-G2: Allow such nested references in certain cases, e.g. if resolvable with a ProjectConfigContext.
+ * TODO-0.13.1: Allow such nested references in certain cases, e.g. if resolvable with a ProjectConfigContext.
  */
 export function getActionTemplateReferences<T extends object>(config: T): ActionTemplateReference[] {
   const rawRefs = collectTemplateReferences(config)
 
   // ${action.*}
   const refs: ActionTemplateReference[] = rawRefs
-    .filter((ref) => ref[0] === "action")
+    .filter((ref) => ref[0] === "actions")
     .map((ref) => {
       if (!ref[1]) {
         throw new ConfigurationError("Found invalid action reference (missing kind)", { config, ref })

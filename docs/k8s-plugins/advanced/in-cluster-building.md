@@ -22,6 +22,7 @@ If in doubt, use the following setup for builds:
 Here's a basic configuration example:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...
@@ -225,7 +226,7 @@ and to have Docker running locally. For development clusters, you
 may in fact get set up quicker if you use the in-cluster build
 modes.
 
-When you deploy to your environment (via `garden deploy` or `garden dev`) using the local Docker mode, images are first
+When you deploy to your environment (via `garden deploy`) using the local Docker mode, images are first
 built locally and then pushed to the configured _deployment registry_, where the K8s cluster will then pull the built
 images when deploying. This should generally be a _private_ container registry, or at least a private project in a
 public registry.
@@ -241,6 +242,7 @@ Once you've created the auth secret in the cluster, you can configure the regist
 `garden.yml` project config like this:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 environments:
@@ -273,6 +275,7 @@ To deploy a built image to a remote Kubernetes cluster, the image first needs to
 To configure a deployment registry, you need to specify at least the `deploymentRegistry` field on your `kubernetes` provider, and in many cases you also need to provide a Secret in order to authenticate with the registry via the `imagePullSecrets` field:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...
@@ -287,7 +290,7 @@ providers:
         namespace: default
 ```
 
-Now say, if you specify `hostname: my-registry.com` and `namespace: my-project-id` for the `deploymentRegistry` field, and you have a container module named `some-module` in your project, it will be tagged and pushed to `my-registry.com/my-project-id/some-module:v:<module-version>` after building. That image ID will be then used in Kubernetes manifests when running containers.
+Now say, if you specify `hostname: my-registry.com` and `namespace: my-project-id` for the `deploymentRegistry` field, and you have a container Build named `some-build` in your project, it will be tagged and pushed to `my-registry.com/my-project-id/some-build:v:<build-version>` after building. That image ID will be then used in Kubernetes manifests when running containers.
 
 For this to work, you in most cases also need to provide the authentication necessary for both the cluster to read the image and for the builder to push to the registry. We use the same format and mechanisms as Kubernetes _imagePullSecrets_ for this. See [this guide](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) for how to create the secret, **but keep in mind that for this context, the authentication provided must have write privileges to the configured registry and namespace.**
 
@@ -318,6 +321,7 @@ kubectl --namespace default create secret generic ecr-config \
 Finally, add the secret reference to your `kubernetes` provider configuration:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...
@@ -409,6 +413,7 @@ kubectl --namespace default create secret docker-registry gcr-config \
 Finally, add the created _imagePullSecret_ to your `kubernetes` provider configuration:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...
@@ -474,6 +479,7 @@ kubectl --namespace default create secret docker-registry gar-config \
 Finally, add the created _imagePullSecret_ and _deploymentRegistry_ to your `kubernetes` provider configuration:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...
@@ -490,7 +496,7 @@ providers:
 
 ## Publishing images
 
-You can publish images that have been built in your cluster, using the `garden publish` command. See the [Publishing images](../../other-plugins/container.md#publishing-images) section in the [Container Modules guide](../../other-plugins/container.md) for details.
+You can publish images that have been built in your cluster, using the `garden publish` command. See the [Publishing images](../../other-plugins/container.md#publishing-images) section in the [Container Action guide](../../other-plugins/container.md) for details.
 
 {% hint style="warning" %}
 Note that you currently need to have Docker running locally even when using remote building, and you need to have authenticated with the target registry. When publishing, we pull the image from the remote registry to the local Docker daemon, and then go on to push it from there. We do this to avoid having to (re-)implement all the various authentication methods (and by extension key management) involved in pushing directly from the cluster, and because it's often not desired to give clusters access to directly push to production registries.
@@ -509,6 +515,7 @@ where `my-private-registry.com` requires authorization.
 For this to work, you need to create a registry secret in your cluster (see [this guide](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) for how to create the secret) and then configure the [imagePullSecrets](../../reference/providers/kubernetes.md#providersimagepullsecrets) field in your `kubernetes` provider configuration:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 ...

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,8 +35,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -66,8 +64,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -89,8 +85,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: ["module-a-unit"] }, // <---
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -112,8 +106,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -147,6 +139,7 @@ describe("TestCommand", () => {
             completedAt: new Date(),
           },
           outputs: {},
+          version: "v-1234",
         },
       }
     })
@@ -154,8 +147,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: ["module-a-unit"] },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -179,8 +170,6 @@ describe("TestCommand", () => {
         command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { names: undefined },
           opts: withDefaultGlobalOpts({
             "name": undefined,
@@ -204,8 +193,6 @@ describe("TestCommand", () => {
         command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { names: ["module-a-unit", "module-a-integration"] },
           opts: withDefaultGlobalOpts({
             "name": undefined,
@@ -234,8 +221,6 @@ describe("TestCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -264,8 +249,6 @@ describe("TestCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -295,8 +278,6 @@ describe("TestCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: ["module-a-*"] },
       opts: withDefaultGlobalOpts({
         "name": undefined,
@@ -314,15 +295,13 @@ describe("TestCommand", () => {
     expect(Object.keys(result!.graphResults).sort()).to.eql(["test.module-a-integration", "test.module-a-unit"])
   })
 
-  it("concatenates positional args and --name flags", async () => {
+  it("finds tests in multiple modules when using --name flag", async () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
-      args: { names: ["module-a-unit"] },
+      args: { names: [] },
       opts: withDefaultGlobalOpts({
-        "name": ["module-b-unit"],
+        "name": ["unit"],
         "force": true,
         "force-build": true,
         "watch": false,
@@ -334,7 +313,7 @@ describe("TestCommand", () => {
       }),
     })
 
-    expect(Object.keys(result!.graphResults).sort()).to.eql(["test.module-a-unit", "test.module-b-unit"])
+    expect(Object.keys(result!.graphResults).sort()).to.eql(["test.module-a-unit", "test.module-b-unit", "test.module-c-unit"])
   })
 
   it("throws if --module filter specifies module that does not exist", async () => {
@@ -343,8 +322,6 @@ describe("TestCommand", () => {
         command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { names: undefined },
           opts: withDefaultGlobalOpts({
             "name": undefined,
@@ -398,8 +375,6 @@ describe("TestCommand", () => {
       const { result, errors } = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { names: ["module-a-*"] },
         opts: withDefaultGlobalOpts({
           "name": undefined,

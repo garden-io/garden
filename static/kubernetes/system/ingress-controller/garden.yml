@@ -5,6 +5,7 @@ type: helm
 repo: https://kubernetes.github.io/ingress-nginx
 chart: ingress-nginx
 releaseName: garden-nginx
+atomicInstall: false
 dependencies:
   - default-backend
 version: 4.0.13

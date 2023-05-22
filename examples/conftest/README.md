@@ -5,6 +5,7 @@ This simple example shows you how you can easily drop [conftest](https://github.
 The [project config](./garden.yml) contains a single line that automatically creates a `conftest` test for each `kubernetes` and `helm` module in your project:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 name: conftest
 environments:

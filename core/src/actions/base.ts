@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,10 +8,9 @@
 
 import chalk from "chalk"
 import titleize from "titleize"
-import type { ConfigGraph, ResolvedConfigGraph } from "../graph/config-graph"
+import type { ConfigGraph, GetActionOpts, ResolvedConfigGraph } from "../graph/config-graph"
 import {
   ActionReference,
-  apiVersionSchema,
   DeepPrimitiveMap,
   includeGuideLink,
   joi,
@@ -22,6 +21,7 @@ import {
   joiVariables,
   parseActionReference,
   createSchema,
+  unusedApiVersionSchema,
 } from "../config/common"
 import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList, stableStringify } from "../util/string"
@@ -33,7 +33,7 @@ import { actionOutputsSchema } from "../plugin/handlers/base/base"
 import type { GraphResult, GraphResults } from "../graph/results"
 import type { RunResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
-import { flatten, fromPairs, isString, omit, sortBy } from "lodash"
+import { cloneDeep, flatten, fromPairs, isString, memoize, omit, sortBy } from "lodash"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import { relative } from "path"
 import { InternalError } from "../exceptions"
@@ -60,66 +60,71 @@ import { DeployAction } from "./deploy"
 import { TestAction } from "./test"
 import { RunAction } from "./run"
 import { uuidv4 } from "../util/random"
+import { createActionLog, Log } from "../logger/log-entry"
+import { joinWithPosix } from "../util/fs"
+import { LinkedSource } from "../config-store/local"
 
-// TODO-G2: split this file
+// TODO: split this file
 
 const actionInternalFieldsSchema = createSchema({
   name: "action-config-internal-fields",
   extend: baseInternalFieldsSchema,
-  keys: {
+  keys: () => ({
     groupName: joi.string().optional().meta({ internal: true }),
     moduleName: joi.string().optional().meta({ internal: true }),
     resolved: joi.boolean().optional().meta({ internal: true }),
-  },
+  }),
   allowUnknown: true,
   meta: { internal: true },
 })
 
-const actionSourceSpecSchema = () =>
-  joi
-    .object()
-    .keys({
-      path: joi
-        .posixPath()
-        .relativeOnly()
-        .description(
-          `A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!`
-        ),
-      repository: joi
-        .object()
-        .keys({
-          url: joiRepositoryUrl().required(),
-        })
-        .description(
-          `When set, Garden will import the action source from this repository, but use this action configuration (and not scan for configs in the separate repository).`
-        ),
-    })
-    .description(
-      dedent`
-        By default, the directory where the action is defined is used as the source for the build context.
+const actionSourceSpecSchema = createSchema({
+  name: "action-source-spec",
+  description: dedent`
+    By default, the directory where the action is defined is used as the source for the build context.
 
-        You can override this by setting either \`source.path\` to another (POSIX-style) path relative to the action source directory, or \`source.repository\` to get the source from an external repository.
+    You can override this by setting either \`source.path\` to another (POSIX-style) path relative to the action source directory, or \`source.repository\` to get the source from an external repository.
 
-        If using \`source.path\`, you must make sure the target path is in a git repository.
+    If using \`source.path\`, you must make sure the target path is in a git repository.
 
-        For \`source.repository\` behavior, please refer to the [Remote Sources guide](${DOCS_BASE_URL}/advanced/using-remote-sources).
-      `
-    )
-    .xor("path", "repository")
-    .meta({ name: "action-source", advanced: true, templateContext: ActionConfigContext })
+    For \`source.repository\` behavior, please refer to the [Remote Sources guide](${DOCS_BASE_URL}/advanced/using-remote-sources).
+  `,
+  keys: () => ({
+    path: joi
+      .posixPath()
+      .relativeOnly()
+      .description(
+        `A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!`
+      ),
+    repository: joi
+      .object()
+      .keys({
+        url: joiRepositoryUrl().required(),
+      })
+      .description(
+        `When set, Garden will import the action source from this repository, but use this action configuration (and not scan for configs in the separate repository).`
+      ),
+  }),
+  oxor: [["path", "repository"]],
+  meta: { name: "action-source", advanced: true, templateContext: ActionConfigContext },
+})
 
-export const includeExcludeSchema = () => joi.array().items(joi.posixPath().allowGlobs().subPathOnly())
+export const includeExcludeSchema = memoize(() => joi.array().items(joi.posixPath().allowGlobs().subPathOnly()))
 
 export const baseActionConfigSchema = createSchema({
   name: "action-config-base",
-  keys: {
+  keys: () => ({
     // Basics
-    apiVersion: apiVersionSchema().meta({ templateContext: null }),
+    apiVersion: unusedApiVersionSchema().meta({ templateContext: null }),
     kind: joi
       .string()
       .required()
       .allow(...actionKinds)
-      .description(`The kind of action you want to define (one of ${naturalList(actionKinds.map(titleize), "or")}).`)
+      .description(
+        `The kind of action you want to define (one of ${naturalList(actionKinds.map(titleize), {
+          trailingWord: "or",
+        })}).`
+      )
       .meta({ templateContext: null }),
     type: joiIdentifier()
       .required()
@@ -195,15 +200,21 @@ export const baseActionConfigSchema = createSchema({
       .example(["tmp/**/*", "*.log"])
       .meta({ templateContext: ActionConfigContext }),
 
+    // No default here by intention.
+    // Each action kind must override this, declare it as required, and define own timeout and description.
+    // FIXME: this is an ugly hack.
+    //  Making it .required() will break the `augmentGraph ResolvedActionHandlerDescription`.
+    //  See the FIXME-comment in core/src/plugin/handlers/Provider/augmentGraph.ts.
+    timeout: joi.number().integer().optional().description("Set a timeout for the action, in seconds."),
+
     // Variables
     variables: joiVariables()
       .default(() => undefined)
       .description(
         dedent`
-      A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that order. They may reference group-scoped and project-scoped variables, and generally can use any template strings normally allowed when resolving the action.
-    `
-      )
-      .meta({ templateContext: ActionConfigContext }),
+          A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that order. They may reference group-scoped and project-scoped variables, and generally can use any template strings normally allowed when resolving the action.
+        `
+      ),
     varfiles: joiSparseArray(joi.posixPath())
       .description(
         dedent`
@@ -226,7 +237,7 @@ export const baseActionConfigSchema = createSchema({
       .unknown(true)
       .description("The spec for the specific action type.")
       .meta({ templateContext: ActionSpecContext }),
-  },
+  }),
 })
 
 export interface BaseRuntimeActionConfig<K extends ActionKind = ActionKind, N = string, S = any>
@@ -236,7 +247,7 @@ export interface BaseRuntimeActionConfig<K extends ActionKind = ActionKind, N = 
 
 export const baseRuntimeActionConfigSchema = createSchema({
   name: "runtime-action-base",
-  keys: {
+  keys: () => ({
     build: joiUserIdentifier()
       .description(
         dedent(
@@ -249,13 +260,13 @@ export const baseRuntimeActionConfigSchema = createSchema({
         )
       )
       .meta({ templateContext: ActionConfigContext }),
-  },
+  }),
   extend: baseActionConfigSchema,
 })
 
 export const actionStatusSchema = createSchema({
   name: "action-status",
-  keys: {
+  keys: () => ({
     state: joi
       .string()
       .allow(...actionStateTypes)
@@ -273,7 +284,7 @@ export const actionStatusSchema = createSchema({
       .description(
         "Set to true if the action handler is running a process persistently and attached to the Garden process after returning."
       ),
-  },
+  }),
 })
 
 /**
@@ -292,14 +303,13 @@ export interface ActionDescription {
   config: BaseActionConfig<any>
   configVersion: string
   group: string | undefined
-  isLinked: boolean
   key: string
   kind: ActionKind
   longDescription: string
   moduleName: string | null
   name: string
   treeVersion: TreeVersion
-  version: ModuleVersion
+  version: ActionVersion
 }
 
 export interface ActionDescriptionMap {
@@ -307,7 +317,7 @@ export interface ActionDescriptionMap {
 }
 
 export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, Outputs extends {} = any> {
-  // TODO-G2: figure out why kind and type come out as any types on Action type
+  // TODO: figure out why kind and type come out as any types on Action type
   public readonly kind: C["kind"]
   public readonly type: C["type"]
   public readonly name: string
@@ -317,7 +327,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
 
   // Note: These need to be public because we need to reference the types (a current TS limitation)
   _config: C
-  // TODO-G2: split the typing here
+  // TODO: split the typing here
   _outputs: Outputs
   protected _staticOutputs: Outputs
 
@@ -325,6 +335,8 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   protected readonly compatibleTypes: string[]
   protected readonly dependencies: ActionDependency[]
   protected readonly graph: ConfigGraph
+  protected readonly linkedSource: LinkedSource | null
+  protected readonly remoteSourcePath: string | null
   protected readonly _moduleName?: string // TODO: remove in 0.14
   protected readonly _moduleVersion?: ModuleVersion // TODO: remove in 0.14
   protected readonly _mode: ActionMode
@@ -341,6 +353,8 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     this.compatibleTypes = params.compatibleTypes
     this.dependencies = params.dependencies
     this.graph = params.graph
+    this.linkedSource = params.linkedSource
+    this.remoteSourcePath = params.remoteSourcePath
     this._moduleName = params.moduleName
     this._moduleVersion = params.moduleVersion
     this._mode = params.mode
@@ -385,17 +399,33 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   isDisabled(): boolean {
-    // TODO-G2: return true if group is disabled
+    // TODO: return true if group is disabled
     return !!this.getConfig("disabled")
   }
 
   /**
    * Check if the action is linked, including those within an external project source.
-   * Returns true if module path is not under the project root or alternatively if the module is a Garden module.
    */
-  // TODO-G2: this is ported from another function but the logic seems a little suspect to me... - JE
-  isLinked(): boolean {
-    return !pathIsInside(this.basePath(), this.projectRoot)
+  isLinked(linkedSources: LinkedSource[]): boolean {
+    if (this.hasRemoteSource() && !!this.linkedSource) {
+      // Action is linked directly
+      return true
+    }
+
+    const path = this.basePath()
+
+    for (const source of linkedSources) {
+      if (path === source.path || pathIsInside(path, source.path)) {
+        // Action is in a project source
+        return true
+      }
+    }
+
+    return false
+  }
+
+  hasRemoteSource() {
+    return !!this._config.source?.repository?.url
   }
 
   groupName() {
@@ -403,11 +433,17 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return internal?.groupName
   }
 
+  // TODO: rename to sourcePath
   basePath(): string {
-    // TODO-G2
-    // TODO: handle repository.url
-    // TODO: handle build field
-    return this._config.internal.basePath
+    const basePath = this.remoteSourcePath || this._config.internal.basePath
+    const sourceRelPath = this._config.source?.path
+
+    if (sourceRelPath) {
+      // TODO: validate that this is a directory here?
+      return joinWithPosix(basePath, sourceRelPath)
+    } else {
+      return basePath
+    }
   }
 
   configPath() {
@@ -419,7 +455,17 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   moduleVersion(): ModuleVersion {
-    return this._moduleVersion || this.getFullVersion()
+    if (this._moduleVersion) {
+      return this._moduleVersion
+    } else {
+      const version = this.getFullVersion()
+      return {
+        contentHash: version.sourceVersion,
+        versionString: version.versionString,
+        dependencyVersions: version.dependencyVersions,
+        files: version.files,
+      }
+    }
   }
 
   getDependencyReferences(): ActionDependency[] {
@@ -442,10 +488,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return false
   }
 
-  getDependency<K extends ActionKind>(ref: ActionReference<K>) {
+  getDependency<K extends ActionKind>(ref: ActionReference<K>, opts?: GetActionOpts) {
     for (const dep of this.dependencies) {
       if (actionRefMatches(dep, ref)) {
-        return <PickTypeByKind<K, BuildAction, DeployAction, RunAction, TestAction>>this.graph.getActionByRef(ref)
+        return <PickTypeByKind<K, BuildAction, DeployAction, RunAction, TestAction>>this.graph.getActionByRef(ref, opts)
       }
     }
 
@@ -532,7 +578,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   getConfig(): C
   getConfig<K extends keyof C>(key: K): C[K]
   getConfig(key?: keyof C["spec"]) {
-    return key ? this._config[key] : this._config
+    return cloneDeep(key ? this._config[key] : this._config)
   }
 
   /**
@@ -569,7 +615,6 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
       config: this.getConfig(),
       configVersion: this.configVersion(),
       group: this.groupName(),
-      isLinked: this.isLinked(),
       key: this.key(),
       kind: this.kind,
       longDescription: this.longDescription(),
@@ -578,6 +623,18 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
       treeVersion: this.treeVersion(),
       version: this.getFullVersion(),
     }
+  }
+
+  /**
+   * Creates an ActionLog instance with this action as the log context.
+   * Mainly used as a convenience during testing.
+   */
+  createLog(log: Log) {
+    return createActionLog({
+      log,
+      actionKind: this.kind,
+      actionName: this.name,
+    })
   }
 }
 
@@ -637,8 +694,7 @@ export abstract class ResolvedRuntimeAction<
     Outputs extends {} = any
   >
   extends RuntimeAction<Config, Outputs>
-  implements ResolvedActionExtension<Config, Outputs>
-{
+  implements ResolvedActionExtension<Config, Outputs> {
   protected graph: ResolvedConfigGraph
   protected readonly params: ResolvedActionWrapperParams<Config>
   protected readonly resolved: true
@@ -696,7 +752,7 @@ export abstract class ResolvedRuntimeAction<
   getSpec(): Config["spec"]
   getSpec<K extends keyof Config["spec"]>(key: K): Config["spec"][K]
   getSpec(key?: keyof Config["spec"]) {
-    return key ? this._config.spec[key] : this._config.spec
+    return cloneDeep(key ? this._config.spec[key] : this._config.spec)
   }
 
   getOutput<K extends keyof Outputs>(key: K) {
@@ -723,8 +779,7 @@ export abstract class ExecutedRuntimeAction<
     O extends {} = any
   >
   extends ResolvedRuntimeAction<C, O>
-  implements ExecutedActionExtension<C, O>
-{
+  implements ExecutedActionExtension<C, O> {
   private readonly status: ActionStatus<this, any, O>
 
   constructor(params: ExecutedActionWrapperParams<C, O>) {
@@ -745,8 +800,12 @@ export abstract class ExecutedRuntimeAction<
   }
 }
 
-export function actionReferenceToString(ref: ActionReference) {
-  return `${ref.kind.toLowerCase()}.${ref.name}`
+export function actionReferenceToString(ref: ActionReference | string) {
+  if (isString(ref)) {
+    return ref
+  } else {
+    return `${ref.kind.toLowerCase()}.${ref.name}`
+  }
 }
 
 export function actionReferencesToMap(refs: ActionReference[]) {

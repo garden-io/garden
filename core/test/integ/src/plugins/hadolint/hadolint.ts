@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,7 @@
 import tmp from "tmp-promise"
 import { ProjectConfig } from "../../../../../src/config/project"
 import execa = require("execa")
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../src/constants"
 import { createProjectConfig, getDataDir, TestGarden } from "../../../../helpers"
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
@@ -62,11 +62,11 @@ describe("hadolint provider", () => {
     garden.setModuleConfigs([
       // With Dockerfile
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "foo",
         type: "container",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         path: tmpPath,
         serviceConfigs: [],
@@ -76,11 +76,11 @@ describe("hadolint provider", () => {
       },
       // Without Dockerfile
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "bar",
         type: "container",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         path: tmpPath,
         serviceConfigs: [],
@@ -126,11 +126,11 @@ describe("hadolint provider", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "foo",
         type: "foo",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         path: tmpPath,
         serviceConfigs: [],
@@ -159,11 +159,11 @@ describe("hadolint provider", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -182,6 +182,7 @@ describe("hadolint provider", () => {
         config: actions[0],
         log: garden.log,
         configsByKey: {},
+        linkedSources: {},
         router: await garden.getActionRouter(),
         mode: "default",
       })) as TestAction
@@ -231,11 +232,11 @@ describe("hadolint provider", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path: modulePath,
           serviceConfigs: [],
@@ -254,6 +255,7 @@ describe("hadolint provider", () => {
         config: actions[0],
         log: garden.log,
         configsByKey: {},
+        linkedSources: {},
         router: await garden.getActionRouter(),
         mode: "default",
       })) as TestAction
@@ -297,11 +299,11 @@ describe("hadolint provider", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -320,6 +322,7 @@ describe("hadolint provider", () => {
         config: actions[0],
         log: garden.log,
         configsByKey: {},
+        linkedSources: {},
         router: await garden.getActionRouter(),
         mode: "default",
       })) as TestAction
@@ -357,11 +360,11 @@ describe("hadolint provider", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -380,6 +383,7 @@ describe("hadolint provider", () => {
         config: actions[0],
         log: garden.log,
         configsByKey: {},
+        linkedSources: {},
         router: await garden.getActionRouter(),
         mode: "default",
       })) as TestAction
@@ -407,11 +411,11 @@ describe("hadolint provider", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -430,6 +434,7 @@ describe("hadolint provider", () => {
         config: actions[0],
         log: garden.log,
         configsByKey: {},
+        linkedSources: {},
         router: await garden.getActionRouter(),
         mode: "default",
       })) as TestAction
@@ -460,11 +465,11 @@ describe("hadolint provider", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -483,6 +488,7 @@ describe("hadolint provider", () => {
         config: actions[0],
         log: garden.log,
         configsByKey: {},
+        linkedSources: {},
         router: await garden.getActionRouter(),
         mode: "default",
       })) as TestAction

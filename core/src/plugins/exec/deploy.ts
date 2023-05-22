@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,8 +28,7 @@ import { DeployActionHandler } from "../../plugin/action-types"
 import { deployStateToActionState, DeployStatus } from "../../plugin/handlers/Deploy/get-status"
 import { Resolved } from "../../actions/types"
 import { convertCommandSpec, execRun, getDefaultEnvVars } from "./common"
-import { kill } from "process"
-import { isRunning } from "../../process"
+import { isRunning, killRecursive } from "../../process"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -82,6 +81,7 @@ export const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = asy
   if (follow) {
     ctx.events.on("abort", () => {
       logsFollower.stop()
+      ctx.events.emit("done")
     })
 
     await logsFollower.streamLogs({ since: params.since, tail: params.tail, follow: true })
@@ -92,14 +92,14 @@ export const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = asy
   return {}
 }
 
-export const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async (params) => {
+export const deployExec: DeployActionHandler<"deploy", ExecDeploy> = async (params) => {
   const { action, log, ctx } = params
   const spec = action.getSpec()
 
   const env = spec.env
 
   if (spec.deployCommand.length === 0) {
-    log.info({ msg: "No deploy command found. Skipping.", symbol: "info" })
+    log.info("No deploy command found. Skipping.")
     return { state: "ready", detail: { state: "ready", detail: { skipped: true } }, outputs: {} }
   } else if (spec.persistent) {
     return deployPersistentExecService({ action, log, ctx, env, deployName: action.name })
@@ -116,7 +116,12 @@ export const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async
     const outputLog = (result.stdout + result.stderr).trim()
     if (outputLog) {
       const prefix = `Finished deploying service ${chalk.white(action.name)}. Here is the output:`
-      log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
+      log.verbose(renderMessageWithDivider({
+        prefix,
+        msg: outputLog,
+        isError: false,
+        color: chalk.gray
+      }))
     }
 
     return {
@@ -258,11 +263,7 @@ export const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async
       outputs: {},
     }
   } else {
-    log.warn({
-      section: action.key(),
-      symbol: "warning",
-      msg: chalk.gray(`Missing cleanupCommand, unable to clean up service`),
-    })
+    log.warn(`Missing cleanupCommand, unable to clean up service`)
     return { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
   }
 }
@@ -285,8 +286,13 @@ async function killProcess(log: Log, pidFilePath: string, deployName: string) {
     if (pidString) {
       const oldPid = parseInt(pidString, 10)
       if (isRunning(oldPid)) {
-        kill(oldPid, "SIGINT")
-        log.debug(`Sent SIGINT to existing ${deployName} process (PID ${oldPid})`)
+        try {
+          await killRecursive("INT", oldPid)
+          log.debug(`Sent SIGINT to existing ${deployName} process (PID ${oldPid})`)
+        } catch (err) {
+          // This most likely means that the process had already been terminated, which is fine for our purposes here.
+          log.debug(`An error occurred while deleting existing ${deployName} process (PID ${oldPid}): ${err.message}`)
+        }
       }
     }
   } catch (err) {

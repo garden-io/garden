@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,6 +16,7 @@ import {
   RuntimeAction,
 } from "./base"
 import { Action, BaseActionConfig } from "./types"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../constants"
 
 export interface DeployActionConfig<N extends string = any, S extends object = any>
   extends BaseRuntimeActionConfig<"Deploy", N, S> {}
@@ -23,6 +24,12 @@ export interface DeployActionConfig<N extends string = any, S extends object = a
 export const deployActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({
     kind: joi.string().allow("Deploy").only(),
+    timeout: joi
+      .number()
+      .integer()
+      .min(1)
+      .default(DEFAULT_DEPLOY_TIMEOUT_SEC)
+      .description("Timeout for the deploy to complete, in seconds."),
   })
 )
 

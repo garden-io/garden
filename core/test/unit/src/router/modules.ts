@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,6 +11,7 @@ import { Log } from "../../../../src/logger/log-entry"
 import { ActionRouter } from "../../../../src/router/router"
 import { TestGarden } from "../../../helpers"
 import { getRouterTestData } from "./_helpers"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../src/constants"
 
 describe("module actions", () => {
   let garden: TestGarden
@@ -37,6 +38,7 @@ describe("module actions", () => {
             { name: "module-b", copy: [{ source: "2", target: "2" }] },
             { name: "module-c", copy: [{ source: "3", target: "3" }] },
           ],
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         },
       }
 

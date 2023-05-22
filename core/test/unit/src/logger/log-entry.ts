@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,13 +8,13 @@
 
 import { expect } from "chai"
 
-import { getLogger, LogLevel, Logger } from "../../../../src/logger/logger"
+import { getRootLogger, LogLevel, Logger } from "../../../../src/logger/logger"
 import { freezeTime } from "../../../helpers"
-import { createActionLog, Log, LogMetadata } from "../../../../src/logger/log-entry"
-import { omit, pick } from "lodash"
+import { CoreLog, createActionLog, Log, LogMetadata } from "../../../../src/logger/log-entry"
+import { omit } from "lodash"
 import chalk from "chalk"
 
-const logger: Logger = getLogger()
+const logger: Logger = getRootLogger()
 
 beforeEach(() => {
   logger["entries"] = []
@@ -44,10 +44,20 @@ describe("Log", () => {
       expect(entry.level).to.eql(LogLevel.verbose)
     })
   })
+  describe("info", () => {
+    it("should log an entry with the info level", () => {
+      const entry = log.info("info").getLatestEntry()
+      expect(entry.level).to.eql(LogLevel.info)
+    })
+  })
   describe("warn", () => {
     it("should log an entry with the warn level", () => {
       const entry = log.warn("warn").getLatestEntry()
       expect(entry.level).to.eql(LogLevel.warn)
+    })
+    it("should set the log symbol to 'warning'", () => {
+      const entry = log.warn("warn").getLatestEntry()
+      expect(entry.symbol).to.eql("warning")
     })
   })
   describe("error", () => {
@@ -55,26 +65,34 @@ describe("Log", () => {
       const entry = log.error("error").getLatestEntry()
       expect(entry.level).to.eql(LogLevel.error)
     })
-    it("should color the message red", () => {
+    it("should set the log symbol to 'error'", () => {
       const entry = log.error("error").getLatestEntry()
-      expect(entry.msg).to.eql(chalk.red("error"))
+      expect(entry.symbol).to.eql("error")
     })
     it("should print the duration if showDuration=true", () => {
       const errorLog = log.createLog({ name: "test-log", showDuration: true })
       const entry = errorLog.error("error").getLatestEntry()
-      expect(entry.msg).to.include("(in ")
+      expect(entry.msg).to.include("(took ")
     })
   })
   describe("success", () => {
-    it("should log success message", () => {
+    it("should log success message in green color by default", () => {
       const entry = log.success("success").getLatestEntry()
       expect(entry.level).to.eql(LogLevel.info)
       expect(entry.msg).to.eql(chalk.green("success"))
     })
+    it("should log success message in original color if it has ansi", () => {
+      const entry = log.success(`hello ${chalk.cyan("cyan")}`).getLatestEntry()
+      expect(entry.msg).to.eql(`hello ${chalk.cyan("cyan")}`)
+    })
+    it("should set the symbol to success", () => {
+      const entry = log.success("success").getLatestEntry()
+      expect(entry.symbol).to.eql("success")
+    })
     it("should print the duration if showDuration=true", () => {
       const successLog = log.createLog({ name: "success-log", showDuration: true })
       const entry = successLog.success("success").getLatestEntry()
-      expect(entry.msg).to.include("(in ")
+      expect(entry.msg).to.include("(took ")
     })
   })
   describe("general logging", () => {
@@ -82,8 +100,8 @@ describe("Log", () => {
       const metadata: LogMetadata = { workflowStep: { index: 1 } }
       it("should pass on any metadata to child logs", () => {
         const log1 = logger.createLog({ metadata })
-        const log2 = log1.createLog({})
-        const log3 = log2.createLog({})
+        const log2 = log1.createLog()
+        const log3 = log2.createLog()
         const log4 = log3.createLog({ metadata })
         expect(log1.metadata).to.eql(metadata)
         expect(log2.metadata).to.eql(metadata)
@@ -92,7 +110,7 @@ describe("Log", () => {
       })
       it("should not set empty metadata objects on child entries", () => {
         const log = logger.createLog()
-        const childLog = log.createLog({})
+        const childLog = log.createLog()
         expect(log.metadata).to.eql(undefined)
         expect(childLog.metadata).to.eql(undefined)
       })
@@ -103,7 +121,7 @@ describe("Log", () => {
         const verboseEntryInfo = logVerbose.info("").getLatestEntry()
         const verboseEntryError = logVerbose.error("").getLatestEntry()
         const verboseEntrySilly = logVerbose.silly("").getLatestEntry()
-        const childLog = logVerbose.createLog({})
+        const childLog = logVerbose.createLog()
         const childEntryInfo = childLog.info("").getLatestEntry()
         const childEntryError = childLog.error("").getLatestEntry()
         const childEntrySilly = childLog.silly("").getLatestEntry()
@@ -129,23 +147,30 @@ describe("CoreLog", () => {
   })
 
   describe("createLog", () => {
-    it("should create a new CoreLog context, optionally overwriting some fields", () => {
+    it("should create a new CoreLog", () => {
       const timestamp = freezeTime().toISOString()
-      const testLog = log.createLog({ name: "test-log" })
-      const partialTestLog = omit(testLog, "root")
+      const coreLog = log.createLog({
+        name: "core-log",
+        origin: "origin",
+        fixLevel: LogLevel.verbose,
+        metadata: { workflowStep: { index: 2 } },
+      })
+      const partialCoreLog = omit(coreLog, "root")
 
-      expect(testLog.root).to.exist
-      expect(partialTestLog).to.eql({
-        type: "coreLog",
+      expect(coreLog.root).to.exist
+      expect(partialCoreLog).to.eql({
         entries: [],
-        key: testLog.key,
-        metadata: undefined,
-        fixLevel: undefined,
-        section: undefined,
+        key: coreLog.key,
+        metadata: {
+          workflowStep: { index: 2 },
+        },
+        fixLevel: LogLevel.verbose,
         showDuration: false,
         timestamp,
         context: {
-          name: "test-log",
+          name: "core-log",
+          origin: "origin",
+          type: "coreLog",
         },
         parentConfigs: [
           {
@@ -153,63 +178,57 @@ describe("CoreLog", () => {
             metadata: log.metadata,
             timestamp: log.timestamp,
             key: log.key,
-            section: log.section,
             fixLevel: log.fixLevel,
-            type: "coreLog",
           },
         ],
       })
+    })
+    it("should ensure child log inherits config", () => {
+      const timestamp = freezeTime().toISOString()
+      const coreLog = log.createLog({
+        name: "core-log",
+        origin: "origin",
+        fixLevel: LogLevel.verbose,
+        metadata: { workflowStep: { index: 2 } },
+      })
 
-      const testLogChild = testLog.createLog()
-      const partialTestLogChild = omit(testLogChild, "root")
-      expect(partialTestLogChild).to.eql({
-        type: "coreLog",
+      const coreLogChild = coreLog.createLog()
+      const partialCoreLogChild = omit(coreLogChild, "root")
+      expect(partialCoreLogChild).to.eql({
         entries: [],
-        key: testLogChild.key,
-        metadata: undefined,
-        fixLevel: undefined,
-        section: undefined,
+        key: coreLogChild.key,
+        fixLevel: LogLevel.verbose,
         showDuration: false,
         timestamp,
         context: {
-          name: "test-log", // <--- Inherits context
+          name: "core-log", // <--- Inherits context
+          origin: "origin",
+          type: "coreLog",
         },
-        parentConfigs: [log.getConfig(), testLog.getConfig()],
-      })
-
-      const testLogChildWithOverwrites = testLog.createLog({
-        name: "test-log-overwrites",
-        fixLevel: LogLevel.warn,
         metadata: { workflowStep: { index: 2 } },
-      })
-      const partialTestLogChildWithOverwrites = omit(testLogChildWithOverwrites, "root")
-      expect(partialTestLogChildWithOverwrites).to.eql({
-        type: "coreLog",
-        entries: [],
-        key: testLogChildWithOverwrites.key,
-        metadata: { workflowStep: { index: 2 } },
-        fixLevel: LogLevel.warn,
-        section: undefined,
-        showDuration: false,
-        timestamp,
-        context: {
-          name: "test-log-overwrites", // <--- Overwrites context
-        },
-        parentConfigs: [log.getConfig(), testLog.getConfig()],
+        parentConfigs: [log.getConfig(), coreLog.getConfig()],
       })
     })
-    it("should create a new log context and have it inherit the metadata", () => {
-      const testLog = log.createLog({ name: "test-log", metadata: { workflowStep: { index: 2 } } })
-      const childLog = testLog.createLog()
+    it("should optionally overwrite context", () => {
+      const coreLog = log.createLog({ name: "core-log", origin: "foo" }) as CoreLog
 
-      expect(testLog.metadata).to.eql({ workflowStep: { index: 2 } })
-      expect(childLog.metadata).to.eql({ workflowStep: { index: 2 } })
+      expect(coreLog.context.name).to.eql("core-log")
+      expect(coreLog.context.origin).to.eql("foo")
+
+      const coreLogChild = coreLog.createLog({ name: "core-log-2", origin: "foo-2" })
+
+      expect(coreLogChild.context.name).to.eql("core-log-2")
+      expect(coreLogChild.context.origin).to.eql("foo-2")
     })
   })
   describe("createLogEntry", () => {
     it("should pass its config on to the log entry", () => {
       const timestamp = freezeTime().toISOString()
-      const testLog = log.createLog({ name: "test-log", metadata: { workflowStep: { index: 2 } } })
+      const testLog = log.createLog({
+        name: "test-log",
+        origin: "foo",
+        metadata: { workflowStep: { index: 2 } },
+      })
       const entry = testLog.info("hello").getLatestEntry()
 
       expect(entry.key).to.be.a.string
@@ -223,11 +242,11 @@ describe("CoreLog", () => {
         },
         msg: "hello",
         parentLogKey: testLog.key,
-        section: undefined,
         timestamp,
-        type: "coreLogEntry",
         context: {
           name: "test-log",
+          type: "coreLog",
+          origin: "foo",
         },
       })
     })
@@ -236,29 +255,39 @@ describe("CoreLog", () => {
 
 describe("ActionLog", () => {
   let log: Log
+  const inheritedMetadata = { workflowStep: { index: 2 } }
+
   beforeEach(() => {
-    log = logger.createLog()
+    log = logger.createLog({
+      metadata: inheritedMetadata,
+    })
   })
 
   describe("createActionLog helper", () => {
-    it("should create a new ActionLog context, optionally overwriting some fields", () => {
+    it("should create a new ActionLog", () => {
       const timestamp = freezeTime().toISOString()
-      const testLog = createActionLog({ log, actionName: "api", actionKind: "build" })
-      const partialTestLog = omit(testLog, "root")
+      const actionLog = createActionLog({
+        log,
+        origin: "origin",
+        actionName: "api",
+        actionKind: "build",
+        fixLevel: LogLevel.verbose,
+      })
+      const partialActionLog = omit(actionLog, "root")
 
-      expect(testLog.root).to.exist
-      expect(partialTestLog).to.eql({
-        type: "actionLog",
+      expect(actionLog.root).to.exist
+      expect(partialActionLog).to.eql({
         entries: [],
-        key: testLog.key,
-        metadata: undefined,
-        fixLevel: undefined,
-        section: undefined,
-        showDuration: true, // <--- Always true for ActionLog
+        key: actionLog.key,
+        metadata: inheritedMetadata,
+        fixLevel: LogLevel.verbose,
+        showDuration: true,
         timestamp,
         context: {
-          actionName: "api",
           actionKind: "build",
+          actionName: "api",
+          origin: "origin",
+          type: "actionLog",
         },
         parentConfigs: [
           {
@@ -266,44 +295,70 @@ describe("ActionLog", () => {
             metadata: log.metadata,
             timestamp: log.timestamp,
             key: log.key,
-            section: log.section,
             fixLevel: log.fixLevel,
-            type: "coreLog",
           },
         ],
       })
+    })
 
-      const testLogChild = testLog.createLog()
-      const partialTestLogChild = omit(testLogChild, "root")
-      expect(partialTestLogChild).to.eql({
-        type: "actionLog",
+    it("inherits context from input log", () => {
+      log.context.sessionId = "foo"
+      const actionLog = createActionLog({
+        log,
+        origin: "origin",
+        actionName: "api",
+        actionKind: "build",
+        fixLevel: LogLevel.verbose,
+      })
+      expect(actionLog.context.sessionId).to.equal("foo")
+    })
+
+    it("should ensure child log inherits config", () => {
+      const timestamp = freezeTime().toISOString()
+      const actionLog = createActionLog({
+        log,
+        origin: "origin",
+        actionName: "api",
+        actionKind: "build",
+        fixLevel: LogLevel.verbose,
+      })
+
+      const actionLogChild = actionLog.createLog()
+      const partialActionLogChild = omit(actionLogChild, "root")
+      expect(partialActionLogChild).to.eql({
         entries: [],
-        key: testLogChild.key,
-        metadata: undefined,
-        fixLevel: undefined,
-        section: undefined,
+        key: actionLogChild.key,
+        fixLevel: LogLevel.verbose,
         showDuration: true,
         timestamp,
         context: {
-          // <--- Inherits context
+          actionKind: "build", // <--- Inherits context
           actionName: "api",
-          actionKind: "build",
+          origin: "origin",
+          type: "actionLog",
         },
-        parentConfigs: [log.getConfig(), testLog.getConfig()],
+        metadata: inheritedMetadata,
+        parentConfigs: [log.getConfig(), actionLog.getConfig()],
       })
+    })
+    it("should optionally overwrite origin", () => {
+      const actionLog = createActionLog({
+        log,
+        origin: "origin",
+        actionName: "api",
+        actionKind: "build",
+        fixLevel: LogLevel.verbose,
+      })
+
+      const actionLogChild = actionLog.createLog({ origin: "origin-2" })
+      expect(actionLogChild.context.origin).to.eql("origin-2")
     })
     it("should always show duration", () => {
       const testLog = createActionLog({ log, actionName: "api", actionKind: "build" })
       expect(testLog.showDuration).to.be.true
     })
-    it("should create a new log context and have it inherit the metadata", () => {
-      const testLog = log.createLog({ name: "test-log", metadata: { workflowStep: { index: 2 } } })
-      const childLog = testLog.createLog()
-
-      expect(testLog.metadata).to.eql({ workflowStep: { index: 2 } })
-      expect(childLog.metadata).to.eql({ workflowStep: { index: 2 } })
-    })
   })
+
   describe("createLogEntry", () => {
     it("should pass its config on to the log entry", () => {
       const timestamp = freezeTime().toISOString()
@@ -311,7 +366,7 @@ describe("ActionLog", () => {
         log,
         actionKind: "build",
         actionName: "api",
-        metadata: { workflowStep: { index: 2 } },
+        origin: "foo",
       })
       const entry = testLog.info("hello").getLatestEntry()
 
@@ -319,17 +374,13 @@ describe("ActionLog", () => {
       expect(entry).to.eql({
         key: entry.key,
         level: LogLevel.info,
-        metadata: {
-          workflowStep: {
-            index: 2,
-          },
-        },
+        metadata: inheritedMetadata,
         msg: "hello",
         parentLogKey: testLog.key,
-        section: undefined,
         timestamp,
-        type: "actionLogEntry",
         context: {
+          type: "actionLog",
+          origin: "foo",
           actionKind: "build",
           actionName: "api",
         },

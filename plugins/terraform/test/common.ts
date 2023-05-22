@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -41,10 +41,14 @@ describe("Terraform common", () => {
   }
 
   before(async () => {
-    garden = await makeTestGarden(testRoot, { plugins: [gardenPlugin()], environmentName: "prod", forceRefresh: true })
+    garden = await makeTestGarden(testRoot, {
+      plugins: [gardenPlugin()],
+      environmentString: "prod",
+      forceRefresh: true,
+    })
     log = garden.log
     provider = (await garden.resolveProvider(log, "terraform")) as TerraformProvider
-    ctx = await garden.getPluginContext(provider, undefined, undefined)
+    ctx = await garden.getPluginContext({ provider, events: undefined, templateContext: undefined })
     root = join(garden.projectRoot, "tf")
     terraformDirPath = join(root, ".terraform")
     stateDirPath = join(root, "terraform.tfstate.d")

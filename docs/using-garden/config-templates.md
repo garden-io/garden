@@ -12,12 +12,12 @@ This provides a powerful yet easy-to-use mechanism to tailor Garden's functional
 These templates can be defined within a project, or in a separate repository that can be shared across multiple projects (using remote sources).
 
 {% hint style="info" %}
-This feature has been updated in 0.13 to support actions and workflows, in addition to modules. The `ModuleTemplate` resource kind has been renamed to `ConfigTemplate`, and instead of `templated` _Modules_, there is now a specific `RenderTemplate` kind to render the templates. The older declarations will still work until version 0.14, and are converted at runtime.
+This feature has been updated in `0.13` to support actions and workflows, in addition to modules. The `ModuleTemplate` resource kind has been renamed to `ConfigTemplate`, and instead of `templated` _Modules_, there is now a specific `RenderTemplate` kind to render the templates. The older declarations will still work until version `0.14`, and are converted at runtime.
 {% endhint %}
 
 ## How it works
 
-We'll use the [`templated-k8s-container example`](https://github.com/garden-io/garden/tree/0.12.51/examples/templated-k8s-container) to illustrate how templates work. This example has a `k8s-container` template, that generates one `container` module for building an image, and one `kubernetes` module for deploying that image. A template like this is useful to customize the Kubernetes manifests for your services, but of course it's just one simple example of what you could do.
+We'll use the [`templated-k8s-container example`](../../examples/templated-k8s-container) to illustrate how templates work. This example has a `k8s-container` template, that generates one `Build` action of type `container` for building an image, and one `Deploy` action of type `kubernetes` for deploying that image. A template like this is useful to customize the Kubernetes manifests for your services, but of course it's just one simple example of what you could do.
 
 The template is defined like this:
 
@@ -61,14 +61,14 @@ The sections below describe the example in more detail.
 
 ### Defining actions and workflows
 
-Each template can include one or more actions (`Build`, `Deploy`, `Test` or `Run`) or workflows (`kind: Workflow`) under the `actions` key. The schema for each action is exactly the same as for normal actions or workflows with just a couple of differences:
+Each template can include one or more actions (`Build`, `Deploy`, `Test` or `Run`) or workflows (`kind: Workflow`) under the `configs` key. The schema for each action or workflow is exactly the same as for normal actions or workflows with just a couple of differences:
 
 - In addition to any other template strings available when defining modules, you additionally have `${parent.name}`, `${template.name}` and `${inputs.*}` (more on inputs in the next section). **It's important that you use one of these for the names of the actions, so that every generated action has a unique name.**.
 - You can set a `path` field on each config to any subdirectory relative to the directory where the `RenderTemplate` config is placed.
 
 ### Defining and referencing inputs
 
-On the `ConfigTemplate`, the `inputsSchemaPath` field points to a standard [JSON Schema](https://json-schema.org/) file, which describes the schema for the `inputs` field on every module that references the template. In our example, it looks like this:
+On the `ConfigTemplate`, the `inputsSchemaPath` field points to a standard [JSON Schema](https://json-schema.org/) file, which describes the schema for the `inputs` field on every action and module that references the template. In our example, it looks like this:
 
 ```json
 {
@@ -92,7 +92,7 @@ On the `ConfigTemplate`, the `inputsSchemaPath` field points to a standard [JSON
 }
 ```
 
-This simple schema says the `containerPort` and `servicePort` inputs are required, and that you can optionally set a `replicas` value as well. Any JSON Schema with `"type": "object"` is supported, and users can add any parameters that templated modules should specify. These could be ingress hostnames, paths, or really any flags that need to be customizable per module.
+This simple schema says the `containerPort` and `servicePort` inputs are required, and that you can optionally set a `replicas` value as well. Any JSON Schema with `"type": "object"` is supported, and users can add any parameters that templated actions and modules should specify. These could be ingress hostnames, paths, or really any flags that need to be customizable per action or module.
 
 These values can then be referenced using `${inputs.*}` template strings, anywhere under the `configs` and `modules` fields.
 
@@ -114,24 +114,25 @@ Here's a section from the manifests in our example:
 ...
       containers:
         - name: main
-          image: ${action.build["${parent.name}"].outputs.deployment-image-id}
+          image: ${actions.build["${parent.name}"].outputs.deployment-image-id}
           imagePullPolicy: "Always"
           ports:
             - name: http
               containerPort: ${inputs.containerPort}
 ```
 
-Notice the `image` field above. We use bracket notation to template the action name, whose outputs we want to reference: `${action.build["${parent.name}"].outputs.deployment-image-id}`. Here we're using that to get the built image ID of the `${parent.name}` Build in the same template.
+Notice the `image` field above. We use bracket notation to template the action name, whose outputs we want to reference: `${actions.build["${parent.name}"].outputs.deployment-image-id}`. Here we're using that to get the built image ID of the `${parent.name}` Build in the same template.
 
 _Note that for a reference like this to work, that action also needs to be specified as a dependency._
 
 ### Sharing templates
 
-If you have multiple projects it can be useful to have a central repository containing module templates, that can then be used in all your projects.
+If you have multiple projects it can be useful to have a central repository containing action and module templates, that can then be used in all your projects.
 
 To do that, simply place your `ConfigTemplate` configs in a repository (called something like `garden-templates`) and reference it as a remote source in your projects:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 sources:
@@ -144,7 +145,7 @@ Garden will then scan that repo when starting up, and you can reference the temp
 ### Defining modules
 
 {% hint style="warning" %}
-Modules are deprecated and this feature will be removed in version 0.14.
+Modules are deprecated and this feature will be removed in version `0.14`.
 {% endhint %}
 
 Each template can include one or more modules under the `modules` key. The schema for each module is exactly the same as for normal [Modules](./modules.md) with just a couple of differences:
@@ -188,7 +189,7 @@ Here's a section from the manifests file in our example:
               containerPort: ${inputs.containerPort}
 ```
 
-Notice the `image` field above. We use bracket notation to template the module name, whose outputs we want to reference: `${modules["${parent.name}-image"].outputs.deployment-image-id}`. Here we're using that to get the built image ID of the `${parent.name}-image` module in the same template.
+Notice the `image` field above. We use bracket notation to template the module name, whose outputs we want to reference: `${modules["${parent.name}-image"].outputs.deployment-image-id}`. Here we're using that to get the built image ID of the `${parent.name}-image` module in the same template.
 
 _Note that for a reference like this to work, that module also needs to be specified as a build dependency._
 
@@ -196,7 +197,7 @@ _Note that for a reference like this to work, that module also needs to be speci
 
 - [ConfigTemplate reference docs](../reference/config-template-config.md).
 - [RenderTemplate reference docs](../reference/render-template-config.md).
-- [`templated-k8s-container example`](https://github.com/garden-io/garden/tree/0.12.51/examples/templated-k8s-container).
+- [`templated-k8s-container example`](../../examples/templated-k8s-container).
 
 ## Next steps
 

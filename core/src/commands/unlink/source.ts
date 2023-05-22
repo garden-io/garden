@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -49,8 +49,8 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
         garden unlink source --all      # unlinks all sources
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Unlink source", "⛓️")
+  printHeader({ log }) {
+    printHeader(log, "Unlink source", "⛓️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
@@ -59,7 +59,7 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
     const { sources = [] } = args
 
     if (opts.all) {
-      await garden.configStore.set("linkedProjectSources", {})
+      await garden.localConfigStore.set("linkedProjectSources", {})
       log.info("Unlinked all sources")
       return { result: [] }
     }

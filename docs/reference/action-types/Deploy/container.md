@@ -23,9 +23,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -46,8 +43,8 @@ description:
 # For `source.repository` behavior, please refer to the [Remote Sources
 # guide](https://docs.garden.io/advanced/using-remote-sources).
 source:
-  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is
-  # ina git repository!
+  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in
+  # a git repository!
   path:
 
   # When set, Garden will import the action source from this repository, but use this action configuration (and not
@@ -152,6 +149,9 @@ build:
 
 kind:
 
+# Timeout for the deploy to complete, in seconds.
+timeout: 300
+
 spec:
   # The command/entrypoint to run the container with.
   command:
@@ -183,8 +183,8 @@ spec:
 
   # List of volumes that should be mounted when starting the container.
   #
-  # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-  # deploying the container.
+  # Note: If neither `hostPath` nor `action` is specified,
+  # an empty ephemeral volume is created and mounted when deploying the container.
   volumes:
     - # The name of the allocated volume.
       name:
@@ -199,8 +199,8 @@ spec:
       # config source directory (or absolute).
       hostPath:
 
-      # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are
-      # `persistentvolumeclaim` and `configmap`, for example.
+      # The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported
+      # action types are `persistentvolumeclaim` and `configmap`.
       #
       # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
       # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
@@ -217,7 +217,7 @@ spec:
   # POSIX capabilities to remove when running the container.
   dropCapabilities:
 
-  # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+  # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
   tty: false
 
   # Specifies the container's deployment strategy.
@@ -425,14 +425,6 @@ spec:
 
 ## Configuration Keys
 
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
-
 ### `type`
 
 The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be defined by your configured providers.
@@ -475,7 +467,7 @@ For `source.repository` behavior, please refer to the [Remote Sources guide](htt
 
 [source](#source) > path
 
-A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!
+A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!
 
 | Type        | Required |
 | ----------- | -------- |
@@ -642,6 +634,14 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------------- | -------- |
 | `string` | "Deploy"       | Yes      |
 
+### `timeout`
+
+Timeout for the deploy to complete, in seconds.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
+
 ### `spec`
 
 | Type     | Required |
@@ -774,7 +774,8 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 
 List of volumes that should be mounted when starting the container.
 
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+Note: If neither `hostPath` nor `action` is specified,
+an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -825,7 +826,7 @@ spec:
 
 [spec](#spec) > [volumes](#specvolumes) > action
 
-The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`, for example.
+The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`.
 
 Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
 
@@ -867,7 +868,7 @@ POSIX capabilities to remove when running the container.
 
 [spec](#spec) > tty
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -1538,7 +1539,7 @@ Note: This setting may be overridden or ignored in some cases. For example, when
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `container`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

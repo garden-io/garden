@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -90,13 +90,12 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
   arguments = createModuleArgs
   options = createModuleOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Create new module", "✏️")
+  printHeader({ log }) {
+    printHeader(log, "Create new module", "✏️")
   }
 
-  // Defining it like this because it'll stall on waiting for user input.
-  isPersistent() {
-    return true
+  allowInDevCommand() {
+    return false
   }
 
   async action({
@@ -208,7 +207,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     // Warn if module type is defined by provider that isn't configured OR if not in a project, ask to make sure
     // it is configured in the project that will use the module.
-    const projectConfig = await findProjectConfig(log, configDir)
+    const projectConfig = await findProjectConfig({ log, path: configDir })
     const pluginName = definition.plugin.name
 
     if (!fixedPlugins.includes(pluginName)) {
@@ -252,15 +251,14 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     const formattedType = chalk.bold(type)
     const formattedPluginName = chalk.bold(pluginName)
 
-    log.info({
-      symbol: "info",
-      msg: wordWrap(
+    log.info(
+      wordWrap(
         dedent`
         For more information about ${formattedType} modules, please check out ${moduleTypeUrlFormatted}, and the ${formattedPluginName} provider docs at ${providerUrl}. For general information about Garden configuration files, take a look at ${configFilesUrl}.
         `,
         120
-      ),
-    })
+      )
+    )
 
     log.info("")
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,16 +18,18 @@ import { ExecaReturnValue } from "execa"
 import { PluginContext } from "../../../plugin-context"
 import { parse as parsePath } from "path"
 
+// TODO: Pass the correct log context instead of creating it here.
 export async function configureMicrok8sAddons(log: Log, addons: string[]) {
   let statusCommandResult: ExecaReturnValue | undefined = undefined
   let status = ""
+  const microK8sLog = log.createLog({ name: "microk8s" })
 
   try {
     statusCommandResult = await exec("microk8s", ["status"])
     status = statusCommandResult.stdout
   } catch (err) {
     if (err.all?.includes("permission denied") || err.all?.includes("Insufficient permissions")) {
-      log.warn(
+      microK8sLog.warn(
         chalk.yellow(
           deline`Unable to get microk8s status and manage addons. You may need to add the current user to the microk8s
           group. Alternatively, you can manually ensure that the ${naturalList(addons)} are enabled.`
@@ -49,7 +51,7 @@ export async function configureMicrok8sAddons(log: Log, addons: string[]) {
   const missingAddons = addons.filter((addon) => !status.includes(`${addon}: enabled`))
 
   if (missingAddons.length > 0) {
-    log.info({ section: "microk8s", msg: `enabling required addons (${missingAddons.join(", ")})` })
+    microK8sLog.info(`enabling required addons (${missingAddons.join(", ")})`)
     await exec("microk8s", ["enable"].concat(missingAddons))
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,6 +14,7 @@ import { getHelmTestGarden } from "./common"
 import { TestTask } from "../../../../../../src/tasks/test"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("Helm Pod Test", () => {
   let garden: TestGarden
@@ -71,10 +72,9 @@ describe("Helm Pod Test", () => {
     expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.eq(action.getConfig().spec.namespace)
   })
 
-  // TODO-G2: solver gets stuck in an infinite loop
-  it.skip("should fail if an error occurs, but store the result", async () => {
+  it("should fail if an error occurs, but store the result", async () => {
     const action = graph.getTest("artifacts-echo-test")
-    action.getConfig().spec.command = ["bork"] // this will fail
+    action["_config"].spec.command = ["bork"] // this will fail
 
     const testTask = new TestTask({
       garden,
@@ -91,10 +91,11 @@ describe("Helm Pod Test", () => {
     )
 
     const actions = await garden.getActionRouter()
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     // We also verify that, despite the test failing, its result was still saved.
     const result = await actions.test.getResult({
-      log: garden.log,
+      log: actionLog,
       action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })

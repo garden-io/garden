@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,7 @@
 import { GraphResults } from "../graph/results"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
-import { ActionLog, createActionLog, Log as Log } from "../logger/log-entry"
+import { ActionLog, createActionLog, Log } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
 import type { Action, ActionState, Executed, Resolved } from "../actions/types"
 import { ConfigGraph, GraphError } from "../graph/config-graph"
@@ -26,8 +26,7 @@ import type { RunTask } from "./run"
 import type { TestTask } from "./test"
 import { Memoize } from "typescript-memoize"
 import { getExecuteTaskForAction, getResolveTaskForAction } from "./helpers"
-
-export class TaskDefinitionError extends Error {}
+import { TypedEventEmitter } from "../util/events"
 
 export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
@@ -47,7 +46,6 @@ export interface BaseActionTaskParams<T extends Action = Action> extends CommonT
   forceActions?: ActionReference[]
   forceBuild?: boolean // Shorthand for placing all builds in forceActions
   skipRuntimeDependencies?: boolean
-  startSyncs?: boolean
 }
 
 export interface TaskProcessParams {
@@ -58,6 +56,7 @@ export interface TaskProcessParams {
 export interface ValidResultType {
   state: ActionState
   outputs: {}
+  attached?: boolean
 }
 
 export type Task =
@@ -82,15 +81,26 @@ export interface BaseTaskOutputs {
   version: string
 }
 
+interface TaskEventPayload<O extends ValidResultType> {
+  error?: Error
+  result?: O
+}
+
+interface TaskEvents<O extends ValidResultType> {
+  statusResolved: TaskEventPayload<O>
+  processed: TaskEventPayload<O>
+  ready: { result: O }
+}
+
 @Profile()
-export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
+export abstract class BaseTask<O extends ValidResultType = ValidResultType> extends TypedEventEmitter<TaskEvents<O>> {
   abstract type: string
 
   // How many tasks of this exact type are allowed to run concurrently
   concurrencyLimit = 10
 
   public readonly garden: Garden
-  public readonly log: Log | ActionLog
+  public readonly log: Log
   public readonly uid: string
   public readonly force: boolean
   public readonly skipDependencies: boolean
@@ -101,6 +111,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
   _resolvedDependencies?: BaseTask[]
 
   constructor(initArgs: CommonTaskParams) {
+    super()
     this.garden = initArgs.garden
     this.uid = uuidv1() // uuidv1 is timestamp-based
     this.force = !!initArgs.force
@@ -112,11 +123,14 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
 
   // Which dependencies must be resolved to call this task's getStatus method
   abstract resolveStatusDependencies(): BaseTask[]
+
   // Which dependencies must be resolved to call this task's process method, in addition to the above
   abstract resolveProcessDependencies(params: ResolveProcessDependenciesParams<O>): BaseTask[]
 
   abstract getDescription(): string
-  abstract getStatus(params: TaskProcessParams): Promise<O | null>
+
+  abstract getStatus(params: TaskProcessParams): null | Promise<O | null>
+
   abstract process(params: TaskProcessParams): Promise<O>
 
   /**
@@ -159,7 +173,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
    * Used to handle overlapping graph solve requests.
    */
   getKey(): string {
-    // TODO-G2
+    // TODO-0.13.1
     let key = this.getBaseKey()
 
     // if (this.force) {
@@ -182,9 +196,10 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
 }
 
 export interface ActionTaskStatusParams<_ extends Action> extends TaskProcessParams {}
+
 export interface ActionTaskProcessParams<T extends Action, S extends ValidResultType>
   extends ActionTaskStatusParams<T> {
-  status: S
+  status: S | null
 }
 
 export interface BaseActionTaskOutputs extends BaseTaskOutputs {}
@@ -196,25 +211,25 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
   graph: ConfigGraph
   forceActions: ActionReference[]
   skipRuntimeDependencies: boolean
-  startSyncs: boolean
   log: ActionLog
 
   constructor(params: BaseActionTaskParams<T>) {
     const { action } = params
+
     super({ ...params })
     this.log = createActionLog({ log: params.log, actionName: action.name, actionKind: action.kind })
     this.action = action
     this.graph = params.graph
     this.forceActions = params.forceActions || []
     this.skipRuntimeDependencies = params.skipRuntimeDependencies || false
-    this.startSyncs = params.startSyncs || false
 
     if (params.forceBuild) {
       this.forceActions.push(...this.graph.getBuilds())
     }
   }
 
-  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<O | null>
+  abstract getStatus(params: ActionTaskStatusParams<T>): null | Promise<O | null>
+
   abstract process(params: ActionTaskProcessParams<T, O>): Promise<O>
 
   getName() {
@@ -244,7 +259,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
       // Maybe we can make this easier to reason about... - JE
       if (dep.needsExecutedOutputs) {
         if (disabled && action.kind !== "Build") {
-          // TODO-G2: Need to handle conditional references, over in dependenciesFromAction()
+          // TODO-0.13.1: Need to handle conditional references, over in dependenciesFromAction()
           throw new GraphError(
             `${this.action.longDescription()} depends on one or more runtime outputs from action ${
               action.key
@@ -275,15 +290,16 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
 
   // Helpers //
 
-  protected getBaseDependencyParams() {
+  protected getDependencyParams(): BaseActionTaskParams<T> {
     return {
       garden: this.garden,
+      action: this.action,
+      force: false,
       log: this.log,
       graph: this.graph,
       forceActions: this.forceActions,
       skipDependencies: this.skipDependencies,
       skipRuntimeDependencies: this.skipRuntimeDependencies,
-      startSyncs: this.startSyncs,
     }
   }
 
@@ -328,7 +344,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
    */
   protected getResolveTask(action: Action) {
     const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
-    return getResolveTaskForAction(action, { ...this.getBaseDependencyParams(), force })
+    return getResolveTaskForAction(action, { ...this.getDependencyParams(), force })
   }
 
   /**
@@ -338,7 +354,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
    */
   protected getExecuteTask(action: Action) {
     const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
-    return getExecuteTaskForAction(action, { ...this.getBaseDependencyParams(), force })
+    return getExecuteTaskForAction(action, { ...this.getDependencyParams(), force })
   }
 }
 
@@ -348,11 +364,11 @@ export interface ExecuteActionOutputs<T extends Action> extends BaseActionTaskOu
 
 export abstract class ExecuteActionTask<
   T extends Action,
-  O extends ValidResultType = { state: ActionState; outputs: T["_outputs"]; detail: any }
-> extends BaseActionTask<T, O> {
-  _resultType: O & ExecuteActionOutputs<T>
+  O extends ValidResultType = { state: ActionState; outputs: T["_outputs"]; detail: any; version: string }
+> extends BaseActionTask<T, O & ExecuteActionOutputs<T>> {
   executeTask = true
 
   abstract getStatus(params: ActionTaskStatusParams<T>): Promise<(O & ExecuteActionOutputs<T>) | null>
+
   abstract process(params: ActionTaskProcessParams<T, O>): Promise<O & ExecuteActionOutputs<T>>
 }

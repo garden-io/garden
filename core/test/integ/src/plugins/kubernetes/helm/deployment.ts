@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,10 +23,11 @@ import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { isWorkload } from "../../../../../../src/plugins/kubernetes/util"
 import Bluebird from "bluebird"
 import { CloudApi } from "../../../../../../src/cloud/api"
-import { getLogger } from "../../../../../../src/logger/logger"
+import { getRootLogger } from "../../../../../../src/logger/logger"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
 import { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config"
 import { GlobalConfigStore } from "../../../../../../src/config-store/global"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden
@@ -50,7 +51,7 @@ describe("helmDeploy in local-mode", () => {
     const actions = await garden.getActionRouter()
     await actions.deleteDeploys({ graph, log: garden.log })
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 
@@ -71,11 +72,12 @@ describe("helmDeploy in local-mode", () => {
       log: garden.log,
       graph,
     })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     const releaseName = getReleaseName(action)
     await helmDeploy({
       ctx,
-      log: garden.log,
+      log: actionLog,
       action,
       force: false,
     })
@@ -121,7 +123,7 @@ describe("helmDeploy", () => {
       const actions = await garden.getActionRouter()
       await actions.deleteDeploys({ graph, log: garden.log })
       if (garden) {
-        await garden.close()
+        garden.close()
       }
     } catch {}
   })
@@ -133,10 +135,11 @@ describe("helmDeploy", () => {
       log: garden.log,
       graph,
     })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     const status = await helmDeploy({
       ctx,
-      log: garden.log,
+      log: actionLog,
       action,
       force: false,
     })
@@ -168,14 +171,15 @@ describe("helmDeploy", () => {
   it("should deploy a chart from a converted Helm module referencing a container module version in its image tag", async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const action = await garden.resolveAction<HelmDeployAction>({
-      action: graph.getDeploy("api-helm-module"),
+      action: graph.getDeploy("api-module"),
       log: garden.log,
       graph,
     })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     const status = await helmDeploy({
       ctx,
-      log: garden.log,
+      log: actionLog,
       action,
       force: false,
     })
@@ -190,7 +194,7 @@ describe("helmDeploy", () => {
 
     expect(releaseStatus.state).to.equal("ready")
     expect(releaseStatus.detail["values"][".garden"]).to.eql({
-      moduleName: "api-helm-module",
+      moduleName: "api-module",
       projectName: garden.projectName,
       version: action.versionString(),
       mode: "default",
@@ -215,11 +219,12 @@ describe("helmDeploy", () => {
       log: garden.log,
       graph,
     })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     const releaseName = getReleaseName(action)
     await helmDeploy({
       ctx,
-      log: garden.log,
+      log: actionLog,
       action,
       force: false,
     })
@@ -247,13 +252,14 @@ describe("helmDeploy", () => {
       log: garden.log,
       graph,
     })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     const namespace = action.getSpec().namespace!
     expect(namespace).to.equal(provider.config.namespace!.name + "-extra")
 
     await helmDeploy({
       ctx,
-      log: garden.log,
+      log: actionLog,
       action,
       force: false,
     })
@@ -278,7 +284,11 @@ describe("helmDeploy", () => {
   })
 
   it("should mark a chart that has been paused by Garden Cloud AEC as outdated", async () => {
-    const fakeCloudApi = new CloudApi(getLogger().createLog(), "https://test.cloud.garden.io", new GlobalConfigStore())
+    const fakeCloudApi = new CloudApi({
+      log: getRootLogger().createLog(),
+      domain: "https://test.cloud.garden.io",
+      globalConfigStore: new GlobalConfigStore(),
+    })
     const projectRoot = getDataDir("test-projects", "helm")
     const gardenWithCloudApi = await makeTestGarden(projectRoot, { cloudApi: fakeCloudApi, noCache: true })
 
@@ -295,10 +305,11 @@ describe("helmDeploy", () => {
       log: garden.log,
       graph,
     })
+    const actionLog = createActionLog({ log: gardenWithCloudApi.log, actionName: action.name, actionKind: action.kind })
 
     const status = await helmDeploy({
       ctx: ctxWithCloudApi,
-      log: gardenWithCloudApi.log,
+      log: actionLog,
       action,
       force: false,
     })

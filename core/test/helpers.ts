@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,15 +35,15 @@ import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginP
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT, gardenEnv } from "../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion, gardenEnv } from "../src/constants"
 import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../src/cli/params"
 import { ConfigureModuleParams } from "../src/plugin/handlers/Module/configure"
-import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
+import { ExternalSourceType, getRemoteSourceLocalPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { CommandParams, ProcessCommandResult } from "../src/commands/base"
 import { SuiteFunction, TestFunction } from "mocha"
 import { AnalyticsGlobalConfig } from "../src/config-store/global"
 import { EventLogEntry, TestGarden, TestGardenOpts } from "../src/util/testing"
-import { Logger, LogLevel } from "../src/logger/logger"
+import { LogLevel, RootLogger } from "../src/logger/logger"
 import { GardenCli } from "../src/cli/cli"
 import { profileAsync } from "../src/util/profiling"
 import { defaultDotIgnoreFile, makeTempDir } from "../src/util/fs"
@@ -62,7 +62,7 @@ import {
   ExecTest,
   execTestActionSchema,
 } from "../src/plugins/exec/config"
-import { RunActionHandler, TestActionHandler } from "../src/plugin/action-types"
+import { ManyActionTypeDefinitions, RunActionHandler, TestActionHandler } from "../src/plugin/action-types"
 import { GetRunResult } from "../src/plugin/handlers/Run/get-result"
 import { defaultEnvironment, defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/Module/convert"
@@ -80,13 +80,14 @@ const testDataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
 const testNow = new Date()
 const testModuleVersionString = "v-1234512345"
 export const testModuleVersion: ModuleVersion = {
+  contentHash: testModuleVersionString,
   versionString: testModuleVersionString,
   dependencyVersions: {},
   files: [],
 }
 
 // All test projects use this git URL
-export const testGitUrl = "https://my-git-server.com/my-repo.git#main"
+export const testGitUrl = "https://example.com/my-repo.git#main"
 export const testGitUrlHash = hashRepoUrl(testGitUrl)
 
 /**
@@ -129,20 +130,20 @@ export const testModuleSpecSchema = createSchema({
 export const testDeploySchema = createSchema({
   name: "test.Deploy",
   extend: execDeployActionSchema,
-  keys: {
+  keys: () => ({
     // Making this optional for tests
     deployCommand: execDeployCommandSchema().optional(),
-  },
+  }),
 })
 export const testRunSchema = createSchema({
   name: "test.Run",
   extend: execRunActionSchema,
-  keys: {},
+  keys: () => ({}),
 })
 export const testTestSchema = createSchema({
   name: "test.Test",
   extend: execTestActionSchema,
-  keys: {},
+  keys: () => ({}),
 })
 
 export async function configureTestModule({ moduleConfig }: ConfigureModuleParams) {
@@ -152,23 +153,24 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
     dependencies: spec.dependencies,
     disabled: spec.disabled,
     sourceModuleName: spec.sourceModuleName,
+    timeout: spec.timeout,
     spec,
   }))
 
-  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
-    name: t.name,
-    dependencies: t.dependencies,
-    disabled: t.disabled,
-    spec: t,
-    timeout: t.timeout,
+  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((spec) => ({
+    name: spec.name,
+    dependencies: spec.dependencies,
+    disabled: spec.disabled,
+    timeout: spec.timeout,
+    spec,
   }))
 
-  moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
-    name: t.name,
-    dependencies: t.dependencies,
-    disabled: t.disabled,
-    spec: t,
-    timeout: t.timeout,
+  moduleConfig.testConfigs = moduleConfig.spec.tests.map((spec) => ({
+    name: spec.name,
+    dependencies: spec.dependencies,
+    disabled: spec.disabled,
+    timeout: spec.timeout,
+    spec,
   }))
 
   return { moduleConfig }
@@ -385,7 +387,7 @@ export const testPluginC = () => {
 
 export const getDefaultProjectConfig = (): ProjectConfig =>
   cloneDeep({
-    apiVersion: DEFAULT_API_VERSION,
+    apiVersion: GardenApiVersion.v1,
     kind: "Project",
     name: "test",
     path: "tmp",
@@ -402,12 +404,12 @@ export const createProjectConfig = (partialCustomConfig: Partial<ProjectConfig>)
 }
 
 export const defaultModuleConfig: ModuleConfig = {
-  apiVersion: DEFAULT_API_VERSION,
+  apiVersion: GardenApiVersion.v0,
   type: "test",
   name: "test",
   path: "bla",
   allowPublish: false,
-  build: { dependencies: [] },
+  build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
   disabled: false,
   spec: {
     services: [
@@ -449,7 +451,10 @@ export const makeTestModule = (params: Partial<ModuleConfig> = {}): ModuleConfig
  */
 export function makeModuleConfig<M extends ModuleConfig = ModuleConfig>(path: string, from: Partial<M>): ModuleConfig {
   return {
-    apiVersion: DEFAULT_API_VERSION,
+    // NOTE: this apiVersion field is distinct from the apiVersion field in the
+    // project configuration, is currently unused and has no meaning.
+    // It is hidden in our reference docs.
+    apiVersion: GardenApiVersion.v0,
     allowPublish: false,
     build: { dependencies: [] },
     disabled: false,
@@ -561,14 +566,14 @@ export function getAllProcessedTaskNames(results: GraphResultMapWithoutTask) {
 }
 
 /**
- * Returns a map of all Run results including dependencies from a GraphResultMap.
+ * Returns a map of all task results including dependencies from a GraphResultMap.
  */
-export function getAllRunResults(results: GraphResultMapWithoutTask) {
+export function getAllTaskResults(results: GraphResultMapWithoutTask) {
   const all = { ...results }
 
   for (const r of Object.values(results)) {
     if (r?.dependencyResults) {
-      for (const [key, result] of Object.entries(getAllRunResults(r.dependencyResults))) {
+      for (const [key, result] of Object.entries(getAllTaskResults(r.dependencyResults))) {
         all[key] = result
       }
     }
@@ -612,25 +617,37 @@ export async function resetLocalConfig(gardenDirPath: string) {
 }
 
 /**
- * Idempotently initializes the test-project-ext-project-sources project and returns
+ * Idempotently initializes the test-projects/ext-project-sources project and returns
  * the Garden class.
  */
 export async function makeExtProjectSourcesGarden(opts: TestGardenOpts = {}) {
-  const projectRoot = getDataDir("test-project-ext-project-sources")
+  const projectRoot = getDataDir("test-projects", "ext-project-sources")
   // Borrow the external sources from here:
-  const extSourcesRoot = getDataDir("test-project-local-project-sources")
+  const extSourcesRoot = getDataDir("test-projects", "local-project-sources")
   const sourceNames = ["source-a", "source-b", "source-c"]
   return prepareRemoteGarden({ projectRoot, extSourcesRoot, sourceNames, type: "project", opts })
 }
 
 /**
- * Idempotently initializes the test-project-ext-project-sources project and returns
+ * Idempotently initializes the test-project/ext-action-sources project and returns
+ * the Garden class.
+ */
+export async function makeExtActionSourcesGarden(opts: TestGardenOpts = {}) {
+  const projectRoot = getDataDir("test-projects", "ext-action-sources")
+  // Borrow the external sources from here:
+  const extSourcesRoot = getDataDir("test-projects", "local-action-sources")
+  const sourceNames = ["build.a", "build.b"]
+  return prepareRemoteGarden({ projectRoot, extSourcesRoot, sourceNames, type: "action", opts })
+}
+
+/**
+ * Idempotently initializes the test-projects/ext-project-sources project and returns
  * the Garden class.
  */
 export async function makeExtModuleSourcesGarden(opts: TestGardenOpts = {}) {
-  const projectRoot = getDataDir("test-project-ext-module-sources")
+  const projectRoot = getDataDir("test-projects", "ext-module-sources")
   // Borrow the external sources from here:
-  const extSourcesRoot = getDataDir("test-project-local-module-sources")
+  const extSourcesRoot = getDataDir("test-projects", "local-module-sources")
   const sourceNames = ["module-a", "module-b", "module-c"]
   return prepareRemoteGarden({ projectRoot, extSourcesRoot, sourceNames, type: "module", opts })
 }
@@ -658,8 +675,7 @@ async function prepareRemoteGarden({
   await mkdirp(sourcesPath)
   // Copy the sources to the `.garden/sources` dir and git init them
   await Bluebird.map(sourceNames, async (name) => {
-    const remoteSourceRelPath = getRemoteSourceRelPath({ name, url: testGitUrl, sourceType: type })
-    const targetPath = join(garden.projectRoot, ".garden", remoteSourceRelPath)
+    const targetPath = getRemoteSourceLocalPath({ gardenDirPath: garden.gardenDirPath, name, url: testGitUrl, type })
     await copy(join(extSourcesRoot, name), targetPath)
     await execa("git", ["init", "--initial-branch=main"], { cwd: targetPath })
   })
@@ -673,7 +689,7 @@ async function prepareRemoteGarden({
 export function trimLineEnds(str: string) {
   return str
     .split("\n")
-    .map((line) => line.trimRight())
+    .map((line) => line.trimEnd())
     .join("\n")
 }
 
@@ -796,10 +812,11 @@ export function getRuntimeStatusEventsWithoutTimestamps(eventLog: EventLogEntry[
 export function initTestLogger() {
   // make sure logger is initialized
   try {
-    Logger.initialize({
+    RootLogger.initialize({
       level: LogLevel.info,
       storeEntries: true,
-      terminalWriterType: "quiet",
+      displayWriterType: "quiet",
+      force: true,
     })
   } catch (_) {}
 }
@@ -820,8 +837,6 @@ export function makeCommandParams<T extends Parameters = {}, U extends Parameter
     cli,
     garden,
     log,
-    headerLog: log,
-    footerLog: log,
     args,
     opts: withDefaultGlobalOpts(opts),
   }
@@ -839,4 +854,13 @@ export function getPropertyName<T>(
   Object.keys(obj).map((k) => (res[k as keyof T] = () => k))
 
   return expression(res)()
+}
+
+export function getEmptyPluginActionDefinitions(name: string): ManyActionTypeDefinitions {
+  return {
+    Build: [{ docs: "blah", handlers: {}, name, schema: joi.object() }],
+    Test: [{ docs: "blah", handlers: {}, name, schema: joi.object() }],
+    Deploy: [{ docs: "blah", handlers: {}, name, schema: joi.object() }],
+    Run: [{ docs: "blah", handlers: {}, name, schema: joi.object() }],
+  }
 }

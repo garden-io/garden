@@ -11,7 +11,7 @@ If you've not installed the CLI yet, please check out the [installation guide](.
 Most of the examples below assume that you've already defined a Garden project.
 
 {% hint style="warning" %}
-It is currently not advisable to run multiple dev, build, deploy or test commands in parallel because they may interfere with each other. It is fine, however, to run one of those and then run other commands to the side, such as `garden logs`. We plan on improving this in the future.
+It is currently not advisable to run multiple `dev`, `build`, `deploy` or `test` commands in parallel because they may interfere with each other. It is fine, however, to run one of those and then run other commands to the side, such as `garden logs`. We plan on improving this in the future.
 {% endhint %}
 
 ### Common option flags
@@ -24,73 +24,67 @@ Every Garden command supports a common set of option flags. The full reference c
 
 All option flags can be specified with a space or a `=` between the flag and the value.
 
-## Services
+## `Deploy` actions
 
-### Deploying all services in a project
+### Deploying all `Deploy`s in a project
 
-This deploys all your services to the default environment and namespace.
+This deploys all `Deploy` actions to the default environment and namespace.
 
 ```sh
 garden deploy
 ```
 
-### Deploying all services in a project to a non-default environment and namespace
+### Deploying all `Deploy`s in a project to a non-default environment and namespace
 
-This deploys your services to `my-namespace` in the `dev` environment.
+This deploys all `Deploy` actions to `my-namespace` in the `dev` environment.
 
 ```sh
 garden deploy --env my-namespace.dev
 ```
 
-### Deploying a single service
+### Deploying a single `Deploy`
 
 ```sh
-garden deploy my-service
+garden deploy my-deploy
 ```
 
-### Deploying more than one specific service
+### Deploying more than one specific `Deploy`
 
-When arguments accept one or more services, modules etc. we comma-separate the names.
+When arguments accept one or more actions we space-separate the names.
 
 ```sh
-garden deploy service-a,service-b
+garden deploy deploy-a deploy-b
 ```
 
-### Deploying a service with sync enabled
+### Deploying a `Deploy` with sync enabled
 
-See the [Code synchronization guide](../guides/code-synchronization.md) for more information on how to configure and use syncing for rapid iteration on services.
+See the [Code synchronization guide](../guides/code-synchronization.md) for more information on how to configure and use syncing for rapid iteration on `Deploy`s.
 
 ```sh
-garden deploy my-service --sync=*
+garden deploy my-deploy --sync=*
 ```
 
-### Running a single ad-hoc service and attaching
+### Executing a command in a running `Deploy` container
 
 ```sh
-garden run service my-service --interactive  # or -i for short
+garden exec my-deploy <command>
 ```
 
-### Executing a command in a running service container
-
-```sh
-garden exec my-service <command>
-```
-
-### Executing an interactive shell in a running service container
+### Executing an interactive shell in a running `Deploy` container
 
 _Note: This assumes that `sh` is available in the container._
 
 ```sh
-garden exec my-service -i sh
+garden exec my-deploy sh
 ```
 
-### Getting the status of your services
+### Getting the status of your `Deploy`s
 
 ```sh
 garden get status
 ```
 
-### Getting the status of your services in JSON format
+### Getting the status of your `Deploy`s in JSON format
 
 This is suitable for parsing with e.g. the `jq` utility.
 
@@ -98,21 +92,21 @@ This is suitable for parsing with e.g. the `jq` utility.
 garden get status --output=json  # or `-o json` for short
 ```
 
-### Stopping all running services
+### Stopping all running `Deploys`s
 
-This removes all running services in `my-namespace` in the `dev` environment.
-
-```sh
-garden delete env --env=my-namespace.dev
-```
-
-### Stopping a single running service
+This removes all running `Deploy` actions in `my-namespace` in the `dev` environment.
 
 ```sh
-garden delete service my-service
+garden cleanup env --env=my-namespace.dev
 ```
 
-## Tests
+### Stopping a single running `Deploy`
+
+```sh
+garden cleanup deploy my-deploy
+```
+
+## `Test` actions
 
 ### Running all tests in a project
 
@@ -128,32 +122,32 @@ This is handy for running a single test and streaming the log outputs (`garden t
 garden test my-test -i
 ```
 
-## Tasks
+## `Run` actions
 
-### Running a specific task
+### Running a specific `Run` action
 
 ```sh
-garden run my-task
+garden run my-run-action
 ```
 
-## Building
+## `Build` actions
 
-### Building all modules
+### Building all `Build`s
 
 ```sh
 garden build
 ```
 
-### Building all modules, forcing a rebuild
+### Building all `Build`s, forcing a rebuild
 
 ```sh
 garden build --force  # or -f for short
 ```
 
-### Building a specific module
+### Building a specific `Build`
 
 ```sh
-garden build my-module
+garden build my-build
 ```
 
 ## Workflows
@@ -163,64 +157,44 @@ garden build my-module
 Runs `my-workflow` in `my-namespace` in the `dev` environment.
 
 ```sh
-garden run-workflow my-workflow --env=my-namespace.dev
+garden workflow my-workflow --env=my-namespace.dev
 ```
 
 ## Logs
 
-### Retrieving the latest logs for all services
+### Retrieving the latest logs for all `Deploy`s
 
 ```sh
 garden logs
 ```
 
-### Retrieving the latest logs for a service
+### Retrieving the latest logs for a single `Deploy`
 
 ```sh
-garden logs my-service
+garden logs my-deploy
 ```
 
-### Stream logs for a service
+### Stream logs for a `Deploy` action
 
 ```sh
-garden logs my-service --follow  # or -f for short
+garden logs my-deploy --follow  # or -f for short
 ```
 
 ## garden dev
 
-The `garden dev` command builds, deploys and tests all parts of your project, and also runs any tasks that are listed as dependencies for your services and tests. It then waits for any code changes, and automatically re-builds, re-deploys and re-runs any parts affected by your code changes.
+The `garden dev` command runs the Garden interactive development console.
+In that console you can execute Garden commands in interactive mode, like `build`, `deploy`, `run`, `test` and others.
+To see the full list of available commands execute the `help` command in the development console.
 
-This is handy for small projects, and when your code changes don't tend to trigger a lot of heavy operations, but may be too "busy" to run for large projects or when you're making big changes to your code.
-
-### Running garden dev
+### Running interactive development console
 
 ```sh
 garden dev
 ```
 
-### Running garden dev but skipping tests
+## Sync mode
 
-```sh
-garden dev --skip-tests
-```
-
-## The dashboard
-
-The [garden dev](#garden-dev) command runs a web dashboard that you can open in a browser.
-
-The CLI will print a URL which you can copy or click (or Cmd/Ctrl-click, depending on your terminal). The dashboard stays connected while the command is running.
-
-![The Stack Graph](../stack-graph-screenshot.png "The Stack Graph, shown in the Garden dashboard")
-
-The dashboard gives you:
-
-- An overview of all the parts of your project, including links to any configured _ingresses_ on your services.
-- A visualization of your Stack Graph, where you can see the status of each node, and click them to get the most recent status or logs.
-- A log viewer, which you can use to fetch the latest logs for your services.
-
-## Dev mode
-
-For rapid iteration on a running service, you can use a feature called _dev mode_.
+For rapid iteration on a running `Deploy` action, you can use a feature called _sync mode_.
 See the [Code synchronization guide](../guides/code-synchronization.md) for details on how to configure and use that feature.
 
 ## Project outputs
@@ -255,11 +229,19 @@ garden create project
 
 ### Creating a module
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [actions](#creating-an-action) instead.
+{% endhint %}
+
 This bootstraps a boilerplate `garden.yml` with a module definition in the current directory. You'll get an interactive menu to select a module type. You may get suggestions for appropriate module types, depending on which files are found in the directory (such as a `container` module when a `Dockerfile` is found).
 
 ```sh
 garden create module
 ```
+
+### Creating an action
+
+See the [actions guide](./actions.md) to learn more about actions and how to create them.
 
 ## Remote sources
 
@@ -279,14 +261,6 @@ Here we initialize the cluster configured for the `dev` environment:
 
 ```sh
 garden plugins kubernetes cluster-init --env=dev
-```
-
-### Cleaning up the in-cluster builder and registry
-
-When you use in-cluster building, the image caches build up over time and need to be cleaned up periodically. Use this command for that:
-
-```sh
-garden plugins kubernetes cleanup-cluster-registry --env=dev
 ```
 
 ### Planning and applying Terraform stacks

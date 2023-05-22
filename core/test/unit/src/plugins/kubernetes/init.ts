@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,14 +23,15 @@ import { V1IngressClass, V1Secret } from "@kubernetes/client-node"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { kubectlSpec } from "../../../../../src/plugins/kubernetes/kubectl"
 import { PluginTool } from "../../../../../src/util/ext-tools"
+import { uuidv4 } from "../../../../../src/util/random"
 
 const basicConfig: KubernetesConfig = {
   name: "kubernetes",
   buildMode: "local-docker",
   context: "my-cluster",
-  defaultHostname: "my.domain.com",
+  defaultHostname: "hostname.invalid",
   deploymentRegistry: {
-    hostname: "foo.garden",
+    hostname: "registry.invalid",
     port: 5000,
     namespace: "boo",
     insecure: true,
@@ -65,6 +66,7 @@ const basicConfig: KubernetesConfig = {
 
 const basicProvider: KubernetesProvider = {
   name: "kubernetes",
+  uid: uuidv4(),
   config: basicConfig,
   dependencies: {},
   moduleConfigs: [],
@@ -138,7 +140,15 @@ describe("kubernetes init", () => {
       beforeEach(async () => {
         const core = td.replace(api, "core")
         td.when(core.listNamespace()).thenResolve({
-          items: [{ status: { phase: "Active" }, metadata: { name: "default" } }],
+          items: [
+            {
+              apiVersion: "v1",
+              kind: "Namepsace",
+              status: { phase: "Active" },
+              metadata: { name: "default" },
+              spec: {},
+            },
+          ],
         })
         td.when(core.readNamespacedSecret("test-docker-auth", "default")).thenResolve(dockerSimpleAuthSecret)
         td.when(core.readNamespacedSecret("test-cred-helper-auth", "default")).thenResolve(dockerCredentialHelperSecret)
@@ -182,7 +192,15 @@ describe("kubernetes init", () => {
           },
         }
         td.when(core.listNamespace()).thenResolve({
-          items: [{ status: { phase: "Active" }, metadata: { name: "default" } }],
+          items: [
+            {
+              apiVersion: "v1",
+              kind: "Namepsace",
+              status: { phase: "Active" },
+              metadata: { name: "default" },
+              spec: {},
+            },
+          ],
         })
         td.when(core.readNamespacedSecret("test-docker-auth", "default")).thenResolve(emptyDockerSimpleAuthSecret)
         td.when(core.readNamespacedSecret("test-cred-helper-auth", "default")).thenResolve(

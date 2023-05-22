@@ -9,7 +9,7 @@ tocTitle: "`persistentvolumeclaim` Deploy"
 
 Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [`container` Deploy actions](./container.md).
 
-See the [PersistentVolumeClaim](../../../k8s-plugins/module-types/persistentvolumeclaim.md) guide for more info and usage examples.
+See the [PersistentVolumeClaim](../../../k8s-plugins/action-types/persistentvolumeclaim.md) guide for more info and usage examples.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
@@ -23,9 +23,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -46,8 +43,8 @@ description:
 # For `source.repository` behavior, please refer to the [Remote Sources
 # guide](https://docs.garden.io/advanced/using-remote-sources).
 source:
-  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is
-  # ina git repository!
+  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in
+  # a git repository!
   path:
 
   # When set, Garden will import the action source from this repository, but use this action configuration (and not
@@ -152,19 +149,12 @@ build:
 
 kind:
 
-spec:
-  # A list of access modes supported by the volume when mounting. At least one must be specified. The available modes
-  # are as follows:
-  #
-  #  ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
-  #  ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
-  #  ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
-  #
-  # At least one mode must be specified.
-  accessModes:
+# Timeout for the deploy to complete, in seconds.
+timeout: 300
 
-  # The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in
-  # most cases you should leave this unset.
+spec:
+  # The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so
+  # in most cases you should leave this unset.
   namespace:
 
   # The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec
@@ -225,14 +215,6 @@ spec:
 
 ## Configuration Keys
 
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
-
 ### `type`
 
 The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be defined by your configured providers.
@@ -275,7 +257,7 @@ For `source.repository` behavior, please refer to the [Remote Sources guide](htt
 
 [source](#source) > path
 
-A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!
+A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!
 
 | Type        | Required |
 | ----------- | -------- |
@@ -442,33 +424,25 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------------- | -------- |
 | `string` | "Deploy"       | Yes      |
 
+### `timeout`
+
+Timeout for the deploy to complete, in seconds.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
+
 ### `spec`
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.accessModes[]`
-
-[spec](#spec) > accessModes
-
-A list of access modes supported by the volume when mounting. At least one must be specified. The available modes are as follows:
-
- ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
- ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
- ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
-
-At least one mode must be specified.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
 ### `spec.namespace`
 
 [spec](#spec) > namespace
 
-The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
+The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
 
 | Type     | Required |
 | -------- | -------- |
@@ -628,7 +602,7 @@ VolumeName is the binding reference to the PersistentVolume backing this claim.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `persistentvolumeclaim`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

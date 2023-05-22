@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -154,11 +154,11 @@ export class CliWrapper {
 
     const logEventContext = {
       origin: this.name,
-      log: log.createLog({ fixLevel: LogLevel.verbose }),
+      level: "verbose" as const,
     }
 
     logStream.on("data", (line: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
     })
 
     await new Promise<void>((resolve, reject) => {
@@ -297,7 +297,7 @@ export class PluginTool extends CliWrapper {
       const tmpPath = join(this.toolPath, this.versionDirname + "." + uuidv4().substr(0, 8))
       const targetAbsPath = join(tmpPath, ...this.targetSubpath.split(posix.sep))
 
-      const downloadLog = log.createLog({}).info(`Fetching ${this.name}...`)
+      const downloadLog = log.createLog().info(`Fetching ${this.name}...`)
       const debug = downloadLog
         .createLog({
           fixLevel: LogLevel.debug,

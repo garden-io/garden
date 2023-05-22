@@ -34,6 +34,11 @@ Then install the Garden CLI for your platform:
 ```sh
 brew tap garden-io/garden && brew install garden-cli
 ```
+
+{% hint style="info" %}
+For a Mac computer with Apple silicon, Garden needs [Rosetta](https://support.apple.com/en-us/HT211861).
+{% endhint %}
+
 {% endtab %}
 
 {% tab title="Linux" %}
@@ -143,7 +148,7 @@ And finally deploy the project with Garden in sync mode:
 garden deploy --sync
 ```
 
-You should now be able to visit the example project at [http://vote.local.app.garden](http://vote.local.app.garden).
+You should now be able to visit the example project at [http://vote.local.demo.garden](http://vote.local.demo.garden).
 
 If the page doesn't load because the DNS address can't be found, you'll need to go to step 4 and update your hostfile. Otherwise, you're done!
 
@@ -152,7 +157,7 @@ The project itself doubles as an interactive guide that walks you through some c
 ## Step 4 — Update hostfile (only if needed)
 
 {% hint style="info" %}
-The `*.local.app.garden` domain resolves to 127.0.0.1 via our DNS provider. This means that when you go to [http://vote.local.app.garden](http://vote.local.app.garden), you _should_ be redirected to the app that you have running locally. However, some routers will prevent redirects to 127.0.0.1 and you'll need to update your hostfile instead.
+The `*.local.demo.garden` domain resolves to 127.0.0.1 via our DNS provider. This means that when you go to [http://vote.local.demo.garden](http://vote.local.demo.garden), you _should_ be redirected to the app that you have running locally. However, some routers will prevent redirects to 127.0.0.1 and you'll need to update your hostfile instead.
 {% endhint %}
 
 If you get an error saying that DNS address can't be found when attempting to load the page, follow the instructions below to edit the hostfile for your platform.
@@ -171,7 +176,7 @@ We're using vim here but feel free to use your editor of choice.
 Then add the following to file and save it:
 
 ```sh
-127.0.0.1 vote.local.app.garden
+127.0.0.1 vote.local.demo.garden
 ```
 
 {% endtab %}
@@ -184,14 +189,14 @@ From Notepad, open the `hosts` file in the `C:\Windows\System32\Drivers\etc` dir
 Then add the following to the file and save it:
 
 ```sh
-127.0.0.1 vote.local.app.garden
+127.0.0.1 vote.local.demo.garden
 ```
 
 {% endtab %}
 
 {% endtabs %}
 
-Now you should be able to load the quickstart example project in your browser at [http://vote.local.app.garden](http://vote.local.app.garden).
+Now you should be able to load the quickstart example project in your browser at [http://vote.local.demo.garden](http://vote.local.demo.garden).
 
 ## Next Steps
 
@@ -201,7 +206,7 @@ If you'd like to better understand how a Garden project is configured when using
 through our [first project tutorial](../tutorials/your-first-project/README.md) which walks you through configuring a Garden project step-by-step.
 
 If you like to dive right in and configure your own project for Garden, we recommend using our [example
-projects on GitHub](https://github.com/garden-io/garden/tree/0.12.51/examples) for reference and reading through the different pages
+projects on GitHub](https://github.com/garden-io/garden/tree/0.12.56/examples) for reference and reading through the different pages
 of the [Using Garden section](../using-garden/configuration-overview.md) of our docs.
 
-And if you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://discord.gg/gxeuDgp6Xt)!
+And if you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://discord.gg/FrmhuUjFs6)!

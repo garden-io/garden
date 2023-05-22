@@ -21,9 +21,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -44,8 +41,8 @@ description:
 # For `source.repository` behavior, please refer to the [Remote Sources
 # guide](https://docs.garden.io/advanced/using-remote-sources).
 source:
-  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is
-  # ina git repository!
+  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in
+  # a git repository!
   path:
 
   # When set, Garden will import the action source from this repository, but use this action configuration (and not
@@ -180,7 +177,7 @@ include:
 exclude:
 
 # Set a timeout for the build to complete, in seconds.
-timeout:
+timeout: 600
 
 spec:
   # Specify an image ID to use when building locally, instead of the default of using the action name. Must be a valid
@@ -210,14 +207,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 ### `type`
 
@@ -261,7 +250,7 @@ For `source.repository` behavior, please refer to the [Remote Sources guide](htt
 
 [source](#source) > path
 
-A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!
+A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!
 
 | Type        | Required |
 | ----------- | -------- |
@@ -481,9 +470,9 @@ exclude:
 
 Set a timeout for the build to complete, in seconds.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `spec`
 
@@ -557,7 +546,7 @@ POSIX-style name of a Dockerfile, relative to the action's source root.
 ## Outputs
 
 The following keys are available via the `${actions.build.<name>}` template string key for `container`
-modules.
+action.
 
 ### `${actions.build.<name>.name}`
 
@@ -639,7 +628,7 @@ The variables configured on the action.
 
 ### `${actions.build.<name>.outputs.localImageName}`
 
-The name of the image (without tag/version) that the module uses for local builds and deployments.
+The name of the image (without tag/version) that the Build uses for local builds and deployments.
 
 | Type     |
 | -------- |
@@ -653,7 +642,7 @@ my-variable: ${actions.build.my-build.outputs.localImageName}
 
 ### `${actions.build.<name>.outputs.localImageId}`
 
-The full ID of the image (incl. tag/version) that the module uses for local builds and deployments.
+The full ID of the image (incl. tag/version) that the Build uses for local builds and deployments.
 
 | Type     |
 | -------- |
@@ -667,7 +656,7 @@ my-variable: ${actions.build.my-build.outputs.localImageId}
 
 ### `${actions.build.<name>.outputs.deploymentImageName}`
 
-The name of the image (without tag/version) that the module will use during deployment.
+The name of the image (without tag/version) that the Build will use during deployment.
 
 | Type     |
 | -------- |
@@ -681,7 +670,7 @@ my-variable: ${actions.build.my-build.outputs.deploymentImageName}
 
 ### `${actions.build.<name>.outputs.deploymentImageId}`
 
-The full ID of the image (incl. tag/version) that the module will use during deployment.
+The full ID of the image (incl. tag/version) that the Build will use during deployment.
 
 | Type     |
 | -------- |

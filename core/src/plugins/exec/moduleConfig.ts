@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,6 +23,7 @@ import { artifactsSchema, ExecSyncModeSpec } from "./config"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../plugin/handlers/Module/configure"
 import { ConfigurationError } from "../../exceptions"
 import { omit } from "lodash"
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../../constants"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
@@ -59,6 +60,7 @@ export async function configureExecModule({
     name: s.name,
     dependencies: s.dependencies,
     disabled: s.disabled,
+    timeout: s.timeout,
     spec: s,
   }))
 
@@ -87,7 +89,7 @@ export interface ExecServiceSpec extends CommonServiceSpec {
   deployCommand: string[]
   statusCommand?: string[]
   syncMode?: ExecSyncModeSpec
-  timeout?: number
+  timeout: number
   env: { [key: string]: string }
 }
 
@@ -130,8 +132,7 @@ export const execServiceSchema = () =>
           ${execPathDoc}
           `
         ),
-      // TODO: Set a default in v0.13.
-      timeout: joi.number().description(dedent`
+      timeout: joi.number().integer().min(1).default(DEFAULT_RUN_TIMEOUT_SEC).description(dedent`
         The maximum duration (in seconds) to wait for a local script to exit.
       `),
       env: joiEnvVars().description("Environment variables to set when running the deploy and status commands."),

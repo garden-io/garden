@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ import { streamK8sLogs } from "../logs"
 import { KubernetesPluginContext } from "../config"
 import { getReleaseName } from "./common"
 import { getActionNamespace } from "../namespace"
-import { getRenderedResources } from "./status"
+import { getDeployedChartResources } from "./status"
 import { sleep } from "../../../util/util"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { HelmDeployAction } from "./config"
@@ -38,7 +38,7 @@ export const getHelmDeployLogs: DeployActionHandler<"getLogs", HelmDeployAction>
     //    terminated when the command exits.
     while (true) {
       try {
-        resources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
+        resources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
         break
       } catch (err) {
         log.debug(`Failed getting deployed resources. Retrying...`)
@@ -47,7 +47,7 @@ export const getHelmDeployLogs: DeployActionHandler<"getLogs", HelmDeployAction>
       await sleep(2000)
     }
   } else {
-    resources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
+    resources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
   }
   return streamK8sLogs({
     ...params,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,7 +23,7 @@ import {
 import { getNames } from "../../../src/util/util"
 import { ConfigGraph, ConfigGraphNode } from "../../../src/graph/config-graph"
 import { Garden } from "../../../src/garden"
-import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../../../src/constants"
 import tmp from "tmp-promise"
 import { GardenPlugin } from "../../../src/plugin/plugin"
 import { ProjectConfig } from "../../../src/config/project"
@@ -43,11 +43,12 @@ const makeAction = ({
   spec: any
   disabled: boolean
 }): BaseActionConfig => ({
-  apiVersion: DEFAULT_API_VERSION,
+  apiVersion: GardenApiVersion.v0,
   kind,
   name,
   type: "test",
   disabled,
+  timeout: 10,
   internal: {
     basePath,
   },
@@ -706,9 +707,7 @@ describe("ConfigGraph (module-based configs)", () => {
         makeTestModule({
           name: "test",
           path: tmpPath,
-          build: {
-            dependencies: [{ name: "missing-build-dep", copy: [] }],
-          },
+          build: { dependencies: [{ name: "missing-build-dep", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         }),
       ])
 
@@ -762,9 +761,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -797,9 +796,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -832,9 +831,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -910,9 +909,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -944,9 +943,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -978,9 +977,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -1048,10 +1047,10 @@ describe("ConfigGraph (module-based configs)", () => {
       //  when its' called from Garden.getConfigGraph(...)
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           kind: "Module",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: true,
           name: "module-a",
           include: [],
@@ -1063,10 +1062,10 @@ describe("ConfigGraph (module-based configs)", () => {
           type: "test",
         },
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           kind: "Module",
           allowPublish: false,
-          build: { dependencies: [{ name: "module-a", copy: [] }] },
+          build: { dependencies: [{ name: "module-a", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-b",
           include: [],
@@ -1096,9 +1095,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -1140,9 +1139,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -1187,9 +1186,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-a",
           include: [],
@@ -1209,9 +1208,9 @@ describe("ConfigGraph (module-based configs)", () => {
           type: "test",
         },
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-b",
           include: [],
@@ -1249,9 +1248,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -1296,9 +1295,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "foo",
           path: tmpPath,
@@ -1345,9 +1344,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: true,
           name: "module-a",
           include: [],
@@ -1359,9 +1358,9 @@ describe("ConfigGraph (module-based configs)", () => {
           type: "test",
         },
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-b",
           include: [],
@@ -1387,9 +1386,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-a",
           include: [],
@@ -1409,9 +1408,9 @@ describe("ConfigGraph (module-based configs)", () => {
           type: "test",
         },
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-b",
           include: [],
@@ -1446,9 +1445,9 @@ describe("ConfigGraph (module-based configs)", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-a",
           include: [],
@@ -1460,9 +1459,9 @@ describe("ConfigGraph (module-based configs)", () => {
           type: "test",
         },
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [{ name: "module-a", copy: [] }] },
+          build: { dependencies: [{ name: "module-a", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "module-b",
           include: [],

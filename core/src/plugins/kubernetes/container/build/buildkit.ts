@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ import AsyncLock from "async-lock"
 import chalk from "chalk"
 import split2 = require("split2")
 import { isEmpty } from "lodash"
-import { buildSyncVolumeName, dockerAuthSecretKey } from "../../constants"
+import { buildSyncVolumeName, buildkitContainerName, buildkitDeploymentName, buildkitImageName, buildkitRootlessImageName, dockerAuthSecretKey } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
 import { Log } from "../../../../logger/log-entry"
@@ -27,7 +27,6 @@ import {
   builderToleration,
 } from "./common"
 import { getNamespaceStatus } from "../../namespace"
-import { LogLevel } from "../../../../logger/logger"
 import { sleep } from "../../../../util/util"
 import { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig"
 import { getDockerBuildArgs } from "../../../container/build"
@@ -38,9 +37,6 @@ import { getRunningDeploymentPod } from "../../util"
 import { defaultDockerfileName } from "../../../container/config"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { stringifyResources } from "../util"
-export const buildkitImageName = "gardendev/buildkit:v0.10.5-2"
-export const buildkitDeploymentName = "garden-buildkit"
-const buildkitContainerName = "buildkitd"
 
 const deployLock = new AsyncLock()
 
@@ -50,7 +46,7 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
   const provider = k8sCtx.provider
 
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   const { authSecret } = await ensureBuildkit({
     ctx,
@@ -75,10 +71,11 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
 export const buildkitBuildHandler: BuildHandler = async (params) => {
   const { ctx, action, log } = params
   const spec = action.getSpec()
+  const k8sCtx = ctx as KubernetesPluginContext
 
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   await ensureBuildkit({
     ctx,
@@ -95,7 +92,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   const { contextPath } = await syncToBuildSync({
     ...params,
-    ctx: ctx as KubernetesPluginContext,
+    ctx: k8sCtx,
     api,
     namespace,
     deploymentName: buildkitDeploymentName,
@@ -105,14 +102,13 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   const logEventContext = {
     origin: "buildkit",
-    // log: log.createLog({ fixLevel: LogLevel.verbose }),
-    log: log.createLog({ fixLevel: LogLevel.verbose, section: "foobar" }),
+    level: "verbose" as const,
   }
 
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
 
   const command = [
@@ -186,7 +182,7 @@ export async function ensureBuildkit({
   namespace: string
 }) {
   return deployLock.acquire(namespace, async () => {
-    const deployLog = log.createLog({})
+    const deployLog = log.createLog()
 
     // Make sure auth secret is in place
     const { authSecret, updated: secretUpdated } = await ensureBuilderSecret({
@@ -460,7 +456,7 @@ export function getBuildkitDeployment(
       "container.apparmor.security.beta.kubernetes.io/buildkitd": "unconfined",
       "container.seccomp.security.alpha.kubernetes.io/buildkitd": "unconfined",
     }
-    buildkitContainer.image += "-rootless"
+    buildkitContainer.image = buildkitRootlessImageName
     buildkitContainer.args = [
       "--addr",
       "unix:///run/user/1000/buildkit/buildkitd.sock",

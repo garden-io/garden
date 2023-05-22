@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -38,6 +38,7 @@ import {
 import { ResolvedConfigGraph } from "../graph/config-graph"
 import { ActionVersion } from "../vcs/vcs"
 import { Memoize } from "typescript-memoize"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants"
 
 export interface BuildCopyFrom {
   build: string
@@ -51,11 +52,10 @@ export interface BuildActionConfig<T extends string = string, S extends object =
   allowPublish?: boolean
   buildAtSource?: boolean
   copyFrom?: BuildCopyFrom[]
-  timeout?: number
 }
 
 export const copyFromSchema = createSchema({
-  name: "Build.copyFrom",
+  name: "build-copyFrom",
   keys: () => ({
     build: joiUserIdentifier().required().description("The name of the Build action to copy from."),
     sourcePath: joi
@@ -73,8 +73,10 @@ export const copyFromSchema = createSchema({
   }),
 })
 
-export const buildActionConfigSchema = () =>
-  baseActionConfigSchema().keys({
+export const buildActionConfigSchema = createSchema({
+  name: "build-action-config",
+  extend: baseActionConfigSchema,
+  keys: () => ({
     kind: joi.string().allow("Build").only(),
 
     allowPublish: joi
@@ -136,9 +138,12 @@ export const buildActionConfigSchema = () =>
     timeout: joi
       .number()
       .integer()
+      .min(1)
+      .default(DEFAULT_BUILD_TIMEOUT_SEC)
       .description("Set a timeout for the build to complete, in seconds.")
       .meta({ templateContext: ActionConfigContext }),
-  })
+  }),
+})
 
 export class BuildAction<
   C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
@@ -203,6 +208,7 @@ export class ResolvedBuildAction<
     this._config.spec = params.spec
     this._config.internal.inputs = params.inputs
   }
+
   getExecutedDependencies() {
     return this.executedDependencies
   }

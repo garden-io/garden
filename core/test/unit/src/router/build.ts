@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { ResolvedBuildAction } from "../../../../src/actions/build"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { Log } from "../../../../src/logger/log-entry"
+import { ActionLog } from "../../../../src/logger/log-entry"
 import { ActionRouter } from "../../../../src/router/router"
 import { GardenModule } from "../../../../src/types/module"
 import { TestGarden } from "../../../helpers"
@@ -18,10 +18,8 @@ import { getRouterTestData } from "./_helpers"
 describe("build actions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: Log
+  let log: ActionLog
   let actionRouter: ActionRouter
-  // eslint-disable-next-line no-unused
-  let returnWrongOutputsCfgKey: string
   let resolvedBuildAction: ResolvedBuildAction
   let module: GardenModule
 
@@ -31,13 +29,12 @@ describe("build actions", () => {
     graph = data.graph
     log = data.log
     actionRouter = data.actionRouter
-    returnWrongOutputsCfgKey = data.returnWrongOutputsCfgKey
     resolvedBuildAction = data.resolvedBuildAction
     module = data.module
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   describe("build.getStatus", () => {

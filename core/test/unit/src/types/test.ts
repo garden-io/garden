@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,6 +11,7 @@ import { getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers"
 import { TestConfig } from "../../../../src/config/test"
 import { testFromConfig } from "../../../../src/types/test"
 import { cloneDeep } from "lodash"
+import { DEFAULT_TEST_TIMEOUT_SEC } from "../../../../src/constants"
 
 describe("testFromConfig", () => {
   it("should propagate the disabled flag from the config", async () => {
@@ -19,7 +20,7 @@ describe("testFromConfig", () => {
       dependencies: [],
       disabled: true,
       spec: {},
-      timeout: null,
+      timeout: DEFAULT_TEST_TIMEOUT_SEC,
     }
 
     const garden = await makeTestGardenA()
@@ -36,7 +37,7 @@ describe("testFromConfig", () => {
       dependencies: [],
       disabled: false,
       spec: {},
-      timeout: null,
+      timeout: DEFAULT_TEST_TIMEOUT_SEC,
     }
 
     const garden = await makeTestGardenA()

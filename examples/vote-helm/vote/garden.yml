@@ -16,12 +16,12 @@ spec:
   sync:
     paths:
       - containerPath: /app/src
-        sourcePath: ${action.build.vote-image.sourcePath}/src
+        sourcePath: ${actions.build.vote-image.sourcePath}/src
         mode: two-way
   values:
     image:
-      repository: ${action.build.vote-image.outputs.deployment-image-name}
-      tag: ${action.build.vote-image.version}
+      repository: ${actions.build.vote-image.outputs.deployment-image-name}
+      tag: ${actions.build.vote-image.version}
     ingress:
       enabled: true
       paths: [/]
@@ -33,7 +33,7 @@ spec:
 ---
 
 kind: Test
-name: vote-integ
+name: vote-integ-exec
 type: kubernetes-exec
 dependencies:
   - deploy.vote
@@ -42,4 +42,31 @@ spec:
   resource:
     kind: Deployment
     name: vote
-  args: [npm, run, test:integ]
+  command: [/bin/sh, -c, "npm run test:integ"]
+
+---
+
+kind: Test
+name: vote-integ-pod
+type: helm-pod
+dependencies:
+  - deploy.api
+variables:
+  hostname: vote.${var.baseHostname}
+timeout: 60
+spec:
+  resource:
+    kind: Deployment
+    name: vote-integ-pod
+  command: [/bin/sh, -c, "npm run test:integ"]
+  values:
+    image:
+      repository: ${actions.build.vote-image.outputs.deployment-image-name}
+      tag: ${actions.build.vote-image.version}
+    ingress:
+      enabled: true
+      paths: [/]
+      hosts: ["${var.hostname}"]
+    env:
+      - name: HOSTNAME
+        value: ${var.hostname}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -91,17 +91,11 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
       ),
     })
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Publish builds", "🚀")
+  printHeader({ log }) {
+    printHeader(log, "Publish builds", "🚀")
   }
 
-  async action({
-    garden,
-    log,
-    footerLog,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<PublishCommandResult>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<PublishCommandResult>> {
     const graph = await garden.getConfigGraph({ log, emit: true })
     const builds = graph.getBuilds({ names: args.names })
 
@@ -119,6 +113,6 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
     })
 
     const processed = await garden.processTasks({ tasks, log, throwOnError: true })
-    return handleProcessResults(footerLog, "publish", { graphResults: processed.results })
+    return handleProcessResults(garden, log, "publish", processed)
   }
 }

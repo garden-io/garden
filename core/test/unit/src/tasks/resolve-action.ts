@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,7 +19,7 @@ import {
   makeTestGarden,
   getDataDir,
   expectError,
-  getAllRunResults,
+  getAllTaskResults,
   getDefaultProjectConfig,
 } from "../../../helpers"
 
@@ -91,7 +91,7 @@ describe("ResolveActionTask", () => {
           type: "test",
           name: "foo",
           spec: {
-            foo: "${action.build.foo.outputs.something}",
+            foo: "${actions.build.foo.outputs.something}",
           },
         },
       ])
@@ -116,7 +116,7 @@ describe("ResolveActionTask", () => {
           type: "test",
           name: "foo",
           spec: {
-            foo: "${action.build.foo.version}",
+            foo: "${actions.build.foo.version}",
           },
         },
       ])
@@ -230,7 +230,7 @@ describe("ResolveActionTask", () => {
 
       garden.variables.a = 1
       garden.variables.b = 200
-      garden.cliVariables.b = 2000 // <-- should win
+      garden.variableOverrides.b = 2000 // <-- should win
 
       const task = await getTask("Build", "foo")
       const result = await garden.processTask(task, log, { throwOnError: true })
@@ -258,7 +258,7 @@ describe("ResolveActionTask", () => {
           type: "test",
           name: "foo",
           spec: {
-            deployCommand: ["echo", "${action.build.foo.version}"],
+            deployCommand: ["echo", "${actions.build.foo.version}"],
           },
         },
       ])
@@ -266,7 +266,7 @@ describe("ResolveActionTask", () => {
       const task = await getTask("Deploy", "foo")
       const result = await garden.processTask(task, log, { throwOnError: true })
 
-      const all = getAllRunResults(result?.dependencyResults!)
+      const all = getAllTaskResults(result?.dependencyResults!)
 
       const resolvedBuild = all["resolve-action.build.foo"]!.outputs.resolvedAction
       const buildVersion = resolvedBuild.versionString()
@@ -290,7 +290,7 @@ describe("ResolveActionTask", () => {
           type: "test",
           name: "foo",
           spec: {
-            foo: "${action.build.foo.version}",
+            foo: "${actions.build.foo.version}",
           },
         },
       ])
@@ -419,7 +419,7 @@ describe("ResolveActionTask", () => {
           type: "test",
           name: "foo",
           spec: {
-            deployCommand: ["echo", "${action.run.foo.outputs.log}"],
+            deployCommand: ["echo", "${actions.run.foo.outputs.log}"],
           },
         },
       ])

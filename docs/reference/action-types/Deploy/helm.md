@@ -9,7 +9,7 @@ tocTitle: "`helm` Deploy"
 
 Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 
-Refer to the [Helm guide](https://docs.garden.io/kubernetes-plugins/module-types/helm) for usage instructions.
+Refer to the [Helm guide](../../../k8s-plugins/action-types/helm.md) for usage instructions.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
@@ -23,9 +23,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -46,8 +43,8 @@ description:
 # For `source.repository` behavior, please refer to the [Remote Sources
 # guide](https://docs.garden.io/advanced/using-remote-sources).
 source:
-  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is
-  # ina git repository!
+  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in
+  # a git repository!
   path:
 
   # When set, Garden will import the action source from this repository, but use this action configuration (and not
@@ -152,11 +149,10 @@ build:
 
 kind:
 
-spec:
-  # Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more
-  # information about failures and then manually roll back, instead of having Helm do it automatically on failure.
-  atomicInstall: true
+# Timeout for the deploy to complete, in seconds.
+timeout: 300
 
+spec:
   # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
   # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63
   # characters.
@@ -202,6 +198,10 @@ spec:
   # this action config's directory.
   valueFiles: []
 
+  # Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be
+  # reverted on failure.
+  atomic: false
+
   # Specify the Helm chart to use.
   #
   # If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be
@@ -215,7 +215,7 @@ spec:
   #
   # One of `chart.name`, `chart.path` or `chart.url` must be specified.
   chart:
-    # A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain
+    # A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain
     # the Helm chart itself.
     name:
 
@@ -336,8 +336,8 @@ spec:
         # defined.
         #
         # This should generally be a templated path to another action's source path (e.g.
-        # `${action.build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make
-        # sure the path exists, and that it is reliably the correct path for every user.
+        # `${actions.build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must
+        # make sure the path exists, and that it is reliably the correct path for every user.
         sourcePath: .
 
         # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
@@ -372,13 +372,20 @@ spec:
         # more information.
         defaultGroup:
 
+    # Overrides for the container command and/or arguments for when in sync mode.
     overrides:
-      - target:
-          # The kind of the Kubernetes resource to modify.
+      - # The Kubernetes resources to override. If specified, this is used instead of `spec.defaultTarget`.
+        target:
+          # The kind of Kubernetes resource to find.
           kind:
 
-          # The name of the resource.
+          # The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
           name:
+
+          # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod
+          # with matching labels will be picked as a target, so make sure the labels will always match a specific Pod
+          # type.
+          podSelector:
 
           # The name of a container in the target. Specify this if the target contains more than one container and the
           # main container is not the first container in the spec.
@@ -448,14 +455,6 @@ spec:
 
 ## Configuration Keys
 
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
-
 ### `type`
 
 The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be defined by your configured providers.
@@ -498,7 +497,7 @@ For `source.repository` behavior, please refer to the [Remote Sources guide](htt
 
 [source](#source) > path
 
-A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!
+A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!
 
 | Type        | Required |
 | ----------- | -------- |
@@ -665,21 +664,19 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------------- | -------- |
 | `string` | "Deploy"       | Yes      |
 
+### `timeout`
+
+Timeout for the deploy to complete, in seconds.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
+
 ### `spec`
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
-
-### `spec.atomicInstall`
-
-[spec](#spec) > atomicInstall
-
-Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure.
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `true`  | No       |
 
 ### `spec.namespace`
 
@@ -789,6 +786,16 @@ this action config's directory.
 | ------------------ | ------- | -------- |
 | `array[posixPath]` | `[]`    | No       |
 
+### `spec.atomic`
+
+[spec](#spec) > atomic
+
+Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be reverted on failure.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
 ### `spec.chart`
 
 [spec](#spec) > chart
@@ -811,7 +818,7 @@ One of `chart.name`, `chart.path` or `chart.url` must be specified.
 
 [spec](#spec) > [chart](#specchart) > name
 
-A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain the Helm chart itself.
+A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain the Helm chart itself.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1119,7 +1126,7 @@ The name of a container in the target. Specify this if the target contains more 
 
 The local path to sync from, either absolute or relative to the source directory where the Deploy action is defined.
 
-This should generally be a templated path to another action's source path (e.g. `${action.build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make sure the path exists, and that it is reliably the correct path for every user.
+This should generally be a templated path to another action's source path (e.g. `${actions.build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make sure the path exists, and that it is reliably the correct path for every user.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
@@ -1225,6 +1232,8 @@ Set the default group on files and directories at the target. Specify either an 
 
 [spec](#spec) > [sync](#specsync) > overrides
 
+Overrides for the container command and/or arguments for when in sync mode.
+
 | Type            | Required |
 | --------------- | -------- |
 | `array[object]` | No       |
@@ -1232,6 +1241,8 @@ Set the default group on files and directories at the target. Specify either an 
 ### `spec.sync.overrides[].target`
 
 [spec](#spec) > [sync](#specsync) > [overrides](#specsyncoverrides) > target
+
+The Kubernetes resources to override. If specified, this is used instead of `spec.defaultTarget`.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1241,7 +1252,7 @@ Set the default group on files and directories at the target. Specify either an 
 
 [spec](#spec) > [sync](#specsync) > [overrides](#specsyncoverrides) > [target](#specsyncoverridestarget) > kind
 
-The kind of the Kubernetes resource to modify.
+The kind of Kubernetes resource to find.
 
 | Type     | Allowed Values                           | Required |
 | -------- | ---------------------------------------- | -------- |
@@ -1251,11 +1262,21 @@ The kind of the Kubernetes resource to modify.
 
 [spec](#spec) > [sync](#specsync) > [overrides](#specsyncoverrides) > [target](#specsyncoverridestarget) > name
 
-The name of the resource.
+The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
 
 | Type     | Required |
 | -------- | -------- |
-| `string` | Yes      |
+| `string` | No       |
+
+### `spec.sync.overrides[].target.podSelector`
+
+[spec](#spec) > [sync](#specsync) > [overrides](#specsyncoverrides) > [target](#specsyncoverridestarget) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `spec.sync.overrides[].target.containerName`
 
@@ -1433,7 +1454,7 @@ The name of a container in the target. Specify this if the target contains more 
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `helm`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,8 +24,8 @@ import { mapLimit } from "async"
 import { STATIC_DIR } from "../constants"
 import split2 = require("split2")
 import execa = require("execa")
-import isGlob = require("is-glob")
-import chalk = require("chalk")
+import isGlob from "is-glob"
+import chalk from "chalk"
 import hasha = require("hasha")
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import AsyncLock from "async-lock"
@@ -35,6 +35,10 @@ const gitConfigAsyncLock = new AsyncLock()
 const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
 const hashConcurrencyLimit = 50
 const currentPlatformName = process.platform
+
+const gitSafeDirs = new Set<string>()
+let gitSafeDirsRead = false
+let staticDirSafe = false
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -78,15 +82,11 @@ export class GitHandler extends VcsHandler {
   name = "git"
   repoRoots = new Map()
   profiler: Profiler
-  private readonly gitSafeDirs: Set<string>
-  private gitSafeDirsRead: boolean
   private lock: AsyncLock
 
   constructor(params: VcsHandlerParams) {
     super(params)
     this.profiler = getDefaultProfiler()
-    this.gitSafeDirs = new Set<string>()
-    this.gitSafeDirsRead = false
     this.lock = new AsyncLock()
   }
 
@@ -126,6 +126,7 @@ export class GitHandler extends VcsHandler {
     return path.replace(/\\/g, "/")
   }
 
+  // TODO-0.13.1+ - get rid of this in/after https://github.com/garden-io/garden/pull/4047
   /**
    * Checks if a given {@code path} is a valid and safe Git repository.
    * If it is a valid Git repository owned by another user,
@@ -135,37 +136,37 @@ export class GitHandler extends VcsHandler {
    * see https://github.blog/2022-04-18-highlights-from-git-2-36/ for more details.
    */
   private async ensureSafeDirGitRepo(log: Log, path: string, failOnPrompt = false): Promise<void> {
-    if (this.gitSafeDirs.has(path)) {
+    if (gitSafeDirs.has(path)) {
       return
     }
 
     // Avoid multiple concurrent checks on the same path
     await this.lock.acquire(`safe-dir:${path}`, async () => {
-      if (this.gitSafeDirs.has(path)) {
+      if (gitSafeDirs.has(path)) {
         return
       }
 
       const git = this.gitCli(log, path, failOnPrompt)
 
-      if (!this.gitSafeDirsRead) {
+      if (!gitSafeDirsRead) {
         await gitConfigAsyncLock.acquire(".gitconfig", async () => {
-          if (!this.gitSafeDirsRead) {
+          if (!gitSafeDirsRead) {
             const gitCli = this.gitCli(log, path, failOnPrompt)
             try {
               const safeDirectories = await gitCli("config", "--get-all", "safe.directory")
-              safeDirectories.forEach((safeDir) => this.gitSafeDirs.add(safeDir))
+              safeDirectories.forEach((safeDir) => gitSafeDirs.add(safeDir))
             } catch (err) {
               // ignore the error if there are no safe directories defined
               log.debug(`Error reading safe directories from the .gitconfig: ${err}`)
             }
-            this.gitSafeDirsRead = true
+            gitSafeDirsRead = true
           }
         })
       }
 
       try {
         await git("status")
-        this.gitSafeDirs.add(path)
+        gitSafeDirs.add(path)
       } catch (err) {
         // Git has stricter repo ownerships checks since 2.36.0
         if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
@@ -175,14 +176,14 @@ export class GitHandler extends VcsHandler {
             )
           )
 
-          if (!this.gitSafeDirs.has(path)) {
+          if (!gitSafeDirs.has(path)) {
             await gitConfigAsyncLock.acquire(".gitconfig", async () => {
-              if (!this.gitSafeDirs.has(path)) {
+              if (!gitSafeDirs.has(path)) {
                 const gitConfigCompatiblePath = this.toGitConfigCompatiblePath(path, currentPlatformName)
                 // Add the safe directory globally to be able to run git command outside a (trusted) git repo
                 // Wrap the path in quotes to pass it as a single argument in case if it contains any whitespaces
                 await git("config", "--global", "--add", "safe.directory", `'${gitConfigCompatiblePath}'`)
-                this.gitSafeDirs.add(path)
+                gitSafeDirs.add(path)
                 log.debug(`Configured git to trust repository in ${path}`)
               }
             })
@@ -198,7 +199,7 @@ export class GitHandler extends VcsHandler {
           throw err
         }
       }
-      this.gitSafeDirs.add(path)
+      gitSafeDirs.add(path)
     })
   }
 
@@ -213,8 +214,11 @@ export class GitHandler extends VcsHandler {
         return this.repoRoots.get(path)
       }
 
-      await this.ensureSafeDirGitRepo(log, STATIC_DIR, failOnPrompt)
-      await this.ensureSafeDirGitRepo(log, path, failOnPrompt)
+      // TODO-0.13.1+ - get rid of this in/after https://github.com/garden-io/garden/pull/4047
+      if (!staticDirSafe) {
+        staticDirSafe = true
+        await this.ensureSafeDirGitRepo(log, STATIC_DIR, failOnPrompt)
+      }
 
       const git = this.gitCli(log, path, failOnPrompt)
 
@@ -223,7 +227,14 @@ export class GitHandler extends VcsHandler {
         this.repoRoots.set(path, repoRoot)
         return repoRoot
       } catch (err) {
-        if (err.exitCode === 128) {
+        if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
+          // Throw nice error when we detect that we're not in a repo root
+          throw new RuntimeError(
+            err.stderr +
+              `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
+            { path }
+          )
+        } else if (err.exitCode === 128) {
           // Throw nice error when we detect that we're not in a repo root
           throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
         } else {
@@ -261,19 +272,13 @@ export class GitHandler extends VcsHandler {
       const pathStats = await stat(path)
 
       if (!pathStats.isDirectory()) {
-        gitLog.warn({
-          symbol: "warning",
-          msg: chalk.gray(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`),
-        })
+        gitLog.warn(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`)
         return []
       }
     } catch (err) {
       // 128 = File no longer exists
       if (err.exitCode === 128 || err.code === "ENOENT") {
-        gitLog.warn({
-          symbol: "warning",
-          msg: chalk.gray(`Attempted to scan directory at ${path}, but it does not exist.`),
-        })
+        gitLog.warn(`Attempted to scan directory at ${path}, but it does not exist.`)
         return []
       } else {
         throw err
@@ -407,23 +412,15 @@ export class GitHandler extends VcsHandler {
 
             if (!pathStats.isDirectory()) {
               const pathType = getStatsType(pathStats)
-              gitLog.warn({
-                symbol: "warning",
-                msg: chalk.gray(
-                  `Expected submodule directory at ${path}, but found ${pathType}. ${submoduleErrorSuggestion}`
-                ),
-              })
+              gitLog.warn(`Expected submodule directory at ${path}, but found ${pathType}. ${submoduleErrorSuggestion}`)
               return
             }
           } catch (err) {
             // 128 = File no longer exists
             if (err.exitCode === 128 || err.code === "ENOENT") {
-              gitLog.warn({
-                symbol: "warning",
-                msg: chalk.yellow(
-                  `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
-                ),
-              })
+              gitLog.warn(
+                `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
+              )
               return
             } else {
               throw err
@@ -572,67 +569,75 @@ export class GitHandler extends VcsHandler {
 
   // TODO Better auth handling
   async ensureRemoteSource({ url, name, log, sourceType, failOnPrompt = false }: RemoteSourceParams): Promise<string> {
-    const remoteSourcesPath = join(this.gardenDirPath, this.getRemoteSourcesDirname(sourceType))
-    await ensureDir(remoteSourcesPath)
+    return this.getRemoteSourceLock(sourceType, name, async () => {
+      const remoteSourcesPath = this.getRemoteSourcesLocalPath(sourceType)
+      await ensureDir(remoteSourcesPath)
 
-    const absPath = join(this.gardenDirPath, this.getRemoteSourceRelPath(name, url, sourceType))
-    const isCloned = await pathExists(absPath)
+      const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
+      const isCloned = await pathExists(absPath)
 
-    if (!isCloned) {
-      const gitLog = log.createLog({ name, showDuration: true }).info(`Fetching from ${url}`)
-      const { repositoryUrl, hash } = parseGitUrl(url)
+      if (!isCloned) {
+        const gitLog = log.createLog({ name, showDuration: true }).info(`Fetching from ${url}`)
+        const { repositoryUrl, hash } = parseGitUrl(url)
 
-      try {
-        await this.cloneRemoteSource(log, repositoryUrl, hash, absPath, failOnPrompt)
-      } catch (err) {
-        gitLog.error(`Failed fetching from ${url}`)
-        throw new RuntimeError(`Downloading remote ${sourceType} failed with error: \n\n${err}`, {
-          repositoryUrl: url,
-          message: err.message,
-        })
+        try {
+          await this.cloneRemoteSource(log, repositoryUrl, hash, absPath, failOnPrompt)
+        } catch (err) {
+          gitLog.error(`Failed fetching from ${url}`)
+          throw new RuntimeError(`Downloading remote ${sourceType} failed with error: \n\n${err}`, {
+            repositoryUrl: url,
+            message: err.message,
+          })
+        }
+
+        gitLog.success("Done")
       }
 
-      gitLog.success("Done")
-    }
-
-    return absPath
+      return absPath
+    })
   }
 
   async updateRemoteSource({ url, name, sourceType, log, failOnPrompt = false }: RemoteSourceParams) {
-    const absPath = join(this.gardenDirPath, this.getRemoteSourceRelPath(name, url, sourceType))
+    const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
     const git = this.gitCli(log, absPath, failOnPrompt)
     const { repositoryUrl, hash } = parseGitUrl(url)
 
     await this.ensureRemoteSource({ url, name, sourceType, log, failOnPrompt })
 
-    const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
-    await git("remote", "update")
+    await this.getRemoteSourceLock(sourceType, name, async () => {
+      const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
+      await git("remote", "update")
 
-    const localCommitId = (await git("rev-parse", "HEAD"))[0]
-    const remoteCommitId = this.isHashSHA1(hash)
-      ? hash
-      : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
+      const localCommitId = (await git("rev-parse", "HEAD"))[0]
+      const remoteCommitId = this.isHashSHA1(hash)
+        ? hash
+        : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
 
-    if (localCommitId !== remoteCommitId) {
-      gitLog.info(`Fetching from ${url}`)
+      if (localCommitId !== remoteCommitId) {
+        gitLog.info(`Fetching from ${url}`)
 
-      try {
-        await git("fetch", "--depth=1", "origin", hash)
-        await git("reset", "--hard", `origin/${hash}`)
-        // Update submodules if applicable (no-op if no submodules in repo)
-        await git("-c", "protocol.file.allow=always", "submodule", "update", "--recursive")
-      } catch (err) {
-        gitLog.error(`Failed fetching from ${url}`)
-        throw new RuntimeError(`Updating remote ${sourceType} failed with error: \n\n${err}`, {
-          repositoryUrl: url,
-          message: err.message,
-        })
+        try {
+          await git("fetch", "--depth=1", "origin", hash)
+          await git("reset", "--hard", `origin/${hash}`)
+          // Update submodules if applicable (no-op if no submodules in repo)
+          await git("-c", "protocol.file.allow=always", "submodule", "update", "--recursive")
+        } catch (err) {
+          gitLog.error(`Failed fetching from ${url}`)
+          throw new RuntimeError(`Updating remote ${sourceType} failed with error: \n\n${err}`, {
+            repositoryUrl: url,
+            message: err.message,
+          })
+        }
+
+        gitLog.success("Source updated")
+      } else {
+        gitLog.success("Source already up to date")
       }
+    })
+  }
 
-      gitLog.success("Source updated")
-    } else {
-      gitLog.success("Source already up to date")
-    }
+  private getRemoteSourceLock(sourceType: string, name: string, func: () => Promise<any>) {
+    return this.lock.acquire(`remote-source-${sourceType}-${name}`, func)
   }
 
   /**

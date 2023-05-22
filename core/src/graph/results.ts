@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,7 @@ export interface TaskEventBase {
   description: string
   key: string
   name: string
-  version: string
+  inputVersion: string
 }
 
 export interface GraphResult<R extends ValidResultType = ValidResultType> extends TaskEventBase {
@@ -138,7 +138,7 @@ function mapResults<T extends Task = Task, R extends object = {}>(
  * Render a result to string. Used for debugging and errors.
  */
 export function resultToString(result: GraphResult) {
-  // TODO-G2: improve
+  // TODO: improve
   return CircularJSON.stringify(toGraphResultEventPayload(result))
 }
 
@@ -165,7 +165,7 @@ function prepareForExport(graphResult: GraphResultWithoutTask | null) {
       "version",
       "processed",
       "success",
-      "version"
+      "inputVersion"
     ),
     result: filterResultForExport(result),
     error: filterErrorForExport(error),

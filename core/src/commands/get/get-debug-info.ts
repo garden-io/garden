@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -43,7 +43,7 @@ export const PROVIDER_INFO_FILENAME_NO_EXT = "info"
  */
 export async function collectBasicDebugInfo(root: string, gardenDirPath: string, log: Log) {
   // Find project definition
-  const projectConfig = await findProjectConfig(log, root, true)
+  const projectConfig = await findProjectConfig({ log, path: root, allowInvalid: true })
   if (!projectConfig) {
     throw new ValidationError(
       "Couldn't find a Project definition. Please run this command from the root of your Garden project.",
@@ -74,8 +74,8 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
     ignoreFile: projectConfig.dotIgnoreFile || defaultDotIgnoreFile,
     cache,
   })
-  const include = projectConfig.modules && projectConfig.modules.include
-  const exclude = projectConfig.modules && projectConfig.modules.exclude
+  const include = projectConfig.scan && projectConfig.scan.include
+  const exclude = projectConfig.scan && projectConfig.scan.exclude
   const paths = await findConfigPathsInPath({ vcs, dir: root, include, exclude, log })
 
   // Copy all the service configuration files
@@ -258,8 +258,8 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
   arguments = debugInfoArguments
   options = debugInfoOptions
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Get debug info", "information_source")
+  printHeader({ log }) {
+    printHeader(log, "Get debug info", "information_source")
   }
 
   async action({ garden, log, opts }: CommandParams<Args, Opts>) {
@@ -309,7 +309,7 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
         NOTE: Please be aware that the output file might contain sensitive information.
         If you plan to make the file available to the general public (e.g. GitHub), please review the content first.
         If you need to share a file containing sensitive information with the Garden team, please contact us on
-        our Discord community: https://discord.gg/gxeuDgp6Xt.
+        our Discord community: https://discord.gg/FrmhuUjFs6.
       `)
     )
 

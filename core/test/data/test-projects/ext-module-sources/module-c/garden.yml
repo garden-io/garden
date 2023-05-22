@@ -1,0 +1,11 @@
+kind: Module
+name: module-c
+repositoryUrl: https://example.com/my-repo.git#main
+type: test
+services:
+  - name: service-c
+build:
+  command: [echo, A]
+tests:
+  - name: unit
+    command: [echo, OK]

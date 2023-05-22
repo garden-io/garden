@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,15 +24,13 @@ describe("DevCommand", () => {
   // ) {
   //   const log = garden.log
 
-  //   await command.prepare({ log, footerLog: log, headerLog: log, args, opts })
+  //   await command.prepare({ log, args, opts })
 
   //   const promise = command
   //     .action({
   //       garden,
   //       log,
-  //       headerLog: log,
-  //       footerLog: log,
-  //       args,
+  //         //         //       args,
   //       opts,
   //     })
   //     .then(({ errors }) => {

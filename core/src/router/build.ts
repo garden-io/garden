@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,6 @@
 
 import chalk from "chalk"
 
-import { renderOutputStream } from "../util/util"
 import { PluginEventBroker } from "../plugin-context"
 import { BaseRouterParams, createActionRouter } from "./base"
 import { ActionState, stateForCacheStatusEvent } from "../actions/types"
@@ -48,7 +47,6 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const status = statusOutput.result
       const { state } = status
 
-      // TODO-G2: only validate if state is ready?
       await router.validateActionOutputs(action, "runtime", status.outputs)
       garden.events.emit("buildStatus", {
         ...payloadAttrs,
@@ -63,7 +61,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const { action, garden, router } = params
 
       const actionUid = action.getUid()
-      params.events = params.events || new PluginEventBroker()
+      params.events = params.events || new PluginEventBroker(garden)
 
       const startedAt = new Date().toISOString()
 
@@ -72,9 +70,9 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
-      params.events.on("log", ({ timestamp, data, origin, log }) => {
+      params.events.on("log", ({ timestamp, msg, origin, level }) => {
         // stream logs to CLI
-        log.info(renderOutputStream(data.toString(), origin))
+        params.log[level]({ msg, origin })
         // stream logs to Garden Cloud
         garden.events.emit("log", {
           timestamp,
@@ -82,8 +80,8 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
           actionName,
           actionType,
           moduleName,
-          origin,
-          data: data.toString(),
+          origin: origin || "",
+          data: msg,
         })
       })
       const payloadAttrs = {
@@ -120,7 +118,6 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         })
         const { result } = output
 
-        // TODO-G2: only validate if state is ready?
         await router.validateActionOutputs(action, "runtime", result.outputs)
 
         emitBuildStatusEvent("ready")

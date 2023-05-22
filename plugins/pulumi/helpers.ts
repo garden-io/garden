@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,16 +24,18 @@ import { defaultPulumiEnv, pulumi } from "./cli"
 import { PulumiDeploy, PulumiProvider } from "./config"
 import { deline } from "@garden-io/sdk/util/string"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
+import { ActionLog } from "@garden-io/core/build/src/logger/log-entry"
 
 export interface PulumiParams {
   ctx: PluginContext
-  log: Log
+  log: ActionLog
   provider: PulumiProvider
   action: Resolved<PulumiDeploy>
 }
 
 export interface PulumiConfig {
   config: DeepPrimitiveMap
+  backend?: { url: string }
 }
 
 interface PulumiManifest {
@@ -116,7 +118,7 @@ export async function previewStack(
     // We write the plan to the `.garden` directory for subsequent use by the deploy handler.
     args: ["preview", "--color", "always", "--config-file", configPath, "--save-plan", planPath],
     cwd: getActionStackRoot(action),
-    env: defaultPulumiEnv,
+    env: ensureEnv(params),
   })
   const plan = await readPulumiPlan(action, planPath)
   const affectedResourcesCount = countAffectedResources(plan)
@@ -144,7 +146,7 @@ export async function getStackOutputs({ log, ctx, provider, action }: PulumiPara
   const res = await pulumi(ctx, provider).json({
     log,
     args: ["stack", "output", "--json"],
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, action }),
     cwd: getActionStackRoot(action),
   })
   log.debug(`stack outputs for ${action.name}: ${JSON.stringify(res, null, 2)}`)
@@ -156,7 +158,7 @@ export async function getDeployment({ log, ctx, provider, action }: PulumiParams
   const res = await pulumi(ctx, provider).json({
     log,
     args: ["stack", "export"],
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, action }),
     cwd: getActionStackRoot(action),
   })
   log.silly(`stack export for ${action.name}: ${JSON.stringify(res, null, 2)}`)
@@ -166,12 +168,16 @@ export async function getDeployment({ log, ctx, provider, action }: PulumiParams
 
 // TODO: Use REST API instead of calling the CLI here.
 export async function setStackVersionTag({ log, ctx, provider, action }: PulumiParams) {
-  await pulumi(ctx, provider).stdout({
-    log,
-    args: ["stack", "tag", "set", stackVersionKey, action.versionString()],
-    env: defaultPulumiEnv,
-    cwd: getActionStackRoot(action),
-  })
+  try {
+    await pulumi(ctx, provider).stdout({
+      log,
+      args: ["stack", "tag", "set", stackVersionKey, action.versionString()],
+      env: ensureEnv({ log, ctx, provider, action }),
+      cwd: getActionStackRoot(action),
+    })
+  } catch (err) {
+    throw err.message + "\n\nHint: consider setting 'cacheStatus: false'\n"
+  }
 }
 
 // TODO: Use REST API instead of calling the CLI here.
@@ -181,7 +187,7 @@ export async function getStackVersionTag({ log, ctx, provider, action }: PulumiP
     res = await pulumi(ctx, provider).stdout({
       log,
       args: ["stack", "tag", "get", stackVersionKey],
-      env: defaultPulumiEnv,
+      env: ensureEnv({ log, ctx, provider, action }),
       cwd: getActionStackRoot(action),
     })
   } catch (err) {
@@ -197,7 +203,7 @@ export async function clearStackVersionTag({ log, ctx, provider, action }: Pulum
   await pulumi(ctx, provider).stdout({
     log,
     args: ["stack", "tag", "rm", stackVersionKey],
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, action }),
     cwd: getActionStackRoot(action),
   })
 }
@@ -229,7 +235,7 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
     stackConfigFileExists = true
   } catch (err) {
     log.debug(`No pulumi stack configuration file for action ${action.name} found at ${stackConfigPath}`)
-    stackConfig = { config: {} }
+    stackConfig = { config: {}, backend: { url: "" } }
     stackConfigFileExists = false
   }
   const spec = action.getSpec()
@@ -262,6 +268,8 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   vars = <DeepPrimitiveMap>merge(vars, pulumiVars || {})
   log.debug(`merged vars: ${JSON.stringify(vars, null, 2)}`)
   stackConfig.config = vars
+
+  stackConfig.backend = { url: params.provider.config.backendURL }
 
   if (stackConfigFileExists && isEmpty(vars)) {
     log.debug(deline`
@@ -341,7 +349,7 @@ export async function cancelUpdate({ action, ctx, provider, log }: PulumiParams)
     log,
     ignoreError: true,
     args: ["cancel", "--yes", "--color", "always"],
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, action }),
     cwd: getActionStackRoot(action),
   })
   log.info(res.stdout)
@@ -362,7 +370,7 @@ export async function refreshResources(params: PulumiParams): Promise<void> {
     log,
     ignoreError: false,
     args: ["refresh", "--yes", "--color", "always", "--config-file", configPath],
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, action }),
     cwd: getActionStackRoot(action),
   })
   log.info(res.stdout)
@@ -380,7 +388,7 @@ export async function reimportStack(params: PulumiParams): Promise<void> {
     log,
     ignoreError: false,
     args: ["stack", "export"],
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, action }),
     cwd,
   })
   await cli.exec({
@@ -388,32 +396,37 @@ export async function reimportStack(params: PulumiParams): Promise<void> {
     ignoreError: false,
     args: ["stack", "import"],
     input: exportRes.stdout,
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, action }),
     cwd,
   })
 }
 
 // Lower-level helpers
 
+export function ensureEnv(pulumiParams: PulumiParams): { [key: string]: string } {
+  const backendUrl = pulumiParams.provider.config.backendURL
+  return { PULUMI_BACKEND_URL: backendUrl, ...defaultPulumiEnv }
+}
+
 export async function selectStack({ action, ctx, provider, log }: PulumiParams) {
   const root = getActionStackRoot(action)
   const spec = action.getSpec()
   const stackName = spec.stack || ctx.environmentName
-
   const orgName = getOrgName(<PulumiProvider>ctx.provider, action)
   const qualifiedStackName = orgName ? `${orgName}/${stackName}` : stackName
   const args = ["stack", "select", qualifiedStackName]
   spec.createStack && args.push("--create")
-  await pulumi(ctx, provider).spawnAndWait({ args, cwd: root, log, env: defaultPulumiEnv })
+  const env = ensureEnv({ action, ctx, provider, log })
+  await pulumi(ctx, provider).spawnAndWait({ args, cwd: root, log, env })
   return stackName
 }
 
-function getOrgName(provider: PulumiProvider, action: Resolved<PulumiDeploy>): string | null {
+function getOrgName(provider: PulumiProvider, action: Resolved<PulumiDeploy>): string | undefined {
   const orgName = action.getSpec("orgName")
-  if (orgName || orgName === null) {
+  if (orgName) {
     return orgName
   } else {
-    return provider.config.orgName || null
+    return provider.config.orgName
   }
 }
 

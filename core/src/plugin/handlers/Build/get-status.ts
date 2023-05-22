@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,7 +12,7 @@ import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { actionStatusSchema } from "../../../actions/base"
 import { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types"
-import { joi } from "../../../config/common"
+import { createSchema, joi } from "../../../config/common"
 
 /**
  * - `fetched`: The build was fetched from a repository instead of building.
@@ -23,6 +23,10 @@ import { joi } from "../../../config/common"
  */
 export type BuildState = "fetching" | "fetched" | "outdated" | "building" | "built" | "failed"
 
+export interface BuildStatusForEventPayload {
+  state: BuildState
+}
+
 interface GetBuildStatusParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {}
 
 export interface BuildResult {
@@ -32,15 +36,17 @@ export interface BuildResult {
   details?: any
 }
 
-export const buildResultSchema = () =>
-  joi.object().keys({
+export const buildResultSchema = createSchema({
+  name: "build-result",
+  keys: () => ({
     buildLog: joi.string().allow("").description("The full log from the build."),
     fetched: joi.boolean().description("Set to true if the build was fetched from a remote registry."),
     fresh: joi
       .boolean()
       .description("Set to true if the build was performed, false if it was already built, or fetched from a registry"),
     details: joi.object().description("Additional information, specific to the provider."),
-  })
+  }),
+})
 
 export interface BuildStatus<T extends BuildAction = BuildAction, D = BuildResult> extends ActionStatus<T, D> {}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -49,7 +49,7 @@ type OutputModule = Omit<GardenModule, "_config" | "buildDependencies">
 
 const outputsSchema = createSchema({
   name: "GetModulesCommand:outputs",
-  keys: { modules: joiIdentifierMap(moduleSchema()) },
+  keys: () => ({ modules: joiIdentifierMap(moduleSchema()) }),
 })
 
 export class GetModulesCommand extends Command {
@@ -72,8 +72,8 @@ export class GetModulesCommand extends Command {
 
   outputsSchema = outputsSchema
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Get Modules", "📖")
+  printHeader({ log }) {
+    printHeader(log, "Get Modules", "📖")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>) {

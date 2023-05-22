@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -78,7 +78,7 @@ export class ToolsCommand extends Command<Args, Opts> {
 
   async prepare({ log }: { log: Log }) {
     // Override the logger output, to output to stderr instead of stdout, to avoid contaminating command output
-    const terminalWriter = log.root.getWriters().terminal
+    const terminalWriter = log.root.getWriters().display
     if (terminalWriter.type === "default" || terminalWriter.type === "basic") {
       terminalWriter.output = process.stderr
     }
@@ -121,7 +121,7 @@ export class ToolsCommand extends Command<Args, Opts> {
       }
     } else {
       // Place configured providers at the top for preference, if applicable
-      const projectRoot = await findProjectConfig(log, garden.projectRoot)
+      const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
 
       if (projectRoot) {
         // This will normally be the case, but we're checking explictly to accommodate testing

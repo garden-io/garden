@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,7 +12,15 @@ import { ModuleConfig, moduleConfigSchema } from "../config/module"
 import type { ModuleVersion } from "../vcs/vcs"
 import { pathToCacheContext } from "../cache"
 import type { Garden } from "../garden"
-import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema, DeepPrimitiveMap } from "../config/common"
+import {
+  joiArray,
+  joiIdentifier,
+  joiIdentifierMap,
+  joi,
+  moduleVersionSchema,
+  DeepPrimitiveMap,
+  createSchema,
+} from "../config/common"
 import { moduleOutputsSchema } from "../plugin/handlers/Module/get-outputs"
 import type { Log } from "../logger/log-entry"
 import type { ModuleTypeDefinition } from "../plugin/module-types"
@@ -64,8 +72,10 @@ export interface GardenModule<
   _config: ModuleConfig<M, S, T, W>
 }
 
-export const moduleSchema = () =>
-  moduleConfigSchema().keys({
+export const moduleSchema = createSchema({
+  name: "resolved-module",
+  extend: moduleConfigSchema,
+  keys: () => ({
     buildPath: joi.string().required().description("The path to the build staging directory for the module."),
     compatibleTypes: joiArray(joiIdentifier())
       .required()
@@ -92,7 +102,8 @@ export const moduleSchema = () =>
     taskDependencyNames: joiArray(joiIdentifier())
       .required()
       .description("The names of all the tasks and services that the tasks in this module depend on."),
-  })
+  }),
+})
 
 export interface ModuleMap<T extends GardenModule = GardenModule> {
   [key: string]: T

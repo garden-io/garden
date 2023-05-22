@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,6 +21,7 @@ import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../src/p
 import pRetry = require("p-retry")
 import { sleep } from "../../../../../src/util/util"
 import { DeployTask } from "../../../../../src/tasks/deploy"
+import { createActionLog } from "../../../../../src/logger/log-entry"
 
 describe("local mode deployments and ssh tunneling behavior", () => {
   let garden: TestGarden
@@ -40,7 +41,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
     LocalModeProcessRegistry.getInstance().shutdown()
     ProxySshKeystore.getInstance(garden.log).shutdown(garden.log)
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 
@@ -74,6 +75,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
       skipRuntimeDependencies: true,
     })
     await garden.processTask(task, log, {})
+    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
     const status = await pRetry(
       async () => {
@@ -81,7 +83,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
         const _status = await k8sGetContainerDeployStatus({
           ctx,
           action: resolvedAction,
-          log,
+          log: actionLog,
         })
         if (_status.state === "not-ready") {
           throw "not-yet ready, wait a bit and try again"

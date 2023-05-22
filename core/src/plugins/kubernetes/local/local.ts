@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,12 +29,3 @@ export const gardenPlugin = () =>
       configureProvider,
     },
   })
-
-// TODO-G2: pull image before deploying on local k8s
-// if (await containerHelpers.imageExistsLocally(module, log, ctx)) {
-//   return { fresh: false }
-// }
-// log.setState(`Pulling image ${image}...`)
-// const identifier = helpers.getPublicImageId(module)
-// await helpers.dockerCli({ cwd: module.buildPath, args: ["pull", identifier], log, ctx })
-// return { fetched: true }

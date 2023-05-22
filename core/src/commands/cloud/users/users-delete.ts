@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,21 +27,22 @@ export class UsersDeleteCommand extends Command<Args> {
   name = "delete"
   help = "Delete users from Garden Cloud."
   description = dedent`
-    Delete users in Garden Cloud. You will nee the IDs of the users you want to delete,
-    which you which you can get from the \`garden cloud users list\` command.
+    Delete users in Garden Cloud. You will need the IDs of the users you want to delete,
+    which you which you can get from the \`garden cloud users list\` command. Use a comma-
+    separated list to delete multiple users.
 
     Examples:
-        garden cloud users delete 1 2 3   # delete users with IDs 1, 2, and 3.
+        garden cloud users delete <ID 1> <ID 2> <ID 3>   # delete three users with the given IDs.
   `
 
   arguments = usersDeleteArgs
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Delete users", "🔒")
+  printHeader({ log }) {
+    printHeader(log, "Delete users", "🔒")
   }
 
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
-    const usersToDelete = (args.ids || []).map((id) => parseInt(id, 10))
+    const usersToDelete = args.ids || []
     if (usersToDelete.length === 0) {
       throw new CommandError(`No user IDs provided.`, {
         args,
@@ -57,7 +58,7 @@ export class UsersDeleteCommand extends Command<Args> {
       throw new ConfigurationError(noApiMsg("delete", "user"), {})
     }
 
-    const cmdLog = log.createLog({ section: "users-command" })
+    const cmdLog = log.createLog({ name: "users-command" })
     cmdLog.info("Deleting users...")
 
     let count = 1

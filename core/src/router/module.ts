@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -139,10 +139,10 @@ export class ModuleRouter extends BaseRouter {
 
     const result = await handler(<any>handlerParams)
 
-    // TODO-G2: Ensure some fields get copied over correctly
-    // (path, configPath, templateName, plugin, disabled, allowPublish, variables+varfiles on Group)
-    // Validate action names
-    // Dedupe dependencies on actions
+    // TODO-0.13.1: Ensure some fields get copied over correctly
+    //   (path, configPath, templateName, plugin, disabled, allowPublish, variables+varfiles on Group)
+    //   Validate action names
+    //   Dedupe dependencies on actions
 
     return result
   }
@@ -197,7 +197,7 @@ export class ModuleRouter extends BaseRouter {
       { handlerType, pluginName, moduleType, wrapped: handler }
     )
 
-    // TODO-G2B: fix the any cast
+    // TODO: fix the any cast
     wrapped.base = <any>this.wrapBase(handler.base)
 
     if (!this.moduleHandlers[handlerType]) {

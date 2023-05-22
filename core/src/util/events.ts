@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -31,31 +31,31 @@ interface ListenerFn<V = any> {
 
 // Copied and adapted from the eventemitter2 type
 // @ts-expect-error
-declare class _TypedEventEmitter<T extends object> {
+declare class _TypedEventEmitter<T> {
   constructor(options?: ConstructorOptions)
-  emit<N extends keyof T>(event: N | eventNS, payload: T[N]): boolean
-  emitAsync<N extends keyof T>(event: N | eventNS, payload: T[N]): Promise<any[]>
-  addListener<N extends keyof T>(event: N | eventNS, listener: ListenerFn<T[N]>): this | Listener
-  on<N extends keyof T>(event: N | eventNS, listener: ListenerFn<T[N]>, options?: boolean | OnOptions): this | Listener
+  emit<N extends keyof T>(event: N, payload: T[N]): boolean
+  emitAsync<N extends keyof T>(event: N, payload: T[N]): Promise<any[]>
+  addListener<N extends keyof T>(event: N, listener: ListenerFn<T[N]>): this | Listener
+  on<N extends keyof T>(event: N, listener: ListenerFn<T[N]>, options?: boolean | OnOptions): this | Listener
   prependListener<N extends keyof T>(
-    event: N | eventNS,
+    event: N,
     listener: ListenerFn<T[N]>,
     options?: boolean | OnOptions
   ): this | Listener
-  once<N extends keyof T>(event: N | eventNS, listener: ListenerFn<T[N]>, options?: true | OnOptions): this | Listener
+  once<N extends keyof T>(event: N, listener: ListenerFn<T[N]>, options?: true | OnOptions): this | Listener
   prependOnceListener<N extends keyof T>(
-    event: N | eventNS,
+    event: N,
     listener: ListenerFn<T[N]>,
     options?: boolean | OnOptions
   ): this | Listener
   many<N extends keyof T>(
-    event: N | eventNS,
+    event: N,
     timesToListen: number,
     listener: ListenerFn<T[N]>,
     options?: boolean | OnOptions
   ): this | Listener
   prependMany<N extends keyof T>(
-    event: N | eventNS,
+    event: N,
     timesToListen: number,
     listener: ListenerFn<T[N]>,
     options?: boolean | OnOptions
@@ -63,8 +63,8 @@ declare class _TypedEventEmitter<T extends object> {
   onAny(listener: EventAndListener): this
   prependAny(listener: EventAndListener): this
   offAny(listener: ListenerFn): this
-  removeListener<N extends keyof T>(event: N | eventNS, listener: ListenerFn<T[N]>): this
-  off<N extends keyof T>(event: N | eventNS, listener: ListenerFn<T[N]>): this
+  removeListener<N extends keyof T>(event: N, listener: ListenerFn<T[N]>): this
+  off<N extends keyof T>(event: N, listener: ListenerFn<T[N]>): this
   removeAllListeners(event?: keyof T | eventNS): this
   setMaxListeners(n: number): void
   getMaxListeners(): number
@@ -91,7 +91,7 @@ declare class _TypedEventEmitter<T extends object> {
 // @ts-ignore
 class _TypedEventEmitter {}
 
-export class TypedEventEmitter<T extends object> extends _TypedEventEmitter<T> {
+export class TypedEventEmitter<T> extends _TypedEventEmitter<T> {
   constructor(options?: ConstructorOptions) {
     super()
     const cls = new EventEmitter2(options)

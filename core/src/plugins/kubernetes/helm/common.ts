@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -156,7 +156,7 @@ type PrepareManifestsParams = GetChartResourcesParams & PrepareTemplatesOutput
 
 export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
   const { ctx, action, log, namespace, releaseName, valuesPath, reference } = params
-  const timeout = action.getSpec().timeout
+  const timeout = action.getConfig().timeout
 
   const res = await helm({
     ctx,
@@ -320,7 +320,7 @@ export async function renderHelmTemplateString({
   valuesPath: string
   reference: string[]
 }): Promise<string> {
-  // TODO-G2: see if we can lift this limitation
+  // TODO: see if we can lift this limitation
   if (!chartPath) {
     throw new ConfigurationError(
       `Referencing Helm template strings is currently only supported for local Helm charts`,
@@ -379,7 +379,7 @@ export async function renderHelmTemplateString({
  * We therefore need to use the `loadAll` function. See the following link for a conversation on using
  * `loadAll` in this context: https://github.com/kubeapps/kubeapps/issues/636.
  */
-export function loadTemplate(template: string) {
+export function loadTemplate(template: string): KubernetesResource[] {
   return loadAll(template || "", undefined, { json: true })
     .filter((obj) => obj !== null)
     .map((obj) => {

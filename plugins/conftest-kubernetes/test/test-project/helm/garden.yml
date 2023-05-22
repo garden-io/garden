@@ -4,7 +4,11 @@ type: helm
 name: helm
 chart: postgresql
 repo: https://charts.bitnami.com/bitnami
-version: "11.6.12"
+version: "12.4.2"
 dependencies: [kubernetes]
 values:
   foo: ${runtime.services.kubernetes.outputs}
+  # Avoid some late startup flakiness
+  primary:
+    readinessProbe:
+      successThreshold: 3 # Raised from a default of 1

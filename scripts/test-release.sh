@@ -84,27 +84,18 @@ test_release() {
   echo "→ Run a command in the prompt (ls, for example) and see if the TTY behaves as expected."
   echo ""
   ${garden_release} exec backend /bin/sh
-  echo ""
-  echo "→ Running 'garden create module' in demo project"
-  echo "→ Respond to the prompts to see if the create command works"
-  echo ""
-  ${garden_release} create module
 
   cd ..
   cd vote
   echo ""
-  echo "→ Running 'garden dev' in vote project - exits after 1 minute"
+  echo "→ Running 'garden deploy --sync' in vote project (the test script will continue after 2 minutes)."
   echo "→ Try e.g. to update this file: ${garden_root}/examples/vote/vote/src/views/Home.vue"
   echo ""
-  timeout 1m ${garden_release} dev
-
+  timeout 1m ${garden_release} deploy --sync
   echo ""
-  echo "→ Running 'garden serve' in disabled-configs project - exits after 1 minute."
-  echo "→ The disabled module and test should be flagged appropriately on the Overview and Stack Graph pages."
-  echo ""
-  cd ..
-  cd disabled-configs
-  timeout 1m ${garden_release} serve
+  echo "→ Stopping sync for vote app"
+  ${garden_release} sync stop vote
+  revert_git_changes
 
   # Remove the alias we set above
   if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -115,7 +106,7 @@ test_release() {
   echo "Done!"
 }
 
-cleanup() {
+revert_git_changes() {
   echo ""
   echo "Reverting git changes"
   git checkout .
@@ -124,4 +115,5 @@ cleanup() {
 
 download_release
 test_release
-cleanup
+# to ensure that any possible intermediate changes would be reverted too
+revert_git_changes

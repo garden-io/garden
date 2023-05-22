@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,6 +17,8 @@ import { getContainerTestGarden } from "./container"
 import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { ContainerRunAction } from "../../../../../../src/plugins/container/config"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
+import { waitForOutputFlush } from "../../../../../../src/process"
 
 describe("runContainerTask", () => {
   let garden: TestGarden
@@ -33,7 +35,7 @@ describe("runContainerTask", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   it("should run a basic Run and emit log events", async () => {
@@ -57,6 +59,8 @@ describe("runContainerTask", () => {
     const result = results.results.getResult(testTask)
     const logEvent = garden.events.eventLog.find((l) => l.name === "log")
 
+    await waitForOutputFlush()
+
     expect(result).to.exist
     expect(result!.result).to.exist
     expect(result!.result!.detail?.log.trim()).to.equal("ok\nbear")
@@ -67,9 +71,16 @@ describe("runContainerTask", () => {
 
     // Verify that the result was saved
     const actions = await garden.getActionRouter()
-    const storedResult = await actions.run.getResult({
+    const resolvedAction = await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph })
+    const actionLog = createActionLog({
       log: garden.log,
-      action: await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph }),
+      actionName: resolvedAction.name,
+      actionKind: resolvedAction.kind,
+    })
+
+    const storedResult = await actions.run.getResult({
+      log: actionLog,
+      action: resolvedAction,
       graph,
     })
 
@@ -78,7 +89,7 @@ describe("runContainerTask", () => {
 
   it("should not store Run results if cacheResult=false", async () => {
     const action = graph.getRun("echo-task")
-    action.getConfig().spec.cacheResult = false
+    action["_config"].spec.cacheResult = false
 
     const testTask = new RunTask({
       garden,
@@ -96,19 +107,25 @@ describe("runContainerTask", () => {
 
     // Verify that the result was not saved
     const router = await garden.getActionRouter()
-    const { result } = await router.run.getResult({
+    const resolvedAction = await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph })
+    const actionLog = createActionLog({
       log: garden.log,
-      action: await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph }),
+      actionName: resolvedAction.name,
+      actionKind: resolvedAction.kind,
+    })
+
+    const { result } = await router.run.getResult({
+      log: actionLog,
+      action: resolvedAction,
       graph,
     })
 
     expect(result.state).to.eql("not-ready")
   })
 
-  // TODO-G2: solver gets stuck in an infinite loop
-  it.skip("should fail if an error occurs, but store the result", async () => {
+  it("should fail if an error occurs, but store the result", async () => {
     const action = graph.getRun("echo-task")
-    action.getConfig().spec.command = ["bork"] // this will fail
+    action["_config"].spec.command = ["bork"] // this will fail
 
     const testTask = new RunTask({
       garden,
@@ -129,9 +146,16 @@ describe("runContainerTask", () => {
 
     // We also verify that, despite the task failing, its result was still saved.
     const actions = await garden.getActionRouter()
-    const { result } = await actions.run.getResult({
+    const resolvedAction = await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph })
+    const actionLog = createActionLog({
       log: garden.log,
-      action: await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph }),
+      actionName: resolvedAction.name,
+      actionKind: resolvedAction.kind,
+    })
+
+    const { result } = await actions.run.getResult({
+      log: actionLog,
+      action: resolvedAction,
       graph,
     })
 

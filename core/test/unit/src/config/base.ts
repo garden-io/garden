@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,10 +18,12 @@ import {
 } from "../../../../src/config/base"
 import { resolve, join } from "path"
 import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { safeDumpYaml } from "../../../../src/util/serialization"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
+import { ConfigurationError } from "../../../../src/exceptions"
+import { resetNonRepeatableWarningHistory } from "../../../../src/warnings"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -30,12 +32,13 @@ const projectPathMultipleModules = getDataDir("test-projects", "multiple-module-
 const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
 
 const projectPathDuplicateProjects = getDataDir("test-project-duplicate-project-config")
-const log = getLogger().createLog()
+const logger = getRootLogger()
+const log = logger.createLog()
 
-// TODO: remove this describe block in 0.14
+// TODO-0.14: remove this describe block in 0.14
 describe("prepareProjectResource", () => {
   const projectResourceTemplate = {
-    apiVersion: DEFAULT_API_VERSION,
+    apiVersion: GardenApiVersion.v1,
     kind: "Project",
     name: "test",
     path: "/tmp/", // the path does not matter in this test suite
@@ -44,6 +47,12 @@ describe("prepareProjectResource", () => {
     providers: [{ name: "foo" }],
     variables: {},
   }
+
+  beforeEach(() => {
+    // we reset the non repeatable warning before each test to make sure that a
+    // previously displayed warning is logged in all tests
+    resetNonRepeatableWarningHistory()
+  })
 
   it("no changes if new `dotIgnoreFile` field is provided explicitly", () => {
     const projectResource = {
@@ -92,7 +101,7 @@ describe("prepareProjectResource", () => {
     expect(migratedProjectResource).to.eql(expectedProjectResource)
   })
 
-  it("throw an error is multi-valued `dotIgnoreFiles` array is defined in the project config", () => {
+  it("throw an error if multi-valued `dotIgnoreFiles` array is defined in the project config", () => {
     const projectResource = {
       ...projectResourceTemplate,
       dotIgnoreFiles: [".somedotignore", ".gitignore"],
@@ -101,6 +110,50 @@ describe("prepareProjectResource", () => {
     const processConfigAction = () => prepareProjectResource(log, projectResource)
     expect(processConfigAction).to.throw(
       "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.somedotignore, .gitignore]"
+    )
+  })
+
+  it("should throw an error if the apiVersion is not known", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: "unknown",
+    }
+
+    const processConfigAction = () => prepareProjectResource(log, projectResource)
+    expect(processConfigAction).to.throw(ConfigurationError, /\`apiVersion: unknown\` is not supported/)
+  })
+
+  it("should fall back to the previous apiVersion when not defined", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: undefined,
+    }
+
+    const returnedProjectResource = prepareProjectResource(log, projectResource)
+
+    // The apiVersion is set to the previous version for backwards compatibility.
+    const expectedProjectResource = {
+      ...projectResource,
+      apiVersion: GardenApiVersion.v0,
+    }
+    expect(returnedProjectResource).to.eql(expectedProjectResource)
+
+    const logEntry = log.getLatestEntry()
+    expect(logEntry.msg).to.include(`"apiVersion" is missing in the Project config`)
+  })
+
+  it("should log a warning if the apiVersion is garden.io/v0", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: GardenApiVersion.v0,
+    }
+
+    const returnedProjectResource = prepareProjectResource(log, projectResource)
+    expect(returnedProjectResource).to.eql(projectResource)
+
+    const logEntry = log.getLatestEntry()
+    expect(logEntry.msg).to.include(
+      `Project is configured with \`apiVersion: ${GardenApiVersion.v0}\`, running with backwards compatibility.`
     )
   })
 })
@@ -172,7 +225,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         path: projectPathA,
         configPath,
@@ -203,7 +256,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Module",
         name: "module-a",
         type: "test",
@@ -215,7 +268,7 @@ describe("loadConfigResources", () => {
         exclude: undefined,
         repositoryUrl: undefined,
         allowPublish: undefined,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         path: modulePathA,
         variables: { msg: "OK" },
         varfile: undefined,
@@ -263,7 +316,6 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
         kind: configTemplateKind,
         name: "combo",
 
@@ -328,7 +380,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         configPath,
         path: projectPathMultipleModules,
@@ -348,7 +400,7 @@ describe("loadConfigResources", () => {
         variables: { some: "variable" },
       },
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Module",
         name: "module-from-project-config",
         type: "test",
@@ -360,7 +412,7 @@ describe("loadConfigResources", () => {
         exclude: undefined,
         repositoryUrl: undefined,
         allowPublish: undefined,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         path: projectPathMultipleModules,
         serviceConfigs: [],
         spec: {
@@ -383,7 +435,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Module",
         name: "module-a1",
         type: "test",
@@ -397,6 +449,7 @@ describe("loadConfigResources", () => {
         repositoryUrl: undefined,
         build: {
           dependencies: [{ name: "module-from-project-config", copy: [] }],
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         },
         path: modulePathAMultiple,
         serviceConfigs: [],
@@ -415,7 +468,7 @@ describe("loadConfigResources", () => {
         varfile: undefined,
       },
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Module",
         name: "module-a2",
         type: "test",
@@ -427,7 +480,7 @@ describe("loadConfigResources", () => {
         include: ["*"],
         exclude: undefined,
         repositoryUrl: undefined,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         path: modulePathAMultiple,
         serviceConfigs: [],
         spec: {
@@ -454,7 +507,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         path: projectPath,
         configPath,
@@ -478,7 +531,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "foo",
         environments: [{ name: "local" }],
@@ -506,29 +559,29 @@ describe("findProjectConfig", async () => {
   const customConfigPath = getDataDir("test-projects", "custom-config-names")
 
   it("should find the project config when path is projectRoot", async () => {
-    const project = await findProjectConfig(log, projectPathA)
+    const project = await findProjectConfig({ log, path: projectPathA })
     expect(project && project.path).to.eq(projectPathA)
   })
 
   it("should find the project config when path is a subdir of projectRoot", async () => {
     // modulePathA is a subdir of projectPathA
-    const project = await findProjectConfig(log, modulePathA)
+    const project = await findProjectConfig({ log, path: modulePathA })
     expect(project && project.path).to.eq(projectPathA)
   })
 
   it("should find the project config when path is projectRoot and config is in a custom-named file", async () => {
-    const project = await findProjectConfig(log, customConfigPath)
+    const project = await findProjectConfig({ log, path: customConfigPath })
     expect(project && project.path).to.eq(customConfigPath)
   })
 
   it("should find the project root from a subdir of projectRoot and config is in a custom-named file", async () => {
     const modulePath = join(customConfigPath, "module-a")
-    const project = await findProjectConfig(log, modulePath)
+    const project = await findProjectConfig({ log, path: modulePath })
     expect(project && project.path).to.eq(customConfigPath)
   })
 
   it("should throw an error if multiple projects are found", async () => {
-    await expectError(async () => await findProjectConfig(log, projectPathDuplicateProjects), {
+    await expectError(async () => await findProjectConfig({ log, path: projectPathDuplicateProjects }), {
       contains: "Multiple project declarations found",
     })
   })

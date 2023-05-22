@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,6 +17,7 @@ import { ParameterError } from "../../exceptions"
 import { ConfigGraph } from "../../graph/config-graph"
 import { GardenModule, moduleTestNameToActionName } from "../../types/module"
 import { findByName, getNames } from "../../util/util"
+import { createActionLog } from "../../logger/log-entry"
 
 const getTestResultArgs = {
   name: new StringParameter({
@@ -58,11 +59,11 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
       })
       .description("The result from the test. May also return null if no test result is found.")
 
-  printHeader({ headerLog, args }) {
+  printHeader({ log, args }) {
     const testName = args.name
     const moduleName = args.module
 
-    printHeader(headerLog, `Test result for test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`, "✔️")
+    printHeader(log, `Test result for test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`, "✔️")
   }
 
   async action({ garden, log, args }: CommandParams<Args>) {
@@ -72,9 +73,10 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
     const router = await garden.getActionRouter()
 
     const resolved = await garden.resolveAction({ action, graph, log })
+    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
     const { result: res } = await router.test.getResult({
-      log,
+      log: actionLog,
       graph,
       action: resolved,
     })

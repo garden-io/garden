@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -74,8 +74,8 @@ describe("pickCommand", () => {
   })
 
   it("picks a subcommand and returns the rest of arguments", () => {
-    const { command, rest } = pickCommand(commands, ["run-workflow", "foo", "--force"])
-    expect(command?.getPath()).to.eql(["run-workflow"])
+    const { command, rest } = pickCommand(commands, ["workflow", "foo", "--force"])
+    expect(command?.getPath()).to.eql(["workflow"])
     expect(rest).to.eql(["foo", "--force"])
   })
 
@@ -190,8 +190,6 @@ describe("processCliArgs", () => {
     defaultActionParams = {
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
     }
   })
 
@@ -225,9 +223,12 @@ describe("processCliArgs", () => {
 
   it("correctly handles option aliases", () => {
     const cmd = new DeployCommand()
-    const { opts } = parseAndProcess(["--sync", "--force-build=false"], cmd)
-    expect(opts["sync"]).to.eql([])
-    expect(opts["force-build"]).to.be.false
+    // The --sync option has two aliases: dev and dev-mode, so we test both of them.
+    const { opts: firstOpts } = parseAndProcess(["--dev", "some-deploy", "--force-build=false"], cmd)
+    const { opts: secondOpts } = parseAndProcess(["--dev-mode", "some-deploy"], cmd)
+    expect(firstOpts["sync"]).to.eql(["some-deploy"])
+    expect(firstOpts["force-build"]).to.be.false
+    expect(secondOpts["sync"]).to.eql(["some-deploy"])
   })
 
   it("correctly handles multiple instances of a string array parameter", () => {
@@ -372,7 +373,7 @@ describe("processCliArgs", () => {
 
   it("parses args and opts for a TestCommand", async () => {
     const cmd = new TestCommand()
-    const { args, opts } = parseAndProcess(["module-a,module-b", "-n unit"], cmd)
+    const { args, opts } = parseAndProcess(["module-b-unit", "--module", "module-b"], cmd)
     await cmd.action({
       ...defaultActionParams,
       args,

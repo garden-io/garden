@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,19 +13,7 @@ import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import Bluebird from "bluebird"
 import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
-import {
-  zip,
-  isArray,
-  isPlainObject,
-  pickBy,
-  mapValues,
-  flatten,
-  cloneDeep,
-  omit,
-  isEqual,
-  keyBy,
-  differenceWith,
-} from "lodash"
+import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { isSubset } from "../../../util/is-subset"
 import { Log } from "../../../logger/log-entry"
@@ -44,7 +32,6 @@ import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
 import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
 import { SyncableResource } from "../types"
-import { LogLevel } from "../../../logger/logger"
 import { ActionMode } from "../../../actions/types"
 import { deepMap } from "../../../util/objects"
 import { DeployState, combineStates } from "../../../types/service"
@@ -195,56 +182,61 @@ export async function waitForResources({
   timeoutSec,
 }: WaitParams) {
   let loops = 0
-  let lastMessage: string | undefined
   const startTime = new Date().getTime()
 
   const logEventContext = {
     origin: "kubernetes-plugin",
-    log: log.createLog({ fixLevel: LogLevel.verbose }),
+    level: "verbose" as const,
   }
 
   const emitLog = (msg: string) =>
-    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: Buffer.from(msg, "utf-8"), ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg, ...logEventContext })
 
   const waitingMsg = `Waiting for resources to be ready...`
   const statusLine = log
     .createLog({
-      section: actionName,
+      // TODO: Avoid setting fallback, the action name should be known
+      name: actionName || "<kubernetes>",
     })
     .info(waitingMsg)
   emitLog(waitingMsg)
 
   if (resources.length === 0) {
-    const noResourcesMsg = `No resources to wait`
+    const noResourcesMsg = `No resources to wait for`
     emitLog(noResourcesMsg)
-    statusLine.info({ symbol: "info", section: actionName, msg: noResourcesMsg })
+    statusLine.info(noResourcesMsg)
     return []
   }
 
   const api = await KubeApi.factory(log, ctx, provider)
-  let statuses: ResourceStatus[]
-  let printables: ResourceStatus[] = []
-  let readyAndPrinted: ResourceStatus[] = []
+
+  const results: { [key: string]: ResourceStatus } = {}
+  const pendingResources = keyBy(resources, getResourceKey)
 
   while (true) {
     await sleep(2000 + 500 * loops)
     loops += 1
 
-    // Make sure to print "ready" state only once
-    statuses = await checkResourceStatuses(api, namespace, resources, log)
-    printables = differenceWith(statuses, readyAndPrinted, isEqual)
+    const statuses = await checkResourceStatuses(api, namespace, Object.values(pendingResources), log)
 
-    for (const status of printables) {
+    for (const status of statuses) {
+      const key = getResourceKey(status.resource)
+
+      const lastMessage = results[key]?.lastMessage
+
+      results[key] = status
+
+      // Avoid unnecessary polling
+      if (status.state === "ready") {
+        delete pendingResources[key]
+      }
+
       const resource = status.resource
       const statusMessage = `${resource.kind} ${resource.metadata.name} is "${status.state}"`
 
       const statusLogMsg = `Status of ${statusMessage}`
       log.debug(statusLogMsg)
       emitLog(statusLogMsg)
-
-      if (status.state === "ready") {
-        readyAndPrinted.push(status)
-      }
 
       if (status.state === "unhealthy") {
         let msg = `Error deploying ${actionName || "resources"}: ${status.lastMessage || statusMessage}`
@@ -260,8 +252,7 @@ export async function waitForResources({
         })
       }
 
-      if (status.lastMessage && (!lastMessage || status.lastMessage !== lastMessage)) {
-        lastMessage = status.lastMessage
+      if (status.lastMessage && status.lastMessage !== lastMessage) {
         const statusUpdateLogMsg = `${getResourceKey(status.resource)}: ${status.lastMessage}`
         if (status.warning) {
           statusLine.warn(statusUpdateLogMsg)
@@ -292,9 +283,9 @@ export async function waitForResources({
 
   const readyMsg = `Resources ready`
   emitLog(readyMsg)
-  statusLine.info({ symbol: "info", section: actionName, msg: readyMsg })
+  statusLine.info(readyMsg)
 
-  return statuses
+  return Object.values(results)
 }
 
 interface ComparisonResult {
@@ -389,8 +380,12 @@ export async function compareDeployedResources(
     }
 
     // Discard any last applied config from the input manifest
-    if (manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]) {
-      delete manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]
+    const hashKey = gardenAnnotationKey("manifest-hash")
+    if (manifest.metadata?.annotations?.[hashKey]) {
+      delete manifest.metadata?.annotations?.[hashKey]
+    }
+    if (manifest.spec?.template?.metadata?.annotations?.[hashKey]) {
+      delete manifest.spec?.template?.metadata?.annotations?.[hashKey]
     }
 
     if (isWorkloadResource(manifest)) {
@@ -528,7 +523,8 @@ export async function getDeployedResource<ResourceKind extends KubernetesObject>
   log: Log
 ): Promise<KubernetesResource<ResourceKind> | null> {
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = resource.metadata?.namespace || (await getAppNamespace(ctx, log, provider))
+  const k8sCtx = ctx as KubernetesPluginContext
+  const namespace = resource.metadata?.namespace || (await getAppNamespace(k8sCtx, log, provider))
 
   try {
     const res = await api.readBySpec({ namespace, manifest: resource, log })

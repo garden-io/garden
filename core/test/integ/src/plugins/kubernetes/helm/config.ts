@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,12 +13,12 @@ import { cloneDeep, omit } from "lodash"
 import { expectError, TestGarden } from "../../../../../helpers"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { dedent } from "../../../../../../src/util/string"
-import { defaultBuildTimeout, ModuleConfig } from "../../../../../../src/config/module"
+import { ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
 import { getHelmTestGarden } from "./common"
 import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/module-config"
 import stripAnsi = require("strip-ansi")
-import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, DEFAULT_DEPLOY_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants"
 
 describe("configureHelmModule", () => {
   let garden: TestGarden
@@ -52,7 +52,7 @@ describe("configureHelmModule", () => {
       atomicInstall: true,
       build: {
         dependencies: [],
-        timeout: defaultBuildTimeout,
+        timeout: DEFAULT_BUILD_TIMEOUT_SEC,
       },
       chartPath: ".",
       sync: {
@@ -65,7 +65,7 @@ describe("configureHelmModule", () => {
         ],
       },
       dependencies: [],
-      releaseName: "api-release",
+      releaseName: "api-module-release",
       serviceResource: {
         kind: "Deployment",
         containerModule: "api-image",
@@ -80,20 +80,20 @@ describe("configureHelmModule", () => {
         },
         ingress: {
           enabled: true,
-          paths: ["/"],
-          hosts: ["api.local.app.garden"],
+          paths: ["/api-module/"],
+          hosts: ["api.local.demo.garden"],
         },
       },
       valueFiles: [],
     }
 
     expect(module._config).to.eql({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Module",
       allowPublish: true,
       build: {
         dependencies: [],
-        timeout: defaultBuildTimeout,
+        timeout: DEFAULT_BUILD_TIMEOUT_SEC,
       },
       configPath: resolve(ctx.projectRoot, "api", "garden.yml"),
       description: "The API backend for the voting UI",
@@ -112,6 +112,7 @@ describe("configureHelmModule", () => {
           dependencies: [],
           disabled: false,
           sourceModuleName: "api-image",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           spec,
         },
       ],

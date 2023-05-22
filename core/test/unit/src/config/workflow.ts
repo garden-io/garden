@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,6 @@
  */
 
 import { expect } from "chai"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { expectError, getDataDir, makeTestGarden, makeTestGardenA, TestGarden } from "../../../helpers"
 import {
   WorkflowConfig,
@@ -21,6 +20,7 @@ import {
 } from "../../../../src/config/workflow"
 import { EnvironmentConfig, defaultNamespace } from "../../../../src/config/project"
 import { join } from "path"
+import { GardenApiVersion } from "../../../../src/constants"
 
 describe("resolveWorkflowConfig", () => {
   let garden: TestGarden
@@ -46,7 +46,7 @@ describe("resolveWorkflowConfig", () => {
   it("should pass through a canonical workflow config", async () => {
     const config: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
 
@@ -75,7 +75,7 @@ describe("resolveWorkflowConfig", () => {
   it("should set workflow.resources.limits to workflow.limits if workflow.limits is specified", async () => {
     const config: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
 
@@ -109,7 +109,7 @@ describe("resolveWorkflowConfig", () => {
   it("should resolve template strings", async () => {
     const config: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
 
@@ -135,7 +135,7 @@ describe("resolveWorkflowConfig", () => {
   it("should not resolve template strings in step commands and scripts", async () => {
     const config: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
 
@@ -161,7 +161,7 @@ describe("resolveWorkflowConfig", () => {
   it("should not resolve template strings in trigger specs or in the workflow name", async () => {
     const configWithTemplateStringInName: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-${secrets.foo}", // <--- should not be resolved, resulting in an error
 
@@ -178,7 +178,7 @@ describe("resolveWorkflowConfig", () => {
 
     const configWithTemplateStringInTrigger: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
 
@@ -201,7 +201,7 @@ describe("resolveWorkflowConfig", () => {
 
   it("should populate default values in the schema", async () => {
     const config: WorkflowConfig = {
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
 
@@ -228,7 +228,7 @@ describe("resolveWorkflowConfig", () => {
   it("should throw if a trigger uses an environment that isn't defined in the project", async () => {
     const config: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
 
@@ -280,7 +280,7 @@ describe("resolveWorkflowConfig", () => {
     }
     const config: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
 

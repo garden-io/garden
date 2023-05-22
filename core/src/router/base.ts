@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -240,7 +240,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       throw new InternalError(`Attempted to call ${this.kind} handler for ${config.kind} action`, {})
     }
 
-    // TODO-G2B: work out why this cast is needed
+    // TODO: work out why this cast is needed
     const defaultHandler: any = async (params) => {
       return { config: params.config, supportedModes: {} }
     }
@@ -317,7 +317,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     const result: GetActionTypeResults<ActionTypeClasses<K>[T]> = await handler(handlerParams)
 
     // Validate result
-    // TODO-G2
+    // TODO-0.13.0
 
     return { ctx: handlerParams.ctx, result }
   }

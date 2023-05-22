@@ -1,10 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+import stripAnsi from "strip-ansi"
 
 import {
   ContainerDeployAction,
@@ -18,11 +20,12 @@ import {
   syncDefaultGroupSchema,
   syncDefaultOwnerSchema,
   syncExcludeSchema,
+  SyncMode,
   syncModeSchema,
   syncTargetPathSchema,
 } from "../container/moduleConfig"
 import { dedent, gardenAnnotationKey } from "../../util/string"
-import { cloneDeep, omit, set } from "lodash"
+import { cloneDeep, keyBy, omit, set } from "lodash"
 import {
   getResourceContainer,
   getResourceKey,
@@ -34,11 +37,10 @@ import {
   KubernetesResource,
   SupportedRuntimeAction,
   SyncableKind,
-  syncableKinds,
   SyncableResource,
   SyncableRuntimeAction,
 } from "./types"
-import { Log } from "../../logger/log-entry"
+import { ActionLog, Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import { joi, joiIdentifier } from "../../config/common"
 import {
@@ -46,12 +48,11 @@ import {
   KubernetesProvider,
   KubernetesTargetResourceSpec,
   ServiceResourceSpec,
-  targetContainerNameSchema,
   targetResourceSpecSchema,
 } from "./config"
 import { isConfiguredForSyncMode } from "./status/status"
 import { PluginContext } from "../../plugin-context"
-import { mutagenAgentPath, Mutagen, SyncConfig } from "../../mutagen"
+import { mutagenAgentPath, Mutagen, SyncConfig, SyncSession, haltedStatuses, mutagenStatusDescriptions } from "../../mutagen"
 import { k8sSyncUtilImageName } from "./constants"
 import { templateStringLiteral } from "../../docs/common"
 import { resolve } from "path"
@@ -63,6 +64,8 @@ import { KubernetesModule, KubernetesService } from "./kubernetes-type/module-co
 import { HelmModule, HelmService } from "./helm/module-config"
 import { convertServiceResource } from "./kubernetes-type/common"
 import { prepareConnectionOpts } from "./kubectl"
+import { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/handlers/Deploy/get-sync-status"
+import { ConfigurationError } from "../../exceptions"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -128,7 +131,7 @@ export interface KubernetesDeployDevModeSyncSpec extends DevModeSyncOptions {
   containerName?: string
 }
 
-const exampleActionRef = templateStringLiteral("action.build.my-container-image.sourcePath")
+const exampleActionRef = templateStringLiteral("actions.build.my-container-image.sourcePath")
 
 export const kubernetesDeploySyncPathSchema = () =>
   syncDefaultsSchema()
@@ -162,11 +165,7 @@ export const kubernetesDeploySyncPathSchema = () =>
     )
 
 export interface KubernetesDeployOverrideSpec {
-  target: {
-    kind: SyncableKind
-    name: string
-    containerName?: string
-  }
+  target?: KubernetesTargetResourceSpec
   command?: string[]
   args?: string[]
 }
@@ -179,15 +178,9 @@ export interface KubernetesDeploySyncSpec {
 
 const syncModeOverrideSpec = () =>
   joi.object().keys({
-    target: joi.object().keys({
-      kind: joi
-        .string()
-        .valid(...syncableKinds)
-        .required()
-        .description("The kind of the Kubernetes resource to modify."),
-      name: joi.string().required().description("The name of the resource."),
-      containerName: targetContainerNameSchema(),
-    }),
+    target: targetResourceSpecSchema().description(
+      "The Kubernetes resources to override. If specified, this is used instead of `spec.defaultTarget`."
+    ),
     command: joi.array().items(joi.string()).description("Override the command/entrypoint in the matched container."),
     args: joi.array().items(joi.string()).description("Override the args in the matched container."),
   })
@@ -203,7 +196,10 @@ export const kubernetesDeploySyncSchema = () =>
         .array()
         .items(kubernetesDeploySyncPathSchema())
         .description("A list of syncs to start once the Deploy is successfully started."),
-      overrides: joi.array().items(syncModeOverrideSpec()),
+      overrides: joi
+        .array()
+        .items(syncModeOverrideSpec())
+        .description("Overrides for the container command and/or arguments for when in sync mode."),
     })
     .rename("syncs", "paths")
     .description(
@@ -239,6 +235,7 @@ export function convertKubernetesModuleDevModeSpec(
             kind: target.kind,
             name: target.name,
             containerName: target.containerName,
+            podSelector: target.podSelector,
           },
           command: syncSpec.command,
           args: syncSpec.args,
@@ -331,7 +328,16 @@ export async function configureSyncMode({
   }
 
   for (const override of spec.overrides || []) {
-    const { target } = override
+    const target = override.target || defaultTarget
+    if (!target) {
+      throw new ConfigurationError(
+        dedent`Sync override configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
+        Either specify a target via the \`spec.sync.overrides[].target\` or \`spec.defaultTarget\``,
+        {
+          override,
+        }
+      )
+    }
     if (target.kind && target.name) {
       const key = targetKey(target)
       overridesByTarget[key] = override
@@ -343,12 +349,10 @@ export async function configureSyncMode({
     const target = sync.target || defaultTarget
 
     if (!target) {
-      log.warn(
-        chalk.yellow(
-          `Dev mode sync on ${action.longDescription()} doesn't specify a target, and none is set as a default.`
-        )
+      throw new ConfigurationError(
+        `Sync configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.`,
+        { sync }
       )
-      continue
     }
 
     if (target.podSelector) {
@@ -376,7 +380,11 @@ export async function configureSyncMode({
   })
 
   for (const override of spec.overrides || []) {
-    const { target } = override
+    const target = override.target || defaultTarget
+    if (!target) {
+      continue
+    }
+
     const key = targetKey(target)
     const resolved = resolvedTargets[key]
 
@@ -467,16 +475,16 @@ export async function configureSyncMode({
 
 interface SyncParamsBase {
   ctx: KubernetesPluginContext
-  log: Log
+  log: ActionLog
 }
 
 interface StopSyncsParams extends SyncParamsBase {
-  action: SupportedRuntimeAction
+  action: SyncableRuntimeAction
 }
 
 interface StartSyncsParams extends StopSyncsParams {
   defaultTarget: KubernetesTargetResourceSpec | undefined
-  action: Resolved<SupportedRuntimeAction>
+  action: Resolved<SyncableRuntimeAction>
   basePath: string
   actionDefaults: SyncDefaults
   manifests: KubernetesResource[]
@@ -484,12 +492,15 @@ interface StartSyncsParams extends StopSyncsParams {
   syncs: KubernetesDeployDevModeSyncSpec[]
 }
 
+interface GetSyncStatusParams extends StartSyncsParams {
+  monitor: boolean
+}
+
 interface PrepareSyncParams extends SyncParamsBase {
   action: Resolved<SupportedRuntimeAction>
+  target: SyncableResource
   resourceSpec: KubernetesTargetResourceSpec
   spec: KubernetesDeployDevModeSyncSpec
-  index: number
-  manifests: KubernetesResource[]
 }
 
 export function getLocalSyncPath(sourcePath: string, basePath: string) {
@@ -498,7 +509,7 @@ export function getLocalSyncPath(sourcePath: string, basePath: string) {
 }
 
 export async function startSyncs(params: StartSyncsParams) {
-  const { ctx, log, basePath, action, defaultNamespace, actionDefaults, defaultTarget, syncs } = params
+  const { ctx, log, basePath, action, manifests, defaultNamespace, actionDefaults, defaultTarget, syncs } = params
 
   if (syncs.length === 0) {
     return
@@ -509,28 +520,37 @@ export async function startSyncs(params: StartSyncsParams) {
   const provider = ctx.provider
   const providerDefaults = provider.config.sync?.defaults || {}
 
-  await Bluebird.map(syncs, async (s, i) => {
+  const expectedKeys: string[] = []
+
+  await Bluebird.map(syncs, async (s) => {
     const resourceSpec = s.target || defaultTarget
 
     if (!resourceSpec) {
       // This will have been caught and warned about elsewhere
       return
     }
-
-    const { key, description, sourceDescription, targetDescription, target, resourceName } = await prepareSync({
-      ...params,
-      resourceSpec,
-      spec: s,
-      index: i,
+    const target = await getTargetResource({
+      ctx,
+      log,
+      provider,
+      manifests,
+      action,
+      query: resourceSpec,
     })
+
+    const { key, description, sourceDescription, targetDescription, resourceName, containerName } =
+      await prepareSync({
+        ...params,
+        resourceSpec,
+        target,
+        spec: s,
+      })
 
     // Validate the target
     if (!isConfiguredForSyncMode(target)) {
       log.warn(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
       return
     }
-
-    const containerName = s.target?.containerName || getResourcePodSpec(target)?.containers[0]?.name
 
     if (!containerName) {
       log.warn(chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`))
@@ -551,20 +571,32 @@ export async function startSyncs(params: StartSyncsParams) {
 
     const mode = s.mode || defaultSyncMode
 
-    log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Syncing ${description} (${mode})`) })
+    log.info(`Syncing ${description} (${mode})`)
 
     await mutagen.ensureSync({
       log,
       key,
-      logSection: action.name,
+      logSection: action.key(),
       sourceDescription,
       targetDescription,
       config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
     })
 
     // Wait for initial sync to complete
-    await mutagen.flushSync(log, key)
+    await mutagen.flushSync(key)
+
+    expectedKeys.push(key)
   })
+
+  const allSyncs = expectedKeys.length === 0 ? [] : await mutagen.getActiveSyncSessions(log)
+  const keyPrefix = getSyncKeyPrefix(ctx, action)
+
+  for (const sync of allSyncs.filter((s) => s.name.startsWith(keyPrefix) && !expectedKeys.includes(s.name))) {
+    log.info(`Terminating unexpected/outdated sync ${sync.name}`)
+    await mutagen.terminateSync(log, sync.name)
+  }
+
+  mutagen.stopMonitoring()
 }
 
 export async function stopSyncs(params: StopSyncsParams) {
@@ -577,8 +609,189 @@ export async function stopSyncs(params: StopSyncsParams) {
   const syncs = allSyncs.filter((sync) => sync.name.startsWith(keyPrefix))
 
   for (const sync of syncs) {
-    log.debug({ section: action.key(), msg: chalk.gray(`Terminating sync ${sync.name}`) })
+    log.debug(`Terminating sync ${sync.name}`)
     await mutagen.terminateSync(log, sync.name)
+  }
+}
+
+export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyncStatusResult> {
+  const {
+    ctx,
+    log,
+    basePath,
+    action,
+    manifests,
+    defaultNamespace,
+    actionDefaults,
+    defaultTarget,
+    syncs,
+    monitor,
+  } = params
+  const mutagen = new Mutagen({ ctx, log })
+  const allSyncs = await mutagen.getActiveSyncSessions(log)
+  const syncsByName = keyBy(allSyncs, "name")
+  let session: SyncSession | null = null
+  const syncStatuses: SyncStatus[]= []
+
+  const provider = ctx.provider
+  const providerDefaults = provider.config.sync?.defaults || {}
+
+  let allActive = true
+  let someActive = false
+  let failed = false
+  const expectedKeys: string[] = []
+
+  await Bluebird.map(syncs, async (s) => {
+    const resourceSpec = s.target || defaultTarget
+
+    if (!resourceSpec) {
+      // This will have been caught and warned about elsewhere
+      return
+    }
+
+    let targetResource: SyncableResource
+    try {
+      targetResource = await getTargetResource({
+        ctx,
+        log,
+        provider,
+        manifests,
+        action,
+        query: resourceSpec,
+      })
+    } catch (err) {
+      log.debug(`Could not find deployed resource - returning not-active status for sync ${JSON.stringify(s)}.`)
+      const oriented = orientEndpoints({
+        mode: s.mode,
+        localPath: s.sourcePath,
+        localPathDescription: s.sourcePath,
+        remoteDestination: s.containerPath,
+        remoteDestinationDescription: s.containerPath,
+      })
+      syncStatuses.push({
+        source: oriented.source,
+        target: oriented.target,
+        state: "not-deployed",
+        mode: s.mode,
+      })
+      allActive = false
+      return
+    }
+
+    const { key, source, target, sourceDescription, targetDescription, resourceName, containerName } = await prepareSync({
+      ...params,
+      resourceSpec,
+      target: targetResource,
+      spec: s,
+    })
+
+    if (!isConfiguredForSyncMode(targetResource) || !containerName) {
+      syncStatuses.push({
+        source,
+        target,
+        state: "not-active",
+        mode: s.mode,
+        syncCount: session?.successfulCycles
+      })
+      return
+    }
+
+
+    const namespace = targetResource.metadata.namespace || defaultNamespace
+
+    const localPath = getLocalSyncPath(s.sourcePath, basePath)
+    const remoteDestination = await getKubectlExecDestination({
+      ctx,
+      log,
+      namespace,
+      containerName,
+      resourceName,
+      targetPath: s.containerPath,
+    })
+
+    if (syncsByName[key]) {
+      session = syncsByName[key]
+    }
+    let syncState: SyncStatus["state"] = "active"
+
+    if (session) {
+      if (session.status && ["disconnected", ...haltedStatuses].includes(session.status)) {
+        failed = true
+        syncState = "failed"
+      } else {
+        someActive = true
+      }
+    } else {
+      syncState = "not-active"
+      allActive = false
+    }
+
+    const syncStatus: SyncStatus = {
+      source,
+      target,
+      state: syncState,
+      mode: s.mode,
+      syncCount: session?.successfulCycles
+    }
+
+    if (session?.status) {
+      syncStatus.message = mutagenStatusDescriptions[session?.status]
+    }
+
+    syncStatuses.push(syncStatus)
+
+    expectedKeys.push(key)
+
+    if (monitor) {
+      mutagen.monitorSync({
+        key,
+        logSection: action.key(),
+        sourceDescription,
+        targetDescription,
+        config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
+      })
+    }
+  })
+
+  if (monitor) {
+    // TODO: emit log events instead of using Log instance on Mutagen instance
+    await mutagen.startMonitoring()
+
+    ctx.events.on("abort", () => {
+      mutagen.stopMonitoring()
+      params.ctx.events.emit("done")
+    })
+  }
+
+  const keyPrefix = getSyncKeyPrefix(ctx, action)
+
+  let extraSyncs = false
+
+  for (const sync of allSyncs.filter((s) => s.name.startsWith(keyPrefix) && !expectedKeys.includes(s.name))) {
+    log.debug(`Found unexpected/outdated sync ${sync.name}`)
+    extraSyncs = true
+  }
+
+  let state: SyncState = "not-active"
+
+  if (syncs.length === 0) {
+    state = "not-configured"
+  } else if (failed) {
+    state = "failed"
+  } else if (allActive) {
+    state = "active"
+  } else if (extraSyncs || someActive) {
+    state = "outdated"
+  } else if (!someActive) {
+    state = "not-deployed"
+  }
+
+  return {
+    state,
+    syncs: syncStatuses,
+    detail: {
+      session,
+    },
   }
 }
 
@@ -586,48 +799,98 @@ function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
   return `k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`
 }
 
-async function prepareSync({ ctx, log, manifests, action, resourceSpec, spec, index }: PrepareSyncParams) {
-  const provider = ctx.provider
+function sanitizeForSyncKey(value: string): string {
+  return value
+    .replaceAll(".", "") // remove all periods from relative paths
+    .replaceAll(/\/+/g, "-") // convert each sequence of slashes to a single dash
+    .replaceAll(/\\+/g, "-") // convert each sequence of backslashes to a single dash
+    .replace(":", "") // remove ':' from Windows paths
+    .replace(/^-+/, "") // remove possible extra dashes from the start
+    .replace(/-+$/, "") // remove possible extra dashes from the end
+}
 
-  const target = await getTargetResource({
-    ctx,
-    log,
-    provider,
-    manifests,
-    action,
-    query: resourceSpec,
-  })
+/**
+ * Generates a unique key for sa single sync.
+ * IMPORTANT!!! The key will be used as an argument in the `mutagen` shell command.
+ *  It cannot contain any characters that can break the command execution (like / \ < > | :).
+ */
+function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableResource): string {
+  const sourcePath = sanitizeForSyncKey(spec.sourcePath)
+  const containerPath = sanitizeForSyncKey(spec.containerPath)
+  return `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name
+    }-from-${sourcePath}-to-${containerPath}`
+}
+
+async function prepareSync(params: PrepareSyncParams) {
+  // The `target` value here doesn't take the sync direction into account (that's applied in `getEndpointDescriptions`).
+  const { target, spec } = params
 
   const resourceName = getResourceKey(target)
 
-  const key = `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name}--${index}`
+  const key = getSyncKey(params, target)
 
   const localPathDescription = chalk.white(spec.sourcePath)
   const remoteDestinationDescription = `${chalk.white(spec.containerPath)} in ${chalk.white(resourceName)}`
 
-  let sourceDescription: string
-  let targetDescription: string
+  const {
+    source: orientedSource,
+    sourceDescription: orientedSourceDescription,
+    target: orientedTarget,
+    targetDescription: orientedTargetDescription
+  } = orientEndpoints({
+    mode: spec.mode,
+    localPath: spec.sourcePath,
+    localPathDescription,
+    remoteDestination: stripAnsi(remoteDestinationDescription),
+    remoteDestinationDescription,
+  })
 
-  const mode = spec.mode || defaultSyncMode
+  const description = `${orientedSourceDescription} to ${orientedTargetDescription}`
 
-  if (isReverseMode(mode)) {
-    sourceDescription = remoteDestinationDescription
-    targetDescription = localPathDescription
-  } else {
-    sourceDescription = localPathDescription
-    targetDescription = remoteDestinationDescription
-  }
-
-  const description = `${sourceDescription} to ${targetDescription}`
+  const containerName = spec.target?.containerName || getResourcePodSpec(target)?.containers[0]?.name
 
   return {
     key,
+    source: orientedSource,
+    target: orientedTarget,
     description,
-    sourceDescription,
-    targetDescription,
-    target,
+    sourceDescription: orientedSourceDescription,
+    targetDescription: orientedTargetDescription,
     resourceName,
+    containerName,
   }
+}
+
+function orientEndpoints({
+  mode,
+  localPath,
+  localPathDescription,
+  remoteDestination,
+  remoteDestinationDescription
+}: {
+  mode: SyncMode | undefined
+  localPath: string
+  localPathDescription: string
+  remoteDestination: string
+  remoteDestinationDescription: string
+}) {
+  let source: string
+  let sourceDescription: string
+  let target: string
+  let targetDescription: string
+
+  if (isReverseMode(mode || defaultSyncMode)) {
+    source = remoteDestination
+    sourceDescription = remoteDestinationDescription
+    target = localPath
+    targetDescription = localPathDescription
+  } else {
+    source = localPath
+    sourceDescription = localPathDescription
+    target = remoteDestination
+    targetDescription = remoteDestinationDescription
+  }
+  return { source, sourceDescription, target, targetDescription }
 }
 
 export function makeSyncConfig({

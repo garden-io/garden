@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,6 @@
 
 import { containerHelpers } from "./helpers"
 import { ConfigurationError } from "../../exceptions"
-import { LogLevel } from "../../logger/logger"
 import { PrimitiveMap } from "../../config/common"
 import split2 from "split2"
 import { BuildActionHandler } from "../../plugin/action-types"
@@ -26,11 +25,7 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
   const identifier = await containerHelpers.imageExistsLocally(outputs.localImageId, log, ctx)
 
   if (identifier) {
-    log.debug({
-      section: action.key(),
-      msg: `Image ${identifier} already exists`,
-      symbol: "info",
-    })
+    log.debug(`Image ${identifier} already exists`)
   }
 
   const state = !!identifier ? "ready" : "not-ready"
@@ -69,13 +64,13 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
 
   const logEventContext = {
     origin: "docker build",
-    log: log.createLog({ fixLevel: LogLevel.verbose }),
+    level: "verbose" as const,
   }
 
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
   const timeout = action.getConfig("timeout")
   const res = await containerHelpers.dockerCli({
@@ -98,7 +93,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
 export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {
   const buildName = action.name
   const localId = action.getSpec("localId")
-  const version = action.getFullVersion()
+  const version = action.moduleVersion()
 
   const localImageName = containerHelpers.getLocalImageName(buildName, localId)
   const localImageId = containerHelpers.getLocalImageId(buildName, localId, version)

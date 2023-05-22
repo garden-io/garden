@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,7 +12,7 @@ import { ConfigStore } from "./base"
 import { z } from "zod"
 import { readFile } from "fs-extra"
 import { safeLoad } from "js-yaml"
-import { keyBy } from "lodash"
+import { keyBy, memoize } from "lodash"
 
 export const legacyLocalConfigFilename = "local-config.yml"
 export const localConfigFilename = "local-config.json"
@@ -24,6 +24,10 @@ const linkedSourceSchema = z.object({
 
 export type LinkedSource = z.infer<typeof linkedSourceSchema>
 
+export interface LinkedSourceMap {
+  [key: string]: LinkedSource
+}
+
 const analyticsSchema = z.object({
   projectId: z.string().optional(),
 })
@@ -32,9 +36,11 @@ const localSchema = z.object({
   analytics: analyticsSchema,
 
   devCommandHistory: z.array(z.string()).default([]),
+  defaultEnv: z.string().default("").describe("An environment override, set with the `set env` command."),
 
-  linkedModuleSources: z.record(linkedSourceSchema),
-  linkedProjectSources: z.record(linkedSourceSchema),
+  linkedActionSources: z.record(linkedSourceSchema).default({}),
+  linkedModuleSources: z.record(linkedSourceSchema).default({}),
+  linkedProjectSources: z.record(linkedSourceSchema).default({}),
 
   warnings: z.record(
     z.object({
@@ -48,8 +54,9 @@ export type LocalConfig = z.infer<typeof localSchema>
 export type AnalyticsLocalConfig = LocalConfig["analytics"]
 
 // TODO: we should not be passing this to provider actions
-export const configStoreSchema = () =>
+export const configStoreSchema = memoize(() =>
   joi.object().description("Helper class for managing local configuration for plugins.")
+)
 
 export class LocalConfigStore extends ConfigStore<typeof localSchema> {
   schema = localSchema
@@ -66,6 +73,8 @@ export class LocalConfigStore extends ConfigStore<typeof localSchema> {
     let config: LocalConfig = {
       analytics: {},
       devCommandHistory: [],
+      defaultEnv: "",
+      linkedActionSources: {},
       linkedModuleSources: {},
       linkedProjectSources: {},
       warnings: {},

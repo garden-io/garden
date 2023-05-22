@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,7 @@ import {
   testProjectTempDirs,
   withDefaultGlobalOpts,
 } from "../../../helpers"
-import { taskResultOutputs, getAllRunResults } from "../../../helpers"
+import { taskResultOutputs, getAllTaskResults } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
 import { Log } from "../../../../src/logger/log-entry"
 import { writeFile } from "fs-extra"
@@ -29,14 +29,11 @@ describe("BuildCommand", () => {
   it("should build everything in a project and output the results", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const footerLog = garden.log
     const command = new BuildCommand()
 
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
@@ -78,9 +75,9 @@ describe("BuildCommand", () => {
 
     function getBuildResultVersion(r: ProcessCommandResult, name: string): string {
       const buildActionResults = r!.graphResults
-      const moduleKey = nodeKey("build", name)
-      const buildResult = buildActionResults[moduleKey]
-      return buildResult!.version
+      const key = nodeKey("build", name)
+      const buildResult = buildActionResults[key]
+      return buildResult!.inputVersion
     }
 
     const buildModuleAVersion = getBuildResultVersion(result!, "module-a")
@@ -95,14 +92,11 @@ describe("BuildCommand", () => {
   it("should optionally run single build and its dependencies", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const footerLog = garden.log
     const command = new BuildCommand()
 
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog,
       args: { names: ["module-b"] },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
@@ -119,7 +113,6 @@ describe("BuildCommand", () => {
   it("should skip disabled modules", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const footerLog = garden.log
     const command = new BuildCommand()
 
     await garden.scanAndAddConfigs()
@@ -128,8 +121,6 @@ describe("BuildCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
@@ -140,7 +131,6 @@ describe("BuildCommand", () => {
   it("should build disabled modules if they are dependencies of enabled modules", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const footerLog = garden.log
     const command = new BuildCommand()
 
     await garden.scanAndAddConfigs()
@@ -150,8 +140,6 @@ describe("BuildCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
@@ -163,7 +151,6 @@ describe("BuildCommand", () => {
   it("should build dependant modules when using the --with-dependants flag", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const footerLog = garden.log
     const command = new BuildCommand()
 
     const moduleConfigs: ModuleConfig[] = [
@@ -214,8 +201,6 @@ describe("BuildCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": true }), // <---
     })
@@ -235,15 +220,13 @@ describe("BuildCommand", () => {
     let projectPath: string
     let defaultOpts: {
       log: Log
-      headerLog: Log
-      footerLog: Log
     }
 
     beforeEach(async () => {
       const tmpGarden = await makeTestGardenBuildDependants([], { noCache: true })
       log = tmpGarden.log
       buildCommand = new BuildCommand()
-      defaultOpts = { log, headerLog: log, footerLog: log }
+      defaultOpts = { log }
       projectPath = join(tmpGarden.gardenDirPath, "../")
     })
 
@@ -284,7 +267,7 @@ describe("BuildCommand", () => {
         opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
       })
 
-      const allResults1 = getAllRunResults(result1!.graphResults!)
+      const allResults1 = getAllTaskResults(result1!.graphResults!)
 
       await writeFile(join(projectPath, "C/file.txt"), "module c has been modified")
 
@@ -298,11 +281,17 @@ describe("BuildCommand", () => {
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
       })
 
-      const allResults2 = getAllRunResults(result2!.graphResults!)
+      const allResults2 = getAllTaskResults(result2!.graphResults!)
 
-      expect(allResults2["build.aaa-service"]!.version).not.to.be.eq(allResults1["build.aaa-service"]!.version)
-      expect(allResults2["build.bbb-service"]!.version).not.to.be.eq(allResults1["build.bbb-service"]!.version)
-      expect(allResults2["build.ccc-service"]!.version).not.to.be.eq(allResults1["build.ccc-service"]!.version)
+      expect(allResults2["build.aaa-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.aaa-service"]!.inputVersion
+      )
+      expect(allResults2["build.bbb-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.bbb-service"]!.inputVersion
+      )
+      expect(allResults2["build.ccc-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.ccc-service"]!.inputVersion
+      )
     })
 
     it("should rebuild module and dependants if with-dependants flag has been passed", async () => {
@@ -314,7 +303,7 @@ describe("BuildCommand", () => {
       })
 
       const graphResult1 = result1!.graphResults!
-      const allResults1 = getAllRunResults(graphResult1)
+      const allResults1 = getAllTaskResults(graphResult1)
 
       await writeFile(join(projectPath, "C/file.txt"), "module c has been modified")
 
@@ -326,13 +315,19 @@ describe("BuildCommand", () => {
       })
 
       const graphResult2 = result2!.graphResults!
-      const allResults2 = getAllRunResults(graphResult2)
+      const allResults2 = getAllTaskResults(graphResult2)
 
       expect(graphResult2["build.aaa-service"]).to.exist // <-- The dependant should be added to the main output
 
-      expect(allResults2["build.aaa-service"]!.version).not.to.be.eq(allResults1["build.aaa-service"]!.version)
-      expect(allResults2["build.bbb-service"]!.version).not.to.be.eq(allResults1["build.bbb-service"]!.version)
-      expect(allResults2["build.ccc-service"]!.version).not.to.be.eq(allResults1["build.ccc-service"]!.version)
+      expect(allResults2["build.aaa-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.aaa-service"]!.inputVersion
+      )
+      expect(allResults2["build.bbb-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.bbb-service"]!.inputVersion
+      )
+      expect(allResults2["build.ccc-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.ccc-service"]!.inputVersion
+      )
     })
 
     it("should rebuild only necessary modules after changes even if with-dependants flag has been passed", async () => {
@@ -343,7 +338,7 @@ describe("BuildCommand", () => {
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
       })
 
-      const allResults1 = getAllRunResults(result1!.graphResults!)
+      const allResults1 = getAllTaskResults(result1!.graphResults!)
 
       await writeFile(join(projectPath, "B/file.txt"), "module c has been modified")
 
@@ -354,12 +349,16 @@ describe("BuildCommand", () => {
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": true }), // <---
       })
 
-      const allResults2 = getAllRunResults(result2!.graphResults!)
+      const allResults2 = getAllTaskResults(result2!.graphResults!)
 
-      expect(allResults2["build.aaa-service"]!.version).not.to.be.eq(allResults1["build.aaa-service"]!.version)
-      expect(allResults2["build.bbb-service"]!.version).not.to.be.eq(allResults1["build.bbb-service"]!.version)
-      expect(allResults2["build.ccc-service"]!.version, "c should be equal as it has not been changed").to.be.eq(
-        allResults1["build.ccc-service"]!.version
+      expect(allResults2["build.aaa-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.aaa-service"]!.inputVersion
+      )
+      expect(allResults2["build.bbb-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.bbb-service"]!.inputVersion
+      )
+      expect(allResults2["build.ccc-service"]!.inputVersion, "c should be equal as it has not been changed").to.be.eq(
+        allResults1["build.ccc-service"]!.inputVersion
       )
     })
 
@@ -371,7 +370,7 @@ describe("BuildCommand", () => {
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
       })
 
-      const allResults1 = getAllRunResults(result1!.graphResults!)
+      const allResults1 = getAllTaskResults(result1!.graphResults!)
 
       await writeFile(join(projectPath, "B/file.txt"), "module c has been modified")
 
@@ -382,11 +381,13 @@ describe("BuildCommand", () => {
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
       })
 
-      const allResults2 = getAllRunResults(result2!.graphResults!)
+      const allResults2 = getAllTaskResults(result2!.graphResults!)
 
-      expect(allResults2["build.bbb-service"]!.version).not.to.be.eq(allResults1["build.bbb-service"]!.version)
-      expect(allResults2["build.ccc-service"]!.version, "c should be equal as it has not been changed").to.be.eq(
-        allResults1["build.ccc-service"]!.version
+      expect(allResults2["build.bbb-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.bbb-service"]!.inputVersion
+      )
+      expect(allResults2["build.ccc-service"]!.inputVersion, "c should be equal as it has not been changed").to.be.eq(
+        allResults1["build.ccc-service"]!.inputVersion
       )
     })
   })

@@ -8,7 +8,7 @@
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://docs.garden.io/?utm_source=github">Docs</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/garden-io/garden/tree/0.12.51/examples">Examples</a>
+  <a href="https://github.com/garden-io/garden/tree/0.12.56/examples">Examples</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
@@ -122,7 +122,7 @@ Below are our guiding principles for developing Garden.
 
 ### **Community**
 
-Join our [Discord community](https://discord.gg/gxeuDgp6Xt) to ask questions, give feedback or just say hi 🙂
+Join our [Discord community](https://discord.gg/FrmhuUjFs6) to ask questions, give feedback or just say hi 🙂
 
 ### **Security**
 

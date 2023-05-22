@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -126,7 +126,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     await mutagen.ensureSync({
       log,
       key,
-      logSection: action.name,
+      logSection: action.key(),
       sourceDescription: `Module ${action.name} build path`,
       targetDescription: "Build sync Pod",
       config: {
@@ -145,7 +145,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     })
 
     // -> Flush the sync once
-    await mutagen.flushSync(log, key)
+    await mutagen.flushSync(key)
     log.debug(`Sync from ${sourcePath} to ${resourceName} completed`)
   } finally {
     // -> Terminate the sync
@@ -243,7 +243,7 @@ export function skopeoManifestUnknown(errMsg: string | null | undefined): boolea
   if (!errMsg) {
     return false
   }
-  return errMsg.includes("manifest unknown") || /artifact [^ ]+ not found/.test(errMsg)
+  return errMsg.includes("manifest unknown") || /(artifact|repository) [^ ]+ not found/.test(errMsg)
 }
 
 /**
@@ -293,7 +293,7 @@ export async function ensureUtilDeployment({
   namespace: string
 }) {
   return deployLock.acquire(namespace, async () => {
-    const deployLog = log.createLog({})
+    const deployLog = log.createLog()
 
     const { authSecret, updated: secretUpdated } = await ensureBuilderSecret({
       provider,

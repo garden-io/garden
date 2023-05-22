@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,6 +15,7 @@ import { TestTask } from "../../../../../../src/tasks/test"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { KubernetesPodTestAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("kubernetes-type pod Test", () => {
   let garden: TestGarden
@@ -70,10 +71,9 @@ describe("kubernetes-type pod Test", () => {
     expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.equal(action.getConfig().spec.namespace)
   })
 
-  // TODO-G2: solver gets stuck in an infinite loop
-  it.skip("should fail if an error occurs, but store the result", async () => {
+  it("should fail if an error occurs, but store the result", async () => {
     const action = graph.getTest("module-simple-echo-test")
-    action.getConfig().spec.command = ["bork"] // this will fail
+    action["_config"].spec.command = ["bork"] // this will fail
 
     const testTask = new TestTask({
       garden,
@@ -92,8 +92,9 @@ describe("kubernetes-type pod Test", () => {
     const actions = await garden.getActionRouter()
 
     // We also verify that, despite the test failing, its result was still saved.
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
     const result = await actions.test.getResult({
-      log: garden.log,
+      log: actionLog,
       action: await garden.resolveAction<KubernetesPodTestAction>({ action, log: garden.log, graph }),
       graph,
     })

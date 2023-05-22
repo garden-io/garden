@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,14 +15,13 @@ import {
   exec,
   createOutputStream,
   makeErrorMsg,
-  renderOutputStream,
   spawn,
   relationshipClasses,
   isValidDateInstance,
 } from "../../../../src/util/util"
 import { expectError } from "../../../helpers"
 import { splitLast, splitFirst } from "../../../../src/util/string"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 import { dedent } from "../../../../src/util/string"
 import { safeDumpYaml } from "../../../../src/util/serialization"
 
@@ -121,25 +120,27 @@ describe("util", () => {
     })
 
     it("should optionally pipe stdout to an output stream", async () => {
-      const logger = getLogger()
+      const logger = getRootLogger()
+      logger.entries = []
       const log = logger.createLog()
 
       await exec("echo", ["hello"], { stdout: createOutputStream(log) })
 
-      expect(log.getLatestEntry().msg).to.equal(renderOutputStream("hello"))
+      expect(logger.getLatestEntry().msg).to.equal("hello")
     })
 
     it("should optionally pipe stderr to an output stream", async () => {
-      const logger = getLogger()
+      const logger = getRootLogger()
+      logger.entries = []
       const log = logger.createLog()
 
       await exec("sh", ["-c", "echo hello 1>&2"], { stderr: createOutputStream(log) })
 
-      expect(log.getLatestEntry().msg).to.equal(renderOutputStream("hello"))
+      expect(logger.getLatestEntry().msg).to.equal("hello")
     })
 
     it("should buffer outputs when piping to stream", async () => {
-      const logger = getLogger()
+      const logger = getRootLogger()
       const log = logger.createLog()
 
       const res = await exec("echo", ["hello"], { stdout: createOutputStream(log) })

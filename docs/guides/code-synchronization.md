@@ -4,7 +4,9 @@ order: 3
 ---
 # Code Synchronization
 
-Garden allows you to rapidly synchronize your code (and other files) to and from running containers.
+Garden includes a *sync* mode that allows you to rapidly synchronize your code (and other files) to and from running containers.
+
+The sync mode uses [Mutagen](https://mutagen.io/) under the hood. Garden automatically takes care of fetching Mutagen, so you don't need to install any dependencies yourself to make use of sync mode.
 
 {% hint style="info" %}
 This feature used to be called _dev mode_ but as of version 0.13 we've opted for more straightforward terminology. The functionality is exactly the same as before.
@@ -16,46 +18,43 @@ This feature used to be called _dev mode_ but as of version 0.13 we've opted for
 Please make sure to specify any paths that should not be synced by setting the provider-level default excludes and/or the `exclude` field on each configured sync! Otherwise you may end up syncing large directories and even run into application errors.
 {% endhint %}
 
-To configure a service for sync, add `sync` to your module/service configuration to specify your sync targets:
+To configure a service for sync mode, add `sync` to your Deploy configuration to specify your sync targets:
 
 ### Configuring sync for `container` modules
 
 ```yaml
-kind: Module
+kind: Deploy
 name: node-service
 type: container
-services:
-  - name: node-service
-    args: [npm, start]
-    sync:
-      command: [npm, run, dev] # Overrides the container's default when the service is deployed in sync mode
-      paths:
-        - source: src
-          target: /app/src
-          # Make sure to specify any paths that should not be synced!
-          exclude: [node_modules]
-          mode: two-way
-  ...
+build: node-service-build
+spec:
+  args: [npm, run, serve]
+  sync:
+    paths:
+      - target: /app/src
+        source: src
+        mode: two-way
+        exclude: [node_modules]
+...
 ```
 
 ### Configuring sync for `kubernetes` and `helm` modules
 
 ```yaml
-kind: Module
+kind: Deploy
 type: kubernetes # this example looks the same for helm modules (i.e. with `type: helm`)
 name: node-service
-# For `kubernetes` and `helm` modules, the `sync` field is located at the top level.
-sync:
-  command: [npm, run, dev]
-  paths:
-    - target: /app
-    - source: /tmp/somedir
-      target: /somedir
-serviceResource:
-  kind: Deployment
-  name: node-service-deployment
-  containerModule: node-service-image
-  containerName: node-service
+spec:
+  defaultTarget:
+    kind: Deployment
+    name: vote
+  sync:
+    paths:
+      - containerPath: /app/src
+        sourcePath: /src
+        mode: two-way
+    overrides:
+      - command: [npm, run, dev]
 ...
 ```
 
@@ -72,9 +71,10 @@ garden deploy --sync myservice,my-other-service
 garden deploy --sync=*
 ```
 
-Once your services have been deployed, any changes you make that fall under one of the sync specs you've defined will be automatically synced between your local machine and the running service.
+Once your deploys are ready, any changes you make that fall under one of the sync specs you've defined will be automatically synced between your local machine and the running service.
 
-Once you quit/terminate the Garden command, all syncs established by the command will be stopped (but the services will still be left running).
+Once you quit/terminate the Garden command, the deploys and syncs will keep running in the background.
+To stop the syncs you can use the `sync stop` command.
 
 ## Sync modes
 
@@ -137,30 +137,30 @@ By design, exclusion rules from ignorefiles (such as `.gardenignore` files) are 
 
 This is done to grant you more control over precisely which files and directories you'd like to sync.
 
-For example, you might want to ignore `dist` or `build` directories (not version control them, not include them in builds or module versions), but still be able to sync them from your local machine to the running container (or from the running container to your local machine). This is easy to achieve with the right configuration.
+For example, you might want to ignore `dist` or `build` directories in general usage, but still be able to sync them from your local machine to the running container (or from the running container to your local machine). This is easy to achieve with the right configuration.
 
 Exclusion rules can be specified on individual sync configs:
 
 ```yaml
-kind: Module
+kind: Deploy
 name: node-service
 type: container
-services:
-  - name: node-service
-    args: [npm, start]
-    sync:
-      command: [npm, run, dev]
-      paths:
-        - source: src
-          target: /app/src
-          exclude: [node_modules, tmp, "**/*.log"] # <------ paths matching these patterns won't be synced
-          mode: two-way
-  ...
+build: node-service-build
+spec:
+  args: [npm, run, serve]
+  sync:
+    paths:
+      - target: /app/src
+        source: src
+        mode: two-way
+        exclude: [node_modules, tmp, "**/*.log"] # <------ paths matching these patterns won't be synced
+...
 ```
 
 Project-wide exclusion rules can be set on the `local-kubernetes` and `kubernetes` providers:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 providers:
@@ -185,23 +185,22 @@ In certain cases you may need to set a specific owner/group or permission bits o
 To do this, you can set a few options on each sync:
 
 ```yaml
-kind: Module
-description: Node greeting service
+kind: Deploy
 name: node-service
 type: container
-services:
-  - name: node-service
-    args: [npm, start]
-    sync:
-      command: [npm, run, dev]
-      paths:
-        - target: /app
-          exclude: [node_modules]
-          defaultOwner: 1000  # <- set an integer user ID or a string name
-          defaultGroup: 1000  # <- set an integer group ID or a string name
-          defaultFileMode: 0666  # <- set the permission bits (as octals) for synced files
-          defaultDirectoryMode: 0777  # <- set the permission bits (as octals) for synced directories
-  ...
+build: node-service-build
+spec:
+  sync:
+    paths:
+      - target: /app/src
+        source: src
+        mode: two-way
+        exclude: [node_modules]
+        defaultOwner: 1000  # <- set an integer user ID or a string name
+        defaultGroup: 1000  # <- set an integer group ID or a string name
+        defaultFileMode: 0666  # <- set the permission bits (as octals) for synced files
+        defaultDirectoryMode: 0777  # <- set the permission bits (as octals) for synced directories
+...
 ```
 
 These options are passed directly to Mutagen. For more information, please see the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions).
@@ -211,6 +210,7 @@ These options are passed directly to Mutagen. For more information, please see t
 This example demonstrates several of the more advanced options. For more details on the options available, see the sections above.
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 providers:
@@ -229,34 +229,35 @@ providers:
 
 ---
 
-kind: Module
+kind: Deploy
+name: node-service
+type: container
 description: |
   Here, we sync source code into the remote, and sync back the `test-artifacts` directory
   (populated when we run tests) back to the local machine.
-name: node-service
-type: container
-services:
-  - name: node-service
-    args: [npm, start]
-    sync:
-      command: [npm, run, dev] # Overrides the container's default when the service is deployed in sync mode.
-      paths:
-        # You can use several sync specs for the same service. It's generally a good idea to be specific about
-        # what you want to sync, and to use `one-way-replica` or `one-way-replica-reverse` when possible to keep
-        # things simple and avoid sync conflicts.
-        - source: app
-          target: /app
-          # We don't need to exclude `node_modules` here, since above we added a
-          # project-wide exclusion rule for that.
-          # exclude: [node_modules]
-          mode: one-way-replica
-        - source: test-artifacts
-          target: /test-artifacts
-          # This syncs back any files/folders  on the remote to the local machine, always
-          # overriding the local directory's contents with the remote one. See above for a detailed
-          # description of each available sync mode.
-          mode: one-way-replica-reverse
-  ...
+build: node-service-build
+spec:
+  args: [npm, start]
+  sync:
+    # Overrides the container's default when the service is deployed in sync mode.
+    command: [npm, run, dev]
+    # You can use several sync specs for the same service. It's generally a good idea to be specific about
+    # what you want to sync, and to use `one-way-replica` or `one-way-replica-reverse` when possible to keep
+    # things simple and avoid sync conflicts.
+    paths:
+      - containerPath: /app/src
+        sourcePath: /app/src
+        # We don't need to exclude `node_modules` here, since above we added a
+        # project-wide exclusion rule for that.
+        # exclude: [node_modules]
+        mode: one-way-replica
+      - containerPath: /test-artifacts
+        sourcePath: /test-artifacts
+        # This syncs back any files/folders  on the remote to the local machine, always
+        # overriding the local directory's contents with the remote one. See above for a detailed
+        # description of each available sync mode.
+        mode: one-way-replica-reverse
+...
 ```
 
 ## Troubleshooting

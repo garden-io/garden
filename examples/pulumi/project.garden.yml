@@ -1,5 +1,12 @@
+apiVersion: garden.io/v1
 kind: Project
 name: pulumi
+variables:
+   pulumiAppOrg: garden # <--- replace with your own org name
+environments:
+  - name: local
 providers:
   - name: pulumi
-    orgName: gordon-garden-bot # <--- replace with your own org
+    environments: [local]
+    orgName: ${var.pulumiAppOrg}
+    version: 3.40.0 # <--- currently pinned to older version because of https://github.com/pulumi/pulumi/issues/11444

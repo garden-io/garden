@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 
 import { join } from "path"
 
-import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
+import { GardenApiVersion, STATIC_DIR } from "../../constants"
 import { Garden } from "../../garden"
 import { KubernetesPluginContext, KubernetesConfig } from "./config"
 import { Log } from "../../logger/log-entry"
@@ -60,11 +60,11 @@ export async function getSystemGarden(
 
   return Garden.factory(systemProjectPath, {
     gardenDirPath: join(ctx.gardenDirPath, "kubernetes.garden"),
-    environmentName: "default",
+    environmentString: "default",
     noEnterprise: true, // we don't want to e.g. verify a client auth token or fetch secrets here
     config: {
       path: systemProjectPath,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v1,
       kind: "Project",
       name: systemNamespace,
       defaultEnvironment: "default",
@@ -76,7 +76,7 @@ export async function getSystemGarden(
     commandInfo: ctx.command,
     log: log
       .createLog({
-        section: "garden system",
+        name: "garden system",
         fixLevel: LogLevel.debug,
       })
       .info("Initializing..."),

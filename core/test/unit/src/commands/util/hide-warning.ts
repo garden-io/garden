@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,7 +15,7 @@ import { getLogMessages } from "../../../../../src/util/testing"
 describe("HideWarningCommand", () => {
   it("should hide a warning message", async () => {
     const garden = await makeTestGarden(projectRootA)
-    const log = garden.log.createLog({})
+    const log = garden.log.createLog()
     const cmd = new HideWarningCommand()
     const key = randomString(10)
 
@@ -25,8 +25,6 @@ describe("HideWarningCommand", () => {
         args: { key },
         opts: withDefaultGlobalOpts({}),
         log: garden.log,
-        headerLog: garden.log,
-        footerLog: garden.log,
       })
       await garden.emitWarning({
         key,
@@ -35,7 +33,7 @@ describe("HideWarningCommand", () => {
       })
       expect(getLogMessages(log).length).to.equal(0)
     } finally {
-      await garden.configStore.delete("warnings", key)
+      await garden.localConfigStore.delete("warnings", key)
     }
   })
 })

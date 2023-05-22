@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,12 +9,13 @@
 import { expect } from "chai"
 import { withDefaultGlobalOpts, TempDirectory, makeTempDir, expectError } from "../../../../helpers"
 import { CreateProjectCommand, defaultProjectConfigFilename } from "../../../../../src/commands/create/create-project"
-import { makeDummyGarden } from "../../../../../src/cli/cli"
+import { makeDummyGarden } from "../../../../../src/garden"
 import { Garden } from "../../../../../src/garden"
 import { basename, join } from "path"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { safeLoadAll } from "js-yaml"
 import { safeDumpYaml } from "../../../../../src/util/serialization"
+import { GardenApiVersion } from "../../../../../src/constants"
 
 describe("CreateProjectCommand", () => {
   const command = new CreateProjectCommand()
@@ -33,8 +34,6 @@ describe("CreateProjectCommand", () => {
   it("should create a project config and a .gardenignore", async () => {
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -57,6 +56,7 @@ describe("CreateProjectCommand", () => {
 
     expect(parsed).to.eql([
       {
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name,
         environments: [{ name: "default" }],
@@ -71,8 +71,6 @@ describe("CreateProjectCommand", () => {
 
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -95,8 +93,6 @@ describe("CreateProjectCommand", () => {
 
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -116,8 +112,6 @@ describe("CreateProjectCommand", () => {
   it("should optionally set a project name", async () => {
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -133,6 +127,7 @@ describe("CreateProjectCommand", () => {
     const parsed = safeLoadAll((await readFile(configPath)).toString())
     expect(parsed).to.eql([
       {
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "foo",
         environments: [{ name: "default" }],
@@ -151,8 +146,6 @@ describe("CreateProjectCommand", () => {
 
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -168,6 +161,7 @@ describe("CreateProjectCommand", () => {
     expect(parsed).to.eql([
       existing,
       {
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name,
         environments: [{ name: "default" }],
@@ -179,8 +173,6 @@ describe("CreateProjectCommand", () => {
   it("should allow overriding the default generated filename", async () => {
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -198,6 +190,7 @@ describe("CreateProjectCommand", () => {
 
   it("should throw if a project is already in the directory", async () => {
     const existing = {
+      apiVersion: GardenApiVersion.v1,
       kind: "Project",
       name: "foo",
     }
@@ -208,8 +201,6 @@ describe("CreateProjectCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
@@ -229,8 +220,6 @@ describe("CreateProjectCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({

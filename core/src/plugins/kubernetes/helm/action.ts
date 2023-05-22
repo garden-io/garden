@@ -1,12 +1,11 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DOCS_BASE_URL } from "../../../constants"
 import { DeployActionDefinition } from "../../../plugin/action-types"
 import { dedent } from "../../../util/string"
 import { KubernetesPluginContext } from "../config"
@@ -19,17 +18,18 @@ import { getHelmDeployLogs } from "./logs"
 import { getHelmDeployStatus } from "./status"
 import { posix } from "path"
 import { k8sContainerStopSync } from "../container/sync"
-import { helmStartSync } from "./sync"
+import { helmGetSyncStatus, helmStartSync } from "./sync"
+import { makeDocsLink } from "../../../docs/common"
 
-export const helmDeployDocs = dedent`
+export const getHelmDeployDocs = () => dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 
-  Refer to the [Helm guide](${DOCS_BASE_URL}/kubernetes-plugins/module-types/helm) for usage instructions.
+  Refer to the [Helm guide](${makeDocsLink`k8s-plugins/action-types/helm`}) for usage instructions.
 `
 
 export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction> => ({
   name: "helm",
-  docs: helmDeployDocs,
+  docs: getHelmDeployDocs(),
   schema: helmDeploySchema(),
   // outputsSchema: helmDeployOutputsSchema(),
   handlers: {
@@ -41,6 +41,7 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
 
     startSync: helmStartSync,
     stopSync: k8sContainerStopSync,
+    getSyncStatus: helmGetSyncStatus,
 
     getPortForward: async (params) => {
       const { ctx, log, action } = params

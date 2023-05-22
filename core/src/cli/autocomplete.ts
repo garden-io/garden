@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,7 @@ import { Command, CommandGroup } from "../commands/base"
 import { ConfigDump } from "../garden"
 import { Log } from "../logger/log-entry"
 import { parseCliArgs, pickCommand } from "./helpers"
-import { globalOptions, Parameter, Parameters } from "./params"
+import { globalDisplayOptions, globalGardenInstanceOptions, globalOptions, Parameter, Parameters } from "./params"
 
 export interface AutocompleteSuggestion {
   // What's being suggested in the last item in the split array
@@ -20,6 +20,7 @@ export interface AutocompleteSuggestion {
   command: {
     name: string[]
     cliOnly: boolean
+    stringArguments: string[]
   }
   priority: number
 }
@@ -46,7 +47,7 @@ export class Autocompleter {
   private enableDebug: boolean
 
   constructor({ log, commands, configDump, debug }: AutocompleterParams) {
-    this.log = log
+    this.log = log.createLog({ name: "autocompleter" })
     this.configDump = configDump
     this.commands = commands
     this.enableDebug = !!debug
@@ -109,8 +110,7 @@ export class Autocompleter {
   }
 
   private debug(msg: any) {
-    this.enableDebug &&
-      this.log.silly({ section: "autocompleter", msg: typeof msg === "string" ? msg : JSON.stringify(msg) })
+    this.enableDebug && this.log.silly(typeof msg === "string" ? msg : JSON.stringify(msg))
   }
 
   private matchCommandNames(commands: Command[], input: string) {
@@ -156,6 +156,7 @@ export class Autocompleter {
         command: {
           name: match.matchedPath,
           cliOnly: match.command.cliOnly,
+          stringArguments: [],
         },
         priority: 1,
       })
@@ -201,7 +202,7 @@ export class Autocompleter {
     return [...this.getArgumentSuggestions(params), ...this.getOptionFlagSuggestions(params)]
   }
 
-  private getArgumentSuggestions(params: GetCommandArgParams) {
+  private getArgumentSuggestions(params: GetCommandArgParams): AutocompleteSuggestion[] {
     const { command, input, rest, configDump, matchedPath } = params
 
     if (!configDump) {
@@ -233,27 +234,28 @@ export class Autocompleter {
     return argSuggestions
       .filter((s) => prefix === s || (s.startsWith(prefix) && !rest.includes(s)))
       .map((s) => {
-        const split = [...matchedPath, ...rest]
+        const stringArguments = [...rest]
 
         if (rest.length === 0) {
-          split.push(s)
+          stringArguments.push(s)
         } else {
-          split[split.length - 1] = s
+          stringArguments[stringArguments.length - 1] = s
         }
 
-        return <AutocompleteSuggestion>{
+        return {
           type: "argument",
-          line: split.join(" "),
+          line: [...matchedPath, ...stringArguments].join(" "),
           command: {
             name: command.getPath(),
             cliOnly: command.cliOnly,
+            stringArguments,
           },
           priority: 1000, // Rank these above option flags
         }
       })
   }
 
-  private getOptionFlagSuggestions(params: GetCommandArgParams) {
+  private getOptionFlagSuggestions(params: GetCommandArgParams): AutocompleteSuggestion[] {
     const { command, rest, matchedPath, ignoreGlobalFlags } = params
 
     const lastArg = rest[rest.length - 1]
@@ -263,33 +265,48 @@ export class Autocompleter {
     }
 
     const opts: Parameters = {
-      ...(ignoreGlobalFlags ? {} : globalOptions),
+      ...(ignoreGlobalFlags ? {} : globalDisplayOptions),
+      ...globalGardenInstanceOptions,
       ...command.options,
     }
 
     let keys = Object.keys(opts)
+    let aliases = Object.values(opts).flatMap((o) => o.aliases || [])
+
+    let prefix = "--"
 
     // Filter on partial option flag entered
-    if (lastArg && lastArg.startsWith("--") && lastArg.length > 2) {
-      keys = keys.filter((k) => k.startsWith(lastArg.slice(2)))
+    if ((lastArg === "--" || lastArg?.startsWith("-")) && lastArg.length > 2) {
+      const slice = lastArg.slice(prefix.length)
+      keys = keys.filter((k) => k.startsWith(slice))
+
+      if (keys.length === 0) {
+        // Check aliases if no canonical key was matched
+        keys = aliases.filter((k) => k.startsWith(slice))
+      }
+    } else if (lastArg?.startsWith("-") && lastArg.length === 2) {
+      // Handle single-char aliases (e.g. -f, -d)
+      prefix = "-"
+      keys = aliases.filter((k) => k === lastArg.slice(1))
     }
 
     return keys.map((k) => {
-      const split = [...matchedPath, ...rest]
-      const s = "--" + k
+      const stringArguments = [...rest]
+      const s = prefix + k
 
       if (rest.length === 0) {
-        split.push(s)
+        stringArguments.push(s)
       } else {
-        split[split.length - 1] = s
+        stringArguments[stringArguments.length - 1] = s
       }
 
-      return <AutocompleteSuggestion>{
+      return {
         type: "option",
-        line: split.join(" "),
+        line: [...matchedPath, ...stringArguments].join(" "),
         command: {
           name: command.getPath(),
           cliOnly: command.cliOnly,
+          stringArguments,
         },
         // prefer command-specific flags
         priority: globalOptions[k] ? 1 : 2,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -44,9 +44,6 @@ import { V1PodSpec, V1Container, V1Pod, V1ContainerStatus, V1PodStatus } from "@
 import { RunResult } from "../../plugin/base"
 import { LogLevel } from "../../logger/logger"
 import { getResourceEvents } from "./status/events"
-
-// Default timeout for individual run/exec operations
-const defaultTimeout = 600
 
 /**
  * When a `podSpec` is passed to `runAndCopy`, only these fields will be used for the runner's pod spec
@@ -218,7 +215,12 @@ export async function runAndCopy({
     const outputStream = new PassThrough()
     outputStream.on("error", () => {})
     outputStream.on("data", (data: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().toISOString(), data, ...logEventContext })
+      ctx.events.emit("log", {
+        level: "verbose",
+        timestamp: new Date().toISOString(),
+        msg: data.toString(),
+        ...logEventContext,
+      })
     })
 
     return runWithArtifacts({
@@ -406,7 +408,7 @@ async function runWithoutArtifacts({
   podData: PodData
   run: BaseRunParams
 }): Promise<RunResult> {
-  const { timeout, interactive } = run
+  const { timeout: timeoutSec, interactive } = run
 
   const { runner } = getPodResourceAndRunner({
     ctx,
@@ -423,7 +425,7 @@ async function runWithoutArtifacts({
       log,
       remove: true,
       events: ctx.events,
-      timeoutSec: timeout || defaultTimeout,
+      timeoutSec,
       tty: interactive,
       throwOnExitCode: true,
     })
@@ -468,7 +470,6 @@ ${cmd.join(" ")}
  * @param artifacts the artifacts to be processed
  */
 function getArtifactsTarScript(artifacts: ArtifactSpec[]) {
-  // TODO: only interpret target as directory if it ends with a slash (breaking change, so slated for 0.13)
   const directoriesToCreate = artifacts.map((a) => a.target).filter((target) => !!target && target !== ".")
   const tmpPath = "/tmp/.garden-artifacts-" + randomString(8)
 
@@ -518,7 +519,7 @@ async function runWithArtifacts({
   podData: PodData
   run: BaseRunParams
 }): Promise<RunResult> {
-  const { args, command, timeout } = run
+  const { args, command, timeout: timeoutSec } = run
 
   const { pod, runner } = getPodResourceAndRunner({
     ctx,
@@ -529,8 +530,6 @@ async function runWithArtifacts({
 
   let result: RunResult
   const startedAt = new Date()
-
-  const timeoutSec = timeout || defaultTimeout
 
   try {
     errorMetadata.pod = pod
@@ -728,7 +727,6 @@ type RunParams = StartParams & {
   remove: boolean
   tty: boolean
   events: PluginEventBroker
-  // TODO: 0.13 consider removing this in the scope of https://github.com/garden-io/garden/issues/3254
   throwOnExitCode?: boolean
 }
 
@@ -817,8 +815,9 @@ export class PodRunner extends PodRunnerParams {
         isoTimestamp = new Date().toISOString()
       }
       events.emit("log", {
+        level: "verbose",
         timestamp: isoTimestamp,
-        data: Buffer.from(msg),
+        msg,
         ...logEventContext,
       })
       if (tty) {
@@ -861,6 +860,7 @@ export class PodRunner extends PodRunnerParams {
     })
 
     try {
+      const startTime = new Date(Date.now())
       await this.createPod({ log, tty })
 
       // Wait until main container terminates
@@ -868,7 +868,7 @@ export class PodRunner extends PodRunnerParams {
 
       // the Pod might have been killed – if the process exits with code zero when
       // receiving SIGINT, we might not notice if we don't double check this.
-      await this.throwIfPodKilled()
+      await this.throwIfPodKilled(startTime)
 
       // Retrieve logs after run
       const mainContainerLogs = await this.getMainContainerLogs()
@@ -1042,7 +1042,7 @@ export class PodRunner extends PodRunnerParams {
     const containerName = container || this.pod.spec.containers[0].name
 
     log.debug(`Execing command in ${this.namespace}/Pod/${this.podName}/${containerName}: ${command.join(" ")}`)
-
+    const startTime = new Date(Date.now())
     const result = await this.api.execInPod({
       log,
       namespace: this.namespace,
@@ -1075,7 +1075,7 @@ export class PodRunner extends PodRunnerParams {
 
     // the Pod might have been killed – if the process exits with code zero when
     // receiving SIGINT, we might not notice if we don't double check this.
-    await this.throwIfPodKilled()
+    await this.throwIfPodKilled(startTime)
 
     if (result.exitCode !== 0) {
       const errorDetails: PodErrorDetails = {
@@ -1101,9 +1101,12 @@ export class PodRunner extends PodRunnerParams {
    *
    * @throws NotFoundError
    */
-  private async throwIfPodKilled(): Promise<void> {
+  private async throwIfPodKilled(afterTime: Date): Promise<void> {
     const events = await getResourceEvents(this.api, this.pod)
-    if (some(events, (event) => event.reason === "Killing")) {
+    if (
+      // If reason is killed and lastTimestamp doesn't exist or is greater than afterTime
+      some(events, (event) => event.reason === "Killing" && (!event.lastTimestamp || event.lastTimestamp > afterTime))
+    ) {
       const details: PodErrorDetails = { podEvents: events }
       throw new NotFoundError("Pod has been killed or evicted.", details)
     }
@@ -1184,7 +1187,7 @@ export class PodRunner extends PodRunnerParams {
   }) {
     // Some types and predicates to identify known errors
     const knownErrorTypes = ["out-of-memory", "not-found", "timeout", "pod-runner", "kubernetes"] as const
-    type KnownErrorType = (typeof knownErrorTypes)[number]
+    type KnownErrorType = typeof knownErrorTypes[number]
     // A known error is always an instance of a subclass of GardenBaseError
     type KnownError = Error & {
       message: string

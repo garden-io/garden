@@ -1,14 +1,13 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Log } from "../logger/log-entry"
+import type { ActionLog, Log } from "../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../plugin-context"
-import { GardenModule, moduleSchema } from "../types/module"
 import { createSchema, joi } from "../config/common"
 import { dedent, deline } from "../util/string"
 import type { BuildAction } from "../actions/build"
@@ -17,6 +16,7 @@ import type { RunAction } from "../actions/run"
 import type { TestAction } from "../actions/test"
 import { NamespaceStatus, namespaceStatusSchema } from "../types/namespace"
 import Joi from "@hapi/joi"
+import { memoize } from "lodash"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>
@@ -55,65 +55,63 @@ export interface ResolvedActionHandlerDescriptions {
 }
 
 // Note: not specifying this further because we will later remove it from the API
-export const logEntrySchema = () =>
+export const logEntrySchema = memoize(() =>
   joi.object().description("Logging context handler that the handler can use to log messages and progress.").required()
+)
 
-export const pluginEventBrokerSchema = () =>
+export const pluginEventBrokerSchema = memoize(() =>
   joi.object().description(deline`
     Event broker that the handler can use to emit events that are handled by the action and/or command that called it.
   `)
+)
 
 // Used by actions that don't belong to a single action config (e.g. environment-, provider- or graph-level actions).
-export const projectActionParamsSchema = () =>
-  joi.object().keys({
+export const projectActionParamsSchema = createSchema({
+  name: "project-action-params",
+  keys: () => ({
     ctx: pluginContextSchema().required(),
     log: logEntrySchema(),
     events: pluginEventBrokerSchema(),
-  })
+  }),
+})
 
-export const actionParamsSchema = () =>
-  projectActionParamsSchema().keys({
+export const actionParamsSchema = createSchema({
+  name: "action-params",
+  extend: projectActionParamsSchema,
+  keys: () => ({
     // TODO: specify the action wrapper class further
     action: joi.object().required(),
-  })
+  }),
+})
 
 export interface PluginBuildActionParamsBase<T extends BuildAction<any, any>> extends PluginActionParamsBase {
+  log: ActionLog
   action: T
 }
 
 export interface PluginDeployActionParamsBase<T extends DeployAction<any, any>> extends PluginActionParamsBase {
+  log: ActionLog
   action: T
 }
 
 export interface PluginRunActionParamsBase<T extends RunAction<any, any>> extends PluginActionParamsBase {
+  log: ActionLog
   action: T
 }
 
 export interface PluginTestActionParamsBase<T extends TestAction<any, any>> extends PluginActionParamsBase {
+  log: ActionLog
   action: T
 }
 
-/**
- * START LEGACY
- */
-export interface PluginModuleActionParamsBase<T extends GardenModule = GardenModule> extends PluginActionParamsBase {
-  module: T
-}
-export const moduleActionParamsSchema = () =>
-  actionParamsSchema().keys({
-    module: moduleSchema(),
-  })
-/**
- * END LEGACY
- */
-
 export const runBaseParams = () => ({
   interactive: joi.boolean().description("Whether to run interactively (i.e. attach to the terminal)."),
-  silent: joi.boolean().description("Set to false if the output should not be logged to the console."),
-  timeout: joi.number().optional().description("If set, how long to run the command before timing out."),
+  silent: joi.boolean().description("Set to false if no output should be logged."),
+  timeout: joi.number().required().description("If set, how long to run the command before timing out."),
+  artifactsPath: artifactsPathSchema(),
 })
 
-// TODO-G2: update this schema in 0.13
+// TODO-0.13.0: update this schema in 0.13.0
 export interface RunResult {
   success: boolean
   exitCode?: number
@@ -126,19 +124,20 @@ export interface RunResult {
 
 export const runResultSchema = createSchema({
   name: "run-result",
-  keys: {
+  keys: () => ({
     success: joi.boolean().required().description("Whether the module was successfully run."),
     exitCode: joi.number().integer().description("The exit code of the run (if applicable)."),
     startedAt: joi.date().required().description("When the module run was started."),
     completedAt: joi.date().required().description("When the module run was completed."),
     log: joi.string().allow("").default("").description("The output log from the run."),
     namespaceStatus: namespaceStatusSchema().optional(),
-  },
+  }),
   allowUnknown: true,
 })
 
-export const artifactsPathSchema = () =>
+export const artifactsPathSchema = memoize(() =>
   joi.string().required().description("A directory path where the handler should write any exported artifacts to.")
+)
 
 export type RunState = "outdated" | "unknown" | "running" | "succeeded" | "failed" | "not-implemented"
 

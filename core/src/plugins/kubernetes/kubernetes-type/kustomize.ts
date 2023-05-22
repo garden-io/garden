@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,7 +23,7 @@ export const kustomizeSpecSchema = () =>
         .default(".")
         .allow(null)
         .description(
-          "The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module root. Defaults to the module root. If you set this to null, kustomize will not be run."
+          "The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the action root. Defaults to the action root. If you set this to null, kustomize will not be run."
         ),
       extraArgs: joiSparseArray(joi.string()).description(
         "A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output' is not allowed."

@@ -12,7 +12,7 @@ type: container
 
 build: backend
 
-# You can specify variables here at the module level
+# You can specify variables here at the action level
 variables:
   ingressPath: /hello-backend
 
@@ -33,7 +33,7 @@ spec:
 ---
 
 kind: Run
-name: backend-test
+name: backend-run-task
 type: container
 build: backend
 spec:

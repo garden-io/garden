@@ -7,11 +7,11 @@ tocTitle: "`hadolint`"
 
 ## Description
 
-This provider creates a [`hadolint`](../action-types/Test/hadolint.md) Test action type, and (by default) generates one such action for each `container` module that contains a Dockerfile in your project. Each module creates a single test that runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to ensure that the Dockerfile is valid and follows best practices.
+This provider creates a [`hadolint`](../action-types/Test/hadolint.md) Test action type, and (by default) generates one such action for each `container` Build that contains a Dockerfile in your project. Each Test runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to ensure that the Dockerfile is valid and follows best practices.
 
-To configure `hadolint`, you can use `.hadolint.yaml` config files. For each test, we first look for one in the relevant module root. If none is found there, we check the project root, and if none is there we fall back to default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
+To configure `hadolint`, you can use `.hadolint.yaml` config files. For each Test, we first look for one in the relevant action's root. If none is found there, we check the project root, and if none is there we fall back to default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
-See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the [hadolint example project](https://github.com/garden-io/garden/tree/0.12.51/examples/hadolint) for a usage example.
+See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the [hadolint example project](https://github.com/garden-io/garden/tree/0.12.56/examples/hadolint) for a usage example.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
@@ -33,7 +33,7 @@ providers:
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
 
-    # By default, the provider automatically creates a `hadolint` module for every `container` module in your
+    # By default, the provider automatically creates a `hadolint` Test for every `container` Build in your
     # project. Set this to `false` to disable this behavior.
     autoInject: true
 
@@ -107,7 +107,7 @@ providers:
 
 [providers](#providers) > autoInject
 
-By default, the provider automatically creates a `hadolint` module for every `container` module in your
+By default, the provider automatically creates a `hadolint` Test for every `container` Build in your
 project. Set this to `false` to disable this behavior.
 
 | Type      | Default | Required |

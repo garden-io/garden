@@ -143,6 +143,36 @@ You can e.g. use the Chrome DevTools to inspect the code at the breakpoint:
 
 You should now be able to inspect the code at run time in the **Console** tab of the DevTools window.
 
+### Release binaries and Docker containers
+
+You can build the release binaries using the command
+
+```
+yarn dist
+```
+
+You can then find the release binaries and archives under `dist/`.
+
+We release a number of Docker containers on [Docker Hub](https://hub.docker.com/u/gardendev).
+
+The Docker containers meant to be used directly by the general public are defined in `support/docker-bake.hcl`.
+
+When making changes to the `Dockerfile` definitions in `support/` it is helpful to build the containers on your local machine.
+
+For that, first run `yarn dist`, and then run `docker buildx bake` like so:
+
+```
+MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
+    docker buildx bake -f support/docker-bake.hcl all
+```
+
+The environment variables will influence the tags that `buildx bake` will create on your local machine (e.g. stable release tags, prerelease tags, version number, etc.).
+
+To run the tests on your local machine, first run `yarn dist` (if not already done so), and then run
+```
+bash support/docker-bake-test.sh
+```
+
 ### Tests
 
 Unit tests are run using `mocha` via `yarn test` from the directory of the package you want to test. To run a specific test, you can grep the test description with the `-g` flag.:

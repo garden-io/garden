@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -49,7 +49,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     }
 
     // There's one service on helm modules expect when skipDeploy = true
-    const service: (typeof services)[0] | undefined = services[0]
+    const service: typeof services[0] | undefined = services[0]
 
     // The helm Deploy type does not support the `base` field. We handle the field here during conversion,
     // for compatibility.
@@ -96,13 +96,12 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         disabled: task.disabled,
         build: dummyBuild?.name,
         dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
-        timeout: task.spec.timeout || undefined,
+        timeout: task.spec.timeout,
         spec: {
           ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
           namespace,
           releaseName,
-          timeout,
           values,
           valueFiles,
           chart,
@@ -126,13 +125,12 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         disabled: test.disabled,
         build: dummyBuild?.name,
         dependencies: prepareRuntimeDependencies(test.config.dependencies, dummyBuild),
-        timeout: test.spec.timeout || undefined,
+        timeout: test.spec.timeout,
         spec: {
           ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
           namespace,
           releaseName,
-          timeout,
           values,
           valueFiles,
           chart,
@@ -207,13 +205,13 @@ function prepareDeployAction({
     disabled: module.spec.skipDeploy,
     build: dummyBuild?.name,
     dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
+    timeout: module.spec.timeout,
 
     spec: {
-      atomicInstall: module.spec.atomicInstall,
+      atomic: module.spec.atomicInstall,
       portForwards: module.spec.portForwards,
       namespace: module.spec.namespace,
       releaseName: module.spec.releaseName,
-      timeout: module.spec.timeout,
       values: module.spec.values,
       valueFiles: module.spec.valueFiles,
 
@@ -233,10 +231,12 @@ function prepareDeployAction({
     deployAction.spec.chart!.path = baseModule.spec.chartPath
   }
 
-  if (serviceResource?.containerModule) {
-    const build = convertBuildDependency(serviceResource.containerModule)
-    // TODO-G2: make this implicit
-    deployAction.dependencies?.push(build)
+  if (serviceResource) {
+    if (serviceResource.containerModule) {
+      const build = convertBuildDependency(serviceResource.containerModule)
+      deployAction.dependencies?.push(build)
+    }
+    deployAction.spec.defaultTarget = convertServiceResource(module, serviceResource) || undefined
   }
 
   return deployAction

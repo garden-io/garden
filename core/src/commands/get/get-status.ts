@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,11 +7,11 @@
  */
 
 import Bluebird from "bluebird"
-import { fromPairs } from "lodash"
+import { fromPairs, omit } from "lodash"
 import { deepFilter } from "../../util/objects"
 import { Command, CommandResult, CommandParams } from "../base"
 import { ResolvedConfigGraph } from "../../graph/config-graph"
-import { Log } from "../../logger/log-entry"
+import { createActionLog, Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import { deline } from "../../util/string"
 import { EnvironmentStatusMap } from "../../plugin/handlers/Provider/getEnvironmentStatus"
@@ -24,6 +24,7 @@ import { getRunResultSchema, RunStatusMap } from "../../plugin/handlers/Run/get-
 import { DeployStatusMap, getDeployStatusSchema } from "../../plugin/handlers/Deploy/get-status"
 import { ActionRouter } from "../../router/router"
 import { sanitizeValue } from "../../util/logging"
+import { BooleanParameter } from "../../cli/params"
 
 // Value is "completed" if the test/task has been run for the current version.
 export interface StatusCommandResult {
@@ -36,11 +37,30 @@ export interface StatusCommandResult {
   }
 }
 
+const getStatusOpts = {
+  "skip-detail": new BooleanParameter({
+    help: deline`
+      Skip plugin specific details. Only applicable when using the --output=json|yaml option.
+      Useful for trimming down the output.
+    `,
+  }),
+  "only-deploys": new BooleanParameter({
+    hidden: true,
+    help: deline`
+      [INTERNAL]: Only return statuses of deploy actions. Currently only used by Cloud and Desktop apps.
+      Will be replaced by a new, top level \`garden status\` command.
+    `,
+  }),
+}
+
+type Opts = typeof getStatusOpts
+
 export class GetStatusCommand extends Command {
   name = "status"
   help = "Outputs the full status of your project/environment and all actions."
 
-  streamEvents = true
+  streamEvents = false
+  options = getStatusOpts
 
   outputsSchema = () =>
     joi.object().keys({
@@ -55,24 +75,36 @@ export class GetStatusCommand extends Command {
       }),
     })
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Get status", "📟")
+  printHeader({ log }) {
+    printHeader(log, "Get status", "📟")
   }
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult<StatusCommandResult>> {
+  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<StatusCommandResult>> {
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
 
-    const envStatus = await garden.getEnvironmentStatus(log)
-
-    let result: StatusCommandResult = {
-      providers: envStatus,
-      actions: await Bluebird.props({
-        Build: getBuildStatuses(router, graph, log),
-        Deploy: router.getDeployStatuses({ log, graph }),
-        Test: getTestStatuses(router, graph, log),
-        Run: getRunStatuses(router, graph, log),
-      }),
+    let result: StatusCommandResult
+    if (opts["only-deploys"]) {
+      result = {
+        providers: {},
+        actions: await Bluebird.props({
+          Build: {},
+          Deploy: router.getDeployStatuses({ log, graph }),
+          Test: {},
+          Run: {},
+        }),
+      }
+    } else {
+      const envStatus = await garden.getEnvironmentStatus(log)
+      result = {
+        providers: envStatus,
+        actions: await Bluebird.props({
+          Build: getBuildStatuses(router, graph, log),
+          Deploy: router.getDeployStatuses({ log, graph }),
+          Test: getTestStatuses(router, graph, log),
+          Run: getRunStatuses(router, graph, log),
+        }),
+      }
     }
 
     const deployStatuses = result.actions.Deploy
@@ -91,6 +123,20 @@ export class GetStatusCommand extends Command {
       }
     }
 
+    // We only skip detail for Deploy actions. Note that this is mostly used internally and that this command
+    // will be replaced by a top-level "garden status" command. For that one we'll probably wan to pass the
+    // --skip-detail flag to the plugin handlers.
+    if (opts["skip-detail"]) {
+      const deployActions = Object.entries(result.actions["Deploy"]).reduce((acc, val) => {
+        const [name, status] = val
+        const statusWithOutDetail = omit(status, "detail.detail")
+        acc[name] = statusWithOutDetail
+
+        return acc
+      }, {} as StatusCommandResult["actions"]["Deploy"])
+      result["actions"]["Deploy"] = deployActions
+    }
+
     // TODO: we should change the status format because this will remove services called "detail"
     const sanitized = sanitizeValue(deepFilter(result, (_, key) => key !== "executedAction"))
 
@@ -106,7 +152,8 @@ async function getBuildStatuses(router: ActionRouter, graph: ResolvedConfigGraph
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const { result } = await router.build.getStatus({ action, log, graph })
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const { result } = await router.build.getStatus({ action, log: actionLog, graph })
       return [action.name, result]
     })
   )
@@ -117,7 +164,8 @@ async function getTestStatuses(router: ActionRouter, graph: ResolvedConfigGraph,
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const { result } = await router.test.getResult({ action, log, graph })
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const { result } = await router.test.getResult({ action, log: actionLog, graph })
       return [action.name, result]
     })
   )
@@ -128,7 +176,8 @@ async function getRunStatuses(router: ActionRouter, graph: ResolvedConfigGraph, 
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const { result } = await router.run.getResult({ action, log, graph })
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const { result } = await router.run.getResult({ action, log: actionLog, graph })
       return [action.name, result]
     })
   )

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -39,6 +39,7 @@ function convertArgSpec(spec: CustomCommandOption) {
     name: spec.name,
     help: spec.description,
     required: spec.required,
+    spread: true,
   }
 
   if (spec.type === "string") {
@@ -76,10 +77,9 @@ export class CustomCommandWrapper extends Command {
   isCustom = true
 
   allowUndefinedArguments = true
-  noProject = true
 
   constructor(public spec: CommandResource) {
-    super()
+    super(spec)
     this.name = spec.name
     this.help = spec.description?.short
     this.description = spec.description?.long
@@ -89,8 +89,8 @@ export class CustomCommandWrapper extends Command {
     this.options = mapValues(keyBy(spec.opts, "name"), convertArgSpec)
   }
 
-  printHeader({ headerLog }: PrintHeaderParams) {
-    headerLog.info(chalk.cyan(this.name))
+  printHeader({ log }: PrintHeaderParams) {
+    log.info(chalk.cyan(this.name))
   }
 
   async action({ garden, cli, log, args, opts }: CommandParams<any, any>): Promise<CommandResult<CustomCommandResult>> {

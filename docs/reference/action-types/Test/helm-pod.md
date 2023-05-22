@@ -23,9 +23,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -46,8 +43,8 @@ description:
 # For `source.repository` behavior, please refer to the [Remote Sources
 # guide](https://docs.garden.io/advanced/using-remote-sources).
 source:
-  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is
-  # ina git repository!
+  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in
+  # a git repository!
   path:
 
   # When set, Garden will import the action source from this repository, but use this action configuration (and not
@@ -153,12 +150,12 @@ build:
 kind:
 
 # Set a timeout for the test to complete, in seconds.
-timeout:
+timeout: 600
 
 spec:
-  # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your
-  # project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version
-  # changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+  # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
+  # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
+  # changes, or when you run `garden run`.
   cacheResult: true
 
   # The command/entrypoint used to run inside the container.
@@ -202,7 +199,7 @@ spec:
   #
   # One of `chart.name`, `chart.path` or `chart.url` must be specified.
   chart:
-    # A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain
+    # A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain
     # the Helm chart itself.
     name:
 
@@ -287,14 +284,6 @@ spec:
 
 ## Configuration Keys
 
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
-
 ### `type`
 
 The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be defined by your configured providers.
@@ -337,7 +326,7 @@ For `source.repository` behavior, please refer to the [Remote Sources guide](htt
 
 [source](#source) > path
 
-A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!
+A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!
 
 | Type        | Required |
 | ----------- | -------- |
@@ -508,9 +497,9 @@ This would mean that instead of looking for manifest files relative to this acti
 
 Set a timeout for the test to complete, in seconds.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `spec`
 
@@ -522,7 +511,7 @@ Set a timeout for the test to complete, in seconds.
 
 [spec](#spec) > cacheResult
 
-Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
+Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -683,7 +672,7 @@ One of `chart.name`, `chart.path` or `chart.url` must be specified.
 
 [spec](#spec) > [chart](#specchart) > name
 
-A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain the Helm chart itself.
+A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain the Helm chart itself.
 
 | Type     | Required |
 | -------- | -------- |
@@ -863,7 +852,7 @@ Time in seconds to wait for Helm to render templates.
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `helm-pod`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

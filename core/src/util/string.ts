@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,6 +22,10 @@ export const dedent = _dedent
 export const deline = _deline
 export const urlJoin = _urlJoin as (...args: string[]) => string
 export const stableStringify = _stableStringify
+
+// helper to enforce annotating images that we bundle with
+// Garden to include the sha256 digest for extra security.
+export type DockerImageWithDigest = `${string}:${string}@sha256:${string}`
 
 const gardenAnnotationPrefix = "garden.io/"
 
@@ -75,7 +79,10 @@ export function base64(str: string) {
  * Returns an array of strings, joined together as a string in a natural language manner.
  * Example: `naturalList(["a", "b", "c"])` -> `"a, b and c"`
  */
-export function naturalList(list: string[], trailingWord = "and") {
+export function naturalList(list: string[], { trailingWord = "and", quote = false } = {}) {
+  if (quote) {
+    list = list.map((s) => "'" + s + "'")
+  }
   if (list.length === 0) {
     return ""
   } else if (list.length === 1) {

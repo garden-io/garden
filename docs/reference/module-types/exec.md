@@ -5,6 +5,10 @@ tocTitle: "`exec`"
 
 # `exec` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 A general-purpose module for executing commands in your shell. This can be a useful escape hatch if no other module type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
@@ -29,9 +33,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 kind: Module
 
 # The type of this module.
@@ -57,7 +58,7 @@ build:
           target:
 
   # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
+  timeout: 600
 
   # The command to run to perform the build.
   #
@@ -103,8 +104,8 @@ include:
 # Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-# directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+# Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+# directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
 # directories that should not be watched for changes.
 exclude:
 
@@ -224,7 +225,7 @@ services:
     cleanupCommand:
 
     # The maximum duration (in seconds) to wait for a local script to exit.
-    timeout:
+    timeout: 600
 
     # Environment variables to set when running the deploy and status commands.
     env: {}
@@ -280,7 +281,7 @@ tasks:
     disabled: false
 
     # Maximum duration (in seconds) of the task's execution.
-    timeout: null
+    timeout: 600
 
     # A list of artifacts to copy after the task run.
     artifacts:
@@ -316,7 +317,7 @@ tests:
     disabled: false
 
     # Maximum duration (in seconds) of the test run.
-    timeout: null
+    timeout: 600
 
     # The command to run to test the module.
     #
@@ -338,14 +339,6 @@ tests:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 ### `kind`
 
@@ -457,7 +450,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `build.command[]`
 
@@ -529,7 +522,7 @@ Specify a list of POSIX-style paths or glob patterns that should be excluded fro
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
-Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large directories that should not be watched for changes.
+Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -765,9 +758,9 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 
 The maximum duration (in seconds) to wait for a local script to exit.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `services[].env`
 
@@ -892,7 +885,7 @@ Maximum duration (in seconds) of the task's execution.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `null`  | No       |
+| `number` | `600`   | No       |
 
 ### `tasks[].artifacts[]`
 
@@ -996,7 +989,7 @@ Maximum duration (in seconds) of the test run.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `null`  | No       |
+| `number` | `600`   | No       |
 
 ### `tests[].command[]`
 

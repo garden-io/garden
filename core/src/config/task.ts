@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,6 +9,7 @@
 import { joiUserIdentifier, joi, joiSparseArray, createSchema } from "./common"
 import { deline, dedent } from "../util/string"
 import { memoize } from "lodash"
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../constants"
 
 export interface TaskSpec {}
 
@@ -17,7 +18,7 @@ export interface BaseTaskSpec extends TaskSpec {
   dependencies: string[]
   description?: string
   disabled: boolean
-  timeout: number | null
+  timeout: number
 }
 
 export const cacheResultSchema = memoize(() =>
@@ -54,9 +55,9 @@ export const baseTaskSpecSchema = createSchema({
       ),
     timeout: joi
       .number()
-      .optional()
-      .allow(null)
-      .default(null)
+      .integer()
+      .min(1)
+      .default(DEFAULT_RUN_TIMEOUT_SEC)
       .description("Maximum duration (in seconds) of the task's execution."),
   }),
 })

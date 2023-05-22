@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,14 +19,14 @@ import { expect } from "chai"
 import { getContainerTestGarden } from "../container"
 import { containerHelpers } from "../../../../../../../src/plugins/container/helpers"
 import { k8sPublishContainerBuild } from "../../../../../../../src/plugins/kubernetes/container/publish"
-import { Log } from "../../../../../../../src/logger/log-entry"
+import { ActionLog, createActionLog } from "../../../../../../../src/logger/log-entry"
 import { cloneDeep } from "lodash"
 import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
 import { BuildTask } from "../../../../../../../src/tasks/build"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
-  let log: Log
+  let log: ActionLog
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext
@@ -36,14 +36,14 @@ describe("kubernetes build flow", () => {
 
   after(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 
   const init = async (environmentName: string) => {
     currentEnv = environmentName
     garden = await getContainerTestGarden(environmentName)
-    log = garden.log
+    log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -280,7 +280,7 @@ describe("kubernetes build flow", () => {
       const action = graph.getBuild("simple-service")
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
-      action.getConfig().spec.image = "skee-ba-dee-skoop"
+      action["_config"].spec.image = "skee-ba-dee-skoop"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -366,7 +366,7 @@ describe("kubernetes build flow", () => {
       const action = graph.getBuild("simple-service")
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
-      action.getConfig().spec.image = "skee-ba-dee-skoop"
+      action["_config"].spec.image = "skee-ba-dee-skoop"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,

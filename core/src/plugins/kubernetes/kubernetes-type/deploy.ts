@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,7 +22,7 @@ import {
 import { ConfigurationError } from "../../../exceptions"
 import { uniq } from "lodash"
 import { DOCS_BASE_URL } from "../../../constants"
-import { kubernetesStartSync } from "./sync"
+import { kubernetesGetSyncStatus, kubernetesStartSync } from "./sync"
 import { k8sContainerStopSync } from "../container/sync"
 
 export const kubernetesDeployDocs = dedent`
@@ -73,6 +73,7 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
 
     startSync: kubernetesStartSync,
     stopSync: k8sContainerStopSync,
+    getSyncStatus: kubernetesGetSyncStatus,
 
     getPortForward: async (params) => {
       const { ctx, log, action } = params

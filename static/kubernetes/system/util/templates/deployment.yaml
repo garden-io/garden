@@ -28,7 +28,7 @@ spec:
                 path: config.json
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.name }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/bin/sh", "-ec", "while :; do echo '.'; sleep 5 ; done"]
           volumeMounts:

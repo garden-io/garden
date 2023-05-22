@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,7 +21,7 @@ import { splitLast } from "../util/string"
 import type { ResolveActionTask } from "./resolve-action"
 
 // NOTE: This is necessary to avoid circular imports.
-// TODO-G2B: There may be better solutions
+// TODO: There may be better solutions
 const importLazy = require("import-lazy")(require)
 const build = importLazy("./build")
 const deploy = importLazy("./deploy")

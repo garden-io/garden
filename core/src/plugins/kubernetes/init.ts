@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,6 +13,7 @@ import {
   deleteNamespaces,
   getSystemNamespace,
   getAppNamespaceStatus,
+  clearNamespaceCache,
 } from "./namespace"
 import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config"
 import { prepareSystemServices, getSystemServiceStatus, getSystemGarden } from "./system"
@@ -23,12 +24,6 @@ import { millicpuToString, megabytesToString } from "./util"
 import chalk from "chalk"
 import { deline, dedent, gardenAnnotationKey } from "../../util/string"
 import { combineStates, DeployState } from "../../types/service"
-import {
-  setupCertManager,
-  checkCertManagerStatus,
-  checkCertificateStatusByName,
-  getCertificateName,
-} from "./integrations/cert-manager"
 import { ConfigurationError } from "../../exceptions"
 import Bluebird from "bluebird"
 import { readSecret } from "./secrets"
@@ -78,7 +73,7 @@ export async function getEnvironmentStatus({
 
   const namespaces = await prepareNamespaces({ ctx, log })
   const systemServiceNames = k8sCtx.provider.config._systemServices
-  const systemNamespace = await getSystemNamespace(ctx, k8sCtx.provider, log)
+  const systemNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
 
   const detail: KubernetesEnvironmentDetail = {
     deployStatuses: {},
@@ -95,7 +90,7 @@ export async function getEnvironmentStatus({
     log,
     api
   )
-  ingressWarnings.forEach((w) => log.warn({ symbol: "warning", msg: chalk.yellow(w) }))
+  ingressWarnings.forEach((w) => log.warn(w))
 
   const namespaceNames = mapValues(namespaces, (s) => s.namespaceName)
   const result: KubernetesEnvironmentStatus = {
@@ -118,41 +113,6 @@ export async function getEnvironmentStatus({
 
   const variables = getKubernetesSystemVariables(provider.config)
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
-
-  if (provider.config.certManager) {
-    const certManagerStatus = await checkCertManagerStatus({ ctx, provider, log })
-
-    // A running cert-manager installation couldn't be found.
-    if (certManagerStatus !== "ready") {
-      if (!provider.config.certManager.install) {
-        // Cert manager installation couldn't be found AND user doesn't want to let garden install it.
-        throw new ConfigurationError(
-          deline`
-          Couldn't find a running installation of cert-manager in namespace "cert-manager".
-          Please set providers[].certManager.install == true or install cert-manager manually.
-        `,
-          {}
-        )
-      } else {
-        // garden will proceed with intstallation and certificate creation.
-        result.ready = false
-        detail.systemCertManagerReady = false
-        detail.systemManagedCertificatesReady = false
-      }
-    } else {
-      // A running cert-manager installation has been found and we can safely check for the status of the certificates.
-      const certManager = provider.config.certManager
-      const certificateNames = provider.config.tlsCertificates
-        .filter((cert) => cert.managedBy === "cert-manager")
-        .map((cert) => getCertificateName(certManager, cert))
-      const certificatesStatus = await checkCertificateStatusByName({ ctx, log, provider, resources: certificateNames })
-      if (!certificatesStatus) {
-        // Some certificates are not ready/created and will be taken care of by the integration.
-        result.ready = false
-        detail.systemManagedCertificatesReady = false
-      }
-    }
-  }
 
   // Check if builder auth secret is up-to-date
   let secretsUpToDate = true
@@ -190,7 +150,7 @@ export async function getIngressMisconfigurationWarnings(
   ingressApiVersion: string | undefined,
   log: Log,
   api: KubeApi
-): Promise<String[]> {
+): Promise<string[]> {
   if (!customIngressClassName) {
     return []
   }
@@ -228,7 +188,6 @@ export async function prepareEnvironment(
   // Prepare system services
   await prepareSystem({ ...params, clusterInit: false })
   const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
-  await setupCertManager({ ctx: k8sCtx, provider: k8sCtx.provider, log, status })
 
   return { status: { namespaceStatuses: [ns], ready: true, outputs: status.outputs } }
 }
@@ -293,13 +252,10 @@ export async function prepareSystem({
       // If system services are outdated but none are *missing*, we warn instead of flagging as not ready here.
       // This avoids blocking users where there's variance in configuration between users of the same cluster,
       // that often doesn't affect usage.
-      log.warn({
-        symbol: "warning",
-        msg: chalk.gray(deline`
-          One or more cluster-wide system services are outdated or their configuration does not match your current
-          configuration. You may want to run ${initCommand} to update them, or contact a cluster admin to do so.
-        `),
-      })
+      log.warn(deline`
+        One or more cluster-wide system services are outdated or their configuration does not match your current
+        configuration. You may want to run ${initCommand} to update them, or contact a cluster admin to do so.
+      `)
 
       return {}
     }
@@ -307,7 +263,7 @@ export async function prepareSystem({
 
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
   const sysProvider = <KubernetesProvider>await sysGarden.resolveProvider(log, provider.name)
-  const systemNamespace = await getSystemNamespace(ctx, sysProvider, log)
+  const systemNamespace = await getSystemNamespace(k8sCtx, sysProvider, log)
   const sysApi = await KubeApi.factory(log, ctx, sysProvider)
 
   await sysGarden.clearBuilds()
@@ -369,11 +325,14 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
 
   const entry = log
     .createLog({
-      section: "kubernetes",
+      name: "kubernetes",
     })
     .info(`Deleting ${nsDescription} (this may take a while)`)
 
   await deleteNamespaces(<string[]>namespacesToDelete, api, entry)
+
+  // Since we've deleted one or more namespaces, we invalidate the NS cache for this provider instance.
+  clearNamespaceCache(provider)
 
   return { namespaceStatuses: [{ namespaceName: namespace, state: "missing", pluginName: provider.name }] }
 }

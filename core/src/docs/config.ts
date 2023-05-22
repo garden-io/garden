@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,7 +13,7 @@ import { resolve } from "path"
 import { projectSchema } from "../config/project"
 import { get, isFunction, isString } from "lodash"
 import handlebars = require("handlebars")
-import { joi, JoiDescription } from "../config/common"
+import { JoiDescription } from "../config/common"
 import { STATIC_DIR } from "../constants"
 import {
   indent,
@@ -433,10 +433,7 @@ export function renderTemplateStringReference({
 
 export function renderProjectConfigReference(opts: RenderConfigOpts = {}) {
   return renderConfigReference(
-    projectSchema().keys({
-      // Hide this from docs until we actually use it
-      apiVersion: joi.string().meta({ internal: true }),
-    }),
+    projectSchema(),
     opts
   )
 }

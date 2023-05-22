@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,13 +7,12 @@
  */
 
 import { expect } from "chai"
-import { getLogger, Logger, LogLevel } from "../../../../src/logger/logger"
+import { getRootLogger, Logger, LogLevel, RootLogger } from "../../../../src/logger/logger"
 import { LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream"
 import { freezeTime } from "../../../helpers"
 import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
-import chalk from "chalk"
 
-const logger: Logger = getLogger()
+const logger: Logger = getRootLogger()
 
 describe("Logger", () => {
   beforeEach(() => {
@@ -34,11 +33,10 @@ describe("Logger", () => {
     describe("log", () => {
       it("should emit a loggerEvent event when an entry is created", () => {
         const now = freezeTime()
-        const log = logger.createLog()
+        const log = logger.createLog({ name: "log-context-name" })
         log.info({
           msg: "hello",
-          section: "80",
-          symbol: "info",
+          symbol: "success",
           data: { foo: "bar" },
           dataFormat: "json",
           metadata: {
@@ -50,15 +48,21 @@ describe("Logger", () => {
         const e = logWriterEvents[0]
         expect(logWriterEvents.length).to.eql(1)
         expect(e).to.eql({
+          $context: {},
           key: e.key,
           timestamp: now.toISOString(),
           level: 2,
           message: {
             msg: "hello",
-            section: "80",
-            symbol: "info",
+            section: "log-context-name",
+            symbol: "success",
             dataFormat: "json",
             data: { foo: "bar" },
+          },
+          context: {
+            name: "log-context-name",
+            origin: undefined,
+            type: "coreLog",
           },
           metadata: {
             workflowStep: {
@@ -79,15 +83,16 @@ describe("Logger", () => {
       log.debug("debug")
       log.silly("silly")
 
-      expect(logger.entries).to.have.lengthOf(6)
-      const messages = logger.entries.map((e) => e.msg)
-      expect(messages).to.eql([chalk.red("error"), "warn", "info", "verbose", "debug", "silly"])
+      const entries = logger.getLogEntries()
+      expect(entries).to.have.lengthOf(6)
+      const messages = entries.map((e) => e.msg)
+      expect(messages).to.eql(["error", "warn", "info", "verbose", "debug", "silly"])
     })
     it("should not store entries if storeEntries=false", () => {
-      const logWriterB = Logger._createInstanceForTests({
+      const logWriterB = RootLogger._createInstanceForTests({
         level: LogLevel.info,
         writers: {
-          terminal: new QuietWriter({ level: LogLevel.info }),
+          display: new QuietWriter({ level: LogLevel.info }),
           file: [],
         },
         storeEntries: false,
@@ -100,7 +105,7 @@ describe("Logger", () => {
       log.debug("debug")
       log.silly("silly")
 
-      expect(logger.entries).to.eql([])
+      expect(logger.getLogEntries()).to.eql([])
     })
   })
   describe("getLogEntries", () => {

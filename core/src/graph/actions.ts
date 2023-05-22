@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -52,7 +52,7 @@ import {
   resolveTemplateString,
   resolveTemplateStrings,
 } from "../template-string/template-string"
-import { dedent, naturalList } from "../util/string"
+import { dedent, deline, naturalList } from "../util/string"
 import { resolveVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
@@ -60,14 +60,18 @@ import chalk from "chalk"
 import type { MaybeUndefined } from "../util/util"
 import minimatch from "minimatch"
 import { ConfigContext } from "../config/template-contexts/base"
+import { LinkedSource, LinkedSourceMap } from "../config-store/local"
+import { relative } from "path"
+import { profileAsync } from "../util/profiling"
 
-export async function actionConfigsToGraph({
+export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
   garden,
   log,
   groupConfigs,
   configs,
   moduleGraph,
   actionModes,
+  linkedSources,
 }: {
   garden: Garden
   log: Log
@@ -75,6 +79,7 @@ export async function actionConfigsToGraph({
   configs: ActionConfig[]
   moduleGraph: ModuleGraph
   actionModes: ActionModeMap
+  linkedSources: LinkedSourceMap
 }): Promise<MutableConfigGraph> {
   const configsByKey: ActionConfigsByKey = {}
 
@@ -108,7 +113,7 @@ export async function actionConfigsToGraph({
 
   const router = await garden.getActionRouter()
 
-  // TODO-G2: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
+  // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({ actions: [], moduleGraph, groups: groupConfigs })
 
   await Bluebird.map(Object.entries(configsByKey), async ([key, config]) => {
@@ -145,7 +150,7 @@ export async function actionConfigsToGraph({
     }
 
     try {
-      const action = await actionFromConfig({ garden, graph, config, router, log, configsByKey, mode })
+      const action = await actionFromConfig({ garden, graph, config, router, log, configsByKey, mode, linkedSources })
 
       if (!action.supportsMode(mode)) {
         if (explicitMode) {
@@ -168,9 +173,9 @@ export async function actionConfigsToGraph({
   graph.validate()
 
   return graph
-}
+})
 
-export async function actionFromConfig({
+export const actionFromConfig = profileAsync(async function actionFromConfig({
   garden,
   graph,
   config: inputConfig,
@@ -178,6 +183,7 @@ export async function actionFromConfig({
   log,
   configsByKey,
   mode,
+  linkedSources,
 }: {
   garden: Garden
   graph: ConfigGraph
@@ -186,6 +192,7 @@ export async function actionFromConfig({
   log: Log
   configsByKey: ActionConfigsByKey
   mode: ActionMode
+  linkedSources: LinkedSourceMap
 }) {
   let action: Action
 
@@ -200,9 +207,63 @@ export async function actionFromConfig({
   const actionTypes = await garden.getActionTypes()
   const definition = actionTypes[config.kind][config.type]?.spec
   const compatibleTypes = [config.type, ...getActionTypeBases(definition, actionTypes[config.kind]).map((t) => t.name)]
+  const repositoryUrl = config.source?.repository?.url
+  const key = actionReferenceToString(config)
+
+  let linked: LinkedSource | null = null
+  let remoteSourcePath: string | null = null
+  if (repositoryUrl) {
+    if (config.internal.remoteClonePath) {
+      // Carry over clone path from converted module
+      remoteSourcePath = config.internal.remoteClonePath
+    } else {
+      remoteSourcePath = await garden.resolveExtSourcePath({
+        name: key,
+        sourceType: "action",
+        repositoryUrl,
+        linkedSources: Object.values(linkedSources),
+      })
+
+      config.internal.basePath = remoteSourcePath
+    }
+
+    if (linkedSources[key]) {
+      linked = linkedSources[key]
+    }
+  }
+
+  if (!actionTypes[config.kind][config.type]) {
+    const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
+    const availableKinds: ActionKind[] = []
+    actionKinds.forEach((actionKind) => {
+      if (actionTypes[actionKind][config.type]) {
+        availableKinds.push(actionKind)
+      }
+    })
+
+    if (availableKinds.length > 0) {
+      throw new ConfigurationError(
+        deline`
+        Unrecognized ${config.type} action of kind ${config.kind} (defined at ${configPath}).
+        There are no ${config.type} ${config.kind} actions, did you mean to specify a ${naturalList(availableKinds, {
+          trailingWord: "or a",
+        })} action(s)?
+        `,
+        { config, configuredActionTypes: Object.keys(actionTypes) }
+      )
+    }
+
+    throw new ConfigurationError(
+      deline`
+      Unrecognized action type '${config.type}' (defined at ${configPath}).
+      Are you missing a provider configuration?
+      `,
+      { config, configuredActionTypes: Object.keys(actionTypes) }
+    )
+  }
 
   const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
-  const treeVersion = await garden.vcs.getTreeVersion(log, garden.projectName, config)
+  const treeVersion = config.internal.treeVersion || (await garden.vcs.getTreeVersion(log, garden.projectName, config))
 
   const variables = await resolveVariables({
     basePath: config.internal.basePath,
@@ -219,6 +280,8 @@ export async function actionFromConfig({
     projectRoot: garden.projectRoot,
     treeVersion,
     variables,
+    linkedSource: linked,
+    remoteSourcePath,
     moduleName: config.internal.moduleName,
     moduleVersion: config.internal.moduleVersion,
     mode,
@@ -242,7 +305,7 @@ export async function actionFromConfig({
   }
 
   return action
-}
+})
 
 export function actionNameConflictError(configA: ActionConfig, configB: ActionConfig, rootPath: string) {
   return new ConfigurationError(
@@ -335,11 +398,13 @@ export async function executeAction<T extends Action>({
   graph,
   action,
   log,
+  statusOnly,
 }: {
   garden: Garden
   graph: ConfigGraph
   action: T
   log: Log
+  statusOnly?: boolean
 }): Promise<Executed<T>> {
   const task = getExecuteTaskForAction(action, {
     garden,
@@ -348,7 +413,7 @@ export async function executeAction<T extends Action>({
     force: true,
   })
 
-  const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
+  const results = await garden.processTasks({ tasks: [task], log, throwOnError: true, statusOnly })
 
   return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.executedAction)
 }
@@ -386,7 +451,7 @@ function getActionSchema(kind: ActionKind) {
   }
 }
 
-async function preprocessActionConfig({
+const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
   garden,
   config,
   router,
@@ -437,7 +502,7 @@ async function preprocessActionConfig({
 
   function resolveTemplates() {
     // Fully resolve built-in fields that only support ProjectConfigContext
-    // TODO-G2: better error messages when something goes wrong here (missing inputs for example)
+    // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
     const resolvedBuiltin = resolveTemplateStrings(pick(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: false,
     })
@@ -445,7 +510,7 @@ async function preprocessActionConfig({
     const { spec = {}, variables = {} } = config
 
     // Validate fully resolved keys (the above + those that don't allow any templating)
-    // TODO-G2: better error messages when something goes wrong here
+    // TODO-0.13.1: better error messages when something goes wrong here
     config = validateWithPath({
       config: {
         ...config,
@@ -461,19 +526,8 @@ async function preprocessActionConfig({
 
     config = { ...config, variables, spec }
 
-    // TODO-G2: handle this
-    // if (config.repositoryUrl) {
-    //   const linkedSources = await getLinkedSources(garden, "module")
-    //   config.path = await garden.loadExtSourcePath({
-    //     name: config.name,
-    //     linkedSources,
-    //     repositoryUrl: config.repositoryUrl,
-    //     sourceType: "module",
-    //   })
-    // }
-
     // Partially resolve other fields
-    // TODO-G2: better error messages when something goes wrong here (missing inputs for example)
+    // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
     const resolvedOther = resolveTemplateStrings(omit(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: true,
     })
@@ -497,7 +551,7 @@ async function preprocessActionConfig({
   config = updatedConfig
 
   // -> Resolve templates again after configure handler
-  // TODO-G2: avoid this if nothing changed in the configure handler
+  // TODO: avoid this if nothing changed in the configure handler
   try {
     resolveTemplates()
   } catch (error) {
@@ -508,7 +562,7 @@ async function preprocessActionConfig({
   }
 
   return { config, supportedModes, templateContext: builtinFieldContext }
-}
+})
 
 function dependenciesFromActionConfig(
   log: Log,
@@ -539,7 +593,7 @@ function dependenciesFromActionConfig(
   if (config.kind === "Build") {
     // -> Build copyFrom field
     for (const copyFrom of config.copyFrom || []) {
-      // TODO-G2: need to update this for parameterized actions
+      // TODO: need to update this for parameterized actions
       const ref: ActionReference = { kind: "Build", name: copyFrom.build }
       const buildKey = actionReferenceToString(ref)
 

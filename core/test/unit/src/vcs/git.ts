@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -75,7 +75,7 @@ describe("GitHandler", () => {
       projectRoot: tmpPath,
       gardenDirPath: join(tmpPath, ".garden"),
       ignoreFile: defaultIgnoreFilename,
-      cache: garden.cache,
+      cache: garden.treeCache,
     })
     git = (<any>handler).gitCli(log, tmpPath)
   })
@@ -395,7 +395,7 @@ describe("GitHandler", () => {
         projectRoot: tmpPath,
         gardenDirPath: join(tmpPath, ".garden"),
         ignoreFile: "",
-        cache: garden.cache,
+        cache: garden.treeCache,
       })
 
       expect(await _handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])

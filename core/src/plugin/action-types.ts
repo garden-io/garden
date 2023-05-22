@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mapValues } from "lodash"
+import { mapValues, memoize } from "lodash"
 import { outputSchemaDocs, ResolvedActionHandlerDescription } from "./plugin"
 import { ActionTypeHandlerSpec, baseHandlerSchema } from "./handlers/base/base"
 import { DoBuildAction } from "./handlers/Build/build"
@@ -71,7 +71,7 @@ const baseActionTypeClasses = {
   validate: new ValidateAction(),
 }
 
-// TODO-G2: suggest and describe handlers
+// TODO-0.13.1: add suggest handler similar to the one for modules
 const actionTypeClasses = {
   Build: {
     ...baseActionTypeClasses,
@@ -404,11 +404,11 @@ const createActionTypeSchema = (kind: ActionKind) => {
     .description(`Define a ${titleKind} action.`)
 }
 
-export const createActionTypesSchema = () => {
+export const createActionTypesSchema = memoize(() => {
   return joi
     .object()
     .keys(mapValues(actionTypeClasses, (_, k: ActionKind) => joiArray(createActionTypeSchema(k)).unique("name")))
-}
+})
 
 const extendActionTypeSchema = (kind: ActionKind) => {
   const titleKind = titleize(kind)
@@ -423,8 +423,8 @@ const extendActionTypeSchema = (kind: ActionKind) => {
     .description(`Extend a ${titleKind} action.`)
 }
 
-export const extendActionTypesSchema = () => {
+export const extendActionTypesSchema = memoize(() => {
   return joi
     .object()
     .keys(mapValues(actionTypeClasses, (_, k: ActionKind) => joiArray(extendActionTypeSchema(k)).unique("name")))
-}
+})

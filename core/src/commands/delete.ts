@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,8 +19,9 @@ import { uniqByName } from "../util/util"
 import { isDeployAction } from "../actions/deploy"
 import { omit, mapValues } from "lodash"
 import { DeployStatus, DeployStatusMap, getDeployStatusSchema } from "../plugin/handlers/Deploy/get-status"
+import chalk from "chalk"
 
-// TODO-G2 rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
+// TODO: rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {
   name = "cleanup"
   aliases = ["del", "delete"]
@@ -32,7 +33,7 @@ export class DeleteCommand extends CommandGroup {
 const dependantsFirstOpt = {
   "dependants-first": new BooleanParameter({
     help: dedent`
-      Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling \`garden cleanup namespace service-a,service-b --dependants-first\`.
+      Clean up Deploy(s) (or services if using modules) in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling \`garden cleanup namespace service-a,service-b --dependants-first\`.
 
       When this flag is not used, all services in the project are cleaned up simultaneously.
     `,
@@ -77,8 +78,8 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
       ),
     })
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, `Cleanup namespace`, "♻️")
+  printHeader({ log }) {
+    printHeader(log, `Cleanup namespace`, "♻️")
   }
 
   async action({
@@ -97,6 +98,8 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
     log.info("")
 
     const providerStatuses = await actions.provider.cleanupAll(log)
+
+    log.info(chalk.green("\nDone!"))
 
     return {
       result: {
@@ -160,8 +163,8 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
       })
     ).description("A map of statuses for all the deleted deploys.")
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Cleaning up deployment(s)", "♻️")
+  printHeader({ log }) {
+    printHeader(log, "Cleaning up deployment(s)", "♻️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<DeleteDeployArgs, DeleteDeployOpts>): Promise<CommandResult> {
@@ -201,6 +204,8 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
 
     const processed = await garden.processTasks({ tasks, log })
     const result = deletedDeployStatuses(processed.results)
+
+    log.info(chalk.green("\nDone!"))
 
     return { result }
   }

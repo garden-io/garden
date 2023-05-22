@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,6 +20,7 @@ import { addConfig } from "./helpers"
 import { wordWrap } from "../../util/string"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
 import { userPrompt } from "../../util/util"
+import { GardenApiVersion } from "../../constants"
 
 const ignorefileName = ".gardenignore"
 const defaultIgnorefile = dedent`
@@ -86,13 +87,17 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
   arguments = createProjectArgs
   options = createProjectOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Create new project", "✏️")
+  printHeader({ log }) {
+    printHeader(log, "Create new project", "✏️")
   }
 
   // Defining it like this because it'll stall on waiting for user input.
-  isPersistent() {
+  maybePersistent() {
     return true
+  }
+
+  allowInDevCommand() {
+    return false
   }
 
   async action({
@@ -141,6 +146,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
         presetValues: {
           kind: "Project",
           name,
+          apiVersion: GardenApiVersion.v1,
           environments: [{ name: "default" }],
           providers: [{ name: "local-kubernetes" }],
         },
@@ -191,15 +197,14 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     const configFilesUrl = chalk.cyan.underline("https://docs.garden.io/using-garden/configuration-overview")
     const referenceUrl = chalk.cyan.underline(projectReferenceURL)
 
-    log.info({
-      symbol: "info",
-      msg: wordWrap(
+    log.info(
+      wordWrap(
         dedent`
         For more information about Garden configuration files, please check out ${configFilesUrl}, and for a detailed reference, take a look at ${referenceUrl}.
         `,
         120
-      ),
-    })
+      )
+    )
 
     log.info("")
 

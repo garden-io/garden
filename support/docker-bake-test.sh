@@ -1,0 +1,224 @@
+#!/bin/bash
+
+set -e -o pipefail
+
+# Bash test framework. Sorry :D
+fail() {
+  echo "FAIL: $@"
+  exit 1
+}
+
+tag_exists() {
+  image=$1
+  tag=$2
+
+  docker image ls "$image" | grep "$tag" > /dev/null
+}
+
+should_exist() {
+  if tag_exists $@; then
+    echo "OK: $image:$tag exists"
+  else
+    fail "$image: tag \"$tag\" should exist"
+  fi
+}
+
+should_not_exist() {
+  if tag_exists $@; then
+    fail "$image: tag \"$tag\" should not exist"
+  else
+    echo "OK: $image:$tag does not exist"
+  fi
+}
+
+run_binary() {
+  binary=$1
+  command=$2
+  image=$3
+
+  docker run --platform=linux/amd64 --rm -it --entrypoint=$binary $image $command
+}
+
+should_succeed() {
+  if run_binary $@; then
+    echo "OK: command run_binary $@ succeeded as expected"
+  else
+    fail "command run_binary $@ should have succeeded"
+  fi
+}
+
+should_fail() {
+  if run_binary $@; then
+    fail "command run_binary $@ should have failed"
+  else
+    echo "OK: command run_binary $@ failed as expected"
+  fi
+}
+
+before_each() {
+  # Clean all docker image tags
+  docker images --format "{{.Repository}}:{{.Tag}}" | xargs docker rmi -f  || true
+}
+
+TEST() {
+  echo "TEST: $@"
+  before_each
+}
+
+TEST "test cloud provider tool availability"
+  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
+    docker buildx bake --progress=plain -f support/docker-bake.hcl alpine
+
+  # aws
+  for variant in bonsai-alpine{,-rootless}
+    do
+    should_succeed aws --version gardendev/garden-aws-gcloud-azure:$variant
+    should_succeed aws --version gardendev/garden-aws-gcloud:$variant
+    should_succeed aws --version gardendev/garden-aws:$variant
+    should_fail aws --version gardendev/garden:$variant
+    should_fail aws --version gardendev/garden-gcloud:$variant
+    should_fail aws --version gardendev/garden-azure:$variant
+
+    # Gcloud
+    should_succeed gcloud version gardendev/garden-aws-gcloud-azure:$variant
+    should_succeed gcloud version gardendev/garden-aws-gcloud:$variant
+    should_succeed gcloud version gardendev/garden-gcloud:$variant
+    should_fail gcloud version gardendev/garden:$variant
+    should_fail gcloud version gardendev/garden-azure:$variant
+    should_fail gcloud version gardendev/garden-aws:$variant
+
+    # Azure
+    should_succeed az version gardendev/garden-aws-gcloud-azure:$variant
+    should_succeed az version gardendev/garden-azure:$variant
+    should_fail az version gardendev/garden:$variant
+    should_fail az version gardendev/garden-gcloud:$variant
+    should_fail az version gardendev/garden-aws:$variant
+    should_fail az version gardendev/garden-aws-gcloud:$variant
+  done
+
+TEST "run all binaries"
+  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
+    docker buildx bake --progress=plain -f support/docker-bake.hcl all
+
+  for variant in bonsai-buster{,-rootless} bonsai-alpine{,-rootless}
+    do
+    # Garden on vanilla images
+    should_succeed garden --version gardendev/garden:$variant
+    should_succeed garden --version gardendev/garden:$variant
+  done
+
+  for variant in bonsai-alpine{,-rootless}
+    do
+    # garden
+    should_succeed garden --version gardendev/garden-aws-gcloud-azure:$variant
+    should_succeed garden --version gardendev/garden-aws-gcloud:$variant
+    should_succeed garden --version gardendev/garden-aws:$variant
+    should_succeed garden --version gardendev/garden-gcloud:$variant
+    should_succeed garden --version gardendev/garden-azure:$variant
+
+    # aws
+    should_succeed aws --version gardendev/garden-aws-gcloud-azure:$variant
+    should_succeed aws --version gardendev/garden-aws-gcloud:$variant
+    should_succeed aws --version gardendev/garden-aws:$variant
+
+    # Gcloud
+    should_succeed gcloud version gardendev/garden-aws-gcloud-azure:$variant
+    should_succeed gcloud version gardendev/garden-aws-gcloud:$variant
+    should_succeed gcloud version gardendev/garden-gcloud:$variant
+
+    # Azure
+    should_succeed az version gardendev/garden-aws-gcloud-azure:$variant
+    should_succeed az version gardendev/garden-azure:$variant
+  done
+
+TEST "edge tags for buster"
+  MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai \
+    docker buildx bake --progress=plain -f support/docker-bake.hcl buster
+
+  should_not_exist gardendev/garden latest
+  should_not_exist gardendev/garden 0.13-buster
+  should_not_exist gardendev/garden 0.13-buster-rootless
+  should_exist gardendev/garden 0.13-edge-buster
+  should_exist gardendev/garden bonsai-edge-buster
+  should_exist gardendev/garden bonsai-edge-buster-rootless
+
+TEST "edge tags for alpine"
+  MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai \
+    docker buildx bake --progress=plain -f support/docker-bake.hcl alpine
+
+  for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
+    do
+    should_not_exist $image latest
+    should_not_exist $image 0.13-alpine
+    should_not_exist $image 0.13-alpine-rootless
+    should_exist $image 0.13-edge-alpine
+    should_exist $image 0.13-edge-alpine-rootless
+    should_exist $image bonsai-edge-alpine
+    should_exist $image bonsai-edge-alpine-rootless
+  done
+
+TEST "prerelease tags for buster"
+  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 PRERELEASE=alpha1 CODENAME=bonsai \
+    docker buildx bake --progress=plain -f support/docker-bake.hcl buster
+
+  should_not_exist gardendev/garden latest
+  should_not_exist gardendev/garden 0.13-buster
+  should_not_exist gardendev/garden 0.13-buster-rootless
+  should_not_exist gardendev/garden 0.13-alpha1-buster
+  should_not_exist gardendev/garden 0.13-alpha1-buster-rootless
+  should_not_exist gardendev/garden bonsai-alpha1-buster
+  should_not_exist gardendev/garden bonsai-alpha1-buster-rootless
+  should_exist gardendev/garden 0.13.0-alpha1-buster
+  should_exist gardendev/garden 0.13.0-alpha1-buster-rootless
+
+TEST "prerelease tags for alpine"
+  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 PRERELEASE=alpha1 CODENAME=bonsai \
+    docker buildx bake --progress=plain -f support/docker-bake.hcl alpine
+
+  for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
+    do
+    should_not_exist $image latest
+    should_not_exist $image 0.13-alpine
+    should_not_exist $image 0.13-alpine-rootless
+    should_not_exist $image 0.13-alpha1-alpine
+    should_not_exist $image 0.13-alpha1-alpine-rootless
+    should_not_exist $image bonsai-alpha1-alpine
+    should_not_exist $image bonsai-alpha1-alpine-rootless
+    should_exist gardendev/garden 0.13.0-alpha1-alpine
+    should_exist gardendev/garden 0.13.0-alpha1-alpine-rootless
+  done
+
+TEST "production release tags for buster"
+  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
+    docker buildx bake --progress=plain -f support/docker-bake.hcl buster
+
+  should_not_exist gardendev/garden latest
+  should_exist gardendev/garden 0.13-buster
+  should_exist gardendev/garden 0.13-buster-rootless
+  should_exist gardendev/garden 0.13.0-buster
+  should_exist gardendev/garden 0.13.0-buster-rootless
+  should_exist gardendev/garden bonsai-buster
+  should_exist gardendev/garden bonsai-buster-rootless
+  should_not_exist gardendev/garden 0.13-edge-buster
+  should_not_exist gardendev/garden 0.13-edge-buster-rootless
+  should_not_exist gardendev/garden bonsai-edge-buster
+  should_not_exist gardendev/garden bonsai-edge-buster-rootless
+
+TEST "production release tags for alpine"
+  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
+    docker buildx bake --progress=plain -f support/docker-bake.hcl alpine
+
+  for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
+    do
+    should_exist $image latest
+    should_exist $image 0.13-alpine
+    should_exist $image 0.13-alpine-rootless
+    should_exist $image 0.13.0-alpine
+    should_exist $image 0.13.0-alpine-rootless
+    should_exist $image bonsai-alpine
+    should_exist $image bonsai-alpine-rootless
+    should_not_exist $image 0.13-edge-alpine
+    should_not_exist $image 0.13-edge-alpine-rootless
+    should_not_exist $image bonsai-edge-alpine
+    should_not_exist $image bonsai-edge-alpine-rootless
+  done

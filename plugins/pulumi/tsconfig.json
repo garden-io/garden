@@ -2,8 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "include": [
     "*.ts",
-    // TODO-G2: fix tests and uncomment
-    // "test/*.ts"
+    "test/*.ts"
   ],
   "compilerOptions": {
     "composite": true,

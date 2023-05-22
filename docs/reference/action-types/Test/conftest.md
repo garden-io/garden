@@ -25,9 +25,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -48,8 +45,8 @@ description:
 # For `source.repository` behavior, please refer to the [Remote Sources
 # guide](https://docs.garden.io/advanced/using-remote-sources).
 source:
-  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is
-  # ina git repository!
+  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in
+  # a git repository!
   path:
 
   # When set, Garden will import the action source from this repository, but use this action configuration (and not
@@ -155,11 +152,11 @@ build:
 kind:
 
 # Set a timeout for the test to complete, in seconds.
-timeout:
+timeout: 600
 
 spec:
   # POSIX-style path to a directory containing the policies to match the config against, or a
-  # specific .rego file, relative to the module root.
+  # specific .rego file, relative to the action root.
   # Must be a relative path, and should in most cases be within the project root.
   # Defaults to the `policyPath` set in the provider config.
   policyPath:
@@ -178,14 +175,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 ### `type`
 
@@ -229,7 +218,7 @@ For `source.repository` behavior, please refer to the [Remote Sources guide](htt
 
 [source](#source) > path
 
-A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!
+A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!
 
 | Type        | Required |
 | ----------- | -------- |
@@ -400,9 +389,9 @@ This would mean that instead of looking for manifest files relative to this acti
 
 Set a timeout for the test to complete, in seconds.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `spec`
 
@@ -415,7 +404,7 @@ Set a timeout for the test to complete, in seconds.
 [spec](#spec) > policyPath
 
 POSIX-style path to a directory containing the policies to match the config against, or a
-specific .rego file, relative to the module root.
+specific .rego file, relative to the action root.
 Must be a relative path, and should in most cases be within the project root.
 Defaults to the `policyPath` set in the provider config.
 
@@ -467,7 +456,7 @@ A list of files to test with the given policy. Must be POSIX-style paths, and ma
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `conftest`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

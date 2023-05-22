@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,13 +13,7 @@ import { getPulumiCommands } from "./commands"
 
 import { joiVariables } from "@garden-io/core/build/src/config/common"
 import { pulumiCliSPecs } from "./cli"
-import {
-  PulumiDeployConfig,
-  pulumiDeploySpecSchema,
-  PulumiModule,
-  PulumiProvider,
-  pulumiProviderConfigSchema,
-} from "./config"
+import { PulumiDeployConfig, pulumiDeploySpecSchema, PulumiModule, pulumiProviderConfigSchema } from "./config"
 import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/config"
 import { join } from "path"
 import { pathExists } from "fs-extra"
@@ -30,6 +24,8 @@ import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/M
 // Need to make these variables to avoid escaping issues
 const moduleOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
 const actionOutputsTemplateString = "${actions.<name>.outputs.<key>}"
+
+const defaultPulumiTimeoutSec = 600
 
 const outputsSchema = () => joiVariables().description("A map of all the outputs returned by the Pulumi stack.")
 
@@ -59,16 +55,6 @@ export const gardenPlugin = () =>
           schema: pulumiDeploySpecSchema(),
           runtimeOutputsSchema: outputsSchema(),
           handlers: {
-            configure: async ({ ctx, config }) => {
-              const provider = ctx.provider as PulumiProvider
-
-              if (!config.spec.version) {
-                config.spec.version = provider.config.version
-              }
-
-              return { config, supportedModes: {} }
-            },
-
             validate: async ({ action }) => {
               const root = action.getSpec("root")
               if (root) {
@@ -124,6 +110,7 @@ export const gardenPlugin = () =>
               build: dummyBuild?.name,
               dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
+              timeout: defaultPulumiTimeoutSec,
               spec: {
                 ...omit(module.spec, ["dependencies"]),
               },

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -53,4 +53,11 @@ export function omitUndefined(o: object) {
  */
 export function deepOmitUndefined(obj: object) {
   return deepFilter(obj, (v) => v !== undefined)
+}
+
+/**
+ * Returns true if `obj` is a Promise, otherwise false.
+ */
+export function isPromise(obj: any): obj is Promise<any> {
+  return !!obj && (typeof obj === "object" || typeof obj === "function") && typeof obj.then === "function"
 }

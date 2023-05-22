@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -129,6 +129,12 @@ export const helmModuleSpecSchema = () =>
     .object()
     .keys({
       ...helmCommonSchemaKeys(),
+      atomicInstall: joi
+        .boolean()
+        .default(true)
+        .description(
+          "Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure."
+        ),
       base: joiUserIdentifier()
         .description(
           deline`The name of another \`helm\` module to use as a base for this one. Use this to re-use a Helm chart across
@@ -220,7 +226,6 @@ export async function configureHelmModule({
     }
 
     // We copy the chart on build
-    // TODO-G2: change this to validation instead, require explicit dependency
     moduleConfig.build.dependencies.push({ name: base, copy: [{ source: "*", target: "." }] })
   }
 
@@ -234,7 +239,6 @@ export async function configureHelmModule({
 
   moduleConfig.taskConfigs = tasks.map((spec) => {
     if (spec.resource && spec.resource.containerModule) {
-      // TODO-G2: change this to validation instead, require explicit dependency
       moduleConfig.build.dependencies.push({ name: spec.resource.containerModule, copy: [] })
     }
 
@@ -250,7 +254,6 @@ export async function configureHelmModule({
 
   moduleConfig.testConfigs = tests.map((spec) => {
     if (spec.resource && spec.resource.containerModule) {
-      // TODO-G2: change this to validation instead, require explicit dependency
       moduleConfig.build.dependencies.push({ name: spec.resource.containerModule, copy: [] })
     }
 

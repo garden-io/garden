@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { omit } from "lodash"
+import { memoize, omit } from "lodash"
 import {
   joi,
   joiUserIdentifier,
@@ -16,8 +16,8 @@ import {
   PrimitiveMap,
   joiSparseArray,
   createSchema,
+  unusedApiVersionSchema,
 } from "./common"
-import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
 import { ServiceLimitSpec } from "../plugins/container/moduleConfig"
 import { Garden } from "../garden"
@@ -82,18 +82,21 @@ export function makeRunConfig(
 
 export interface WorkflowResource extends WorkflowConfig {}
 
-const workflowResourceRequestsSchema = () =>
-  joi.object().keys({
+const workflowResourceRequestsSchema = createSchema({
+  name: "workflow-resource-request",
+  keys: () => ({
     cpu: joi.number().min(minimumWorkflowRequests.cpu).description(deline`
         The minimum amount of CPU the workflow needs in order to be scheduled, in millicpus (i.e. 1000 = 1 CPU).
       `),
     memory: joi.number().min(minimumWorkflowRequests.memory).description(deline`
         The minimum amount of RAM the workflow needs in order to be scheduled, in megabytes (i.e. 1024 = 1 GB).
       `),
-  })
+  }),
+})
 
-const workflowResourceLimitsSchema = () =>
-  joi.object().keys({
+const workflowResourceLimitsSchema = createSchema({
+  name: "workflow-resource-limit",
+  keys: () => ({
     cpu: joi
       .number()
       .min(minimumWorkflowLimits.cpu)
@@ -102,17 +105,14 @@ const workflowResourceLimitsSchema = () =>
       .number()
       .min(minimumWorkflowLimits.memory)
       .description("The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)."),
-  })
+  }),
+})
 
 export const workflowConfigSchema = createSchema({
   name: "workflow-config",
   description: "Configure a workflow for this project.",
   keys: () => ({
-    apiVersion: joi
-      .string()
-      .default(DEFAULT_API_VERSION)
-      .valid(DEFAULT_API_VERSION)
-      .description("The schema version of this workflow's config (currently not used)."),
+    apiVersion: unusedApiVersionSchema(),
     kind: joi.string().default("Workflow").valid("Workflow"),
     name: joiUserIdentifier().required().description("The name of this workflow.").example("my-workflow"),
     description: joi.string().description("A description of the workflow."),
@@ -186,7 +186,7 @@ export const workflowFileSchema = createSchema({
       .description("The name of a Garden secret to copy the file data from (Garden Cloud only).")
       .meta({ enterprise: true }),
   }),
-  xor: ["data", "secretName"],
+  xor: [["data", "secretName"]],
 })
 
 export interface WorkflowStepSpec {
@@ -263,7 +263,7 @@ export const workflowStepSchema = createSchema({
       and examples.
       `),
   }),
-  xor: ["command", "script"],
+  xor: [["command", "script"]],
 })
 
 export type workflowStepModifier = "onSuccess" | "onError" | "always" | "never"
@@ -288,7 +288,7 @@ export interface TriggerSpec {
   ignoreBaseBranches?: string[]
 }
 
-export const triggerSchema = () => {
+export const triggerSchema = memoize(() => {
   const eventDescriptions = triggerEvents
     .sort()
     .map((event) => `\`${event}\``)
@@ -335,7 +335,7 @@ export const triggerSchema = () => {
         If specified, do not run the workflow for pull/merge requests whose base branch matches one of these filters.
       `),
   })
-}
+})
 
 export interface WorkflowConfigMap {
   [key: string]: WorkflowConfig
@@ -404,8 +404,10 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
     resolvedConfig.resources.limits = resolvedConfig.limits
   }
 
-  validateTriggers(resolvedConfig, garden.environmentConfigs)
-  populateNamespaceForTriggers(resolvedConfig, garden.environmentConfigs)
+  const environmentConfigs = garden.getProjectConfig().environments
+
+  validateTriggers(resolvedConfig, environmentConfigs)
+  populateNamespaceForTriggers(resolvedConfig, environmentConfigs)
 
   return resolvedConfig
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -53,13 +53,14 @@ const execCommonSchema = createSchema({
   `),
   }),
 })
+
 // BUILD //
 
 export interface ExecBuildActionSpec extends CommonKeys {
   command?: string[] // This needs to be optional to support "dummy" builds
-  timeout?: number
   env: StringMap
 }
+
 export type ExecBuildConfig = BuildActionConfig<"exec", ExecBuildActionSpec>
 export type ExecBuild = BuildAction<ExecBuildConfig, ExecOutputs>
 
@@ -97,7 +98,6 @@ export interface ExecDeployActionSpec extends CommonKeys {
   cleanupCommand?: string[]
   deployCommand: string[]
   statusCommand?: string[]
-  timeout?: number
   statusTimeout: number
   env: StringMap
 }
@@ -129,7 +129,7 @@ export const execDeployActionSchema = createSchema({
         dedent`
         Set this to true if the \`deployCommand\` is not expected to return, and should run until the Garden command is manually terminated.
 
-        This replaces the previously supported \`devMode\` from \`exec\` modules.
+        This replaces the previously supported \`devMode\` from \`exec\` actions.
 
         If this is set to true, it is highly recommended to also define \`statusCommand\` if possible. Otherwise the Deploy is considered to be immediately ready once the \`deployCommand\` is started.
         `
@@ -159,10 +159,6 @@ export const execDeployActionSchema = createSchema({
         ${execPathDoc}
         `
       ),
-    // TODO: Set a default in v0.13.
-    timeout: joi.number().description(dedent`
-      The maximum duration (in seconds) to wait for \`deployCommand\` to exit. Ignored if \`persistent: false\`.
-    `),
     statusTimeout: joi.number().default(defaultStatusTimeout).description(dedent`
       The maximum duration (in seconds) to wait for a for the \`statusCommand\` to return a zero exit code. Ignored if no \`statusCommand\` is set.
     `),
@@ -204,6 +200,7 @@ export const execRunActionSchema = createSchema({
 // TEST //
 
 export interface ExecTestActionSpec extends ExecRunActionSpec {}
+
 export type ExecTestConfig = TestActionConfig<"exec", ExecTestActionSpec>
 export type ExecTest = TestAction<ExecTestConfig, ExecOutputs>
 

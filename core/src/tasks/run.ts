@@ -1,18 +1,16 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "./base"
+import { ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "./base"
 import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
 import { GetRunResult } from "../plugin/handlers/Run/get-result"
 import { resolvedActionToExecuted } from "../actions/helpers"
-
-export interface RunTaskParams extends BaseActionTaskParams<RunAction> {}
 
 class RunTaskError extends Error {
   toString() {
@@ -28,8 +26,8 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
     return this.action.longDescription()
   }
 
-  async getStatus({ dependencyResults }: ActionTaskStatusParams<RunAction>) {
-    const taskLog = this.log.createLog().info("Checking result...")
+  async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<RunAction>) {
+    this.log.verbose("Checking status...")
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
 
@@ -38,13 +36,18 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       const { result: status } = await router.run.getResult({
         graph: this.graph,
         action,
-        log: taskLog,
+        log: this.log,
       })
-      taskLog.success(`Done`)
+
+      this.log.verbose(`Status check complete`)
 
       // Should return a null value here if there is no result
       if (status.detail === null) {
         return null
+      }
+
+      if (status.state === "ready" && !statusOnly && !this.force) {
+        this.log.success("Already complete")
       }
 
       return {
@@ -53,7 +56,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
         executedAction: resolvedActionToExecuted(action, { status }),
       }
     } catch (err) {
-      taskLog.error(`Failed getting status`)
+      this.log.error(`Failed getting status`)
       throw err
     }
   }

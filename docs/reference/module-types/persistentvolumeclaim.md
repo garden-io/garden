@@ -5,11 +5,15 @@ tocTitle: "`persistentvolumeclaim`"
 
 # `persistentvolumeclaim` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-See the [PersistentVolumeClaim](../../k8s-plugins/module-types/persistentvolumeclaim.md) guide for more info and usage examples.
+See the [PersistentVolumeClaim](../../k8s-plugins/action-types/persistentvolumeclaim.md) guide for more info and usage examples.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
@@ -23,9 +27,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 kind: Module
 
 # The type of this module.
@@ -51,7 +52,7 @@ build:
           target:
 
   # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
+  timeout: 600
 
 # A description of the module.
 description:
@@ -91,8 +92,8 @@ include:
 # Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-# directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+# Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+# directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
 # directories that should not be watched for changes.
 exclude:
 
@@ -156,17 +157,7 @@ varfile:
 # List of services and tasks to deploy/run before deploying this PVC.
 dependencies: []
 
-# A list of access modes supported by the volume when mounting. At least one must be specified. The available modes
-# are as follows:
-#
-#  ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
-#  ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
-#  ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
-#
-# At least one mode must be specified.
-accessModes:
-
-# The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in
+# The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in
 # most cases you should leave this unset.
 namespace:
 
@@ -227,14 +218,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 ### `kind`
 
@@ -346,7 +329,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `description`
 
@@ -394,7 +377,7 @@ Specify a list of POSIX-style paths or glob patterns that should be excluded fro
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
-Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large directories that should not be watched for changes.
+Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -526,23 +509,9 @@ List of services and tasks to deploy/run before deploying this PVC.
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
 
-### `accessModes[]`
-
-A list of access modes supported by the volume when mounting. At least one must be specified. The available modes are as follows:
-
- ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
- ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
- ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
-
-At least one mode must be specified.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
 ### `namespace`
 
-The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
+The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
 
 | Type     | Required |
 | -------- | -------- |

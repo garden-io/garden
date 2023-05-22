@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,11 +13,12 @@ import { dedent, naturalList } from "../../util/string"
 import { Command, CommandParams, CommandResult } from "../base"
 import Bluebird from "bluebird"
 import chalk from "chalk"
+import { createActionLog } from "../../logger/log-entry"
 
 const syncStopArgs = {
   names: new StringsParameter({
-    help: "The name(s) of one or more deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify '*' as an argument.",
-    required: true,
+    help: "The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, run the command with no arguments.",
+    required: false,
     spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Deploy)
@@ -45,27 +46,23 @@ export class SyncStopCommand extends Command<Args, Opts> {
 
     Examples:
         # stop syncing to the 'api' Deploy
-        garden stop sync api
+        garden sync stop api
 
         # stop all active syncs
-        garden stop sync '*'
+        garden sync stop
   `
 
   outputsSchema = () => joi.object()
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Stopping sync(s)", "🔁")
+  printHeader({ log }) {
+    printHeader(log, "Stopping sync(s)", "🔁")
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     const { garden, log, args } = params
 
-    const names = args.names || []
-
-    if (names.length === 0) {
-      log.warn({ msg: `No names specified. Aborting. Please specify '*' if you'd like to stop all active syncs.` })
-      return { result: {} }
-    }
+    // We default to stopping all syncs.
+    const names = args.names || ["*"]
 
     const graph = await garden.getConfigGraph({
       log,
@@ -104,14 +101,15 @@ export class SyncStopCommand extends Command<Args, Opts> {
     const router = await garden.getActionRouter()
 
     await Bluebird.map(actions, async (action) => {
-      const { result: status } = await router.deploy.getSyncStatus({ log, action, graph })
-      if (status.state !== "not-active") {
-        log.info({ section: action.key(), msg: "Stopping active syncs..." })
-        await router.deploy.stopSync({ log, action, graph })
-        log.info({ section: action.key(), msg: "Syncing successfully stopped." })
-      } else {
-        log.info({ section: action.key(), msg: "Syncing not active, nothing to do." })
-      }
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      actionLog.info("Stopping active syncs (if any)...")
+
+      await router.deploy.stopSync({ log: actionLog, action, graph })
+
+      // Halt any active monitors for the sync
+      garden.monitors.find({ type: "sync", key: action.name }).map((m) => m.stop())
+
+      actionLog.info("Syncing successfully stopped.")
     })
 
     log.info(chalk.green("\nDone!"))

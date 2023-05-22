@@ -1,29 +1,21 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dotenv = require("dotenv")
 import { intersection, mapValues, sortBy } from "lodash"
 import { resolve, join } from "path"
 import chalk from "chalk"
 import { pathExists } from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands"
-import {
-  shutdown,
-  sleep,
-  getPackageVersion,
-  registerCleanupFunction,
-  getCloudDistributionName,
-  getCloudLogSectionName,
-} from "../util/util"
+import { shutdown, getPackageVersion, getCloudDistributionName } from "../util/util"
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
 import { PluginError, toGardenError, GardenBaseError } from "../exceptions"
-import { Garden, GardenOpts, DummyGarden } from "../garden"
-import { getTerminalWriterType, Logger, LogLevel, parseLogLevel } from "../logger/logger"
+import { Garden, GardenOpts, makeDummyGarden } from "../garden"
+import { getRootLogger, getTerminalWriterType, LogLevel, parseLogLevel, RootLogger } from "../logger/logger"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
 
 import {
@@ -33,31 +25,17 @@ import {
   processCliArgs,
   pickCommand,
   parseCliArgs,
+  parseCliVarFlags,
   optionsWithAliasValues,
   checkRequirements,
   renderCommandErrors,
   cliStyles,
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
-import {
-  ProjectConfig,
-  defaultNamespace,
-  parseEnvironment,
-  ProjectResource,
-  EnvironmentConfig,
-} from "../config/project"
-import {
-  ERROR_LOG_FILENAME,
-  DEFAULT_API_VERSION,
-  DEFAULT_GARDEN_DIR_NAME,
-  LOGS_DIR_NAME,
-  gardenEnv,
-} from "../constants"
+import { ProjectResource } from "../config/project"
+import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME, gardenEnv } from "../constants"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
-import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
-import { defaultDotIgnoreFile } from "../util/fs"
-import { CoreEventStream } from "../server/core-event-stream"
 import { GardenPluginReference } from "../plugin/plugin"
 import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
 import { findProjectConfig } from "../config/base"
@@ -69,31 +47,8 @@ import { Log } from "../logger/log-entry"
 import { JsonFileWriter } from "../logger/writers/json-file-writer"
 import { dedent } from "../util/string"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
-import { registerProcess } from "../process"
-import { ServeCommand } from "../commands/serve"
+import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
-import { SemVer } from "semver"
-
-export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
-  const environments: EnvironmentConfig[] = gardenOpts.environmentName
-    ? [{ name: parseEnvironment(gardenOpts.environmentName).environment, defaultNamespace, variables: {} }]
-    : [{ defaultNamespace: "default", name: "default", variables: {} }]
-
-  const config: ProjectConfig = {
-    path: root,
-    apiVersion: DEFAULT_API_VERSION,
-    kind: "Project",
-    name: "no-project",
-    defaultEnvironment: "",
-    dotIgnoreFile: defaultDotIgnoreFile,
-    environments,
-    providers: [],
-    variables: {},
-  }
-  gardenOpts.config = config
-
-  return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
-}
 
 export interface RunOutput {
   argv: any
@@ -104,13 +59,12 @@ export interface RunOutput {
   consoleOutput?: string
 }
 
+// TODO: this is used in more contexts now, should rename to GardenCommandRunner or something like that
 @Profile()
 export class GardenCli {
   private commands: { [key: string]: Command } = {}
   private fileWritersInitialized: boolean = false
   private plugins: GardenPluginReference[]
-  private bufferedEventStream: BufferedEventStream | undefined
-  private sessionFinished = false
   private initLogger: boolean
   public processRecord: GardenProcess
 
@@ -156,6 +110,7 @@ ${renderCommands(commands)}
     if (this.fileWritersInitialized) {
       return
     }
+
     const { debugLogfileName, jsonLogfileName } = await prepareDebugLogfiles(
       log,
       join(gardenDirPath, LOGS_DIR_NAME),
@@ -188,7 +143,7 @@ ${renderCommands(commands)}
       },
     ]
     for (const config of logConfigs) {
-      log.root.addFileWriter(await (config.json ? JsonFileWriter : FileWriter).factory(config))
+      getRootLogger().addFileWriter(await (config.json ? JsonFileWriter : FileWriter).factory(config))
     }
     this.fileWritersInitialized = true
   }
@@ -233,45 +188,34 @@ ${renderCommands(commands)}
     workingDir: string
     log: Log
   }) {
-    const {
+    let {
+      "env": environmentName,
       silent,
       output,
       "logger-type": loggerTypeOpt,
-      "env": environmentName,
       "force-refresh": forceRefresh,
       "var": cliVars,
-      "disable-port-forwards": disablePortForwards,
     } = parsedOpts
 
-    // Parse command line --var input
-    const parsedCliVars = cliVars ? dotenv.parse(cliVars.join("\n")) : {}
+    const parsedCliVars = parseCliVarFlags(cliVars)
 
     // Some commands may set their own logger type so we update the logger config here,
     // once we've resolved the command.
     const commandLoggerType = command.getTerminalWriterType({ opts: parsedOpts, args: parsedArgs })
-    log.root.setTerminalWriter(getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType }))
-
-    // TODO: remove for the proper 0.13 release
-    if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK && new SemVer(getPackageVersion()).minor === 13) {
-      log.warn(
-        chalk.yellow(dedent`Garden Bonsai (0.13) is in beta. Please report any issues here:
-          https://github.com/garden-io/garden/issues/new?labels=0.13&template=0-13-issue-template.md&title=0.13%3A+%5BBug%5D%3A`)
-      )
-    }
+    getRootLogger().setTerminalWriter(getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType }))
 
     const globalConfigStore = new GlobalConfigStore()
 
     await validateRuntimeRequirementsCached(log, globalConfigStore, checkRequirements)
 
-    command.printHeader({ headerLog: log, args: parsedArgs, opts: parsedOpts })
+    command.printHeader({ log, args: parsedArgs, opts: parsedOpts })
     const sessionId = uuidv4()
 
-    // Init Cloud API
-    let cloudApi: CloudApi | null = null
+    // Init Cloud API (if applicable)
+    let cloudApi: CloudApi | undefined
 
     if (!command.noProject) {
-      const config: ProjectResource | undefined = await this.getProjectConfig(log, workingDir)
-
+      const config = await this.getProjectConfig(log, workingDir)
       const cloudDomain = getGardenCloudDomain(config?.domain)
       const distroName = getCloudDistributionName(cloudDomain)
 
@@ -280,11 +224,11 @@ ${renderCommands(commands)}
       } catch (err) {
         if (err instanceof CloudApiTokenRefreshError) {
           log.warn(dedent`
-          ${chalk.yellow(`Unable to authenticate against ${distroName} with the current session token.`)}
-          Command results for this command run will not be available in ${distroName}. If this not a
-          ${distroName} project you can ignore this warning. Otherwise, please try logging out with
-          \`garden logout\` and back in again with \`garden login\`.
-        `)
+            ${chalk.yellow(`Unable to authenticate against ${distroName} with the current session token.`)}
+            Command results for this command run will not be available in ${distroName}. If this not a
+            ${distroName} project you can ignore this warning. Otherwise, please try logging out with
+            \`garden logout\` and back in again with \`garden login\`.
+          `)
 
           // Project is configured for cloud usage => fail early to force re-auth
           if (config && config.id) {
@@ -297,22 +241,6 @@ ${renderCommands(commands)}
       }
     }
 
-    // Init event & log streaming.
-    this.bufferedEventStream = new BufferedEventStream({
-      log,
-      cloudApi: cloudApi || undefined,
-      sessionId,
-    })
-
-    registerCleanupFunction("stream-session-cancelled-event", () => {
-      if (!this.sessionFinished) {
-        this.bufferedEventStream?.streamEvent("sessionCancelled", {})
-        this.bufferedEventStream?.flushAll().catch(() => {})
-      }
-    })
-
-    const coreEventStream = new CoreEventStream({ log, sessionId, globalConfigStore })
-
     const commandInfo = {
       name: command.getFullName(),
       args: parsedArgs,
@@ -321,200 +249,134 @@ ${renderCommands(commands)}
 
     const contextOpts: GardenOpts = {
       commandInfo,
-      disablePortForwards,
-      environmentName,
+      environmentString: environmentName,
       log,
-      sessionId,
       forceRefresh,
-      variables: parsedCliVars,
+      variableOverrides: parsedCliVars,
       plugins: this.plugins,
-      cloudApi: cloudApi || undefined,
+      cloudApi,
     }
 
     let garden: Garden
     let result: CommandResult<any> = {}
-    let analytics: AnalyticsHandler
+    let analytics: AnalyticsHandler | undefined = undefined
 
     const prepareParams = {
       log,
-      headerLog: log,
-      footerLog: log,
       args: parsedArgs,
       opts: parsedOpts,
-      cloudApi: cloudApi || undefined,
     }
 
-    const persistent = command.isPersistent(prepareParams)
+    const persistent = command.maybePersistent(prepareParams)
 
     await command.prepare(prepareParams)
 
-    const server = command instanceof ServeCommand ? command.server : undefined
+    const server = command.server
 
     contextOpts.persistent = persistent
-    const { streamEvents, streamLogEntries } = command
     // TODO: Link to Cloud namespace page here.
-    const nsLog = log.createLog({})
+    const nsLog = log.createLog({ name: "garden" })
 
-    do {
-      try {
-        if (command.noProject) {
-          garden = await makeDummyGarden(workingDir, contextOpts)
-        } else {
-          garden = await this.getGarden(workingDir, contextOpts)
+    try {
+      if (command.noProject) {
+        garden = await makeDummyGarden(workingDir, contextOpts)
+      } else {
+        garden = await this.getGarden(workingDir, contextOpts)
 
-          nsLog.info({
-            section: "garden",
-            msg: `Running in namespace ${chalk.cyan(garden.namespace)} in environment ${chalk.cyan(
-              garden.environmentName
-            )}`,
-          })
-
-          if (!cloudApi && garden.projectId) {
-            log.warn({
-              symbol: "warning",
-              msg: `You are not logged in into Garden Cloud. Please log in via the ${chalk.green(
-                "garden login"
-              )} command.`,
-            })
-            log.info("")
-          }
-
-          if (processRecord) {
-            // Update the db record for the process
-            await globalConfigStore.update("activeProcesses", String(processRecord.pid), {
-              command: command.name,
-              sessionId: garden.sessionId,
-              persistent,
-              serverHost: server?.port ? `http://localhost:${server.port}` : null,
-              serverAuthKey: server?.authKey || null,
-              projectRoot: garden.projectRoot,
-              projectName: garden.projectName,
-              environmentName: garden.environmentName,
-              namespace: garden.namespace,
-            })
-          }
-
-          // Connect the core server event streamer (making sure it doesn't stream to the local server)
-          const commandServerUrl = server?.getBaseUrl() || undefined
-          coreEventStream.connect({ garden, ignoreHost: commandServerUrl, streamEvents, streamLogEntries })
-          await coreEventStream.updateTargets()
-
-          if (cloudApi && garden.projectId && !cloudApi.sessionRegistered && command.streamEvents) {
-            // Note: If a config change during a watch-mode command's execution results in the resolved environment
-            // and/or namespace name changing, we don't change the session ID, environment ID or namespace ID used when
-            // streaming events.
-            await cloudApi.registerSession({
-              sessionId,
-              commandInfo,
-              localServerPort: server?.port,
-              environment: garden.environmentName,
-              namespace: garden.namespace,
-            })
-          }
-
-          if (cloudApi?.sessionRegistered) {
-            const distroName = getCloudDistributionName(cloudApi.domain)
-            const userId = (await cloudApi.getProfile()).id
-            const commandResultUrl = cloudApi.getCommandResultUrl({ sessionId, userId }).href
-
-            const msg = dedent`🌸 Connected to ${distroName}. View logs and command results at: \n\n${chalk.cyan(
-              commandResultUrl
-            )}\n`
-            log.info({ section: getCloudLogSectionName(distroName), msg })
-          }
-        }
-
-        if (cloudApi && garden.projectId) {
-          log.silly(`Connecting Garden instance to GE BufferedEventStream`)
-          const connectParams: ConnectBufferedEventStreamParams = {
-            garden,
-            streamEvents,
-            streamLogEntries,
-            targets: [
-              {
-                enterprise: true,
-              },
-            ],
-          }
-          this.bufferedEventStream.connect(connectParams)
-          if (streamEvents) {
-            const commandInfoPayload = {
-              ...commandInfo,
-              environmentName: garden.environmentName,
-              environmentId: cloudApi.environmentId,
-              projectName: garden.projectName,
-              projectId: garden.projectId,
-              namespaceName: garden.namespace,
-              namespaceId: cloudApi.namespaceId,
-              coreVersion: getPackageVersion(),
-              vcsBranch: garden.vcsInfo.branch,
-              vcsCommitHash: garden.vcsInfo.commitHash,
-              vcsOriginUrl: garden.vcsInfo.originUrl,
-            }
-            this.bufferedEventStream.streamEvent("commandInfo", commandInfoPayload)
-          }
-        }
-
-        // Register log file writers. We need to do this after the Garden class is initialised because
-        // the file writers depend on the project root.
-        await this.initFileWriters({
-          log,
-          gardenDirPath: garden.gardenDirPath,
-          commandFullName: command.getFullName(),
-        })
-        analytics = await AnalyticsHandler.init(garden, log)
-        analytics.trackCommand(command.getFullName())
-
-        // Note: No reason to await the check
-        checkForUpdates(garden.globalConfigStore, log).catch((err) => {
-          log.verbose("Something went wrong while checking for the latest Garden version.")
-          log.verbose(err)
-        })
-
-        await checkForStaticDir()
-
-        // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
-        if (await command.isAllowedToRun(garden, log, parsedOpts)) {
-          // TODO: enforce that commands always output DeepPrimitiveMap
-
-          result = await command.action({
-            garden,
-            cli: this,
+        if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
+          await garden.emitWarning({
+            key: "0.13-bonsai",
             log,
-            footerLog: log,
-            headerLog: log,
-            args: parsedArgs,
-            opts: parsedOpts,
+            message: chalk.yellow(dedent`
+              Garden v0.13 (Bonsai) is a major release with significant changes. Please help us improve it by reporting any issues/bugs here:
+              https://go.garden.io/report-bonsai
+            `),
           })
-        } else {
-          // The command is protected and the user decided to not continue with the exectution.
-          log.info("\nCommand aborted.")
-          result = {}
         }
-        await garden.close()
-      } catch (err) {
-        // Generate a basic report in case Garden.factory(...) fails and command is "get debug-info".
-        // Other exceptions are handled within the implementation of "get debug-info".
-        if (command.name === "debug-info") {
-          // Use default Garden dir name as fallback since Garden class hasn't been initialised
-          await generateBasicDebugInfoReport(
-            workingDir,
-            join(workingDir, DEFAULT_GARDEN_DIR_NAME),
-            log,
-            parsedOpts.format
+
+        nsLog.info(`Running in Garden environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`)
+
+        if (!cloudApi && garden.projectId) {
+          log.warn(
+            `You are not logged in into Garden Cloud. Please log in via the ${chalk.green("garden login")} command.`
           )
+          log.info("")
         }
-        throw err
-      } finally {
-        if (!result.restartRequired) {
-          await coreEventStream.close()
-          await server?.close()
-          cloudApi?.close()
+
+        if (processRecord) {
+          // Update the db record for the process
+          await globalConfigStore.update("activeProcesses", String(processRecord.pid), {
+            command: command.name,
+            sessionId,
+            persistent,
+            serverHost: server?.getUrl() || null,
+            serverAuthKey: server?.authKey || null,
+            projectRoot: garden.projectRoot,
+            projectName: garden.projectName,
+            environmentName: garden.environmentName,
+            namespace: garden.namespace,
+          })
         }
       }
-    } while (result.restartRequired)
 
-    return { result, analytics }
+      analytics = await garden.getAnalyticsHandler()
+
+      // Register log file writers. We need to do this after the Garden class is initialised because
+      // the file writers depend on the project root.
+      await this.initFileWriters({
+        log,
+        gardenDirPath: garden.gardenDirPath,
+        commandFullName: command.getFullName(),
+      })
+
+      // Note: No reason to await the check
+      checkForUpdates(garden.globalConfigStore, log).catch((err) => {
+        log.verbose("Something went wrong while checking for the latest Garden version.")
+        log.verbose(err)
+      })
+
+      await checkForStaticDir()
+
+      result = await command.run({
+        cli: this,
+        garden,
+        log: garden.log,
+        args: parsedArgs,
+        opts: parsedOpts,
+        sessionId,
+        nested: false,
+      })
+
+      if (garden.monitors.anyMonitorsActive()) {
+        // Wait for monitors to exit
+        log.debug(chalk.gray("One or more monitors active, waiting until all exit."))
+        await garden.monitors.waitUntilStopped()
+      }
+
+      garden.close()
+    } catch (err) {
+      // Generate a basic report in case Garden.factory(...) fails and command is "get debug-info".
+      // Other exceptions are handled within the implementation of "get debug-info".
+      if (command.name === "debug-info") {
+        // Use default Garden dir name as fallback since Garden class hasn't been initialised
+        await generateBasicDebugInfoReport(
+          workingDir,
+          join(workingDir, DEFAULT_GARDEN_DIR_NAME),
+          log,
+          parsedOpts.output
+        )
+      }
+
+      // flush analytics early since when we throw the instance is not returned
+      await analytics?.shutdown()
+
+      throw err
+    } finally {
+      await server?.close()
+      cloudApi?.close()
+    }
+
+    return { result, analytics, cloudApi }
   }
 
   async run({
@@ -531,10 +393,6 @@ ${renderCommands(commands)}
     let argv = parseCliArgs({ stringArgs: args, cli: true })
 
     const errors: (GardenBaseError | Error)[] = []
-
-    // Note: Circumvents an issue where the process exits before the output is fully flushed.
-    // Needed for output renderers and Winston (see: https://github.com/winstonjs/winston/issues/228)
-    const waitForOutputFlush = () => sleep(100)
 
     async function done(abortCode: number, consoleOutput: string, result: any = {}) {
       if (exitOnError) {
@@ -576,12 +434,13 @@ ${renderCommands(commands)}
       "logger-type": loggerTypeOpt,
       "log-level": logLevelStr,
     } = argv
-    const logger = Logger.initialize({
+    const logger = RootLogger.initialize({
       level: parseLogLevel(logLevelStr),
       storeEntries: false,
-      terminalWriterType: getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType: null }),
+      displayWriterType: getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType: null }),
       useEmoji: emoji,
       showTimestamps,
+      force: this.initLogger,
     })
 
     const log = logger.createLog()
@@ -643,8 +502,8 @@ ${renderCommands(commands)}
       }
     }
 
-    let commandResult: CommandResult<any> | undefined = undefined
-    let analytics: AnalyticsHandler | undefined = undefined
+    let commandResult: CommandResult<any> | undefined
+    let analytics: AnalyticsHandler | undefined
 
     if (!processRecord) {
       processRecord = this.processRecord
@@ -656,8 +515,6 @@ ${renderCommands(commands)}
     }
 
     this.processRecord = processRecord!
-
-    const commandStartTime = new Date()
 
     try {
       const runResults = await this.runCommand({ command, parsedArgs, parsedOpts, processRecord, workingDir, log })
@@ -671,12 +528,8 @@ ${renderCommands(commands)}
 
     const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
 
-    analytics?.trackCommandResult(command.getFullName(), gardenErrors, commandStartTime)
-
     // Flushes the Analytics events queue in case there are some remaining events.
-    if (analytics) {
-      await analytics.flush()
-    }
+    await analytics?.shutdown()
 
     // --output option set
     if (argv.output) {
@@ -700,22 +553,12 @@ ${renderCommands(commands)}
       code = commandResult.exitCode || 1
     }
 
-    if (this.bufferedEventStream) {
-      if (code === 0) {
-        this.bufferedEventStream.streamEvent("sessionCompleted", {})
-      } else {
-        this.bufferedEventStream.streamEvent("sessionFailed", {})
-      }
-      await this.bufferedEventStream.close()
-      this.sessionFinished = true
-    }
-
     return { argv, code, errors, result: commandResult?.result }
   }
 
   @pMemoizeDecorator()
   async getProjectConfig(log: Log, workingDir: string): Promise<ProjectResource | undefined> {
-    return findProjectConfig(log, workingDir)
+    return findProjectConfig({ log, path: workingDir })
   }
 
   @pMemoizeDecorator()

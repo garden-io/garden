@@ -1,12 +1,12 @@
 # Persistent Local Service Example Project
 
-This example projects demonstrates how you can easily mix and match local and remote services. A common use case for this is to e.g. run backend services
-remotely but frontend services locally.
+This example projects demonstrates how you can easily mix and match local and remote services. A common use case for
+this is to e.g. run backend services remotely but frontend services locally.
 
 ## Project Structure
 
-This project is based on the [demo-project](../demo-project) and contains build and deploy actions for 3 applications:
-`backend`, `frontend`, and  `frontend-local`.
+This project is based on the [demo-project](../demo-project) and contains `Build` and `Deploy` actions for 3
+applications: `backend`, `frontend`, and  `frontend-local`.
 
 Here's an excerpt from the `frontend` config:
 
@@ -16,7 +16,7 @@ Here's an excerpt from the `frontend` config:
 kind: Build
 name: frontend
 type: container
-include: ["."] # <--- Include is required when actions overlap
+include: [ "." ] # <--- Include is required when actions overlap
 # ...
 
 ---
@@ -40,21 +40,25 @@ kind: Deploy
 name: frontend-local
 type: exec
 build: frontend-local
+
 spec:
-  syncMode:
-    command: ["yarn", "run", "dev"] # <--- This is the command Garden runs to start the process in sync mode
-    statusCommand: [./check-local-status.sh] # <--- Optionally set a status command that checks whether the local service is ready
-  deployCommand: [] # <--- A no op since we only want to deploy it when we're in sync mode
-  env: ${action.deploy.frontend.env} # <--- Reference the env variable defined above
+  persistent: true # <--- Runs the deployCommand in persistent mode
+  deployCommand: [ "yarn", "run", "dev" ] # <--- This is the command Garden runs to start the process in sync mode
+  statusCommand: [ ./check-local-status.sh ] # <--- Optionally set a status command that checks whether the local service is ready
+  env: ${actions.deploy.frontend.var.env} # <--- Reference the env variable defined above
 ```
 
-In the config above the `local-frontend` deploy action is always enabled when in sync mode, but you can choose to conditionally enable it as well.
+In the config above the `local-frontend` deploy action is always enabled when in sync mode, but you can choose to
+conditionally enable it as well.
 
-You could e.g. use [command line variables](https://docs.garden.io/using-garden/variables-and-templating#variable-files-varfiles) to control whether the `local-frontend` deploy action should be enabled or create a custom command.
+You could e.g.
+use [command line variables](https://docs.garden.io/using-garden/variables-and-templating#variable-files-varfiles) to
+control whether the `local-frontend` deploy action should be enabled or create a custom command.
 
 ## Usage
 
-If you want to run the frontend service locally you'll need to have yarn installed and also have to install the packages for the frontend project
+If you want to run the frontend service locally you'll need to have yarn installed and also have to install the packages
+for the frontend project
 
 ```console
 cd frontend
@@ -62,7 +66,8 @@ yarn install
 cd ..
 ```
 
-Assuming you've [set _your_ K8s context](https://docs.garden.io/kubernetes-plugins/remote-k8s), you can start the project with:
+Assuming you've [set _your_ K8s context](https://docs.garden.io/kubernetes-plugins/remote-k8s), you can start the
+project with:
 
 ```console
 garden deploy --sync

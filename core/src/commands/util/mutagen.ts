@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -38,7 +38,7 @@ export class MutagenCommand extends Command<{}, {}> {
   printHeader() {}
 
   async action({ garden, log, args }: CommandParams<{}, {}>) {
-    const projectRoot = await findProjectConfig(log, garden.projectRoot)
+    const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
 
     if (!projectRoot) {
       throw new RuntimeError(

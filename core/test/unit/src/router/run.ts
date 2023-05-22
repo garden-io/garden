@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,7 @@ import { emptyDir, pathExists, readFile } from "fs-extra"
 import { join } from "path"
 import { ResolvedRunAction } from "../../../../src/actions/run"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { Log } from "../../../../src/logger/log-entry"
+import { ActionLog } from "../../../../src/logger/log-entry"
 import { ActionRouter } from "../../../../src/router/router"
 import { TestGarden, expectError } from "../../../helpers"
 import { getRouterTestData } from "./_helpers"
@@ -19,7 +19,7 @@ import { getRouterTestData } from "./_helpers"
 describe("run actions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: Log
+  let log: ActionLog
   let actionRouter: ActionRouter
   let returnWrongOutputsCfgKey: string
   let resolvedRunAction: ResolvedRunAction
@@ -55,7 +55,7 @@ describe("run actions", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   afterEach(() => {
@@ -162,7 +162,7 @@ describe("run actions", () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const runActionTaskA = graph.getRun("task-a")
 
-      runActionTaskA.getConfig().spec.artifacts = [
+      runActionTaskA["_config"].spec.artifacts = [
         {
           source: "some-file.txt",
         },

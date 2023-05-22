@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,6 +24,7 @@ import {
   getTerraformStatus,
   TerraformDeployConfig,
   terraformDeployOutputsSchema,
+  terraformDeploySchemaKeys,
 } from "./action"
 
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
@@ -54,13 +55,13 @@ const configSchema = providerConfigBaseSchema()
 
         See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for more information.
       `),
-    // When you provide variables directly in \`terraform\` modules, those variables will
+    // When you provide variables directly in \`terraform\` axtions, those variables will
     // extend the ones specified here, and take precedence if the keys overlap.
     variables: variablesSchema().description(dedent`
         A map of variables to use when applying Terraform stacks. You can define these here, in individual
-        \`terraform\` module configs, or you can place a \`terraform.tfvars\` file in each working directory.
+        \`terraform\` action configs, or you can place a \`terraform.tfvars\` file in each working directory.
       `),
-    // May be overridden by individual \`terraform\` modules.
+    // May be overridden by individual \`terraform\` actions.
     version: joi
       .string()
       .allow(...supportedVersions, null)
@@ -76,6 +77,8 @@ const configSchema = providerConfigBaseSchema()
 const deployOutputsTemplateString = "${deploys.<deploy-name>.outputs.<key>}"
 const serviceOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
 const providerOutputsTemplateString = "${providers.terraform.outputs.<key>}"
+
+const defaultTerraformTimeoutSec = 600
 
 export const gardenPlugin = () =>
   createGardenPlugin({
@@ -123,7 +126,7 @@ export const gardenPlugin = () =>
 
           See the [Terraform guide](${DOCS_BASE_URL}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
           `,
-          schema: terraformModuleSchema(),
+          schema: joi.object().keys(terraformDeploySchemaKeys()),
           runtimeOutputsSchema: terraformDeployOutputsSchema(),
           handlers: {
             configure: async ({ ctx, config }) => {
@@ -197,6 +200,7 @@ export const gardenPlugin = () =>
               build: dummyBuild?.name,
               dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
+              timeout: defaultTerraformTimeoutSec,
               spec: {
                 ...module.spec,
               },

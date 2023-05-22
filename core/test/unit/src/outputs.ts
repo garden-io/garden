@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,7 +13,7 @@ import { expect } from "chai"
 import { realpath } from "fs-extra"
 import { createGardenPlugin } from "../../../src/plugin/plugin"
 import { ProjectConfig } from "../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../src/constants"
 import { joi } from "../../../src/config/common"
 
 describe("resolveProjectOutputs", () => {
@@ -96,9 +96,9 @@ describe("resolveProjectOutputs", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         name: "test",
         path: tmpPath,

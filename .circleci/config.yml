@@ -24,7 +24,7 @@ orbs:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:18.12.0
+    image: gardendev/circleci-runner:18.12.0@sha256:364fda04a732191ada3f3f701d89836902b621ed269eaf135b73b75f92361065
 
   # Configuration for our node jobs
   node-config: &node-config
@@ -44,19 +44,24 @@ orbs:
     attach_workspace:
       at: ./
 
-  # Only run jobs on main
-  only-main: &only-main
+  only-prs: &only-prs
     filters:
       branches:
-        only: main
+        # TODO: remove regex once 0.13 is merged to main.
+        ignore: /^main|0\.13$/
+        #ignore: main
       tags:
         ignore: /.*/
 
-  # Only run jobs on 0.13 (bonsai)
-  only-bonsai: &only-bonsai
+
+  # Only run jobs on main branch
+  only-main: &only-main
     filters:
       branches:
-        only: "0.13"
+        only:
+          - main
+          # TODO: remove 0.13 once 0.13 is merged to main.
+          - "0.13"
       tags:
         ignore: /.*/
 
@@ -66,7 +71,7 @@ orbs:
       branches:
         ignore: /.*/
       tags:
-        only: /\d+\.\d+\.\d+(-\d+)?/
+        only: /\d+\.\d+\.\d+(-[a-zA-Z0-9]+)?/
 
   # Only run for PRs from core team
   only-internal-prs: &only-internal-prs
@@ -145,7 +150,7 @@ commands:
       - run:
           name: Install kind
           command: |
-            curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.11.1/kind-linux-amd64
+            curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.18.0/kind-linux-amd64
             chmod +x kind-linux-amd64
             sudo mv kind-linux-amd64 /usr/local/bin/kind
       - run:
@@ -208,6 +213,8 @@ commands:
       - run:
           name: Configure kubectl context via gcloud and authenticate to Google Container Registry
           command: |
+            export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+            echo "export USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $BASH_ENV
             export GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcloud-key.json
             echo "export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS" >> $BASH_ENV
             echo $GCLOUD_SERVICE_KEY > $GOOGLE_APPLICATION_CREDENTIALS
@@ -308,15 +315,11 @@ jobs:
   build-dist:
     <<: *node-config
     resource_class: large
-    steps:
-      - build_dist
-  build-dist-edge:
-    <<: *node-config
     parameters:
       version:
         description: The version tag/name to set
         type: string
-    resource_class: large
+        default: ""
     steps:
       - build_dist:
           version: <<parameters.version>>
@@ -397,7 +400,18 @@ jobs:
       - cleanup_remote_cluster:
           filter: <<parameters.project>>-testing-ci-$CIRCLE_BUILD_NUM-e2e
 
-  release-service-docker:
+  test-dockerhub:
+    <<: *node-config
+    steps:
+      - *remote-docker
+      - checkout
+      # This is to copy the pre-built code from a previous step
+      - *attach-workspace
+      - deploy:
+          name: Build and test docker images
+          command: |
+            bash support/docker-bake-test.sh $CIRCLE_BRANCH
+  dockerhub-release:
     <<: *node-config
     steps:
       - *remote-docker
@@ -409,22 +423,47 @@ jobs:
       - deploy:
           name: Release docker images
           command: |
-            # Push with latest tag for non-pre-release tags
-            if [[ "$TAG" == "$CIRCLE_TAG" ]] && [[ $VERSION != *"-"* ]]; then
-              ./scripts/push-containers.sh latest
+            # TODO: read minor version from package.json file, instead of hardcoding.
+            export MAJOR_VERSION=0
+            export MINOR_VERSION=13
+            export CODENAME=bonsai
+
+            if [[ "${CIRCLE_TAG}" = "" ]]; then
+              # If we don't have a tag, this is an edge release
+              export PRERELEASE=edge
+            else
+              # We have a tag.
+
+              # Double check that this is an 0.13 version number, because otherwise
+              # it would be inconsistent with the hardcoded CODENAME export above.
+              if ! [[ ${CIRCLE_TAG} =~ ^0.13 ]]; then
+                echo "This pipeline should only build 0.13 releases"
+                exit 1
+              fi
+
+              # Parse SemVer tag into different parts
+              regex="^([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9A-Za-z-]+))?(\+([0-9A-Za-z-]+))?$"
+
+              # production release, or prerelease
+              if [[ ${CIRCLE_TAG} =~ $regex ]]; then
+                  export MAJOR_VERSION=${BASH_REMATCH[1]}
+                  export MINOR_VERSION=${BASH_REMATCH[2]}
+                  export PATCH_VERSION=${BASH_REMATCH[3]}
+                  export PRERELEASE=${BASH_REMATCH[5]}
+              else
+                  echo "Invalid SemVer tag."
+                  exit 1
+              fi
             fi
-            # Push again with bonsai-edge tag for 0.13 branch
-            if [ "$CIRCLE_BRANCH" == "0.13" ]; then
-              ./scripts/push-containers.sh bonsai-edge
-            fi
-            # Get remote image digest of pushed container
-            DIGEST=$(docker inspect --format='{{.RepoDigests}}' gardendev/garden:bonsai-edge-buster | tr -d '[]')
-            echo "export DIGEST=$DIGEST" >> $BASH_ENV
+
+            # Build and publish
+            docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
+
 
   test-docker-gcloud:
     docker:
-      # Use remote image digest from previous job
-      - image: $DIGEST
+      # We do not use a specific digest here on purpose, to use the latest build from the previous job
+      - image: gardendev/garden-gcloud:bonsai-edge-alpine
         environment:
           <<: *shared-env-config
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
@@ -440,7 +479,7 @@ jobs:
       - cleanup_remote_cluster:
           filter: $CIRCLE_BUILD_NUM-docker
 
-  release-service-dist:
+  github-release-tag:
     <<: *release-config
     steps:
       # Need to checkout to read version from core/package.json
@@ -464,7 +503,7 @@ jobs:
               ${PRERELEASE} \
               ${DRAFT} \
               ${VERSION} ./dist
-  release-service-dist-edge:
+  github-edge-prerelease:
     <<: *release-config
     parameters:
       version:
@@ -766,6 +805,7 @@ jobs:
             choco upgrade --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
             $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
             gcloud components install gke-gcloud-auth-plugin --quiet
+            $Env:USE_GKE_GCLOUD_AUTH_PLUGIN = True
             refreshenv
       - run:
           name: Write gcloud credentials to file
@@ -803,43 +843,6 @@ workflows:
           requires: [build]
       - check-package-licenses:
           requires: [build]
-      # - build-docker-alpine:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-dist]
-      # - build-docker-aws:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-docker-alpine]
-      # - build-docker-azure:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-docker-alpine]
-      # - build-docker-gcloud:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-docker-alpine]
-      # - build-docker-aws-gcloud:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-docker-gcloud]
-      # - build-docker-aws-gcloud-azure:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-docker-gcloud]
-      # - build-docker-full:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-docker-gcloud]
-      # - build-docker-buster:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [build-dist]
-
-      # - test-docker-gcloud:
-      #     <<: *only-internal-prs
-      #     context: docker
-      #     requires: [release-service-docker]
       - test-framework:
           requires: [build]
       - test-dist:
@@ -848,6 +851,9 @@ workflows:
           requires: [build-dist]
       - test-macos:
           <<: *only-internal-prs
+          requires: [build-dist]
+      - test-dockerhub:
+          <<: *only-prs
           requires: [build-dist]
       - test-windows:
           <<: *only-internal-prs
@@ -983,81 +989,68 @@ workflows:
           requires: [build]
           kubernetesVersion: "1.23.3"
           minikubeVersion: "v1.25.2"
-      - test-minikube:
-          name: vm-1.19-minikube
+      - test-microk8s:
+          name: vm-1.24-microk8s
           requires: [build]
-          kubernetesVersion: "1.19.7"
-          minikubeVersion: "v1.16.0"
-      # - test-microk8s:
-      #     name: vm-1.24-microk8s
-      #     requires: [build]
-      #     kubernetesVersion: "1.24"
-      # - test-microk8s:
-      #     name: vm-1.25-microk8s
-      #     requires: [build]
-      #     kubernetesVersion: "1.25"
-      # - test-microk8s:
-      #     name: vm-1.26-microk8s
-      #     requires: [build]
-      #     kubernetesVersion: "1.26"
-      - test-kind:
-          name: vm-1.19-kind
+          kubernetesVersion: "1.24"
+      - test-microk8s:
+          name: vm-1.25-microk8s
           requires: [build]
-          kindNodeImage: kindest/node:v1.19.4
-      - test-kind:
-          name: vm-1.20-kind
+          kubernetesVersion: "1.25"
+      - test-microk8s:
+          name: vm-1.26-microk8s
           requires: [build]
-          kindNodeImage: kindest/node:v1.20.2
+          kubernetesVersion: "1.26"
       - test-kind:
           name: vm-1.21-kind
           requires: [build]
-          kindNodeImage: kindest/node:v1.21.2
+          kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
+      # - test-kind:
+      #     name: vm-1.22-kind
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.22.17@sha256:c8a828709a53c25cbdc0790c8afe12f25538617c7be879083248981945c38693
+      # - test-kind:
+      #     name: vm-1.23-kind
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.23.17@sha256:e5fd1d9cd7a9a50939f9c005684df5a6d145e8d695e78463637b79464292e66c
       - test-kind:
-          name: vm-1.22-kind
+          name: vm-1.24-kind
           requires: [build]
-          kindNodeImage: kindest/node:v1.22.9@sha256:8135260b959dfe320206eb36b3aeda9cffcb262f4b44cda6b33f7bb73f453105
+          kindNodeImage: kindest/node:v1.24.12@sha256:1e12918b8bc3d4253bc08f640a231bb0d3b2c5a9b28aa3f2ca1aee93e1e8db16
+      # - test-kind:
+      #     name: vm-1.25-kind
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.25.8@sha256:00d3f5314cc35327706776e95b2f8e504198ce59ac545d0200a89e69fce10b7f
       - test-kind:
-          name: vm-1.23-kind
+          name: vm-1.26-kind
           requires: [build]
-          kindNodeImage: kindest/node:v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae
+          kindNodeImage: kindest/node:v1.26.3@sha256:61b92f38dff6ccc29969e7aa154d34e38b89443af1a2c14e6cfbd2df6419c66f
 
+      # TODO-0.13: fix and re-enable
       # - test-plugins:
       #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.21.2
+      #     kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
 
-      ### MAIN ONLY ###
-
-      - build-dist-edge:
+      # This is only for edge release (Overrides version to edge-bonsai)
+      - build-dist:
           <<: *only-main
-          version: edge
-          requires: [build]
-      - build-dist-edge:
-          <<: *only-bonsai
-          name: build-dist-edge-bonsai
+          name: build-dist-edge
           version: edge-bonsai
           requires: [build]
-      - release-service-dist-edge:
+
+      - github-edge-prerelease:
           <<: *only-main
-          version: edge
+          version: edge-bonsai
           requires: [build-dist-edge]
-      - release-service-dist-edge:
-          <<: *only-bonsai
-          name: release-service-dist-edge-bonsai
-          version: edge-bonsai
-          requires: [build-dist-edge-bonsai]
 
-      ### MAIN AND 0.13 ###
-      - release-service-docker:
+      - dockerhub-release:
+          <<: *only-main
           context: docker
           requires:
             - build-dist-edge
-            - build-dist-edge-bonsai
-          filters:
-            branches:
-              only:
-                - main
-                - "0.13"
-
+      - test-docker-gcloud:
+          context: docker
+          requires: [dockerhub-release]
   tags:
     jobs:
       - build:
@@ -1065,10 +1058,10 @@ workflows:
       - build-dist:
           <<: *only-tags
           requires: [build]
-      - release-service-docker:
+      - dockerhub-release:
           <<: *only-tags
           context: docker
           requires: [build-dist]
-      - release-service-dist:
+      - github-release-tag:
           <<: *only-tags
           requires: [build-dist]

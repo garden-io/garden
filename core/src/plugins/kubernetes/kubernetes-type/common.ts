@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,7 +22,6 @@ import { ConfigurationError, PluginError } from "../../../exceptions"
 import { KubernetesPluginContext, KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config"
 import { HelmModule } from "../helm/module-config"
 import { KubernetesDeployAction } from "./config"
-import { DEFAULT_RUN_TIMEOUT } from "../../../constants"
 import { CommonRunParams } from "../../../plugin/handlers/Run/run"
 import { runAndCopy } from "../run"
 import { getTargetResource, getResourcePodSpec, getResourceContainer, makePodName } from "../util"
@@ -77,6 +76,7 @@ export async function getManifests({
     const annotationValue =
       manifest.kind === "Namespace" ? gardenNamespaceAnnotationValue(manifest.metadata.name) : action.name
     set(manifest, ["metadata", "annotations", gardenAnnotationKey("service")], annotationValue)
+    set(manifest, ["metadata", "annotations", gardenAnnotationKey("mode")], action.mode())
     set(manifest, ["metadata", "labels", gardenAnnotationKey("service")], annotationValue)
 
     return manifest
@@ -224,8 +224,6 @@ export async function runOrTestWithPod(
     )
   }
 
-  const { timeout } = action.getConfig()
-
   return runAndCopy({
     ...params,
     container,
@@ -237,7 +235,7 @@ export async function runOrTestWithPod(
     image: container.image!,
     namespace,
     podName: makePodName(action.kind.toLowerCase(), action.name),
-    timeout: timeout || DEFAULT_RUN_TIMEOUT,
+    timeout: action.getConfig().timeout,
     version,
   })
 }

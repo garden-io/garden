@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,8 +18,10 @@ import {
   getAllProcessedTaskNames,
   getDataDir,
 } from "../../../helpers"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 import { ActionStatus } from "../../../../src/actions/types"
+import { DeployStatus } from "../../../../src/plugin/handlers/Deploy/get-status"
+import { defaultServerPort } from "../../../../src/commands/serve"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 const placeholderTimestamp = new Date()
@@ -33,7 +35,7 @@ const testProvider = () => {
         detail: {},
         ingresses: [
           {
-            hostname: "service-a.test-project-b.local.app.garden",
+            hostname: "service-a.test-project-b.local.demo.garden",
             path: "/path-a",
             port: 80,
             protocol: "http",
@@ -59,7 +61,7 @@ const testProvider = () => {
           schema: testDeploySchema(),
           handlers: {
             deploy: async (params) => {
-              const newStatus: ActionStatus = { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+              const newStatus: DeployStatus = { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
               testStatuses[params.action.name] = newStatus
               return newStatus
             },
@@ -108,6 +110,23 @@ describe("DeployCommand", () => {
   const projectRootB = getDataDir("test-project-b")
   const projectRootA = getDataDir("test-project-a")
 
+  const defaultDeployOpts = withDefaultGlobalOpts({
+    "sync": undefined,
+    "local-mode": undefined,
+    "watch": false,
+    "force": false,
+    "force-build": true, // <----
+    "skip": undefined,
+    "skip-dependencies": false,
+    "skip-watch": false,
+    "forward": false,
+    "logs": false,
+    "timestamps": false,
+    "port": defaultServerPort,
+    "cmd": undefined,
+    "disable-port-forwards": false,
+  })
+
   // TODO: Verify that services don't get redeployed when same version is already deployed.
 
   const command = new DeployCommand()
@@ -119,22 +138,10 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
-      opts: withDefaultGlobalOpts({
-        "sync": undefined,
-        "local-mode": undefined,
-        "watch": false,
-        "force": false,
-        "force-build": true,
-        "skip": undefined,
-        "skip-dependencies": false,
-        "skip-watch": false,
-        "forward": false,
-      }),
+      opts: defaultDeployOpts,
     })
 
     if (errors?.length) {
@@ -165,7 +172,7 @@ describe("DeployCommand", () => {
       }
 
       expect(graphResult.name).to.exist
-      expect(graphResult.version).to.equal(getDeployVersion(graphResult.name))
+      expect(graphResult.inputVersion).to.equal(getDeployVersion(graphResult.name))
       expect(graphResult.aborted).to.be.false
       expect(graphResult.error).to.be.null
       expect(graphResult.result).to.exist
@@ -186,22 +193,10 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: ["service-b"],
       },
-      opts: withDefaultGlobalOpts({
-        "sync": undefined,
-        "local-mode": undefined,
-        "watch": false,
-        "force": false,
-        "force-build": true,
-        "skip": undefined,
-        "skip-dependencies": false,
-        "skip-watch": false,
-        "forward": false,
-      }),
+      opts: defaultDeployOpts,
     })
 
     if (errors) {
@@ -235,22 +230,13 @@ describe("DeployCommand", () => {
       const { result, errors } = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: ["service-b", "service-c"],
         },
-        opts: withDefaultGlobalOpts({
-          "sync": undefined,
-          "local-mode": undefined,
-          "watch": false,
-          "force": false,
-          "force-build": true,
-          "skip": undefined,
-          "skip-dependencies": true, // <-----
-          "skip-watch": false,
-          "forward": false,
-        }),
+        opts: {
+          ...defaultDeployOpts,
+          "skip-dependencies": true,
+        },
       })
 
       if (errors) {
@@ -285,22 +271,10 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
-      opts: withDefaultGlobalOpts({
-        "sync": undefined,
-        "local-mode": undefined,
-        "watch": false,
-        "force": false,
-        "force-build": true,
-        "skip": undefined,
-        "skip-dependencies": false,
-        "skip-watch": false,
-        "forward": false,
-      }),
+      opts: defaultDeployOpts,
     })
 
     if (errors) {
@@ -324,22 +298,10 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
-      opts: withDefaultGlobalOpts({
-        "sync": undefined,
-        "local-mode": undefined,
-        "watch": false,
-        "force": false,
-        "force-build": true,
-        "skip": undefined,
-        "skip-dependencies": false,
-        "skip-watch": false,
-        "forward": false,
-      }),
+      opts: defaultDeployOpts,
     })
 
     if (errors) {
@@ -358,22 +320,13 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
-      opts: withDefaultGlobalOpts({
-        "sync": undefined,
-        "local-mode": undefined,
-        "watch": false,
-        "force": false,
-        "force-build": true,
-        "skip": ["service-b"],
-        "skip-dependencies": false,
-        "skip-watch": false,
-        "forward": false,
-      }),
+      opts: {
+        ...defaultDeployOpts,
+        skip: ["service-b"],
+      },
     })
 
     if (errors) {
@@ -386,76 +339,48 @@ describe("DeployCommand", () => {
   describe("isPersistent", () => {
     it("should return persistent=true if --sync is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().createLog()
-      const persistent = cmd.isPersistent({
+      const log = getRootLogger().createLog()
+      const persistent = cmd.maybePersistent({
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: undefined,
         },
-        opts: withDefaultGlobalOpts({
-          "sync": [],
-          "local-mode": undefined,
-          "watch": false,
-          "force": false,
-          "force-build": true,
-          "skip": ["service-b"],
-          "skip-dependencies": false,
-          "skip-watch": false,
-          "forward": false,
-        }),
+        opts: {
+          ...defaultDeployOpts,
+          sync: [],
+        },
       })
       expect(persistent).to.be.true
     })
 
     it("should return persistent=true if --local-mode is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().createLog()
-      const persistent = cmd.isPersistent({
+      const log = getRootLogger().createLog()
+      const persistent = cmd.maybePersistent({
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: undefined,
         },
-        opts: withDefaultGlobalOpts({
-          "sync": undefined,
+        opts: {
+          ...defaultDeployOpts,
           "local-mode": [],
-          "watch": false,
-          "force": false,
-          "force-build": true,
-          "skip": ["service-b"],
-          "skip-dependencies": false,
-          "skip-watch": false,
-          "forward": false,
-        }),
+        },
       })
       expect(persistent).to.be.true
     })
 
-    it("should return persistent=true if --follow is set", async () => {
+    it("should return persistent=true if --forward is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().createLog()
-      const persistent = cmd.isPersistent({
+      const log = getRootLogger().createLog()
+      const persistent = cmd.maybePersistent({
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           names: undefined,
         },
-        opts: withDefaultGlobalOpts({
-          "sync": undefined,
-
-          "local-mode": undefined,
-          "watch": false,
-          "force": false,
-          "force-build": true,
-          "skip": ["service-b"],
-          "skip-dependencies": false,
-          "skip-watch": false,
-          "forward": true,
-        }),
+        opts: {
+          ...defaultDeployOpts,
+          forward: true,
+        },
       })
       expect(persistent).to.be.true
     })

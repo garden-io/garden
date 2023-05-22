@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,6 +12,7 @@ import { Log } from "../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { BaseActionTask, ValidResultType } from "../../../../src/tasks/base"
 import { TestAction } from "../../../../src/actions/test"
+import { DEFAULT_TEST_TIMEOUT_SEC } from "../../../../src/constants"
 
 describe("BaseActionTask", () => {
   let garden: TestGarden
@@ -43,6 +44,7 @@ describe("BaseActionTask", () => {
       kind: "Test",
       name: "test-b",
       type: "test",
+      timeout: DEFAULT_TEST_TIMEOUT_SEC,
       dependencies: [
         { kind: "Build", name: "module-a" },
         { kind: "Deploy", name: "service-b" },

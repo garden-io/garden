@@ -1,3 +1,4 @@
+apiVersion: garden.io/v1
 # todo: remove this in project in 0.14
 kind: Project
 name: include-exclude

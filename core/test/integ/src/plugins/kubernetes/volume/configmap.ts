@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,11 +9,12 @@
 import tmp from "tmp-promise"
 import { ProjectConfig } from "../../../../../../src/config/project"
 import execa = require("execa")
-import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants"
 import { expect } from "chai"
 import { TestGarden, makeTempDir, createProjectConfig } from "../../../../../helpers"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { isSubset } from "../../../../../../src/util/is-subset"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("configmap module", () => {
   let tmpDir: tmp.DirectoryResult
@@ -46,11 +47,11 @@ describe("configmap module", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "test",
         type: "configmap",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         path: tmpDir.path,
         serviceConfigs: [],
@@ -95,6 +96,7 @@ describe("configmap module", () => {
       })
     ).to.be.true
 
-    await actions.deploy.delete({ log: garden.log, action, graph })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+    await actions.deploy.delete({ log: actionLog, action, graph })
   })
 })

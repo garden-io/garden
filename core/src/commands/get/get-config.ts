@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -69,15 +69,19 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
 
   options = getConfigOptions
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Get config", "📂")
+  printHeader({ log }) {
+    printHeader(log, "Get config", "📂")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<ConfigDump>> {
+    const partial = opts["resolve"] === "partial"
+
     const config = await garden.dumpConfig({
       log,
       includeDisabled: !opts["exclude-disabled"],
-      partial: opts["resolve"] === "partial",
+      resolveGraph: !partial,
+      resolveProviders: !partial,
+      resolveWorkflows: !partial,
     })
 
     // Also filter out service, task, and test configs
@@ -95,7 +99,7 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
       config.moduleConfigs = filteredModuleConfigs
 
       for (const configs of Object.values(config.actionConfigs)) {
-        // TODO-G2: work out why c resolves as any
+        // TODO: work out why c resolves as any
         for (const [key, c] of Object.entries(configs)) {
           if (c.disabled) {
             delete configs[key]

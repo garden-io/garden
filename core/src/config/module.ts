@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,24 +9,23 @@
 import { memoize } from "lodash"
 import { ServiceConfig, serviceConfigSchema } from "./service"
 import {
+  createSchema,
+  DeepPrimitiveMap,
+  includeGuideLink,
+  joi,
   joiArray,
   joiIdentifier,
   joiRepositoryUrl,
-  joiUserIdentifier,
-  joi,
-  includeGuideLink,
-  apiVersionSchema,
-  DeepPrimitiveMap,
-  joiVariables,
   joiSparseArray,
-  createSchema,
+  joiUserIdentifier,
+  joiVariables,
+  unusedApiVersionSchema,
 } from "./common"
 import { TestConfig, testConfigSchema } from "./test"
 import { TaskConfig, taskConfigSchema } from "./task"
 import { dedent, stableStringify } from "../util/string"
 import { configTemplateKind, varfileDescription } from "./base"
-
-export const defaultBuildTimeout = 1200
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersionType } from "../constants"
 
 interface BuildCopySpec {
   source: string
@@ -35,8 +34,9 @@ interface BuildCopySpec {
 
 // TODO: allow : delimited string (e.g. some.file:some-dir/)
 // FIXME: target should not default to source if source contains wildcards
-const copySchema = () =>
-  joi.object().keys({
+const copySchema = createSchema({
+  name: "copy-spec",
+  keys: () => ({
     // TODO: allow array of strings here
     source: joi
       .posixPath()
@@ -51,7 +51,8 @@ const copySchema = () =>
         POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
         Defaults to the same as source path.
       `),
-  })
+  }),
+})
 
 export interface BuildDependencyConfig {
   name: string
@@ -71,7 +72,7 @@ export const buildDependencySchema = createSchema({
 
 export interface BaseBuildSpec {
   dependencies: BuildDependencyConfig[]
-  timeout?: number
+  timeout: number
 }
 
 export interface GenerateFileSpec {
@@ -105,7 +106,10 @@ export interface AddModuleSpec extends ModuleSpecCommon {
 }
 
 export interface BaseModuleSpec extends ModuleSpecCommon {
-  apiVersion: string
+  /**
+   * the apiVersion field is unused in all Modules at the moment and hidden in the reference docs.
+   */
+  apiVersion: GardenApiVersionType["v0"]
   kind?: "Module"
   allowPublish: boolean
   build: BaseBuildSpec
@@ -138,14 +142,13 @@ export const generatedFileSchema = createSchema({
       ),
     resolveTemplates: joi
       .boolean()
-      // TODO: flip this default in 0.13?
       .default(true)
       .description(
         "By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to skip resolving template strings. Note that this does not apply when setting the `value` field, since that's resolved earlier when parsing the configuration."
       ),
     value: joi.string().description("The desired file contents as a string."),
   }),
-  xor: ["value", "sourcePath"],
+  xor: [["value", "sourcePath"]],
 })
 
 export const baseBuildSpecSchema = createSchema({
@@ -158,7 +161,8 @@ export const baseBuildSpecSchema = createSchema({
     timeout: joi
       .number()
       .integer()
-      .default(defaultBuildTimeout)
+      .min(1)
+      .default(DEFAULT_BUILD_TIMEOUT_SEC)
       .description("Maximum time in seconds to wait for build to finish."),
   }),
   default: () => ({ dependencies: [] }),
@@ -166,7 +170,7 @@ export const baseBuildSpecSchema = createSchema({
 
 // These fields are validated immediately when loading the config file
 const coreModuleSpecKeys = memoize(() => ({
-  apiVersion: apiVersionSchema(),
+  apiVersion: unusedApiVersionSchema(),
   kind: joi.string().default("Module").valid("Module"),
   type: joiIdentifier().required().description("The type of this module.").example("container"),
   name: joiUserIdentifier().required().description("The name of this module.").example("my-sweet-module"),
@@ -217,7 +221,7 @@ export const baseModuleSpecKeys = memoize(() => ({
 
       Note that you can also explicitly _include_ files using the \`include\` field. If you also specify the \`include\` field, the files/patterns specified here are filtered from the files matched by \`include\`. See the [Configuration Files guide](${includeGuideLink}) for details.
 
-      Unlike the \`modules.exclude\` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project \`modules.exclude\` field to affect those, if you have large directories that should not be watched for changes.
+      Unlike the \`scan.exclude\` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project \`scan.exclude\` field to affect those, if you have large directories that should not be watched for changes.
       `
     )
     .example(["tmp/**/*", "*.log"]),
@@ -264,7 +268,8 @@ export interface ModuleConfig<M extends {} = any, S extends {} = any, T extends 
   extends BaseModuleSpec {
   path: string
   configPath?: string
-  plugin?: string // used to identify modules that are bundled as part of a plugin
+  basePath?: string // The directory of the config. Disambiguates `path` when the module has a remote source.
+  plugin?: string // Used to identify modules that are bundled as part of a plugin.
   buildConfig?: any
   serviceConfigs: ServiceConfig<S>[]
   testConfigs: TestConfig<T>[]

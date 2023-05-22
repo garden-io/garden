@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,6 @@
  */
 
 import tmp from "tmp-promise"
-import execa from "execa"
 
 import { ProjectConfig } from "../../../../src/config/project"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
@@ -16,7 +15,6 @@ import { DeployTask } from "../../../../src/tasks/deploy"
 import { expect } from "chai"
 import { createProjectConfig, makeTempDir, TestGarden } from "../../../helpers"
 import { joi } from "../../../../src/config/common"
-import { ActionConfig } from "../../../../src/actions/types"
 
 describe("DeployTask", () => {
   let tmpDir: tmp.DirectoryResult
@@ -147,8 +145,7 @@ describe("DeployTask", () => {
   })
 
   describe("resolveProcessDependencies", () => {
-    // TODO-G2B: this might make sense to implement but is not strictly needed
-    it.skip("should always return deploy action's dependencies having force = false", async () => {
+    it("should always return deploy action's dependencies having force = false", async () => {
       const action = graph.getDeploy("test-deploy")
 
       const forcedDeployTask = new DeployTask({

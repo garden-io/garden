@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -124,11 +124,21 @@ export function renderDivider({
   return paddingString + dividerSideString + titleString + dividerSideString + paddingString
 }
 
-export function renderMessageWithDivider(prefix: string, msg: string, isError: boolean, color?: Chalk) {
+export function renderDuration(duration: number): string {
+  return `(took ${duration} sec)`
+}
+
+export function renderMessageWithDivider({
+  prefix,
+  msg,
+  isError,
+  color,
+}
+  : { prefix: string; msg: string; isError: boolean; color?: Chalk }) {
   // Allow overwriting color as an escape hatch. Otherwise defaults to white or red in case of errors.
   const msgColor = color || (isError ? chalk.red : chalk.white)
   return dedent`
-  \n${msgColor.bold(prefix)}
+  ${msgColor.bold(prefix)}\n
   ${msgColor.bold(renderDivider())}
   ${hasAnsi(msg) ? msg : msgColor(msg)}
   ${msgColor.bold(renderDivider())}

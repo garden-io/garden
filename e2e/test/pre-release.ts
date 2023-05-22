@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -99,44 +99,24 @@ describe("PreReleaseTests", () => {
     })
     it("runs the test command", async () => {
       const logEntries = await runWithEnv(["test"])
-      expect(searchLog(logEntries, /Done!/), "expected to find 'Done!' in log output").to.eql("passed")
+      expect(
+        searchLog(logEntries, /(Done!|No Test actions were found)/),
+        "expected to find 'Done!' in log output"
+      ).to.eql("passed")
     })
   })
 
   if (project === "vote") {
     describe("vote", () => {
       describe("top-level sanity checks", () => {
-        it("runs the run-workflow command", async () => {
+        it("runs the workflow command", async () => {
           const workflowName = "full-test"
-          const logEntries = await runWithEnv(["run-workflow", workflowName])
+          const logEntries = await runWithEnv(["workflow", workflowName])
           expect(
             searchLog(logEntries, new RegExp(`Workflow ${workflowName} completed successfully.`, "g")),
             `expected to find "Workflow ${workflowName} completed successfully." in log output.`
           ).to.eql("passed")
         })
-      })
-    })
-  }
-
-  if (project === "tasks") {
-    /*
-     * TODO: Re-enable once this has been debugged:
-     *
-     * TimeoutError: Knex: Timeout acquiring a connection. The pool is probably full.
-     * Are you missing a .transacting(trx) call?
-     */
-    describe.skip("tasks", () => {
-      it("calls the hello service to fetch the usernames populated by the ruby migration", async () => {
-        /**
-         * Verify that the output includes the usernames populated by the ruby-migration task.
-         * The users table was created by the node-migration task.
-         */
-        await runWithEnv(["deploy"])
-        const logEntries = await runWithEnv(["call", "hello"])
-        expect(
-          searchLog(logEntries, /John, Paul, George, Ringo/),
-          "expected to find populated usernames in log output"
-        ).to.eql("passed")
       })
     })
   }

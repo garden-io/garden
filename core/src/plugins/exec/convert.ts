@@ -1,12 +1,11 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import split2 = require("split2")
 import { StringMap } from "../../config/common"
 import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
 import { ExecActionConfig, ExecBuildConfig, defaultStatusTimeout } from "./config"
@@ -34,6 +33,7 @@ export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>):
       buildAtSource: module.spec.local,
       dependencies: module.build.dependencies.map(convertBuildDependency),
 
+      timeout: module.build.timeout,
       spec: {
         shell: true, // This keeps the old pre-0.13 behavior
         command: module.spec.build?.command,
@@ -102,6 +102,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       disabled: service.disabled,
       build: buildAction ? buildAction.name : undefined,
       dependencies: prepRuntimeDeps(service.spec.dependencies),
+      timeout: service.spec.timeout,
 
       spec: {
         shell: true, // This keeps the old pre-0.13 behavior
@@ -110,7 +111,6 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
         deployCommand,
         statusCommand,
         statusTimeout: service.spec.syncMode?.timeout || defaultStatusTimeout,
-        timeout: service.spec.timeout,
         env: prepareEnv(service.spec.env),
       },
     })
@@ -126,7 +126,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       disabled: task.disabled,
       build: buildAction ? buildAction.name : undefined,
       dependencies: prepRuntimeDeps(task.spec.dependencies),
-      timeout: task.spec.timeout ? task.spec.timeout : undefined,
+      timeout: task.spec.timeout,
 
       spec: {
         shell: true, // This keeps the old pre-0.13 behavior
@@ -147,7 +147,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       disabled: test.disabled,
       build: buildAction ? buildAction.name : undefined,
       dependencies: prepRuntimeDeps(test.spec.dependencies),
-      timeout: test.spec.timeout ? test.spec.timeout : undefined,
+      timeout: test.spec.timeout,
 
       spec: {
         shell: true, // This keeps the old pre-0.13 behavior

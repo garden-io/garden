@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,9 +19,9 @@ export const gardenPlugin = () =>
     base: "conftest",
     dependencies: [{ name: "container" }],
     docs: dedent`
-    This provider automatically generates [conftest modules](../module-types/conftest.md) for \`container\` modules in your project. A \`conftest\` module is created for each \`container\` module that includes a Dockerfile that can be validated.
+    This provider automatically generates [conftest Test actions](../action-types/Test/conftest.md) for \`container\` Builds in your project. A \`conftest\` Test is created for each \`container\` Build that includes a Dockerfile that can be validated.
 
-    Simply add this provider to your project configuration, and configure your policies. Check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for the generated modules.
+    Simply add this provider to your project configuration, and configure your policies. Check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for the generated actions.
   `,
     handlers: {
       augmentGraph: async ({ ctx, actions }) => {
@@ -55,6 +55,7 @@ export const gardenPlugin = () =>
                 internal: {
                   basePath: action.basePath(),
                 },
+                timeout: action.getConfig().timeout,
                 spec: {
                   policyPath: provider.config.policyPath,
                   namespace: provider.config.namespace,

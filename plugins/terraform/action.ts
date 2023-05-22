@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,7 +35,7 @@ export type TerraformDeploy = DeployAction<TerraformDeployConfig, {}>
 
 export const terraformDeploySchemaKeys = () => ({
   allowDestroy: joi.boolean().default(false).description(dedent`
-    If set to true, Garden will run \`terraform destroy\` on the stack when calling \`garden delete env\` or \`garden delete service <module name>\`.
+    If set to true, Garden will run \`terraform destroy\` on the stack when calling \`garden delete namespace\` or \`garden delete deploy <deploy name>\`.
   `),
   autoApply: joi.boolean().allow(null).default(null).description(dedent`
     If set to true, Garden will automatically run \`terraform apply -auto-approve\` when the stack is not
@@ -88,13 +88,13 @@ export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeplo
     workspace,
   })
 
-  const state: DeployState = status === "up-to-date" ? "ready" : "outdated"
+  const deployState: DeployState = status === "up-to-date" ? "ready" : "outdated"
 
   return {
-    state: deployStateToActionState(state),
+    state: deployStateToActionState(deployState),
     outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {
-      state,
+      state: deployState,
       detail: {},
     },
   }
@@ -138,7 +138,7 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
   const deployState: DeployState = "outdated"
 
   if (!spec.allowDestroy) {
-    log.warn({ section: action.key(), msg: "allowDestroy is set to false. Not calling terraform destroy." })
+    log.warn("allowDestroy is set to false. Not calling terraform destroy.")
     return {
       state: deployStateToActionState(deployState),
       detail: {

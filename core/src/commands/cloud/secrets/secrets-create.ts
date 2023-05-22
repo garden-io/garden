@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,6 +18,7 @@ import { IntegerParameter, PathParameter, StringParameter, StringsParameter } fr
 import { StringMap } from "../../../config/common"
 import dotenv = require("dotenv")
 import { getCloudDistributionName } from "../../../util/util"
+import { CloudProject } from "../../../cloud/api"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -69,8 +70,8 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
   arguments = secretsCreateArgs
   options = secretsCreateOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Create secrets", "🔒")
+  printHeader({ log }) {
+    printHeader(log, "Create secrets", "🔒")
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
@@ -127,7 +128,11 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError(noApiMsg("create", "secrets"), {})
     }
 
-    const project = await api.getProject()
+    let project: CloudProject | undefined
+
+    if (garden.projectId) {
+      project = await api.getProjectById(garden.projectId)
+    }
 
     if (!project) {
       throw new CloudApiError(
@@ -160,7 +165,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     }
 
     const secretsToCreate = Object.entries(secrets)
-    const cmdLog = log.createLog({ section: "secrets-command" })
+    const cmdLog = log.createLog({ name: "secrets-command" })
     cmdLog.info("Creating secrets...")
 
     let count = 1

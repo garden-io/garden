@@ -5,6 +5,10 @@ tocTitle: "`pulumi`"
 
 # `pulumi` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Deploys a Pulumi stack and either creates/updates it automatically (if `autoApply: true`) or warns when the stack resources are not up-to-date, or errors if it's missing entirely.
@@ -25,9 +29,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 kind: Module
 
 # The type of this module.
@@ -53,7 +54,7 @@ build:
           target:
 
   # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
+  timeout: 600
 
 # A description of the module.
 description:
@@ -93,8 +94,8 @@ include:
 # Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-# directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+# Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+# directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
 # directories that should not be watched for changes.
 exclude:
 
@@ -155,41 +156,37 @@ variables:
 # varfiles exist).
 varfile:
 
-# If set to true, Garden will destroy the stack when calling `garden delete env` or `garden delete service <module
-# name>`.
+# If set to true, Garden will destroy the stack when calling `garden cleanup namespace` or `garden cleanup deploy
+# <deploy action name>`.
 # This is useful to prevent unintentional destroys in production or shared environments.
 allowDestroy: true
 
-# If set to false, deployments will fail unless a `planPath` is provided for this module. This is useful when
+# If set to false, deployments will fail unless a `planPath` is provided for this deploy action. This is useful when
 # deploying to
-# production or shared environments, or when the module deploys infrastructure that you don't want to unintentionally
+# production or shared environments, or when the action deploys infrastructure that you don't want to unintentionally
 # update/create.
 autoApply: true
 
 # If set to true, Garden will automatically create the stack if it doesn't already exist.
 createStack: false
 
-# The names of any services that this service depends on at runtime, and the names of any tasks that should be
-# executed before this service is deployed.
-dependencies: []
-
-# Specify the path to the Pulumi project root, relative to the module root.
+# Specify the path to the Pulumi project root, relative to the deploy action's root.
 root: .
 
 # A map of config variables to use when applying the stack. These are merged with the contents of any `pulumiVarfiles`
 # provided
-# for this module. The module's stack config will be overwritten with the resulting merged config.
-# Variables declared here override any conflicting config variables defined in this module's `pulumiVarfiles`.
+# for this deploy action. The deploy action's stack config will be overwritten with the resulting merged config.
+# Variables declared here override any conflicting config variables defined in this deploy action's `pulumiVarfiles`.
 #
-# Note: `pulumiVariables` should not include runtime outputs from other pulumi modules when `cacheStatus` is set to
-# true, since
-# the outputs may change from the time the stack status of the dependency module is initially queried to when it's
+# Note: `pulumiVariables` should not include action outputs from other pulumi deploy actions when `cacheStatus` is set
+# to true, since
+# the outputs may change from the time the stack status of the dependency action is initially queried to when it's
 # been deployed.
 #
 # Instead, use pulumi stack references when using the `cacheStatus` config option.
 pulumiVariables: {}
 
-# Specify one or more paths (relative to the module root) to YAML files containing pulumi config variables.
+# Specify one or more paths (relative to the deploy action's root) to YAML files containing pulumi config variables.
 #
 # Templated paths that resolve to `null`, `undefined` or an empty string are ignored.
 #
@@ -213,21 +210,23 @@ orgName:
 # the subsequent deploy is skipped.
 #
 # Note that this will not pick up changes to stack outputs referenced via stack references in your pulumi stack,
-# unless they're referenced via template strings in the module configuration.
+# unless they're referenced via template strings in the deploy action configuration.
 #
-# When using stack references to other pulumi modules in your project, we recommend including them in this
-# module's `stackReferences` config field (see the documentation for that field on this page).
+# When using stack references to other pulumi deploy actions in your project, we recommend including them in this
+# deploy action's `stackReferences` config field (see the documentation for that field on this page).
+#
+# `cacheStatus: true` is not supported for self-managed state backends.
 cacheStatus: false
 
-# When setting `cacheStatus` to true for this module, you should include all stack references used by this
-# module's pulumi stack in this field.
+# When setting `cacheStatus` to true for this deploy action, you should include all stack references used by this
+# deploy action's pulumi stack in this field.
 #
 # This lets Garden know to redeploy the pulumi stack if the output values of one or more of these stack references
 # have changed since the last deployment.
 stackReferences: []
 
 # When set to true, will use pulumi plans generated by the `garden plugins pulumi preview` command when
-# deploying, and will fail if no plan exists locally for the module.
+# deploying, and will fail if no plan exists locally for the deploy action.
 #
 # When this option is used, the pulumi plugin bypasses the status check altogether and passes the plan directly
 # to `pulumi up` (via the `--plan` option, which is experimental as of March 2022). You should therefore
@@ -242,14 +241,6 @@ stack:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 ### `kind`
 
@@ -361,7 +352,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `description`
 
@@ -409,7 +400,7 @@ Specify a list of POSIX-style paths or glob patterns that should be excluded fro
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
-Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large directories that should not be watched for changes.
+Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -535,7 +526,7 @@ varfile: "my-module.env"
 
 ### `allowDestroy`
 
-If set to true, Garden will destroy the stack when calling `garden delete env` or `garden delete service <module name>`.
+If set to true, Garden will destroy the stack when calling `garden cleanup namespace` or `garden cleanup deploy <deploy action name>`.
 This is useful to prevent unintentional destroys in production or shared environments.
 
 | Type      | Default | Required |
@@ -544,8 +535,8 @@ This is useful to prevent unintentional destroys in production or shared environ
 
 ### `autoApply`
 
-If set to false, deployments will fail unless a `planPath` is provided for this module. This is useful when deploying to
-production or shared environments, or when the module deploys infrastructure that you don't want to unintentionally update/create.
+If set to false, deployments will fail unless a `planPath` is provided for this deploy action. This is useful when deploying to
+production or shared environments, or when the action deploys infrastructure that you don't want to unintentionally update/create.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -559,17 +550,9 @@ If set to true, Garden will automatically create the stack if it doesn't already
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-### `dependencies[]`
-
-The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
-
 ### `root`
 
-Specify the path to the Pulumi project root, relative to the module root.
+Specify the path to the Pulumi project root, relative to the deploy action's root.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
@@ -578,11 +561,11 @@ Specify the path to the Pulumi project root, relative to the module root.
 ### `pulumiVariables`
 
 A map of config variables to use when applying the stack. These are merged with the contents of any `pulumiVarfiles` provided
-for this module. The module's stack config will be overwritten with the resulting merged config.
-Variables declared here override any conflicting config variables defined in this module's `pulumiVarfiles`.
+for this deploy action. The deploy action's stack config will be overwritten with the resulting merged config.
+Variables declared here override any conflicting config variables defined in this deploy action's `pulumiVarfiles`.
 
-Note: `pulumiVariables` should not include runtime outputs from other pulumi modules when `cacheStatus` is set to true, since
-the outputs may change from the time the stack status of the dependency module is initially queried to when it's been deployed.
+Note: `pulumiVariables` should not include action outputs from other pulumi deploy actions when `cacheStatus` is set to true, since
+the outputs may change from the time the stack status of the dependency action is initially queried to when it's been deployed.
 
 Instead, use pulumi stack references when using the `cacheStatus` config option.
 
@@ -592,7 +575,7 @@ Instead, use pulumi stack references when using the `cacheStatus` config option.
 
 ### `pulumiVarfiles[]`
 
-Specify one or more paths (relative to the module root) to YAML files containing pulumi config variables.
+Specify one or more paths (relative to the deploy action's root) to YAML files containing pulumi config variables.
 
 Templated paths that resolve to `null`, `undefined` or an empty string are ignored.
 
@@ -626,10 +609,12 @@ will then be used for service status checks for this service. If the version doe
 the subsequent deploy is skipped.
 
 Note that this will not pick up changes to stack outputs referenced via stack references in your pulumi stack,
-unless they're referenced via template strings in the module configuration.
+unless they're referenced via template strings in the deploy action configuration.
 
-When using stack references to other pulumi modules in your project, we recommend including them in this
-module's `stackReferences` config field (see the documentation for that field on this page).
+When using stack references to other pulumi deploy actions in your project, we recommend including them in this
+deploy action's `stackReferences` config field (see the documentation for that field on this page).
+
+`cacheStatus: true` is not supported for self-managed state backends.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -637,8 +622,8 @@ module's `stackReferences` config field (see the documentation for that field on
 
 ### `stackReferences[]`
 
-When setting `cacheStatus` to true for this module, you should include all stack references used by this
-module's pulumi stack in this field.
+When setting `cacheStatus` to true for this deploy action, you should include all stack references used by this
+deploy action's pulumi stack in this field.
 
 This lets Garden know to redeploy the pulumi stack if the output values of one or more of these stack references
 have changed since the last deployment.
@@ -651,14 +636,14 @@ Example:
 
 ```yaml
 stackReferences:
-  - '${runtime.services.some-pulumi-module.outputs.ip-address}'
-  - '${runtime.services.some-other-pulumi-module.outputs.database-url}'
+  - '${actions.deploy.some-pulumi-deploy-action.outputs.ip-address}'
+  - '${actions.deploy.some-other-pulumi-deploy-action.outputs.database-url}'
 ```
 
 ### `deployFromPreview`
 
 When set to true, will use pulumi plans generated by the `garden plugins pulumi preview` command when
-deploying, and will fail if no plan exists locally for the module.
+deploying, and will fail if no plan exists locally for the deploy action.
 
 When this option is used, the pulumi plugin bypasses the status check altogether and passes the plan directly
 to `pulumi up` (via the `--plan` option, which is experimental as of March 2022). You should therefore

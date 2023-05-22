@@ -11,7 +11,13 @@ const gardenRoot = resolve(__dirname, "..")
 
 async function getChangelog(prevReleaseTag: string, curReleaseTag: string) {
   try {
-    return (await execa("git-chglog", [`${prevReleaseTag}..${curReleaseTag}`], { cwd: gardenRoot })).stdout
+    return (
+      await execa(
+        "git-chglog",
+        ["--tag-filter-pattern", "^\\d+\\.\\d+\\.\\d+$", "--sort", "semver", `${prevReleaseTag}..${curReleaseTag}`],
+        { cwd: gardenRoot }
+      )
+    ).stdout
   } catch (err) {
     throw new Error(`Error generating changelog: ${err}`)
   }

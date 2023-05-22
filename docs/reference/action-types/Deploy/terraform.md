@@ -29,9 +29,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -52,8 +49,8 @@ description:
 # For `source.repository` behavior, please refer to the [Remote Sources
 # guide](https://docs.garden.io/advanced/using-remote-sources).
 source:
-  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is
-  # ina git repository!
+  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in
+  # a git repository!
   path:
 
   # When set, Garden will import the action source from this repository, but use this action configuration (and not
@@ -158,32 +155,12 @@ build:
 
 kind:
 
+# Timeout for the deploy to complete, in seconds.
+timeout: 300
+
 spec:
-  # Specify how to build the module. Note that plugins may define additional keys on this object.
-  build:
-    # A list of modules that must be built before this module is built.
-    dependencies:
-      - # Module name to build ahead of this module.
-        name:
-
-        # Specify one or more files or directories to copy from the built dependency to this module.
-        copy:
-          - # POSIX-style path or filename of the directory or file(s) to copy to the target.
-            source:
-
-            # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-            # Defaults to the same as source path.
-            target:
-
-    # Maximum time in seconds to wait for build to finish.
-    timeout: 1200
-
-  # The names of any services that this service depends on at runtime, and the names of any tasks that should be
-  # executed before this service is deployed.
-  dependencies: []
-
-  # If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden
-  # delete service <module name>`.
+  # If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete namespace` or `garden
+  # delete deploy <deploy name>`.
   allowDestroy: false
 
   # If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not
@@ -215,14 +192,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 ### `type`
 
@@ -266,7 +235,7 @@ For `source.repository` behavior, please refer to the [Remote Sources guide](htt
 
 [source](#source) > path
 
-A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!
+A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!
 
 | Type        | Required |
 | ----------- | -------- |
@@ -433,109 +402,25 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------------- | -------- |
 | `string` | "Deploy"       | Yes      |
 
+### `timeout`
+
+Timeout for the deploy to complete, in seconds.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
+
 ### `spec`
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.build`
-
-[spec](#spec) > build
-
-Specify how to build the module. Note that plugins may define additional keys on this object.
-
-| Type     | Default               | Required |
-| -------- | --------------------- | -------- |
-| `object` | `{"dependencies":[]}` | No       |
-
-### `spec.build.dependencies[]`
-
-[spec](#spec) > [build](#specbuild) > dependencies
-
-A list of modules that must be built before this module is built.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  build:
-    ...
-    dependencies:
-      - name: some-other-module-name
-```
-
-### `spec.build.dependencies[].name`
-
-[spec](#spec) > [build](#specbuild) > [dependencies](#specbuilddependencies) > name
-
-Module name to build ahead of this module.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `spec.build.dependencies[].copy[]`
-
-[spec](#spec) > [build](#specbuild) > [dependencies](#specbuilddependencies) > copy
-
-Specify one or more files or directories to copy from the built dependency to this module.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `spec.build.dependencies[].copy[].source`
-
-[spec](#spec) > [build](#specbuild) > [dependencies](#specbuilddependencies) > [copy](#specbuilddependenciescopy) > source
-
-POSIX-style path or filename of the directory or file(s) to copy to the target.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-### `spec.build.dependencies[].copy[].target`
-
-[spec](#spec) > [build](#specbuild) > [dependencies](#specbuilddependencies) > [copy](#specbuilddependenciescopy) > target
-
-POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-Defaults to the same as source path.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | No       |
-
-### `spec.build.timeout`
-
-[spec](#spec) > [build](#specbuild) > timeout
-
-Maximum time in seconds to wait for build to finish.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1200`  | No       |
-
-### `spec.dependencies[]`
-
-[spec](#spec) > dependencies
-
-The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
-
 ### `spec.allowDestroy`
 
 [spec](#spec) > allowDestroy
 
-If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete service <module name>`.
+If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete namespace` or `garden delete deploy <deploy name>`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -606,7 +491,7 @@ Use the specified Terraform workspace.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `terraform`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

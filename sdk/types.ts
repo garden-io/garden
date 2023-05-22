@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,7 +14,7 @@ export { GraphResults } from "@garden-io/core/build/src/graph/results"
 export { PluginTask, PluginActionTask } from "@garden-io/core/build/src/tasks/plugin"
 export { BuildTask } from "@garden-io/core/build/src/tasks/build"
 export { LogLevel } from "@garden-io/core/build/src/logger/logger"
-export { Log } from "@garden-io/core/build/src/logger/log-entry"
+export { Log, ActionLog } from "@garden-io/core/build/src/logger/log-entry"
 export { PluginContext } from "@garden-io/core/build/src/plugin-context"
 export { ProjectConfig } from "@garden-io/core/build/src/config/project"
 export { PluginToolSpec } from "../core/build/src/plugin/tools"

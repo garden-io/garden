@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -205,7 +205,7 @@ class CommandContext extends ConfigContext {
         dedent`
         The currently running Garden CLI command, without positional arguments or option flags. This can be handy to e.g. change some variables based on whether you're running \`garden test\` or some other specific command.
 
-        Note that this will currently always resolve to \`"run-workflow"\` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
+        Note that this will currently always resolve to \`"workflow"\` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
         `
       )
       .example("deploy")
@@ -402,7 +402,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       artifactsPath: garden.artifactsPath,
       vcsInfo: garden.vcsInfo,
       username: garden.username,
-      loggedIn: !!garden.cloudApi,
+      loggedIn: garden.isLoggedIn(),
       enterpriseDomain: garden.cloudApi?.domain,
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,

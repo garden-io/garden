@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,17 +7,13 @@
  */
 
 import Joi from "@hapi/joi"
-import { ActionKind, BaseActionConfig } from "../../../actions/types"
+import { memoize } from "lodash"
+import { ActionKind } from "../../../actions/types"
 import { joi, joiVariables } from "../../../config/common"
 
 export type ParamsBase<_ = any> = {}
 
-export abstract class ActionTypeHandlerSpec<
-  K extends ActionKind,
-  P extends ParamsBase,
-  R extends ParamsBase,
-  C = BaseActionConfig
-> {
+export abstract class ActionTypeHandlerSpec<K extends ActionKind, P extends ParamsBase, R extends ParamsBase> {
   abstract description: string
   abstract paramsSchema: () => Joi.ObjectSchema
   abstract resultSchema: () => Joi.ObjectSchema
@@ -26,7 +22,6 @@ export abstract class ActionTypeHandlerSpec<
 
   // These are used internally to map types
   _kindType: K
-  _configType: C
   _paramsType: P
   _resultType: R
 
@@ -43,7 +38,7 @@ export abstract class ActionTypeHandlerSpec<
 }
 
 // No way currently to further validate the shape of the super function
-export const baseHandlerSchema = () =>
+export const baseHandlerSchema = memoize(() =>
   joi
     .func()
     .arity(1)
@@ -51,15 +46,17 @@ export const baseHandlerSchema = () =>
       "When a handler is overriding a handler from a base plugin, this is provided to call the base handler. " +
         "This accepts the same parameters as the handler calling it."
     )
+)
 
-export const actionOutputsSchema = () =>
+export const actionOutputsSchema = memoize(() =>
   joiVariables().description(
     "Structured outputs from the execution, as defined by individual action/module types, to be made available for dependencies and in templating."
   )
+)
 
 export interface BaseRunParams {
   command?: string[]
   args: string[]
   interactive: boolean
-  timeout?: number
+  timeout: number
 }

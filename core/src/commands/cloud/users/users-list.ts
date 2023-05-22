@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,6 +17,7 @@ import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
 import { getCloudDistributionName } from "../../../util/util"
+import { CloudProject } from "../../../cloud/api"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
@@ -43,8 +44,8 @@ export class UsersListCommand extends Command<{}, Opts> {
 
   options = usersListOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "List users", "💁‍♀️")
+  printHeader({ log }) {
+    printHeader(log, "List users", "💁‍♀️")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<UserResult[]>> {
@@ -56,7 +57,11 @@ export class UsersListCommand extends Command<{}, Opts> {
       throw new ConfigurationError(noApiMsg("list", "users"), {})
     }
 
-    const project = await api.getProject()
+    let project: CloudProject | undefined
+
+    if (garden.projectId) {
+      project = await api.getProjectById(garden.projectId)
+    }
 
     if (!project) {
       throw new CloudApiError(

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,13 +25,10 @@ import {
   ContainerModuleConfig,
   defaultDockerfileName,
 } from "../../../../../src/plugins/container/moduleConfig"
-import { containerHelpers as helpers, DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import { containerHelpers as helpers } from "../../../../../src/plugins/container/helpers"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../src/constants"
 import { dedent } from "../../../../../src/util/string"
 import { ModuleVersion } from "../../../../../src/vcs/vcs"
-import { BuildAction } from "../../../../../src/actions/build"
-import { actionFromConfig } from "../../../../../src/graph/actions"
-import { actionToResolved } from "../../../../../src/actions/helpers"
 
 describe("containerHelpers", () => {
   const projectRoot = getDataDir("test-project-container")
@@ -42,10 +39,8 @@ describe("containerHelpers", () => {
 
   const baseConfig: ModuleConfig<ContainerModuleSpec, any, any> = {
     allowPublish: false,
-    apiVersion: DEFAULT_API_VERSION,
-    build: {
-      dependencies: [],
-    },
+    apiVersion: GardenApiVersion.v0,
+    build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
     disabled: false,
     name: "test",
     path: modulePath,
@@ -53,7 +48,7 @@ describe("containerHelpers", () => {
 
     spec: {
       build: {
-        timeout: DEFAULT_BUILD_TIMEOUT,
+        timeout: DEFAULT_BUILD_TIMEOUT_SEC,
       },
       buildArgs: {},
       extraFlags: [],
@@ -68,6 +63,7 @@ describe("containerHelpers", () => {
   }
 
   const dummyVersion: ModuleVersion = {
+    contentHash: "1234",
     versionString: "1234",
     dependencyVersions: {},
     files: [],
@@ -346,10 +342,10 @@ describe("containerHelpers", () => {
       tmpDir = await tmp.dir({ unsafeCleanup: true })
       dockerfilePath = join(tmpDir.path, defaultDockerfileName)
       config = {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         type: "container",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         name: "test",
         path: tmpDir.path,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,6 @@ import { omit } from "lodash"
 import { ActionState, stateForCacheStatusEvent } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { DeployState } from "../types/service"
-import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
 const API_ACTION_TYPE = "deploy"
@@ -22,16 +21,16 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const { router, action, garden } = params
 
       const actionUid = action.getUid()
-      params.events = params.events || new PluginEventBroker()
+      params.events = params.events || new PluginEventBroker(garden)
 
       const actionName = action.name
       const actionType = API_ACTION_TYPE
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
-      params.events.on("log", ({ timestamp, data, origin, log }) => {
+      params.events.on("log", ({ timestamp, msg, origin, level }) => {
         // stream logs to CLI
-        log.info(renderOutputStream(data.toString(), origin))
+        params.log[level]({ msg, origin })
         // stream logs to Garden Cloud
         garden.events.emit("log", {
           timestamp,
@@ -39,8 +38,8 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
           actionName,
           actionType,
           moduleName,
-          origin,
-          data: data.toString(),
+          origin: origin || "",
+          data: msg,
         })
       })
 
@@ -64,7 +63,6 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const output = await router.callHandler({ params, handlerType: "deploy" })
       const result = output.result
 
-      // TODO-G2: only validate if state is ready?
       await router.validateActionOutputs(action, "runtime", result.outputs)
 
       garden.events.emit("deployStatus", {
@@ -79,24 +77,16 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       return output
     },
 
-    // TODO @eysi: The type here should explictly be ActionLog
     delete: async (params) => {
       const { action, router, handlers } = params
 
-      const log = params.log
-        .createLog({
-          section: action.key(),
-        })
-        .info("Deleting...")
+      const log = params.log.createLog().info("Cleaning up...")
 
       const statusOutput = await handlers.getStatus({ ...params })
       const status = statusOutput.result
 
       if (status.detail?.state === "missing") {
-        log.success({
-          section: action.key(),
-          msg: "Not found",
-        })
+        log.success("Not found")
         return statusOutput
       }
 
@@ -116,7 +106,6 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       router.emitNamespaceEvents(output.result.detail?.namespaceStatuses)
 
-      // TODO @eysi: Validate that timestamp gets printed
       log.success(`Done`)
 
       return output
@@ -134,10 +123,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "getLogs",
         defaultHandler: async () => {
-          log.warn({
-            section: action.key(),
-            msg: chalk.yellow(`No handler for log retrieval available for action type ${action.type}`),
-          })
+          log.warn(chalk.yellow(`No handler for log retrieval available for action type ${action.type}`))
           return {}
         },
       })
@@ -177,7 +163,6 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       router.emitNamespaceEvents(result.detail?.namespaceStatuses)
 
-      // TODO-G2: only validate if state is not missing?
       await router.validateActionOutputs(action, "runtime", result.outputs)
 
       return output
@@ -188,7 +173,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
     },
 
     stopPortForward: async (params) => {
-      return params.router.callHandler({ params, handlerType: "stopPortForward" })
+      return params.router.callHandler({ params, handlerType: "stopPortForward", defaultHandler: async () => ({}) })
     },
 
     getSyncStatus: async (params) => {
@@ -198,10 +183,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "getSyncStatus",
         defaultHandler: async () => {
-          log.debug({
-            section: action.key(),
-            msg: `No getSyncStatus handler available for action type ${action.type}`,
-          })
+          log.debug(`No getSyncStatus handler available for action type ${action.type}`)
           return {
             state: "unknown" as const,
           }
@@ -216,10 +198,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "startSync",
         defaultHandler: async () => {
-          log.warn({
-            section: action.key(),
-            msg: chalk.yellow(`No startSync handler available for action type ${action.type}`),
-          })
+          log.debug(chalk.yellow(`No startSync handler available for action type ${action.type}`))
           return {}
         },
       })
@@ -232,10 +211,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "stopSync",
         defaultHandler: async () => {
-          log.warn({
-            section: action.key(),
-            msg: chalk.yellow(`No stopSync handler available for action type ${action.type}`),
-          })
+          log.debug(chalk.yellow(`No stopSync handler available for action type ${action.type}`))
           return {}
         },
       })

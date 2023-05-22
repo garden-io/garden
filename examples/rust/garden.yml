@@ -1,7 +1,8 @@
+apiVersion: garden.io/v1
 kind: Project
 name: rust-example
 variables:
-  base-hostname: rust.local.app.garden
+  base-hostname: rust.local.demo.garden
 
 environments:
   - name: dev

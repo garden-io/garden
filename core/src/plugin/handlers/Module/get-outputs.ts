@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,6 +15,7 @@ import { ModuleVersion } from "../../../vcs/vcs"
 import { Log } from "../../../logger/log-entry"
 import { pluginContextSchema } from "../../../plugin-context"
 import { baseModuleSpecSchema } from "../../../config/module"
+import { memoize } from "lodash"
 
 export interface GetModuleOutputsParams<T extends GardenModule = GardenModule> extends PluginActionContextParams {
   log: Log
@@ -26,8 +27,9 @@ export interface GetModuleOutputsResult {
   outputs: PrimitiveMap
 }
 
-export const moduleOutputsSchema = () =>
+export const moduleOutputsSchema = memoize(() =>
   joiVariables().description("The outputs defined by the module (referenceable in other module configs).")
+)
 
 export const getModuleOutputs = () => ({
   description: deline`

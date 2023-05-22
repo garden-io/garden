@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,6 +13,12 @@ import { ModuleGraph } from "../../../../src/graph/modules"
 import { Log } from "../../../../src/logger/log-entry"
 import { dumpYaml } from "../../../../src/util/serialization"
 import { expectError, makeTempGarden, TempDirectory, TestGarden } from "../../../helpers"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_DEPLOY_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC
+} from "../../../../src/constants"
 
 describe("actionConfigsToGraph", () => {
   let tmpDir: TempDirectory
@@ -36,6 +42,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -44,6 +51,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const actions = graph.getActions()
@@ -65,6 +73,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Deploy",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -73,6 +82,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const actions = graph.getActions()
@@ -94,6 +104,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Run",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -102,6 +113,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const actions = graph.getActions()
@@ -123,6 +135,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Test",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_TEST_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -131,6 +144,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const actions = graph.getActions()
@@ -156,6 +170,7 @@ describe("actionConfigsToGraph", () => {
               kind: "Test",
               type: "test",
               name: "foo",
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
               internal: {
                 basePath: tmpDir.path,
               },
@@ -167,6 +182,7 @@ describe("actionConfigsToGraph", () => {
       configs: [],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const actions = graph.getActions()
@@ -188,6 +204,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -197,6 +214,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "bar",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           copyFrom: [{ build: "foo", sourcePath: ".", targetPath: "app" }],
           internal: {
             basePath: tmpDir.path,
@@ -206,6 +224,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("bar")
@@ -232,6 +251,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -242,6 +262,7 @@ describe("actionConfigsToGraph", () => {
           type: "test",
           name: "bar",
           build: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -250,6 +271,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getDeploy("bar")
@@ -276,6 +298,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -285,16 +308,18 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "bar",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
           spec: {
-            command: ["echo", "${action.build.foo.version}"],
+            command: ["echo", "${actions.build.foo.version}"],
           },
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("bar")
@@ -305,7 +330,7 @@ describe("actionConfigsToGraph", () => {
         explicit: false,
         kind: "Build",
         name: "foo",
-        fullRef: ["action", "build", "foo", "version"],
+        fullRef: ["actions", "build", "foo", "version"],
         needsExecutedOutputs: false,
         needsStaticOutputs: true,
       },
@@ -322,6 +347,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -331,16 +357,18 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "bar",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
           spec: {
-            command: ["echo", "${action.build.foo.outputs.bar}"],
+            command: ["echo", "${actions.build.foo.outputs.bar}"],
           },
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("bar")
@@ -351,7 +379,7 @@ describe("actionConfigsToGraph", () => {
         explicit: false,
         kind: "Build",
         name: "foo",
-        fullRef: ["action", "build", "foo", "outputs", "bar"],
+        fullRef: ["actions", "build", "foo", "outputs", "bar"],
         needsExecutedOutputs: true,
         needsStaticOutputs: false,
       },
@@ -368,6 +396,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -376,6 +405,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("foo")
@@ -383,6 +413,7 @@ describe("actionConfigsToGraph", () => {
     expect(action.isCompatible("test")).to.be.true
   })
 
+  // TODO-G2
   it.skip("correctly sets compatibleTypes for an action type with a base", async () => {
     const graph = await actionConfigsToGraph({
       garden,
@@ -393,6 +424,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {
             basePath: tmpDir.path,
           },
@@ -401,6 +433,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("bar")
@@ -418,6 +451,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           variables: {
             projectName: "${project.name}",
           },
@@ -429,6 +463,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("foo")
@@ -452,6 +487,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           varfiles: [varfilePath],
           internal: {
             basePath: tmpDir.path,
@@ -461,6 +497,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("foo")
@@ -485,6 +522,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Build",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           variables: {
             foo: "foo",
             baz: "baz",
@@ -498,6 +536,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("foo")
@@ -516,6 +555,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Deploy",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           variables: {},
           internal: {
             basePath: tmpDir.path,
@@ -529,6 +569,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      linkedSources: {},
       actionModes: {
         sync: ["deploy.foo"],
       },
@@ -549,6 +590,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Deploy",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           variables: {},
           internal: {
             basePath: tmpDir.path,
@@ -557,6 +599,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      linkedSources: {},
       actionModes: {
         local: ["deploy.foo"],
       },
@@ -577,6 +620,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Deploy",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           variables: {},
           internal: {
             basePath: tmpDir.path,
@@ -590,6 +634,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      linkedSources: {},
       actionModes: {
         local: ["deploy.foo"],
         sync: ["deploy.foo"],
@@ -611,6 +656,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Deploy",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           variables: {},
           internal: {
             basePath: tmpDir.path,
@@ -619,6 +665,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      linkedSources: {},
       actionModes: {
         local: ["*"],
       },
@@ -639,6 +686,7 @@ describe("actionConfigsToGraph", () => {
           kind: "Deploy",
           type: "test",
           name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           variables: {},
           internal: {
             basePath: tmpDir.path,
@@ -647,6 +695,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      linkedSources: {},
       actionModes: {
         local: ["deploy.f*"],
       },
@@ -669,6 +718,7 @@ describe("actionConfigsToGraph", () => {
               kind: <any>"Boop",
               type: "test",
               name: "foo",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
               internal: {
                 basePath: tmpDir.path,
               },
@@ -677,6 +727,7 @@ describe("actionConfigsToGraph", () => {
           ],
           moduleGraph: new ModuleGraph([], {}),
           actionModes: {},
+          linkedSources: {},
         }),
       (err) => expect(err.message).to.equal("Unknown action kind: Boop")
     )
@@ -694,6 +745,7 @@ describe("actionConfigsToGraph", () => {
               kind: "Build",
               type: "test",
               name: "foo",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
               internal: {
                 basePath: tmpDir.path,
               },
@@ -703,6 +755,7 @@ describe("actionConfigsToGraph", () => {
               kind: "Build",
               type: "test",
               name: "foo",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
               internal: {
                 basePath: tmpDir.path,
               },
@@ -711,6 +764,7 @@ describe("actionConfigsToGraph", () => {
           ],
           moduleGraph: new ModuleGraph([], {}),
           actionModes: {},
+          linkedSources: {},
         }),
       {
         contains: ["Found two actions of the same name and kind:"],

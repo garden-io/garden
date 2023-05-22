@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -47,7 +47,7 @@ interface HelmChartSpec {
 }
 
 interface HelmDeployActionSpec {
-  atomicInstall: boolean
+  atomic: boolean
   chart?: HelmChartSpec
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
@@ -55,7 +55,6 @@ interface HelmDeployActionSpec {
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string
-  timeout: number
   values: DeepPrimitiveMap
   valueFiles: string[]
 }
@@ -98,12 +97,6 @@ const helmValueFilesSchema = () =>
   `)
 
 export const helmCommonSchemaKeys = () => ({
-  atomicInstall: joi
-    .boolean()
-    .default(true)
-    .description(
-      "Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure."
-    ),
   namespace: namespaceNameSchema(),
   portForwards: portForwardsSchema(),
   releaseName: helmReleaseNameSchema(),
@@ -122,7 +115,7 @@ export const helmChartNameSchema = () =>
   joi
     .string()
     .description(
-      "A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain the Helm chart itself."
+      "A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain the Helm chart itself."
     )
     .example("ingress-nginx")
 
@@ -183,6 +176,12 @@ export const helmDeploySchema = () =>
     .object()
     .keys({
       ...helmCommonSchemaKeys(),
+      atomic: joi
+        .boolean()
+        .default(false)
+        .description(
+          "Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be reverted on failure."
+        ),
       chart: helmChartSpecSchema(),
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),
@@ -199,7 +198,6 @@ export interface HelmPodRunActionSpec extends KubernetesCommonRunSpec {
   chart?: HelmChartSpec
   namespace?: string
   releaseName?: string
-  timeout: number
   values: DeepPrimitiveMap
   valueFiles: string[]
   resource?: KubernetesTargetResourceSpec
@@ -230,7 +228,7 @@ export const helmPodRunSchema = (kind: string) => {
         .default(defaultHelmTimeout)
         .description("Time in seconds to wait for Helm to render templates."),
     }),
-    xor: ["resource", "podSpec"],
+    xor: [["resource", "podSpec"]],
   })()
   runSchemas[name] = schema
   return schema
@@ -240,6 +238,7 @@ export type HelmPodRunConfig = RunActionConfig<"helm-pod", HelmPodRunActionSpec>
 export type HelmPodRunAction = RunAction<HelmPodRunConfig, KubernetesRunOutputs>
 
 export interface HelmPodTestActionSpec extends HelmPodRunActionSpec {}
+
 export type HelmPodTestConfig = TestActionConfig<"helm-pod", HelmPodTestActionSpec>
 export type HelmPodTestAction = TestAction<HelmPodTestConfig, KubernetesRunOutputs>
 

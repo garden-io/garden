@@ -9,7 +9,7 @@ tocTitle: "`hadolint` Test"
 
 Runs `hadolint` on the specified Dockerfile.
 
-> Note: In most cases, you'll let the [provider](../../providers/hadolint.md) create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
+> Note: In most cases, you'll let the [provider](../../providers/hadolint.md) create this action type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
 
 To configure `hadolint`, you can use `.hadolint.yaml` config files. For each test, we first look for one in the action source directory. If none is found there, we check the project root, and if none is there we fall back to   configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
@@ -27,9 +27,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -50,8 +47,8 @@ description:
 # For `source.repository` behavior, please refer to the [Remote Sources
 # guide](https://docs.garden.io/advanced/using-remote-sources).
 source:
-  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is
-  # ina git repository!
+  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in
+  # a git repository!
   path:
 
   # When set, Garden will import the action source from this repository, but use this action configuration (and not
@@ -157,7 +154,7 @@ build:
 kind:
 
 # Set a timeout for the test to complete, in seconds.
-timeout:
+timeout: 600
 
 spec:
   # POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
@@ -165,14 +162,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 ### `type`
 
@@ -216,7 +205,7 @@ For `source.repository` behavior, please refer to the [Remote Sources guide](htt
 
 [source](#source) > path
 
-A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!
+A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!
 
 | Type        | Required |
 | ----------- | -------- |
@@ -387,9 +376,9 @@ This would mean that instead of looking for manifest files relative to this acti
 
 Set a timeout for the test to complete, in seconds.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `spec`
 
@@ -411,7 +400,7 @@ POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `hadolint`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

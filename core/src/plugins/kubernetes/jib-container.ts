@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,13 +9,12 @@
 import { mkdirp } from "fs-extra"
 import { resolve } from "path"
 import tar from "tar"
-import { defaultBuildTimeout } from "../../config/module"
 import { ConfigurationError, PluginError } from "../../exceptions"
 import { ModuleActionHandlers } from "../../plugin/plugin"
 import { makeTempDir } from "../../util/fs"
 import { KubeApi } from "./api"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
-import { buildkitDeploymentName, ensureBuildkit } from "./container/build/buildkit"
+import { ensureBuildkit } from "./container/build/buildkit"
 import { ensureUtilDeployment, syncToBuildSync, utilContainerName, utilDeploymentName } from "./container/build/common"
 import { loadToLocalK8s } from "./container/build/local"
 import { containerHandlers } from "./container/handlers"
@@ -24,6 +23,7 @@ import { PodRunner } from "./run"
 import { getRunningDeploymentPod } from "./util"
 import { BuildActionExtension, BuildActionParams } from "../../plugin/action-types"
 import { ContainerBuildAction } from "../container/config"
+import { buildkitDeploymentName } from "./constants"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
   ...containerHandlers,
@@ -60,6 +60,7 @@ export const k8sJibContainerBuildExtension = (): BuildActionExtension<ContainerB
 
 async function buildAndPushViaRemote(params: BuildActionParams<"build", ContainerBuildAction>) {
   const { ctx, log, action, base } = params
+  const k8sCtx = ctx as KubernetesPluginContext
 
   const provider = <KubernetesProvider>ctx.provider
   let buildMode = provider.config.buildMode
@@ -79,7 +80,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
   // Push to util or buildkit deployment on remote, and push to registry from there to make sure auth/access is
   // consistent with normal image pushes.
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   const tempDir = await makeTempDir()
 
@@ -124,14 +125,14 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
     // Sync the archive to the remote
     const { dataPath } = await syncToBuildSync({
       ...params,
-      ctx: ctx as KubernetesPluginContext,
+      ctx: k8sCtx,
       api,
       namespace,
       deploymentName,
       sourcePath: extractPath,
     })
 
-    const pushTimeout = action.getConfig("timeout") || defaultBuildTimeout
+    const pushTimeout = action.getConfig("timeout")
 
     const syncCommand = ["skopeo", `--command-timeout=${pushTimeout}s`, "copy", "--authfile", "/.docker/config.json"]
 

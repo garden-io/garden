@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,17 +22,20 @@ import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/typ
 import { V1Secret } from "@kubernetes/client-node"
 import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init"
 import { ContainerTestAction } from "../../../../../../src/plugins/container/config"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
+import { TestGardenOpts } from "../../../../../../src/util/testing"
+import { waitForOutputFlush } from "../../../../../../src/process"
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
 const initializedEnvs: string[] = []
 let localInstance: Garden
 
-export async function getContainerTestGarden(environmentName: string = defaultEnvironment) {
-  const garden = await makeTestGarden(root, { environmentName })
+export async function getContainerTestGarden(environmentName: string = defaultEnvironment, opts?: TestGardenOpts) {
+  const garden = await makeTestGarden(root, { environmentString: environmentName, noTempDir: opts?.noTempDir })
 
   if (!localInstance) {
-    localInstance = await makeTestGarden(root, { environmentName: "local" })
+    localInstance = await makeTestGarden(root, { environmentString: "local", noTempDir: opts?.noTempDir })
   }
 
   const needsInit = !environmentName.startsWith("local") && !initializedEnvs.includes(environmentName)
@@ -118,7 +121,7 @@ describe("kubernetes container module handlers", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   describe("testContainerModule", () => {
@@ -140,6 +143,8 @@ describe("kubernetes container module handlers", () => {
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: true })
       const logEvent = garden.events.eventLog.find((l) => l.name === "log")
 
+      await waitForOutputFlush()
+
       expect(result.error).to.be.null
       const task = result.results.getResult(testTask)!
       expect(task).to.exist
@@ -147,10 +152,10 @@ describe("kubernetes container module handlers", () => {
       expect(logEvent).to.exist
     })
 
-    // TODO-G2: solver gets stuck in an infinite loop
-    it.skip("should fail if an error occurs, but store the result", async () => {
+    it("should fail if an error occurs, but store the result", async () => {
       const testAction = graph.getTest("simple-echo-test")!
-      testAction.getConfig().spec.command = ["bork"] // this will fail
+
+      testAction["_config"].spec.command = ["bork"] // this will fail
 
       const testTask = new TestTask({
         garden,
@@ -174,10 +179,15 @@ describe("kubernetes container module handlers", () => {
         graph,
       })
       const actions = await garden.getActionRouter()
+      const actionLog = createActionLog({
+        log: garden.log,
+        actionName: resolvedRuntimeAction.name,
+        actionKind: resolvedRuntimeAction.kind,
+      })
 
       // We also verify that, despite the test failing, its result was still saved.
       const result = await actions.test.getResult({
-        log: garden.log,
+        log: actionLog,
         graph,
         action: resolvedRuntimeAction,
       })

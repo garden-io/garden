@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,7 +16,7 @@ import { getKubernetesTestGarden } from "./common"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { getManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { Log } from "../../../../../../src/logger/log-entry"
+import { ActionLog, createActionLog, Log } from "../../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
 import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/status/status"
@@ -33,13 +33,14 @@ import { gardenAnnotationKey } from "../../../../../../src/util/string"
 import { getDeployStatuses } from "../../../../../../src/tasks/helpers"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
 import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
-import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants"
 import { ActionModeMap } from "../../../../../../src/actions/types"
 
 describe("kubernetes-module handlers", () => {
   let tmpDir: tmp.DirectoryResult
   let garden: TestGarden
   let log: Log
+  let actionLog: ActionLog
   let ctx: KubernetesPluginContext
   let api: KubeApi
   /**
@@ -74,6 +75,7 @@ describe("kubernetes-module handlers", () => {
     garden = await getKubernetesTestGarden()
     moduleConfigBackup = await garden.getRawModuleConfigs()
     log = garden.log
+    actionLog = createActionLog({ log, actionName: "", actionKind: "" })
     const provider = <KubernetesProvider>await garden.resolveProvider(log, "local-kubernetes")
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -82,11 +84,11 @@ describe("kubernetes-module handlers", () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
     nsModuleConfig = {
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Module",
       disabled: false,
       allowPublish: false,
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       description: "Kubernetes module that includes a Namespace resource",
       name: "namespace-resource",
       path: tmpDir.path,
@@ -121,7 +123,7 @@ describe("kubernetes-module handlers", () => {
     garden.setModuleConfigs(moduleConfigBackup)
     await tmpDir.cleanup()
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 
@@ -135,11 +137,11 @@ describe("kubernetes-module handlers", () => {
       })
       const deployParams = {
         ctx,
-        log: garden.log,
+        log: actionLog,
         action,
         force: false,
       }
-      action.getConfig().spec.manifests = [
+      action["_config"].spec.manifests = [
         {
           apiVersion: "foo.bar/baz",
           kind: "Whatever",
@@ -164,7 +166,7 @@ describe("kubernetes-module handlers", () => {
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
       const deployParams = {
         ctx,
-        log: garden.log,
+        log: actionLog,
         action: resolvedAction,
         force: false,
       }
@@ -185,12 +187,13 @@ describe("kubernetes-module handlers", () => {
       })
       return { deployParams, manifests }
     }
+
     it("should successfully deploy when serviceResource doesn't have a containerModule", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const action = graph.getDeploy("module-simple")
       const deployParams = {
         ctx,
-        log: garden.log,
+        log: actionLog,
         action: await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph }),
         force: false,
       }
@@ -225,9 +228,9 @@ describe("kubernetes-module handlers", () => {
       await kubernetesDeploy(defaultData.deployParams)
       const res3 = await findDeployedResources(defaultData.manifests, log)
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
       expect(res2[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("sync")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
     })
 
     it("should handle local mode", async () => {
@@ -253,9 +256,9 @@ describe("kubernetes-module handlers", () => {
       await kubernetesDeploy(defaultData.deployParams)
       const res3 = await findDeployedResources(defaultData.manifests, log)
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
       expect(res2[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("local")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
     })
 
     it("should not delete previously deployed namespace resources", async () => {

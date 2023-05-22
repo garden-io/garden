@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -137,7 +137,7 @@ describe("Helm common functions", () => {
               app.kubernetes.io/managed-by: Helm
           spec:
             rules:
-              - host: "api.local.app.garden"
+              - host: "api.local.demo.garden"
                 http:
                   paths:
                     - path: /
@@ -162,7 +162,7 @@ describe("Helm common functions", () => {
               app.kubernetes.io/managed-by: Helm
           spec:
             rules:
-              - host: "api.local.app.garden"
+              - host: "api.local.demo.garden"
                 http:
                   paths:
                     - path: /
@@ -289,7 +289,7 @@ ${expectedIngressOutput}
           spec: {
             rules: [
               {
-                host: "api.local.app.garden",
+                host: "api.local.demo.garden",
                 http: {
                   paths: [
                     {
@@ -327,7 +327,7 @@ ${expectedIngressOutput}
           spec: {
             rules: [
               {
-                host: "api.local.app.garden",
+                host: "api.local.demo.garden",
                 http: {
                   paths: [
                     {
@@ -563,7 +563,7 @@ ${expectedIngressOutput}
 
     it("should return just garden-values.yml if no valueFiles are configured", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
-      action.getSpec().valueFiles = []
+      action["_config"].spec.valueFiles = []
       expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
@@ -575,7 +575,7 @@ ${expectedIngressOutput}
     it("should add a --set flag if in sync mode", async () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.api"] } })
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
-      action.getSpec().valueFiles = []
+      action["_config"].spec.valueFiles = []
       expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
@@ -588,7 +588,7 @@ ${expectedIngressOutput}
       // local mode is not configured for the api deploy
       graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { local: ["deploy.api"] } })
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
-      action.getSpec().valueFiles = []
+      action["_config"].spec.valueFiles = []
       expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
@@ -599,7 +599,7 @@ ${expectedIngressOutput}
 
     it("should return a --values arg for each valueFile configured", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
-      action.getSpec().valueFiles = ["foo.yaml", "bar.yaml"]
+      action["_config"].spec.valueFiles = ["foo.yaml", "bar.yaml"]
 
       expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
@@ -615,7 +615,7 @@ ${expectedIngressOutput}
 
     it("should allow relative paths for valueFiles", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
-      action.getSpec().valueFiles = ["../relative.yaml"]
+      action["_config"].spec.valueFiles = ["../relative.yaml"]
 
       expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
@@ -631,7 +631,7 @@ ${expectedIngressOutput}
   describe("getReleaseName", () => {
     it("should return the module name if not overridden in config", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
-      delete action.getSpec().releaseName
+      delete action["_config"].spec.releaseName
       expect(getReleaseName(action)).to.equal("api")
     })
 
@@ -722,7 +722,7 @@ ${expectedIngressOutput}
 
         const { reference } = await prepareTemplates({ ctx, log, action })
 
-        expect(reference.join(" ")).to.include("--version 11.6.12")
+        expect(reference.join(" ")).to.include("--version 12.4.2")
       })
 
       it("adds --repo flag if chart.repo is set", async () => {

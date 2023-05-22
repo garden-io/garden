@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -42,7 +42,7 @@ export const levelToStr = (lvl: LogLevel): string => LogLevel[lvl]
 
 export function render(level: LogLevel, entry: LogEntry): string | null {
   if (level >= entry.level) {
-    const renderFn = entry.level === LogLevel.error ? renderError : renderMsg
+    const renderFn = entry.error ? renderError : renderMsg
     return stripAnsi(renderFn(entry))
   }
   return null

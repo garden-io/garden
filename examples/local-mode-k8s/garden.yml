@@ -1,3 +1,4 @@
+apiVersion: garden.io/v1
 kind: Project
 name: local-mode-k8s
 environments:
@@ -24,3 +25,4 @@ providers:
         namespace: default
 variables:
   userId: ${local.username}
+  localMode: ${command.params contains 'local' && (isEmpty(command.params.local) || command.params.local contains 'backend')}

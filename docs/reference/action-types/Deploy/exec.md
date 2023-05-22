@@ -21,9 +21,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -44,8 +41,8 @@ description:
 # For `source.repository` behavior, please refer to the [Remote Sources
 # guide](https://docs.garden.io/advanced/using-remote-sources).
 source:
-  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is
-  # ina git repository!
+  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in
+  # a git repository!
   path:
 
   # When set, Garden will import the action source from this repository, but use this action configuration (and not
@@ -150,6 +147,9 @@ build:
 
 kind:
 
+# Timeout for the deploy to complete, in seconds.
+timeout: 300
+
 spec:
   # If `true`, runs file inside of a shell. Uses `/bin/sh` on UNIX and `cmd.exe` on Windows. A different shell can be
   # specified as a string. The shell should understand the `-c` switch on UNIX or `/d /s /c` on Windows.
@@ -167,7 +167,7 @@ spec:
   # Set this to true if the `deployCommand` is not expected to return, and should run until the Garden command is
   # manually terminated.
   #
-  # This replaces the previously supported `devMode` from `exec` modules.
+  # This replaces the previously supported `devMode` from `exec` actions.
   #
   # If this is set to true, it is highly recommended to also define `statusCommand` if possible. Otherwise the Deploy
   # is considered to be immediately ready once the `deployCommand` is started.
@@ -201,9 +201,6 @@ spec:
   # the Build action. If no `build` reference is set, the command is run from the source directory of this action.
   cleanupCommand:
 
-  # The maximum duration (in seconds) to wait for `deployCommand` to exit. Ignored if `persistent: false`.
-  timeout:
-
   # The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if no
   # `statusCommand` is set.
   statusTimeout: 10
@@ -213,14 +210,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 ### `type`
 
@@ -264,7 +253,7 @@ For `source.repository` behavior, please refer to the [Remote Sources guide](htt
 
 [source](#source) > path
 
-A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!
+A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!
 
 | Type        | Required |
 | ----------- | -------- |
@@ -431,6 +420,14 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------------- | -------- |
 | `string` | "Deploy"       | Yes      |
 
+### `timeout`
+
+Timeout for the deploy to complete, in seconds.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
+
 ### `spec`
 
 | Type     | Required |
@@ -461,7 +458,7 @@ We recommend against using this option since it is:
 
 Set this to true if the `deployCommand` is not expected to return, and should run until the Garden command is manually terminated.
 
-This replaces the previously supported `devMode` from `exec` modules.
+This replaces the previously supported `devMode` from `exec` actions.
 
 If this is set to true, it is highly recommended to also define `statusCommand` if possible. Otherwise the Deploy is considered to be immediately ready once the `deployCommand` is started.
 
@@ -509,16 +506,6 @@ Note that if a Build is referenced in the `build` field, the command will be run
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `spec.timeout`
-
-[spec](#spec) > timeout
-
-The maximum duration (in seconds) to wait for `deployCommand` to exit. Ignored if `persistent: false`.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
 ### `spec.statusTimeout`
 
 [spec](#spec) > statusTimeout
@@ -543,7 +530,7 @@ Environment variables to set when running the deploy and status commands.
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `exec`
-modules.
+action.
 
 ### `${actions.deploy.<name>.name}`
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,9 +18,9 @@ import { Log } from "../../../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { join } from "path"
 import { MUTAGEN_DIR_NAME } from "../../../../../../src/constants"
+import { cleanProject } from "../../../../../helpers"
 
-// TODO-G2: https://github.com/orgs/garden-io/projects/5/views/1?pane=issue&itemId=23082896
-describe.skip("sync plugin commands", () => {
+describe("sync plugin commands", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
@@ -33,14 +33,17 @@ describe.skip("sync plugin commands", () => {
 
   after(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
       const dataDir = join(garden.gardenDirPath, MUTAGEN_DIR_NAME)
       await getMutagenMonitor({ log, dataDir }).stop()
+      await cleanProject(garden.gardenDirPath)
     }
   })
 
   const init = async (environmentName: string) => {
-    garden = await getContainerTestGarden(environmentName)
+    // we use noTempDir here because the tests may fail otherwise locally
+    // This has something to do with with the project being in a temp directory.
+    garden = await getContainerTestGarden(environmentName, { noTempDir: true})
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,
@@ -59,6 +62,7 @@ describe.skip("sync plugin commands", () => {
       action,
       force: true,
       forceBuild: false,
+      startSync: true,
     })
 
     await garden.processTasks({ log, tasks: [deployTask], throwOnError: true })

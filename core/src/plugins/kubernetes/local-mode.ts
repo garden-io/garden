@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
-import { dedent, gardenAnnotationKey } from "../../util/string"
+import { dedent, gardenAnnotationKey, splitLast } from "../../util/string"
 import { cloneDeep, remove, set } from "lodash"
 import { BaseResource, KubernetesResource, SyncableResource, SyncableRuntimeAction } from "./types"
 import { PrimitiveMap } from "../../config/common"
@@ -21,7 +21,7 @@ import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { getResourceContainer, getResourceKey, getTargetResource, prepareEnvVars } from "./util"
 import { V1Container, V1ContainerPort } from "@kubernetes/client-node"
 import { KubernetesPluginContext, KubernetesTargetResourceSpec, targetResourceSpecSchema } from "./config"
-import { Log } from "../../logger/log-entry"
+import { ActionLog, Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import { rmSync } from "fs"
 import { execSync } from "child_process"
@@ -89,7 +89,7 @@ interface BaseLocalModeParams {
   spec: KubernetesLocalModeSpec
   manifests: KubernetesResource[]
   action: Resolved<SyncableRuntimeAction>
-  log: Log
+  log: ActionLog
 }
 
 interface ConfigureLocalModeParams extends BaseLocalModeParams {
@@ -427,7 +427,7 @@ function patchSyncableManifest(
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
 export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<ConfiguredLocalMode> {
-  // TODO-G2: allow multiple manifests configuration
+  // TODO-0.13.0: allow multiple manifests configuration
   const { ctx, spec, defaultTarget, action, log } = configParams
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
@@ -439,11 +439,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
 
   const query = spec.target || defaultTarget
   if (!query) {
-    log.warn({
-      section: action.key(),
-      symbol: "warning",
-      msg: "Neither `localMode.target` nor `defaultTarget` is configured. Cannot Deploy in local mode.",
-    })
+    log.warn("Neither `localMode.target` nor `defaultTarget` is configured. Cannot Deploy in local mode.")
     return { updated: [], manifests }
   }
 
@@ -456,21 +452,13 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
     query,
   })
 
-  const section = action.key()
-
   // Logging this on the debug level because it can be displayed multiple times due to getServiceStatus checks
-  log.debug({
-    section,
-    msg: chalk.gray(
-      `Configuring in local mode, proxy container ${chalk.underline(k8sReverseProxyImageName)} will be deployed.`
-    ),
-  })
+  log.debug(`Configuring in local mode, proxy container ${chalk.underline(k8sReverseProxyImageName)} will be deployed.`)
 
   set(resolvedTarget, ["metadata", "annotations", gardenAnnotationKey("mode")], "local")
 
   const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, action.key())
   log.debug({
-    section,
     msg: `Created ssh key pair for proxy container: "${keyPair.publicKeyPath}" and "${keyPair.privateKeyPath}".`,
   })
 
@@ -499,7 +487,7 @@ const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): str
 }
 
 const composeMessage = (processMessage: ProcessMessage, customMessage: string): string => {
-  return `[PID=${processMessage.pid}] ${customMessage}`
+  return `[PID=${processMessage.pid}] ${customMessage}. ${processMessage.message}`
 }
 
 const composeErrorMessage = (customMessage: string, processMessage: ProcessMessage): string => {
@@ -567,44 +555,31 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
     return undefined
   }
 
-  const section = action.key()
+  const processLog = log.createLog({ origin: splitLast(localAppCmd.command, ",")[1] })
 
   return new RecoverableProcess({
+    events: ctx.events,
     osCommand: localAppCmd,
     retryConfig: {
       maxRetries: configParams.spec.restart.max,
       minTimeoutMs: configParams.spec.restart.delayMsec,
     },
-    log,
+    log: processLog,
     stderrListener: {
       hasErrors: (_chunk: any) => true,
       onError: (msg: ProcessMessage) => {
         if (msg.code || msg.signal) {
-          log.error({
-            section,
-            msg: chalk.gray(composeErrorMessage("Local app stopped", msg)),
-          })
+          processLog.error(chalk.gray(composeErrorMessage("Local app stopped", msg)))
         } else {
-          log.error({
-            section,
-            msg: chalk.gray(
-              composeErrorMessage(
-                `Error running local app, check the local app logs and the Garden logs in ${getLogsPath(ctx)}`,
-                msg
-              )
-            ),
-          })
+          processLog.error(chalk.gray(composeErrorMessage(`Cannot start the local app`, msg)))
         }
         localAppFailureCounter.addFailure(() => {
-          log.error({
-            symbol: "warning",
-            section,
-            msg: chalk.yellow(
-              `Local app hasn't started after ${localAppFailureCounter.getFailures()} attempts. Please check the logs in ${getLogsPath(
+          processLog.error(dedent`${
+            msg.processDescription
+          } hasn't started after ${localAppFailureCounter.getFailures()} attempts.
+              Please make sure your configuration is correct, check the logs in ${getLogsPath(
                 ctx
-              )} and consider restarting Garden.`
-            ),
-          })
+              )}, and consider restarting Garden.`)
         })
       },
       onMessage: (_msg: ProcessMessage) => {},
@@ -613,9 +588,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
       hasErrors: (_chunk: any) => false,
       onError: (_msg: ProcessMessage) => {},
       onMessage: (msg: ProcessMessage) => {
-        log.verbose({
-          symbol: "info",
-          section,
+        processLog.verbose({
           msg: chalk.gray(composeMessage(msg, stripEol(msg.message))),
         })
       },
@@ -658,37 +631,30 @@ async function getKubectlPortForwardProcess(
     targetResource
   )
   const { ctx, action, log } = configParams
+  const processLog = log.createLog({ origin: "kubectl" })
 
   let lastSeenSuccessMessage = ""
 
-  const section = action.key()
-
   return new RecoverableProcess({
+    events: ctx.events,
     osCommand: kubectlPortForwardCmd,
     retryConfig: {
       maxRetries: Number.POSITIVE_INFINITY,
       minTimeoutMs: portForwardRetryTimeoutMs,
     },
-    log,
+    log: processLog,
     stderrListener: {
       catchCriticalErrors: (_chunk: any) => false,
       hasErrors: (_chunk: any) => true,
       onError: (msg: ProcessMessage) => {
-        log.error({
-          section,
-          msg: chalk.gray(composeErrorMessage(`${msg.processDescription} failed`, msg)),
-        })
+        processLog.error(chalk.gray(composeErrorMessage(`${msg.processDescription} failed`, msg)))
         kubectlPortForwardFailureCounter.addFailure(() => {
-          log.error({
-            symbol: "warning",
-            section,
-            msg: chalk.yellow(
-              `${
-                msg.processDescription
-              } hasn't started after ${kubectlPortForwardFailureCounter.getFailures()} attempts.
-              Please check the logs in ${getLogsPath(ctx)} and consider restarting Garden.`
-            ),
-          })
+          processLog.error(dedent`${
+            msg.processDescription
+          } hasn't started after ${kubectlPortForwardFailureCounter.getFailures()} attempts.
+              Please make sure your configuration is correct, check the logs in ${getLogsPath(
+                ctx
+              )}, and consider restarting Garden.`)
         })
       },
       onMessage: (_msg: ProcessMessage) => {},
@@ -704,10 +670,7 @@ async function getKubectlPortForwardProcess(
         }
 
         if (msg.message.includes("Handling connection for")) {
-          log.info({
-            section,
-            msg: chalk.white(consoleMessage),
-          })
+          processLog.info(chalk.white(consoleMessage))
           lastSeenSuccessMessage = consoleMessage
         }
       },
@@ -727,9 +690,9 @@ async function getReversePortForwardCommands(
     command: "ssh",
     args: [
       /*
-         Always disable pseudo-terminal allocation to avoid warnings like
-         "Pseudo-terminal will not be allocated because stdin is not a terminal".
-         */
+        Always disable pseudo-terminal allocation to avoid warnings like
+        "Pseudo-terminal will not be allocated because stdin is not a terminal".
+      */
       "-T",
       "-R",
       `${portSpec.remote}:${localhost}:${portSpec.local}`,
@@ -751,94 +714,84 @@ async function getReversePortForwardProcesses(
   localSshPort: number
 ): Promise<RecoverableProcess[]> {
   const reversePortForwardingCmds = await getReversePortForwardCommands(configParams, localSshPort)
-  const { ctx, action, log } = configParams
+  const { ctx, action } = configParams
 
-  const section = action.key()
+  return reversePortForwardingCmds.map((cmd) => {
+    // Include origin with logs for clarity
+    const log = configParams.log.createLog({ origin: chalk.gray(cmd.command) })
 
-  return reversePortForwardingCmds.map(
-    (cmd) =>
-      new RecoverableProcess({
-        osCommand: cmd,
-        retryConfig: {
-          maxRetries: Number.POSITIVE_INFINITY,
-          minTimeoutMs: portForwardRetryTimeoutMs,
-        },
-        log,
-        stderrListener: {
-          catchCriticalErrors: (chunk: any) => {
-            const output = chunk.toString()
-            const lowercaseOutput = output.toLowerCase()
-            if (lowercaseOutput.includes('unsupported option "accept-new"')) {
-              log.error({
-                section,
-                msg: chalk.red(
-                  "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
-                ),
-              })
-              return true
-            }
-            const criticalErrorIndicators = [
-              "permission denied",
-              "remote host identification has changed",
-              "bad configuration option",
-            ]
-            const hasCriticalErrors = criticalErrorIndicators.some((indicator) => {
-              lowercaseOutput.includes(indicator)
-            })
-            if (hasCriticalErrors) {
-              log.error({
-                section,
-                msg: chalk.red(output),
-              })
-            }
-            return hasCriticalErrors
-          },
-          hasErrors: (chunk: any) => {
-            const output = chunk.toString()
-            // A message containing "warning: permanently added" is printed by ssh command
-            // when the connection is established and the public key is added to the temporary known hosts file.
-            // This message is printed to stderr, but it should not be considered as an error.
-            // It indicates the successful connection.
-            return !output.toLowerCase().includes("warning: permanently added")
-          },
-          onError: (msg: ProcessMessage) => {
+    return new RecoverableProcess({
+      events: ctx.events,
+      osCommand: cmd,
+      retryConfig: {
+        maxRetries: Number.POSITIVE_INFINITY,
+        minTimeoutMs: portForwardRetryTimeoutMs,
+      },
+      log,
+      stderrListener: {
+        catchCriticalErrors: (chunk: any) => {
+          const output = chunk.toString()
+          const lowercaseOutput = output.toLowerCase()
+          if (lowercaseOutput.includes('unsupported option "accept-new"')) {
             log.error({
-              section,
-              msg: chalk.gray(composeErrorMessage(`${msg.processDescription} port-forward failed`, msg)),
+              msg: chalk.red(
+                "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
+              ),
             })
-            reversePortForwardFailureCounter.addFailure(() => {
-              log.error({
-                symbol: "warning",
-                section,
-                msg: chalk.yellow(
-                  `${
-                    msg.processDescription
-                  } hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts.
-                  Please check the logs in ${getLogsPath(ctx)} and consider restarting Garden.`
-                ),
-              })
+            return true
+          }
+          const criticalErrorIndicators = [
+            "permission denied",
+            "remote host identification has changed",
+            "bad configuration option",
+          ]
+          const hasCriticalErrors = criticalErrorIndicators.some((indicator) => {
+            lowercaseOutput.includes(indicator)
+          })
+          if (hasCriticalErrors) {
+            log.error({
+              msg: chalk.red(output),
             })
-          },
-          onMessage: (msg: ProcessMessage) => {
-            log.success({
-              section,
-              msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
-            })
-          },
+          }
+          return hasCriticalErrors
         },
-        stdoutListener: {
-          catchCriticalErrors: (_chunk: any) => false,
-          hasErrors: (_chunk: any) => false,
-          onError: (_msg: ProcessMessage) => {},
-          onMessage: (msg: ProcessMessage) => {
-            log.success({
-              section,
-              msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
-            })
-          },
+        hasErrors: (chunk: any) => {
+          const output = chunk.toString()
+          // A message containing "warning: permanently added" is printed by ssh command
+          // when the connection is established and the public key is added to the temporary known hosts file.
+          // This message is printed to stderr, but it should not be considered as an error.
+          // It indicates the successful connection.
+          return !output.toLowerCase().includes("warning: permanently added")
         },
-      })
-  )
+        onError: (msg: ProcessMessage) => {
+          log.error({
+            msg: chalk.gray(composeErrorMessage(`${msg.processDescription} port-forward failed`, msg)),
+          })
+          reversePortForwardFailureCounter.addFailure(() => {
+            log.error(`${
+              msg.processDescription
+            } hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts.
+                  Please check the logs in ${getLogsPath(ctx)} and consider restarting Garden.`)
+          })
+        },
+        onMessage: (msg: ProcessMessage) => {
+          log.success({
+            msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
+          })
+        },
+      },
+      stdoutListener: {
+        catchCriticalErrors: (_chunk: any) => false,
+        hasErrors: (_chunk: any) => false,
+        onError: (_msg: ProcessMessage) => {},
+        onMessage: (msg: ProcessMessage) => {
+          log.success({
+            msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
+          })
+        },
+      },
+    })
+  })
 }
 
 function composeSshTunnelProcessTree(
@@ -870,23 +823,16 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     throw new ConfigurationError(`Resource ${targetResourceId} is not deployed in local mode`, { targetResource })
   }
 
-  const section = action.key()
-
   log.info({
-    section,
     msg: chalk.gray("Starting in local mode..."),
   })
 
   registerCleanupFunction(`redeploy-alert-for-local-mode-${action.key()}`, () => {
-    log.warn({
-      symbol: "warning",
-      section,
-      msg: chalk.yellow(
-        `Local mode has been stopped for the service "${action.key()}". ` +
-          "Please, re-deploy the original service to restore the original k8s cluster state: " +
-          `${chalk.white(`\`garden deploy ${action.key()}\``)}`
-      ),
-    })
+    log.warn(
+      `Local mode has been stopped for the action "${action.key()}". ` +
+        "Please, re-deploy the original service to restore the original k8s cluster state: " +
+        `${chalk.white(`\`garden deploy ${action.name}\``)}`
+    )
   })
 
   const localSshPort = await getPort()
@@ -897,16 +843,11 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const localApp = getLocalAppProcess(configParams)
   if (!!localApp) {
     log.info({
-      section,
       msg: chalk.white("Starting local app, this can take a while"),
     })
     const localAppStatus = localModeProcessRegistry.submit(localApp)
     if (!localAppStatus) {
-      log.warn({
-        symbol: "warning",
-        section,
-        msg: chalk.yellow("Unable to start local app. Reason: rejected by the registry"),
-      })
+      log.warn("Unable to start local app. Reason: rejected by the registry")
     }
   }
 
@@ -922,12 +863,10 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
 
   const compositeSshTunnel = composeSshTunnelProcessTree(kubectlPortForward, reversePortForwards, log)
   log.info({
-    section,
     msg: chalk.white("Starting local mode ssh tunnels, some failures and retries are possible"),
   })
   const sshTunnelCmdRenderer = (command: OsCommand) => `${command.command} ${command.args?.join(" ")}`
   log.verbose({
-    section,
     msg: chalk.gray(
       `Starting the process tree for the local mode ssh tunnels:\n` +
         `${compositeSshTunnel.renderProcessTree(sshTunnelCmdRenderer)}`
@@ -935,10 +874,6 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   })
   const localTunnelsStatus = localModeProcessRegistry.submit(compositeSshTunnel)
   if (!localTunnelsStatus) {
-    log.warn({
-      symbol: "warning",
-      section,
-      msg: chalk.yellow("Unable to start local mode ssh tunnels. Reason: rejected by the registry"),
-    })
+    log.warn("Unable to start local mode ssh tunnels. Reason: rejected by the registry")
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,7 +23,6 @@ import {
   containerModuleSpecSchema,
 } from "@garden-io/core/build/src/plugins/container/moduleConfig"
 import { joi } from "@garden-io/core/build/src/config/common"
-import { renderOutputStream } from "@garden-io/core/build/src/util/util"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/configure"
 import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
@@ -49,7 +48,7 @@ const jibBuildSchemaKeys = () => ({
     .default("auto")
     .description(
       dedent`
-            The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
+            The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the action root), but in some cases you may need to specify it.
             `
     ),
   jdkVersion: joi
@@ -132,7 +131,7 @@ const docs = dedent`
 
   The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set \`build.tarOnly: true\` to only build the image as a tarball.
 
-  By default (and when not using remote building), the image is pushed to the local Docker daemon, to match the behavior of and stay compatible with normal \`container\` modules.
+  By default (and when not using remote building), the image is pushed to the local Docker daemon, to match the behavior of and stay compatible with normal \`container\` actions.
 
   When using remote building with the \`kubernetes\` provider, the image is synced to the cluster (where individual layers are cached) and then pushed to the deployment registry from there. This is to make sure any registry auth works seamlessly and exactly like for normal Docker image builds.
 
@@ -140,7 +139,7 @@ const docs = dedent`
 
   To provide additional arguments to Gradle/Maven when building, you can set the \`extraFlags\` field.
 
-  **Important note:** Unlike many other types, \`jib-container\` builds are done from the _source_ directory instead of the build staging directory, because of how Java projects are often laid out across a repository. This means build dependency copy directives are effectively ignored, and any include/exclude statements and .gardenignore files will not impact the build result. _Note that you should still configure includes, excludes and/or a .gardenignore to tell Garden which files to consider as part of the module version hash, to correctly detect whether a new build is required._
+  **Important note:** Unlike many other types, \`jib-container\` builds are done from the _source_ directory instead of the build staging directory, because of how Java projects are often laid out across a repository. This means build dependency copy directives are effectively ignored, and any include/exclude statements and .gardenignore files will not impact the build result. _Note that you should still configure includes, excludes and/or a .gardenignore to tell Garden which files to consider as part of the Build version hash, to correctly detect whether a new build is required.**
 `
 
 export const gardenPlugin = () =>
@@ -149,7 +148,7 @@ export const gardenPlugin = () =>
     docs: dedent`
       **EXPERIMENTAL**: Please provide feedback via GitHub issues or our community forum!
 
-      Provides support for [Jib](https://github.com/GoogleContainerTools/jib) via the [jib module type](../module-types/jib-container.md).
+      Provides support for [Jib](https://github.com/GoogleContainerTools/jib) via the [jib action type](../action-types/Build/jib-container.md).
 
       Use this to efficiently build container images for Java services. Check out the [jib example](${exampleUrl}) to see it in action.
     `,
@@ -186,24 +185,28 @@ export const gardenPlugin = () =>
 
               if (!projectType) {
                 projectType = detectProjectType(action)
-                statusLine.info(renderOutputStream(`Detected project type ${projectType}`))
+                statusLine.info(`Detected project type ${projectType}`)
               }
 
               let buildLog = ""
 
               const logEventContext: PluginEventLogContext = {
+                level: "verbose",
                 origin: ["maven", "mavend", "gradle"].includes(projectType) ? projectType : "gradle",
-                log: log.createLog({ fixLevel: LogLevel.verbose }),
               }
 
               const outputStream = split2()
               outputStream.on("error", () => {})
               outputStream.on("data", (data: Buffer) => {
-                ctx.events.emit("log", { timestamp: new Date().toISOString(), data, ...logEventContext })
+                ctx.events.emit("log", {
+                  timestamp: new Date().toISOString(),
+                  msg: data.toString(),
+                  ...logEventContext,
+                })
                 buildLog += data.toString()
               })
 
-              statusLine.info({ section: action.key(), msg: `Using JAVA_HOME=${openJdkPath}` })
+              statusLine.info(`Using JAVA_HOME=${openJdkPath}`)
 
               const { args, tarPath } = getBuildFlags(action, projectType)
 
@@ -306,6 +309,7 @@ export const gardenPlugin = () =>
               allowPublish: module.allowPublish,
               dependencies: module.build.dependencies.map(convertBuildDependency),
 
+              timeout: module.build.timeout,
               spec: {
                 // base container fields
                 buildArgs: module.spec.buildArgs,

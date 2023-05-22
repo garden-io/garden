@@ -1,9 +1,10 @@
+apiVersion: garden.io/v1
 kind: Project
 name: vote-helm
 environments:
   - name: local
     variables:
-      baseHostname: vote.local.app.garden
+      baseHostname: vote.local.demo.garden
   - name: testing
     defaultNamespace: ${var.userId}
     variables:

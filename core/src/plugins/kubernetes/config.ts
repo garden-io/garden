@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -40,15 +40,14 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { readFileSync } from "fs-extra"
 import { join } from "path"
 import { STATIC_DIR } from "../../constants"
-
-export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.8.1-debug"
+import { defaultKanikoImageName } from "./constants"
 
 export interface ProviderSecretRef {
   name: string
   namespace: string
 }
 
-export type TlsManager = "cert-manager" | "manual"
+export type TlsManager = "manual"
 export type LetsEncryptServerType = "letsencrypt-staging" | "letsencrypt-prod"
 export type AcmeChallengeType = "HTTP-01"
 export type IssuerType = "acme"
@@ -284,6 +283,7 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
 export const k8sDeploymentTimeoutSchema = () =>
   joi
     .number()
+    .integer()
     .default(KUBECTL_DEFAULT_TIMEOUT)
     .description("The maximum duration (in seconds) to wait for resources to deploy and become healthy.")
 
@@ -310,7 +310,7 @@ const secretRef = joi
 const imagePullSecretsSchema = () =>
   joiSparseArray(secretRef).description(dedent`
     References to \`docker-registry\` secrets to use for authenticating with remote registries when pulling
-    images. This is necessary if you reference private images in your module configuration, and is required
+    images. This is necessary if you reference private images in your action configuration, and is required
     when configuring a remote Kubernetes environment with buildMode=local.
   `)
 
@@ -338,18 +338,6 @@ const tlsCertificateSchema = () =>
     secretRef: secretRef
       .description("A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.")
       .example({ name: "my-tls-secret", namespace: "default" }),
-    managedBy: joi
-      .string()
-      .description(
-        dedent`
-      Set to \`cert-manager\` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
-      certificate. See our
-      [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-    `
-      )
-      .allow("cert-manager")
-      .example("cert-manager")
-      .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
   })
 
 const buildkitCacheConfigurationSchema = () =>
@@ -547,11 +535,11 @@ export const kubernetesConfigBase = () =>
             .sparseArray()
             .items(joi.string())
             .description(
-              `Specify extra flags to use when building the container image with kaniko. Flags set on \`container\` modules take precedence over these.`
+              `Specify extra flags to use when building the container image with kaniko. Flags set on \`container\` Builds take precedence over these.`
             ),
           image: joi
             .string()
-            .default(DEFAULT_KANIKO_IMAGE)
+            .default(defaultKanikoImageName)
             .description(`Change the kaniko image (repository/image:tag) to use when building in kaniko mode.`),
           namespace: joi
             .string()
@@ -623,8 +611,8 @@ export const kubernetesConfigBase = () =>
         .boolean()
         .default(false)
         .description(
-          "Require SSL on all `container` module services. If set to true, an error is raised when no certificate " +
-            "is available for a configured hostname on a `container` module."
+          "Require SSL on all `container` Deploys. If set to true, an error is raised when no certificate " +
+            "is available for a configured hostname on a `container`Deploy."
         ),
       gardenSystemNamespace: joi
         .string()
@@ -673,59 +661,6 @@ export const kubernetesConfigBase = () =>
       tlsCertificates: joiSparseArray(tlsCertificateSchema())
         .unique("name")
         .description("One or more certificates to use for ingress."),
-      certManager: joi
-        .object()
-        .optional()
-        .keys({
-          install: joi
-            .bool()
-            .default(false)
-            .description(
-              dedent`
-          Automatically install \`cert-manager\` on initialization. See the
-          [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-        `
-            )
-            .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
-          email: joi
-            .string()
-            .required()
-            .description("The email to use when requesting Let's Encrypt certificates.")
-            .example("yourname@example.com")
-            .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
-          issuer: joi
-            .string()
-            .allow("acme")
-            .default("acme")
-            .description("The type of issuer for the certificate (only ACME is supported for now).")
-            .example("acme")
-            .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
-          acmeServer: joi
-            .string()
-            .allow("letsencrypt-staging", "letsencrypt-prod")
-            .default("letsencrypt-staging")
-            .description(
-              deline`Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod
-          servers are supported.`
-            )
-            .example("letsencrypt-staging")
-            .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
-          acmeChallengeType: joi
-            .string()
-            .allow("HTTP-01")
-            .default("HTTP-01")
-            .description(
-              deline`The type of ACME challenge used to validate hostnames and generate the certificates
-          (only HTTP-01 is supported for now).`
-            )
-            .example("HTTP-01")
-            .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
-        })
-        .description(
-          dedent`cert-manager configuration, for creating and managing TLS certificates. See the
-        [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.`
-        )
-        .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
       _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
       systemNodeSelector: joiStringMap(joi.string())
         .description(
@@ -909,7 +844,7 @@ export const serviceResourceSchema = () =>
         .default("Deployment")
         .description("The type of Kubernetes resource to sync files to."),
       name: joi.string().description(
-        deline`The name of the resource to sync to. If the module contains a single resource of the specified Kind,
+        deline`The name of the resource to sync to. If the action contains a single resource of the specified Kind,
         this can be omitted.`
       ),
       containerName: targetContainerNameSchema(),
@@ -962,8 +897,15 @@ export const portForwardsSchema = () =>
 
 export const runPodSpecWhitelistDescription = () => runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
 
+export const runCacheResultSchema = () =>
+  cacheResultSchema().description(
+    dedent`
+Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run \`garden run\`.
+`
+  )
+
 export const kubernetesCommonRunSchemaKeys = () => ({
-  cacheResult: cacheResultSchema(),
+  cacheResult: runCacheResultSchema(),
   command: joi
     .sparseArray()
     .items(joi.string().allow(""))

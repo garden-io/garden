@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,10 +26,13 @@ import { ExecaReturnValue } from "execa"
 import EventEmitter from "events"
 import split2 from "split2"
 import { TypedEventEmitter } from "./util/events"
+import pMemoize from "./lib/p-memoize"
+import { deline } from "./util/string"
 
 const maxRestarts = 10
 const mutagenLogSection = "<mutagen>"
 const crashMessage = `Synchronization monitor has crashed ${maxRestarts} times. Aborting.`
+const syncLogPrefix = "[sync]:"
 
 export const mutagenAgentPath = "/.garden/mutagen-agent"
 
@@ -46,14 +49,20 @@ export const mutagenModeMap = {
   "two-way-resolved": "two-way-resolved",
 }
 
+const restartInstructions = (description: string) => deline`
+  Once you've examined the source and/or target directories and ${description}, you can
+  restart the sync using the garden sync restart command, or by stopping and starting the sync
+  using garden sync stop and then garden sync start.`
+
 // This is basically copied from:
 // https://github.com/mutagen-io/mutagen/blob/19e087599f187d85416d453cd50e2a9df1602132/pkg/synchronization/state.go
 // with an updated description to match Garden's context.
-const mutagenStatusDescriptions = {
+
+export const mutagenStatusDescriptions = {
   "disconnected": "Sync disconnected",
-  "halted-on-root-emptied": "Sync halted because either the source or target directory was emptied",
-  "halted-on-root-deletion": "Sync halted because either the source or target was deleted",
-  "halted-on-root-type-change": "Sync halted because either the source or target changed type",
+  "halted-on-root-emptied": `Sync halted because either the source or target directory was emptied. ${restartInstructions("made sure they're not empty")}`,
+  "halted-on-root-deletion": `Sync halted because either the source or target was deleted. ${restartInstructions("made sure they exist")}`,
+  "halted-on-root-type-change": `Sync halted because either the source or target changed type (e.g. from a directory to a file or vice versa). ${restartInstructions("made sure their type is what it should be")}`,
   "connecting-alpha": "Sync connected to source",
   "connecting-beta": "Sync connected to target",
   "watching": "Watching for changes",
@@ -77,6 +86,12 @@ interface MonitorProc extends EventEmitter {
 
 type MutagenStatus = keyof typeof mutagenStatusDescriptions
 
+export const haltedStatuses: MutagenStatus[] = [
+  "halted-on-root-emptied",
+  "halted-on-root-deletion",
+  "halted-on-root-type-change"
+]
+
 export interface SyncConfig {
   alpha: string
   beta: string
@@ -98,6 +113,7 @@ interface ActiveSync {
   config: SyncConfig
   lastProblems: string[]
   lastStatus?: string
+  lastStatusMsg?: string
   lastSyncCount: number
   initialSyncComplete: boolean
   paused: boolean
@@ -134,6 +150,15 @@ interface MonitorEvents {
 }
 
 /**
+ * We memoize this function for performance reasons, since we only need to create this dir once (assuming that the
+ * user doesn't do anything silly like delete the <project-root>/.garden/mutagen directory while the command is
+ * running).
+ */
+const ensureDataDir = pMemoize(async (dataDir: string) => {
+  await mkdirp(dataDir)
+})
+
+/**
  * Wrapper around `mutagen sync monitor`. This is used as a singleton, and emits events for instances of
  * `Mutagen` to subscribe to and log as appropriate.
  */
@@ -145,7 +170,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
   constructor({ log, dataDir }: MutagenMonitorParams) {
     super()
-    this.log = log
+    this.log = log.createLog({ name: mutagenLogSection })
     this.configLock = new AsyncLock()
     this.dataDir = dataDir
 
@@ -168,12 +193,12 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
         return
       }
 
-      const log = this.log
+      const log = this.log.createLog({ name: mutagenLogSection })
 
       const mutagenPath = await mutagenCli.getPath(log)
       const dataDir = this.dataDir
 
-      await mkdirp(dataDir)
+      await ensureDataDir(dataDir)
 
       const proc = respawn([mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"], {
         cwd: dataDir,
@@ -197,11 +222,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
       proc.on("exit", (code: number) => {
         if (code && code !== 0) {
-          log.warn({
-            symbol: "empty",
-            section: mutagenLogSection,
-            msg: chalk.yellow(`Synchronization monitor exited with code ${code}.`),
-          })
+          log.warn(`Synchronization monitor exited with code ${code}.`)
         }
       })
 
@@ -211,11 +232,11 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
         // it'll basically work for the next 979 years :P.
         const msg = chalk.gray(str.startsWith("2") ? str.split(" ").slice(3).join(" ") : str)
         if (msg.includes("Unable") && lastDaemonError !== msg) {
-          log.warn({ symbol: "warning", section: mutagenLogSection, msg })
+          log.warn(msg)
           // Make sure we don't spam with repeated messages
           lastDaemonError = msg
         } else {
-          log.silly({ symbol: "empty", section: mutagenLogSection, msg })
+          log.silly({ symbol: "empty", msg })
         }
       }
 
@@ -248,7 +269,6 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
           if (resolved) {
             log.debug({
               symbol: "empty",
-              section: mutagenLogSection,
               msg: chalk.green("Mutagen monitor re-started"),
             })
           }
@@ -267,6 +287,10 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
           if (!resolved) {
             reject(crashMessage)
           }
+        })
+
+        proc.once("start", () => {
+          log.verbose("Mutagen synchronization monitor started")
         })
 
         proc.start()
@@ -292,7 +316,6 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 export class Mutagen {
   private log: Log
   private dataDir: string
-  private syncStatusLines: { [key: string]: Log }
   private activeSyncs: { [key: string]: ActiveSync }
   private monitorHandler: (session: SyncSession) => void
   private configLock: AsyncLock
@@ -303,7 +326,6 @@ export class Mutagen {
     this.configLock = new AsyncLock()
     this.dataDir = dataDir || join(ctx.gardenDirPath, MUTAGEN_DIR_NAME)
     this.activeSyncs = {}
-    this.syncStatusLines = {}
     this.monitoring = false
 
     // TODO: This is a little noisy atm. We could be a bit smarter and filter some superfluous messages out.
@@ -331,27 +353,23 @@ export class Mutagen {
       ]
 
       const { logSection: section } = activeSync
+      const syncLog = this.log.createLog({ name: section })
 
       for (const problem of problems) {
         if (!activeSync.lastProblems.includes(problem)) {
-          log.warn({ symbol: "warning", section, msg: chalk.yellow(problem) })
+          syncLog.warn(problem)
         }
       }
 
       if (session.alpha.connected && !activeSync.sourceConnected) {
-        log.info({
-          symbol: "info",
-          section,
-          msg: chalk.gray(`Connected to sync source ${sourceDescription}`),
-        })
+        syncLog.info(`Connected to sync source ${sourceDescription}`)
         activeSync.sourceConnected = true
       }
 
       if (session.beta.connected && !activeSync.targetConnected) {
-        log.info({
+        syncLog.info({
           symbol: "success",
-          section,
-          msg: chalk.gray(`Connected to sync target ${targetDescription}`),
+          msg: `Connected to sync target ${targetDescription}`,
         })
         activeSync.targetConnected = true
       }
@@ -359,23 +377,18 @@ export class Mutagen {
       const syncCount = session.successfulCycles || 0
       const description = `from ${sourceDescription} to ${targetDescription}`
       const isInitialSync = activeSync.lastSyncCount === 0
-      const syncLogPrefix = "[sync]:"
 
       // Mutagen resets the sync count to zero after resuming from a sync paused
       // so we keep track of whether the initial sync has completed so that we
       // don't log it multiple times.
       if (syncCount > activeSync.lastSyncCount && !activeSync.initialSyncComplete) {
-        log.info({
+        syncLog.info({
           symbol: "success",
-          section,
-          msg: chalk.gray(`${syncLogPrefix} Completed initial sync ${description}`),
+          msg: chalk.white(`${syncLogPrefix} Completed initial sync ${description}`),
         })
         activeSync.initialSyncComplete = true
       }
 
-      if (!this.syncStatusLines[key]) {
-        this.syncStatusLines[key] = log.createLog({})
-      }
       let statusMsg: string | undefined
 
       if (syncCount > activeSync.lastSyncCount && !isInitialSync) {
@@ -385,16 +398,15 @@ export class Mutagen {
         statusMsg = `Sync resumed`
       } else if (!activeSync.paused && session.paused) {
         statusMsg = `Sync paused`
+      } else if (activeSync.lastStatus && session.status && session.status === "disconnected") {
+        // Don't print disconnected message when no status was set prior (likely when starting the sync)
       } else if (session.status && session.status !== activeSync.lastStatus) {
         statusMsg = mutagenStatusDescriptions[session.status]
       }
 
       if (statusMsg) {
-        this.syncStatusLines[key].info({
-          symbol: "info",
-          section,
-          msg: chalk.gray(`${syncLogPrefix} ${statusMsg}`),
-        })
+        syncLog.info(`${syncLogPrefix} ${statusMsg}`)
+        activeSync.lastStatusMsg = statusMsg
       }
 
       activeSync.lastSyncCount = syncCount
@@ -404,8 +416,8 @@ export class Mutagen {
     }
   }
 
-  async ensureDaemon(log: Log) {
-    await this.execCommand(log, ["daemon", "start"])
+  async ensureDaemon() {
+    await this.execCommand(["daemon", "start"])
   }
 
   /**
@@ -458,7 +470,14 @@ export class Mutagen {
       }
 
       const active = await this.getActiveSyncSessions(log)
-      const existing = active.find((s) => s.name === key)
+      let existing = active.find((s) => s.name === key)
+
+      if (existing) {
+        // TODO: compare existing sync instead of just re-creating naively (need help from Mutagen side)
+        await this.terminateSync(log, key)
+      }
+
+      log.debug(`Starting mutagen sync ${key}...`)
 
       this.activeSyncs[key] = {
         created: new Date(),
@@ -476,18 +495,18 @@ export class Mutagen {
         mutagenParameters: params,
       }
 
-      if (!existing) {
-        // Might need to retry
-        await pRetry(() => this.execCommand(log, ["sync", "create", ...params]), {
-          retries: 5,
-          minTimeout: 1000,
-          onFailedAttempt: (err) => {
-            log.warn(
-              `Failed to start sync from ${sourceDescription} to ${targetDescription}. ${err.retriesLeft} attempts left.`
-            )
-          },
-        })
-      }
+      // Might need to retry
+      await pRetry(() => this.execCommand(["sync", "create", ...params]), {
+        retries: 5,
+        minTimeout: 1000,
+        onFailedAttempt: (err) => {
+          log.warn(
+            `Failed to start sync from ${sourceDescription} to ${targetDescription}. ${err.retriesLeft} attempts left.`
+          )
+        },
+      })
+
+      log.debug(`Mutagen sync ${key} started.`)
     })
   }
 
@@ -495,45 +514,42 @@ export class Mutagen {
    * Remove the specified sync (by name) from the sync daemon.
    */
   async terminateSync(log: Log, key: string) {
-    log.debug(`Terminating mutagen sync ${key}`)
+    log.debug(`Terminating mutagen sync ${key}...`)
 
-    return this.configLock.acquire("configure", async () => {
-      try {
-        await this.execCommand(log, ["sync", "terminate", key])
-        delete this.activeSyncs[key]
-      } catch (err) {
-        // Ignore other errors, which should mean the sync wasn't found
-        if (err.message.includes("unable to connect to daemon")) {
-          throw err
-        }
+    try {
+      await this.execCommand(["sync", "terminate", key])
+      delete this.activeSyncs[key]
+      log.debug(`Mutagen sync ${key} terminated.`)
+    } catch (err) {
+      // Ignore other errors, which should mean the sync wasn't found
+      if (err.message.includes("unable to connect to daemon")) {
+        throw err
       }
-    })
+    }
   }
 
   /**
    * Ensure a sync is completed.
    */
-  async flushSync(log: Log, key: string) {
-    await pRetry(() => this.execCommand(log, ["sync", "flush", key]), {
+  async flushSync(key: string) {
+    await pRetry(() => this.execCommand(["sync", "flush", key]), {
       retries: 5,
       minTimeout: 1000,
       onFailedAttempt: async (err) => {
         const unableToFlush = err.message.match(/unable to flush session/)
         if (unableToFlush) {
-          log.warn({
-            symbol: "empty",
-            section: mutagenLogSection,
-            msg: chalk.gray(
+          this.log.warn(
+            chalk.gray(
               `Could not flush synchronization changes, retrying (attempt ${err.attemptNumber}/${err.retriesLeft})...`
-            ),
-          })
+            )
+          )
         } else {
           throw err
         }
       },
     })
 
-    await this.execCommand(log, ["sync", "flush", key])
+    await this.execCommand(["sync", "flush", key])
   }
 
   /**
@@ -543,7 +559,7 @@ export class Mutagen {
     const active = await this.getActiveSyncSessions(log)
     await Bluebird.map(active, async (session) => {
       try {
-        await this.flushSync(log, session.name)
+        await this.flushSync(session.name)
       } catch (err) {
         log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err.message}`))
       }
@@ -554,37 +570,66 @@ export class Mutagen {
    * List all Mutagen sync sessions.
    */
   async getActiveSyncSessions(log: Log): Promise<SyncSession[]> {
-    const res = await this.execCommand(log, ["sync", "list", "--template={{ json . }}"])
+    const res = await this.execCommand(["sync", "list", "--template={{ json . }}"])
     return parseSyncListResult(res)
+  }
+
+  /**
+   * Just register a sync to monitor, without starting it.
+   */
+  monitorSync({
+    logSection,
+    key,
+    sourceDescription,
+    targetDescription,
+    config,
+  }: {
+    logSection: string
+    key: string
+    sourceDescription: string
+    targetDescription: string
+    config: SyncConfig
+  }) {
+    this.activeSyncs[key] = {
+      created: new Date(),
+      sourceDescription,
+      targetDescription,
+      logSection,
+      sourceConnected: false,
+      targetConnected: false,
+      config,
+      lastProblems: [],
+      lastStatus: "",
+      lastSyncCount: 0,
+      initialSyncComplete: false,
+      paused: false,
+      mutagenParameters: [],
+    }
   }
 
   /**
    * Execute a Mutagen command with retries. Restarts the daemon process
    * between retries if Mutagen is unable to connect to it.
    */
-  private async execCommand(log: Log, args: string[]) {
+  private async execCommand(args: string[]) {
     let loops = 0
     const maxRetries = 10
+    await ensureDataDir(this.dataDir)
 
     while (true) {
       try {
-        const res = mutagenCli.exec({
+        return await mutagenCli.exec({
           cwd: this.dataDir,
           args,
-          log,
+          log: this.log,
           env: getMutagenEnv(this.dataDir),
         })
-        return res
       } catch (err) {
         const unableToConnect = err.message.match(/unable to connect to daemon/)
         if (unableToConnect && loops < 10) {
           loops += 1
-          log.warn({
-            symbol: "empty",
-            section: mutagenLogSection,
-            msg: chalk.gray(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`),
-          })
-          await this.ensureDaemon(log)
+          this.log.warn(chalk.gray(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`))
+          await this.ensureDaemon()
           await sleep(2000 + loops * 500)
         } else {
           throw err
@@ -593,16 +638,16 @@ export class Mutagen {
     }
   }
 
-  async terminateSyncs(log: Log) {
+  async terminateSyncs() {
     await Bluebird.map(Object.keys(this.activeSyncs), async (key) => {
-      await this.execCommand(log, ["sync", "terminate", key])
+      await this.execCommand(["sync", "terminate", key])
       delete this.activeSyncs[key]
     })
   }
 
-  async restartDaemonProc(log: Log) {
-    await this.stopDaemonProc(log)
-    await this.ensureDaemon(log)
+  async restartDaemonProc() {
+    await this.stopDaemonProc()
+    await this.ensureDaemon()
   }
 
   async startMonitoring() {
@@ -630,9 +675,9 @@ export class Mutagen {
     return getMutagenMonitor({ dataDir: this.dataDir, log: this.log })
   }
 
-  private async stopDaemonProc(log: Log) {
+  private async stopDaemonProc() {
     try {
-      await this.execCommand(log, ["daemon", "stop"])
+      await this.execCommand(["daemon", "stop"])
     } catch {}
   }
 }
@@ -694,7 +739,7 @@ interface SyncEndpoint {
   stagingProgress?: SyncReceiverStatus
 }
 
-interface SyncSession {
+export interface SyncSession {
   identifier: string
   version: number
   creationTime: string

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,6 +26,13 @@ describe("common build", () => {
     it("should result in manifest unknown for Harbor registry error", () => {
       const errorMessage =
         'Unable to query registry for image status: time="2021-10-13T17:50:25Z" level=fatal msg="Error parsing image name "docker://registry.domain/namespace/image-name:v-1f160eadbb": Error reading manifest v-1f160eadbb in registry.domain/namespace/image-name: unknown: artifact namespace/image-name:v-1f160eadbb not found"'
+
+      expect(skopeoManifestUnknown(errorMessage)).to.be.true
+    })
+
+    it("should result in manifest unknown for Harbor registry repository not found", () => {
+      const errorMessage =
+        'Unable to query registry for image status: time="2021-10-13T17:50:25Z" level=fatal msg="Error parsing image name "docker://registry.domain/namespace/image-name:v-1f160eadbb": Error reading manifest v-1f160eadbb in registry.domain/namespace/image-name: unknown: repository namespace/image-name not found"'
 
       expect(skopeoManifestUnknown(errorMessage)).to.be.true
     })

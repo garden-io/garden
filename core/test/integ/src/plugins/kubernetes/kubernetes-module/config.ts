@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,9 +10,15 @@ import { expect } from "chai"
 import { cloneDeep } from "lodash"
 
 import { TestGarden } from "../../../../../helpers"
-import { defaultBuildTimeout, ModuleConfig } from "../../../../../../src/config/module"
+import { ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
 import { getKubernetesTestGarden } from "./common"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_DEPLOY_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC,
+} from "../../../../../../src/constants"
 
 describe("configureKubernetesModule", () => {
   let garden: TestGarden
@@ -41,7 +47,7 @@ describe("configureKubernetesModule", () => {
       cacheResult: true,
       dependencies: [],
       disabled: false,
-      timeout: null,
+      timeout: DEFAULT_RUN_TIMEOUT_SEC,
       env: {},
       artifacts: [],
     }
@@ -51,7 +57,7 @@ describe("configureKubernetesModule", () => {
       command: ["sh", "-c", "echo ok"],
       dependencies: [],
       disabled: false,
-      timeout: null,
+      timeout: DEFAULT_TEST_TIMEOUT_SEC,
       env: {},
       artifacts: [],
     }
@@ -65,7 +71,7 @@ describe("configureKubernetesModule", () => {
         spec: {
           build: {
             dependencies: [],
-            timeout: defaultBuildTimeout,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           dependencies: [],
           files: [],
@@ -97,7 +103,7 @@ describe("configureKubernetesModule", () => {
                       {
                         name: "busybox",
                         image: "busybox:1.31.1",
-                        args: ["sleep", "100"],
+                        args: ["sh", "-c", "while :; do sleep 2073600; done"],
                         env: [
                           { name: "FOO", value: "banana" },
                           { name: "BAR", value: "" },
@@ -123,6 +129,7 @@ describe("configureKubernetesModule", () => {
           tasks: [taskSpec],
           timeout: 300,
         },
+        timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
       },
     ])
 
@@ -133,7 +140,7 @@ describe("configureKubernetesModule", () => {
         dependencies: [],
         disabled: false,
         spec: taskSpec,
-        timeout: null,
+        timeout: DEFAULT_RUN_TIMEOUT_SEC,
       },
     ])
 
@@ -143,7 +150,7 @@ describe("configureKubernetesModule", () => {
         dependencies: [],
         disabled: false,
         spec: testSpec,
-        timeout: null,
+        timeout: DEFAULT_TEST_TIMEOUT_SEC,
       },
     ])
   })

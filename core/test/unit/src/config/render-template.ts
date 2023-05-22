@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants"
 import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../helpers"
 import {
   ConfigTemplateResource,
@@ -36,7 +36,7 @@ describe("config templates", () => {
 
     before(() => {
       defaults = {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: configTemplateKind,
         name: "test",
 
@@ -130,7 +130,7 @@ describe("config templates", () => {
 
     before(() => {
       template = {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: configTemplateKind,
         name: "test",
         internal: {
@@ -145,7 +145,7 @@ describe("config templates", () => {
       templates.test = template
 
       defaults = {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: renderTemplateKind,
         name: "test",
         internal: {
@@ -178,6 +178,7 @@ describe("config templates", () => {
               name: "${parent.name}-${template.name}-${inputs.foo}",
               build: {
                 dependencies: [{ name: "${parent.name}-${template.name}-foo", copy: [] }],
+                timeout: DEFAULT_BUILD_TIMEOUT_SEC,
               },
               image: "${modules.foo.outputs.bar || inputs.foo}",
             },

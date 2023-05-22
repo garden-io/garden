@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,7 @@ import { sum, sortBy } from "lodash"
 import { gardenEnv } from "../constants"
 import { renderTable, tablePresets } from "./string"
 import chalk from "chalk"
-import { isPromise } from "./util"
+import { isPromise } from "./objects"
 
 const skipProfiling = process.env.GARDEN_SKIP_TEST_PROFILING
 

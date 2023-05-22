@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -48,15 +48,16 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   const releaseName = getReleaseName(action)
   const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log })
 
+  const timeout = action.getConfig("timeout")
   const commonArgs = [
     "--namespace",
     namespace,
     "--timeout",
-    spec.timeout.toString(10) + "s",
+    timeout.toString(10) + "s",
     ...(await getValueArgs({ action, valuesPath: preparedTemplates.valuesPath })),
   ]
 
-  if (spec.atomicInstall) {
+  if (spec.atomic) {
     // Make sure chart gets purged if it fails to install
     commonArgs.push("--atomic")
   }
@@ -140,10 +141,10 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     namespace,
     ctx,
     provider,
-    actionName: action.name,
+    actionName: action.key(),
     resources: manifests,
     log,
-    timeoutSec: spec.timeout,
+    timeoutSec: timeout,
   })
 
   // Local mode has its own port-forwarding configuration
@@ -176,7 +177,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       namespaceStatuses: [namespaceStatus],
     },
     attached,
-    // TODO-G2
+    // TODO-0.13.1
     outputs: {},
   }
 }

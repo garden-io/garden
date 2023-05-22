@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -123,9 +123,9 @@ async function buildBinaries(args: string[]) {
       packageJson.dependencies[depName] = "file:" + relPath
     }
 
-    if (version === "edge") {
+    if (version === "edge" || version.startsWith("edge-")) {
       const gitHash = await exec("git", ["rev-parse", "--short", "HEAD"])
-      packageJson.version = packageJson.version + "-edge-" + gitHash.stdout
+      packageJson.version = `${packageJson.version}-${version}-${gitHash.stdout}`
       console.log("Set package version to " + packageJson.version)
     }
 
@@ -201,7 +201,7 @@ async function pkgAlpine({ targetName, version }: TargetHandlerParams) {
   await mkdirp(targetPath)
 
   console.log(` - ${targetName} -> docker build`)
-  const imageName = "gardendev/garden:alpine-builder"
+  const imageName = "garden-alpine-builder"
   const containerName = "alpine-builder-" + randomString(8)
   const supportDir = resolve(repoRoot, "support")
 

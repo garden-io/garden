@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,6 +9,7 @@
 import { joiIdentifier, joiUserIdentifier, joi, joiVariables, joiSparseArray, createSchema } from "./common"
 import { deline, dedent } from "../util/string"
 import { memoize } from "lodash"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../constants"
 
 /**
  * This interface provides a common set of Service attributes, that are also required for the higher-level
@@ -47,6 +48,13 @@ export const baseServiceSpecSchema = createSchema({
         Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to resolve when the service is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
       `
       ),
+    timeout: joi
+      .number()
+      .integer()
+      .min(1)
+      .default(DEFAULT_DEPLOY_TIMEOUT_SEC)
+      .description("Maximum duration (in seconds) of the service's deployment execution.")
+      .meta({ internal: true }),
   }),
   allowUnknown: true,
   meta: { extendable: true },

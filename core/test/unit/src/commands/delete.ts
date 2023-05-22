@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -129,8 +129,6 @@ describe("DeleteEnvironmentCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      footerLog: log,
-      headerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "dependants-first": false }),
     })
@@ -155,8 +153,6 @@ describe("DeleteEnvironmentCommand", () => {
       const { result } = await command.action({
         garden,
         log,
-        footerLog: log,
-        headerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "dependants-first": true }),
       })
@@ -234,8 +230,6 @@ describe("DeleteDeployCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: ["service-a"] },
       opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false }),
     })
@@ -251,8 +245,6 @@ describe("DeleteDeployCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: ["service-a", "service-b", "service-c"] },
       opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false }),
     })
@@ -269,8 +261,6 @@ describe("DeleteDeployCommand", () => {
       const { result } = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { names: ["service-a", "service-b", "service-c"] },
         opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": true }),
       })
@@ -288,8 +278,6 @@ describe("DeleteDeployCommand", () => {
       const { result } = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { names: ["service-a"] },
         opts: withDefaultGlobalOpts({ "with-dependants": true, "dependants-first": false }),
       })
@@ -307,8 +295,6 @@ describe("DeleteDeployCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": true }),
     })

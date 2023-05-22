@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,7 +14,7 @@ import { Command, CommandResult, CommandParams } from "../base"
 import { SourceConfig, moduleSourceSchema } from "../../config/project"
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources, updateRemoteSharedOptions } from "./helpers"
-import { hasRemoteSource } from "../../util/ext-source-util"
+import { moduleHasRemoteSource } from "../../util/ext-source-util"
 import { printHeader } from "../../logger/util"
 import { Garden } from "../../garden"
 import { Log } from "../../logger/log-entry"
@@ -65,8 +65,8 @@ export class UpdateRemoteModulesCommand extends Command<Args, Opts> {
         garden update-remote modules my-module  # update remote module my-module
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Update remote modules", "🛠️")
+  printHeader({ log }) {
+    printHeader(log, "Update remote modules", "🛠️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<Output>> {
@@ -90,7 +90,7 @@ export async function updateRemoteModules({
   const modules = graph.getModules({ names: moduleNames })
 
   const moduleSources = <SourceConfig[]>modules
-    .filter(hasRemoteSource)
+    .filter(moduleHasRemoteSource)
     .filter((src) => (moduleNames ? moduleNames.includes(src.name) : true))
     .map((m) => ({ name: m.name, repositoryUrl: m.repositoryUrl }))
 
@@ -98,7 +98,7 @@ export async function updateRemoteModules({
 
   const diff = difference(moduleNames, names)
   if (diff.length > 0) {
-    const modulesWithRemoteSource = graph.getModules().filter(hasRemoteSource).sort()
+    const modulesWithRemoteSource = graph.getModules().filter(moduleHasRemoteSource).sort()
 
     throw new ParameterError(`Expected module(s) ${chalk.underline(diff.join(","))} to have a remote source.`, {
       modulesWithRemoteSource,

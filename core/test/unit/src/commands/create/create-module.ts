@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,8 +9,7 @@
 import { expect } from "chai"
 import { withDefaultGlobalOpts, TempDirectory, makeTempDir, expectError } from "../../../../helpers"
 import { CreateModuleCommand, getModuleTypeSuggestions } from "../../../../../src/commands/create/create-module"
-import { makeDummyGarden } from "../../../../../src/cli/cli"
-import { Garden } from "../../../../../src/garden"
+import { Garden, makeDummyGarden } from "../../../../../src/garden"
 import { join } from "path"
 import { pathExists, readFile, writeFile, mkdirp } from "fs-extra"
 import { safeLoadAll } from "js-yaml"
@@ -42,8 +41,6 @@ describe("CreateModuleCommand", () => {
 
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -74,8 +71,6 @@ describe("CreateModuleCommand", () => {
   it("should allow overriding the default generated filename", async () => {
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -95,8 +90,6 @@ describe("CreateModuleCommand", () => {
   it("should optionally set a module name", async () => {
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -130,8 +123,6 @@ describe("CreateModuleCommand", () => {
 
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
@@ -168,8 +159,6 @@ describe("CreateModuleCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
@@ -192,8 +181,6 @@ describe("CreateModuleCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
@@ -213,8 +200,6 @@ describe("CreateModuleCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({

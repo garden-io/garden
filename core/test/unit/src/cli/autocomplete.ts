@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { Autocompleter } from "../../../../src/cli/autocomplete"
-import { globalOptions } from "../../../../src/cli/params"
+import { globalDisplayOptions, globalOptions } from "../../../../src/cli/params"
 import { BuildCommand } from "../../../../src/commands/build"
 import { getBuiltinCommands } from "../../../../src/commands/commands"
 import { ConfigDump } from "../../../../src/garden"
@@ -50,6 +50,7 @@ describe("Autocompleter", () => {
       command: {
         name: ["build"],
         cliOnly: false,
+        stringArguments: [],
       },
       priority: 1,
     })
@@ -69,13 +70,25 @@ describe("Autocompleter", () => {
 
   it("returns subcommands when matching on command group", () => {
     const result = ac.getSuggestions("link")
-    expect(result.map((s) => s.line).sort()).to.eql(["link module", "link source"])
+    expect(result.map((s) => s.line).sort()).to.eql(["link action", "link module", "link source"])
   })
 
   it("filters option flags", () => {
     const result = ac.getSuggestions("build --f")
     const lines = result.map((s) => s.line)
     expect(lines).to.eql(["build --force", "build --force-refresh"])
+  })
+
+  it("returns option flag alias if no canonical flag name is matched", () => {
+    const result = ac.getSuggestions("deploy --dev")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.eql(["deploy --dev", "deploy --dev-mode"])
+  })
+
+  it("returns single char alias", () => {
+    const result = ac.getSuggestions("build -f")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.eql(["build -f"])
   })
 
   it("returns the command itself when matched verbatim", () => {
@@ -109,20 +122,20 @@ describe("Autocompleter", () => {
     it("returns option flags after matched command", () => {
       const result = ac.getSuggestions("build")
 
-      const lines = result.map((s) => s.line)
-
-      for (const s of flags) {
-        expect(lines).to.include("build " + s)
+      for (const f of flags) {
+        const matched = result.find((s) => s.line === "build " + f)
+        expect(matched).to.exist
+        expect(matched?.command.stringArguments).to.eql([f])
       }
     })
 
     it("skips global option flags when ignoreGlobalFlags=true", () => {
-      const result = ac.getSuggestions("build")
+      const result = ac.getSuggestions("build", { ignoreGlobalFlags: true })
 
       const lines = result.map((s) => s.line)
 
-      for (const s of buildFlags.map((f) => "--" + f)) {
-        expect(lines).to.include("build " + s)
+      for (const s of Object.keys(globalDisplayOptions).map((f) => "--" + f)) {
+        expect(lines).to.not.include("build " + s)
       }
     })
   })
@@ -135,10 +148,10 @@ describe("Autocompleter", () => {
     it("returns suggested positional args and option flags after matched command", () => {
       const result = ac.getSuggestions("build")
 
-      const lines = result.map((s) => s.line)
-
-      for (const s of [...flags, ...Object.keys(configDump.actionConfigs.Build)]) {
-        expect(lines).to.include("build " + s)
+      for (const f of [...flags, ...Object.keys(configDump.actionConfigs.Build)]) {
+        const matched = result.find((s) => s.line === "build " + f)
+        expect(matched).to.exist
+        expect(matched?.command.stringArguments).to.eql([f])
       }
     })
 

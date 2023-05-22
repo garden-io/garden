@@ -1,19 +1,17 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { spawn } from "child_process"
 import { expect } from "chai"
 import { join } from "path"
-import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
 import { ExecProvider, gardenPlugin } from "../../../../../src/plugins/exec/exec"
-import { Log } from "../../../../../src/logger/log-entry"
+import { ActionLog, createActionLog } from "../../../../../src/logger/log-entry"
 import { keyBy, omit } from "lodash"
 import {
   getDataDir,
@@ -49,6 +47,12 @@ import { BuildActionConfig } from "../../../../../src/actions/build"
 import { DeployActionConfig } from "../../../../../src/actions/deploy"
 import { RunActionConfig } from "../../../../../src/actions/run"
 import { getLogFilePath } from "../../../../../src/plugins/exec/deploy"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC,
+} from "../../../../../src/constants"
+import { isRunning, killRecursive } from "../../../../../src/process"
 
 describe("exec plugin", () => {
   context("test-project based tests", () => {
@@ -59,14 +63,14 @@ describe("exec plugin", () => {
     let ctx: PluginContext
     let execProvider: ExecProvider
     let graph: ConfigGraph
-    let log: Log
+    let log: ActionLog
 
     beforeEach(async () => {
       garden = await makeTestGarden(testProjectRoot, { plugins: [plugin] })
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       execProvider = await garden.resolveProvider(garden.log, "exec")
       ctx = await garden.getPluginContext({ provider: execProvider, templateContext: undefined, events: undefined })
-      log = garden.log
+      log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
       await garden.clearBuilds()
     })
 
@@ -109,7 +113,6 @@ describe("exec plugin", () => {
         {
           dependencies: [],
           disabled: false,
-
           name: "apple",
           spec: {
             cleanupCommand: ["rm -f deployed.log && echo cleaned up"],
@@ -119,7 +122,9 @@ describe("exec plugin", () => {
             env: {},
             name: "apple",
             statusCommand: ["test -f deployed.log && echo already deployed"],
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
           },
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
         },
       ])
       expect(moduleA.taskConfigs).to.eql([
@@ -128,7 +133,7 @@ describe("exec plugin", () => {
           cacheResult: false,
           dependencies: ["orange"],
           disabled: false,
-          timeout: null,
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           spec: {
             artifacts: [],
             name: "banana",
@@ -136,7 +141,7 @@ describe("exec plugin", () => {
             env: {},
             dependencies: ["orange"],
             disabled: false,
-            timeout: null,
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
           },
         },
         {
@@ -161,7 +166,7 @@ describe("exec plugin", () => {
           name: "unit",
           dependencies: [],
           disabled: false,
-          timeout: null,
+          timeout: DEFAULT_TEST_TIMEOUT_SEC,
           spec: {
             name: "unit",
             artifacts: [],
@@ -171,7 +176,7 @@ describe("exec plugin", () => {
             env: {
               FOO: "boo",
             },
-            timeout: null,
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
           },
         },
       ])
@@ -186,7 +191,7 @@ describe("exec plugin", () => {
           name: "unit",
           dependencies: [],
           disabled: false,
-          timeout: null,
+          timeout: DEFAULT_TEST_TIMEOUT_SEC,
           spec: {
             name: "unit",
             artifacts: [],
@@ -194,7 +199,7 @@ describe("exec plugin", () => {
             disabled: false,
             command: ["echo", "OK"],
             env: {},
-            timeout: null,
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
           },
         },
       ])
@@ -209,7 +214,7 @@ describe("exec plugin", () => {
           name: "unit",
           dependencies: [],
           disabled: false,
-          timeout: null,
+          timeout: DEFAULT_TEST_TIMEOUT_SEC,
           spec: {
             name: "unit",
             dependencies: [],
@@ -217,7 +222,7 @@ describe("exec plugin", () => {
             disabled: false,
             command: ["echo", "OK"],
             env: {},
-            timeout: null,
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
           },
         },
       ])
@@ -230,8 +235,8 @@ describe("exec plugin", () => {
         {
           dependencies: [],
           disabled: false,
-
           name: "touch",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           spec: {
             cleanupCommand: ["rm -f deployed.log && echo cleaned up"],
             dependencies: [],
@@ -240,26 +245,28 @@ describe("exec plugin", () => {
             env: {},
             name: "touch",
             statusCommand: ["test -f deployed.log && echo already deployed"],
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
           },
         },
         {
           dependencies: [],
           disabled: false,
-
           name: "echo",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           spec: {
             dependencies: [],
             deployCommand: ["echo", "deployed $NAME"],
             disabled: false,
             env: { NAME: "echo service" },
             name: "echo",
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
           },
         },
         {
           dependencies: [],
           disabled: false,
-
           name: "error",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           spec: {
             cleanupCommand: ["sh", '-c "echo fail! && exit 1"'],
             dependencies: [],
@@ -267,19 +274,21 @@ describe("exec plugin", () => {
             disabled: false,
             env: {},
             name: "error",
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
           },
         },
         {
           dependencies: [],
           disabled: false,
-
           name: "empty",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           spec: {
             dependencies: [],
             deployCommand: [],
             disabled: false,
             env: {},
             name: "empty",
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
           },
         },
       ])
@@ -289,7 +298,7 @@ describe("exec plugin", () => {
           cacheResult: false,
           dependencies: [],
           disabled: false,
-          timeout: null,
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           spec: {
             name: "pwd",
             env: {},
@@ -297,7 +306,7 @@ describe("exec plugin", () => {
             artifacts: [],
             dependencies: [],
             disabled: false,
-            timeout: null,
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
           },
         },
       ])
@@ -395,7 +404,7 @@ describe("exec plugin", () => {
     })
 
     describe("build", () => {
-      it("should run the build command in the module dir if local true", async () => {
+      it("should run the build command in the action dir if local true", async () => {
         const action = graph.getBuild("module-local")
         const actions = await garden.getActionRouter()
         const resolvedAction = await garden.resolveAction({ action, log, graph })
@@ -433,7 +442,7 @@ describe("exec plugin", () => {
     })
 
     describe("testExecModule", () => {
-      it("should run the test command in the module dir if local true", async () => {
+      it("should run the test command in the action dir if local true", async () => {
         const router = await garden.getActionRouter()
 
         const basePath = join(garden.projectRoot, "module-local")
@@ -458,6 +467,7 @@ describe("exec plugin", () => {
           } as TestActionConfig,
           configsByKey: {},
           mode: "default",
+          linkedSources: {},
         })) as TestAction
 
         const action = await garden.resolveAction<TestAction>({ action: rawAction, graph, log })
@@ -495,6 +505,7 @@ describe("exec plugin", () => {
             },
           } as TestActionConfig,
           configsByKey: {},
+          linkedSources: {},
           mode: "default",
         })) as TestAction
         const action = await garden.resolveAction({ action: rawAction, graph, log })
@@ -510,7 +521,7 @@ describe("exec plugin", () => {
     })
 
     describe("runExecTask", () => {
-      it("should run the task command in the module dir if local true", async () => {
+      it("should run the task command in the action dir if local true", async () => {
         const actions = await garden.getActionRouter()
         const task = graph.getRun("pwd")
         const action = await garden.resolveAction({ action: task, graph, log })
@@ -544,7 +555,7 @@ describe("exec plugin", () => {
       })
     })
 
-    context("services", () => {
+    context("Deploys", () => {
       let touchFilePath: string
 
       beforeEach(async () => {
@@ -552,8 +563,8 @@ describe("exec plugin", () => {
         await remove(touchFilePath)
       })
 
-      describe("deployExecService", () => {
-        it("runs the service's deploy command with the specified env vars", async () => {
+      describe("deployExec", () => {
+        it("runs the Deploy's deployCommand with the specified env vars", async () => {
           const rawAction = graph.getDeploy("echo")
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ log, graph, action: rawAction })
@@ -569,7 +580,7 @@ describe("exec plugin", () => {
           expect(res.detail?.detail.deployCommandOutput).to.eql("deployed echo service")
         })
 
-        it("skips deploying if deploy command is empty but does not throw", async () => {
+        it("skips deploying if deployCommand is empty but does not throw", async () => {
           const rawAction = graph.getDeploy("empty")
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
@@ -606,197 +617,9 @@ describe("exec plugin", () => {
             `)
           )
         })
-        context("persistent", () => {
-          // We set the pid in the "it" statements.
-          let pid = -1
-
-          beforeEach(async () => {
-            graph = await garden.getConfigGraph({
-              log: garden.log,
-              emit: false,
-              actionModes: { sync: ["deploy.sync-*"] },
-            })
-          })
-
-          afterEach(async () => {
-            if (pid > 1) {
-              try {
-                // This ensures the actual child process gets killed.
-                // See: https://github.com/sindresorhus/execa/issues/96#issuecomment-776280798
-                psTree(pid, function (_err, children) {
-                  spawn(
-                    "kill",
-                    ["-9"].concat(
-                      children.map(function (p) {
-                        return p.PID
-                      })
-                    )
-                  )
-                })
-              } catch (_err) {}
-            }
-          })
-
-          it("should run a persistent local service in sync mode", async () => {
-            const rawAction = graph.getDeploy("sync-mode")
-            const router = await garden.getActionRouter()
-            const action = await garden.resolveAction({ graph, log, action: rawAction })
-            const { result: res } = await router.deploy.deploy({
-              force: false,
-              log,
-              action,
-              graph,
-            })
-
-            pid = res.detail?.detail.pid
-            expect(pid).to.be.a("number")
-            expect(pid).to.be.greaterThan(0)
-          })
-          it("should write logs to a local file with the proper format", async () => {
-            // This services just echos a string N times before exiting.
-            const rawAction = graph.getDeploy("sync-mode-with-logs")
-            const router = await garden.getActionRouter()
-            const action = await garden.resolveAction({ graph, log, action: rawAction })
-            const { result: res } = await router.deploy.deploy({
-              force: false,
-              log,
-              action,
-              graph,
-            })
-
-            // Wait for entries to be written since we otherwise don't wait on persistent commands (unless
-            // a status command is set).
-            await sleep(1500)
-
-            pid = res.detail?.detail.pid
-            expect(pid).to.be.a("number")
-            expect(pid).to.be.greaterThan(0)
-
-            const logFilePath = getLogFilePath({ ctx, deployName: action.name })
-            const logFileContents = (await readFile(logFilePath)).toString()
-            const logEntriesWithoutTimestamps = logFileContents
-              .split("\n")
-              .filter((line) => !!line)
-              .map((line) => JSON.parse(line))
-              .map((parsed) => omit(parsed, "timestamp"))
-
-            expect(logEntriesWithoutTimestamps).to.eql([
-              {
-                name: "sync-mode-with-logs",
-                msg: "Hello 1",
-                level: 2,
-              },
-              {
-                name: "sync-mode-with-logs",
-                msg: "Hello 2",
-                level: 2,
-              },
-              {
-                name: "sync-mode-with-logs",
-                msg: "Hello 3",
-                level: 2,
-              },
-              {
-                name: "sync-mode-with-logs",
-                msg: "Hello 4",
-                level: 2,
-              },
-              {
-                name: "sync-mode-with-logs",
-                msg: "Hello 5",
-                level: 2,
-              },
-            ])
-          })
-          it("should handle empty log lines", async () => {
-            // This services just echos a string N times before exiting.
-            const rawAction = graph.getDeploy("sync-mode-with-empty-log-lines")
-            const router = await garden.getActionRouter()
-            const action = await garden.resolveAction({ graph, log, action: rawAction })
-            const { result: res } = await router.deploy.deploy({
-              force: false,
-              log,
-              action,
-              graph,
-            })
-
-            // Wait for entries to be written since we otherwise don't wait on persistent commands (unless
-            // a status command is set).
-            await sleep(1500)
-
-            pid = res.detail?.detail.pid
-
-            const logFilePath = getLogFilePath({ ctx, deployName: action.name })
-            const logFileContents = (await readFile(logFilePath)).toString()
-            const logEntriesWithoutTimestamps = logFileContents
-              .split("\n")
-              .filter((line) => !!line)
-              .map((line) => JSON.parse(line))
-              .map((parsed) => omit(parsed, "timestamp"))
-
-            expect(logEntriesWithoutTimestamps).to.eql([
-              {
-                name: "sync-mode-with-empty-log-lines",
-                msg: "Hello",
-                level: 2,
-              },
-              {
-                name: "sync-mode-with-empty-log-lines",
-                msg: "1",
-                level: 2,
-              },
-              {
-                name: "sync-mode-with-empty-log-lines",
-                msg: "Hello",
-                level: 2,
-              },
-              {
-                name: "sync-mode-with-empty-log-lines",
-                msg: "2",
-                level: 2,
-              },
-              {
-                name: "sync-mode-with-empty-log-lines",
-                msg: "Hello",
-                level: 2,
-              },
-              {
-                name: "sync-mode-with-empty-log-lines",
-                msg: "3",
-                level: 2,
-              },
-            ])
-          })
-          it("should eventually timeout if status command is set and it returns a non-zero exit code ", async () => {
-            const rawAction = graph.getDeploy("sync-mode-timeout")
-            const router = await garden.getActionRouter()
-            const action = await garden.resolveAction({ graph, log, action: rawAction })
-            let error: any
-            try {
-              await router.deploy.deploy({
-                force: false,
-                log,
-                action,
-                graph,
-              })
-            } catch (err) {
-              error = err
-            }
-
-            pid = error.detail.pid
-            expect(pid).to.be.a("number")
-            expect(pid).to.be.greaterThan(0)
-            expect(error.detail.deployName).to.eql("sync-mode-timeout")
-            expect(error.detail.statusCommand).to.eql([`/bin/sh -c "echo Status command output; exit 1"`])
-            expect(error.detail.statusTimeout).to.eql(3)
-            expect(error.message).to.include(`Timed out waiting for local service sync-mode-timeout to be ready.`)
-            expect(error.message).to.include(`The last exit code was 1.`)
-            expect(error.message).to.include(`Command output:\nStatus command output`)
-          })
-        })
       })
 
-      describe("getExecServiceStatus", async () => {
+      describe("getExecDeployStatus", async () => {
         it("returns 'unknown' if no statusCommand is set", async () => {
           const actionName = "error"
           const rawAction = graph.getDeploy(actionName)
@@ -812,7 +635,6 @@ describe("exec plugin", () => {
           expect(actionRes.state).to.equal("unknown")
           const detail = actionRes.detail!
           expect(detail.state).to.equal("unknown")
-          expect(detail.version).to.equal(action.versionString())
           expect(detail.detail).to.be.empty
         })
 
@@ -837,7 +659,6 @@ describe("exec plugin", () => {
           expect(actionRes.state).to.equal("ready")
           const detail = actionRes.detail!
           expect(detail.state).to.equal("ready")
-          expect(detail.version).to.equal(action.versionString())
           expect(detail.detail.statusCommandOutput).to.equal("already deployed")
         })
 
@@ -857,12 +678,11 @@ describe("exec plugin", () => {
           const detail = actionRes.detail!
           // The deploy state is different (has more states) than the action state
           expect(detail.state).to.equal("outdated")
-          expect(detail.version).to.equal(action.versionString())
           expect(detail.detail.statusCommandOutput).to.be.empty
         })
       })
 
-      describe("deleteExecService", async () => {
+      describe("deleteExecDeploy", async () => {
         it("runs the cleanup command if set", async () => {
           const rawAction = graph.getDeploy("touch")
           const router = await garden.getActionRouter()
@@ -919,6 +739,210 @@ describe("exec plugin", () => {
             fail!
             `)
           )
+        })
+      })
+
+      context("persistent Deploys", () => {
+        // We set the pid in the "it" statements.
+        let pid = -1
+
+        beforeEach(async () => {
+          graph = await garden.getConfigGraph({
+            log: garden.log,
+            emit: false,
+            actionModes: { sync: ["deploy.sync-*"] },
+          })
+        })
+
+        afterEach(async () => {
+          if (pid > 1) {
+            try {
+              await killRecursive("KILL", pid)
+            } catch (_err) {}
+          }
+        })
+
+        it("should run a persistent local service in sync mode", async () => {
+          const rawAction = graph.getDeploy("sync-mode")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const { result: res } = await router.deploy.deploy({
+            force: false,
+            log,
+            action,
+            graph,
+          })
+
+          pid = res.detail?.detail.pid
+          expect(pid).to.be.a("number")
+          expect(pid).to.be.greaterThan(0)
+        })
+        it("deleteExecDeploy kills the persistent local process", async () => {
+          const rawAction = graph.getDeploy("sync-mode")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const { result: deployRes } = await router.deploy.deploy({
+            force: false,
+            log,
+            action,
+            graph,
+          })
+
+          pid = deployRes.detail?.detail.pid
+          expect(pid).to.be.a("number")
+          expect(pid).to.be.greaterThan(0)
+
+          await router.deploy.delete({
+            log,
+            graph,
+            action,
+          })
+
+          // Since the `kill` CLI command exits immediately (before the process terminates), we need to wait a little.
+          await sleep(2000)
+
+          expect(isRunning(pid)).to.be.false
+        })
+        it("should write logs to a local file with the proper format", async () => {
+          // This services just echos a string N times before exiting.
+          const rawAction = graph.getDeploy("sync-mode-with-logs")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const { result: res } = await router.deploy.deploy({
+            force: false,
+            log,
+            action,
+            graph,
+          })
+
+          // Wait for entries to be written since we otherwise don't wait on persistent commands (unless
+          // a status command is set).
+          await sleep(1500)
+
+          pid = res.detail?.detail.pid
+          expect(pid).to.be.a("number")
+          expect(pid).to.be.greaterThan(0)
+
+          const logFilePath = getLogFilePath({ ctx, deployName: action.name })
+          const logFileContents = (await readFile(logFilePath)).toString()
+          const logEntriesWithoutTimestamps = logFileContents
+            .split("\n")
+            .filter((line) => !!line)
+            .map((line) => JSON.parse(line))
+            .map((parsed) => omit(parsed, "timestamp"))
+
+          expect(logEntriesWithoutTimestamps).to.eql([
+            {
+              name: "sync-mode-with-logs",
+              msg: "Hello 1",
+              level: 2,
+            },
+            {
+              name: "sync-mode-with-logs",
+              msg: "Hello 2",
+              level: 2,
+            },
+            {
+              name: "sync-mode-with-logs",
+              msg: "Hello 3",
+              level: 2,
+            },
+            {
+              name: "sync-mode-with-logs",
+              msg: "Hello 4",
+              level: 2,
+            },
+            {
+              name: "sync-mode-with-logs",
+              msg: "Hello 5",
+              level: 2,
+            },
+          ])
+        })
+        it("should handle empty log lines", async () => {
+          // This services just echos a string N times before exiting.
+          const rawAction = graph.getDeploy("sync-mode-with-empty-log-lines")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const { result: res } = await router.deploy.deploy({
+            force: false,
+            log,
+            action,
+            graph,
+          })
+
+          // Wait for entries to be written since we otherwise don't wait on persistent commands (unless
+          // a status command is set).
+          await sleep(1500)
+
+          pid = res.detail?.detail.pid
+
+          const logFilePath = getLogFilePath({ ctx, deployName: action.name })
+          const logFileContents = (await readFile(logFilePath)).toString()
+          const logEntriesWithoutTimestamps = logFileContents
+            .split("\n")
+            .filter((line) => !!line)
+            .map((line) => JSON.parse(line))
+            .map((parsed) => omit(parsed, "timestamp"))
+
+          expect(logEntriesWithoutTimestamps).to.eql([
+            {
+              name: "sync-mode-with-empty-log-lines",
+              msg: "Hello",
+              level: 2,
+            },
+            {
+              name: "sync-mode-with-empty-log-lines",
+              msg: "1",
+              level: 2,
+            },
+            {
+              name: "sync-mode-with-empty-log-lines",
+              msg: "Hello",
+              level: 2,
+            },
+            {
+              name: "sync-mode-with-empty-log-lines",
+              msg: "2",
+              level: 2,
+            },
+            {
+              name: "sync-mode-with-empty-log-lines",
+              msg: "Hello",
+              level: 2,
+            },
+            {
+              name: "sync-mode-with-empty-log-lines",
+              msg: "3",
+              level: 2,
+            },
+          ])
+        })
+        it("should eventually timeout if status command is set and it returns a non-zero exit code ", async () => {
+          const rawAction = graph.getDeploy("sync-mode-timeout")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          let error: any
+          try {
+            await router.deploy.deploy({
+              force: false,
+              log,
+              action,
+              graph,
+            })
+          } catch (err) {
+            error = err
+          }
+
+          pid = error.detail.pid
+          expect(pid).to.be.a("number")
+          expect(pid).to.be.greaterThan(0)
+          expect(error.detail.deployName).to.eql("sync-mode-timeout")
+          expect(error.detail.statusCommand).to.eql([`/bin/sh -c "echo Status command output; exit 1"`])
+          expect(error.detail.statusTimeout).to.eql(3)
+          expect(error.message).to.include(`Timed out waiting for local service sync-mode-timeout to be ready.`)
+          expect(error.message).to.include(`The last exit code was 1.`)
+          expect(error.message).to.include(`Command output:\nStatus command output`)
         })
       })
     })
@@ -1080,6 +1104,7 @@ describe("exec plugin", () => {
                     ],
                   },
                 ],
+                timeout: DEFAULT_BUILD_TIMEOUT_SEC,
               },
               spec: {
                 // exec-plugin specific build config defined in the spec

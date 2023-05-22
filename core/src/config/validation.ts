@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,6 +12,7 @@ import chalk from "chalk"
 import { relative } from "path"
 import { uuidv4 } from "../util/random"
 import { metadataFromDescription } from "./common"
+import { profile } from "../util/profiling"
 
 export const joiPathPlaceholder = uuidv4()
 const joiPathPlaceholderRegex = new RegExp(joiPathPlaceholder, "g")
@@ -57,7 +58,7 @@ export interface ValidateWithPathParams<T> {
  *
  * This is to ensure consistent error messages that include the relative path to the failing file.
  */
-export function validateWithPath<T>({
+export const validateWithPath = profile(function $validateWithPath<T>({
   config,
   schema,
   path,
@@ -79,9 +80,9 @@ export function validateWithPath<T>({
   }
 
   return <T>validateSchema(config, schema, validateOpts)
-}
+})
 
-export function validateSchema<T>(
+export const validateSchema = profile(function $validateSchema<T>(
   value: T,
   schema: Joi.Schema,
   { context = "", ErrorClass = ConfigurationError }: ValidateOptions = {}
@@ -150,7 +151,7 @@ export function validateSchema<T>(
   }
 
   return result.value
-}
+})
 
 export interface ArtifactSpec {
   source: string

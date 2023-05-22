@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -270,7 +270,12 @@ export class ChoicesParameter extends Parameter<string> {
     super(args)
 
     this.choices = args.choices
-    this.schema = joi.string().valid(...args.choices)
+
+    if (args.defaultValue !== undefined && !this.choices.includes(args.defaultValue)) {
+      this.choices.push(args.defaultValue)
+    }
+
+    this.schema = joi.string().valid(...this.choices)
   }
 
   coerce(input: string) {
@@ -331,14 +336,14 @@ export class TagsOption extends Parameter<string[] | undefined> {
   }
 }
 
-export class EnvironmentOption extends StringParameter {
+export class EnvironmentParameter extends StringOption {
   type = "string"
   schema = joi.environment()
 
-  constructor({ help = "The environment (and optionally namespace) to work against." } = {}) {
+  constructor({ help = "The environment (and optionally namespace) to work against.", required = false } = {}) {
     super({
       help,
-      required: false,
+      required,
       aliases: ["e"],
       getSuggestions: ({ configDump }) => {
         return configDump.allEnvironmentNames
@@ -350,6 +355,7 @@ export class EnvironmentOption extends StringParameter {
     if (!input) {
       return
     }
+
     // Validate the environment
     parseEnvironment(input)
     return input
@@ -377,16 +383,12 @@ export function describeParameters(args?: Parameters) {
   }))
 }
 
-export const globalOptions = {
-  "root": new PathParameter({
-    help: "Override project root directory (defaults to working directory). Can be absolute or relative to current directory.",
-  }),
+export const globalDisplayOptions = {
   "silent": new BooleanParameter({
     help: "Suppress log output. Same as setting --logger-type=quiet.",
     defaultValue: false,
     cliOnly: true,
   }),
-  "env": new EnvironmentOption(),
   "logger-type": new ChoicesParameter({
     choices: [...LOGGER_TYPES],
     help: deline`
@@ -425,18 +427,6 @@ export const globalOptions = {
       )} logger. I.e., log status changes are rendered as new lines instead of being updated in-place.`,
     defaultValue: false,
   }),
-  "yes": new BooleanParameter({
-    aliases: ["y"],
-    help: "Automatically approve any yes/no prompts during execution.",
-    defaultValue: false,
-  }),
-  "force-refresh": new BooleanParameter({
-    help: "Force refresh of any caches, e.g. cached provider statuses.",
-    defaultValue: false,
-  }),
-  "var": new StringsParameter({
-    help: 'Set a specific variable value, using the format <key>=<value>, e.g. `--var some-key=custom-value`. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. `--var key-a=foo,key-b="value with quotes"`.',
-  }),
   "version": new BooleanParameter({
     aliases: ["V"],
     help: "Show the current CLI version.",
@@ -445,9 +435,30 @@ export const globalOptions = {
     aliases: ["h"],
     help: "Show help",
   }),
-  "disable-port-forwards": new BooleanParameter({
-    help: "Disable automatic port forwarding when in watch mode. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS=true in your environment.",
+}
+
+export const globalGardenInstanceOptions = {
+  "root": new PathParameter({
+    help: "Override project root directory (defaults to working directory). Can be absolute or relative to current directory.",
   }),
+  "env": new EnvironmentParameter(),
+  "force-refresh": new BooleanParameter({
+    help: "Force refresh of any caches, e.g. cached provider statuses.",
+    defaultValue: false,
+  }),
+  "var": new StringsParameter({
+    help: 'Set a specific variable value, using the format <key>=<value>, e.g. `--var some-key=custom-value`. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. `--var key-a=foo,key-b="value with quotes"`.',
+  }),
+  "yes": new BooleanParameter({
+    aliases: ["y"],
+    help: "Automatically approve any yes/no prompts during execution, and allow running protected commands against production environments.",
+    defaultValue: false,
+  }),
+}
+
+export const globalOptions = {
+  ...globalGardenInstanceOptions,
+  ...globalDisplayOptions,
 }
 
 export type GlobalOptions = typeof globalOptions

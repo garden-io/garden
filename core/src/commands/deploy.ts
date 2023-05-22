@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,19 +19,27 @@ import {
   processCommandResultSchema,
   ProcessCommandResult,
 } from "./base"
-import { processActions } from "../process"
-import { printHeader } from "../logger/util"
+import { printEmoji, printHeader } from "../logger/util"
 import { watchParameter, watchRemovedWarning } from "./helpers"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
-import Bluebird = require("bluebird")
 import { ActionModeMap } from "../actions/types"
+import { SyncMonitor } from "../monitors/sync"
+import { warnOnLinkedActions } from "../actions/helpers"
+import { PluginEventBroker } from "../plugin-context"
+import { HandlerMonitor } from "../monitors/handler"
+import { PortForwardMonitor } from "../monitors/port-forward"
+import { LogMonitor } from "../monitors/logs"
+import { LoggerType, parseLogLevel } from "../logger/logger"
+import { serveOpts } from "./serve"
+import { DevCommand } from "./dev"
+import { gardenEnv } from "../constants"
 
 export const deployArgs = {
   names: new StringsParameter({
-    help: deline`The name(s) of the deploy(s) (or deploys if using modules) to deploy (skip to deploy everything).
+    help: deline`The name(s) of the Deploy(s) (or services if using modules) to deploy (skip to deploy everything).
       You may specify multiple names, separated by spaces.`,
     spread: true,
     getSuggestions: ({ configDump }) => {
@@ -45,9 +53,12 @@ export const deployOpts = {
   "force-build": new BooleanParameter({ help: "Force re-build of build dependencies." }),
   "watch": watchParameter,
   "sync": new StringsParameter({
-    help: deline`The name(s) of the deploys to deploy with sync enabled.
-      You may specify multiple names by setting this flag multiple times. Use * to deploy all
-      supported deployments with sync enabled.
+    help: dedent`
+      The name(s) of the Deploy(s) to deploy with sync enabled.
+      You may specify multiple names by setting this flag multiple times.
+      Use * to deploy all supported deployments with sync enabled.
+
+      Important: The syncs stay active after the command exits. To stop the syncs, use the \`sync stop\` command.
     `,
     aliases: ["dev", "dev-mode"],
     getSuggestions: ({ configDump }) => {
@@ -55,13 +66,13 @@ export const deployOpts = {
     },
   }),
   "local-mode": new StringsParameter({
-    help: deline`[EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled.
-    You may specify multiple deploys by setting this flag multiple times. Use * to deploy all
-    deploys with local mode enabled. When this option is used,
-    the command is run in persistent mode.
+    help: dedent`
+    [EXPERIMENTAL] The name(s) of Deploy(s) to be started locally with local mode enabled.
 
-    This always takes the precedence over sync mode if there are any conflicts,
-    i.e. if the same deploys are passed to both \`--sync\` and \`--local\` options.
+    You may specify multiple Deploys by setting this flag multiple times. Use * to deploy all Deploys with local mode enabled. When this option is used,
+    the command stays running until explicitly aborted.
+
+    This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both \`--sync\` and \`--local\` options.
     `,
     aliases: ["local"],
     getSuggestions: ({ configDump }) => {
@@ -69,7 +80,7 @@ export const deployOpts = {
     },
   }),
   "skip": new StringsParameter({
-    help: "The name(s) of deploys you'd like to skip.",
+    help: "The name(s) of Deploys you'd like to skip.",
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Deploy)
     },
@@ -77,13 +88,23 @@ export const deployOpts = {
   "skip-dependencies": new BooleanParameter({
     help: deline`
     Deploy the specified actions, but don't build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments.
-    This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
+    This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
     `,
     aliases: ["nodeps"],
   }),
-  "forward": new BooleanParameter({
-    help: `Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --sync or --local/--local-mode are set.`,
+  "disable-port-forwards": new BooleanParameter({
+    help: "Disable automatic port forwarding when running persistently. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS=true in your environment.",
   }),
+  "forward": new BooleanParameter({
+    help: `Create port forwards and leave process running after deploying. This is implied if any of --sync / --local or --logs are set.`,
+  }),
+  "logs": new BooleanParameter({
+    help: `Stream logs from the requested Deploy(s) (or services if using modules) during deployment, and leave the log streaming process running after deploying. Note: This option implies the --forward option.`,
+  }),
+  "timestamps": new BooleanParameter({
+    help: "Show timestamps with log output. Should be used with the `--logs` option (has no effect if that option is not used).",
+  }),
+  ...serveOpts,
 }
 
 type Args = typeof deployArgs
@@ -109,11 +130,11 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy my-deploy            # only deploy my-deploy
         garden deploy deploy-a,deploy-b    # only deploy deploy-a and deploy-b
         garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
-        garden deploy --sync=my-deploy     # deploys all deploys, with sync enabled for my-deploy
-        garden deploy --sync               # deploys all compatible deploys with sync enabled
-        garden deploy --local=my-deploy    # deploys all deploys, with local mode enabled for my-deploy
-        garden deploy --local              # deploys all compatible deploys with local mode enabled
-        garden deploy --env stage          # deploy your deploys to an environment called stage
+        garden deploy --sync=my-deploy     # deploys all Deploys, with sync enabled for my-deploy
+        garden deploy --sync               # deploys all compatible Deploys with sync enabled
+        garden deploy --local=my-deploy    # deploys all Deploys, with local mode enabled for my-deploy
+        garden deploy --local              # deploys all compatible Deploys with local mode enabled
+        garden deploy --env stage          # deploy your Deploys to an environment called stage
         garden deploy --skip deploy-b      # deploy everything except deploy-b
         garden deploy --forward            # deploy everything and start port forwards without sync or local mode
   `
@@ -125,26 +146,49 @@ export class DeployCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts["sync"] || !!opts["local-mode"] || !!opts.forward
+  maybePersistent({ opts }: PrepareParams<Args, Opts>) {
+    return !!opts["sync"] || !!opts["local-mode"] || !!opts.forward || !!opts.logs
   }
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Deploy", "🚀")
+  printHeader({ log }) {
+    printHeader(log, "Deploy", "🚀")
+  }
+
+  getTerminalWriterType(params): LoggerType {
+    return this.maybePersistent(params) ? "ink" : "default"
   }
 
   terminate() {
+    super.terminate()
     this.garden?.events.emit("_exit", {})
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
-    const { garden, log, footerLog, args, opts } = params
+    const { garden, log, args, opts } = params
 
     this.garden = garden
 
     if (opts.watch) {
       await watchRemovedWarning(garden, log)
     }
+
+    const monitor = this.maybePersistent(params)
+    if (monitor && !params.parentCommand) {
+      // Then we're not in the dev command yet, so we call that instead with the appropriate initial command.
+      // TODO: Abstract this delegation process into a helper if we write more commands that do this sort of thing.
+      params.opts.cmd = ["deploy " + params.args.$all!.join(" ")]
+      const devCmd = new DevCommand()
+      devCmd.printHeader(params)
+      await devCmd.prepare(params)
+
+      return devCmd.action(params)
+    }
+
+    const disablePortForwards = gardenEnv.GARDEN_DISABLE_PORT_FORWARDS || opts["disable-port-forwards"] || false
+
+    // TODO-0.13.0: make these both explicit options
+    let forward = monitor && !disablePortForwards
+    const streamLogs = opts.logs
 
     const actionModes: ActionModeMap = {
       // Support a single empty value (which comes across as an empty list) as equivalent to '*'
@@ -153,22 +197,22 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const graph = await garden.getConfigGraph({ log, emit: true, actionModes })
-    let actions = graph.getDeploys({ names: args.names, includeDisabled: true })
+    let deployActions = graph.getDeploys({ names: args.names, includeDisabled: true })
 
-    const disabled = actions.filter((s) => s.isDisabled()).map((s) => s.name)
+    const disabled = deployActions.filter((s) => s.isDisabled()).map((s) => s.name)
 
     if (disabled.length > 0) {
-      const bold = disabled.map((d) => chalk.bold(d))
+      const bold = disabled.map((d) => chalk.white(d))
       const msg =
         disabled.length === 1 ? `Deploy action ${bold} is disabled` : `Deploy actions ${naturalList(bold)} are disabled`
-      log.info({ symbol: "info", msg: chalk.white(msg) })
+      log.info(chalk.gray(msg))
     }
 
     const skipped = opts.skip || []
 
-    actions = actions.filter((s) => !s.isDisabled() && !skipped.includes(s.name))
+    deployActions = deployActions.filter((s) => !s.isDisabled() && !skipped.includes(s.name))
 
-    if (actions.length === 0) {
+    if (deployActions.length === 0) {
       log.error({ msg: "Nothing to deploy. Aborting." })
       return { result: { aborted: true, success: true, graphResults: {} } }
     }
@@ -184,31 +228,100 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const force = opts.force
-    const startSyncs = !!opts.sync
+    const startSync = !!opts.sync
 
-    const initialTasks = actions.map(
-      (action) =>
-        new DeployTask({
+    await warnOnLinkedActions(garden, log, deployActions)
+
+    if (streamLogs) {
+      const resolved = await garden.resolveActions({ actions: deployActions, graph, log })
+      for (const action of Object.values(resolved)) {
+        const logMonitor = new LogMonitor({
           garden,
           log,
-          graph,
           action,
-          force,
-          forceBuild: opts["force-build"],
-          skipRuntimeDependencies,
-          startSyncs,
+          graph,
+          collect: false,
+          hideService: false,
+          showTags: false,
+          msgPrefix: printEmoji("▶", log),
+          logLevel: parseLogLevel(opts["log-level"]),
+          tagFilters: undefined,
+          showTimestamps: opts["timestamps"],
+          since: "1m",
         })
-    )
+        garden.monitors.addAndSubscribe(logMonitor, this)
+      }
+    }
 
-    const results = await processActions({
-      garden,
-      graph,
-      log,
-      actions,
-      initialTasks,
-      persistent: this.isPersistent(params),
+    const tasks = deployActions.map((action) => {
+      const events = new PluginEventBroker(garden)
+      const task = new DeployTask({
+        garden,
+        log,
+        graph,
+        action,
+        force,
+        forceBuild: opts["force-build"],
+        skipRuntimeDependencies,
+        startSync,
+        events,
+      })
+      if (monitor) {
+        task.on("ready", ({ result }) => {
+          const executedAction = result?.executedAction
+          const mode = executedAction.mode()
+
+          if (forward) {
+            // Start port forwards for ready deployments
+            const portForwardMonitor = new PortForwardMonitor({
+              garden,
+              log,
+              graph,
+              action: executedAction,
+            })
+            garden.monitors.addAndSubscribe(portForwardMonitor, this)
+          }
+
+          if (mode === "sync") {
+            const syncMonitor = new SyncMonitor({
+              garden,
+              log,
+              action: executedAction,
+              graph,
+              stopOnExit: true, // On this code path, we're running inside the `dev` command.
+            })
+            garden.monitors.addAndSubscribe(syncMonitor, this)
+          } else if (mode === "local" && result.attached) {
+            // Wait for local mode processes to complete.
+            const handlerMonitor = new HandlerMonitor({
+              type: "local-deploy",
+              garden,
+              log,
+              events,
+              key: action.key(),
+              description: "monitor for attached local mode process in " + action.longDescription(),
+            })
+            garden.monitors.addAndSubscribe(handlerMonitor, this)
+          } else if (result.attached) {
+            // Wait for other attached processes after deployment.
+            // Note: No plugin currently does this outside of local mode but we do support it.
+            const handlerMonitor = new HandlerMonitor({
+              type: "deploy",
+              garden,
+              log,
+              events,
+              key: action.key(),
+              description: "monitor for attached process in " + action.longDescription(),
+            })
+            garden.monitors.addAndSubscribe(handlerMonitor, this)
+          }
+        })
+      }
+      return task
     })
 
-    return handleProcessResults(footerLog, "deploy", results)
+    const results = await garden.processTasks({ tasks, log })
+
+    return handleProcessResults(garden, log, "deploy", results)
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,6 +32,10 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     this.tagTemplate = params.tagTemplate
   }
 
+  protected getDependencyParams(): PublishTaskParams {
+    return { ...super.getDependencyParams(), tagTemplate: this.tagTemplate }
+  }
+
   resolveStatusDependencies() {
     return []
   }
@@ -42,7 +46,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     }
     return [
       new BuildTask({
-        ...this.getBaseDependencyParams(),
+        ...this.getDependencyParams(),
         action: this.action,
         force: !!this.forceActions.find((ref) => this.action.matchesRef(ref)),
       }),
@@ -54,16 +58,13 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
   }
 
   async getStatus() {
-    // TODO-G2
+    // TODO-0.13.1
     return null
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, PublishActionResult>) {
     if (this.action.getConfig("allowPublish") === false) {
-      this.log.info({
-        section: this.action.key(),
-        msg: "Publishing disabled (allowPublish=false set on build)",
-      })
+      this.log.info("Publishing disabled (allowPublish=false set on build)")
       return {
         state: <ActionState>"ready",
         detail: { published: false },
@@ -98,23 +99,23 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       // TODO: validate the tag?
     }
 
-    const log = this.log.createLog().info("Publishing with tag " + tag)
+    this.log.info("Publishing with tag " + tag)
 
     const router = await this.garden.getActionRouter()
 
     let result: PublishActionResult
     try {
-      const output = await router.build.publish({ action, log, graph: this.graph, tag })
+      const output = await router.build.publish({ action, log: this.log, graph: this.graph, tag })
       result = output.result
     } catch (err) {
-      log.error(`Failed publishing build ${action.name}`)
+      this.log.error(`Failed publishing build ${action.name}`)
       throw err
     }
 
     if (result.detail?.published) {
-      log.success(result.detail.message || `Ready`)
+      this.log.success(result.detail.message || `Ready`)
     } else if (result.detail?.message) {
-      log.warn(result.detail.message)
+      this.log.warn(result.detail.message)
     }
 
     return { ...result, version }

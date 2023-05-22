@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,7 +16,6 @@ import {
   processCommandResultSchema,
 } from "./base"
 import dedent from "dedent"
-import { processActions } from "../process"
 import { printHeader } from "../logger/util"
 import { flatten } from "lodash"
 import { BuildTask } from "../tasks/build"
@@ -25,10 +24,11 @@ import { uniqByName } from "../util/util"
 import { deline } from "../util/string"
 import { isBuildAction } from "../actions/build"
 import { watchParameter, watchRemovedWarning } from "./helpers"
+import { warnOnLinkedActions } from "../actions/helpers"
 
 const buildArgs = {
   names: new StringsParameter({
-    help: "Specify builds to run. You may specify multiple names, separated by spaces.",
+    help: "Specify Builds to run. You may specify multiple names, separated by spaces.",
     spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Build)
@@ -41,9 +41,9 @@ const buildOpts = {
   "watch": watchParameter,
   "with-dependants": new BooleanParameter({
     help: deline`
-      Also rebuild any builds that depend on one of the builds specified as CLI arguments (recursively).
-      Note: This option has no effect unless a list of build names is specified as CLI arguments (since otherwise, every
-      build in the project will be performed anyway).
+      Also rebuild any Builds that depend on one of the Builds specified as CLI arguments (recursively).
+      Note: This option has no effect unless a list of Build names is specified as CLI arguments (since otherwise, every
+      Build in the project will be performed anyway).
   `,
   }),
 }
@@ -75,12 +75,12 @@ export class BuildCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Build", "🔨")
+  printHeader({ log }) {
+    printHeader(log, "Build", "🔨")
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
-    const { garden, log, footerLog, args, opts } = params
+    const { garden, log, args, opts } = params
 
     if (opts.watch) {
       await watchRemovedWarning(garden, log)
@@ -103,7 +103,9 @@ export class BuildCommand extends Command<Args, Opts> {
       ])
     }
 
-    const initialTasks = flatten(
+    await warnOnLinkedActions(garden, log, actions)
+
+    const tasks = flatten(
       await Bluebird.map(
         actions,
         (action) =>
@@ -118,15 +120,8 @@ export class BuildCommand extends Command<Args, Opts> {
       )
     )
 
-    const results = await processActions({
-      garden,
-      graph,
-      log,
-      actions,
-      persistent: this.isPersistent(params),
-      initialTasks,
-    })
+    const result = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(footerLog, "build", results)
+    return handleProcessResults(garden, log, "build", result)
   }
 }

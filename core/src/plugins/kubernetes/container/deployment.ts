@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,7 +18,7 @@ import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
-import { Log } from "../../../logger/log-entry"
+import { ActionLog, Log } from "../../../logger/log-entry"
 import { prepareEnvVars } from "../util"
 import { deline, gardenAnnotationKey } from "../../../util/string"
 import { resolve } from "path"
@@ -106,7 +106,7 @@ export async function startLocalMode({
 }: {
   ctx: KubernetesPluginContext
   status: ContainerServiceStatus
-  log: Log
+  log: ActionLog
   action: Resolved<ContainerDeployAction>
 }) {
   const localModeSpec = action.getSpec("localMode")
@@ -155,7 +155,7 @@ export const deployContainerServiceRolling = async (
     namespace,
     ctx,
     provider,
-    actionName: action.name,
+    actionName: action.key(),
     resources: manifests,
     log,
     timeoutSec: action.getSpec("timeout") || KUBECTL_DEFAULT_TIMEOUT,
@@ -171,7 +171,7 @@ export async function createContainerManifests({
 }: {
   ctx: PluginContext
   api: KubeApi
-  log: Log
+  log: ActionLog
   action: Resolved<ContainerDeployAction>
   imageId: string
 }) {
@@ -210,7 +210,7 @@ interface CreateDeploymentParams {
   action: Resolved<ContainerDeployAction>
   namespace: string
   imageId: string
-  log: Log
+  log: ActionLog
   production: boolean
 }
 
@@ -240,10 +240,7 @@ export async function createWorkloadManifest({
   }
 
   if (mode === "sync" && configuredReplicas > 1) {
-    log.warn({
-      msg: chalk.gray(`Ignoring replicas config on container service ${action.name} while in sync mode`),
-      symbol: "warning",
-    })
+    log.warn(`Ignoring replicas config on container service ${action.name} while in sync mode`)
     configuredReplicas = 1
   }
 
@@ -446,7 +443,7 @@ export async function createWorkloadManifest({
 
     workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated[0]
   } else if (mode === "sync" && syncSpec) {
-    log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in sync mode`) })
+    log.debug(chalk.gray(`-> Configuring in sync mode`))
     const configured = await configureSyncMode({
       ctx,
       log,

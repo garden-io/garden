@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,8 +29,12 @@ import {
   defaultDockerfileName,
 } from "../../../../../src/plugins/container/moduleConfig"
 import { ExecBuildConfig } from "../../../../../src/plugins/exec/config"
-import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC,
+  GardenApiVersion,
+} from "../../../../../src/constants"
 import { resolve } from "path"
 
 describe("plugins.container", () => {
@@ -42,18 +46,16 @@ describe("plugins.container", () => {
 
   const baseConfig: ContainerModuleConfig = {
     allowPublish: false,
-    build: {
-      dependencies: [],
-    },
+    build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
     disabled: false,
-    apiVersion: DEFAULT_API_VERSION,
+    apiVersion: GardenApiVersion.v0,
     name: "test",
     path: modulePath,
     type: "container",
 
     spec: {
       build: {
-        timeout: DEFAULT_BUILD_TIMEOUT,
+        timeout: DEFAULT_BUILD_TIMEOUT_SEC,
       },
       buildArgs: {},
       extraFlags: [],
@@ -128,12 +130,13 @@ describe("plugins.container", () => {
           basePath: ".",
         },
         kind: "Build",
+        type: "exec",
         name: "dummyBuild",
+        timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         spec: {
           command: ["echo"],
           env: {},
         },
-        type: "exec",
       }
       const result = await convertContainerModule({ ...getModuleConvertBaseParams(module), dummyBuild })
       const build = result.group.actions.find((a) => a.kind === "Build")!
@@ -227,18 +230,16 @@ describe("plugins.container", () => {
   describe("configureContainerModule", () => {
     const containerModuleConfig: ContainerModuleConfig = {
       allowPublish: false,
-      build: {
-        dependencies: [],
-      },
+      build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       disabled: false,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       name: "module-a",
       path: modulePath,
       type: "container",
 
       spec: {
         build: {
-          timeout: DEFAULT_BUILD_TIMEOUT,
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         },
         buildArgs: {},
         extraFlags: [],
@@ -300,7 +301,7 @@ describe("plugins.container", () => {
             },
             cpu: defaultCpu,
             memory: defaultMemory,
-            timeout: null,
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
             volumes: [],
           },
         ],
@@ -316,7 +317,7 @@ describe("plugins.container", () => {
             },
             cpu: defaultCpu,
             memory: defaultMemory,
-            timeout: null,
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
             volumes: [],
           },
         ],
@@ -333,16 +334,16 @@ describe("plugins.container", () => {
       expect(result).to.eql({
         moduleConfig: {
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           include: [defaultDockerfileName],
           path: modulePath,
           type: "container",
           spec: {
             build: {
-              timeout: DEFAULT_BUILD_TIMEOUT,
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
             },
             buildArgs: {},
             extraFlags: [],
@@ -394,7 +395,7 @@ describe("plugins.container", () => {
                 },
                 cpu: defaultCpu,
                 memory: defaultMemory,
-                timeout: null,
+                timeout: DEFAULT_RUN_TIMEOUT_SEC,
                 volumes: [],
               },
             ],
@@ -410,7 +411,7 @@ describe("plugins.container", () => {
                 },
                 cpu: defaultCpu,
                 memory: defaultMemory,
-                timeout: null,
+                timeout: DEFAULT_TEST_TIMEOUT_SEC,
                 volumes: [],
               },
             ],
@@ -480,10 +481,10 @@ describe("plugins.container", () => {
                 cpu: defaultCpu,
                 memory: defaultMemory,
                 name: "task-a",
-                timeout: null,
+                timeout: DEFAULT_RUN_TIMEOUT_SEC,
                 volumes: [],
               },
-              timeout: null,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
             },
           ],
           testConfigs: [
@@ -502,10 +503,10 @@ describe("plugins.container", () => {
                 },
                 cpu: defaultCpu,
                 memory: defaultMemory,
-                timeout: null,
+                timeout: DEFAULT_TEST_TIMEOUT_SEC,
                 volumes: [],
               },
-              timeout: null,
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
             },
           ],
         },
@@ -515,18 +516,16 @@ describe("plugins.container", () => {
     it("should add service volume modules as build and runtime dependencies", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "module-a",
         path: modulePath,
         type: "container",
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -577,18 +576,16 @@ describe("plugins.container", () => {
     it("should add task volume modules as build and runtime dependencies", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "module-a",
         path: modulePath,
         type: "container",
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -604,7 +601,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
               volumes: [
                 {
                   name: "test",
@@ -631,18 +628,16 @@ describe("plugins.container", () => {
     it("should add test volume modules as build and runtime dependencies", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "module-a",
         path: modulePath,
         type: "container",
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -658,7 +653,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
               volumes: [
                 {
                   name: "test",
@@ -684,18 +679,16 @@ describe("plugins.container", () => {
     it("should fail with invalid port in ingress spec", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "module-a",
         path: modulePath,
         type: "test",
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -734,7 +727,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
               volumes: [],
             },
           ],
@@ -748,7 +741,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
               volumes: [],
             },
           ],
@@ -765,18 +758,16 @@ describe("plugins.container", () => {
     it("should fail with invalid port in httpGet healthcheck spec", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "module-a",
         path: modulePath,
         type: "test",
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -815,7 +806,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
               volumes: [],
             },
           ],
@@ -833,18 +824,16 @@ describe("plugins.container", () => {
     it("should fail with invalid port in tcpPort healthcheck spec", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "module-a",
         path: modulePath,
         type: "test",
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -880,7 +869,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
               volumes: [],
             },
           ],

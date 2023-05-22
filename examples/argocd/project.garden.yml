@@ -1,3 +1,4 @@
+apiVersion: garden.io/v1
 kind: Project
 name: vote-helm-argocd
 defaultEnvironment: "${local.env.GITHUB_ACTIONS ? 'ci' : 'gke-gitops-dev'}"
@@ -16,7 +17,7 @@ variables:
 environments:
   - name: local
     variables:
-      baseHostname: vote.local.app.garden
+      baseHostname: vote.local.demo.garden
   - name: gke-gitops-dev
     defaultNamespace: ${var.dev-k8s-namespace}
     variables:

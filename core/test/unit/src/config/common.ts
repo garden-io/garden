@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -547,9 +547,9 @@ describe("createSchema", () => {
   it("creates an object schema and sets its name", () => {
     const schema = createSchema({
       name: "foo",
-      keys: {
+      keys: () => ({
         foo: joi.boolean(),
-      },
+      }),
     })
     // This will only work with a schema
     const metadata = metadataFromDescription(schema().describe())
@@ -561,17 +561,17 @@ describe("createSchema", () => {
   it("throws if a schema name is used twice", () => {
     createSchema({
       name: "foo",
-      keys: {
+      keys: () => ({
         foo: joi.boolean(),
-      },
+      }),
     })
     return expectError(
       () =>
         createSchema({
           name: "foo",
-          keys: {
+          keys: () => ({
             foo: joi.boolean(),
-          },
+          }),
         }),
       { contains: "Object schema foo defined multiple times" }
     )
@@ -580,9 +580,9 @@ describe("createSchema", () => {
   it("applies metadata to schemas", () => {
     const schema = createSchema({
       name: "foo",
-      keys: {
+      keys: () => ({
         foo: joi.boolean(),
-      },
+      }),
       meta: {
         internal: true,
       },
@@ -597,15 +597,15 @@ describe("createSchema", () => {
   it("extends another schema", () => {
     const base = createSchema({
       name: "foo",
-      keys: {
+      keys: () => ({
         foo: joi.boolean(),
-      },
+      }),
     })
     const schema = createSchema({
       name: "bar",
-      keys: {
+      keys: () => ({
         bar: joi.string(),
-      },
+      }),
       extend: base,
     })
     validateSchema({ foo: true, bar: "baz" }, schema())
@@ -614,9 +614,9 @@ describe("createSchema", () => {
   it("caches the created schema", () => {
     const f = createSchema({
       name: "bar",
-      keys: {
+      keys: () => ({
         bar: joi.string(),
-      },
+      }),
     })
     const a = f()
     const b = f()

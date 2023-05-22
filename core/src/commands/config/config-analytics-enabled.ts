@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,6 @@
 
 import { Command, CommandParams, CommandResult } from "../base"
 import dedent = require("dedent")
-import { AnalyticsHandler } from "../../analytics/analytics"
 import { BooleanParameter } from "../../cli/params"
 
 const configAnalyticsEnabledArgs = {
@@ -47,7 +46,7 @@ export class ConfigAnalyticsEnabled extends Command {
   printHeader() {}
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
-    const analyticsClient = await AnalyticsHandler.init(garden, log)
+    const analyticsClient = await garden.getAnalyticsHandler()
     await analyticsClient.setAnalyticsOptOut(!args.enable)
 
     if (args.enable) {

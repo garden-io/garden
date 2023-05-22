@@ -4,6 +4,10 @@ name: postgres
 description: Postgres deployment with kubernetes manifests inlined (extracted from the stable/postgresql Helm chart)
 
 spec:
+  # This is necessary for `garden exec <deploy> <command>` in 0.13
+  defaultTarget:
+    kind: StatefulSet
+    name: postgres
   manifests:
     # Source: postgresql/templates/secrets.yaml
     - apiVersion: v1

@@ -1,51 +1,32 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { ContainerDeployAction } from "../../container/moduleConfig"
 import { getAppNamespace } from "../namespace"
-import { KubernetesPluginContext } from "../config"
-import { startSyncs, stopSyncs } from "../sync"
+import { KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config"
+import { getSyncStatus, KubernetesDeployDevModeSyncSpec, startSyncs, stopSyncs } from "../sync"
 import { DeployActionHandler } from "../../../plugin/action-types"
-import { SyncableKind } from "../types"
+import { KubernetesResource, SyncableKind } from "../types"
 import { KubernetesDeployAction } from "../kubernetes-type/config"
 import { HelmDeployAction } from "../helm/config"
+import { Executed } from "../../../actions/types"
 
 export const k8sContainerStartSync: DeployActionHandler<"startSync", ContainerDeployAction> = async (params) => {
   const { ctx, action, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const status = action.getStatus()
 
-  const sync = action.getSpec("sync")
-  const workload = status.detail.detail.workload
+  const { target, syncs, manifests } = getSyncs(action)
 
-  if (!sync?.paths || !workload) {
+  if (syncs.length === 0) {
     return {}
   }
 
-  log.info({
-    section: action.name,
-    msg: chalk.grey(`Starting syncs`),
-  })
-
   const defaultNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-
-  const target = {
-    kind: <SyncableKind>workload.kind,
-    name: workload.metadata.name,
-  }
-
-  const syncs = sync.paths.map((s) => ({
-    ...s,
-    sourcePath: s.source,
-    containerPath: s.target,
-    target,
-  }))
 
   await startSyncs({
     ctx: k8sCtx,
@@ -55,7 +36,7 @@ export const k8sContainerStartSync: DeployActionHandler<"startSync", ContainerDe
     basePath: action.basePath(),
     defaultNamespace,
     defaultTarget: target,
-    manifests: status.detail.remoteResources,
+    manifests,
     syncs,
   })
 
@@ -77,4 +58,56 @@ export const k8sContainerStopSync: DeployActionHandler<
   })
 
   return {}
+}
+
+export const k8sContainerGetSyncStatus: DeployActionHandler<"getSyncStatus", ContainerDeployAction> = async (
+  params
+) => {
+  const { ctx, log, action, monitor } = params
+  const k8sCtx = <KubernetesPluginContext>ctx
+
+  const { target, syncs, manifests } = getSyncs(action)
+
+  const defaultNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+
+  return getSyncStatus({
+    ctx: k8sCtx,
+    log,
+    action,
+    actionDefaults: {},
+    basePath: action.basePath(),
+    defaultNamespace,
+    defaultTarget: target,
+    manifests,
+    syncs,
+    monitor,
+  })
+}
+
+function getSyncs(action: Executed<ContainerDeployAction>): {
+  syncs: KubernetesDeployDevModeSyncSpec[]
+  target?: KubernetesTargetResourceSpec | undefined
+  manifests: KubernetesResource[]
+} {
+  const status = action.getStatus()
+  const sync = action.getSpec("sync")
+  const workload = status.detail.detail.workload
+
+  if (!sync?.paths || !workload) {
+    return { syncs: [], manifests: [] }
+  }
+
+  const target = {
+    kind: <SyncableKind>workload.kind,
+    name: workload.metadata.name,
+  }
+
+  const syncs = sync.paths.map((s) => ({
+    ...s,
+    sourcePath: s.source,
+    containerPath: s.target,
+    target,
+  }))
+
+  return { syncs, target, manifests: status.detail.remoteResources }
 }

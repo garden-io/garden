@@ -1,18 +1,13 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../../../plugin-context"
-import { Log } from "../../../logger/log-entry"
-import { ServiceStatus, ForwardablePort } from "../../../types/service"
+import { ServiceStatus, ForwardablePort, DeployState, ServiceIngress } from "../../../types/service"
 import { createContainerManifests } from "./deployment"
-import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
-import { DeploymentError } from "../../../exceptions"
-import { sleep } from "../../../util/util"
 import { ContainerDeployAction, ContainerDeployOutputs } from "../../container/moduleConfig"
 import { KubeApi } from "../api"
 import { compareDeployedResources } from "../status/status"
@@ -22,8 +17,9 @@ import { KubernetesPluginContext } from "../config"
 import { KubernetesServerResource, KubernetesWorkload } from "../types"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
-import { Resolved } from "../../../actions/types"
-import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
+import { ActionMode, Resolved } from "../../../actions/types"
+import { deployStateToActionState, DeployStatus } from "../../../plugin/handlers/Deploy/get-status"
+import { NamespaceStatus } from "../../../types/namespace"
 
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
@@ -52,14 +48,49 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     action,
     imageId,
   })
-  let {
-    state,
-    remoteResources,
-    mode: deployedMode,
-    selectorChangedResourceKeys,
-  } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
+  let { state, remoteResources, mode: deployedMode, selectorChangedResourceKeys } = await compareDeployedResources(
+    k8sCtx,
+    api,
+    namespace,
+    manifests,
+    log
+  )
   const ingresses = await getIngresses(action, api, provider)
 
+  return prepareContainerDeployStatus({
+    action,
+    deployedMode,
+    imageId,
+    remoteResources,
+    workload,
+    selectorChangedResourceKeys,
+    state,
+    namespaceStatus,
+    ingresses,
+  })
+}
+
+export function prepareContainerDeployStatus({
+  action,
+  deployedMode,
+  imageId,
+  remoteResources,
+  workload,
+  selectorChangedResourceKeys,
+  state,
+  namespaceStatus,
+  ingresses,
+}: {
+  action: Resolved<ContainerDeployAction>
+  deployedMode: ActionMode
+  imageId: string
+  remoteResources: KubernetesServerResource[]
+  workload: KubernetesWorkload
+  selectorChangedResourceKeys: string[]
+  state: DeployState
+  namespaceStatus: NamespaceStatus
+  ingresses: ServiceIngress[] | undefined
+}): DeployStatus<ContainerDeployAction> {
   // Local mode has its own port-forwarding configuration
   const forwardablePorts: ForwardablePort[] =
     deployedMode === "local"
@@ -84,7 +115,6 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     ingresses,
     state,
     namespaceStatuses: [namespaceStatus],
-    version: state === "ready" ? action.versionString() : undefined,
     detail: { remoteResources, workload, selectorChangedResourceKeys },
     mode: deployedMode,
     outputs,
@@ -94,46 +124,5 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     state: deployStateToActionState(state),
     detail,
     outputs,
-  }
-}
-
-/**
- * Resolves to true if the requested service is ready, or becomes ready within a timeout limit.
- * Throws error otherwise.
- */
-export async function waitForContainerService(
-  ctx: PluginContext,
-  log: Log,
-  action: Resolved<ContainerDeployAction>,
-  timeout = KUBECTL_DEFAULT_TIMEOUT
-) {
-  const startTime = new Date().getTime()
-
-  while (true) {
-    const status = await k8sGetContainerDeployStatus({
-      ctx,
-      log,
-      action,
-    })
-
-    const deployState = status.detail?.state
-
-    if (deployState === "ready" || deployState === "outdated") {
-      return
-    }
-
-    log.silly(`Waiting for service ${action.name}`)
-
-    if (new Date().getTime() - startTime > timeout * 1000) {
-      throw new DeploymentError(
-        `Timed out waiting for ${action.longDescription()} to deploy after ${timeout} seconds`,
-        {
-          name: action.name,
-          status,
-        }
-      )
-    }
-
-    await sleep(1000)
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,7 +12,7 @@ import { runResultToActionState } from "../../../actions/base"
 import { RunAction, RunActionConfig } from "../../../actions/run"
 import { TestAction, TestActionConfig } from "../../../actions/test"
 import { Resolved } from "../../../actions/types"
-import { createSchema } from "../../../config/common"
+import { createSchema, joi } from "../../../config/common"
 import { ConfigurationError } from "../../../exceptions"
 import { Log } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
@@ -21,10 +21,9 @@ import { RunResult } from "../../../plugin/base"
 import { dedent, deline } from "../../../util/string"
 import { KubeApi } from "../api"
 import {
-  kubernetesCommonRunSchemaKeys,
-  KubernetesCommonRunSpec,
   KubernetesPluginContext,
   KubernetesTargetResourceSpec,
+  namespaceNameSchema,
   runPodResourceSchema,
 } from "../config"
 import { getActionNamespaceStatus } from "../namespace"
@@ -35,8 +34,10 @@ import { KubernetesRunOutputs, kubernetesRunOutputsSchema } from "./config"
 
 // RUN //
 
-export interface KubernetesExecRunActionSpec extends Omit<KubernetesCommonRunSpec, "artifacts" | "command"> {
+export interface KubernetesExecRunActionSpec {
   resource: KubernetesTargetResourceSpec
+  command: string[]
+  namespace?: string
 }
 export type KubernetesExecRunActionConfig = RunActionConfig<"kubernetes-exec", KubernetesExecRunActionSpec>
 export type KubernetesExecRunAction = RunAction<KubernetesExecRunActionConfig, KubernetesRunOutputs>
@@ -44,7 +45,7 @@ export type KubernetesExecRunAction = RunAction<KubernetesExecRunActionConfig, K
 // Maintaining this cache to avoid errors when `kubernetesRunExecSchema` is called more than once with the same `kind`.
 const runSchemas: { [name: string]: ObjectSchema } = {}
 
-export const kuberneteExecRunSchema = (kind: string) => {
+export const kubernetesExecRunSchema = (kind: string) => {
   const name = `${kind}:kubernetes-exec`
   if (runSchemas[name]) {
     return runSchemas[name]
@@ -52,8 +53,13 @@ export const kuberneteExecRunSchema = (kind: string) => {
   const schema = createSchema({
     name,
     keys: () => ({
-      ...kubernetesCommonRunSchemaKeys(),
+      command: joi
+        .sparseArray()
+        .items(joi.string().allow(""))
+        .description("The command to run inside the kubernetes workload.")
+        .example(["npm", "run", "test:integ"]),
       resource: runPodResourceSchema(kind).required(),
+      namespace: namespaceNameSchema(),
     }),
   })()
   runSchemas[name] = schema
@@ -67,7 +73,7 @@ export const kubernetesExecRunDefinition = (): RunActionDefinition<KubernetesExe
 
     The \`resource\` field is used to find the target Pod in the cluster.
   `,
-  schema: kuberneteExecRunSchema("Run"),
+  schema: kubernetesExecRunSchema("Run"),
   runtimeOutputsSchema: kubernetesRunOutputsSchema(),
   handlers: {
     run: async (params) => {
@@ -94,7 +100,7 @@ export const kubernetesExecTestDefinition = (): TestActionDefinition<KubernetesE
 
     The \`resource\` field is used to find the target Pod in the cluster.
   `,
-  schema: kuberneteExecRunSchema("Test"),
+  schema: kubernetesExecRunSchema("Test"),
   runtimeOutputsSchema: kubernetesRunOutputsSchema(),
   handlers: {
     run: async (params) => {
@@ -119,7 +125,7 @@ async function readAndExec({
   log: Log
   action: Resolved<KubernetesExecRunAction | KubernetesExecTestAction>
 }): Promise<RunResult> {
-  const { resource, args } = action.getSpec()
+  const { resource, command } = action.getSpec()
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, k8sCtx, provider)
@@ -163,7 +169,7 @@ async function readAndExec({
     log,
     namespace,
     workload: target,
-    command: args,
+    command,
     interactive: false,
     streamLogs: true,
   })

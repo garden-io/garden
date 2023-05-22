@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,6 +14,7 @@ import { randomString } from "../../../../../src/util/string"
 import { expect } from "chai"
 import { k8sGetRunResult, storeRunResult } from "../../../../../src/plugins/kubernetes/run-results"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants"
+import { createActionLog } from "../../../../../src/logger/log-entry"
 
 describe("kubernetes Run results", () => {
   let garden: Garden
@@ -26,7 +27,7 @@ describe("kubernetes Run results", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   describe("storeRunResult", () => {
@@ -56,10 +57,11 @@ describe("kubernetes Run results", () => {
       })
 
       expect(trimmed.log.length).to.be.lte(MAX_RUN_RESULT_LOG_LENGTH)
+      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
       const stored = await k8sGetRunResult({
         ctx,
-        log: garden.log,
+        log: actionLog,
         action,
       })
 

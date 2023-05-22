@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,6 @@
 import { apply, merge } from "json-merge-patch"
 import { dedent, deline, naturalList } from "../util/string"
 import {
-  apiVersionSchema,
   createSchema,
   DeepPrimitiveMap,
   includeGuideLink,
@@ -31,13 +30,15 @@ import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
 import { cloneDeep, memoize } from "lodash"
 import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
-import { DOCS_BASE_URL } from "../constants"
+import { DOCS_BASE_URL, GardenApiVersion, GardenApiVersionType } from "../constants"
 import { defaultDotIgnoreFile } from "../util/fs"
 import type { CommandInfo } from "../plugin-context"
 import type { VcsInfo } from "../vcs/vcs"
 import { profileAsync } from "../util/profiling"
 import { loadVarfile, varfileDescription } from "./base"
 import chalk = require("chalk")
+import { Log } from "../logger/log-entry"
+import { renderDivider } from "../logger/util"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -113,7 +114,7 @@ export const environmentSchema = createSchema({
       )
       .example("custom.env"),
     variables: joiVariables().description(deline`
-          A key/value map of variables that modules can reference when using this environment. These take precedence
+          A key/value map of variables that actions can reference when using this environment. These take precedence
           over variables defined in the top-level \`variables\` field, but may also reference the top-level variables in
           template strings.
         `),
@@ -128,6 +129,14 @@ export interface SourceConfig {
   name: string
   repositoryUrl: string
 }
+
+export const actionSourceSchema = createSchema({
+  name: "action-source",
+  keys: () => ({
+    name: joi.string().hostname().required().description("The name of the action.").example("build.my-external-build"),
+    repositoryUrl: joiRepositoryUrl().required(),
+  }),
+})
 
 export const moduleSourceSchema = createSchema({
   name: "module-source",
@@ -157,6 +166,14 @@ export const linkedSourceSchema = createSchema({
   }),
 })
 
+export const linkedActionSchema = createSchema({
+  name: "linked-action",
+  keys: () => ({
+    name: joi.string().hostname().description("The key of the linked action."),
+    path: joi.string().description("The local directory path of the linked repo clone."),
+  }),
+})
+
 export const linkedModuleSchema = createSchema({
   name: "linked-module",
   keys: () => ({
@@ -175,7 +192,7 @@ export interface ProxyConfig {
 }
 
 export interface ProjectConfig {
-  apiVersion: string
+  apiVersion: GardenApiVersionType["v0"] | GardenApiVersionType["v1"]
   kind: "Project"
   name: string
   path: string
@@ -187,7 +204,7 @@ export interface ProjectConfig {
   dotIgnoreFile: string
   dotIgnoreFiles?: string[]
   environments: EnvironmentConfig[]
-  modules?: {
+  scan?: {
     include?: string[]
     exclude?: string[]
   }
@@ -202,20 +219,21 @@ export interface ProjectResource extends ProjectConfig {
   kind: "Project"
 }
 
-export const projectNameSchema = () =>
+export const projectNameSchema = memoize(() =>
   joiIdentifier().required().description("The name of the project.").example("my-sweet-project")
+)
 
-export const projectRootSchema = () => joi.string().description("The path to the project root.")
+export const projectRootSchema = memoize(() => joi.string().description("The path to the project root."))
 
-const projectModulesSchema = createSchema({
-  name: "project-modules",
+const projectScanSchema = createSchema({
+  name: "project-scan",
   keys: () => ({
     include: joi
       .array()
       .items(joi.posixPath().allowGlobs().subPathOnly())
       .description(
         dedent`
-        Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
+        Specify a list of POSIX-style paths or globs that should be scanned for Garden configuration files.
 
         Note that you can also _exclude_ path using the \`exclude\` field or by placing \`.gardenignore\` files in your source tree, which use the same format as \`.gitignore\` files. See the [Configuration Files guide](${includeGuideLink}) for details.
 
@@ -223,13 +241,13 @@ const projectModulesSchema = createSchema({
 
         Also note that specifying an empty list here means _no paths_ should be included.`
       )
-      .example(["modules/**/*"]),
+      .example(["actions/**/*"]),
     exclude: joi
       .array()
       .items(joi.posixPath().allowGlobs().subPathOnly())
       .description(
         dedent`
-        Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
+        Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for configuration files.
 
         The filters here also affect which files and directories are watched for changes. So if you have a large number of directories in your project that should not be watched, you should specify them here.
 
@@ -257,7 +275,7 @@ const projectOutputSchema = createSchema({
         The value for the output. Must be a primitive (string, number, boolean or null). May also be any valid template
         string.`
       )
-      .example("${modules.my-module.outputs.some-output}"),
+      .example("${actions.build.my-build.outputs.deployment-image-name}"),
   }),
 })
 
@@ -267,7 +285,18 @@ export const projectSchema = createSchema({
     "Configuration for a Garden project. This should be specified in the garden.yml file in your project root.",
   required: true,
   keys: () => ({
-    apiVersion: apiVersionSchema(),
+    apiVersion: joi.string().valid(GardenApiVersion.v0, GardenApiVersion.v1).description(dedent`
+      The Garden apiVersion for this project.
+
+      The value ${GardenApiVersion.v0} is the default for backwards compatibility with
+      Garden Acorn (0.12) when not explicitly specified.
+
+      Configuring ${GardenApiVersion.v1} explicitly in your project configuration allows
+      you to start using the new Action configs introduced in Garden Bonsai (0.13).
+
+      Note that the value ${GardenApiVersion.v1} will break compatibility of your project
+      with Garden Acorn (0.12).
+    `),
     kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
     path: projectRootSchema().meta({ internal: true }),
     configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
@@ -293,8 +322,7 @@ export const projectSchema = createSchema({
         "Please refer to individual plugins/providers for details on how to configure them."
     ),
     defaultEnvironment: joi
-      .string()
-      .hostname()
+      .environment()
       .allow("")
       .default("")
       .description(
@@ -309,7 +337,7 @@ export const projectSchema = createSchema({
       .default([])
       .description(
         deline`
-      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources.
+      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
 
       Note: This field has been deprecated in 0.13 in favor of the \`dotIgnoreFile\` field, and as of 0.13 only one filename is allowed here. If a single filename is specified, the conversion is done automatically. If multiple filenames are provided, an error will be thrown.
       Otherwise, an error will be thrown.
@@ -325,11 +353,11 @@ export const projectSchema = createSchema({
       .default(defaultDotIgnoreFile)
       .description(
         deline`
-      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources.
+      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
 
       Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the \`dotIgnoreFiles\` field in the project configuration.
 
-      Note that this take precedence over the project \`module.include\` field, and module \`include\` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
+      Note that this take precedence over the project \`scan.include\` field, and action \`include\` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
 
       See the [Configuration Files guide](${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
     `
@@ -348,14 +376,14 @@ export const projectSchema = createSchema({
         )
         .example(["127.0.0.1"]),
     }),
-    modules: projectModulesSchema().description("Control where to scan for modules in the project."),
+    scan: projectScanSchema().description("Control where to scan for configuration files in the project."),
     outputs: joiSparseArray(projectOutputSchema())
       .unique("name")
       .description(
         dedent`
       A list of output values that the project should export. These are exported by the \`garden get outputs\` command, as well as when referencing a project as a sub-project within another project.
 
-      You may use any template strings to specify the values, including references to provider outputs, module
+      You may use any template strings to specify the values, including references to provider outputs, action
       outputs and runtime outputs. For a full reference, see the [Output configuration context](./template-strings/project-outputs.md) section in the Template String Reference.
 
       Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run if necessary when resolving the outputs.
@@ -384,6 +412,7 @@ export const projectSchema = createSchema({
       "Key/value map of variables to configure for all environments. " + joiVariablesDescription
     ),
   }),
+  rename: [["modules", "scan"]],
 })
 
 export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfig): string {
@@ -411,7 +440,8 @@ export function getDefaultEnvironmentName(defaultName: string, config: ProjectCo
  * @param config raw project configuration
  */
 export function resolveProjectConfig({
-  defaultName,
+  log,
+  defaultEnvironmentName,
   config,
   artifactsPath,
   vcsInfo,
@@ -421,7 +451,8 @@ export function resolveProjectConfig({
   secrets,
   commandInfo,
 }: {
-  defaultName: string
+  log: Log
+  defaultEnvironmentName: string
   config: ProjectConfig
   artifactsPath: string
   vcsInfo: VcsInfo
@@ -434,26 +465,33 @@ export function resolveProjectConfig({
   // Resolve template strings for non-environment-specific fields (apart from `sources`).
   const { environments = [], name, sources = [] } = config
 
-  const globalConfig = resolveTemplateStrings(
-    {
-      apiVersion: config.apiVersion,
-      varfile: config.varfile,
-      variables: config.variables,
-      environments: [],
-      sources: [],
-    },
-    new ProjectConfigContext({
-      projectName: name,
-      projectRoot: config.path,
-      artifactsPath,
-      vcsInfo,
-      username,
-      loggedIn,
-      enterpriseDomain,
-      secrets,
-      commandInfo,
-    })
-  )
+  let globalConfig: any
+  try {
+    globalConfig = resolveTemplateStrings(
+      {
+        apiVersion: config.apiVersion,
+        varfile: config.varfile,
+        variables: config.variables,
+        environments: [],
+        sources: [],
+      },
+      new ProjectConfigContext({
+        projectName: name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn,
+        enterpriseDomain,
+        secrets,
+        commandInfo,
+      })
+    )
+  } catch (err) {
+    log.error("Failed to resolve project configuration.")
+    log.error(chalk.red.bold(renderDivider()))
+    throw err
+  }
 
   // Validate after resolving global fields
   config = validateWithPath({
@@ -461,7 +499,7 @@ export function resolveProjectConfig({
       ...config,
       ...globalConfig,
       name,
-      defaultEnvironment: defaultName,
+      defaultEnvironment: defaultEnvironmentName,
       // environments are validated later
       environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-inital-load", variables: {} }],
       sources: [],
@@ -484,7 +522,7 @@ export function resolveProjectConfig({
     sources,
   }
 
-  config.defaultEnvironment = getDefaultEnvironmentName(defaultName, config)
+  config.defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
 
   return config
 }

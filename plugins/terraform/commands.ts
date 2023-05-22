@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,7 +21,7 @@ const commandsToWrap = ["apply", "plan", "destroy"]
 const initCommand = chalk.bold("terraform init")
 
 export const getTerraformCommands = (): PluginCommand[] =>
-  commandsToWrap.flatMap((commandName) => [makeRootCommand(commandName), makeModuleCommand(commandName)])
+  commandsToWrap.flatMap((commandName) => [makeRootCommand(commandName), makeActionCommand(commandName)])
 
 function makeRootCommand(commandName: string): PluginCommand {
   const terraformCommand = chalk.bold("terraform " + commandName)
@@ -68,16 +68,18 @@ function makeRootCommand(commandName: string): PluginCommand {
   }
 }
 
-function makeModuleCommand(commandName: string): PluginCommand {
+function makeActionCommand(commandName: string): PluginCommand {
   const terraformCommand = chalk.bold("terraform " + commandName)
 
   return {
-    name: commandName + "-module",
-    description: `Runs ${terraformCommand} for the specified terraform Deploy, with variables automatically configured as inputs. Use the module name as first argument, followed by any arguments you want to pass to the command. If necessary, ${initCommand} is run first.`,
+    name: commandName + "-action",
+    description: `Runs ${terraformCommand} for the specified terraform Deploy action, with variables automatically configured as inputs. Use the action name as first argument, followed by any arguments you want to pass to the command. If necessary, ${initCommand} is run first.`,
     resolveGraph: true,
 
     title: ({ args }) =>
-      chalk.bold.magenta(`Running ${chalk.white.bold(terraformCommand)} for module ${chalk.white.bold(args[0] || "")}`),
+      chalk.bold.magenta(
+        `Running ${chalk.white.bold(terraformCommand)} for the Deploy action ${chalk.white.bold(args[0] || "")}`
+      ),
 
     async handler({ garden, ctx, args, log, graph }) {
       const action = findAction(graph, args[0])

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -39,7 +39,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     return this.action.key()
   }
 
-  async getStatus({}: ActionTaskStatusParams<T>) {
+  getStatus({}: ActionTaskStatusParams<T>) {
     return null
   }
 
@@ -48,7 +48,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
   }
 
   resolveProcessDependencies(): BaseTask[] {
-    // TODO-G2B
+    // TODO-0.13.1
     // If we get a resolved task upfront, e.g. from module conversion, we could avoid resolving any dependencies.
     // if (this.action.getConfig().internal?.resolved) {
     //   return []
@@ -79,7 +79,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     const resolvedDependencies: ResolvedAction[] = []
     const executedDependencies: ExecutedAction[] = []
 
-    // TODO-G2: get this to a type-safer place
+    // TODO: get this to a type-safer place
     for (const task of dependencyResults.getTasks()) {
       if (task instanceof ResolveActionTask) {
         const r = dependencyResults.getResult(task)
@@ -145,7 +145,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     const variables = groupVariables
     merge(variables, actionVariables)
     // Override with CLI-set variables
-    merge(variables, this.garden.cliVariables)
+    merge(variables, this.garden.variableOverrides)
 
     // Resolve spec
     let spec = resolveTemplateStrings(
@@ -199,10 +199,10 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     await actionRouter.callHandler({
       handlerType: "validate",
       params: { action: resolvedAction, graph: resolvedGraph, log: this.log, events: undefined },
-      defaultHandler: async (p) => ({}),
+      defaultHandler: async (_) => ({}),
     })
 
-    // TODO-G2B: avoid this private assignment
+    // TODO: avoid this private assignment
     resolvedAction["_staticOutputs"] = staticOutputs
 
     return {

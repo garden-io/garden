@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import env from "env-var"
-import { resolve, join } from "path"
+import { join, resolve } from "path"
 import { homedir } from "os"
 
 export const isPkg = !!(<any>process).pkg
@@ -20,15 +20,22 @@ export const MUTAGEN_DIR_NAME = "mutagen"
 export const LOGS_DIR_NAME = "logs"
 export const GARDEN_GLOBAL_PATH = join(homedir(), DEFAULT_GARDEN_DIR_NAME)
 export const ERROR_LOG_FILENAME = "error.log"
-export const PROJECT_SOURCES_DIR_NAME = join("sources", "project")
-export const MODULE_SOURCES_DIR_NAME = join("sources", "module")
 export const GARDEN_VERSIONFILE_NAME = ".garden-version"
 export const DEFAULT_PORT_PROTOCOL = "TCP"
 
-export const DEFAULT_API_VERSION = "garden.io/v0"
+export type GardenApiVersionType = {
+  v0: "garden.io/v0"
+  v1: "garden.io/v1"
+}
+export const GardenApiVersion: GardenApiVersionType = {
+  v0: "garden.io/v0",
+  v1: "garden.io/v1",
+}
 
-export const DEFAULT_TEST_TIMEOUT = 60 * 1000
-export const DEFAULT_RUN_TIMEOUT = 60 * 1000
+export const DEFAULT_BUILD_TIMEOUT_SEC = 600
+export const DEFAULT_TEST_TIMEOUT_SEC = 600
+export const DEFAULT_RUN_TIMEOUT_SEC = 600
+export const DEFAULT_DEPLOY_TIMEOUT_SEC = 300
 
 export type SupportedPlatform = "linux" | "darwin" | "win32"
 export const SUPPORTED_PLATFORMS: SupportedPlatform[] = ["linux", "darwin", "win32"]
@@ -43,7 +50,7 @@ export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggigno
 export const DOCS_BASE_URL = "https://docs.garden.io"
 export const VERSION_CHECK_URL = "https://get.garden.io/version"
 
-export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden"
+export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
 
 /**
  * Environment variables, with defaults where appropriate.

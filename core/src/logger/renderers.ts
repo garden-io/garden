@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,6 +12,7 @@ import stripAnsi from "strip-ansi"
 import { isArray, repeat } from "lodash"
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
+import format from "date-fns/format"
 
 import { LogEntry } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
@@ -23,15 +24,16 @@ type RenderFn = (entry: LogEntry, logger: Logger) => string
 
 /*** STYLE HELPERS ***/
 
-export const SECTION_PADDING = 25
+export const SECTION_PADDING = 20
 
 export function padSection(section: string, width: number = SECTION_PADDING) {
   const diff = width - stringWidth(section)
   return diff <= 0 ? section : section + repeat(" ", diff)
 }
 
-export const msgStyle = (s: string) => (hasAnsi(s) ? s : chalk.gray(s))
-export const errorStyle = (s: string) => (hasAnsi(s) ? s : chalk.red(s))
+export const msgStyle = (s: string) => chalk.gray(s)
+export const errorStyle = (s: string) => chalk.red(s)
+export const warningStyle = (s: string) => chalk.yellow(s)
 
 /*** RENDER HELPERS ***/
 
@@ -43,16 +45,26 @@ export function combineRenders(entry: LogEntry, logger: Logger, renderers: Rende
 }
 
 export function renderError(entry: LogEntry): string {
-  const { error } = entry
+  const { msg, error } = entry
+
+  let out = ""
+
   if (error) {
-    return formatGardenErrorWithDetail(toGardenError(error))
+    if (msg) {
+      out += "\n\n"
+    }
+    out += formatGardenErrorWithDetail(toGardenError(error))
   }
 
-  return entry.msg || ""
+  return out
 }
 
 export function renderSymbol(entry: LogEntry): string {
-  const section = renderSection(entry)
+  const section = getSection(entry)
+
+  if (!section) {
+    return ""
+  }
 
   let symbol = entry.symbol
 
@@ -61,7 +73,7 @@ export function renderSymbol(entry: LogEntry): string {
   }
 
   // Always show symbol with sections
-  if (!symbol && (entry.type === "actionLogEntry" || section)) {
+  if (!symbol && section) {
     symbol = "info"
   }
 
@@ -72,23 +84,30 @@ export function renderTimestamp(entry: LogEntry, logger: Logger): string {
   if (!logger.showTimestamps) {
     return ""
   }
-  return `[${getTimestamp(entry)}] `
+  const formattedDate = format(new Date(entry.timestamp), "HH:mm:ss")
+  return chalk.gray(formattedDate) + " "
 }
 
-export function getTimestamp(entry: LogEntry): string {
-  return entry.timestamp
+export function getSection(entry: LogEntry): string | null {
+  if (entry.context.type === "actionLog") {
+    return `${entry.context.actionKind.toLowerCase()}.${entry.context.actionName}`
+  } else if (entry.context.type === "coreLog" && entry.context.name) {
+    return entry.context.name
+  }
+  return null
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { level, msg } = entry
+  const { level, msg, context } = entry
+  const { origin } = context
 
   if (!msg) {
     return ""
   }
 
-  const styleFn = level === LogLevel.error ? errorStyle : msgStyle
+  const styleFn = level === LogLevel.error ? errorStyle : level === LogLevel.warn ? warningStyle : msgStyle
 
-  return styleFn(msg)
+  return styleFn(origin ? chalk.gray(`[${origin}] ${msg}`) : msg)
 }
 
 export function renderData(entry: LogEntry): string {
@@ -106,18 +125,11 @@ export function renderData(entry: LogEntry): string {
 export function renderSection(entry: LogEntry): string {
   const style = chalk.cyan.italic
   const { msg } = entry
-  let { section } = entry
-
-  if (entry.type === "actionLogEntry") {
-    section = `${entry.context.actionKind.toLowerCase()}.${entry.context.actionName}`
-  } else if (entry.context.name) {
-    section = entry.context.name
-  }
+  let section = getSection(entry)
 
   // For log levels higher than "info" we print the log level name.
   // This should technically happen when we render the symbol but it's harder
-  // to deal with the padding that way and we'll be re-doing most of this anyway
-  // with: https://github.com/garden-io/garden/issues/3254
+  // to deal with the padding that way.
   const logLevelName = chalk.gray(`[${logLevelMap[entry.level]}]`)
 
   // Just print the log level name directly without padding. E.g:
@@ -146,8 +158,8 @@ export function renderSection(entry: LogEntry): string {
  * Formats entries for the terminal writer.
  */
 export function formatForTerminal(entry: LogEntry, logger: Logger): string {
-  const { msg: msg, section, symbol, data } = entry
-  const empty = [msg, section, symbol, data].every((val) => val === undefined)
+  const { msg: msg, symbol, data } = entry
+  const empty = [msg, symbol, data].every((val) => val === undefined)
 
   if (empty) {
     return ""
@@ -178,14 +190,17 @@ export function cleanWhitespace(str: string) {
 
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
-  const { msg, metadata, section } = entry
+  const { msg, metadata, timestamp } = entry
   const errorDetail = entry.error && entry ? formatGardenErrorWithDetail(toGardenError(entry.error)) : undefined
+  const section = renderSection(entry)
+
   const jsonLogEntry: JsonLogEntry = {
     msg: cleanForJSON(msg),
     data: entry.data,
     metadata,
+    // TODO @eysi: Should we include the section here or rather just show the context?
     section: cleanForJSON(section),
-    timestamp: getTimestamp(entry),
+    timestamp,
     level: logLevelMap[entry.level],
   }
   if (errorDetail) {

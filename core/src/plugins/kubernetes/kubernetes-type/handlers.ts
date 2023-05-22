@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,7 +15,7 @@ import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import type { KubernetesPluginContext } from "../config"
 import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync"
-import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
+import { apply, deleteObjectsBySelector } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
@@ -28,7 +28,7 @@ import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import type { ExecBuildConfig } from "../../exec/config"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
 import type { DeployActionHandler } from "../../../plugin/action-types"
-import type { Log } from "../../../logger/log-entry"
+import type { ActionLog } from "../../../logger/log-entry"
 import type { Resolved } from "../../../actions/types"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 
@@ -57,8 +57,8 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
       build: dummyBuild?.name,
       dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
-
       include: module.spec.files,
+      timeout: service.spec.timeout,
 
       spec: {
         ...omit(module.spec, ["name", "build", "dependencies", "serviceResource", "tasks", "tests", "sync", "devMode"]),
@@ -68,11 +68,12 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       },
     }
 
-    if (serviceResource?.containerModule) {
-      const build = convertBuildDependency(serviceResource.containerModule)
-
-      // TODO-G2: make this implicit
-      deployAction.dependencies?.push(build)
+    if (serviceResource) {
+      if (serviceResource.containerModule) {
+        const build = convertBuildDependency(serviceResource.containerModule)
+        deployAction.dependencies?.push(build)
+      }
+      deployAction.spec.defaultTarget = convertServiceResource(module, serviceResource) || undefined
     }
 
     actions.push(deployAction)
@@ -93,7 +94,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
         build: dummyBuild?.name,
         dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
-        timeout: task.spec.timeout || undefined,
+        timeout: task.spec.timeout,
 
         spec: {
           ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
@@ -121,7 +122,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
         build: dummyBuild?.name,
         dependencies: prepareRuntimeDependencies(test.config.dependencies, dummyBuild),
-        timeout: test.spec.timeout || undefined,
+        timeout: test.spec.timeout,
 
         spec: {
           ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
@@ -181,11 +182,13 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   })
   const preparedManifests = prepareResult.manifests
 
-  let {
-    state,
-    remoteResources,
-    mode: deployedMode,
-  } = await compareDeployedResources(k8sCtx, api, namespace, preparedManifests, log)
+  let { state, remoteResources, mode: deployedMode } = await compareDeployedResources(
+    k8sCtx,
+    api,
+    namespace,
+    preparedManifests,
+    log
+  )
 
   // Local mode has its own port-forwarding configuration
   const forwardablePorts = deployedMode === "local" ? [] : getForwardablePorts(remoteResources, action)
@@ -210,7 +213,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       namespaceStatuses: [namespaceStatus],
       ingresses: getK8sIngresses(remoteResources),
     },
-    // TODO-G2
+    // TODO-0.13.1
     outputs: {},
   }
 }
@@ -247,10 +250,10 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       namespace,
       ctx,
       provider,
-      actionName: action.name,
+      actionName: action.key(),
       resources: namespaceManifests,
       log,
-      timeoutSec: spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
+      timeoutSec: action.getConfig("timeout"),
     })
   }
 
@@ -279,10 +282,10 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       namespace,
       ctx,
       provider,
-      actionName: action.name,
+      actionName: action.key(),
       resources: preparedManifests,
       log,
-      timeoutSec: spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
+      timeoutSec: action.getConfig("timeout"),
     })
   }
 
@@ -297,7 +300,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       await startServiceInLocalMode({
         ctx,
         spec: spec.localMode,
-        // TODO-G2: Support multiple processes+targets.
+        // TODO-0.13.0: Support multiple processes+targets.
         targetResource: modifiedResources[0],
         manifests: preparedManifests,
         action,
@@ -436,7 +439,7 @@ async function configureSpecialModesForManifests({
   manifests,
 }: {
   ctx: KubernetesPluginContext
-  log: Log
+  log: ActionLog
   action: Resolved<KubernetesDeployAction>
   manifests: KubernetesResource<BaseResource>[]
 }) {
@@ -445,7 +448,7 @@ async function configureSpecialModesForManifests({
 
   // Local mode always takes precedence over sync mode
   if (mode === "local" && spec.localMode && !isEmpty(spec.localMode)) {
-    // TODO-G2: Support multiple local processes+targets
+    // TODO-0.13.0: Support multiple local processes+targets
     // The "local-mode" annotation is set in `configureLocalMode`.
     return await configureLocalMode({
       ctx,

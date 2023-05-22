@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,8 +19,9 @@ import type { GraphResults } from "../graph/results"
 import type { BaseAction } from "./base"
 import type { ValidResultType } from "../tasks/base"
 import type { BaseGardenResource, GardenResourceInternalFields } from "../config/base"
+import type { LinkedSource } from "../config-store/local"
 
-// TODO-G2: split this file
+// TODO: split this file
 
 export type { ActionKind } from "../plugin/action-types"
 
@@ -43,8 +44,7 @@ export interface ActionSourceSpec {
  *
  * See inline comments below for information on what templating is allowed on different fields.
  */
-export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec = any>
-  extends BaseGardenResource {
+export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec = any> extends BaseGardenResource {
   // Basics
   // -> No templating is allowed on these.
   apiVersion?: string
@@ -62,7 +62,9 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   internal: GardenResourceInternalFields & {
     groupName?: string
     resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
-    // For backwards-compatibility, applied on actions returned from module conversion handlers
+    treeVersion?: TreeVersion // Set during module resolution to avoid duplicate scanning for Build actions
+    // For forwards-compatibility, applied on actions returned from module conversion handlers
+    remoteClonePath?: string
     moduleName?: string
     moduleVersion?: ModuleVersion
   }
@@ -76,6 +78,8 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   // -> Templating with ActionConfigContext allowed
   include?: string[]
   exclude?: string[]
+
+  timeout: number
 
   // Variables
   // -> Templating with ActionConfigContext allowed
@@ -164,7 +168,6 @@ export interface ActionStatus<
   state: ActionState
   detail: D | null
   outputs: O
-  attached?: boolean
 }
 
 export interface ActionStatusMap<T extends BaseAction = BaseAction> {
@@ -196,10 +199,12 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   config: C
   dependencies: ActionDependency[]
   graph: ConfigGraph
+  linkedSource: LinkedSource | null
   moduleName?: string
   moduleVersion?: ModuleVersion
   mode: ActionMode
   projectRoot: string
+  remoteSourcePath: string | null
   supportedModes: ActionModes
   treeVersion: TreeVersion
   variables: DeepPrimitiveMap

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,7 @@ import { mkdirp, pathExists, readFile, remove, writeFile } from "fs-extra"
 import { join } from "path"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
-import { Log } from "../../../../../src/logger/log-entry"
+import { createActionLog, Log } from "../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
 import { getMutagenMonitor, Mutagen } from "../../../../../src/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
@@ -25,7 +25,7 @@ import {
 } from "../../../../../src/plugins/kubernetes/sync"
 import { HelmModuleConfig } from "../../../../../src/plugins/kubernetes/helm/module-config"
 import { KubernetesModuleConfig } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config"
-import { TestGarden } from "../../../../helpers"
+import { TestGarden, cleanProject } from "../../../../helpers"
 import { ContainerDeployActionConfig } from "../../../../../src/plugins/container/moduleConfig"
 import { resolveAction } from "../../../../../src/graph/actions"
 import { DeployTask } from "../../../../../src/tasks/deploy"
@@ -60,14 +60,15 @@ describe("sync mode deployments and sync behavior", () => {
 
   afterEach(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
       const dataDir = join(garden.gardenDirPath, MUTAGEN_DIR_NAME)
       await getMutagenMonitor({ log: garden.log, dataDir }).stop()
+      await cleanProject(garden.gardenDirPath)
     }
   })
 
   const init = async (environmentName: string) => {
-    garden = await getContainerTestGarden(environmentName)
+    garden = await getContainerTestGarden(environmentName, { noTempDir: true})
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,
@@ -82,7 +83,7 @@ describe("sync mode deployments and sync behavior", () => {
     )
   }
 
-  // TODO-G2: https://github.com/orgs/garden-io/projects/5/views/1?pane=issue&itemId=23082896
+  // todo: fix this test, It works locally, fails on ci
   it.skip("should deploy a service in sync mode and successfully set a two-way sync", async () => {
     await init("local")
     const action = graph.getDeploy("sync-mode")
@@ -93,6 +94,7 @@ describe("sync mode deployments and sync behavior", () => {
       log,
       action,
       force: true,
+      startSync: true,
     })
 
     await garden.processTasks({ tasks: [deployTask], throwOnError: true })
@@ -101,10 +103,12 @@ describe("sync mode deployments and sync behavior", () => {
       log: garden.log,
       graph: await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.sync-mode"] } }),
     })
+    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+
     const status = await k8sGetContainerDeployStatus({
       ctx,
       action: resolvedAction,
-      log,
+      log: actionLog,
     })
     expect(status.detail?.mode).to.equal("sync")
 
@@ -126,7 +130,7 @@ describe("sync mode deployments and sync behavior", () => {
 
     // This is to make sure that the two-way sync doesn't recreate the local files we're about to delete here.
     const actions = await garden.getActionRouter()
-    await actions.deploy.delete({ graph, log: garden.log, action: resolvedAction })
+    await actions.deploy.delete({ graph, log: actionLog, action: resolvedAction })
 
     // Clean up the files we created locally
     for (const filename of ["made_locally", "made_in_pod"]) {
@@ -136,7 +140,7 @@ describe("sync mode deployments and sync behavior", () => {
     }
   })
 
-  // TODO-G2: https://github.com/orgs/garden-io/projects/5/views/1?pane=issue&itemId=23082896
+  // todo: fix this test, It works locally, fails on ci.
   it.skip("should apply ignore rules from the sync spec and the provider-level sync defaults", async () => {
     await init("local")
     const action = graph.getDeploy("sync-mode")
@@ -146,8 +150,8 @@ describe("sync mode deployments and sync behavior", () => {
     // prefix-a         <--- matched by provider-level default excludes
     // nested/prefix-b  <--- matched by provider-level default excludes
 
-    action.getConfig().spec.sync!.paths[0].mode = "one-way-replica"
-    action.getConfig().spec.sync!.paths[0].exclude = ["somedir"]
+    action["_config"].spec.sync!.paths[0].mode = "one-way-replica"
+    action["_config"].spec.sync!.paths[0].exclude = ["somedir"]
     const log = garden.log
     const deployTask = new DeployTask({
       garden,
@@ -155,6 +159,7 @@ describe("sync mode deployments and sync behavior", () => {
       log,
       action,
       force: true,
+      startSync: true,
     })
 
     await garden.processTasks({ tasks: [deployTask], throwOnError: true })
@@ -163,10 +168,11 @@ describe("sync mode deployments and sync behavior", () => {
       log: garden.log,
       graph: await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.sync-mode"] } }),
     })
+    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
     const status = await k8sGetContainerDeployStatus({
       ctx,
       action: resolvedAction,
-      log,
+      log: actionLog,
     })
 
     const workload = status.detail?.detail.workload!
@@ -327,6 +333,7 @@ describe("sync mode deployments and sync behavior", () => {
               kind: "Deployment",
               name: "some-deployment",
               containerName: undefined,
+              podSelector: undefined,
             },
             command: ["cmd"],
             args: ["arg1", "arg2"],

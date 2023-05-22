@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,7 +30,10 @@ export const terraformModuleSchema = () =>
     ...terraformDeploySchemaKeys(),
   })
 
-export const configureTerraformModule: ModuleActionHandlers["configure"] = async ({ ctx, moduleConfig }) => {
+export const configureTerraformModule: ModuleActionHandlers<TerraformModule>["configure"] = async ({
+  ctx,
+  moduleConfig,
+}) => {
   // Make sure the configured root path exists
   const root = moduleConfig.spec.root
   if (root) {

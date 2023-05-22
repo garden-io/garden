@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,19 +11,20 @@ import stripAnsi from "strip-ansi"
 import { join } from "path"
 
 import { dedent } from "@garden-io/sdk/util/string"
-import { defaultApiVersion, defaultNamespace } from "@garden-io/sdk/constants"
+import { defaultNamespace } from "@garden-io/sdk/constants"
 import { gardenPlugin } from ".."
 import { ProjectConfig } from "@garden-io/sdk/types"
 import { makeTestGarden } from "@garden-io/sdk/testing"
 
 import { TestTask } from "@garden-io/core/build/src/tasks/test"
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
+import { GardenApiVersion } from "@garden-io/core/src/constants"
 
 describe("conftest provider", () => {
   const projectRoot = join(__dirname, "test-project")
 
   const projectConfig: ProjectConfig = {
-    apiVersion: defaultApiVersion,
+    apiVersion: GardenApiVersion.v1,
     kind: "Project",
     name: "test",
     path: projectRoot,

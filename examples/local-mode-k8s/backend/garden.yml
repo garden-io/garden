@@ -4,6 +4,7 @@ description: Backend service container
 type: kubernetes
 
 build: backend-image
+dependencies: "${var.localMode ? ['run.build-backend-local'] : []}"
 
 spec:
   localMode:
@@ -51,7 +52,7 @@ spec:
           spec:
             containers:
               - name: backend
-                image: ${action.build.backend-image.outputs.deployment-image-id}
+                image: ${actions.build.backend-image.outputs.deployment-image-id}
                 ports:
                   - name: http
                     protocol: TCP
@@ -66,7 +67,7 @@ spec:
       spec:
         ingressClassName: nginx
         rules:
-          - host: local-mode.local.app.garden
+          - host: local-mode.local.demo.garden
             http:
               paths:
                 - path: /hello-backend

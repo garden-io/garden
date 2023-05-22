@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -156,7 +156,36 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
   private async lock() {
     const path = this.getConfigPath()
     await ensureFile(path)
-    return lock(path, { retries: 5, stale: 5000 })
+
+    // HACK: override the lock compromised handler to bubble up a thrown error as a Promise rejection instead
+    // NOTE: this allows the execution to continue, and the writeFile function potentially overwrites the config written by another call
+    const compromiseHandler = (err, reject) => {
+      // eslint-disable-next-line
+      console.log("Warning: The lock on the global config store was compromised. Updating the config anyway.")
+      reject(err)
+    }
+
+    return new Promise<() => Promise<void>>((resolve, reject) => {
+      const onCompromise = (err) => compromiseHandler(err, reject)
+      this._wrappedLock(path, onCompromise).then(resolve).catch(reject)
+    })
+  }
+
+  // NOTE: Inner helper for the lock function. Do not use directly. This exists to avoid fail-stop when releasing the lock fails
+  private async _wrappedLock(path: string, onCompromised: (err) => void): Promise<() => Promise<void>> {
+    const release = await lock(path, { retries: 5, stale: 5000, onCompromised })
+
+    return async () => {
+      try {
+        await release()
+      } catch (err) {
+        // eslint-disable-next-line
+        console.log(
+          "Warning: Unable to release the lock on the global config store; lock was already released. If you run into this error repeatedly, please report on our GitHub or Discord"
+        )
+        throw err
+      }
+    }
   }
 
   private async readConfig(): Promise<I<T>> {

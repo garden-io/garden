@@ -133,7 +133,7 @@ Information about the currently running command and its arguments.
 
 The currently running Garden CLI command, without positional arguments or option flags. This can be handy to e.g. change some variables based on whether you're running `garden test` or some other specific command.
 
-Note that this will currently always resolve to `"run-workflow"` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
+Note that this will currently always resolve to `"workflow"` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
 
 | Type     |
 | -------- |
@@ -1215,7 +1215,7 @@ Example:
 my-variable: ${runtime.tasks.<action-name>.version}
 ```
 
-### `${action.*}`
+### `${actions.*}`
 
 Runtime outputs and information from other actions (only resolved at runtime when executing actions).
 
@@ -1223,7 +1223,7 @@ Runtime outputs and information from other actions (only resolved at runtime whe
 | -------- |
 | `object` |
 
-### `${action.build.*}`
+### `${actions.build.*}`
 
 Information about a Build action dependency, including its outputs.
 
@@ -1231,7 +1231,7 @@ Information about a Build action dependency, including its outputs.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.build.<action-name>.name}`
+### `${actions.build.<action-name>.name}`
 
 The name of the action.
 
@@ -1239,7 +1239,7 @@ The name of the action.
 | -------- |
 | `string` |
 
-### `${action.build.<action-name>.disabled}`
+### `${actions.build.<action-name>.disabled}`
 
 Whether the action is disabled.
 
@@ -1250,10 +1250,10 @@ Whether the action is disabled.
 Example:
 
 ```yaml
-my-variable: ${action.build.<action-name>.disabled}
+my-variable: ${actions.build.<action-name>.disabled}
 ```
 
-### `${action.build.<action-name>.buildPath}`
+### `${actions.build.<action-name>.buildPath}`
 
 The local path to the action build directory.
 
@@ -1264,10 +1264,10 @@ The local path to the action build directory.
 Example:
 
 ```yaml
-my-variable: ${action.build.<action-name>.buildPath}
+my-variable: ${actions.build.<action-name>.buildPath}
 ```
 
-### `${action.build.<action-name>.sourcePath}`
+### `${actions.build.<action-name>.sourcePath}`
 
 The local path to the action source directory.
 
@@ -1278,10 +1278,10 @@ The local path to the action source directory.
 Example:
 
 ```yaml
-my-variable: ${action.build.<action-name>.sourcePath}
+my-variable: ${actions.build.<action-name>.sourcePath}
 ```
 
-### `${action.build.<action-name>.mode}`
+### `${actions.build.<action-name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
@@ -1292,10 +1292,10 @@ The mode that the action should be executed in (e.g. 'sync' or 'local' for Deplo
 Example:
 
 ```yaml
-my-variable: ${action.build.<action-name>.mode}
+my-variable: ${actions.build.<action-name>.mode}
 ```
 
-### `${action.build.<action-name>.var.*}`
+### `${actions.build.<action-name>.var.*}`
 
 The variables configured on the action.
 
@@ -1303,13 +1303,13 @@ The variables configured on the action.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.build.<action-name>.var.<name>}`
+### `${actions.build.<action-name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
 
-### `${action.build.<action-name>.outputs.*}`
+### `${actions.build.<action-name>.outputs.*}`
 
 The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
 
@@ -1317,7 +1317,7 @@ The outputs defined by the action (see individual action/module type [references
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.build.<action-name>.outputs.<output-name>}`
+### `${actions.build.<action-name>.outputs.<output-name>}`
 
 The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
 
@@ -1325,7 +1325,7 @@ The action output value. Refer to individual [action/module type references](htt
 | ----------------------------- |
 | `string \| number \| boolean` |
 
-### `${action.build.<action-name>.version}`
+### `${actions.build.<action-name>.version}`
 
 The current version of the action.
 
@@ -1336,10 +1336,10 @@ The current version of the action.
 Example:
 
 ```yaml
-my-variable: ${action.build.<action-name>.version}
+my-variable: ${actions.build.<action-name>.version}
 ```
 
-### `${action.deploy.*}`
+### `${actions.deploy.*}`
 
 Information about a Deploy action dependency, including its outputs.
 
@@ -1347,7 +1347,7 @@ Information about a Deploy action dependency, including its outputs.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.deploy.<action-name>.name}`
+### `${actions.deploy.<action-name>.name}`
 
 The name of the action.
 
@@ -1355,7 +1355,7 @@ The name of the action.
 | -------- |
 | `string` |
 
-### `${action.deploy.<action-name>.disabled}`
+### `${actions.deploy.<action-name>.disabled}`
 
 Whether the action is disabled.
 
@@ -1366,10 +1366,10 @@ Whether the action is disabled.
 Example:
 
 ```yaml
-my-variable: ${action.deploy.<action-name>.disabled}
+my-variable: ${actions.deploy.<action-name>.disabled}
 ```
 
-### `${action.deploy.<action-name>.buildPath}`
+### `${actions.deploy.<action-name>.buildPath}`
 
 The local path to the action build directory.
 
@@ -1380,10 +1380,10 @@ The local path to the action build directory.
 Example:
 
 ```yaml
-my-variable: ${action.deploy.<action-name>.buildPath}
+my-variable: ${actions.deploy.<action-name>.buildPath}
 ```
 
-### `${action.deploy.<action-name>.sourcePath}`
+### `${actions.deploy.<action-name>.sourcePath}`
 
 The local path to the action source directory.
 
@@ -1394,10 +1394,10 @@ The local path to the action source directory.
 Example:
 
 ```yaml
-my-variable: ${action.deploy.<action-name>.sourcePath}
+my-variable: ${actions.deploy.<action-name>.sourcePath}
 ```
 
-### `${action.deploy.<action-name>.mode}`
+### `${actions.deploy.<action-name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
@@ -1408,10 +1408,10 @@ The mode that the action should be executed in (e.g. 'sync' or 'local' for Deplo
 Example:
 
 ```yaml
-my-variable: ${action.deploy.<action-name>.mode}
+my-variable: ${actions.deploy.<action-name>.mode}
 ```
 
-### `${action.deploy.<action-name>.var.*}`
+### `${actions.deploy.<action-name>.var.*}`
 
 The variables configured on the action.
 
@@ -1419,13 +1419,13 @@ The variables configured on the action.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.deploy.<action-name>.var.<name>}`
+### `${actions.deploy.<action-name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
 
-### `${action.deploy.<action-name>.outputs.*}`
+### `${actions.deploy.<action-name>.outputs.*}`
 
 The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
 
@@ -1433,7 +1433,7 @@ The outputs defined by the action (see individual action/module type [references
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.deploy.<action-name>.outputs.<output-name>}`
+### `${actions.deploy.<action-name>.outputs.<output-name>}`
 
 The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
 
@@ -1441,7 +1441,7 @@ The action output value. Refer to individual [action/module type references](htt
 | ----------------------------- |
 | `string \| number \| boolean` |
 
-### `${action.deploy.<action-name>.version}`
+### `${actions.deploy.<action-name>.version}`
 
 The current version of the action.
 
@@ -1452,10 +1452,10 @@ The current version of the action.
 Example:
 
 ```yaml
-my-variable: ${action.deploy.<action-name>.version}
+my-variable: ${actions.deploy.<action-name>.version}
 ```
 
-### `${action.run.*}`
+### `${actions.run.*}`
 
 Information about a Run action dependency, including its outputs.
 
@@ -1463,7 +1463,7 @@ Information about a Run action dependency, including its outputs.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.run.<action-name>.name}`
+### `${actions.run.<action-name>.name}`
 
 The name of the action.
 
@@ -1471,7 +1471,7 @@ The name of the action.
 | -------- |
 | `string` |
 
-### `${action.run.<action-name>.disabled}`
+### `${actions.run.<action-name>.disabled}`
 
 Whether the action is disabled.
 
@@ -1482,10 +1482,10 @@ Whether the action is disabled.
 Example:
 
 ```yaml
-my-variable: ${action.run.<action-name>.disabled}
+my-variable: ${actions.run.<action-name>.disabled}
 ```
 
-### `${action.run.<action-name>.buildPath}`
+### `${actions.run.<action-name>.buildPath}`
 
 The local path to the action build directory.
 
@@ -1496,10 +1496,10 @@ The local path to the action build directory.
 Example:
 
 ```yaml
-my-variable: ${action.run.<action-name>.buildPath}
+my-variable: ${actions.run.<action-name>.buildPath}
 ```
 
-### `${action.run.<action-name>.sourcePath}`
+### `${actions.run.<action-name>.sourcePath}`
 
 The local path to the action source directory.
 
@@ -1510,10 +1510,10 @@ The local path to the action source directory.
 Example:
 
 ```yaml
-my-variable: ${action.run.<action-name>.sourcePath}
+my-variable: ${actions.run.<action-name>.sourcePath}
 ```
 
-### `${action.run.<action-name>.mode}`
+### `${actions.run.<action-name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
@@ -1524,10 +1524,10 @@ The mode that the action should be executed in (e.g. 'sync' or 'local' for Deplo
 Example:
 
 ```yaml
-my-variable: ${action.run.<action-name>.mode}
+my-variable: ${actions.run.<action-name>.mode}
 ```
 
-### `${action.run.<action-name>.var.*}`
+### `${actions.run.<action-name>.var.*}`
 
 The variables configured on the action.
 
@@ -1535,13 +1535,13 @@ The variables configured on the action.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.run.<action-name>.var.<name>}`
+### `${actions.run.<action-name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
 
-### `${action.run.<action-name>.outputs.*}`
+### `${actions.run.<action-name>.outputs.*}`
 
 The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
 
@@ -1549,7 +1549,7 @@ The outputs defined by the action (see individual action/module type [references
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.run.<action-name>.outputs.<output-name>}`
+### `${actions.run.<action-name>.outputs.<output-name>}`
 
 The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
 
@@ -1557,7 +1557,7 @@ The action output value. Refer to individual [action/module type references](htt
 | ----------------------------- |
 | `string \| number \| boolean` |
 
-### `${action.run.<action-name>.version}`
+### `${actions.run.<action-name>.version}`
 
 The current version of the action.
 
@@ -1568,10 +1568,10 @@ The current version of the action.
 Example:
 
 ```yaml
-my-variable: ${action.run.<action-name>.version}
+my-variable: ${actions.run.<action-name>.version}
 ```
 
-### `${action.test.*}`
+### `${actions.test.*}`
 
 Information about a Test action dependency, including its outputs.
 
@@ -1579,7 +1579,7 @@ Information about a Test action dependency, including its outputs.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.test.<action-name>.name}`
+### `${actions.test.<action-name>.name}`
 
 The name of the action.
 
@@ -1587,7 +1587,7 @@ The name of the action.
 | -------- |
 | `string` |
 
-### `${action.test.<action-name>.disabled}`
+### `${actions.test.<action-name>.disabled}`
 
 Whether the action is disabled.
 
@@ -1598,10 +1598,10 @@ Whether the action is disabled.
 Example:
 
 ```yaml
-my-variable: ${action.test.<action-name>.disabled}
+my-variable: ${actions.test.<action-name>.disabled}
 ```
 
-### `${action.test.<action-name>.buildPath}`
+### `${actions.test.<action-name>.buildPath}`
 
 The local path to the action build directory.
 
@@ -1612,10 +1612,10 @@ The local path to the action build directory.
 Example:
 
 ```yaml
-my-variable: ${action.test.<action-name>.buildPath}
+my-variable: ${actions.test.<action-name>.buildPath}
 ```
 
-### `${action.test.<action-name>.sourcePath}`
+### `${actions.test.<action-name>.sourcePath}`
 
 The local path to the action source directory.
 
@@ -1626,10 +1626,10 @@ The local path to the action source directory.
 Example:
 
 ```yaml
-my-variable: ${action.test.<action-name>.sourcePath}
+my-variable: ${actions.test.<action-name>.sourcePath}
 ```
 
-### `${action.test.<action-name>.mode}`
+### `${actions.test.<action-name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
@@ -1640,10 +1640,10 @@ The mode that the action should be executed in (e.g. 'sync' or 'local' for Deplo
 Example:
 
 ```yaml
-my-variable: ${action.test.<action-name>.mode}
+my-variable: ${actions.test.<action-name>.mode}
 ```
 
-### `${action.test.<action-name>.var.*}`
+### `${actions.test.<action-name>.var.*}`
 
 The variables configured on the action.
 
@@ -1651,13 +1651,13 @@ The variables configured on the action.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.test.<action-name>.var.<name>}`
+### `${actions.test.<action-name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
 
-### `${action.test.<action-name>.outputs.*}`
+### `${actions.test.<action-name>.outputs.*}`
 
 The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
 
@@ -1665,7 +1665,7 @@ The outputs defined by the action (see individual action/module type [references
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.test.<action-name>.outputs.<output-name>}`
+### `${actions.test.<action-name>.outputs.<output-name>}`
 
 The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
 
@@ -1673,7 +1673,7 @@ The action output value. Refer to individual [action/module type references](htt
 | ----------------------------- |
 | `string \| number \| boolean` |
 
-### `${action.test.<action-name>.version}`
+### `${actions.test.<action-name>.version}`
 
 The current version of the action.
 
@@ -1684,10 +1684,10 @@ The current version of the action.
 Example:
 
 ```yaml
-my-variable: ${action.test.<action-name>.version}
+my-variable: ${actions.test.<action-name>.version}
 ```
 
-### `${action.services.*}`
+### `${actions.services.*}`
 
 Alias for `deploy`.
 
@@ -1695,7 +1695,7 @@ Alias for `deploy`.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.services.<action-name>.name}`
+### `${actions.services.<action-name>.name}`
 
 The name of the action.
 
@@ -1703,7 +1703,7 @@ The name of the action.
 | -------- |
 | `string` |
 
-### `${action.services.<action-name>.disabled}`
+### `${actions.services.<action-name>.disabled}`
 
 Whether the action is disabled.
 
@@ -1714,10 +1714,10 @@ Whether the action is disabled.
 Example:
 
 ```yaml
-my-variable: ${action.services.<action-name>.disabled}
+my-variable: ${actions.services.<action-name>.disabled}
 ```
 
-### `${action.services.<action-name>.buildPath}`
+### `${actions.services.<action-name>.buildPath}`
 
 The local path to the action build directory.
 
@@ -1728,10 +1728,10 @@ The local path to the action build directory.
 Example:
 
 ```yaml
-my-variable: ${action.services.<action-name>.buildPath}
+my-variable: ${actions.services.<action-name>.buildPath}
 ```
 
-### `${action.services.<action-name>.sourcePath}`
+### `${actions.services.<action-name>.sourcePath}`
 
 The local path to the action source directory.
 
@@ -1742,10 +1742,10 @@ The local path to the action source directory.
 Example:
 
 ```yaml
-my-variable: ${action.services.<action-name>.sourcePath}
+my-variable: ${actions.services.<action-name>.sourcePath}
 ```
 
-### `${action.services.<action-name>.mode}`
+### `${actions.services.<action-name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
@@ -1756,10 +1756,10 @@ The mode that the action should be executed in (e.g. 'sync' or 'local' for Deplo
 Example:
 
 ```yaml
-my-variable: ${action.services.<action-name>.mode}
+my-variable: ${actions.services.<action-name>.mode}
 ```
 
-### `${action.services.<action-name>.var.*}`
+### `${actions.services.<action-name>.var.*}`
 
 The variables configured on the action.
 
@@ -1767,13 +1767,13 @@ The variables configured on the action.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.services.<action-name>.var.<name>}`
+### `${actions.services.<action-name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
 
-### `${action.services.<action-name>.outputs.*}`
+### `${actions.services.<action-name>.outputs.*}`
 
 The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
 
@@ -1781,7 +1781,7 @@ The outputs defined by the action (see individual action/module type [references
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.services.<action-name>.outputs.<output-name>}`
+### `${actions.services.<action-name>.outputs.<output-name>}`
 
 The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
 
@@ -1789,7 +1789,7 @@ The action output value. Refer to individual [action/module type references](htt
 | ----------------------------- |
 | `string \| number \| boolean` |
 
-### `${action.services.<action-name>.version}`
+### `${actions.services.<action-name>.version}`
 
 The current version of the action.
 
@@ -1800,10 +1800,10 @@ The current version of the action.
 Example:
 
 ```yaml
-my-variable: ${action.services.<action-name>.version}
+my-variable: ${actions.services.<action-name>.version}
 ```
 
-### `${action.tasks.*}`
+### `${actions.tasks.*}`
 
 Alias for `run`.
 
@@ -1811,7 +1811,7 @@ Alias for `run`.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.tasks.<action-name>.name}`
+### `${actions.tasks.<action-name>.name}`
 
 The name of the action.
 
@@ -1819,7 +1819,7 @@ The name of the action.
 | -------- |
 | `string` |
 
-### `${action.tasks.<action-name>.disabled}`
+### `${actions.tasks.<action-name>.disabled}`
 
 Whether the action is disabled.
 
@@ -1830,10 +1830,10 @@ Whether the action is disabled.
 Example:
 
 ```yaml
-my-variable: ${action.tasks.<action-name>.disabled}
+my-variable: ${actions.tasks.<action-name>.disabled}
 ```
 
-### `${action.tasks.<action-name>.buildPath}`
+### `${actions.tasks.<action-name>.buildPath}`
 
 The local path to the action build directory.
 
@@ -1844,10 +1844,10 @@ The local path to the action build directory.
 Example:
 
 ```yaml
-my-variable: ${action.tasks.<action-name>.buildPath}
+my-variable: ${actions.tasks.<action-name>.buildPath}
 ```
 
-### `${action.tasks.<action-name>.sourcePath}`
+### `${actions.tasks.<action-name>.sourcePath}`
 
 The local path to the action source directory.
 
@@ -1858,10 +1858,10 @@ The local path to the action source directory.
 Example:
 
 ```yaml
-my-variable: ${action.tasks.<action-name>.sourcePath}
+my-variable: ${actions.tasks.<action-name>.sourcePath}
 ```
 
-### `${action.tasks.<action-name>.mode}`
+### `${actions.tasks.<action-name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
@@ -1872,10 +1872,10 @@ The mode that the action should be executed in (e.g. 'sync' or 'local' for Deplo
 Example:
 
 ```yaml
-my-variable: ${action.tasks.<action-name>.mode}
+my-variable: ${actions.tasks.<action-name>.mode}
 ```
 
-### `${action.tasks.<action-name>.var.*}`
+### `${actions.tasks.<action-name>.var.*}`
 
 The variables configured on the action.
 
@@ -1883,13 +1883,13 @@ The variables configured on the action.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.tasks.<action-name>.var.<name>}`
+### `${actions.tasks.<action-name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
 
-### `${action.tasks.<action-name>.outputs.*}`
+### `${actions.tasks.<action-name>.outputs.*}`
 
 The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
 
@@ -1897,7 +1897,7 @@ The outputs defined by the action (see individual action/module type [references
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${action.tasks.<action-name>.outputs.<output-name>}`
+### `${actions.tasks.<action-name>.outputs.<output-name>}`
 
 The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
 
@@ -1905,7 +1905,7 @@ The action output value. Refer to individual [action/module type references](htt
 | ----------------------------- |
 | `string \| number \| boolean` |
 
-### `${action.tasks.<action-name>.version}`
+### `${actions.tasks.<action-name>.version}`
 
 The current version of the action.
 
@@ -1916,7 +1916,7 @@ The current version of the action.
 Example:
 
 ```yaml
-my-variable: ${action.tasks.<action-name>.version}
+my-variable: ${actions.tasks.<action-name>.version}
 ```
 
 ### `${inputs.*}`

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,6 @@
 
 import { joiIdentifier, joi, joiSparseArray, createSchema } from "../../../config/common"
 import { dedent } from "../../../util/string"
-import { BaseVolumeSpec, baseVolumeSpecKeys, VolumeAccessMode } from "../../base-volume"
 import { V1PersistentVolumeClaimSpec, V1PersistentVolumeClaim } from "@kubernetes/client-node"
 import { readFileSync } from "fs-extra"
 import { join } from "path"
@@ -24,55 +23,63 @@ import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
 import { DeployActionDefinition } from "../../../plugin/action-types"
 import { getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/handlers"
 import { Resolved } from "../../../actions/types"
+import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
+import { memoize } from "lodash"
 
-export interface PersistentVolumeClaimDeploySpec extends BaseVolumeSpec {
+export interface PersistentVolumeClaimDeploySpec {
   namespace?: string
   spec: V1PersistentVolumeClaimSpec
 }
 
-const commonSpecKeys = () => ({
-  ...baseVolumeSpecKeys(),
+const commonSpecKeys = memoize(() => ({
   namespace: joiIdentifier().description(
-    "The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset."
+    "The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in most cases you should leave this unset."
   ),
-  spec: joi
-    .object()
-    .jsonSchema({ ...jsonSchema().properties.spec, type: "object" })
-    .required()
-    .description(
-      "The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec schema may include (or even require) additional fields, depending on the used `storageClass`. See the [PersistentVolumeClaim docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details."
-    ),
-})
+  // TODO: validation for this doesn't work, but kubernetes does the validation for us on apply
+  spec: kubernetesPVCSchema(),
+}))
 
 interface PersistentVolumeClaimSpec extends PersistentVolumeClaimDeploySpec {
   dependencies: string[]
 }
+
 type PersistentVolumeClaimModule = GardenModule<PersistentVolumeClaimSpec, PersistentVolumeClaimSpec>
 
 type PersistentVolumeClaimActionConfig = DeployActionConfig<"persistentvolumeclaim", PersistentVolumeClaimDeploySpec>
 type PersistentVolumeClaimAction = DeployAction<PersistentVolumeClaimActionConfig, {}>
 
-// Need to use a sync read to avoid having to refactor createGardenPlugin()
-// The `persistentvolumeclaim.json` file is copied from the handy
-// kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.17.0-standalone).
-const jsonSchema = () =>
-  JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "persistentvolumeclaim.json")).toString())
+const getPVCJsonSchema = memoize(() => {
+  // Need to use a sync read to avoid having to refactor createGardenPlugin()
+  // The `persistentvolumeclaim.json` file is copied from the handy
+  // kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.17.0-standalone).
+  const jsonSchemaRaw = () =>
+    JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "persistentvolumeclaim.json")).toString())
+
+  const jsonSchema = { ...jsonSchemaRaw().properties.spec, type: "object" }
+
+  return jsonSchema
+})
+
+const kubernetesPVCSchema = memoize(() => joi
+  .object()
+  .jsonSchema(getPVCJsonSchema())
+  .required()
+  .description(
+    "The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec schema may include (or even require) additional fields, depending on the used `storageClass`. See the [PersistentVolumeClaim docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details."
+  ))
 
 export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<PersistentVolumeClaimAction> => ({
   name: "persistentvolumeclaim",
   docs: dedent`
     Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [\`container\` Deploy actions](./container.md).
 
-    See the [PersistentVolumeClaim](../../../k8s-plugins/module-types/persistentvolumeclaim.md) guide for more info and usage examples.
+    See the [PersistentVolumeClaim](../../../k8s-plugins/action-types/persistentvolumeclaim.md) guide for more info and usage examples.
   `,
   schema: joi.object().keys(commonSpecKeys()),
   handlers: {
     configure: async ({ config }) => {
       // No need to scan for files
       config.include = []
-
-      // Copy the access modes field to match the BaseVolumeSpec schema
-      config.spec.accessModes = <VolumeAccessMode[]>config.spec.spec.accessModes || ["ReadWriteOnce"]
 
       return { config, supportedModes: {} }
     },
@@ -99,13 +106,13 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
 
 const pvcModuleSchema = createSchema({
   name: "kubernetes:persistentvolumeclaim:Module",
-  keys: {
+  keys: () => ({
     build: baseBuildSpecSchema(),
     dependencies: joiSparseArray(joiIdentifier()).description(
       "List of services and tasks to deploy/run before deploying this PVC."
     ),
     ...commonSpecKeys(),
-  },
+  }),
 })
 
 export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
@@ -113,7 +120,7 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
   docs: dedent`
     Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-    See the [PersistentVolumeClaim](../../k8s-plugins/module-types/persistentvolumeclaim.md) guide for more info and usage examples.
+    See the [PersistentVolumeClaim](../../k8s-plugins/action-types/persistentvolumeclaim.md) guide for more info and usage examples.
   `,
 
   schema: pvcModuleSchema(),
@@ -158,8 +165,8 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
               build: dummyBuild?.name,
               dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
+              timeout: KUBECTL_DEFAULT_TIMEOUT,
               spec: {
-                accessModes: module.spec.accessModes,
                 namespace: module.spec.namespace,
                 spec: module.spec.spec,
               },
@@ -192,6 +199,7 @@ function getKubernetesAction(action: Resolved<PersistentVolumeClaimAction>) {
       basePath: action.basePath(),
     },
     include: [],
+    timeout: KUBECTL_DEFAULT_TIMEOUT,
     spec: {
       namespace: action.getSpec("namespace"),
       files: [],

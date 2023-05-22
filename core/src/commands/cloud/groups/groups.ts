@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -54,8 +54,8 @@ export class GroupsListCommand extends Command<{}, Opts> {
 
   options = groupsListOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "List groups", "")
+  printHeader({ log }) {
+    printHeader(log, "List groups", "")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<Groups[]>> {

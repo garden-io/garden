@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,6 +15,7 @@ import { RunTask } from "../../../../../../src/tasks/run"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("Helm Pod Run", () => {
   let garden: TestGarden
@@ -56,8 +57,10 @@ describe("Helm Pod Run", () => {
 
     // We also verify that result was saved.
     const actions = await garden.getActionRouter()
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
     const storedResult = await actions.run.getResult({
-      log: garden.log,
+      log: actionLog,
       action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })
@@ -67,7 +70,7 @@ describe("Helm Pod Run", () => {
 
   it("should not store Run results if cacheResult=false", async () => {
     const action = graph.getRun("echo-task")
-    action.getConfig().spec.cacheResult = false
+    action["_config"].spec.cacheResult = false
 
     const testTask = new RunTask({
       garden,
@@ -87,8 +90,10 @@ describe("Helm Pod Run", () => {
 
     // Verify that the result was not saved
     const router = await garden.getActionRouter()
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
     const { result } = await router.run.getResult({
-      log: garden.log,
+      log: actionLog,
       action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })
@@ -119,10 +124,9 @@ describe("Helm Pod Run", () => {
     expect(result!.result!.outputs.log.trim()).to.equal(action.getConfig().spec.namespace)
   })
 
-  // TODO-G2: solver gets stuck in an infinite loop
-  it.skip("should fail if an error occurs, but store the result", async () => {
+  it("should fail if an error occurs, but store the result", async () => {
     const action = graph.getRun("echo-task")
-    action.getConfig().spec.command = ["bork"] // this will fail
+    action["_config"].spec.command = ["bork"] // this will fail
 
     const testTask = new RunTask({
       garden,
@@ -139,10 +143,11 @@ describe("Helm Pod Run", () => {
     )
 
     const actions = await garden.getActionRouter()
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     // We also verify that, despite the task failing, its result was still saved.
     const result = await actions.run.getResult({
-      log: garden.log,
+      log: actionLog,
       action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })

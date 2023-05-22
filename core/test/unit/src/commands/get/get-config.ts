@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,12 @@ import { pick } from "lodash"
 import { getDataDir, makeTestGarden, makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetConfigCommand } from "../../../../../src/commands/get/get-config"
 import { sortBy } from "lodash"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC,
+  GardenApiVersion,
+} from "../../../../../src/constants"
 import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
 import { defaultContainerLimits } from "../../../../../src/plugins/container/moduleConfig"
 
@@ -43,8 +48,6 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
@@ -65,8 +68,6 @@ describe("GetConfigCommand", () => {
       await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
       })
@@ -75,7 +76,7 @@ describe("GetConfigCommand", () => {
     expect(pick(result, ["domain", "projectName", "projectId", "allEnvironmentNames"])).to.eql({
       projectName: "has-domain-and-id",
       projectId: "dummy-id",
-      domain: "http://example.invalid",
+      domain: "https://example.invalid",
       allEnvironmentNames: ["local", "other"],
     })
   })
@@ -86,7 +87,7 @@ describe("GetConfigCommand", () => {
 
     const workflowConfigs: WorkflowConfig[] = [
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         keepAliveHours: 48,
@@ -104,8 +105,6 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
@@ -121,9 +120,9 @@ describe("GetConfigCommand", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: true,
         name: "a-disabled",
         include: [],
@@ -144,9 +143,9 @@ describe("GetConfigCommand", () => {
         type: "test",
       },
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         include: [],
         name: "b-enabled",
@@ -171,8 +170,6 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
@@ -190,9 +187,9 @@ describe("GetConfigCommand", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         name: "enabled",
         include: [],
@@ -233,8 +230,6 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
@@ -250,9 +245,9 @@ describe("GetConfigCommand", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         name: "enabled",
         include: [],
@@ -291,8 +286,6 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
@@ -308,9 +301,9 @@ describe("GetConfigCommand", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         name: "enabled",
         include: [],
@@ -357,8 +350,6 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
@@ -375,9 +366,9 @@ describe("GetConfigCommand", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: true,
           name: "a-disabled",
           include: [],
@@ -398,9 +389,9 @@ describe("GetConfigCommand", () => {
           type: "test",
         },
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           include: [],
           name: "b-enabled",
@@ -425,8 +416,6 @@ describe("GetConfigCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": true, "resolve": "full" }),
       })
@@ -442,9 +431,9 @@ describe("GetConfigCommand", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "enabled",
           include: [],
@@ -485,30 +474,15 @@ describe("GetConfigCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": true, "resolve": "full" }),
       })
 
       const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
-      // Remove the disabled service
-      expectedModuleConfigs[0].serviceConfigs = [
-        {
-          name: "service-enabled",
-          dependencies: [],
-          disabled: false,
-          sourceModuleName: undefined,
-          spec: {
-            name: "service-enabled",
-            dependencies: [],
-            disabled: false,
-            spec: {},
-          },
-        },
-      ]
+      const actualEnabledServiceConfig = res.result?.moduleConfigs[0].serviceConfigs[0]
+      const expectedEnabledServiceConfig = expectedModuleConfigs[0].serviceConfigs.filter((s) => !s.disabled)[0]
 
-      expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
+      expect(actualEnabledServiceConfig).to.deep.equal(expectedEnabledServiceConfig)
     })
 
     it("should exclude disabled task configs", async () => {
@@ -517,9 +491,9 @@ describe("GetConfigCommand", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "enabled",
           include: [],
@@ -558,8 +532,6 @@ describe("GetConfigCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": true, "resolve": "full" }),
       })
@@ -576,12 +548,12 @@ describe("GetConfigCommand", () => {
             name: "task-enabled",
             dependencies: [],
             disabled: false,
-            timeout: null,
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
             env: {},
             artifacts: [],
             command: ["echo", "ok"],
           },
-          timeout: null,
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
         },
       ]
 
@@ -594,9 +566,9 @@ describe("GetConfigCommand", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "enabled",
           include: [],
@@ -643,8 +615,6 @@ describe("GetConfigCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": true, "resolve": "full" }),
       })
@@ -660,12 +630,12 @@ describe("GetConfigCommand", () => {
             name: "test-enabled",
             dependencies: [],
             disabled: false,
-            timeout: null,
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
             artifacts: [],
             command: ["echo", "ok"],
             env: {},
           },
-          timeout: null,
+          timeout: DEFAULT_TEST_TIMEOUT_SEC,
         },
       ]
 
@@ -680,9 +650,9 @@ describe("GetConfigCommand", () => {
 
       const rawConfigs = [
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           name: "enabled",
           include: [],
@@ -711,8 +681,6 @@ describe("GetConfigCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
       })
@@ -727,8 +695,6 @@ describe("GetConfigCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
       })
@@ -743,8 +709,6 @@ describe("GetConfigCommand", () => {
       await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
       })

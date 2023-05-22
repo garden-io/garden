@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -71,7 +71,7 @@ export class MigrateCommand extends Command<Args, Opts> {
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<MigrateCommandResult>> {
     // opts.root defaults to current directory
-    const projectConfig = await findProjectConfig(log, opts.root, true)
+    const projectConfig = await findProjectConfig({ log, path: opts.root, allowInvalid: true })
 
     if (!projectConfig) {
       throw new ConfigurationError(`Not a project directory (or any of the parent directories): ${opts.root}`, {

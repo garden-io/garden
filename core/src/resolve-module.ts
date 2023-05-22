@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -52,6 +52,7 @@ import type { ActionConfig, ActionKind, BaseActionConfig } from "./actions/types
 import type { ModuleGraph } from "./graph/modules"
 import type { GraphResults } from "./graph/results"
 import type { ExecBuildConfig } from "./plugins/exec/config"
+import { pMemoizeDecorator } from "./lib/p-memoize"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -294,6 +295,11 @@ export class ModuleResolver {
     })
   }
 
+  @pMemoizeDecorator()
+  private async getLinkedSources() {
+    return getLinkedSources(this.garden, "module")
+  }
+
   /**
    * Resolves and validates a single module configuration.
    */
@@ -420,8 +426,9 @@ export class ModuleResolver {
     })
 
     if (config.repositoryUrl) {
-      const linkedSources = await getLinkedSources(garden, "module")
-      config.path = await garden.loadExtSourcePath({
+      const linkedSources = await this.getLinkedSources()
+      config.basePath = config.path
+      config.path = await garden.resolveExtSourcePath({
         name: config.name,
         linkedSources,
         repositoryUrl: config.repositoryUrl,
@@ -429,8 +436,8 @@ export class ModuleResolver {
       })
     }
 
-    const actions = await garden.getActionRouter()
-    const configureResult = await actions.module.configureModule({
+    const router = await garden.getActionRouter()
+    const configureResult = await router.module.configureModule({
       moduleConfig: config,
       log: garden.log,
     })
@@ -550,7 +557,7 @@ export class ModuleResolver {
     // Make sure version is re-computed after writing new/updated files
     if (updatedFiles) {
       const cacheContext = pathToCacheContext(resolvedConfig.path)
-      this.garden.cache.invalidateUp(this.log, cacheContext)
+      this.garden.treeCache.invalidateUp(this.log, cacheContext)
     }
 
     const module = await moduleFromConfig({
@@ -599,7 +606,7 @@ export class ModuleResolver {
   /**
    * Resolves module variables with the following precedence order:
    *
-   *   garden.cliVariables > module varfile > config.variables
+   *   garden.variableOverrides > module varfile > config.variables
    */
   private async resolveVariables(
     config: ModuleConfig,
@@ -619,7 +626,9 @@ export class ModuleResolver {
 
     const rawVariables = config.variables
     const moduleVariables = resolveTemplateStrings(cloneDeep(rawVariables || {}), moduleConfigContext, resolveOpts)
-    const mergedVariables: DeepPrimitiveMap = <any>merge(moduleVariables, merge(varfileVars, this.garden.cliVariables))
+    const mergedVariables: DeepPrimitiveMap = <any>(
+      merge(moduleVariables, merge(varfileVars, this.garden.variableOverrides))
+    )
     return mergedVariables
   }
 }
@@ -712,7 +721,7 @@ export const convertModules = profileAsync(async function convertModules(
 
       baseFields: {
         internal: {
-          basePath: module.path,
+          basePath: module.basePath || module.path,
         },
         copyFrom,
         disabled: module.disabled,
@@ -790,6 +799,7 @@ export function makeDummyBuild({
     allowPublish: module.allowPublish,
     dependencies,
 
+    timeout: module.build.timeout,
     spec: {
       env: {},
     },
@@ -798,7 +808,7 @@ export function makeDummyBuild({
 
 function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   if (!action.internal.basePath) {
-    action.internal.basePath = module.path
+    action.internal.basePath = module.basePath || module.path
   }
 
   // Converted actions are fully resolved upfront
@@ -820,8 +830,14 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   if (module.inputs) {
     action.internal.inputs = module.inputs
   }
-  if (isBuildActionConfig(action) && !module.allowPublish) {
-    action.allowPublish = false
+  if (module.repositoryUrl) {
+    action.internal.remoteClonePath = module.path // This is set to the source local path during module resolution
+  }
+  if (isBuildActionConfig(action)) {
+    if (!module.allowPublish) {
+      action.allowPublish = false
+    }
+    action.internal.treeVersion = module.version
   }
   if (!action.varfiles && module.varfile) {
     action.varfiles = [module.varfile]

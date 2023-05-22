@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -45,6 +45,7 @@ import { Resolved } from "../../actions/types"
 import { getDeployedImageId } from "../kubernetes/container/util"
 import { KubernetesProvider } from "../kubernetes/config"
 import { DeepPrimitiveMap } from "../../config/common"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 
@@ -94,7 +95,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
 
     for (const volume of spec.volumes) {
       if (volume.module) {
-        // TODO-G2: change this to validation instead, require explicit dependency
         moduleConfig.build.dependencies.push({ name: volume.module, copy: [] })
         spec.dependencies.push(volume.module)
       }
@@ -230,6 +230,7 @@ function convertContainerModuleRuntimeActions(
       build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(service.spec.dependencies, buildAction),
 
+      timeout: service.spec.timeout || DEFAULT_DEPLOY_TIMEOUT_SEC,
       spec: {
         ...omit(service.spec, ["name", "dependencies", "disabled"]),
         image: deploymentImageId,
@@ -253,7 +254,7 @@ function convertContainerModuleRuntimeActions(
       disabled: task.disabled,
       build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(task.spec.dependencies, buildAction),
-      timeout: task.spec.timeout || undefined,
+      timeout: task.spec.timeout,
 
       spec: {
         ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
@@ -272,7 +273,7 @@ function convertContainerModuleRuntimeActions(
       disabled: test.disabled,
       build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(test.spec.dependencies, buildAction),
-      timeout: test.spec.timeout ? test.spec.timeout : undefined,
+      timeout: test.spec.timeout,
 
       spec: {
         ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
@@ -306,7 +307,7 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
       copyFrom: dummyBuild?.copyFrom,
       allowPublish: module.allowPublish,
       dependencies: module.build.dependencies.map(convertBuildDependency),
-      timeout: module.spec.build.timeout,
+      timeout: module.build.timeout,
 
       spec: {
         buildArgs: module.spec.buildArgs,
@@ -357,9 +358,9 @@ export const gardenPlugin = () =>
           schema: containerBuildSpecSchema(),
           handlers: {
             async getOutputs({ action }) {
-              // TODO-G2B: figure out why this cast is needed here
+              // TODO: figure out why this cast is needed here
               return {
-                outputs: getContainerBuildActionOutputs(action) as unknown as DeepPrimitiveMap,
+                outputs: (getContainerBuildActionOutputs(action) as unknown) as DeepPrimitiveMap,
               }
             },
 
@@ -387,6 +388,7 @@ export const gardenPlugin = () =>
 
             async validate({ action }) {
               // make sure ports are correctly configured
+              validateRuntimeCommon(action)
               const spec = action.getSpec()
               const definedPorts = spec.ports
               const portsByName = keyBy(spec.ports, "name")
@@ -465,7 +467,7 @@ export const gardenPlugin = () =>
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
             async validate({ action }) {
-              validateCommon(action)
+              validateRuntimeCommon(action)
               return {}
             },
           },
@@ -483,6 +485,10 @@ export const gardenPlugin = () =>
           runtimeOutputsSchema: containerTestOutputSchema(),
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
+            async validate({ action }) {
+              validateRuntimeCommon(action)
+              return {}
+            },
           },
         },
       ],
@@ -552,7 +558,8 @@ export const gardenPlugin = () =>
           {
             platform: "windows",
             architecture: "amd64",
-            url: "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v20.10.9/docker-20.10.9.zip",
+            url:
+              "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v20.10.9/docker-20.10.9.zip",
             sha256: "360ca42101d453022eea17747ae0328709c7512e71553b497b88b7242b9b0ee4",
             extract: {
               format: "zip",
@@ -564,7 +571,7 @@ export const gardenPlugin = () =>
     ],
   })
 
-function validateCommon(action: Resolved<ContainerRuntimeAction>) {
+function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
   const { build } = action.getConfig()
   const { image } = action.getSpec()
 
@@ -580,7 +587,7 @@ function validateCommon(action: Resolved<ContainerRuntimeAction>) {
       }
     )
   } else if (build) {
-    const buildAction = action.getDependency({ kind: "Build", name: build })
+    const buildAction = action.getDependency({ kind: "Build", name: build }, { includeDisabled: true })
     if (buildAction && !buildAction?.isCompatible("container")) {
       throw new ConfigurationError(
         `${action.longDescription()} build field must specify a container Build, or a compatible type.`,

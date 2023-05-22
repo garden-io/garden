@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,7 +30,7 @@ import {
 import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/container/deployment"
 import { getHelmTestGarden } from "./helm/common"
 import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
-import { Log } from "../../../../../src/logger/log-entry"
+import { createActionLog, Log } from "../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../src/tasks/build"
 import { getContainerTestGarden } from "./container/container"
 import {
@@ -90,6 +90,7 @@ describe("util", () => {
         configsByKey: {},
         router,
         mode: "default",
+        linkedSources: {},
       })) as BuildAction
       return new BuildTask({
         garden: helmGarden,
@@ -140,8 +141,7 @@ describe("util", () => {
           ctx,
           imageId: action.getSpec().image,
           namespace: provider.config.namespace!.name!,
-
-          log: garden.log,
+          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
           production: false,
         })
         await garden.processTasks({ tasks: [deployTask], throwOnError: true })
@@ -150,7 +150,7 @@ describe("util", () => {
         const services = flatten(pods.map((pod) => pod.spec.containers.map((container) => container.name)))
         expect(services).to.eql(["simple-service"])
       } finally {
-        await garden.close()
+        garden.close()
       }
     })
 
@@ -188,7 +188,7 @@ describe("util", () => {
         expect(pods[0].kind).to.equal("Pod")
         expect(pods[0].metadata.name).to.equal(pod.metadata.name)
       } finally {
-        await garden.close()
+        garden.close()
       }
     })
   })

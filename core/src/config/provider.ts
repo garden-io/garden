@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,6 +27,7 @@ import { environmentStatusSchema } from "./status"
 import { DashboardPage, dashboardPagesSchema } from "../plugin/handlers/Provider/getDashboardPage"
 import type { ActionState } from "../actions/types"
 import { ValidResultType } from "../tasks/base"
+import { uuidv4 } from "../util/random"
 
 export interface BaseProviderConfig {
   name: string
@@ -64,6 +65,7 @@ export const providerConfigBaseSchema = memoize(() =>
 
 export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> extends ValidResultType {
   name: string
+  uid: string // This is generated at creatinon time, and is intended for use by plugins e.g. for caching purposes.
   dependencies: { [name: string]: Provider }
   environments?: string[]
   moduleConfigs: ModuleConfig[]
@@ -81,6 +83,7 @@ export const providerSchema = createSchema({
     dependencies: joiIdentifierMap(joi.link("..."))
       .description("Map of all the providers that this provider depends on.")
       .required(),
+    uid: joi.string().required().meta({ internal: true }),
     config: providerConfigBaseSchema().required(),
     moduleConfigs: joiArray(moduleConfigSchema().optional()),
     status: environmentStatusSchema(),
@@ -99,6 +102,7 @@ export const defaultProviders = [{ name: "container" }]
 // this is used for default handlers in the action handler
 export const defaultProvider: Provider = {
   name: "_default",
+  uid: uuidv4(),
   dependencies: {},
   moduleConfigs: [],
   state: "ready",
@@ -123,6 +127,7 @@ export function providerFromConfig({
 }): Provider {
   return {
     name: config.name,
+    uid: uuidv4(),
     dependencies,
     moduleConfigs,
     config,

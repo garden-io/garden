@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,16 +7,13 @@
  */
 
 import chalk from "chalk"
-import { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "../tasks/base"
+import { ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { BuildAction } from "../actions/build"
 import pluralize from "pluralize"
 import { BuildStatus } from "../plugin/handlers/Build/get-status"
 import { resolvedActionToExecuted } from "../actions/helpers"
-
-export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {
-  force: boolean
-}
+import { renderDuration } from "../logger/util"
 
 @Profile()
 export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
@@ -27,11 +24,16 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     return this.action.longDescription()
   }
 
-  async getStatus({ dependencyResults }: ActionTaskStatusParams<BuildAction>) {
+  async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
     const output = await router.build.getStatus({ log: this.log, graph: this.graph, action })
     const status = output.result
+
+    if (status.state === "ready" && !statusOnly && !this.force) {
+      this.log.info(`Already built`)
+    }
+
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 
@@ -45,8 +47,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       )
     }
 
-    const log = this.log.info(`Building version ${action.versionString()}...`)
-
+    const log = this.log
     const files = action.getFullVersion().files
 
     if (files.length > 0) {
@@ -58,7 +59,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       log: log || this.log,
     })
 
-    log.verbose(chalk.green(`Done syncing sources (took ${log.getDuration(1)} sec)`))
+    log.verbose(chalk.green(`Done syncing sources ${renderDuration(log.getDuration(1))}`))
 
     await this.garden.buildStaging.syncDependencyProducts(action, log)
 
@@ -68,7 +69,6 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
         action,
         log,
       })
-      // TODO @eysi: Verify duration
       log.success(`Done`)
 
       return {

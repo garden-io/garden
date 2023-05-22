@@ -9,7 +9,7 @@ tocTitle: "`conftest-helm` Test"
 
 Special Test type for validating helm deploys with conftest. This is necessary in addition to the `conftest` Test type in order to be able to properly render the Helm chart ahead of validation, including all runtime values.
 
-If the helm Deploy requires runtime outputs from other modules, you must list the corresponding dependencies with the `dependencies` field.
+If the helm Deploy requires runtime outputs from other actions, you must list the corresponding dependencies with the `dependencies` field.
 
 > Note: In most cases, you'll let the [`conftest-kubernetes`](../../providers/conftest-kubernetes.md) provider create this Test automatically, but you may in some cases want or need to manually specify files to test.
 
@@ -27,9 +27,6 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -50,8 +47,8 @@ description:
 # For `source.repository` behavior, please refer to the [Remote Sources
 # guide](https://docs.garden.io/advanced/using-remote-sources).
 source:
-  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is
-  # ina git repository!
+  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in
+  # a git repository!
   path:
 
   # When set, Garden will import the action source from this repository, but use this action configuration (and not
@@ -157,11 +154,11 @@ build:
 kind:
 
 # Set a timeout for the test to complete, in seconds.
-timeout:
+timeout: 600
 
 spec:
   # POSIX-style path to a directory containing the policies to match the config against, or a
-  # specific .rego file, relative to the module root.
+  # specific .rego file, relative to the action root.
   # Must be a relative path, and should in most cases be within the project root.
   # Defaults to the `policyPath` set in the provider config.
   policyPath:
@@ -183,14 +180,6 @@ spec:
 ```
 
 ## Configuration Keys
-
-### `apiVersion`
-
-The schema version of this config (currently not used).
-
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 ### `type`
 
@@ -234,7 +223,7 @@ For `source.repository` behavior, please refer to the [Remote Sources guide](htt
 
 [source](#source) > path
 
-A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!
+A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!
 
 | Type        | Required |
 | ----------- | -------- |
@@ -405,9 +394,9 @@ This would mean that instead of looking for manifest files relative to this acti
 
 Set a timeout for the test to complete, in seconds.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `spec`
 
@@ -420,7 +409,7 @@ Set a timeout for the test to complete, in seconds.
 [spec](#spec) > policyPath
 
 POSIX-style path to a directory containing the policies to match the config against, or a
-specific .rego file, relative to the module root.
+specific .rego file, relative to the action root.
 Must be a relative path, and should in most cases be within the project root.
 Defaults to the `policyPath` set in the provider config.
 
@@ -482,7 +471,7 @@ The Helm Deploy action to validate.
 ## Outputs
 
 The following keys are available via the `${actions.test.<name>}` template string key for `conftest-helm`
-modules.
+action.
 
 ### `${actions.test.<name>.name}`
 

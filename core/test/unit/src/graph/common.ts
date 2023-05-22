@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,12 @@ import { detectCycles, DependencyGraph } from "../../../../src/graph/common"
 import { makeTestGarden, expectError, getDataDir } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
 import { ConfigurationError } from "../../../../src/exceptions"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC,
+  GardenApiVersion,
+} from "../../../../src/constants"
 import { detectMissingDependencies } from "../../../../src/graph/modules"
 
 describe("graph common", () => {
@@ -19,11 +24,11 @@ describe("graph common", () => {
     it("should return an error when a build dependency is missing", async () => {
       const moduleConfigs: ModuleConfig[] = [
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "test",
           type: "test",
           allowPublish: false,
-          build: { dependencies: [{ name: "missing", copy: [] }] },
+          build: { dependencies: [{ name: "missing", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path: "/tmp",
           serviceConfigs: [],
@@ -38,11 +43,11 @@ describe("graph common", () => {
     it("should return an error when a service dependency is missing", async () => {
       const moduleConfigs: ModuleConfig[] = [
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "test",
           type: "test",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path: "/tmp",
           serviceConfigs: [
@@ -65,11 +70,11 @@ describe("graph common", () => {
     it("should return an error when a task dependency is missing", async () => {
       const moduleConfigs: ModuleConfig[] = [
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "test",
           type: "test",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path: "/tmp",
           serviceConfigs: [],
@@ -80,7 +85,7 @@ describe("graph common", () => {
               dependencies: ["missing"],
               disabled: false,
               spec: {},
-              timeout: null,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
             },
           ],
           testConfigs: [],
@@ -93,11 +98,11 @@ describe("graph common", () => {
     it("should return an error when a test dependency is missing", async () => {
       const moduleConfigs: ModuleConfig[] = [
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "test",
           type: "test",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path: "/tmp",
           serviceConfigs: [],
@@ -108,7 +113,7 @@ describe("graph common", () => {
               dependencies: ["missing"],
               disabled: false,
               spec: {},
-              timeout: null,
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
             },
           ],
           spec: {},
@@ -120,11 +125,11 @@ describe("graph common", () => {
     it("should return null when no dependencies are missing", async () => {
       const moduleConfigs: ModuleConfig[] = [
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "test",
           type: "test",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path: "/tmp",
           serviceConfigs: [],

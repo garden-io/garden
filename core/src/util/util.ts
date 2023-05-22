@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,7 +28,6 @@ import exitHook from "async-exit-hook"
 import _spawn from "cross-spawn"
 import { readFile } from "fs-extra"
 import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
-import chalk from "chalk"
 import { safeLoad } from "js-yaml"
 import { createHash } from "crypto"
 import { dedent, tailString } from "./string"
@@ -153,24 +152,15 @@ export function defer<T>() {
 }
 
 /**
- * Extracting to a separate function so that we can test output streams
+ * Creates an output stream that logs the message.
  */
-export function renderOutputStream(msg: string, command?: string) {
-  return command ? chalk.gray(`[${command}]: ${msg}`) : chalk.gray(msg)
-}
-
-/**
- * Creates an output stream that updates a log entry on data events (in an opinionated way).
- *
- * Note that new entries are not created but rather the passed log entry gets updated.
- * It's therefore recommended to pass a placeholder entry, for example: `log.placeholder(LogLevel.debug)`
- */
-export function createOutputStream(log: Log) {
+export function createOutputStream(log: Log, origin?: string) {
   const outputStream = split2()
+  const streamLog = log.createLog({ origin })
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    log.info(renderOutputStream(line.toString()))
+    streamLog.info({ msg: line.toString() })
   })
 
   return outputStream
@@ -564,13 +554,6 @@ export function pushToKey(obj: object, key: string, value: any) {
   } else {
     obj[key] = [value]
   }
-}
-
-/**
- * Returns true if `obj` is a Promise, otherwise false.
- */
-export function isPromise(obj: any): obj is Promise<any> {
-  return !!obj && (typeof obj === "object" || typeof obj === "function") && typeof obj.then === "function"
 }
 
 /**

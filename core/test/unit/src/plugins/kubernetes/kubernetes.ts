@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,15 +12,14 @@ import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/sy
 import { expect } from "chai"
 import { TempDirectory, makeTempDir } from "../../../../helpers"
 import { providerFromConfig } from "../../../../../src/config/provider"
-import { Garden } from "../../../../../src/garden"
-import { makeDummyGarden } from "../../../../../src/cli/cli"
+import { Garden, makeDummyGarden } from "../../../../../src/garden"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {
     name: "kubernetes",
     buildMode: "local-docker",
     context: "my-cluster",
-    defaultHostname: "my.domain.com",
+    defaultHostname: "hostname.invalid",
     deploymentRegistry: {
       hostname: "eu.gcr.io",
       namespace: "garden-ci",
@@ -72,7 +71,7 @@ describe("kubernetes configureProvider", () => {
       config,
       log: garden.log,
       dependencies: {},
-      configStore: garden.configStore,
+      configStore: garden.localConfigStore,
     })
   }
 

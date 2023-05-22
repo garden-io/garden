@@ -9,7 +9,7 @@ spec:
   # The build arguments to use when building the image.
   # Corresponds to the ARG directive in the Dockerfile.
   buildArgs:
-    BASE_IMAGE_VERSION: ${action.build.base-image.version}
+    BASE_IMAGE_VERSION: ${actions.build.base-image.version}
 
 ---
 

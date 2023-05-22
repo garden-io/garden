@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,13 +11,13 @@ import { ActionConfig } from "../actions/types"
 import { baseActionConfigSchema } from "../actions/base"
 import { templateStringLiteral } from "../docs/common"
 import {
-  apiVersionSchema,
   createSchema,
   DeepPrimitiveMap,
   joi,
   joiSparseArray,
   joiUserIdentifier,
   joiVariables,
+  unusedApiVersionSchema,
 } from "./common"
 import { varfileDescription } from "./base"
 
@@ -46,7 +46,7 @@ export const groupConfig = createSchema({
   name: "Group",
   keys: () => ({
     // Basics
-    apiVersion: apiVersionSchema(),
+    apiVersion: unusedApiVersionSchema(),
     kind: joi.string().required().allow("Group"),
     name: joiUserIdentifier()
       .required()

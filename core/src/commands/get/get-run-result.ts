@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,6 +14,7 @@ import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { joiArray, joi } from "../../config/common"
 import { StringParameter } from "../../cli/params"
 import { GetRunResult, getRunResultSchema } from "../../plugin/handlers/Run/get-result"
+import { createActionLog } from "../../logger/log-entry"
 
 const getRunResultArgs = {
   name: new StringParameter({
@@ -51,9 +52,9 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
       })
       .description("The output from the Run. May also return null if no Run result is found.")
 
-  printHeader({ headerLog, args }) {
+  printHeader({ log, args }) {
     const taskName = args.name
-    printHeader(headerLog, `Run result for ${chalk.cyan(taskName)}`, "🚀")
+    printHeader(log, `Run result for ${chalk.cyan(taskName)}`, "🚀")
   }
 
   async action({ garden, log, args }: CommandParams<Args>) {
@@ -63,9 +64,10 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
     const router = await garden.getActionRouter()
 
     const resolved = await garden.resolveAction({ action, graph, log })
+    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
     const { result: res } = await router.run.getResult({
-      log,
+      log: actionLog,
       action: resolved,
       graph,
     })

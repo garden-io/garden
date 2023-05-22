@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,7 @@ describe("exec provider initialization cache behaviour", () => {
   let fileLocation: string
 
   beforeEach(async () => {
-    gardenOne = await makeTestGarden(getDataDir("exec-provider-cache"), { environmentName: "one" })
+    gardenOne = await makeTestGarden(getDataDir("exec-provider-cache"), { environmentString: "one" })
 
     tmpDir = join(await gardenOne.getRepoRoot(), "project")
     fileLocation = join(tmpDir, "theFile")
@@ -35,7 +35,7 @@ describe("exec provider initialization cache behaviour", () => {
     let contents = await readFile(fileLocation, { encoding: "utf-8" })
     expect(contents).equal("one\n")
 
-    const gardenTwo = await makeTestGarden(tmpDir, { environmentName: "two", noTempDir: true })
+    const gardenTwo = await makeTestGarden(tmpDir, { environmentString: "two", noTempDir: true })
     await gardenTwo.resolveProvider(gardenTwo.log, "exec")
 
     contents = await readFile(fileLocation, { encoding: "utf-8" })
@@ -46,13 +46,13 @@ describe("exec provider initialization cache behaviour", () => {
     let contents = await readFile(fileLocation, { encoding: "utf-8" })
     expect(contents).equal("one\n")
 
-    const gardenTwo = await makeTestGarden(tmpDir, { environmentName: "two", noTempDir: true })
+    const gardenTwo = await makeTestGarden(tmpDir, { environmentString: "two", noTempDir: true })
     await gardenTwo.resolveProvider(gardenTwo.log, "exec")
 
     contents = await readFile(fileLocation, { encoding: "utf-8" })
     expect(contents).equal("two\n")
 
-    const gardenOneAgain = await makeTestGarden(tmpDir, { environmentName: "one", noTempDir: true })
+    const gardenOneAgain = await makeTestGarden(tmpDir, { environmentString: "one", noTempDir: true })
     await gardenOneAgain.resolveProvider(gardenOneAgain.log, "exec")
 
     contents = await readFile(fileLocation, { encoding: "utf-8" })

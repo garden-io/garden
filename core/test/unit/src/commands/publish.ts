@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { it } from "mocha"
 import { expect } from "chai"
 import { PublishCommand } from "../../../../src/commands/publish"
-import { withDefaultGlobalOpts, makeTestGarden, getAllRunResults, getDataDir } from "../../../helpers"
+import { withDefaultGlobalOpts, makeTestGarden, getAllTaskResults, getDataDir } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 import { cloneDeep } from "lodash"
 import { execBuildActionSchema } from "../../../../src/plugins/exec/config"
@@ -51,6 +51,7 @@ const testProvider = createGardenPlugin({
                     basePath: params.module.path,
                     groupName: params.module.name,
                   },
+                  timeout: params.module.build.timeout,
                   spec: {},
                 },
               ],
@@ -102,8 +103,6 @@ describe("PublishCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -150,8 +149,6 @@ describe("PublishCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: undefined,
       },
@@ -161,7 +158,7 @@ describe("PublishCommand", () => {
       }),
     })
 
-    const allResults = getAllRunResults(result?.graphResults!)
+    const allResults = getAllTaskResults(result?.graphResults!)
 
     expect(allResults["build.module-a"]?.processed).to.be.true
     expect(allResults["build.module-b"]?.processed).to.be.true
@@ -174,8 +171,6 @@ describe("PublishCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: ["module-a"],
       },
@@ -195,8 +190,6 @@ describe("PublishCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: ["module-c"],
       },
@@ -218,8 +211,6 @@ describe("PublishCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {
         names: ["module-a"],
       },
