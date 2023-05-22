@@ -18,7 +18,7 @@ import {
 } from "../../../../src/config/base"
 import { resolve, join } from "path"
 import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
-import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, PREVIOUS_API_VERSION } from "../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { safeDumpYaml } from "../../../../src/util/serialization"
 import { getRootLogger } from "../../../../src/logger/logger"
@@ -38,7 +38,7 @@ const log = logger.createLog()
 // TODO-0.14: remove this describe block in 0.14
 describe("prepareProjectResource", () => {
   const projectResourceTemplate = {
-    apiVersion: DEFAULT_API_VERSION,
+    apiVersion: GardenApiVersion.v1,
     kind: "Project",
     name: "test",
     path: "/tmp/", // the path does not matter in this test suite
@@ -134,7 +134,7 @@ describe("prepareProjectResource", () => {
     // The apiVersion is set to the previous version for backwards compatibility.
     const expectedProjectResource = {
       ...projectResource,
-      apiVersion: PREVIOUS_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
     }
     expect(returnedProjectResource).to.eql(expectedProjectResource)
 
@@ -142,10 +142,10 @@ describe("prepareProjectResource", () => {
     expect(logEntry.msg).to.include(`"apiVersion" is missing in the Project config`)
   })
 
-  it("should log a warning if the apiVersion is against the previous version", async () => {
+  it("should log a warning if the apiVersion is garden.io/v0", async () => {
     const projectResource = {
       ...projectResourceTemplate,
-      apiVersion: PREVIOUS_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
     }
 
     const returnedProjectResource = prepareProjectResource(log, projectResource)
@@ -153,7 +153,7 @@ describe("prepareProjectResource", () => {
 
     const logEntry = log.getLatestEntry()
     expect(logEntry.msg).to.include(
-      `Project is configured with \`apiVersion: ${PREVIOUS_API_VERSION}\`, running with backwards compatibility.`
+      `Project is configured with \`apiVersion: ${GardenApiVersion.v0}\`, running with backwards compatibility.`
     )
   })
 })
@@ -225,7 +225,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         path: projectPathA,
         configPath,
@@ -256,7 +256,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: PREVIOUS_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Module",
         name: "module-a",
         type: "test",
@@ -380,7 +380,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         configPath,
         path: projectPathMultipleModules,
@@ -400,7 +400,7 @@ describe("loadConfigResources", () => {
         variables: { some: "variable" },
       },
       {
-        apiVersion: PREVIOUS_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Module",
         name: "module-from-project-config",
         type: "test",
@@ -435,7 +435,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: PREVIOUS_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Module",
         name: "module-a1",
         type: "test",
@@ -468,7 +468,7 @@ describe("loadConfigResources", () => {
         varfile: undefined,
       },
       {
-        apiVersion: PREVIOUS_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Module",
         name: "module-a2",
         type: "test",
@@ -507,7 +507,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         path: projectPath,
         configPath,
@@ -531,7 +531,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "foo",
         environments: [{ name: "local" }],

@@ -830,10 +830,7 @@ providers:
       environments:
 
     moduleConfigs:
-      - # The schema version of this config.
-        apiVersion:
-
-        kind:
+      - kind:
 
         # The type of this module.
         type:
@@ -1133,9 +1130,6 @@ actionConfigs:
   # Build action configs in the project.
   Build:
     <name>:
-      # The schema version of this config.
-      apiVersion:
-
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1306,9 +1300,6 @@ actionConfigs:
   # Deploy action configs in the project.
   Deploy:
     <name>:
-      # The schema version of this config.
-      apiVersion:
-
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1449,9 +1440,6 @@ actionConfigs:
   # Run action configs in the project.
   Run:
     <name>:
-      # The schema version of this config.
-      apiVersion:
-
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1592,9 +1580,6 @@ actionConfigs:
   # Test action configs in the project.
   Test:
     <name>:
-      # The schema version of this config.
-      apiVersion:
-
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1734,10 +1719,7 @@ actionConfigs:
 
 # All module configs in the project.
 moduleConfigs:
-  - # The schema version of this config.
-    apiVersion:
-
-    kind:
+  - kind:
 
     # The type of this module.
     type:
@@ -1981,11 +1963,7 @@ moduleConfigs:
 
 # All workflow configs in the project.
 workflowConfigs:
-  - # The schema version of this workflow's config. Use garden.io/v1 for Garden Cloud workflows with Garden Bonsai and
-    # garden.io/v0 for Garden Cloud workflows with Garden Acorn. Defaults to garden.io/v1.
-    apiVersion:
-
-    kind:
+  - kind:
 
     # The name of this workflow.
     name:
@@ -2240,9 +2218,6 @@ Examples:
 modules:
   # The configuration for a module.
   <name>:
-    # The schema version of this config.
-    apiVersion:
-
     kind:
 
     # The type of this module.

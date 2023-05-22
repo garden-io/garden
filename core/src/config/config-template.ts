@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi, apiVersionSchema, joiUserIdentifier, CustomObjectSchema, createSchema } from "./common"
+import { joi, joiUserIdentifier, CustomObjectSchema, createSchema, unusedApiVersionSchema } from "./common"
 import { baseModuleSpecSchema, BaseModuleSpec } from "./module"
 import { dedent, naturalList } from "../util/string"
 import { configTemplateKind, renderTemplateKind, BaseGardenResource, baseInternalFieldsSchema } from "./base"
@@ -119,7 +119,7 @@ export async function resolveConfigTemplate(
 export const configTemplateSchema = createSchema({
   name: configTemplateKind,
   keys: () => ({
-    apiVersion: apiVersionSchema(),
+    apiVersion: unusedApiVersionSchema(),
     kind: joi.string().allow(configTemplateKind, "ModuleTemplate").only().default(configTemplateKind),
     name: joiUserIdentifier().description("The name of the template."),
 
@@ -186,7 +186,7 @@ const moduleSchema = createSchema({
 const templatedResourceSchema = createSchema({
   name: "templated-resource",
   keys: () => ({
-    apiVersion: apiVersionSchema,
+    apiVersion: unusedApiVersionSchema(),
     kind: joi
       .string()
       .allow(...templatableKinds)

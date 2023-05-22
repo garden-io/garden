@@ -28,16 +28,16 @@ import type { TemplatedModuleConfig } from "../plugins/templated"
 import { omit } from "lodash"
 import { EnvironmentConfigContext } from "./template-contexts/project"
 import { ConfigTemplateConfig, TemplatableConfig, templatableKinds, templateNoTemplateFields } from "./config-template"
-import { apiVersionSchema, createSchema, joi, joiIdentifier, joiUserIdentifier } from "./common"
+import { createSchema, joi, joiIdentifier, joiUserIdentifier, unusedApiVersionSchema } from "./common"
 import { DeepPrimitiveMap } from "@garden-io/platform-api-types"
-import { DEFAULT_API_VERSION } from "../constants"
 import { RenderTemplateConfigContext } from "./template-contexts/render"
 import { Log } from "../logger/log-entry"
+import { GardenApiVersion } from "../constants"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,
   keys: () => ({
-    apiVersion: apiVersionSchema(),
+    apiVersion: unusedApiVersionSchema(),
     kind: joi.string().allow(renderTemplateKind).only().default(renderTemplateKind),
     name: joiUserIdentifier().description("A unique identifier for the Render config."),
     disabled: joi.boolean().default(false).description("Set to true to skip rendering this template."),
@@ -82,7 +82,7 @@ export const templatedModuleSpecSchema = createSchema({
 
 export function convertTemplatedModuleToRender(config: TemplatedModuleConfig): RenderTemplateConfig {
   return {
-    apiVersion: config.apiVersion || DEFAULT_API_VERSION,
+    apiVersion: config.apiVersion || GardenApiVersion.v0,
     kind: renderTemplateKind,
     name: config.name,
     disabled: config.disabled,

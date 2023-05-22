@@ -70,7 +70,7 @@ import {
   gardenEnv,
   SupportedArchitecture,
   SUPPORTED_ARCHITECTURES,
-  DEFAULT_API_VERSION,
+  GardenApiVersion,
 } from "./constants"
 import { Log } from "./logger/log-entry"
 import { EventBus } from "./events"
@@ -219,7 +219,7 @@ export interface GardenParams {
   workingCopyId: string
   forceRefresh?: boolean
   cloudApi?: CloudApi | null
-  projectApiVersion: string
+  projectApiVersion: ProjectConfig["apiVersion"]
 }
 
 interface GardenInstanceState {
@@ -1307,9 +1307,9 @@ export class Garden {
 
         // Verify that the project apiVersion is defined as compatible with action kinds
         // This is only available with apiVersion `garden.io/v1` or newer.
-        if (actionConfigs.length && this.projectApiVersion !== DEFAULT_API_VERSION) {
+        if (actionConfigs.length && this.projectApiVersion !== GardenApiVersion.v1) {
           throw new ConfigurationError(
-            `Action kinds are only supported in project configurations with "apiVersion: ${DEFAULT_API_VERSION}". A detailed migration guide is available at https://docs.garden.io/tutorials/migrating-to-bonsai`,
+            `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}". A detailed migration guide is available at https://docs.garden.io/tutorials/migrating-to-bonsai`,
             {}
           )
         }
@@ -1939,7 +1939,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
 
   const config: ProjectConfig = {
     path: root,
-    apiVersion: DEFAULT_API_VERSION,
+    apiVersion: GardenApiVersion.v1,
     kind: "Project",
     name: "no-project",
     defaultEnvironment: "",

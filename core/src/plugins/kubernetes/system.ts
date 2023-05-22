@@ -8,7 +8,7 @@
 
 import { join } from "path"
 
-import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
+import { GardenApiVersion, STATIC_DIR } from "../../constants"
 import { Garden } from "../../garden"
 import { KubernetesPluginContext, KubernetesConfig } from "./config"
 import { Log } from "../../logger/log-entry"
@@ -64,7 +64,7 @@ export async function getSystemGarden(
     noEnterprise: true, // we don't want to e.g. verify a client auth token or fetch secrets here
     config: {
       path: systemProjectPath,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v1,
       kind: "Project",
       name: systemNamespace,
       defaultEnvironment: "default",

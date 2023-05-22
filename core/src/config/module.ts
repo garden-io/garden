@@ -9,7 +9,6 @@
 import { memoize } from "lodash"
 import { ServiceConfig, serviceConfigSchema } from "./service"
 import {
-  apiVersionSchema,
   createSchema,
   DeepPrimitiveMap,
   includeGuideLink,
@@ -20,12 +19,13 @@ import {
   joiSparseArray,
   joiUserIdentifier,
   joiVariables,
+  unusedApiVersionSchema,
 } from "./common"
 import { TestConfig, testConfigSchema } from "./test"
 import { TaskConfig, taskConfigSchema } from "./task"
 import { dedent, stableStringify } from "../util/string"
 import { configTemplateKind, varfileDescription } from "./base"
-import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersionType } from "../constants"
 
 interface BuildCopySpec {
   source: string
@@ -106,7 +106,10 @@ export interface AddModuleSpec extends ModuleSpecCommon {
 }
 
 export interface BaseModuleSpec extends ModuleSpecCommon {
-  apiVersion: string
+  /**
+   * the apiVersion field is unused in all Modules at the moment and hidden in the reference docs.
+   */
+  apiVersion: GardenApiVersionType["v0"]
   kind?: "Module"
   allowPublish: boolean
   build: BaseBuildSpec
@@ -167,7 +170,7 @@ export const baseBuildSpecSchema = createSchema({
 
 // These fields are validated immediately when loading the config file
 const coreModuleSpecKeys = memoize(() => ({
-  apiVersion: apiVersionSchema(),
+  apiVersion: unusedApiVersionSchema(),
   kind: joi.string().default("Module").valid("Module"),
   type: joiIdentifier().required().description("The type of this module.").example("container"),
   name: joiUserIdentifier().required().description("The name of this module.").example("my-sweet-module"),

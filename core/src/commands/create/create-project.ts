@@ -20,7 +20,7 @@ import { addConfig } from "./helpers"
 import { wordWrap } from "../../util/string"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
 import { userPrompt } from "../../util/util"
-import { DEFAULT_API_VERSION } from "../../constants"
+import { GardenApiVersion } from "../../constants"
 
 const ignorefileName = ".gardenignore"
 const defaultIgnorefile = dedent`
@@ -146,7 +146,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
         presetValues: {
           kind: "Project",
           name,
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v1,
           environments: [{ name: "default" }],
           providers: [{ name: "local-kubernetes" }],
         },

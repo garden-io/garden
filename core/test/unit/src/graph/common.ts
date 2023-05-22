@@ -12,10 +12,10 @@ import { makeTestGarden, expectError, getDataDir } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
 import { ConfigurationError } from "../../../../src/exceptions"
 import {
-  DEFAULT_API_VERSION,
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
+  GardenApiVersion,
 } from "../../../../src/constants"
 import { detectMissingDependencies } from "../../../../src/graph/modules"
 
@@ -24,7 +24,7 @@ describe("graph common", () => {
     it("should return an error when a build dependency is missing", async () => {
       const moduleConfigs: ModuleConfig[] = [
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "test",
           type: "test",
           allowPublish: false,
@@ -43,7 +43,7 @@ describe("graph common", () => {
     it("should return an error when a service dependency is missing", async () => {
       const moduleConfigs: ModuleConfig[] = [
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "test",
           type: "test",
           allowPublish: false,
@@ -70,7 +70,7 @@ describe("graph common", () => {
     it("should return an error when a task dependency is missing", async () => {
       const moduleConfigs: ModuleConfig[] = [
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "test",
           type: "test",
           allowPublish: false,
@@ -98,7 +98,7 @@ describe("graph common", () => {
     it("should return an error when a test dependency is missing", async () => {
       const moduleConfigs: ModuleConfig[] = [
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "test",
           type: "test",
           allowPublish: false,
@@ -125,7 +125,7 @@ describe("graph common", () => {
     it("should return null when no dependencies are missing", async () => {
       const moduleConfigs: ModuleConfig[] = [
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "test",
           type: "test",
           allowPublish: false,

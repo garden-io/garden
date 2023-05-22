@@ -39,7 +39,7 @@ import { createGardenPlugin, ProviderActionName } from "../../../src/plugin/plug
 import { ConfigureProviderParams } from "../../../src/plugin/handlers/Provider/configureProvider"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { ModuleConfig, baseModuleSpecSchema } from "../../../src/config/module"
-import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, PREVIOUS_API_VERSION, gardenEnv } from "../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion, gardenEnv } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set, mapValues, omit, cloneDeep } from "lodash"
 import { joi } from "../../../src/config/common"
@@ -448,7 +448,7 @@ describe("Garden", () => {
 
     it("should set the default proxy config if non is specified", async () => {
       const config: ProjectConfig = {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "test",
         path: pathFoo,
@@ -470,7 +470,7 @@ describe("Garden", () => {
 
     it("should optionally read the proxy config from the project config", async () => {
       const config: ProjectConfig = {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "test",
         path: pathFoo,
@@ -498,7 +498,7 @@ describe("Garden", () => {
       try {
         gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS = "example.com"
         const configNoProxy: ProjectConfig = {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v1,
           kind: "Project",
           name: "test",
           path: pathFoo,
@@ -509,7 +509,7 @@ describe("Garden", () => {
           variables: { foo: "default", bar: "something" },
         }
         const configWithProxy: ProjectConfig = {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v1,
           kind: "Project",
           name: "test",
           path: pathFoo,
@@ -2393,7 +2393,7 @@ describe("Garden", () => {
 
       // note that module config versions should default to v0 (previous version)
       expect(omitUndefined(configA)).to.eql({
-        apiVersion: PREVIOUS_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Module",
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         include: [],
@@ -2425,7 +2425,7 @@ describe("Garden", () => {
         },
       })
       expect(omitUndefined(configB)).to.eql({
-        apiVersion: PREVIOUS_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         kind: "Module",
         build: { dependencies: [{ name: "foo-test-a", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         include: [],
@@ -2633,7 +2633,7 @@ describe("Garden", () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "config-action-kind-v0"))
 
       await expectError(() => garden.scanAndAddConfigs(), {
-        contains: `Action kinds are only supported in project configurations with "apiVersion: ${DEFAULT_API_VERSION}"`,
+        contains: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}"`,
       })
     })
 
@@ -2717,7 +2717,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -2764,7 +2764,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -2810,7 +2810,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -2856,7 +2856,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -2903,7 +2903,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -2961,7 +2961,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -2975,7 +2975,7 @@ describe("Garden", () => {
           spec: {},
         },
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-b",
           type: "test",
           allowPublish: false,
@@ -3036,7 +3036,7 @@ describe("Garden", () => {
       it("resolves referenced project variables", async () => {
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3060,7 +3060,7 @@ describe("Garden", () => {
       it("resolves referenced module variables", async () => {
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3087,7 +3087,7 @@ describe("Garden", () => {
       it("prefers module variables over project variables", async () => {
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3114,7 +3114,7 @@ describe("Garden", () => {
       it("resolves project variables in module variables", async () => {
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3141,7 +3141,7 @@ describe("Garden", () => {
       it("exposes module vars to other modules", async () => {
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3158,7 +3158,7 @@ describe("Garden", () => {
             },
           },
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-b",
             type: "test",
             allowPublish: false,
@@ -3243,7 +3243,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -3285,7 +3285,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -3319,7 +3319,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "test",
           allowPublish: false,
@@ -3369,7 +3369,7 @@ describe("Garden", () => {
 
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3428,7 +3428,7 @@ describe("Garden", () => {
 
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "module-a",
             type: "test",
             allowPublish: false,
@@ -3612,7 +3612,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "foo",
           allowPublish: false,
@@ -3660,7 +3660,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "foo",
           allowPublish: false,
@@ -3786,7 +3786,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-a",
           type: "exec",
           allowPublish: false,
@@ -3799,7 +3799,7 @@ describe("Garden", () => {
           spec: {},
         },
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "module-b",
           type: "exec",
           allowPublish: false,
@@ -3896,7 +3896,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "foo",
           allowPublish: false,
@@ -3961,7 +3961,7 @@ describe("Garden", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "foo",
           allowPublish: false,
@@ -4046,7 +4046,7 @@ describe("Garden", () => {
 
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "foo",
             type: "foo",
             allowPublish: false,
@@ -4124,7 +4124,7 @@ describe("Garden", () => {
 
         garden.setModuleConfigs([
           {
-            apiVersion: DEFAULT_API_VERSION,
+            apiVersion: GardenApiVersion.v0,
             name: "foo",
             type: "foo",
             allowPublish: false,

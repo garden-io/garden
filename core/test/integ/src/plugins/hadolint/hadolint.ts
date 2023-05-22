@@ -9,7 +9,7 @@
 import tmp from "tmp-promise"
 import { ProjectConfig } from "../../../../../src/config/project"
 import execa = require("execa")
-import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../src/constants"
 import { createProjectConfig, getDataDir, TestGarden } from "../../../../helpers"
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
@@ -62,7 +62,7 @@ describe("hadolint provider", () => {
     garden.setModuleConfigs([
       // With Dockerfile
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "foo",
         type: "container",
         allowPublish: false,
@@ -76,7 +76,7 @@ describe("hadolint provider", () => {
       },
       // Without Dockerfile
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "bar",
         type: "container",
         allowPublish: false,
@@ -126,7 +126,7 @@ describe("hadolint provider", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "foo",
         type: "foo",
         allowPublish: false,
@@ -159,7 +159,7 @@ describe("hadolint provider", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
@@ -232,7 +232,7 @@ describe("hadolint provider", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
@@ -299,7 +299,7 @@ describe("hadolint provider", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
@@ -360,7 +360,7 @@ describe("hadolint provider", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
@@ -411,7 +411,7 @@ describe("hadolint provider", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
@@ -465,7 +465,7 @@ describe("hadolint provider", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,

@@ -12,10 +12,10 @@ import { getDataDir, makeTestGarden, makeTestGardenA, withDefaultGlobalOpts } fr
 import { GetConfigCommand } from "../../../../../src/commands/get/get-config"
 import { sortBy } from "lodash"
 import {
-  DEFAULT_API_VERSION,
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
+  GardenApiVersion,
 } from "../../../../../src/constants"
 import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
 import { defaultContainerLimits } from "../../../../../src/plugins/container/moduleConfig"
@@ -87,7 +87,7 @@ describe("GetConfigCommand", () => {
 
     const workflowConfigs: WorkflowConfig[] = [
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
         kind: "Workflow",
         keepAliveHours: 48,
@@ -120,7 +120,7 @@ describe("GetConfigCommand", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         allowPublish: false,
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: true,
@@ -143,7 +143,7 @@ describe("GetConfigCommand", () => {
         type: "test",
       },
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         allowPublish: false,
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
@@ -187,7 +187,7 @@ describe("GetConfigCommand", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         allowPublish: false,
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
@@ -245,7 +245,7 @@ describe("GetConfigCommand", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         allowPublish: false,
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
@@ -301,7 +301,7 @@ describe("GetConfigCommand", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         allowPublish: false,
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
@@ -366,7 +366,7 @@ describe("GetConfigCommand", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
           build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: true,
@@ -389,7 +389,7 @@ describe("GetConfigCommand", () => {
           type: "test",
         },
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
           build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
@@ -431,7 +431,7 @@ describe("GetConfigCommand", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
           build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
@@ -491,7 +491,7 @@ describe("GetConfigCommand", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
           build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
@@ -566,7 +566,7 @@ describe("GetConfigCommand", () => {
 
       garden.setModuleConfigs([
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
           build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
@@ -650,7 +650,7 @@ describe("GetConfigCommand", () => {
 
       const rawConfigs = [
         {
-          apiVersion: DEFAULT_API_VERSION,
+          apiVersion: GardenApiVersion.v0,
           allowPublish: false,
           build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,

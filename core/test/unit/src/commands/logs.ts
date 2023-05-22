@@ -20,7 +20,7 @@ import {
   makeTempDir,
   withDefaultGlobalOpts,
 } from "../../../helpers"
-import { DEFAULT_API_VERSION, DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../src/constants"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants"
 import { formatForTerminal } from "../../../../src/logger/renderers"
 import chalk from "chalk"
 import { LogEntry } from "../../../../src/logger/log-entry"
@@ -55,7 +55,7 @@ function makeCommandParams({
 }
 
 const makeDeployAction = (basePath: string, name: string): BaseActionConfig => ({
-  apiVersion: DEFAULT_API_VERSION,
+  apiVersion: GardenApiVersion.v0,
   kind: "Deploy",
   name,
   type: "test",
