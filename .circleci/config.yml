@@ -925,11 +925,6 @@ workflows:
           requires: [build]
           kubernetesVersion: "1.23.3"
           minikubeVersion: "v1.25.2"
-      - test-minikube:
-          name: vm-1.19-minikube
-          requires: [build]
-          kubernetesVersion: "1.19.7"
-          minikubeVersion: "v1.16.0"
       - test-microk8s:
           name: vm-1.24-microk8s
           requires: [build]
