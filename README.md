@@ -15,8 +15,6 @@
   <a href="https://discord.gg/FrmhuUjFs6">Discord</a>
 </div>
 
-### **What is Garden?**
-
 Garden combines rapid development, testing, and DevOps automation in one tool.
 
 It creates realistic cloud-native environments for every stage of software delivery, so you never have to worry about the difference between dev, CI and prod again.
