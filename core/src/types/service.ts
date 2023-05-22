@@ -186,7 +186,7 @@ export const forwardablePortKeys = () => ({
     .description("The protocol to use for URLs pointing at the port. This can be any valid URI protocol."),
 })
 
-const forwardablePortSchema = createSchema({
+export const forwardablePortSchema = createSchema({
   name: "forwardable-port",
   keys: forwardablePortKeys,
 })

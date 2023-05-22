@@ -74,8 +74,325 @@ aborted:
 # Set to false if the command execution was unsuccessful.
 success:
 
-# A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
-graphResults:
+# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+build:
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deploy:
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
+
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
+
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+test:
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+# A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+run:
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
 ```
 
 ### garden cloud secrets list
@@ -717,8 +1034,325 @@ aborted:
 # Set to false if the command execution was unsuccessful.
 success:
 
-# A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
-graphResults:
+# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+build:
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deploy:
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
+
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
+
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+test:
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+# A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+run:
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
 ```
 
 ### garden exec
@@ -3249,19 +3883,331 @@ aborted:
 # Set to false if the command execution was unsuccessful.
 success:
 
-# A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
-graphResults:
+# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+build:
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deploy:
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
+
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
+
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+test:
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+# A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+run:
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
 
 # A map of all builds that were published (or scheduled/attempted for publishing) and the results.
 published:
   <name>:
     # The state of the action.
     state:
-
-    # Structured outputs from the execution, as defined by individual action/module types, to be made available for
-    # dependencies and in templating.
-    outputs:
-      <name>:
 
     # Set to true if the action handler is running a process persistently and attached to the Garden process after
     # returning.
@@ -3277,14 +4223,29 @@ published:
       # The published artifact identifier, if applicable.
       identifier:
 
-    # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
     aborted:
 
-    # Whether the action was succeessful.
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
     success:
 
-    # An error message, if the action failed.
+    # An error message, if the action's execution failed.
     error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
 ```
 
 ### garden run
@@ -3331,8 +4292,325 @@ aborted:
 # Set to false if the command execution was unsuccessful.
 success:
 
-# A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
-graphResults:
+# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+build:
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deploy:
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
+
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
+
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+test:
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+# A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+run:
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
 ```
 
 ### garden workflow
@@ -3604,8 +4882,325 @@ aborted:
 # Set to false if the command execution was unsuccessful.
 success:
 
-# A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
-graphResults:
+# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+build:
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deploy:
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
+
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
+
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+test:
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+# A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+run:
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
 ```
 
 ### garden tools

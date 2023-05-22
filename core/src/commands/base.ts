@@ -10,17 +10,15 @@ import Joi from "@hapi/joi"
 import chalk from "chalk"
 import dedent from "dedent"
 import stripAnsi from "strip-ansi"
-import { mapValues, memoize, pickBy, size } from "lodash"
-
-import { createSchema, joi } from "../config/common"
+import { fromPairs, mapValues, pickBy, size } from "lodash"
+import { PrimitiveMap, createSchema, joi, joiArray, joiIdentifierMap, joiStringMap, joiVariables } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
-import { GraphResultMapWithoutTask } from "../graph/results"
 import { capitalize } from "lodash"
-import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion, userPrompt } from "../util/util"
+import { getCloudDistributionName, getCloudLogSectionName, getDurationMsec, getPackageVersion, userPrompt } from "../util/util"
 import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, Parameters, globalOptions } from "../cli/params"
 import { GardenCli } from "../cli/cli"
@@ -31,6 +29,10 @@ import { BufferedEventStream } from "../cloud/buffered-event-stream"
 import { CommandInfo } from "../plugin-context"
 import type { GardenServer } from "../server/server"
 import { CloudSession } from "../cloud/api"
+import { DeployState, ForwardablePort, ServiceIngress, deployStates, forwardablePortSchema, serviceIngressSchema } from "../types/service"
+import { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from "../graph/results"
+import { splitFirst } from "../util/string"
+import { ActionMode } from "../actions/types"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -580,41 +582,324 @@ export function printResult({
   success ? log.info(chalk.white(msg)) : log.error(msg)
 }
 
+// fixme: These interfaces and schemas are mostly copied from their original locations. This is to ensure that
+// dynamically sized or nested fields don't accidentally get introduced to command results. We should find a neater
+// wat to manage all this.
+
+interface BuildResultForExport extends ProcessResultMetadata {
+  buildLog?: string
+  fresh?: boolean
+  outputs?: PrimitiveMap
+}
+
+const buildResultForExportSchema = createSchema({
+  name: "build-result-for-export",
+  keys: () => ({
+    buildLog: joi.string().allow("").description("The full log from the build."),
+    fetched: joi.boolean().description("Set to true if the build was fetched from a remote registry."),
+    fresh: joi
+      .boolean()
+      .description("Set to true if the build was performed, false if it was already built, or fetched from a registry"),
+    details: joi.object().description("Additional information, specific to the provider."),
+  }),
+})
+
+interface DeployResultForExport extends ProcessResultMetadata  {
+  createdAt?: string
+  updatedAt?: string
+  mode?: ActionMode
+  externalId?: string
+  externalVersion?: string
+  forwardablePorts?: ForwardablePort[]
+  ingresses?: ServiceIngress[]
+  lastMessage?: string
+  lastError?: string
+  outputs?: PrimitiveMap
+  state: DeployState
+}
+
+const deployResultForExportSchema = createSchema({
+  name: "deploy-result-for-export",
+  keys: () => ({
+    createdAt: joi.string().description("When the service was first deployed by the provider."),
+    updatedAt: joi.string().description("When the service was first deployed by the provider."),
+    mode: joi.string().default("default").description("The mode the action is deployed in."),
+    externalId: joi
+      .string()
+      .description("The ID used for the service by the provider (if not the same as the service name)."),
+    externalVersion: joi
+      .string()
+      .description("The provider version of the deployed service (if different from the Garden module version."),
+    forwardablePorts: joiArray(forwardablePortSchema()).description(
+      "A list of ports that can be forwarded to from the Garden agent by the provider."
+    ),
+    ingresses: joi
+      .array()
+      .items(serviceIngressSchema())
+      .description("List of currently deployed ingress endpoints for the service."),
+    lastMessage: joi.string().allow("").description("Latest status message of the service (if any)."),
+    lastError: joi.string().description("Latest error status message of the service (if any)."),
+    outputs: joiVariables().description("A map of values output from the deployment."),
+    runningReplicas: joi.number().description("How many replicas of the service are currently running."),
+    state: joi
+      .string()
+      .valid(...deployStates)
+      .default("unknown")
+      .description("The current deployment status of the service."),
+    version: joi.string().description("The Garden module version of the deployed service."),
+  })
+})
+
+interface RunResultForExport extends TestResultForExport {}
+
+const runResultForExportSchema = createSchema({
+  name: "run-result-for-export",
+  keys: () => ({
+    success: joi.boolean().required().description("Whether the module was successfully run."),
+    exitCode: joi.number().integer().description("The exit code of the run (if applicable)."),
+    startedAt: joi.date().required().description("When the module run was started."),
+    completedAt: joi.date().required().description("When the module run was completed."),
+    log: joi.string().allow("").default("").description("The output log from the run."),
+  }),
+  allowUnknown: true,
+})
+
+interface TestResultForExport extends ProcessResultMetadata  {
+  success: boolean
+  exitCode?: number
+  // FIXME: we should avoid native Date objects
+  startedAt?: Date
+  completedAt?: Date
+  log?: string
+}
+
+const testResultForExportSchema = createSchema({
+  name: "test-result-for-export",
+  keys: () => ({}),
+  extend: runResultForExportSchema,
+})
+
+export type ProcessResultMetadata = {
+  aborted: boolean
+  durationMsec?: number | null
+  success: boolean
+  error?: string
+  inputVersion?: string
+}
+
 export interface ProcessCommandResult {
   aborted: boolean
   success: boolean
-  error?: string
-  graphResults: GraphResultMapWithoutTask
+  graphResults: GraphResultMapWithoutTask // TODO: Remove this.
+  build: { [name: string]: BuildResultForExport }
+  builds: { [name: string]: BuildResultForExport }
+  deploy: { [name: string]: DeployResultForExport }
+  deployments: { [name: string]: DeployResultForExport } // alias for backwards-compatibility
+  test: { [name: string]: TestResultForExport }
+  tests: { [name: string]: TestResultForExport }
+  run: { [name: string]: RunResultForExport }
+  tasks: { [name: string]: RunResultForExport } // alias for backwards-compatibility
 }
 
-export const processCommandResultKeys = () => ({
-  aborted: joi
-    .boolean()
-    .description(
-      "Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect."
-    ),
-  // durationMsec: joi.number().integer().description("The duration of the processing in msec, if applicable."),
-  success: joi.boolean().required().description("Whether the action was succeessful."),
-  error: joi.string().description("An error message, if the action failed."),
+export const resultMetadataKeys = () => ({
+  aborted: joi.boolean().description("Set to true if the action was not attempted, e.g. if a dependency failed."),
+  durationMsec: joi.number().integer().description("The duration of the action's execution in msec, if applicable."),
+  success: joi.boolean().required().description("Whether the action was succeessfully executed."),
+  error: joi.string().description("An error message, if the action's execution failed."),
+  inputVersion: joi.string().description("The version of the task's inputs, before any resolution or execution happens. For action tasks, this will generally be the unresolved version."),
+  version: joi.string().description("Alias for \`inputVersion\`. The version of the task's inputs, before any resolution or execution happens. For action tasks, this will generally be the unresolved version."),
+  outputs: joiVariables().description("A map of values output from the action's execution."),
 })
 
-export const graphResultsSchema = memoize(() =>
-  joi
-    .object()
-    .description(
-      "A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead."
-    )
-    .meta({ keyPlaceholder: "<key>" })
-)
-
 export const processCommandResultSchema = createSchema({
-  name: "process-command-result",
+  name: "process-command-result-keys",
   keys: () => ({
     aborted: joi.boolean().description("Set to true if the command execution was aborted."),
     success: joi.boolean().description("Set to false if the command execution was unsuccessful."),
-    graphResults: graphResultsSchema(),
-  }),
+    // Hide this field from the docs, since we're planning to remove it.
+    graphResults: joi.any().meta({ internal: true }),
+    build: joiIdentifierMap(buildResultForExportSchema().keys(resultMetadataKeys()))
+      .description(
+        "A map of all executed Builds (or Builds scheduled/attempted) and information about the them."
+      )
+      .meta({ keyPlaceholder: "<Build name>" }),
+    builds: joiIdentifierMap(buildResultForExportSchema().keys(resultMetadataKeys()))
+      .description("Alias for \`build\`. A map of all executed Builds (or Builds scheduled/attempted) and information about the them.")
+      .meta({ keyPlaceholder: "<Build name>", deprecated: true }),
+    deploy: joiIdentifierMap(deployResultForExportSchema().keys(resultMetadataKeys()))
+      .description(
+        "A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status."
+      )
+      .meta({ keyPlaceholder: "<Deploy name>" }),
+    deployments: joiIdentifierMap(deployResultForExportSchema().keys(resultMetadataKeys()))
+      .description(
+        "Alias for \`deploys\`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status."
+      )
+      .meta({ keyPlaceholder: "<Deploy name>", deprecated: true }),
+    test: joiStringMap(testResultForExportSchema())
+      .description("A map of all Tests that were executed (or scheduled/attempted) and the Test results.")
+      .meta({ keyPlaceholder: "<Test name>" }),
+    tests: joiStringMap(testResultForExportSchema())
+      .description("Alias for \`test\`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.")
+      .meta({ keyPlaceholder: "<Test name>", deprecated: true }),
+    run: joiStringMap(runResultForExportSchema())
+      .description("A map of all Runs that were executed (or scheduled/attempted) and the Run results.")
+      .meta({ keyPlaceholder: "<Run name>" }),
+    tasks: joiStringMap(runResultForExportSchema())
+      .description("Alias for \`runs\`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.")
+      .meta({ keyPlaceholder: "<Run name>", deprecated: true }),
+  })
 })
+
+/**
+ * Extracts structured results for builds, deploys or tests from TaskGraph results, suitable for command output.
+ */
+function prepareProcessResults(taskType: string, graphResults: GraphResults) {
+  const resultsForType = Object.entries(graphResults.filterForGraphResult()).filter(([name, _]) => name.split(".")[0] === taskType)
+
+  return fromPairs(
+    resultsForType.map(([name, graphResult]) => {
+      return [splitFirst(name, ".")[1], prepareProcessResult(taskType, graphResult)]
+    })
+  )
+}
+
+function prepareProcessResult(taskType: string, res: GraphResultWithoutTask | null) {
+  if (!res) {
+    return {
+      aborted: true,
+      success: false,
+    }
+  }
+  if (taskType === "build") {
+    return prepareBuildResult(res)
+  }
+  if (taskType === "deploy") {
+    return prepareDeployResult(res)
+  }
+  if (taskType === "test") {
+    return prepareTestResult(res)
+  }
+  if (taskType === "run") {
+    return prepareRunResult(res)
+  }
+  return {
+    ...(res?.outputs || {}),
+    aborted: !res,
+    durationMsec:
+      res?.startedAt &&
+      res?.completedAt &&
+      getDurationMsec(res?.startedAt, res?.completedAt),
+    error: res?.error?.message,
+    success: !!res && !res.error,
+    inputVersion: res?.inputVersion
+  }
+}
+
+function prepareBuildResult(graphResult: GraphResultWithoutTask): BuildResultForExport & ProcessResultMetadata {
+  const common = {
+    ...commonResultFields(graphResult),
+    outputs: graphResult.outputs,
+  }
+  const buildResult = graphResult.result?.detail
+  if (buildResult) {
+    return {
+      ...common,
+      buildLog: buildResult && buildResult.buildLog,
+      fresh: buildResult && buildResult.fresh,
+    }
+  } else {
+    return common
+  }
+}
+
+function prepareDeployResult(graphResult: GraphResultWithoutTask): DeployResultForExport & ProcessResultMetadata {
+  const common = {
+    ...commonResultFields(graphResult),
+    outputs: graphResult.outputs,
+    state: "unknown" as DeployState,
+  }
+  const deployResult = graphResult.result
+  if (deployResult) {
+    const {
+      createdAt,
+      updatedAt,
+      externalVersion,
+      mode,
+      state,
+      externalId,
+      forwardablePorts,
+      ingresses,
+      lastMessage,
+      lastError,
+    } = deployResult.detail
+    return {
+      ...common,
+      createdAt,
+      updatedAt,
+      mode,
+      state,
+      externalId,
+      externalVersion,
+      forwardablePorts,
+      ingresses,
+      lastMessage,
+      lastError,
+    }
+  } else {
+    return common
+  }
+}
+
+function prepareTestResult(graphResult: GraphResultWithoutTask): TestResultForExport & ProcessResultMetadata {
+  const common = commonResultFields(graphResult)
+  const detail = graphResult.result?.detail
+  if (detail) {
+    return {
+      ...common,
+      exitCode: detail.exitCode,
+      startedAt: detail.startedAt,
+      completedAt: detail.completedAt,
+      log: detail.log,
+    }
+  } else {
+    return common
+  }
+}
+
+function prepareRunResult(graphResult: GraphResultWithoutTask): RunResultForExport & ProcessResultMetadata {
+  const common = commonResultFields(graphResult)
+  const detail = graphResult.result?.detail
+  if (detail) {
+    return {
+      ...common,
+      exitCode: detail.exitCode,
+      startedAt: detail.startedAt,
+      completedAt: detail.completedAt,
+      log: detail.log,
+    }
+  } else {
+    return common
+  }
+}
+
+function commonResultFields(graphResult: GraphResultWithoutTask) {
+  return {
+    aborted: false,
+    durationMsec: durationMsecForGraphResult(graphResult),
+    error: graphResult.error?.message,
+    success: !graphResult.error,
+    inputVersion: graphResult.inputVersion,
+    // Here for backwards-compatibility
+    version: graphResult.inputVersion,
+  }
+}
+
+function durationMsecForGraphResult(graphResult: GraphResultWithoutTask) {
+  return graphResult.startedAt &&
+    graphResult.completedAt &&
+    getDurationMsec(graphResult.startedAt, graphResult.completedAt)
+}
 
 /**
  * Handles the command result and logging for commands the return results of type ProcessResults.
@@ -626,17 +911,30 @@ export async function handleProcessResults(
   taskType: string,
   results: SolveResult
 ): Promise<CommandResult<ProcessCommandResult>> {
-  const graphResults = results.results.export()
+  const graphResults = results.results
+  const graphResultsForExport = graphResults.export()
 
-  const failed = pickBy(graphResults, (r) => r && r.error)
+  const failed = pickBy(graphResultsForExport, (r) => r && r.error)
   const failedCount = size(failed)
 
   const success = failedCount === 0
 
+  const buildResults = prepareProcessResults("build", graphResults) as ProcessCommandResult["build"]
+  const deployResults = prepareProcessResults("deploy", graphResults) as ProcessCommandResult["deploy"]
+  const runResults = prepareProcessResults("run", graphResults) as ProcessCommandResult["run"]
+  const testResults = prepareProcessResults("test", graphResults) as ProcessCommandResult["test"]
   const result: ProcessCommandResult = {
     aborted: false,
     success,
-    graphResults,
+    graphResults: graphResultsForExport, // TODO: Remove this.
+    build: buildResults,
+    builds: buildResults, // alias for `build`
+    deploy: deployResults,
+    deployments: deployResults, // alias for `deploy`
+    test: testResults,
+    tests: testResults, // alias for `test`
+    run: runResults,
+    tasks: runResults, // alias for `run`
   }
 
   if (!success) {
@@ -653,6 +951,18 @@ export async function handleProcessResults(
   return {
     result,
   }
+}
+
+export const emptyActionResults = {
+  build: {},
+  builds: {},
+  deploy: {},
+  deployments: {},
+  test: {},
+  tests: {},
+  run: {},
+  tasks: {},
+  graphResults: {}
 }
 
 export function describeParameters(args?: Parameters) {

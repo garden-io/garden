@@ -18,6 +18,7 @@ import {
   PrepareParams,
   processCommandResultSchema,
   ProcessCommandResult,
+  emptyActionResults,
 } from "./base"
 import { printEmoji, printHeader } from "../logger/util"
 import { watchParameter, watchRemovedWarning } from "./helpers"
@@ -214,7 +215,7 @@ export class DeployCommand extends Command<Args, Opts> {
 
     if (deployActions.length === 0) {
       log.error({ msg: "Nothing to deploy. Aborting." })
-      return { result: { aborted: true, success: true, graphResults: {} } }
+      return { result: { aborted: true, success: true, ...emptyActionResults } }
     }
 
     const skipRuntimeDependencies = opts["skip-dependencies"]
@@ -224,7 +225,7 @@ export class DeployCommand extends Command<Args, Opts> {
         list of names when using the --skip-dependencies option.
       `
       log.error({ msg: errMsg })
-      return { result: { aborted: true, success: false, graphResults: {} } }
+      return { result: { aborted: true, success: false, ...emptyActionResults } }
     }
 
     const force = opts.force
