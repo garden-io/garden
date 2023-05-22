@@ -91,11 +91,8 @@ export class SyncStatusCommand extends Command<Args, Opts> {
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
     const skipDetail = opts["skip-detail"]
 
-    // We default to getting the sync status for all actions
-    const names = args.names || ["*"]
-
     const deployActions = graph
-      .getDeploys({ includeDisabled: false, names })
+      .getDeploys({ includeDisabled: false, names: args.names })
       .sort((a, b) => (a.name > b.name ? 1 : -1))
     // This is fairly arbitrary
     const concurrency = 5
