@@ -106,44 +106,9 @@ For a deeper dive on how Garden works in general, we recommend:
 - [This guide on how Garden works](https://docs.garden.io/basics/how-garden-works).
 - [This video series on the Stack Graph and getting started with Garden](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8).
 
-### **Plugins**
-
-Garden is pluggable by design and supports a variety of providers and module types. Currently, our Kubernetes and Terraform plugins are the most used.
-
-We will be adding more over time, as well as releasing a Plugin SDK (exact timeline TBD) which will allow the community to maintain their own Garden plugins.
-
-The sky’s the limit, but to name some examples:
-
-- Plugins for serverless runtimes will allow users to mix and match platforms in the same project.
-- Security plugins that benefit from Garden’s caching and only run time-consuming scans when needed.
-- Language-specific plugins for streamlining workflows.
-
-### **Design principles and philosophy**
-
-Below are our guiding principles for developing Garden.
-
-- Garden should work with your existing tools.
-- Plugins should automate as much of the standard use cases as possible. Friction is a kill-joy.
-- Actions should execute in production-like environments. There’s generally a trade-off between realism and speed of feedback—Garden aims to provide both.
-- Garden should err on being too informative. (We’ve gotten a lot of great feedback on this topic and are working hard to improve.)
-
 ### **Community**
 
-Join our [Discord community](https://discord.gg/FrmhuUjFs6) to ask questions, give feedback or just say hi 🙂
-
-### **Security**
-
-If you find a security issue in Garden, please follow responsible disclosure practices and send information about security issues directly to security@garden.io.
-
-For more details [see here](https://github.com/garden-io/garden/blob/main/SECURITY.md).
-
-### **Telemetry**
-
-We are trying to make Garden the best tool possible, and data on how it’s being used is very useful for us to inform the future development of Garden.
-
-When you use Garden, we collect information about the commands you run, the tasks being executed, the project and operating system. We care about your privacy and we take special care to anonymize all the information. For example, we hash module names, and use randomly generated IDs to identify projects.
-
-If you are curious to see an example of the data we collect or if you would like to update your preference, please visit the [Telemetry](https://docs.garden.io/misc/telemetry) page.
+Join our [Discord community](go.garden.io/discord) to ask questions, give feedback or just say hi 🙂
 
 ### **License**
 
