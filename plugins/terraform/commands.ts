@@ -9,13 +9,13 @@
 import chalk from "chalk"
 import { terraform } from "./cli"
 import { TerraformProvider } from "."
-import { ConfigurationError, ParameterError } from "@garden-io/sdk/exceptions"
+import { ConfigurationError, ParameterError, RuntimeError } from "@garden-io/sdk/exceptions"
 import { prepareVariables, setWorkspace, tfValidate } from "./common"
-import { GardenModule, PluginCommand, PluginCommandParams } from "@garden-io/sdk/types"
+import { GardenModule, LogEntry, PluginCommand, PluginCommandParams, PluginContext } from "@garden-io/sdk/types"
 import { TerraformModule } from "./module"
 import { join } from "path"
 import { remove } from "fs-extra"
-
+import pRetry = require("p-retry")
 import { getProviderStatusCachePath } from "@garden-io/core/build/src/tasks/resolve-provider"
 import { findByName } from "@garden-io/core/build/src/util/util"
 
@@ -56,14 +56,7 @@ function makeRootCommand(commandName: string) {
 
       args = [commandName, ...(await prepareVariables(root, provider.config.variables)), ...args]
 
-      await terraform(ctx, provider).spawnAndWait({
-        log,
-        args,
-        cwd: root,
-        rawMode: false,
-        tty: true,
-        timeoutSec: 999999,
-      })
+      await retryTerraform({ ctx, provider, log, args, root })
 
       return { result: {} }
     },
@@ -93,18 +86,75 @@ function makeModuleCommand(commandName: string) {
       await tfValidate({ ctx, provider, root, log })
 
       args = [commandName, ...(await prepareVariables(root, module.spec.variables)), ...args.slice(1)]
-      await terraform(ctx, provider).spawnAndWait({
+      await retryTerraform({ ctx, provider, log, args, root })
+
+      return { result: {} }
+    },
+  }
+}
+
+// Regexes from Terragrunt, Copyright (c) 2016 Gruntwork, LLC, MIT Licensed
+// https://github.com/gruntwork-io/terragrunt/blob/68120e20/LICENSE.txt
+// https://github.com/gruntwork-io/terragrunt/blob/68120e20/options/auto_retry_options.go
+const retryRegexes = [
+  /(?s).*Failed to load state.*tcp.*timeout.*/,
+  /(?s).*Failed to load backend.*TLS handshake timeout.*/,
+  /(?s).*Creating metric alarm failed.*request to update this alarm is in progress.*/,
+  /(?s).*Error installing provider.*TLS handshake timeout.*/,
+  /(?s).*Error configuring the backend.*TLS handshake timeout.*/,
+  /(?s).*Error installing provider.*tcp.*timeout.*/,
+  /(?s).*Error installing provider.*tcp.*connection reset by peer.*/,
+  /NoSuchBucket: The specified bucket does not exist/,
+  /(?s).*Error creating SSM parameter: TooManyUpdates:.*/,
+  /(?s).*app.terraform.io.*: 429 Too Many Requests.*/,
+  /(?s).*ssh_exchange_identification.*Connection closed by remote host.*/,
+  /(?s).*Client\\.Timeout exceeded while awaiting headers.*/,
+  /(?s).*Could not download module.*The requested URL returned error: 429.*/,
+]
+
+function retryTerraform({
+  ctx,
+  provider,
+  log,
+  args,
+  root,
+}: {
+  ctx: PluginContext
+  provider: TerraformProvider
+  log: LogEntry
+  args: string[]
+  root: string
+}) {
+  return pRetry(
+    () =>
+      terraform(ctx, provider).spawnAndWait({
         log,
         args,
         cwd: root,
         rawMode: false,
         tty: true,
         timeoutSec: 999999,
-      })
+      }),
+    {
+      retries: 3,
+      minTimeout: 1000,
+      onFailedAttempt: (error) => {
+        if (error.cause instanceof RuntimeError) {
+          const stderr = error.cause.detail?.result?.stderr || ""
+          const stdout = error.cause.detail?.result?.stdout || ""
+          const matchedRegexes = retryRegexes.filter((regex) => regex.test(stderr) || regex.test(stdout))
+          if (matchedRegexes.length) {
+            log.warn(
+              `Terraform failed with a recoverable error message (Matched regex ${matchedRegexes[0]}). Retrying after backoff... (${error.retriesLeft} retries left)`
+            )
+            return
+          }
+        }
 
-      return { result: {} }
-    },
-  }
+        throw error.cause
+      },
+    }
+  )
 }
 
 function findModule(modules: GardenModule[], name: string): TerraformModule {
