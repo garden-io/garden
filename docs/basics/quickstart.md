@@ -5,6 +5,10 @@ order: 1
 
 # Quickstart Guide
 
+{% hint style="info" %}
+Garden Bonsai ships with a brand new Dashboard that 
+{% endhint %}
+
 Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow. In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
 
 In just 3 steps, we'll:
@@ -89,7 +93,7 @@ Clone the example project from GitHub:
 git clone https://github.com/garden-io/quickstart-example.git && cd quickstart-example
 ```
 
-Garden ships with a command center for your project enabling an interactive control flow we call the **dev console**. To start the dev console, run:
+Garden ships with an interactive command center we call the **dev console**. To start the dev console, run:
 
 ```sh
 garden dev
