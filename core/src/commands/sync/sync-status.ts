@@ -90,7 +90,7 @@ export class SyncStatusCommand extends Command<Args> {
     log.info(
       chalk.white(deline`
       Getting sync statuses. For more detailed debug information, run this command with
-      the \`--json\` or \`--yaml\` flags.
+      the \`--output json\` or \`--outputyaml\` flags.
     `)
     )
     log.info("")
