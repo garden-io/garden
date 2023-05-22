@@ -9,8 +9,6 @@ title: Modules
 Modules are deprecated and will be removed in version `0.14`. Please use [action](./actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../tutorials/migrating-to-bonsai.md) for details.
 {% endhint %}
 
-Modules are the basic **unit of building** in Garden. They are usually the first thing you add after creating the project-level configuration.
-
 A module can correspond to a Dockerfile and its associated code, a remote Docker image, a Helm chart, Kubernetes manifests, and more, all depending on the module type.
 
 Below is a simple example of a module's `garden.yml` (from the [`demo-project`](https://github.com/garden-io/garden/tree/0.12.56/examples/demo-project) example project):
