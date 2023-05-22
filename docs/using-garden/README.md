@@ -9,7 +9,7 @@ This section contains short guides on Garden's main concepts and on how to confi
 
 Each guide serves as a standalone introduction to the concept but we still recommend that you go through them in order.
 
-There's no need to finish them all at once though. By adding a [project configuration](./projects.md), [modules](./modules.md), and [services](./services.md), you can already deploy your project with Garden. You can then come back when you're ready to add [tests](./tests.md), [tasks](./tasks.md) and [workflows](./workflows.md).
+There's no need to finish them all at once though. By adding a [project configuration](./projects.md), [modules](./modules.md), and [services](./services.md), you can already deploy your project with Garden. You can then come back when you're ready to add [tests](./tests.md), [runs](./runs.md) and [workflows](./workflows.md).
 
 The [Using the CLI guide](./using-the-cli.md) offers helpful information on how to use the CLI in your day-to-day. In fact, if you're starting with Garden but your team has already configured the project, you might want to skip directly to that.
 
@@ -42,9 +42,9 @@ Services are the basic unit of _deployment_ in Garden. In this guide you'll lear
 
 This guide shows you how Garden can run your tests for you.
 
-## [Tasks](./tasks.md)
+## [Runs](./runs.md)
 
-This guide shows you how Garden can run tasks for you, for example database migrations.
+This guide shows you how to use the Run action type, for example to execute database migrations.
 
 ## [Config Templates](./config-templates.md)
 

@@ -83,4 +83,4 @@ Please look at individual [action type references](../reference/action-types/REA
 
 ## Next Steps
 
-In the [next section](./tasks.md), we'll see how Garden can execute tasks via Runs. For example populating a database after it has been deployed.
+In the [next section](./runs.md), we'll see how Garden can execute tasks via Runs. For example populating a database after it has been deployed.
