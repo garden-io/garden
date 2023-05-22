@@ -20,9 +20,6 @@ import { getRootLogger } from "../../../../src/logger/logger"
 describe("cli analytics", () => {
   let cli: GardenCli
   const globalConfigStore = new GlobalConfigStore()
-  const versionScope = nock("https://get.garden.io")
-  const analyticsScope = nock("https://api.segment.io")
-
   const log = getRootLogger().createLog()
 
   beforeEach(async () => {
@@ -56,39 +53,29 @@ describe("cli analytics", () => {
   }
 
   it.skip("should access the version check service", async () => {
-    versionScope.get("/version").query(true).reply(200)
+    const scope = nock("https://get.garden.io")
+    scope.get("/version").query(true).reply(200)
 
     const command = new TestCommand()
     cli.addCommand(command)
 
     await cli.run({ args: ["test-command"], exitOnError: false })
 
-    expect(versionScope.done()).to.not.throw
+    expect(scope.done()).to.not.throw
   })
 
   it.skip("should wait for queued analytic events to flush", async () => {
-    const getEvents = (data) => {
-      return data.batch.map((event: any) => ({
-        event: event.event,
-        type: event.type,
-        name: event.properties.name,
-      }))
-    }
-
-    // identify call from the analytics initialization
-    analyticsScope
-      .post(`/v1/batch`, (body) => {
-        const types = body.batch.map((event: any) => event.type)
-
-        return isEqual(types, ["identify"])
-      })
-      .reply(201)
+    const scope = nock("https://api.segment.io")
 
     // Each command run result in two events:
     // 'Run Command' and 'Command Result'
-    analyticsScope
+    scope
       .post(`/v1/batch`, (body) => {
-        const events = getEvents(body)
+        const events = body.batch.map((event: any) => ({
+          event: event.event,
+          type: event.type,
+          name: event.properties.name,
+        }))
 
         return isEqual(events, [
           {
@@ -96,15 +83,6 @@ describe("cli analytics", () => {
             type: "track",
             name: "test-command",
           },
-        ])
-      })
-      .reply(201)
-
-    analyticsScope
-      .post(`/v1/batch`, (body) => {
-        const events = getEvents(body)
-
-        return isEqual(events, [
           {
             event: "Command Result",
             type: "track",
@@ -112,13 +90,13 @@ describe("cli analytics", () => {
           },
         ])
       })
-      .reply(201)
+      .reply(200)
 
     const command = new TestCommand()
     cli.addCommand(command)
 
     await cli.run({ args: ["test-command"], exitOnError: false })
 
-    expect(analyticsScope.done()).to.not.throw
+    expect(scope.done()).to.not.throw
   })
 })
