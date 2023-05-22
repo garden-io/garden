@@ -92,8 +92,7 @@ type: container
 name: worker
 source:
   repository:
-    url: https://github.com/garden-io/garden-example-remote-module-jworker.git#0.13
-...
+    url: https://github.com/garden-io/garden-example-remote-module-jworker.git#main
 ```
 
 As with remote sources, the URL must point to a specific branch or tag.

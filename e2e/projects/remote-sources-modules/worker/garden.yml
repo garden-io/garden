@@ -2,7 +2,7 @@ kind: Module
 description: The worker that collects votes and stores results in a postgres table
 type: container
 name: worker
-repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git#v0.3.0
+repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git#main
 services:
   - name: worker
     dependencies:
