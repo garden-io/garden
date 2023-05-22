@@ -1,0 +1,25 @@
+kind: Module
+description: Results UI service
+type: container
+name: result
+services:
+  - name: result
+    args: [nodemon, server.js]
+    dependencies:
+      - db-init
+    ingresses:
+      - path: /
+        port: ui
+        hostname: result.${var.baseHostname}
+    ports:
+      - name: ui
+        protocol: TCP
+        containerPort: 80
+    env:
+      PGDATABASE: ${var.postgres-database}
+      PGUSER: ${var.postgres-username}
+      PGPASSWORD: ${var.postgres-password}
+tests:
+  - name: integ
+    args: [echo, ok]
+    dependencies: [db-init]

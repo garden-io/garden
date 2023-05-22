@@ -13,7 +13,7 @@ import chalk from "chalk"
 import { ParameterError } from "../../exceptions"
 import { Command, CommandResult } from "../base"
 import { addLinkedSources } from "../../util/ext-source-util"
-import { LinkedSource } from "../../config-store"
+import { LinkedSource } from "../../config-store/local"
 import { CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { joiArray, joi } from "../../config/common"
@@ -24,6 +24,9 @@ const linkSourceArguments = {
   source: new StringParameter({
     help: "Name of the source to link as declared in the project config.",
     required: true,
+    getSuggestions: ({ configDump }) => {
+      return configDump.sources.map((s) => s.name)
+    },
   }),
   path: new PathParameter({
     help: "Path to the local directory that contains the source.",
@@ -57,8 +60,8 @@ export class LinkSourceCommand extends Command<Args> {
         garden link source my-source path/to/my-source # links my-source to its local version at the given path
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Link source", "link")
+  printHeader({ log }) {
+    printHeader(log, "Link source", "🔗")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<Output>> {

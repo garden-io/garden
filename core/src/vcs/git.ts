@@ -7,37 +7,38 @@
  */
 
 import { performance } from "perf_hooks"
-import FilterStream from "streamfilter"
 import { isAbsolute, join, posix, relative, resolve } from "path"
-import { flatten, isString } from "lodash"
+import { isString } from "lodash"
 import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
-import { PassThrough, Transform } from "stream"
-import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsInfo } from "./vcs"
+import { PassThrough } from "stream"
+import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsHandlerParams, VcsInfo } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
-import { dedent, deline } from "../util/string"
-import { exec, splitLast } from "../util/util"
-import { LogEntry } from "../logger/log-entry"
+import { dedent, deline, splitLast } from "../util/string"
+import { exec } from "../util/util"
+import { Log } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
 import { getDefaultProfiler, Profile, Profiler } from "../util/profiling"
-import { SortedStreamIntersection } from "../util/streams"
 import { mapLimit } from "async"
-import { TreeCache } from "../cache"
 import { STATIC_DIR } from "../constants"
 import split2 = require("split2")
 import execa = require("execa")
-import isGlob = require("is-glob")
-import chalk = require("chalk")
+import isGlob from "is-glob"
+import chalk from "chalk"
 import hasha = require("hasha")
 import { pMemoizeDecorator } from "../lib/p-memoize"
+import AsyncLock from "async-lock"
 
-const AsyncLock = require("async-lock")
 const gitConfigAsyncLock = new AsyncLock()
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
 const hashConcurrencyLimit = 50
 const currentPlatformName = process.platform
+
+const gitSafeDirs = new Set<string>()
+let gitSafeDirsRead = false
+let staticDirSafe = false
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -81,17 +82,15 @@ export class GitHandler extends VcsHandler {
   name = "git"
   repoRoots = new Map()
   profiler: Profiler
-  private readonly gitSafeDirs: Set<string>
-  private gitSafeDirsRead: boolean
+  private lock: AsyncLock
 
-  constructor(...args: [string, string, string[], TreeCache]) {
-    super(...args)
+  constructor(params: VcsHandlerParams) {
+    super(params)
     this.profiler = getDefaultProfiler()
-    this.gitSafeDirs = new Set<string>()
-    this.gitSafeDirsRead = false
+    this.lock = new AsyncLock()
   }
 
-  gitCli(log: LogEntry, cwd: string, failOnPrompt = false): GitCli {
+  gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
     return async (...args: (string | undefined)[]) => {
       log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
       const { stdout } = await exec("git", args.filter(isString), {
@@ -127,6 +126,7 @@ export class GitHandler extends VcsHandler {
     return path.replace(/\\/g, "/")
   }
 
+  // TODO-0.13.1+ - get rid of this in/after https://github.com/garden-io/garden/pull/4047
   /**
    * Checks if a given {@code path} is a valid and safe Git repository.
    * If it is a valid Git repository owned by another user,
@@ -135,89 +135,113 @@ export class GitHandler extends VcsHandler {
    * Git has stricter repository ownerships checks since 2.36.0,
    * see https://github.blog/2022-04-18-highlights-from-git-2-36/ for more details.
    */
-  private async ensureSafeDirGitRepo(log: LogEntry, path: string, failOnPrompt = false): Promise<void> {
-    if (this.gitSafeDirs.has(path)) {
+  private async ensureSafeDirGitRepo(log: Log, path: string, failOnPrompt = false): Promise<void> {
+    if (gitSafeDirs.has(path)) {
       return
     }
 
-    const git = this.gitCli(log, path, failOnPrompt)
-
-    if (!this.gitSafeDirsRead) {
-      await gitConfigAsyncLock.acquire(".gitconfig", async () => {
-        if (!this.gitSafeDirsRead) {
-          const gitCli = this.gitCli(log, path, failOnPrompt)
-          try {
-            const safeDirectories = await gitCli("config", "--get-all", "safe.directory")
-            safeDirectories.forEach((safeDir) => this.gitSafeDirs.add(safeDir))
-          } catch (err) {
-            // ignore the error if there are no safe directories defined
-            log.debug(`Error reading safe directories from the .gitconfig: ${err}`)
-          }
-          this.gitSafeDirsRead = true
-        }
-      })
-    }
-
-    try {
-      await git("status")
-      this.gitSafeDirs.add(path)
-    } catch (err) {
-      // Git has stricter repo ownerships checks since 2.36.0
-      if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
-        log.warn(
-          chalk.yellow(
-            `It looks like you're using Git 2.36.0 or newer and the directory "${path}" is owned by someone else. It will be added to safe.directory list in the .gitconfig.`
-          )
-        )
-
-        if (!this.gitSafeDirs.has(path)) {
-          await gitConfigAsyncLock.acquire(".gitconfig", async () => {
-            if (!this.gitSafeDirs.has(path)) {
-              const gitConfigCompatiblePath = this.toGitConfigCompatiblePath(path, currentPlatformName)
-              // Add the safe directory globally to be able to run git command outside a (trusted) git repo
-              // Wrap the path in quotes to pass it as a single argument in case if it contains any whitespaces
-              await git("config", "--global", "--add", "safe.directory", `'${gitConfigCompatiblePath}'`)
-              this.gitSafeDirs.add(path)
-              log.debug(`Configured git to trust repository in ${path}`)
-            }
-          })
-        }
-
+    // Avoid multiple concurrent checks on the same path
+    await this.lock.acquire(`safe-dir:${path}`, async () => {
+      if (gitSafeDirs.has(path)) {
         return
-      } else if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: not a git repository")) {
-        throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
-      } else {
-        log.error(
-          `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.exitCode}. Error message: ${err.stderr}`
-        )
-        throw err
       }
-    }
-    this.gitSafeDirs.add(path)
+
+      const git = this.gitCli(log, path, failOnPrompt)
+
+      if (!gitSafeDirsRead) {
+        await gitConfigAsyncLock.acquire(".gitconfig", async () => {
+          if (!gitSafeDirsRead) {
+            const gitCli = this.gitCli(log, path, failOnPrompt)
+            try {
+              const safeDirectories = await gitCli("config", "--get-all", "safe.directory")
+              safeDirectories.forEach((safeDir) => gitSafeDirs.add(safeDir))
+            } catch (err) {
+              // ignore the error if there are no safe directories defined
+              log.debug(`Error reading safe directories from the .gitconfig: ${err}`)
+            }
+            gitSafeDirsRead = true
+          }
+        })
+      }
+
+      try {
+        await git("status")
+        gitSafeDirs.add(path)
+      } catch (err) {
+        // Git has stricter repo ownerships checks since 2.36.0
+        if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
+          log.warn(
+            chalk.yellow(
+              `It looks like you're using Git 2.36.0 or newer and the directory "${path}" is owned by someone else. It will be added to safe.directory list in the .gitconfig.`
+            )
+          )
+
+          if (!gitSafeDirs.has(path)) {
+            await gitConfigAsyncLock.acquire(".gitconfig", async () => {
+              if (!gitSafeDirs.has(path)) {
+                const gitConfigCompatiblePath = this.toGitConfigCompatiblePath(path, currentPlatformName)
+                // Add the safe directory globally to be able to run git command outside a (trusted) git repo
+                // Wrap the path in quotes to pass it as a single argument in case if it contains any whitespaces
+                await git("config", "--global", "--add", "safe.directory", `'${gitConfigCompatiblePath}'`)
+                gitSafeDirs.add(path)
+                log.debug(`Configured git to trust repository in ${path}`)
+              }
+            })
+          }
+
+          return
+        } else if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: not a git repository")) {
+          throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
+        } else {
+          log.error(
+            `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.exitCode}. Error message: ${err.stderr}`
+          )
+          throw err
+        }
+      }
+      gitSafeDirs.add(path)
+    })
   }
 
-  async getRepoRoot(log: LogEntry, path: string, failOnPrompt = false) {
+  async getRepoRoot(log: Log, path: string, failOnPrompt = false) {
     if (this.repoRoots.has(path)) {
       return this.repoRoots.get(path)
     }
 
-    await this.ensureSafeDirGitRepo(log, STATIC_DIR, failOnPrompt)
-    await this.ensureSafeDirGitRepo(log, path, failOnPrompt)
-
-    const git = this.gitCli(log, path, failOnPrompt)
-
-    try {
-      const repoRoot = (await git("rev-parse", "--show-toplevel"))[0]
-      this.repoRoots.set(path, repoRoot)
-      return repoRoot
-    } catch (err) {
-      if (err.exitCode === 128) {
-        // Throw nice error when we detect that we're not in a repo root
-        throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
-      } else {
-        throw err
+    // Make sure we're not asking concurrently for the same root
+    return this.lock.acquire(`repo-root:${path}`, async () => {
+      if (this.repoRoots.has(path)) {
+        return this.repoRoots.get(path)
       }
-    }
+
+      // TODO-0.13.1+ - get rid of this in/after https://github.com/garden-io/garden/pull/4047
+      if (!staticDirSafe) {
+        staticDirSafe = true
+        await this.ensureSafeDirGitRepo(log, STATIC_DIR, failOnPrompt)
+      }
+
+      const git = this.gitCli(log, path, failOnPrompt)
+
+      try {
+        const repoRoot = (await git("rev-parse", "--show-toplevel"))[0]
+        this.repoRoots.set(path, repoRoot)
+        return repoRoot
+      } catch (err) {
+        if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
+          // Throw nice error when we detect that we're not in a repo root
+          throw new RuntimeError(
+            err.stderr +
+              `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
+            { path }
+          )
+        } else if (err.exitCode === 128) {
+          // Throw nice error when we detect that we're not in a repo root
+          throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
+        } else {
+          throw err
+        }
+      }
+    })
   }
 
   /**
@@ -238,35 +262,31 @@ export class GitHandler extends VcsHandler {
       return []
     }
 
-    log = log.debug(
-      `Scanning ${pathDescription} at ${path}\n→ Includes: ${include || "(none)"}\n→ Excludes: ${exclude || "(none)"}`
-    )
+    const gitLog = log
+      .createLog({})
+      .debug(
+        `Scanning ${pathDescription} at ${path}\n→ Includes: ${include || "(none)"}\n→ Excludes: ${exclude || "(none)"}`
+      )
 
     try {
       const pathStats = await stat(path)
 
       if (!pathStats.isDirectory()) {
-        log.warn({
-          symbol: "warning",
-          msg: chalk.gray(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`),
-        })
+        gitLog.warn(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`)
         return []
       }
     } catch (err) {
       // 128 = File no longer exists
       if (err.exitCode === 128 || err.code === "ENOENT") {
-        log.warn({
-          symbol: "warning",
-          msg: chalk.gray(`Attempted to scan directory at ${path}, but it does not exist.`),
-        })
+        gitLog.warn(`Attempted to scan directory at ${path}, but it does not exist.`)
         return []
       } else {
         throw err
       }
     }
 
-    const git = this.gitCli(log, path, failOnPrompt)
-    const gitRoot = await this.getRepoRoot(log, path, failOnPrompt)
+    const git = this.gitCli(gitLog, path, failOnPrompt)
+    const gitRoot = await this.getRepoRoot(gitLog, path, failOnPrompt)
 
     // List modified files, so that we can ensure we have the right hash for them later
     const modified = new Set(
@@ -284,24 +304,17 @@ export class GitHandler extends VcsHandler {
     const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
 
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
-    // TODO: change in 0.13 to no longer exclude these
     const trackedButIgnored = new Set(
-      this.ignoreFiles.length === 0
+      !this.ignoreFile
         ? []
-        : flatten(
-            await Promise.all(
-              this.ignoreFiles.map((f) =>
-                git("ls-files", "--ignored", ...lsFilesCommonArgs, "--exclude-per-directory", f)
-              )
-            )
-          )
+        : await git("ls-files", "--ignored", ...lsFilesCommonArgs, "--exclude-per-directory", this.ignoreFile)
     )
 
     // List all submodule paths in the current path
     const submodules = await this.getSubmodules(path)
     const submodulePaths = submodules.map((s) => join(gitRoot, s.path))
     if (submodules.length > 0) {
-      log.silly(`Submodules listed at ${submodules.map((s) => `${s.path} (${s.url})`).join(", ")}`)
+      gitLog.silly(`Submodules listed at ${submodules.map((s) => `${s.path} (${s.url})`).join(", ")}`)
     }
 
     const files: VcsFile[] = []
@@ -363,78 +376,23 @@ export class GitHandler extends VcsHandler {
       }
       args.push(...patterns)
 
-      log.silly(`Calling git with args '${args.join(" ")}' in ${path}`)
+      gitLog.silly(`Calling git with args '${args.join(" ")}' in ${path}`)
       return execa("git", args, { cwd: path, buffer: false })
     }
 
-    if (this.ignoreFiles.length > 1) {
-      // We run ls-files for each ignore file and do a streaming set-intersection (i.e. every ls-files call
-      // needs to "agree" that a file should be included). Then `handleLine()` is called for each resulting entry.
-      const streams = this.ignoreFiles.map(() => {
-        const input = split2()
-        const output = input.pipe(
-          new FilterStream((line: Buffer, _, cb) => {
-            cb(!!line)
-          }).pipe(
-            new Transform({
-              objectMode: true,
-              transform(line: Buffer, _, cb: Function) {
-                this.push(parseLine(line))
-                cb()
-              },
-            })
-          )
-        )
-        return { input, output }
-      })
+    const splitStream = split2()
+    splitStream.on("data", (line) => handleEntry(parseLine(line)))
 
-      await new Promise<void>((_resolve, _reject) => {
-        // Note: The comparison function needs to account for git first returning untracked files, so we prefix with
-        // a zero or one to indicate whether it's a tracked file or not, and then do a simple string comparison
-        const intersection = new SortedStreamIntersection(
-          streams.map(({ output }) => output),
-          (a: VcsFile, b: VcsFile) => {
-            const cmpA = (a.hash ? "1" : "0") + a.path
-            const cmpB = (b.hash ? "1" : "0") + b.path
-            return <any>(cmpA > cmpB) - <any>(cmpA < cmpB)
-          }
-        )
-
-        this.ignoreFiles.map((ignoreFile, i) => {
-          const proc = lsFiles(ignoreFile)
-
-          proc.on("error", (err) => {
-            if (err["exitCode"] !== 128) {
-              _reject(err)
-            }
-          })
-
-          proc.stdout!.pipe(streams[i].input)
-        })
-
-        intersection.on("data", handleEntry)
-        intersection.on("error", (err) => {
+    await new Promise<void>((_resolve, _reject) => {
+      const proc = lsFiles(this.ignoreFile)
+      void proc.on("error", (err: execa.ExecaError) => {
+        if (err.exitCode !== 128) {
           _reject(err)
-        })
-        intersection.on("end", () => {
-          _resolve()
-        })
+        }
       })
-    } else {
-      const splitStream = split2()
-      splitStream.on("data", (line) => handleEntry(parseLine(line)))
-
-      await new Promise<void>((_resolve, _reject) => {
-        const proc = lsFiles(this.ignoreFiles[0])
-        proc.on("error", (err: execa.ExecaError) => {
-          if (err.exitCode !== 128) {
-            _reject(err)
-          }
-        })
-        proc.stdout?.pipe(splitStream)
-        splitStream.on("end", () => _resolve())
-      })
-    }
+      proc.stdout?.pipe(splitStream)
+      splitStream.on("end", () => _resolve())
+    })
 
     if (submodulePaths.length > 0) {
       // Need to automatically add `**/*` to directory paths, to match git behavior when filtering.
@@ -454,23 +412,15 @@ export class GitHandler extends VcsHandler {
 
             if (!pathStats.isDirectory()) {
               const pathType = getStatsType(pathStats)
-              log.warn({
-                symbol: "warning",
-                msg: chalk.gray(
-                  `Expected submodule directory at ${path}, but found ${pathType}. ${submoduleErrorSuggestion}`
-                ),
-              })
+              gitLog.warn(`Expected submodule directory at ${path}, but found ${pathType}. ${submoduleErrorSuggestion}`)
               return
             }
           } catch (err) {
             // 128 = File no longer exists
             if (err.exitCode === 128 || err.code === "ENOENT") {
-              log.warn({
-                symbol: "warning",
-                msg: chalk.yellow(
-                  `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
-                ),
-              })
+              gitLog.warn(
+                `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
+              )
               return
             } else {
               throw err
@@ -479,7 +429,7 @@ export class GitHandler extends VcsHandler {
 
           files.push(
             ...(await this.getFiles({
-              log,
+              log: gitLog,
               path: submodulePath,
               pathDescription: "submodule",
               exclude: [],
@@ -533,7 +483,7 @@ export class GitHandler extends VcsHandler {
 
               // Make sure symlink is relative and points within `path`
               if (isAbsolute(target)) {
-                log.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
+                gitLog.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
                 return cb(null, { path: resolvedPath, hash: "" })
               } else if (target.startsWith("..")) {
                 realpath(resolvedPath, (realpathErr, realTarget) => {
@@ -547,7 +497,7 @@ export class GitHandler extends VcsHandler {
                   const relPath = relative(path, realTarget)
 
                   if (relPath.startsWith("..")) {
-                    log.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
+                    gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
                     return cb(null, { path: resolvedPath, hash: "" })
                   }
                   ensureHash(output, stats, cb)
@@ -563,7 +513,7 @@ export class GitHandler extends VcsHandler {
       })
     ).filter((f) => f.hash !== "")
 
-    log.debug(`Found ${result.length} files in ${pathDescription} ${path}`)
+    gitLog.debug(`Found ${result.length} files in ${pathDescription} ${path}`)
 
     return result
   }
@@ -574,7 +524,7 @@ export class GitHandler extends VcsHandler {
   }
 
   private async cloneRemoteSource(
-    log: LogEntry,
+    log: Log,
     repositoryUrl: string,
     hash: string,
     absPath: string,
@@ -584,7 +534,17 @@ export class GitHandler extends VcsHandler {
     const git = this.gitCli(log, absPath, failOnPrompt)
     // Use `--recursive` to include submodules
     if (!this.isHashSHA1(hash)) {
-      return git("clone", "--recursive", "--depth=1", "--shallow-submodules", `--branch=${hash}`, repositoryUrl, ".")
+      return git(
+        "-c",
+        "protocol.file.allow=always",
+        "clone",
+        "--recursive",
+        "--depth=1",
+        "--shallow-submodules",
+        `--branch=${hash}`,
+        repositoryUrl,
+        "."
+      )
     }
 
     // If SHA1 is used we need to fetch the changes as git clone doesn't allow to shallow clone
@@ -592,9 +552,9 @@ export class GitHandler extends VcsHandler {
     try {
       await git("init")
       await git("remote", "add", "origin", repositoryUrl)
-      await git("fetch", "--depth=1", "--recurse-submodules=yes", "origin", hash)
+      await git("-c", "protocol.file.allow=always", "fetch", "--depth=1", "--recurse-submodules=yes", "origin", hash)
       await git("checkout", "FETCH_HEAD")
-      return git("submodule", "update", "--init", "--recursive")
+      return git("-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive")
     } catch (err) {
       throw new RuntimeError(
         dedent`Failed to shallow clone with error: \n\n${err}
@@ -609,67 +569,75 @@ export class GitHandler extends VcsHandler {
 
   // TODO Better auth handling
   async ensureRemoteSource({ url, name, log, sourceType, failOnPrompt = false }: RemoteSourceParams): Promise<string> {
-    const remoteSourcesPath = join(this.gardenDirPath, this.getRemoteSourcesDirname(sourceType))
-    await ensureDir(remoteSourcesPath)
+    return this.getRemoteSourceLock(sourceType, name, async () => {
+      const remoteSourcesPath = this.getRemoteSourcesLocalPath(sourceType)
+      await ensureDir(remoteSourcesPath)
 
-    const absPath = join(this.gardenDirPath, this.getRemoteSourceRelPath(name, url, sourceType))
-    const isCloned = await pathExists(absPath)
+      const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
+      const isCloned = await pathExists(absPath)
 
-    if (!isCloned) {
-      const entry = log.info({ section: name, msg: `Fetching from ${url}`, status: "active" })
-      const { repositoryUrl, hash } = parseGitUrl(url)
+      if (!isCloned) {
+        const gitLog = log.createLog({ name, showDuration: true }).info(`Fetching from ${url}`)
+        const { repositoryUrl, hash } = parseGitUrl(url)
 
-      try {
-        await this.cloneRemoteSource(log, repositoryUrl, hash, absPath, failOnPrompt)
-      } catch (err) {
-        entry.setError()
-        throw new RuntimeError(`Downloading remote ${sourceType} failed with error: \n\n${err}`, {
-          repositoryUrl: url,
-          message: err.message,
-        })
+        try {
+          await this.cloneRemoteSource(log, repositoryUrl, hash, absPath, failOnPrompt)
+        } catch (err) {
+          gitLog.error(`Failed fetching from ${url}`)
+          throw new RuntimeError(`Downloading remote ${sourceType} failed with error: \n\n${err}`, {
+            repositoryUrl: url,
+            message: err.message,
+          })
+        }
+
+        gitLog.success("Done")
       }
 
-      entry.setSuccess()
-    }
-
-    return absPath
+      return absPath
+    })
   }
 
   async updateRemoteSource({ url, name, sourceType, log, failOnPrompt = false }: RemoteSourceParams) {
-    const absPath = join(this.gardenDirPath, this.getRemoteSourceRelPath(name, url, sourceType))
+    const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
     const git = this.gitCli(log, absPath, failOnPrompt)
     const { repositoryUrl, hash } = parseGitUrl(url)
 
     await this.ensureRemoteSource({ url, name, sourceType, log, failOnPrompt })
 
-    const entry = log.info({ section: name, msg: "Getting remote state", status: "active" })
-    await git("remote", "update")
+    await this.getRemoteSourceLock(sourceType, name, async () => {
+      const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
+      await git("remote", "update")
 
-    const localCommitId = (await git("rev-parse", "HEAD"))[0]
-    const remoteCommitId = this.isHashSHA1(hash)
-      ? hash
-      : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
+      const localCommitId = (await git("rev-parse", "HEAD"))[0]
+      const remoteCommitId = this.isHashSHA1(hash)
+        ? hash
+        : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
 
-    if (localCommitId !== remoteCommitId) {
-      entry.setState(`Fetching from ${url}`)
+      if (localCommitId !== remoteCommitId) {
+        gitLog.info(`Fetching from ${url}`)
 
-      try {
-        await git("fetch", "--depth=1", "origin", hash)
-        await git("reset", "--hard", `origin/${hash}`)
-        // Update submodules if applicable (no-op if no submodules in repo)
-        await git("submodule", "update", "--recursive")
-      } catch (err) {
-        entry.setError()
-        throw new RuntimeError(`Updating remote ${sourceType} failed with error: \n\n${err}`, {
-          repositoryUrl: url,
-          message: err.message,
-        })
+        try {
+          await git("fetch", "--depth=1", "origin", hash)
+          await git("reset", "--hard", `origin/${hash}`)
+          // Update submodules if applicable (no-op if no submodules in repo)
+          await git("-c", "protocol.file.allow=always", "submodule", "update", "--recursive")
+        } catch (err) {
+          gitLog.error(`Failed fetching from ${url}`)
+          throw new RuntimeError(`Updating remote ${sourceType} failed with error: \n\n${err}`, {
+            repositoryUrl: url,
+            message: err.message,
+          })
+        }
+
+        gitLog.success("Source updated")
+      } else {
+        gitLog.success("Source already up to date")
       }
+    })
+  }
 
-      entry.setSuccess("Source updated")
-    } else {
-      entry.setSuccess("Source already up to date")
-    }
+  private getRemoteSourceLock(sourceType: string, name: string, func: () => Promise<any>) {
+    return this.lock.acquire(`remote-source-${sourceType}-${name}`, func)
   }
 
   /**
@@ -737,7 +705,7 @@ export class GitHandler extends VcsHandler {
     return submodules
   }
 
-  async getPathInfo(log: LogEntry, path: string, failOnPrompt = false): Promise<VcsInfo> {
+  async getPathInfo(log: Log, path: string, failOnPrompt = false): Promise<VcsInfo> {
     const git = this.gitCli(log, path, failOnPrompt)
 
     const output: VcsInfo = {

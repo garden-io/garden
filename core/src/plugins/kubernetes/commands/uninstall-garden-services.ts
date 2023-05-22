@@ -7,12 +7,10 @@
  */
 
 import chalk from "chalk"
-import { PluginCommand } from "../../../types/plugin/command"
+import { PluginCommand } from "../../../plugin/command"
 import { getKubernetesSystemVariables } from "../init"
 import { KubernetesPluginContext } from "../config"
 import { getSystemGarden } from "../system"
-import { getSystemNamespace } from "../namespace"
-import { helm } from "../helm/helm-cli"
 
 export const uninstallGardenServices: PluginCommand = {
   name: "uninstall-garden-services",
@@ -30,40 +28,19 @@ export const uninstallGardenServices: PluginCommand = {
     const actions = await sysGarden.getActionRouter()
 
     const graph = await sysGarden.getConfigGraph({ log, emit: false })
-    const services = graph.getServices()
+    const deploys = graph.getDeploys()
 
     log.info("")
 
-    // We have to delete all services except nfs-provisioner first to avoid volumes getting stuck
-    const serviceNames = services.map((s) => s.name).filter((name) => name !== "nfs-provisioner")
-    const serviceStatuses = await actions.deleteServices(graph, log, serviceNames)
-
-    const systemNamespace = await getSystemNamespace(ctx, k8sCtx.provider, log)
-    try {
-      await helm({
-        ctx: k8sCtx,
-        log,
-        namespace: systemNamespace,
-        args: ["uninstall", "garden-nfs-provisioner"],
-        emitLogEvents: true,
-      })
-    } catch (_) {}
-    try {
-      await helm({
-        ctx: k8sCtx,
-        log,
-        namespace: systemNamespace,
-        args: ["uninstall", "garden-nfs-provisioner-v2"],
-        emitLogEvents: true,
-      })
-    } catch (_) {}
+    const deployNames = deploys.map((s) => s.name)
+    const statuses = await actions.deleteDeploys({ graph, log, names: deployNames })
 
     log.info("")
 
-    const environmentStatuses = await actions.cleanupAll(log)
+    const environmentStatuses = await actions.provider.cleanupAll(log)
 
     log.info(chalk.green("\nDone!"))
 
-    return { result: { serviceStatuses, environmentStatuses } }
+    return { result: { serviceStatuses: statuses, environmentStatuses } }
   },
 }

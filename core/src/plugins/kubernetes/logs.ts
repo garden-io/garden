@@ -9,37 +9,35 @@
 import { omit, sortBy } from "lodash"
 import parseDuration from "parse-duration"
 
-import { ServiceLogEntry } from "../../types/plugin/service/getServiceLogs"
+import { DeployLogEntry } from "../../types/service"
 import { KubernetesResource, KubernetesPod, BaseResource } from "./types"
 import { getAllPods, summarize } from "./util"
 import { KubeApi, KubernetesError } from "./api"
-import { GardenService } from "../../types/service"
 import Stream from "ts-stream"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import Bluebird from "bluebird"
 import { KubernetesProvider } from "./config"
-import { PluginToolSpec } from "../../types/plugin/tools"
 import { PluginContext } from "../../plugin-context"
 import { getPodLogs } from "./status/pod"
-import { splitFirst, isValidDateInstance, sleep } from "../../util/util"
+import { isValidDateInstance, sleep } from "../../util/util"
 import { Writable } from "stream"
 import request from "request"
 import { LogLevel } from "../../logger/logger"
 import { clearTimeout } from "timers"
 import { HttpError } from "@kubernetes/client-node"
+import { splitFirst } from "../../util/string"
 
 // When not following logs, the entire log is read into memory and sorted.
 // We therefore set a maximum on the number of lines we fetch.
-
 const maxLogLinesInMemory = 100000
 
 interface GetAllLogsParams {
   ctx: PluginContext
   defaultNamespace: string
-  log: LogEntry
+  log: Log
   provider: KubernetesProvider
-  service: GardenService
-  stream: Stream<ServiceLogEntry>
+  actionName: string
+  stream: Stream<DeployLogEntry>
   follow: boolean
   tail?: number
   since?: string
@@ -56,13 +54,14 @@ export interface LogEntryBase {
  */
 export async function streamK8sLogs(params: GetAllLogsParams) {
   const api = await KubeApi.factory(params.log, params.ctx, params.provider)
-  const entryConverter = makeServiceLogEntry(params.service.name)
+  const entryConverter = makeDeployLogEntry(params.actionName)
 
   if (params.follow) {
     const logsFollower = new K8sLogFollower({ ...params, entryConverter, k8sApi: api, log: params.ctx.log })
 
     params.ctx.events.on("abort", () => {
       logsFollower.close()
+      params.ctx.events.emit("done")
     })
 
     // We use sinceOnRetry 30s here, to cap the maximum age of log messages on retry attempts to max 30s
@@ -115,8 +114,8 @@ async function readLogs<T extends LogEntryBase>({
     sinceSeconds: since ? parseDuration(since, "s") || undefined : undefined,
   })
 
-  const allLines = logs.flatMap(({ containerName, log: _log }) => {
-    return _log.split("\n").map((line) => {
+  const allLines = logs.flatMap(({ containerName, log }) => {
+    return log.split("\n").map((line) => {
       line = line.trimEnd()
       const res = { containerName }
       const { timestamp, msg } = parseTimestampAndMessage(line)
@@ -154,8 +153,8 @@ interface LogOpts {
   /**
    * Maximum age of logs to fetch on retry attempts.
    *
-   * Can be useful in case you don't want to fetch the complete history of logs on retry attempts, for example when the
-   * we don't care about completeness, for example in `garden logs --follow`.
+   * Can be useful in case you don't want to fetch the complete history of logs on retry attempts, for example when
+   * we don't care about completeness, like in `garden logs --follow`.
    *
    * By default the LogFollower will try to fetch all the logs (unless the amount the app logged between retries exceeds
    * maxLogLinesInMemory).
@@ -176,7 +175,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
   private stream: Stream<T>
   private entryConverter: PodLogEntryConverter<T>
   private k8sApi: KubeApi
-  private log: LogEntry
+  private log: Log
   private defaultNamespace: string
   private resources: KubernetesResource<BaseResource>[]
   private timeoutId?: NodeJS.Timer | null
@@ -195,7 +194,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
     stream: Stream<T>
     entryConverter: PodLogEntryConverter<T>
     k8sApi: KubeApi
-    log: LogEntry
+    log: Log
     defaultNamespace: string
     resources: KubernetesResource<BaseResource>[]
     retryIntervalMs?: number
@@ -647,9 +646,9 @@ function containerNamesForLogging(pod: KubernetesPod): string[] {
 
 export type PodLogEntryConverter<T extends LogEntryBase> = (p: PodLogEntryConverterParams) => T
 
-export const makeServiceLogEntry: (serviceName: string) => PodLogEntryConverter<ServiceLogEntry> = (serviceName) => {
+export const makeDeployLogEntry: (deployName: string) => PodLogEntryConverter<DeployLogEntry> = (deployName) => {
   return ({ timestamp, msg, level, containerName }: PodLogEntryConverterParams) => ({
-    serviceName,
+    name: deployName,
     timestamp,
     msg,
     level,
@@ -657,37 +656,4 @@ export const makeServiceLogEntry: (serviceName: string) => PodLogEntryConverter<
       container: containerName || "",
     },
   })
-}
-
-// DEPRECATED: Remove stern in v0.13
-// This version has no Darwin ARM support yet. If you add a later release, please add the "arm64" architecture.
-const sternVersion = "1.22.0"
-
-function sternBuildSpec(platform: string, architecture: string, sha256: string) {
-  const url = `https://github.com/stern/stern/releases/download/v${sternVersion}/stern_${sternVersion}_${platform}_${architecture}.tar.gz`
-  return {
-    platform,
-    architecture,
-    url,
-    sha256,
-    extract: {
-      format: "tar",
-      targetPath: ".",
-    },
-  }
-}
-
-export const sternSpec: PluginToolSpec = {
-  name: "stern",
-  description: "Utility CLI for streaming logs from Kubernetes.",
-  type: "binary",
-  _includeInGardenImage: true,
-  builds: [
-    sternBuildSpec("darwin", "amd64", "3e2d06ef35866b155aa9349d1b337aed114e56d49d7fc8245143d6180115ffef"),
-    sternBuildSpec("darwin", "arm64", "066e0562b962acf576242e9a23aa4d61de21812d5fa62cbfe198a62f5801d282"),
-    sternBuildSpec("linux", "amd64", "6eff028d104b53c8a53c3af752a52292ddb2024b469ce5ab05aee2f0954bde72"),
-    // sternBuildSpec("linux", "arm64", "34746c58b80e8f0db3273ff691a03d5c57f10a913e9c6a791fae1f4107aee5e5"),
-    sternBuildSpec("windows", "amd64", "8771d8023f10eb16a28136e88790faeb8107736f00f1d9f3bae812766f681c2a"),
-    // sternBuildSpec("windows", "arm64", "61deb25940f2ff8b9554e1375dd7d39dd6633adc3b852787004aea881c270760"),
-  ],
 }

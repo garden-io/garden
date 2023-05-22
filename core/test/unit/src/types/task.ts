@@ -10,6 +10,7 @@ import { expect } from "chai"
 import { makeTestGardenA } from "../../../helpers"
 import { TaskConfig } from "../../../../src/config/task"
 import { taskFromConfig } from "../../../../src/types/task"
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../src/constants"
 
 describe("taskFromConfig", () => {
   it("should propagate the disabled flag from the config", async () => {
@@ -19,7 +20,7 @@ describe("taskFromConfig", () => {
       dependencies: [],
       disabled: true,
       spec: {},
-      timeout: null,
+      timeout: DEFAULT_RUN_TIMEOUT_SEC,
     }
 
     const garden = await makeTestGardenA()
@@ -37,7 +38,7 @@ describe("taskFromConfig", () => {
       dependencies: [],
       disabled: false,
       spec: {},
-      timeout: null,
+      timeout: DEFAULT_RUN_TIMEOUT_SEC,
     }
 
     const garden = await makeTestGardenA()

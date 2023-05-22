@@ -6,21 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
+import Joi, { SchemaLike } from "@hapi/joi"
 import Ajv from "ajv"
-import { splitLast } from "../util/util"
-import { deline, dedent } from "../util/string"
-import { cloneDeep, isArray } from "lodash"
+import addFormats from "ajv-formats"
+import { splitLast, deline, dedent, naturalList, titleize } from "../util/string"
+import { cloneDeep, isArray, isPlainObject, isString, mapValues, memoize } from "lodash"
 import { joiPathPlaceholder } from "./validation"
-import { DEFAULT_API_VERSION } from "../constants"
+import { DEFAULT_API_VERSION, PREVIOUS_API_VERSION } from "../constants"
+import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
+import { ConfigurationError, InternalError } from "../exceptions"
+import type { ConfigContextType } from "./template-contexts/base"
 
 export const objectSpreadKey = "$merge"
+export const conditionalKey = "$if"
+export const conditionalThenKey = "$then"
+export const conditionalElseKey = "$else"
 export const arrayConcatKey = "$concat"
 export const arrayForEachKey = "$forEach"
 export const arrayForEachReturnKey = "$return"
 export const arrayForEachFilterKey = "$filter"
 
-const ajv = new Ajv({ allErrors: true, useDefaults: true })
+const ajv = new Ajv({ allErrors: true, useDefaults: true, strict: false })
+addFormats(ajv)
 
 export type Primitive = string | number | boolean | null
 
@@ -41,16 +48,31 @@ export interface DeepPrimitiveMap {
 export const includeGuideLink =
   "https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories"
 
-export const enumToArray = (Enum) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
+export const enumToArray = (Enum: any) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
 
 // Extend the Joi module with our custom rules
 interface MetadataKeys {
-  internal?: boolean
+  // Unique name to identify in error messages etc
+  name?: string
+  // Flag as an advanced feature, to be advised in generated docs
+  advanced?: boolean
+  // Flag as deprecated. Set to a string to provide a deprecation message for docs.
   deprecated?: boolean | string
+  // Field is specific to Garden Cloud/Enterprise
   enterprise?: boolean
+  // Indicate this schema is expected to be extended by e.g. plugins
   extendable?: boolean
+  // Usually applied automatically via createSchema. Indicates which schema this extends.
+  extends?: string
+  // Flag as experimental in docs
   experimental?: boolean
+  // Used for clarity in documentation on key/value mapping fields
   keyPlaceholder?: string
+  // Flag for internal use only, so that the field will not appear in generated docs
+  internal?: boolean
+  // Advise which template context is available for the field, for documentation purposes
+  // Set to null if no templating is supported for the field.
+  templateContext?: ConfigContextType | null
 }
 
 // Need this to fix the Joi typing
@@ -64,6 +86,9 @@ export interface JoiDescription extends Joi.Description {
     presence?: string
     only?: boolean
   }
+  metas?: {
+    [key: string]: object
+  }[]
 }
 
 // Unfortunately we need to explicitly extend each type (just extending the AnySchema doesn't work).
@@ -130,6 +155,11 @@ export interface PosixPathSchema extends Joi.StringSchema {
   subPathOnly(): this
 }
 
+interface ActionReferenceSchema extends Joi.AnySchema {
+  kind(kind: ActionKind): this
+  name(type: string): this
+}
+
 export interface Schema extends Joi.Root {
   object: () => CustomObjectSchema
   environment: () => Joi.StringSchema
@@ -137,6 +167,7 @@ export interface Schema extends Joi.Root {
   posixPath: () => PosixPathSchema
   hostname: () => Joi.StringSchema
   sparseArray: () => Joi.ArraySchema
+  actionReference: () => ActionReferenceSchema
 }
 
 export let joi: Schema = Joi.extend({
@@ -172,7 +203,7 @@ export let joi: Schema = Joi.extend({
   rules: {
     allowGlobs: {
       method() {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_setFlag("allowGlobs", true)
       },
       validate(value) {
@@ -182,7 +213,7 @@ export let joi: Schema = Joi.extend({
     },
     absoluteOnly: {
       method() {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("absoluteOnly")
       },
       validate(value, { error }) {
@@ -195,7 +226,7 @@ export let joi: Schema = Joi.extend({
     },
     filenameOnly: {
       method() {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("filenameOnly")
       },
       validate(value, { error }) {
@@ -208,7 +239,7 @@ export let joi: Schema = Joi.extend({
     },
     relativeOnly: {
       method() {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("relativeOnly")
       },
       validate(value, { error }) {
@@ -221,7 +252,7 @@ export let joi: Schema = Joi.extend({
     },
     subPathOnly: {
       method() {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("subPathOnly")
       },
       validate(value, { error }) {
@@ -256,7 +287,7 @@ joi = joi.extend({
   rules: {
     requireHash: {
       method() {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("requireHash")
       },
       validate(value, { error }) {
@@ -301,6 +332,16 @@ joi = joi.extend({
 })
 
 /**
+ * Compiles a JSON schema and caches the result.
+ */
+const compileJsonSchema = memoize(
+  (schema: any) => {
+    return ajv.compile(schema)
+  },
+  (s) => JSON.stringify(s)
+)
+
+/**
  * Extend the joi.object() type with additional methods and minor customizations, including one for validating with a
  * JSON Schema.
  *
@@ -332,9 +373,9 @@ joi = joi.extend({
   rules: {
     jsonSchema: {
       method(jsonSchema: object) {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         this.$_setFlag("jsonSchema", jsonSchema)
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_addRule(<any>{ name: "jsonSchema", args: { jsonSchema } })
       },
       args: [
@@ -350,7 +391,7 @@ joi = joi.extend({
             }
 
             try {
-              return ajv.compile(value)
+              return compileJsonSchema(value)
             } catch (err) {
               return false
             }
@@ -388,7 +429,7 @@ joi = joi.extend({
   type: "hostname",
   messages: {
     base: "{{#label}} must be a valid hostname.",
-    wildcardLabel: "{{#label}} only first DNS label my contain a wildcard.",
+    wildcardLabel: "{{#label}} only first DNS label may contain a wildcard.",
   },
   validate(value: string, { error }) {
     const baseSchema = joi.string().hostname()
@@ -416,18 +457,186 @@ joi = joi.extend({
   },
 })
 
+export interface ActionReference<K extends ActionKind = ActionKind> {
+  kind: K
+  name: string
+}
+
+const actionRefParseError = (reference: any) => {
+  const validActionKinds = naturalList(actionKindsLower, { trailingWord: "or", quote: true })
+
+  const refStr = JSON.stringify(reference)
+
+  return new ConfigurationError(
+    `Could not parse ${refStr} as a valid action reference. An action reference should be a "<kind>.<name>" string, where <kind> is one of ${validActionKinds} and <name> is a valid name of an action. You may also specify an object with separate kind and name fields.`,
+    { reference }
+  )
+}
+
+interface SchemaKeys {
+  [key: string]: SchemaLike | SchemaLike[] | SchemaCallback
+}
+type SchemaCallback = () => Joi.Schema
+
+export interface CreateSchemaParams {
+  name: string
+  description?: string
+  keys: () => SchemaKeys
+  extend?: () => Joi.ObjectSchema
+  default?: any
+  meta?: MetadataKeys
+  allowUnknown?: boolean
+  required?: boolean
+  rename?: [string, string][]
+  or?: string[][]
+  xor?: string[][]
+  oxor?: string[][]
+  options?: Joi.ValidationOptions
+}
+
+export interface CreateSchemaOutput {
+  (): Joi.ObjectSchema
+}
+
+interface SchemaRegistry {
+  [name: string]: {
+    spec: CreateSchemaParams
+    schema?: Joi.ObjectSchema
+  }
+}
+
+const schemaRegistry: SchemaRegistry = {}
+
+export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
+  let { name } = spec
+
+  if (schemaRegistry[name]) {
+    throw new InternalError(`Object schema ${name} defined multiple times`, { name })
+  }
+
+  schemaRegistry[name] = { spec }
+
+  return () => {
+    let schema = schemaRegistry[name].schema
+    if (!schema) {
+      const meta: MetadataKeys = { ...spec.meta }
+      meta.name = name
+
+      const keys = mapValues(spec.keys(), (v) => {
+        return typeof v === "function" ? v() : v
+      })
+
+      if (spec.extend) {
+        const base = spec.extend()
+
+        if (Object.keys(keys).length > 0) {
+          schema = base.keys(keys)
+        } else {
+          schema = base
+        }
+
+        const description = base.describe()
+        const baseMeta = metadataFromDescription(description)
+        if (baseMeta.name) {
+          meta.extends = baseMeta.name
+        }
+      } else {
+        schema = joi.object().keys(keys)
+      }
+
+      schema = schema.meta(meta)
+
+      if (spec.allowUnknown) {
+        schema = schema.unknown(true)
+      }
+      if (spec.options) {
+        schema = schema.options(spec.options)
+      }
+      if (spec.default) {
+        schema = schema.default(spec.default)
+      }
+      if (spec.description) {
+        schema = schema.description(spec.description)
+      }
+      if (spec.required) {
+        schema = schema.required()
+      }
+      if (spec.rename) {
+        for (const r of spec.rename) {
+          schema = schema.rename(r[0], r[1])
+        }
+      }
+      for (const or of spec.or || []) {
+        schema = schema.or(...or)
+      }
+      for (const xor of spec.xor || []) {
+        schema = schema.xor(...xor)
+      }
+      for (const oxor of spec.oxor || []) {
+        schema = schema.oxor(...oxor)
+      }
+
+      schemaRegistry[name].schema = schema
+    }
+    return schema
+  }
+}
+
+// Just used for tests
+export function removeSchema(name: string) {
+  if (schemaRegistry[name]) {
+    delete schemaRegistry[name]
+  }
+}
+
 /**
- * Add a joi.sparseArray() type, that both allows sparse arrays _and_ filters the falsy values out.
+ * Parse, validate and normalize an action reference.
+ *
+ * The general format is <kind>.<name>, where kind is one of the defined action types, and name is a valid
+ * identifier (same as joiIdentifier).
+ *
+ * You can also specify a full object, e.g. `{ kind: "Build", name: "foo" }`.
  */
-joi = joi.extend({
-  base: Joi.array().sparse(true),
-  type: "sparseArray",
-  coerce: {
-    method(value) {
-      return { value: isArray(value) && value.filter((v: any) => v !== undefined && v !== null) }
-    },
-  },
-})
+export function parseActionReference(reference: string | object): ActionReference {
+  if (isString(reference)) {
+    const split = reference.toLowerCase().split(".")
+
+    if (split.length !== 2 || !actionKindsLower.includes(<any>split[0]) || !split[1]) {
+      throw actionRefParseError(reference)
+    }
+
+    let [kind, name] = split
+    const nameResult = joiIdentifier().validate(name)
+
+    if (nameResult.error) {
+      throw actionRefParseError(reference)
+    }
+
+    return { kind: titleize(kind) as ActionKind, name }
+  } else if (isPlainObject(reference)) {
+    let kind = reference["kind"]
+
+    if (!isString(kind)) {
+      throw actionRefParseError(reference)
+    }
+
+    const nameResult = joiIdentifier().validate(reference["name"])
+
+    if (nameResult.error || !actionKinds.includes(<any>kind)) {
+      throw actionRefParseError(reference)
+    }
+
+    return { kind: <ActionKind>kind, name: reference["name"] }
+  } else {
+    throw actionRefParseError(reference)
+  }
+}
+
+export const joiIdentifier = () =>
+  joi
+    .string()
+    .regex(identifierRegex)
+    .description(joiIdentifierDescription[0].toUpperCase() + joiIdentifierDescription.slice(1))
 
 export const joiPrimitive = () =>
   joi
@@ -447,6 +656,92 @@ export const joiIdentifierDescription =
   "valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
   "and cannot end with a dash) and must not be longer than 63 characters."
 
+/**
+ * Add a joi.actionReference() type, wrapping the parseActionReference() function and returning it as a parsed object.
+ */
+joi = joi.extend({
+  base: Joi.any(),
+  type: "actionReference",
+  flags: {
+    kind: { default: undefined },
+    name: { default: undefined },
+  },
+  messages: {
+    validation: "<not used>",
+    wrongKind: "{{#label}} has the wrong action kind.",
+  },
+  validate(originalValue: string | object, opts) {
+    try {
+      const value = parseActionReference(originalValue)
+
+      const expectedKind = opts.schema.$_getFlag("kind")
+
+      if (expectedKind && value.kind !== expectedKind) {
+        const error = opts.error("wrongKind")
+        error.message += ` Expected '${expectedKind}', got '${value.kind}'`
+        return { value, errors: error }
+      }
+
+      return { value }
+    } catch (err) {
+      const error = opts.error("validation")
+      error.message = err.message
+      return { errors: error }
+    }
+  },
+  rules: {
+    kind: {
+      args: [
+        {
+          name: "kind",
+          normalize: (v) => v,
+          assert: joi
+            .string()
+            .allow(...actionKinds)
+            .only(),
+        },
+      ],
+      method(value: string) {
+        // eslint-disable-next-line no-invalid-this
+        return this.$_setFlag("kind", value)
+      },
+      validate(value) {
+        // This is validated above ^
+        return value
+      },
+    },
+    name: {
+      args: [
+        {
+          name: "name",
+          assert: joiIdentifier(),
+        },
+      ],
+      method(value: string) {
+        // eslint-disable-next-line no-invalid-this
+        return this.$_setFlag("name", value)
+      },
+      validate(value) {
+        // Note: This is currently only advisory, and must be validated elsewhere!
+        return value
+      },
+    },
+  },
+})
+
+/**
+ * Add a joi.sparseArray() type, that both allows sparse arrays _and_ filters the falsy values out.
+ */
+joi = joi.extend({
+  base: Joi.array().sparse(true),
+  type: "sparseArray",
+  coerce: {
+    method(value) {
+      return { value: isArray(value) && value.filter((v: any) => v !== undefined && v !== null) }
+    },
+  },
+})
+
 const moduleIncludeDescription = (extraDescription?: string) => {
   const desc = dedent`
   Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
@@ -464,18 +759,12 @@ const moduleIncludeDescription = (extraDescription?: string) => {
 export const joiModuleIncludeDirective = (extraDescription?: string) =>
   joi.array().items(joi.posixPath().allowGlobs().subPathOnly()).description(moduleIncludeDescription(extraDescription))
 
-export const joiIdentifier = () =>
-  joi
-    .string()
-    .regex(identifierRegex)
-    .description(joiIdentifierDescription[0].toUpperCase() + joiIdentifierDescription.slice(1))
+export const joiProviderName = memoize((name: string) =>
+  joiIdentifier().required().description("The name of the provider plugin to use.").default(name).example(name))
 
-export const joiProviderName = (name: string) =>
-  joiIdentifier().required().description("The name of the provider plugin to use.").default(name).example(name)
+export const joiStringMap = memoize((valueSchema: Joi.Schema) => joi.object().pattern(/.+/, valueSchema))
 
-export const joiStringMap = (valueSchema: Joi.Schema) => joi.object().pattern(/.+/, valueSchema)
-
-export const joiUserIdentifier = () =>
+export const joiUserIdentifier = memoize(() =>
   joi
     .string()
     .regex(userIdentifierRegex)
@@ -483,29 +772,29 @@ export const joiUserIdentifier = () =>
       deline`
         Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with \`garden\`, or be longer than 63 characters.
       `
-    )
+    ))
 
-export const joiIdentifierMap = (valueSchema: Joi.Schema) =>
+export const joiIdentifierMap = memoize((valueSchema: Joi.Schema) =>
   joi
     .object()
     .pattern(identifierRegex, valueSchema)
     .default(() => ({}))
-    .description("Key/value map. Keys must be valid identifiers.")
+    .description("Key/value map. Keys must be valid identifiers."))
 
 export const joiVariablesDescription =
   "Keys may contain letters and numbers. Any values are permitted, including arrays and objects of any nesting."
 
-export const joiVariableName = () => joi.string().regex(variableNameRegex)
+export const joiVariableName = memoize(() => joi.string().regex(variableNameRegex))
 
-export const joiVariables = () =>
+export const joiVariables = memoize(() =>
   joi
     .object()
     .pattern(variableNameRegex, joi.alternatives(joiPrimitive(), joi.link("..."), joi.array().items(joi.link("..."))))
     .default(() => ({}))
     .unknown(true)
-    .description("Key/value map. " + joiVariablesDescription)
+    .description("Key/value map. " + joiVariablesDescription))
 
-export const joiEnvVars = () =>
+export const joiEnvVars = memoize(() =>
   joi
     .object()
     .pattern(envVarRegex, joiPrimitive())
@@ -514,14 +803,14 @@ export const joiEnvVars = () =>
     .description(
       "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
         "(must not start with `GARDEN`) and values must be primitives."
-    )
+    ))
 
-export const joiArray = (schema: Joi.Schema) => joi.array().items(schema).default([])
+export const joiArray = memoize((schema: Joi.Schema) => joi.array().items(schema).default([]))
 
 // This allows null, empty string or undefined values on the item values and then filters them out
-export const joiSparseArray = (schema: Joi.Schema) => joi.sparseArray().items(schema.allow(null)).default([])
+export const joiSparseArray = memoize((schema: Joi.Schema) => joi.sparseArray().items(schema.allow(null)).default([]))
 
-export const joiRepositoryUrl = () =>
+export const joiRepositoryUrl = memoize(() =>
   joi
     .alternatives(
       joi.gitUrl().requireHash(),
@@ -533,42 +822,55 @@ export const joiRepositoryUrl = () =>
         " pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>"
     )
     .example("git+https://github.com/org/repo.git#v2.0")
+)
+
+export function getSchemaDescription(schema: Joi.Schema) {
+  return (<any>schema.describe().flags).description
+}
 
 // TODO
-export const joiSchema = () => joi.object().unknown(true)
+export const joiSchema = memoize(() => joi.object().unknown(true))
 
 export function isPrimitive(value: any) {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null
 }
 
-export const versionStringSchema = () =>
+export const versionStringSchema = memoize(() =>
   joi.string().regex(/^v/).required().description("A Stack Graph node (i.e. module, service, task or test) version.")
+)
 
-const fileNamesSchema = () => joiArray(joi.string()).description("List of file paths included in the version.")
+const fileNamesSchema = memoize(() => joiArray(joi.string()).description("List of file paths included in the version."))
 
-export const treeVersionSchema = () =>
-  joi.object().keys({
-    contentHash: joi.string().required().description("The hash of all files belonging to the Garden module."),
-    files: fileNamesSchema(),
-  })
+export const contentHashSchema = memoize(() =>
+  joi.string().required().description("The hash of all files belonging to the Garden action/module.")
+)
 
-export const moduleVersionSchema = () =>
-  joi.object().keys({
-    versionString: versionStringSchema(),
+export const treeVersionSchema = createSchema({
+  name: "tree-version",
+  keys: () => ({
+    contentHash: contentHashSchema,
+    files: fileNamesSchema,
+  }),
+})
+
+export const moduleVersionSchema = createSchema({
+  name: "module-version",
+  keys: () => ({
+    contentHash: contentHashSchema,
+    versionString: versionStringSchema,
     dependencyVersions: joi
       .object()
       .pattern(/.+/, versionStringSchema().description("version hash of the dependency module"))
       .default(() => ({}))
       .description("The version of each of the dependencies of the module."),
-    files: fileNamesSchema(),
-  })
+    files: fileNamesSchema,
+  }),
+})
 
-export const apiVersionSchema = () =>
-  joi
-    .string()
-    .default(DEFAULT_API_VERSION)
-    .valid(DEFAULT_API_VERSION)
-    .description("The schema version of this config (currently not used).")
+export const apiVersionSchema = memoize(() => apiVersionSchemaWithoutDefault().default(DEFAULT_API_VERSION))
+
+export const apiVersionSchemaWithoutDefault = memoize(() =>
+  joi.string().valid(PREVIOUS_API_VERSION, DEFAULT_API_VERSION).description("The schema version of this config."))
 
 /**
  * A little hack to allow unknown fields on the schema and recursively on all object schemas nested in it.
@@ -595,4 +897,31 @@ export function allowUnknown<T extends Joi.Schema>(schema: T) {
   }
 
   return schema
+}
+
+export const artifactsTargetDescription = dedent`
+  A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at \`.garden/artifacts\`.
+`
+
+export function metadataFromDescription(desc: Joi.Description) {
+  let meta: MetadataKeys = {}
+  for (const m of desc.metas || []) {
+    meta = { ...meta, ...m }
+  }
+  return meta
+}
+
+// TODO: expand this definition as needed
+interface SchemaDescription {
+  keys: string[]
+  metadata: MetadataKeys
+}
+
+export function describeSchema(schema: Joi.ObjectSchema): SchemaDescription {
+  const desc = schema.describe()
+
+  return {
+    keys: Object.keys(desc.keys || {}),
+    metadata: metadataFromDescription(desc),
+  }
 }

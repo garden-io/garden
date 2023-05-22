@@ -12,20 +12,22 @@ import getPort = require("get-port")
 const AsyncLock = require("async-lock")
 import { V1ContainerPort, V1Deployment, V1PodTemplate, V1Service } from "@kubernetes/client-node"
 
-import { GetPortForwardParams, GetPortForwardResult } from "../../types/plugin/service/getPortForward"
 import { KubernetesProvider, KubernetesPluginContext } from "./config"
-import { getAppNamespace, getModuleNamespace } from "./namespace"
+import { getAppNamespace } from "./namespace"
 import { registerCleanupFunction, sleep } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
-import { KubernetesResource } from "./types"
-import { ForwardablePort, GardenService } from "../../types/service"
+import { KubernetesResource, SupportedRuntimeAction } from "./types"
+import { ForwardablePort } from "../../types/service"
 import { isBuiltIn, matchSelector } from "./util"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { RuntimeError } from "../../exceptions"
 import execa = require("execa")
-import { KubernetesService } from "./kubernetes-module/config"
-import { HelmService } from "./helm/config"
+import { KubernetesDeployAction } from "./kubernetes-type/config"
+import { HelmDeployAction } from "./helm/config"
+import { DeployAction } from "../../actions/deploy"
+import { GetPortForwardResult } from "../../plugin/handlers/Deploy/get-port-forward"
+import { Resolved } from "../../actions/types"
 
 // TODO: implement stopPortForward handler
 
@@ -45,7 +47,7 @@ registerCleanupFunction("kill-port-forward-procs", () => {
   }
 })
 
-export function killPortForward(targetResource: string, targetPort: number, log?: LogEntry) {
+export function killPortForward(targetResource: string, targetPort: number, log?: Log) {
   const key = getPortForwardKey(targetResource, targetPort)
   const fwd = registeredPortForwards[key]
   if (fwd) {
@@ -55,9 +57,9 @@ export function killPortForward(targetResource: string, targetPort: number, log?
   }
 }
 
-export function killPortForwards(service: GardenService, forwardablePorts: ForwardablePort[], log: LogEntry) {
+export function killPortForwards(action: SupportedRuntimeAction, forwardablePorts: ForwardablePort[], log: Log) {
   for (const port of forwardablePorts) {
-    const targetResource = getTargetResource(service, port.targetName)
+    const targetResource = getTargetResourceName(action, port.targetName)
     killPortForward(targetResource, port.targetPort, log)
   }
 }
@@ -80,7 +82,7 @@ export async function getPortForward({
   port,
 }: {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   namespace: string
   targetResource: string
   port: number
@@ -100,7 +102,7 @@ export async function getPortForward({
 
     const k8sCtx = <KubernetesPluginContext>ctx
 
-    // Forward random free local port to the remote rsync container.
+    // Forward random free local port to the remote container.
     localPort = await getPort()
     const portMapping = `${localPort}:${port}`
 
@@ -126,7 +128,7 @@ export async function getPortForward({
 
       const portForward = { targetResource, port, proc, localPort }
 
-      proc.on("close", (code) => {
+      void proc.on("close", (code) => {
         if (registeredPortForwards[key]) {
           delete registeredPortForwards[key]
         }
@@ -140,7 +142,7 @@ export async function getPortForward({
         }
       })
 
-      proc.on("error", (error) => {
+      void proc.on("error", (error) => {
         !proc.killed && proc.kill()
         throw error
       })
@@ -158,7 +160,7 @@ export async function getPortForward({
           registeredPortForwards[key] = portForward
           resolved = true
           // Setting a sleep because kubectl returns a bit early sometimes
-          // tslint:disable-next-line: no-floating-promises
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
           sleep(250).then(() => resolve(portForward))
         }
       })
@@ -166,7 +168,6 @@ export async function getPortForward({
       proc.stderr!.on("data", (line) => {
         log.silly(`[${targetResource} port forwarder] ${line}`)
         output += line
-        // tslint:disable-next-line: max-line-length
         // Following this: https://github.com/nkubala/skaffold/blob/0d52436f792b862e06311c42065afd8e2363771c/pkg/skaffold/kubernetes/portforward/kubectl_forwarder.go#L177
         // Note: It'd be much more robust to avoid kubectl here, but it's more work to implement.
         if (
@@ -182,31 +183,25 @@ export async function getPortForward({
   })
 }
 
-export async function getPortForwardHandler({
-  ctx,
-  log,
-  namespace,
-  service,
-  targetName,
-  targetPort,
-}: GetPortForwardParams & { namespace?: string }): Promise<GetPortForwardResult> {
-  const k8sCtx = ctx as KubernetesPluginContext
+export async function getPortForwardHandler(params: {
+  ctx: PluginContext
+  log: Log
+  action: DeployAction
+  namespace: string | undefined
+  targetName?: string
+  targetPort: number
+}): Promise<GetPortForwardResult> {
+  const { ctx, log, action, targetName, targetPort } = params
+
   const provider = ctx.provider as KubernetesProvider
-  if (!namespace) {
-    namespace = await getModuleNamespace({
-      ctx: k8sCtx,
-      log,
-      module: service.module,
-      provider,
-      skipCreate: true,
-    })
-  }
+
+  let namespace = params.namespace
 
   if (!namespace) {
-    namespace = await getAppNamespace(ctx, log, provider)
+    namespace = await getAppNamespace(ctx as KubernetesPluginContext, log, provider)
   }
-  const targetResource = getTargetResource(service, targetName)
 
+  const targetResource = getTargetResourceName(action, targetName)
   const fwd = await getPortForward({ ctx, log, namespace, targetResource, port: targetPort })
 
   return {
@@ -215,8 +210,8 @@ export async function getPortForwardHandler({
   }
 }
 
-function getTargetResource(service: GardenService, targetName?: string) {
-  return targetName || `Service/${service.name}`
+function getTargetResourceName(action: SupportedRuntimeAction, targetName?: string) {
+  return targetName || `Service/${action.name}`
 }
 
 /**
@@ -224,10 +219,12 @@ function getTargetResource(service: GardenService, targetName?: string) {
  */
 export function getForwardablePorts(
   resources: KubernetesResource[],
-  parentService: KubernetesService | HelmService | undefined
+  parentAction: Resolved<KubernetesDeployAction | HelmDeployAction> | undefined
 ): ForwardablePort[] {
-  if (parentService?.spec.portForwards) {
-    return parentService?.spec.portForwards.map((p) => ({
+  const spec = parentAction?.getSpec()
+
+  if (spec?.portForwards) {
+    return spec?.portForwards.map((p) => ({
       name: p.name,
       protocol: "TCP",
       targetName: p.resource,
@@ -265,7 +262,7 @@ export function getForwardablePorts(
       }
 
       for (const servicePort of service.spec?.ports || []) {
-        const serviceTargetPort = (servicePort.targetPort as any) as number
+        const serviceTargetPort = servicePort.targetPort as any as number
 
         if (serviceTargetPort && serviceTargetPort === portSpec.containerPort) {
           return true

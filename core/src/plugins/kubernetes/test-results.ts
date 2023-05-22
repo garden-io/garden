@@ -6,74 +6,63 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { deserializeValues } from "../../util/util"
+import { deserializeValues } from "../../util/serialization"
 import { KubeApi } from "./api"
-import { GardenModule } from "../../types/module"
-import { ContainerModule } from "../container/config"
-import { HelmModule } from "./helm/config"
-import { KubernetesModule } from "./kubernetes-module/config"
+import { ContainerTestAction } from "../container/moduleConfig"
 import { PluginContext } from "../../plugin-context"
 import { KubernetesPluginContext } from "./config"
-import { LogEntry } from "../../logger/log-entry"
-import { GetTestResultParams, TestResult } from "../../types/plugin/module/getTestResult"
+import { Log } from "../../logger/log-entry"
+import { TestResult } from "../../types/test"
 import hasha from "hasha"
 import { gardenAnnotationKey } from "../../util/string"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
 import { getSystemNamespace } from "./namespace"
 import chalk from "chalk"
-import { GardenTest } from "../../types/test"
+import { TestActionHandler } from "../../plugin/action-types"
+import { runResultToActionState } from "../../actions/base"
+import { HelmPodTestAction } from "./helm/config"
+import { KubernetesTestAction } from "./kubernetes-type/config"
 
-export async function getTestResult({
-  ctx,
-  log,
-  module,
-  test,
-}: GetTestResultParams<ContainerModule | HelmModule | KubernetesModule>): Promise<TestResult | null> {
+// TODO: figure out how to get rid of the any cast
+export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
+  const { ctx, log } = params
+  const action = <ContainerTestAction>params.action
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
 
-  const resultKey = getTestResultKey(k8sCtx, module, test)
+  const resultKey = getTestResultKey(k8sCtx, action)
 
   try {
     const res = await api.core.readNamespacedConfigMap(resultKey, testResultNamespace)
     const result: any = deserializeValues(res.data!)
 
     // Backwards compatibility for modified result schema
-    if (!result.outputs) {
-      result.outputs = {}
-    }
-
-    if (!result.outputs.log) {
-      result.outputs.log = result.log || ""
-    }
-
-    if (result.version.versionString) {
+    if (result.version?.versionString) {
       result.version = result.version.versionString
     }
 
-    return <TestResult>result
+    return { state: runResultToActionState(result), detail: <TestResult>result, outputs: { log: result.log || "" } }
   } catch (err) {
     if (err.statusCode === 404) {
-      return null
+      return { state: "not-ready", detail: null, outputs: {} }
     } else {
       throw err
     }
   }
 }
 
-export function getTestResultKey(ctx: PluginContext, module: GardenModule, test: GardenTest) {
-  const key = `${ctx.projectName}--${module.name}--${test.name}--${test.version}`
+export function getTestResultKey(ctx: PluginContext, action: StoreTestResultParams["action"]) {
+  const key = `${ctx.projectName}--${action.name}--${action.versionString()}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `test-result--${hash.slice(0, 32)}`
 }
 
 interface StoreTestResultParams {
   ctx: PluginContext
-  log: LogEntry
-  module: GardenModule
-  test: GardenTest
+  log: Log
+  action: ContainerTestAction | KubernetesTestAction | HelmPodTestAction
   result: TestResult
 }
 
@@ -82,28 +71,27 @@ interface StoreTestResultParams {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeTestResult({ ctx, log, module, test, result }: StoreTestResultParams): Promise<TestResult> {
+export async function storeTestResult({ ctx, log, action, result }: StoreTestResultParams): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
 
-  const data: TestResult = trimRunOutput(result)
+  const data = trimRunOutput(result)
 
   try {
     await upsertConfigMap({
       api,
       namespace: testResultNamespace,
-      key: getTestResultKey(k8sCtx, module, test),
+      key: getTestResultKey(k8sCtx, action),
       labels: {
-        [gardenAnnotationKey("module")]: module.name,
-        [gardenAnnotationKey("test")]: test.name,
-        [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
-        [gardenAnnotationKey("version")]: test.version,
+        [gardenAnnotationKey("action")]: action.key(),
+        [gardenAnnotationKey("actionType")]: action.type,
+        [gardenAnnotationKey("version")]: action.versionString(),
       },
       data,
     })
   } catch (err) {
-    log.warn(chalk.yellow(`Unable to store test result: ${err.message}`))
+    log.warn(chalk.yellow(`Unable to store test result: ${err}`))
   }
 
   return data

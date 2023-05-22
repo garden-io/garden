@@ -6,30 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("@hapi/joi")
+import Joi from "@hapi/joi"
 import chalk from "chalk"
-import dedent = require("dedent")
+import dedent from "dedent"
 import stripAnsi from "strip-ansi"
-import { fromPairs, pickBy, size } from "lodash"
+import { mapValues, memoize, pickBy, size } from "lodash"
 
-import { joi, joiIdentifierMap, joiStringMap } from "../config/common"
+import { createSchema, joi } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
 import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
-import { LoggerType } from "../logger/logger"
+import { Log } from "../logger/log-entry"
+import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
-import { ProcessResults } from "../process"
-import { GraphResults, GraphResult } from "../task-graph"
-import { RunResult } from "../types/plugin/base"
+import { GraphResultMapWithoutTask } from "../graph/results"
 import { capitalize } from "lodash"
-import { getDurationMsec, splitFirst, userPrompt } from "../util/util"
-import { buildResultSchema, BuildResult } from "../types/plugin/module/build"
-import { ServiceStatus, serviceStatusSchema } from "../types/service"
-import { TestResult, testResultSchema } from "../types/plugin/module/getTestResult"
-import { renderOptions, renderCommands, renderArguments, getCliStyles } from "../cli/helpers"
-import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
-import { GardenServer } from "../server/server"
+import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion, userPrompt } from "../util/util"
+import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers"
+import { GlobalOptions, ParameterValues, Parameters, globalOptions } from "../cli/params"
 import { GardenCli } from "../cli/cli"
+import { CommandLine } from "../cli/command-line"
+import { SolveResult } from "../graph/solver"
+import { waitForOutputFlush } from "../process"
+import { BufferedEventStream } from "../cloud/buffered-event-stream"
+import { CommandInfo } from "../plugin-context"
+import type { GardenServer } from "../server/server"
+import { CloudSession } from "../cloud/api"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -37,7 +38,6 @@ export interface CommandConstructor {
 
 export interface CommandResult<T = any> {
   result?: T
-  restartRequired?: boolean
   errors?: GardenBaseError[]
   exitCode?: number
 }
@@ -56,13 +56,14 @@ export interface CommandParamsBase<T extends Parameters = {}, U extends Paramete
 
 export interface PrintHeaderParams<T extends Parameters = {}, U extends Parameters = {}>
   extends CommandParamsBase<T, U> {
-  headerLog: LogEntry
+  log: Log
 }
 
 export interface PrepareParams<T extends Parameters = {}, U extends Parameters = {}> extends CommandParamsBase<T, U> {
-  headerLog: LogEntry
-  footerLog: LogEntry
-  log: LogEntry
+  log: Log
+  commandLine?: CommandLine
+  // The ServeCommand or DevCommand when applicable
+  parentCommand?: Command
 }
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
@@ -70,18 +71,24 @@ export interface CommandParams<T extends Parameters = {}, U extends Parameters =
   garden: Garden
 }
 
+export interface RunCommandParams<A extends Parameters = {}, O extends Parameters = {}> extends CommandParams<A, O> {
+  sessionId: string
+  nested: boolean // Set to true if running in dev command or WS server
+}
+
 type DataCallback = (data: string) => void
 
-export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
+export abstract class Command<A extends Parameters = {}, O extends Parameters = {}, R = any> {
   abstract name: string
   abstract help: string
 
   description?: string
-  alias?: string
+  aliases?: string[]
 
   allowUndefinedArguments: boolean = false
-  arguments?: T
-  options?: U
+  arguments: A
+  options: O
+  _resultType: R
 
   outputsSchema?: () => Joi.ObjectSchema
 
@@ -91,12 +98,25 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   protected: boolean = false
   streamEvents: boolean = false // Set to true to stream events for the command
   streamLogEntries: boolean = false // Set to true to stream log entries for the command
-  server: GardenServer | undefined = undefined
+  isCustom: boolean = false // Used to identify custom commands
+  isDevCommand: boolean = false // Set to true for internal commands in interactive command-line commands
+  ignoreOptions: boolean = false // Completely ignore all option flags and pass all arguments directly to the command
 
   subscribers: DataCallback[]
   terminated: boolean
+  public server?: GardenServer
 
-  constructor(private parent?: CommandGroup) {
+  // FIXME: The parent command is not set via the constructor but rather needs to be set "manually" after
+  // the command class has been initialised.
+  // E.g: const cmd = new Command(); cmd["parent"] = parentCommand.
+  // This is so that commands that are initialised via arguments can be cloned which is required
+  // for the websocket server to work properly.
+  private parent?: CommandGroup
+
+  // FIXME: This is a little hack so that we can clone commands that are initialised with
+  // arbitrary parameters.
+  // See also comment above on the "parent" property.
+  constructor(private _params?: any) {
     this.subscribers = []
     this.terminated = false
 
@@ -150,8 +170,154 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     }
   }
 
-  getKey() {
-    return !!this.parent ? `${this.parent.getKey()}.${this.name}` : this.name
+  /**
+   * Shorthand helper to call the action method on the given command class.
+   * Also validates the result against the outputsSchema on the command, if applicable.
+   *
+   * @returns The result from the command action
+   */
+  async run({
+    garden: parentGarden,
+    args,
+    opts,
+    cli,
+    commandLine,
+    sessionId,
+    nested,
+    parentCommand,
+  }: RunCommandParams<A, O>): Promise<CommandResult<R>> {
+    const commandStartTime = new Date()
+    const server = this.server
+
+    let garden = parentGarden
+    let parentSessionId: string | undefined
+
+    if (nested) {
+      // Make an instance clone to override anything that needs to be scoped to a specific command run
+      // TODO: this could be made more elegant
+      garden = parentGarden.cloneForCommand(sessionId)
+      parentSessionId = parentGarden.sessionId
+    }
+
+    const log = garden.log
+    let cloudSession: CloudSession | undefined
+
+    if (garden.cloudApi && garden.projectId && this.streamEvents) {
+      cloudSession = await garden.cloudApi.registerSession({
+        parentSessionId,
+        sessionId: garden.sessionId,
+        projectId: garden.projectId,
+        commandInfo: garden.commandInfo,
+        localServerPort: server?.port,
+        environment: garden.environmentName,
+        namespace: garden.namespace,
+      })
+    }
+
+    if (cloudSession) {
+      const distroName = getCloudDistributionName(cloudSession.api.domain)
+      const userId = (await cloudSession.api.getProfile()).id
+      const commandResultUrl = cloudSession.api.getCommandResultUrl({
+        sessionId: garden.sessionId,
+        projectId: cloudSession.projectId,
+        userId,
+      }).href
+      const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
+
+      const msg = dedent`🌸  Connected to ${distroName}. View logs and command results at: \n\n${chalk.cyan(
+        commandResultUrl
+      )}\n`
+      cloudLog.info(msg)
+    }
+
+    const analytics = await garden.getAnalyticsHandler()
+    await analytics.trackCommand(this.getFullName())
+
+    const allOpts = <ParameterValues<GlobalOptions & O>>{
+      ...mapValues(globalOptions, (opt) => opt.defaultValue),
+      ...opts,
+    }
+
+    const commandInfo: CommandInfo = {
+      name: this.getFullName(),
+      args,
+      opts: optionsWithAliasValues(this, allOpts),
+    }
+
+    const cloudEventStream = new BufferedEventStream({
+      log,
+      cloudSession,
+      maxLogLevel: eventLogLevel,
+      garden,
+      streamEvents: this.streamEvents,
+      streamLogEntries: this.streamLogEntries,
+    })
+
+    let result: CommandResult<R>
+
+    try {
+      if (cloudSession && this.streamEvents) {
+        log.silly(`Connecting Garden instance events to Cloud API`)
+        cloudEventStream.emit("commandInfo", {
+          ...commandInfo,
+          environmentName: garden.environmentName,
+          environmentId: cloudSession.environmentId,
+          projectName: garden.projectName,
+          projectId: cloudSession.projectId,
+          namespaceName: garden.namespace,
+          namespaceId: cloudSession.namespaceId,
+          coreVersion: getPackageVersion(),
+          vcsBranch: garden.vcsInfo.branch,
+          vcsCommitHash: garden.vcsInfo.commitHash,
+          vcsOriginUrl: garden.vcsInfo.originUrl,
+        })
+      }
+
+      // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
+      if (await this.isAllowedToRun(garden, log, allOpts)) {
+        // Clear the VCS handler's tree cache to make sure we pick up any changed sources.
+        // FIXME: use file watching to be more surgical here, this is suboptimal
+        garden.treeCache.invalidateDown(log, ["path"])
+
+        log.silly(`Starting command '${this.getFullName()}' action`)
+        result = await this.action({
+          garden,
+          cli,
+          log,
+          args,
+          opts: allOpts,
+          commandLine,
+          parentCommand,
+        })
+        log.silly(`Completed command '${this.getFullName()}' action successfully`)
+      } else {
+        // The command is protected and the user decided to not continue with the exectution.
+        log.info("\nCommand aborted.")
+        return {}
+      }
+
+      // Track the result of the command run
+      const allErrors = result.errors || []
+      await analytics.trackCommandResult(this.getFullName(), allErrors, commandStartTime, result.exitCode)
+
+      cloudEventStream.emit("sessionCompleted", {})
+    } catch (err) {
+      await analytics.trackCommandResult(this.getFullName(), [err], commandStartTime || new Date(), 1)
+      cloudEventStream.emit("sessionFailed", {})
+      throw err
+    } finally {
+      if (nested) {
+        garden.close()
+        parentGarden.nestedSessions.delete(sessionId)
+      }
+      await cloudEventStream.close()
+    }
+
+    // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to
+    // fire, which may be needed to e.g. capture monitors added in event handlers
+    await waitForOutputFlush()
+
+    return result
   }
 
   getFullName(): string {
@@ -169,23 +335,23 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     if (this.parent) {
       const parentPaths = this.parent.getPaths()
 
-      if (this.alias) {
+      if (this.aliases) {
         return parentPaths.flatMap((parentPath) => [
           [...parentPath, this.name],
-          [...parentPath, this.alias!],
+          ...this.aliases!.map((a) => [...parentPath, a]),
         ])
       } else {
         return parentPaths.map((parentPath) => [...parentPath, this.name])
       }
-    } else if (this.alias) {
-      return [[this.name], [this.alias]]
+    } else if (this.aliases) {
+      return [[this.name], ...this.aliases.map((a) => [a])]
     } else {
       return [[this.name]]
     }
   }
 
-  getLoggerType(_: CommandParamsBase<T, U>): LoggerType {
-    return "fancy"
+  getTerminalWriterType(_: CommandParamsBase<A, O>): LoggerType {
+    return "default"
   }
 
   describe() {
@@ -204,17 +370,24 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   }
 
   /**
-   * Called to check if the command would run persistently, with the given args/opts
+   * Called to check if the command might run persistently, with the given args/opts
    */
-  isPersistent(_: PrepareParams<T, U>) {
+  maybePersistent(_: PrepareParams<A, O>) {
     return false
+  }
+
+  /**
+   * Called to check if the command can be run in the dev console, with the given args/opts
+   */
+  allowInDevCommand(_: PrepareParams<A, O>) {
+    return true
   }
 
   /**
    * Called by the CLI before the command's action is run, but is not called again
    * if the command restarts. Useful for commands in watch mode.
    */
-  async prepare(_: PrepareParams<T, U>): Promise<void> {}
+  async prepare(_: PrepareParams<A, O>): Promise<void> {}
 
   /**
    * Called by e.g. the WebSocket server to terminate persistent commands.
@@ -233,7 +406,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   /**
    * Emit data to all subscribers
    */
-  emit(log: LogEntry, data: string) {
+  emit(log: Log, data: string) {
     for (const subscriber of this.subscribers) {
       // Ignore any errors here
       try {
@@ -244,13 +417,35 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     }
   }
 
-  abstract printHeader(params: PrintHeaderParams<T, U>): void
+  printHeader(_: PrintHeaderParams<A, O>) {}
+
+  /**
+   * Allow commands to specify what logger to use when executed by the server.
+   *
+   * Used e.g. by the logs command to disable logging for server requests since
+   * the log entries are emitted as events.
+   */
+  getServerLogger(_?: LoggerConfigBase): LoggerBase | void {}
+
+  /**
+   * Helper function for creating a new instance of the command.
+   * Used e.g. by the server to ensure that each request gets a unique command instance
+   * so that subscribers are managed properly.
+   */
+  clone(): Command {
+    // See: https://stackoverflow.com/a/64638986
+    const clone = new (this.constructor as new (params?: any) => this)(this._params)
+    if (this.parent) {
+      clone["parent"] = this.parent
+    }
+    return clone
+  }
 
   // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),
   // subclass implementations need to explicitly set the types in the implemented function signature. So for now we
   // can't enforce the types of `args` and `opts` automatically at the abstract class level and have to specify
   // the types explicitly on the subclassed methods.
-  abstract action(params: CommandParams<T, U>): Promise<CommandResult>
+  abstract action(params: CommandParams<A, O>): Promise<CommandResult<R>>
 
   /**
    * Called on all commands and checks if the command is protected.
@@ -258,13 +453,12 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
    * it asks for confirmation to proceed.
    *
    * @param {Garden} garden
-   * @param {LogEntry} log
+   * @param {Log} log
    * @param {GlobalOptions} opts
    * @returns {Promise<Boolean>}
    * @memberof Command
    */
-  async isAllowedToRun(garden: Garden, log: LogEntry, opts: ParameterValues<GlobalOptions>): Promise<Boolean> {
-    log.root.stop()
+  async isAllowedToRun(garden: Garden, log: Log, opts: ParameterValues<GlobalOptions>): Promise<Boolean> {
     if (!opts.yes && this.protected && garden.production) {
       const defaultMessage = chalk.yellow(dedent`
         Warning: you are trying to run "garden ${this.getFullName()}" against a production environment ([${
@@ -289,16 +483,16 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   }
 
   renderHelp() {
-    const cliStyles = getCliStyles()
-
-    let out = this.description ? `${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n` : ""
+    let out = this.description
+      ? `\n${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n`
+      : ""
 
     out += `${cliStyles.heading("USAGE")}\n  garden ${this.getFullName()} `
 
     if (this.arguments) {
       out +=
         Object.entries(this.arguments)
-          .map(([name, param]) => cliStyles.usagePositional(name, param.required))
+          .map(([name, param]) => cliStyles.usagePositional(name, param.required, param.spread))
           .join(" ") + " "
     }
 
@@ -318,12 +512,21 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   }
 }
 
+export abstract class ConsoleCommand<A extends Parameters = {}, O extends Parameters = {}, R = any> extends Command<
+  A,
+  O,
+  R
+> {
+  isDevCommand = true
+}
+
 export abstract class CommandGroup extends Command {
   abstract subCommands: CommandConstructor[]
 
   getSubCommands(): Command[] {
     return this.subCommands.flatMap((cls) => {
-      const cmd = new cls(this)
+      const cmd = new cls()
+      cmd["parent"] = this
       if (cmd instanceof CommandGroup) {
         return cmd.getSubCommands()
       } else {
@@ -340,7 +543,7 @@ export abstract class CommandGroup extends Command {
 
   describe() {
     const description = super.describe()
-    const subCommands = this.subCommands.map((S) => new S(this).describe())
+    const subCommands = this.getSubCommands().map((c) => c.describe())
 
     return {
       ...description,
@@ -349,8 +552,7 @@ export abstract class CommandGroup extends Command {
   }
 
   renderHelp() {
-    const cliStyles = getCliStyles()
-    const commands = this.subCommands.map((c) => new c(this))
+    const commands = this.getSubCommands()
 
     return `
 ${cliStyles.heading("USAGE")}
@@ -366,206 +568,90 @@ export function printResult({
   log,
   result,
   success,
-  actionDescription,
+  description,
 }: {
-  log: LogEntry
+  log: Log
   result: string
   success: boolean
-  actionDescription: string
+  description: string
 }) {
-  const prefix = success
-    ? `${capitalize(actionDescription)} output:`
-    : `${capitalize(actionDescription)} failed with error:`
-  const msg = renderMessageWithDivider(prefix, result, !success)
+  const prefix = success ? `${capitalize(description)} output:` : `${capitalize(description)} failed with error:`
+  const msg = renderMessageWithDivider({ prefix, msg: result, isError: !success })
   success ? log.info(chalk.white(msg)) : log.error(msg)
 }
 
-/**
- * Handles the command result and logging for commands that return a result of type RunResult. E.g.
- * the ``run service` command.
- */
-export async function handleRunResult<T extends RunResult>({
-  log,
-  actionDescription,
-  graphResults,
-  result,
-  interactive,
-}: {
-  log: LogEntry
-  actionDescription: string
-  graphResults: GraphResults
-  result: T
-  interactive: boolean
-}) {
-  if (!interactive && result.log) {
-    printResult({ log, result: result.log, success: result.success, actionDescription })
-  }
-
-  if (!result.success) {
-    const error = new RuntimeError(`${capitalize(actionDescription)} failed!`, {
-      result,
-    })
-    return { errors: [error] }
-  }
-
-  if (!interactive) {
-    printFooter(log)
-  }
-
-  const resultWithMetadata = {
-    ...result,
-    aborted: false,
-    durationMsec: getDurationMsec(result.startedAt, result.completedAt),
-    version: result.version,
-  }
-
-  return { result: { result: resultWithMetadata, graphResults } }
-}
-
-/**
- * Handles the command result and logging for commands the return a result of type TaskResult. E.g.
- * the `run task` and `run test` commands.
- */
-export async function handleTaskResult({
-  log,
-  actionDescription,
-  graphResults,
-  key,
-  interactive = false,
-}: {
-  log: LogEntry
-  actionDescription: string
-  graphResults: GraphResults
-  key: string
-  interactive?: boolean
-}) {
-  const result = graphResults[key]!
-
-  // If there's an error, the task graph prints it
-  if (!interactive && !result.error && result.output.log) {
-    printResult({ log, result: result.output.log, success: true, actionDescription })
-  }
-
-  if (result.error) {
-    const error = new RuntimeError(`${capitalize(actionDescription)} failed!`, {
-      result,
-    })
-    return { errors: [error] }
-  }
-
-  printFooter(log)
-
-  return { result: { result: prepareProcessResult(result), graphResults } }
-}
-
-export type ProcessResultMetadata = {
+export interface ProcessCommandResult {
   aborted: boolean
-  durationMsec?: number
   success: boolean
   error?: string
-  version?: string
+  graphResults: GraphResultMapWithoutTask
 }
 
-export interface ProcessCommandResult {
-  builds: { [moduleName: string]: BuildResult & ProcessResultMetadata }
-  deployments: { [serviceName: string]: ServiceStatus & ProcessResultMetadata }
-  tests: { [testName: string]: TestResult & ProcessResultMetadata }
-  graphResults: GraphResults
-}
-
-export const resultMetadataKeys = () => ({
-  aborted: joi.boolean().description("Set to true if the build was not attempted, e.g. if a dependency build failed."),
-  durationMsec: joi.number().integer().description("The duration of the build in msec, if applicable."),
-  success: joi.boolean().required().description("Whether the build was succeessful."),
-  error: joi.string().description("An error message, if the build failed."),
-  version: joi.string().description("The version of the module, service, task or test."),
+export const processCommandResultKeys = () => ({
+  aborted: joi
+    .boolean()
+    .description(
+      "Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect."
+    ),
+  // durationMsec: joi.number().integer().description("The duration of the processing in msec, if applicable."),
+  success: joi.boolean().required().description("Whether the action was succeessful."),
+  error: joi.string().description("An error message, if the action failed."),
 })
 
-export const graphResultsSchema = () =>
+export const graphResultsSchema = memoize(() =>
   joi
     .object()
     .description(
       "A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead."
     )
     .meta({ keyPlaceholder: "<key>" })
+)
 
-export const processCommandResultSchema = () =>
-  joi.object().keys({
-    builds: joiIdentifierMap(buildResultSchema().keys(resultMetadataKeys()))
-      .description(
-        "A map of all modules that were built (or builds scheduled/attempted for) and information about the builds."
-      )
-      .meta({ keyPlaceholder: "<module name>" }),
-    deployments: joiIdentifierMap(serviceStatusSchema().keys(resultMetadataKeys()))
-      .description(
-        "A map of all services that were deployed (or deployment scheduled/attempted for) and the service status."
-      )
-      .meta({ keyPlaceholder: "<service name>" }),
-    tests: joiStringMap(testResultSchema().keys(resultMetadataKeys()))
-      .description("A map of all tests that were run (or scheduled/attempted) and the test results.")
-      .meta({ keyPlaceholder: "<test name>" }),
+export const processCommandResultSchema = createSchema({
+  name: "process-command-result",
+  keys: () => ({
+    aborted: joi.boolean().description("Set to true if the command execution was aborted."),
+    success: joi.boolean().description("Set to false if the command execution was unsuccessful."),
     graphResults: graphResultsSchema(),
-  })
+  }),
+})
 
 /**
  * Handles the command result and logging for commands the return results of type ProcessResults.
  * This applies to commands that can run in watch mode.
  */
 export async function handleProcessResults(
-  log: LogEntry,
+  garden: Garden,
+  log: Log,
   taskType: string,
-  results: ProcessResults
+  results: SolveResult
 ): Promise<CommandResult<ProcessCommandResult>> {
-  const graphResults = results.taskResults
+  const graphResults = results.results.export()
 
-  const result = {
-    builds: prepareProcessResults("build", graphResults),
-    deployments: prepareProcessResults("deploy", graphResults),
-    tests: prepareProcessResults("test", graphResults),
+  const failed = pickBy(graphResults, (r) => r && r.error)
+  const failedCount = size(failed)
+
+  const success = failedCount === 0
+
+  const result: ProcessCommandResult = {
+    aborted: false,
+    success,
     graphResults,
   }
 
-  const failed = pickBy(results.taskResults, (r) => r && r.error)
-  const failedCount = size(failed)
-
-  if (failedCount > 0) {
+  if (!success) {
     const error = new RuntimeError(`${failedCount} ${taskType} action(s) failed!`, { results: failed })
-    return { result, errors: [error], restartRequired: false }
+    return { result, errors: [error] }
   }
 
-  if (!results.restartRequired) {
+  await waitForOutputFlush()
+
+  if (garden.monitors.getAll().length === 0) {
     printFooter(log)
   }
+
   return {
     result,
-    restartRequired: results.restartRequired,
-  }
-}
-
-/**
- * Extracts structured results for builds, deploys or tests from TaskGraph results, suitable for command output.
- */
-export function prepareProcessResults(taskType: string, graphResults: GraphResults) {
-  const graphBuildResults = Object.entries(graphResults).filter(([name, _]) => name.split(".")[0] === taskType)
-
-  return fromPairs(
-    graphBuildResults.map(([name, graphResult]) => {
-      return [splitFirst(name, ".")[1], prepareProcessResult(graphResult)]
-    })
-  )
-}
-
-function prepareProcessResult(graphResult: GraphResult | null) {
-  return {
-    ...(graphResult?.output || {}),
-    aborted: !graphResult,
-    durationMsec:
-      graphResult?.startedAt &&
-      graphResult?.completedAt &&
-      getDurationMsec(graphResult?.startedAt, graphResult?.completedAt),
-    error: graphResult?.error?.message,
-    success: !!graphResult && !graphResult.error,
-    version: graphResult?.output?.version || graphResult?.version,
   }
 }
 

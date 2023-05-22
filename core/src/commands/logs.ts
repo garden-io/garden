@@ -9,25 +9,25 @@
 import dotenv = require("dotenv")
 import { Command, CommandResult, CommandParams, PrepareParams } from "./base"
 import chalk from "chalk"
-import { every, some, sortBy } from "lodash"
-import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
-import Bluebird = require("bluebird")
-import { GardenService } from "../types/service"
-import Stream from "ts-stream"
-import { LoggerType, logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
+import { omit, sortBy } from "lodash"
+import Bluebird from "bluebird"
+import { DeployLogEntry } from "../types/service"
+import { LogLevel, parseLogLevel, VoidLogger } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
 import { printHeader, renderDivider } from "../logger/util"
-import hasAnsi = require("has-ansi")
-import { dedent, deline } from "../util/string"
-import { padSection } from "../logger/renderers"
-import { PluginEventBroker } from "../plugin-context"
-import { ParameterError } from "../exceptions"
+import { dedent, deline, naturalList } from "../util/string"
+import { CommandError, ParameterError } from "../exceptions"
+import { LogMonitor, LogsTagOrFilter } from "../monitors/logs"
 
 const logsArgs = {
-  services: new StringsParameter({
+  names: new StringsParameter({
     help:
-      "The name(s) of the service(s) to log (skip to log all services). " +
-      "Use comma as a separator to specify multiple services.",
+      "The name(s) of the Deploy(s) to log (skip to get logs from all Deploys in the project). " +
+      "You may specify multiple names, separated by spaces.",
+    spread: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Deploy)
+    },
   }),
 }
 
@@ -43,21 +43,16 @@ const logsOpts = {
   }),
   "follow": new BooleanParameter({
     help: deline`
-    Continuously stream new logs from the service(s).
-    When the \`--follow\` option is set, we default to \`--since 1m\`.`,
-    alias: "f",
+      Continuously stream new logs.
+      When the \`--follow\` option is set, we default to \`--since 1m\`.`,
+    aliases: ["f"],
   }),
   "tail": new IntegerParameter({
     help: deline`
-      Number of lines to show for each service. Defaults to showing all log lines (up to a certain limit). Takes precedence over
+      Number of lines to show for each deployment. Defaults to showing all log lines (up to a certain limit). Takes precedence over
       the \`--since\` flag if both are set. Note that we don't recommend using a large value here when in follow mode.
     `,
-    alias: "t",
-  }),
-  // DEPRECATED, remove in 0.13 in favor of --show-tags
-  "show-container": new BooleanParameter({
-    help: "Show the name of the container with log output. May not apply to all providers",
-    defaultValue: false,
+    aliases: ["t"],
   }),
   "show-tags": new BooleanParameter({
     help: "Show any tags attached to each log line. May not apply to all providers",
@@ -72,14 +67,9 @@ const logsOpts = {
       unless \`--tail\` is set. Note that we don't recommend using a large value here when in follow mode.
     `,
   }),
-  // DEPRECATED: Remove in --original-color flag in v0.13 because we now always apply the original style to logs.
-  "original-color": new BooleanParameter({
-    help: "Show the original color output of the logs instead of color coding them.",
-    hidden: true,
-    defaultValue: false,
-  }),
-  "hide-service": new BooleanParameter({
-    help: "Hide the service name and render the logs directly.",
+  "hide-name": new BooleanParameter({
+    help: "Hide the action name and render the logs directly.",
+    aliases: ["hide-service"],
     defaultValue: false,
   }),
 }
@@ -87,34 +77,20 @@ const logsOpts = {
 type Args = typeof logsArgs
 type Opts = typeof logsOpts
 
-export const colors = ["green", "cyan", "magenta", "yellow", "blueBright", "red"]
-
-type LogsTagFilter = [string, string]
-type LogsTagAndFilter = LogsTagFilter[]
-type LogsTagOrFilter = LogsTagAndFilter[]
-
-/**
- * Skip empty entries.
- */
-function skipEntry(entry: ServiceLogEntry) {
-  const validDate = entry.timestamp && entry.timestamp instanceof Date && !isNaN(entry.timestamp.getTime())
-  return !entry.msg && !validDate
-}
-
 export class LogsCommand extends Command<Args, Opts> {
   name = "logs"
-  help = "Retrieves the most recent logs for the specified service(s)."
+  help = "Retrieves the most recent logs for the specified Deploy(s)."
 
   description = dedent`
-    Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults to getting logs
+    Outputs logs for all or specified Deploys, and optionally waits for news logs to come in. Defaults to getting logs
     from the last minute when in \`--follow\` mode. You can change this with the \`--since\` or \`--tail\` options.
 
     Examples:
 
-        garden logs                            # interleaves color-coded logs from all services (up to a certain limit)
-        garden logs --since 2d                 # interleaves color-coded logs from all services from the last 2 days
-        garden logs --tail 100                 # interleaves the last 100 log lines from all services
-        garden logs service-a,service-b        # interleaves color-coded logs for service-a and service-b
+        garden logs                            # interleaves color-coded logs from all Deploys (up to a certain limit)
+        garden logs --since 2d                 # interleaves color-coded logs from all Deploys from the last 2 days
+        garden logs --tail 100                 # interleaves the last 100 log lines from all Deploys
+        garden logs deploy-a,deploy-b          # interleaves color-coded logs for deploy-a and deploy-b
         garden logs --follow                   # keeps running and streams all incoming logs to the console
         garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
   `
@@ -122,36 +98,33 @@ export class LogsCommand extends Command<Args, Opts> {
   arguments = logsArgs
   options = logsOpts
 
-  private events?: PluginEventBroker
-
-  getLoggerType(): LoggerType {
-    return "basic"
+  printHeader({ log }) {
+    printHeader(log, "Logs", "📜")
   }
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Logs", "scroll")
+  getServerLogger() {
+    // We don't want to log anything when called via the server.
+    // Note that the level doesn't really matter here since the void logger doesn't log anything
+    return new VoidLogger({ level: LogLevel.info })
   }
 
-  isPersistent({ opts }: PrepareParams<Args, Opts>) {
+  maybePersistent({ opts }: PrepareParams<Args, Opts>) {
     return !!opts.follow
   }
 
-  terminate() {
-    this.events?.emit("abort")
-  }
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<DeployLogEntry[]>> {
+    const { follow, tag } = opts
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
-    const { follow, timestamps, tag } = opts
     let tail = opts.tail as number | undefined
     let since = opts.since as string | undefined
-    const showContainer = opts["show-container"]
+
     const showTags = opts["show-tags"]
-    const hideService = opts["hide-service"]
+    const hideService = opts["hide-name"]
     const logLevel = parseLogLevel(opts["log-level"])
 
     let tagFilters: LogsTagOrFilter | undefined = undefined
 
-    if (tail !== undefined) {
+    if (tail || tail === 0) {
       // Tail takes precedence over since...
       since = undefined
     } else if (follow && !since) {
@@ -177,15 +150,25 @@ export class LogsCommand extends Command<Args, Opts> {
     }
 
     const graph = await garden.getConfigGraph({ log, emit: false })
-    const allServices = graph.getServices()
-    const services = args.services ? allServices.filter((s) => args.services?.includes(s.name)) : allServices
+    const allDeploys = graph.getDeploys()
+    const actions = args.names ? allDeploys.filter((s) => args.names?.includes(s.name)) : allDeploys
+    const allDeployNames = allDeploys
+      .map((s) => s.name)
+      .filter(Boolean)
+      .sort()
 
-    // If the container name should be displayed, we align the output wrt to the longest container name
-    let maxServiceName = 1
-    let maxContainerName = 1
+    if (actions.length === 0) {
+      let msg: string
+      if (args.names) {
+        msg = `Deploy(s) ${naturalList(args.names.map((s) => `"${s}"`))} not found. Available Deploys: ${naturalList(
+          allDeploys.map((s) => `"${s}"`)
+        )}.`
+      } else {
+        msg = "No Deploys found in project."
+      }
+      throw new CommandError(msg, { args, opts, availableDeploys: allDeployNames })
+    }
 
-    const result: ServiceLogEntry[] = []
-    const stream = new Stream<ServiceLogEntry>()
     let details: string = ""
 
     if (tail) {
@@ -197,127 +180,49 @@ export class LogsCommand extends Command<Args, Opts> {
     log.info("")
     log.info(chalk.white.bold("Service logs" + details + ":"))
     log.info(chalk.white.bold(renderDivider()))
-    log.root.stop()
 
-    // Map all service names in the project to a specific color. This ensures
-    // that in most cases services have the same color (unless any have been added/removed),
-    // regardless of what params you pass to the command.
-    const allServiceNames = allServices
-      .map((s) => s.name)
-      .filter(Boolean)
-      .sort()
-    const colorMap = allServiceNames.reduce((acc, serviceName, idx) => {
-      const color = colors[idx % colors.length]
-      acc[serviceName] = color
-      return acc
-    }, {})
+    const resolvedActions = await garden.resolveActions({ actions, graph, log })
 
-    // Note: lazy-loading for startup performance
-    const { isMatch } = require("micromatch")
-
-    const matchTagFilters = (entry: ServiceLogEntry): boolean => {
-      if (!tagFilters) {
-        return true
-      }
-      // We OR together the filter results of each tag option instance.
-      return some(tagFilters, (andFilter: LogsTagAndFilter) => {
-        // We AND together the filter results within a given tag option instance.
-        return every(andFilter, ([key, value]: LogsTagFilter) => {
-          return isMatch(entry.tags?.[key] || "", value)
-        })
+    const monitors = Object.values(resolvedActions).map((action) => {
+      return new LogMonitor({
+        garden,
+        log,
+        action,
+        graph,
+        collect: !follow,
+        hideService,
+        showTags,
+        showTimestamps: opts.timestamps,
+        logLevel,
+        tagFilters,
+        tail,
+        since,
       })
-    }
-
-    const formatEntry = (entry: ServiceLogEntry) => {
-      const style = chalk[colorMap[entry.serviceName]]
-      const sectionStyle = style.bold
-      const serviceLog = entry.msg
-      const entryLevel = entry.level || LogLevel.info
-
-      let timestamp: string | undefined
-      let container: string | undefined
-      let tags: string | undefined
-
-      if (timestamps && entry.timestamp) {
-        timestamp = "                        "
-        try {
-          timestamp = entry.timestamp.toISOString()
-        } catch {}
-      }
-
-      // DEPRECATED, remove in 0.13 in favor of --show-tags
-      if (showContainer && entry.tags?.container) {
-        container = entry.tags.container
-      }
-
-      if (showTags && entry.tags) {
-        tags = Object.entries(entry.tags)
-          .map(([k, v]) => `${k}=${v}`)
-          .join(" ")
-      }
-
-      if (entryLevel <= logLevel) {
-        maxServiceName = Math.max(maxServiceName, entry.serviceName.length)
-        maxContainerName = container ? Math.max(maxContainerName, container.length) : maxContainerName
-      }
-
-      let out = ""
-      if (!hideService) {
-        out += `${sectionStyle(padSection(entry.serviceName, maxServiceName))} → `
-      }
-      if (container) {
-        out += `${sectionStyle(padSection(container, maxContainerName))} → `
-      }
-      if (timestamp) {
-        out += `${chalk.gray(timestamp)} → `
-      }
-      if (tags) {
-        out += chalk.gray("[" + tags + "] ")
-      }
-      // If the line doesn't have ansi encoding, we color it white to prevent logger from applying styles.
-      out += hasAnsi(serviceLog) ? serviceLog : chalk.white(serviceLog)
-
-      return out
-    }
-
-    void stream.forEach((entry) => {
-      // Skip empty entries
-      if (skipEntry(entry)) {
-        return
-      }
-
-      // Match against all of the specified filters, if any
-      if (!matchTagFilters(entry)) {
-        return
-      }
-
-      if (follow) {
-        const levelStr = logLevelMap[entry.level || LogLevel.info] || "info"
-        const msg = formatEntry(entry)
-        this.emit(log, JSON.stringify({ msg, timestamp: entry.timestamp?.getTime(), level: levelStr }))
-        log[levelStr]({ msg })
-      } else {
-        result.push(entry)
-      }
     })
 
-    const actions = await garden.getActionRouter()
-    this.events = new PluginEventBroker()
+    if (follow) {
+      monitors.forEach((m) => garden.monitors.addAndSubscribe(m, this))
+      return { result: [] }
+    } else {
+      const entries = await Bluebird.map(monitors, async (m) => {
+        await m.start()
+        return m.getEntries().map((e) => ({ ...e, monitor: m }))
+      })
 
-    await Bluebird.map(services, async (service: GardenService<any>) => {
-      await actions.getServiceLogs({ log, graph, service, stream, follow, tail, since, events: this.events })
-    })
+      const sorted = sortBy(
+        entries.flatMap((e) => e),
+        "timestamp"
+      )
 
-    const sorted = sortBy(result, "timestamp")
+      sorted.forEach((entry) => {
+        entry.monitor.logEntry(entry)
+      })
 
-    if (!follow) {
-      for (const entry of sorted) {
-        const levelStr = logLevelMap[entry.level || LogLevel.info] || "info"
-        const msg = formatEntry(entry)
-        log[levelStr]({ msg })
+      log.info(chalk.white.bold(renderDivider()))
+
+      return {
+        result: sorted.map((e) => omit(e, "monitor")),
       }
     }
-
-    return { result: sorted }
   }
 }

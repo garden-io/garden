@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { TreeCache } from "../../../src/cache"
+import { BoundedCache, TreeCache } from "../../../src/cache"
 import { expect } from "chai"
 import { expectError } from "../../helpers"
-import { getLogger } from "../../../src/logger/logger"
+import { getRootLogger } from "../../../src/logger/logger"
 
 describe("TreeCache", () => {
   let cache: TreeCache
-  const log = getLogger().placeholder()
+  const log = getRootLogger().createLog()
 
   beforeEach(() => {
     cache = new TreeCache()
@@ -231,6 +231,33 @@ describe("TreeCache", () => {
 
     it("should return if the specified context cannot be found", () => {
       cache.invalidateDown(log, ["bla"])
+    })
+  })
+})
+
+describe("BoundedCache", () => {
+  it("should set and retrieve a value under a given key", () => {
+    const cache = new BoundedCache<string>(100)
+    cache.set("a", "foo")
+    expect(cache.get("a")).to.eql("foo")
+    expect(cache.get("b")).to.eql(null)
+  })
+
+  it("should prune older keys when the maximum number of keys is exceeded", () => {
+    const maxCount = 10
+    const cache = new BoundedCache<string>(maxCount)
+    for (let i = 0; i < maxCount + 1; i++) {
+      cache.set(`${i}`, `val#${i}`)
+    }
+    // We expect the first 5 keys to have been removed.
+    expect(cache["keys"]).to.eql(["5", "6", "7", "8", "9", "10"])
+    expect(cache["cache"]).to.eql({
+      5: "val#5",
+      6: "val#6",
+      7: "val#7",
+      8: "val#8",
+      9: "val#9",
+      10: "val#10",
     })
   })
 })

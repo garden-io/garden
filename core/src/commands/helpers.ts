@@ -8,109 +8,20 @@
 
 import chalk from "chalk"
 import indentString from "indent-string"
-import { sortBy } from "lodash"
+import type { RunAction } from "../actions/run"
+import type { TestAction } from "../actions/test"
 
-import { ConfigGraph } from "../config-graph"
-import { WorkflowConfig } from "../config/workflow"
-import { GardenModule } from "../types/module"
-import { GardenService } from "../types/service"
-import { GardenTask } from "../types/task"
-import { GardenTest } from "../types/test"
-import { deline, naturalList } from "../util/string"
-import { uniqByName } from "../util/util"
+import type { WorkflowConfig } from "../config/workflow"
+import type { Log } from "../logger/log-entry"
+import { BooleanParameter } from "../cli/params"
+import type { Garden } from "../garden"
+import { ActionKind } from "../actions/types"
+import isGlob from "is-glob"
+import { ParameterError } from "../exceptions"
+import { naturalList } from "../util/string"
 
-export function getMatchingServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
-  const names = namesFromOpt || []
-  if (names.includes("*") || (!!namesFromOpt && namesFromOpt.length === 0)) {
-    return configGraph.getServices().map((s) => s.name)
-  } else {
-    return names
-  }
-}
-
-export function getHotReloadServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
-  const names = namesFromOpt || []
-  if (names.includes("*")) {
-    return configGraph
-      .getServices()
-      .filter((s) => supportsHotReloading(s))
-      .map((s) => s.name)
-  } else {
-    return names
-  }
-}
-
-export function getModulesByServiceNames(serviceNames: string[], graph: ConfigGraph): GardenModule[] {
-  return uniqByName(graph.getServices({ names: serviceNames }).map((s) => s.module))
-}
-
-/**
- * Returns an error message string if one or more serviceNames refers to a service that's not configured for
- * hot reloading, or if one or more of serviceNames referes to a non-existent service. Returns null otherwise.
- */
-export function validateHotReloadServiceNames(serviceNames: string[], configGraph: ConfigGraph): string | null {
-  const services = configGraph.getServices({ names: serviceNames, includeDisabled: true })
-
-  const notHotreloadable = services.filter((s) => !supportsHotReloading(s)).map((s) => s.name)
-  if (notHotreloadable.length > 0) {
-    return `The following requested services are not configured for hot reloading: ${notHotreloadable.join(", ")}`
-  }
-
-  const disabled = services.filter((s) => s.config.disabled).map((s) => s.name)
-  if (disabled.length > 0) {
-    return `The following requested services are disabled for the specified environment: ${disabled.join(", ")}`
-  }
-
-  return null
-}
-
-function supportsHotReloading(service: GardenService) {
-  return service.config.hotReloadable
-}
-
-export function makeGetTestOrTaskResult(modules: GardenModule[], testsOrTasks: GardenTest[] | GardenTask[]) {
-  return modules.map((m) => {
-    const testsOrTasksForModule = sortBy(
-      testsOrTasks.filter((t) => t.module.name === m.name),
-      (t) => t.name
-    )
-
-    return {
-      [m.name]: testsOrTasksForModule.map((t) => ({
-        ...t.config.spec,
-        name: t.name,
-      })),
-    }
-  })
-}
-
-export function makeGetTestOrTaskLog(
-  modules: GardenModule[],
-  testsOrTasks: GardenTest[] | GardenTask[],
-  type: "tests" | "tasks"
-) {
-  let logStr = ""
-  for (const m of modules) {
-    const enitities = sortBy(
-      testsOrTasks.filter((t) => t.module.name === m.name),
-      (t) => t.name
-    )
-
-    const logStrForTasks = enitities.map((t) => indentString(prettyPrintTestOrTask(t), 2)).join("\n")
-
-    logStr += `${type} in module ${chalk.green(m.name)}` + "\n" + logStrForTasks + "\n"
-  }
-  return logStr
-}
-
-export function makeSkipWatchErrorMsg(hotReloadServiceNames: string[]) {
-  return deline`
-    The --skip-watch flag cannot be used if hot reloading is enabled.
-
-    Hot reloading is currently enabled for the following services:
-
-    ${naturalList(hotReloadServiceNames)}
-  `
+export function makeGetTestOrTaskLog(actions: (TestAction | RunAction)[]) {
+  return actions.map((t) => prettyPrintTestOrTask(t)).join("\n")
 }
 
 export function prettyPrintWorkflow(workflow: WorkflowConfig): string {
@@ -125,30 +36,83 @@ export function prettyPrintWorkflow(workflow: WorkflowConfig): string {
   return out
 }
 
-function prettyPrintTestOrTask(testOrTask: GardenTask | GardenTest): string {
-  let out = `${chalk.cyan.bold(testOrTask.name)}`
+function prettyPrintTestOrTask(action: TestAction | RunAction): string {
+  let out = `${chalk.cyan.bold(action.name)}`
 
-  if (testOrTask.spec.args || testOrTask.spec.args === null) {
-    out += "\n" + indentString(printField("args", testOrTask.spec.args), 2)
-  } else {
-    out += "\n" + indentString(printField("command", testOrTask.spec.command), 2)
+  out += "\n" + indentString(printField("type", action.type), 2)
+
+  const { description } = action.getConfig()
+
+  if (description) {
+    out += "\n" + indentString(printField("description", description), 2)
   }
 
-  if (testOrTask.spec.description) {
-    out += "\n" + indentString(printField("description", testOrTask.spec.description), 2)
-  }
+  const deps = action.getDependencyReferences()
 
-  if (testOrTask.config.dependencies.length) {
+  if (deps.length) {
     out += "\n" + indentString(`${chalk.gray("dependencies")}:`, 2) + "\n"
-    out += indentString(testOrTask.config.dependencies.map((depName) => `• ${depName}`).join("\n"), 4)
-    out += "\n"
-  } else {
-    out += "\n"
+    out += indentString(deps.map((ref) => `• ${ref.kind}.${ref.name}`).join("\n"), 4)
   }
 
-  return out
+  return out + "\n"
 }
 
 function printField(name: string, value: string | null) {
   return `${chalk.gray(name)}: ${value || ""}`
+}
+
+export const watchParameter = new BooleanParameter({
+  help: "[REMOVED] Watch for changes and update actions automatically.",
+  aliases: ["w"],
+  cliOnly: true,
+  hidden: true,
+})
+
+export async function watchRemovedWarning(garden: Garden, log: Log) {
+  return garden.emitWarning({
+    log,
+    key: "watch-flag-removed",
+    message: chalk.yellow(
+      "The -w/--watch flag has been removed. Please use other options instead, such as the --sync option for Deploy actions. If you need this feature and would like it re-introduced, please don't hesitate to reach out: https://garden.io/community"
+    ),
+  })
+}
+
+/**
+ * Throws if an action by name is not found.
+ * Logs a warning if no actions are found matching wildcard arguments.
+ *
+ */
+export const validateActionSearchResults = ({
+  log,
+  names,
+  actions,
+  errData,
+  actionKind,
+}: {
+  log: Log
+  names: string[] | undefined
+  actions: { name: string }[]
+  errData: any
+  actionKind: ActionKind
+}): { shouldAbort: boolean } => {
+  if (actions.length === 0 && (!names || names.length === 0)) {
+    log.warn(`No ${actionKind} actions were found. Aborting.`)
+    return { shouldAbort: true }
+  }
+
+  names?.forEach((n) => {
+    if (!isGlob(n) && !actions.find((a) => a.name === n)) {
+      throw new ParameterError(`${actionKind} action "${n}" was not found.`, { ...errData })
+    }
+  })
+
+  if (actions.length === 0) {
+    let argumentsMsg = ""
+    if (names) {
+      argumentsMsg = ` (matching argument(s) ${naturalList(names.map((n) => `'${n}'`))})`
+    }
+    throw new ParameterError(`No ${actionKind} actions were found${argumentsMsg}.`, { errData })
+  }
+  return { shouldAbort: false }
 }

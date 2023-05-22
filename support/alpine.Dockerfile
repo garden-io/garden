@@ -1,7 +1,11 @@
+# Variant can be root or rootless.
+# Defaults to root.
+ARG VARIANT=root
+
 #
-# base
+# garden-base
 #
-FROM node:18-alpine3.17 AS garden-alpine-base
+FROM node:18-alpine@sha256:44aaf1ccc80eaed6572a0f2ef7d6b5a2982d54481e4255480041ac92221e2f11 as garden-alpine-base-root
 
 RUN apk add --no-cache \
   bash \
@@ -14,58 +18,109 @@ RUN apk add --no-cache \
   tar \
   gzip \
   openssh-client \
-  libstdc++
+  libstdc++ \
+  python3 \
+  py3-pip \
+  libc6-compat \
+  py3-openssl \
+  libffi \
+  gnupg \
+  groff \
+  py3-crcmod
 
-# Note: This is run with the dist/alpine-amd64 directory as the context root
-ADD . /garden
-
-WORKDIR /project
-
-RUN chmod +x /garden/garden \
-  && ln -s /garden/garden /bin/garden \
-  && chmod +x /bin/garden \
-  && cd /garden/static \
-  && GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util fetch-tools --all --garden-image-build --logger-type=basic
+ENV USER=root
+ENV HOME=/root
 
 ENTRYPOINT ["/garden/garden"]
 
+FROM garden-alpine-base-root as garden-alpine-base-rootless
+
+ENV USER=gardenuser
+ENV HOME=/home/gardenuser
+RUN adduser -D $USER
+USER $USER
+
+FROM garden-alpine-base-$VARIANT as garden-alpine-base
+
+# Note: This Dockerfile is run with dist/linux-amd64 as the context root
+ADD --chown=$USER:root . /garden
+ENV PATH /garden:$PATH
+RUN cd /garden/static && git init
+
+WORKDIR $HOME
+RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util fetch-tools --all --garden-image-build
+
+WORKDIR /project
+
+FROM python:3.8-alpine@sha256:4912e629ee15ae93787756afb2e02b040448a86eadcb00bb542a7e81cbb2d8f8 AS aws-builder
+
+ENV AWSCLI_VERSION=2.11.18
+
+RUN apk add --no-cache \
+  curl \
+  make \
+  cmake \
+  gcc \
+  g++ \
+  libc-dev \
+  libffi-dev \
+  openssl-dev
+RUN curl https://awscli.amazonaws.com/awscli-$AWSCLI_VERSION.tar.gz | tar -xz
+RUN cd awscli-$AWSCLI_VERSION \
+  && ./configure --bindir=/usr/local/bin --prefix=/aws-cli/ --with-download-deps --with-install-type=portable-exe \
+  && make \
+  && make install
+RUN curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.15.10/2020-02-22/bin/linux/amd64/aws-iam-authenticator \
+  && chmod +x ./aws-iam-authenticator \
+  && mv ./aws-iam-authenticator /usr/bin/
+
 #
-# gcloud tools
+# garden-aws-base
 #
-FROM google/cloud-sdk:411.0.0-alpine as gcloud-tools
+FROM garden-alpine-base as garden-aws-base
+
+COPY --chown=$USER:root --from=aws-builder /aws-cli /aws-cli
+COPY --chown=$USER:root --from=aws-builder /usr/bin/aws-iam-authenticator /usr/bin/aws-iam-authenticator
+
+#
+# gcloud base
+#
+FROM google/cloud-sdk:430.0.0-alpine@sha256:10bbf2db2828f7ce67ce49e4704b6225634319b9efef02d9a90185e107aef662 as gcloud-base
 
 RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet
 
+# Clean up bloat that increases layer size unnecessarily
+RUN rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && rm -rf /google-cloud-sdk/.install/.backup
+
 #
-# garden-gcloud
+# garden-azure-base
 #
-FROM garden-alpine-base as garden-gcloud
+FROM garden-alpine-base-root as garden-azure-base
 
-ENV CLOUDSDK_PYTHON=python3
+WORKDIR /
+ENV AZURE_CLI_VERSION=2.48.1
 
-COPY --from=gcloud-tools /google-cloud-sdk /google-cloud-sdk
-ENV PATH /google-cloud-sdk/bin:$PATH
+RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/src/azure-cli/requirements.py3.Linux.txt
+RUN wget -O trim_sdk.py https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/scripts/trim_sdk.py
 
-RUN apk add --no-cache python3 py3-pip libc6-compat py3-openssl gnupg openssh-client py3-crcmod \
-  && ln -s /google-cloud-sdk/bin/* /usr/local/bin/ \
-  && chmod +x /usr/local/bin/* \
-  && gcloud version
+RUN apk add py3-virtualenv openssl-dev libffi-dev build-base python3-dev
+RUN python3 -m virtualenv /azure-cli
+ENV PATH /azure-cli/bin:$PATH
+
+RUN pip install -r requirements.txt && python trim_sdk.py
+
+RUN ln -s /azure-cli/bin/az /usr/local/bin/az
+RUN az aks install-cli
 
 #
 # garden-azure
 #
 FROM garden-alpine-base as garden-azure
 
-# Build dependencies
-RUN apk add --virtual=build gcc libffi-dev musl-dev openssl-dev make readline linux-pam \
-# Runtime dependency
-  && apk add bash sudo shadow python3-dev py3-pip && pip3 install -U pip \
-# Actual azure cli
-  && pip3 --no-cache-dir install azure-cli \
-# Remove build dependencies
-  && apk del --purge build
-
-RUN az aks install-cli # this will install the latest version of kubelogin if you need to pin to a specific version use --kubelogin-version v0.0.20
+COPY --chown=$USER:root --from=garden-azure-base /azure-cli /azure-cli
+COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/az /usr/local/bin/az
+COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubectl /usr/local/bin/kubectl
+COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubelogin /usr/local/bin/kubelogin
 
 # Required by Azure DevOps to tell the system where node is installed
 LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
@@ -75,47 +130,57 @@ LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
 #
 FROM garden-alpine-base as garden-aws
 
-RUN apk add --no-cache python3 py3-pip \
-  && pip install awscli==1.22.77 --upgrade
+# Copy aws cli
+COPY --chown=$USER:root --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
+COPY --chown=$USER:root --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin
+ENV PATH /aws-cli:$PATH
 
-RUN curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.15.10/2020-02-22/bin/linux/amd64/aws-iam-authenticator \
-  && chmod +x ./aws-iam-authenticator \
-  && mv ./aws-iam-authenticator /usr/bin/
-
-#
-# garden-aws-gcloud
-#
-FROM garden-gcloud as garden-aws-gcloud
-
-RUN pip install awscli==1.22.77 --upgrade
-
-RUN curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.15.10/2020-02-22/bin/linux/amd64/aws-iam-authenticator \
-  && chmod +x ./aws-iam-authenticator \
-  && mv ./aws-iam-authenticator /usr/bin/
 
 #
-# garden-aws-gcloud-azure
+# garden-gloud
 #
-FROM garden-gcloud as garden-aws-gcloud-azure
+FROM garden-alpine-base as garden-gcloud
 
-ENV KUBELOGIN_VERSION=v0.0.24
+ENV CLOUDSDK_PYTHON=python3
 
-RUN pip install awscli==1.22.77 --upgrade
+COPY --chown=$USER:root --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
+ENV PATH /google-cloud-sdk/bin:$PATH
 
-RUN curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.15.10/2020-02-22/bin/linux/amd64/aws-iam-authenticator \
-  && chmod +x ./aws-iam-authenticator \
-  && mv ./aws-iam-authenticator /usr/bin/
+#
+# garden-aws-gloud
+#
+FROM garden-alpine-base as garden-aws-gcloud
 
-# Build dependencies
-RUN apk add --virtual=build gcc libffi-dev musl-dev openssl-dev make py3-pip\
-  # Runtime dependency
-  && apk add python3-dev \
-  && pip3 install virtualenv \
-  && python3 -m virtualenv /azure-cli \
-  && /azure-cli/bin/python -m pip --no-cache-dir install azure-cli \
-  && echo "#!/usr/bin/env sh" > /usr/bin/az \
-  && echo '/azure-cli/bin/python -m azure.cli "$@"' >> /usr/bin/az \
-  && chmod +x /usr/bin/az \
-  && wget https://github.com/Azure/kubelogin/releases/download/${KUBELOGIN_VERSION}/kubelogin-linux-amd64.zip \
-  && unzip kubelogin-linux-amd64.zip \
-  && cp bin/linux_amd64/kubelogin /usr/bin/
+# Copy aws cli
+COPY --chown=$USER:root --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
+COPY --chown=$USER:root --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin
+ENV PATH /aws-cli:$PATH
+
+ENV CLOUDSDK_PYTHON=python3
+
+COPY --chown=$USER:root --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
+ENV PATH /google-cloud-sdk/bin:$PATH
+
+
+#
+# garden-aws-gloud-azure
+#
+FROM garden-alpine-base as garden-aws-gcloud-azure
+
+# Copy aws cli
+COPY --chown=$USER:root --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
+COPY --chown=$USER:root --from=garden-aws-base /usr/bin/aws-iam-authenticator /usr/bin
+ENV PATH /aws-cli:$PATH
+
+ENV CLOUDSDK_PYTHON=python3
+
+COPY --chown=$USER:root --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
+ENV PATH /google-cloud-sdk/bin:$PATH
+
+COPY --chown=$USER:root --from=garden-azure-base /azure-cli /azure-cli
+COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/az /usr/local/bin/az
+COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubectl /usr/local/bin/kubectl
+COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubelogin /usr/local/bin/kubelogin
+
+# Required by Azure DevOps to tell the system where node is installed
+LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"

@@ -10,7 +10,7 @@ import { join } from "path"
 import { pathExists, remove } from "fs-extra"
 import { gardenPlugin, TerraformProvider } from ".."
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
-import { LogEntry, PluginContext } from "@garden-io/sdk/types"
+import { Log, PluginContext } from "@garden-io/sdk/types"
 import { getWorkspaces, setWorkspace } from "../common"
 import { expect } from "chai"
 import { terraform } from "../cli"
@@ -24,7 +24,7 @@ describe("Terraform common", () => {
   let testFilePath: string
 
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
   let ctx: PluginContext
   let provider: TerraformProvider
 
@@ -41,10 +41,14 @@ describe("Terraform common", () => {
   }
 
   before(async () => {
-    garden = await makeTestGarden(testRoot, { plugins: [gardenPlugin()], environmentName: "prod", forceRefresh: true })
+    garden = await makeTestGarden(testRoot, {
+      plugins: [gardenPlugin()],
+      environmentString: "prod",
+      forceRefresh: true,
+    })
     log = garden.log
     provider = (await garden.resolveProvider(log, "terraform")) as TerraformProvider
-    ctx = await garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext({ provider, events: undefined, templateContext: undefined })
     root = join(garden.projectRoot, "tf")
     terraformDirPath = join(root, ".terraform")
     stateDirPath = join(root, "terraform.tfstate.d")

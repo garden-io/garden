@@ -17,6 +17,7 @@ import { ApiCommandError, confirmDelete, DeleteResult, handleBulkOperationResult
 export const usersDeleteArgs = {
   ids: new StringsParameter({
     help: deline`The IDs of the users to delete.`,
+    spread: true,
   }),
 }
 
@@ -24,20 +25,20 @@ type Args = typeof usersDeleteArgs
 
 export class UsersDeleteCommand extends Command<Args> {
   name = "delete"
-  help = "Delete users."
+  help = "Delete users from Garden Cloud."
   description = dedent`
     Delete users in Garden Cloud. You will need the IDs of the users you want to delete,
     which you which you can get from the \`garden cloud users list\` command. Use a comma-
     separated list to delete multiple users.
 
     Examples:
-        garden cloud users delete <ID 1>,<ID 2>,<ID 3>   # delete three users with the given IDs.
+        garden cloud users delete <ID 1> <ID 2> <ID 3>   # delete three users with the given IDs.
   `
 
   arguments = usersDeleteArgs
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Delete users", "lock")
+  printHeader({ log }) {
+    printHeader(log, "Delete users", "🔒")
   }
 
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
@@ -57,13 +58,14 @@ export class UsersDeleteCommand extends Command<Args> {
       throw new ConfigurationError(noApiMsg("delete", "user"), {})
     }
 
-    const cmdLog = log.info({ status: "active", section: "users-command", msg: "Deleting users..." })
+    const cmdLog = log.createLog({ name: "users-command" })
+    cmdLog.info("Deleting users...")
 
     let count = 1
     const errors: ApiCommandError[] = []
     const results: DeleteResult[] = []
     for (const id of usersToDelete) {
-      cmdLog.setState({ msg: `Deleting users... → ${count}/${usersToDelete.length}` })
+      cmdLog.info({ msg: `Deleting users... → ${count}/${usersToDelete.length}` })
       count++
       try {
         const res = await api.delete<BaseResponse>(`/users/${id}`)

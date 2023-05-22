@@ -1,4 +1,4 @@
-FROM danifernandezs/skopeo:1.41.0-alpine3.10.3
+FROM danifernandezs/skopeo:1.41.0-alpine3.10.3@sha256:3063f966f2752491ba2c3acb0e903a001c586e0fb5f404b8e8c3ac1f9e93c9f2
 
 RUN apk add --no-cache curl
 RUN cd /usr/local/bin && \

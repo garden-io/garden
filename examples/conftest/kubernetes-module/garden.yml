@@ -1,6 +1,7 @@
-kind: Module
+kind: Deploy
 type: kubernetes
 name: kubernetes-module
-files:
-  - deployment.yaml
-  - service.yaml
+spec:
+  files:
+    - deployment.yaml
+    - service.yaml

@@ -8,7 +8,8 @@
 
 import { shutdown } from "@garden-io/core/build/src/util/util"
 import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
-import { GardenPluginReference } from "@garden-io/core/build/src/types/plugin/plugin"
+import { GardenPluginReference } from "@garden-io/core/build/src/plugin/plugin"
+import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [
@@ -16,7 +17,6 @@ export const getBundledPlugins = (): GardenPluginReference[] => [
   { name: "conftest-container", callback: () => require("@garden-io/garden-conftest-container").gardenPlugin() },
   { name: "conftest-kubernetes", callback: () => require("@garden-io/garden-conftest-kubernetes").gardenPlugin() },
   { name: "jib", callback: () => require("@garden-io/garden-jib").gardenPlugin() },
-  { name: "maven-container", callback: () => require("@garden-io/garden-maven-container").gardenPlugin() },
   { name: "terraform", callback: () => require("@garden-io/garden-terraform").gardenPlugin() },
   { name: "pulumi", callback: () => require("@garden-io/garden-pulumi").gardenPlugin() },
 ]
@@ -25,7 +25,8 @@ export async function runCli({
   args,
   cli,
   exitOnError = true,
-}: { args?: string[]; cli?: GardenCli; exitOnError?: boolean } = {}) {
+  initLogger = true,
+}: { args?: string[]; cli?: GardenCli; exitOnError?: boolean; initLogger?: boolean } = {}) {
   let code = 0
   let result: RunOutput | undefined = undefined
 
@@ -35,17 +36,20 @@ export async function runCli({
 
   try {
     if (!cli) {
-      cli = new GardenCli({ plugins: getBundledPlugins() })
+      cli = new GardenCli({ plugins: getBundledPlugins(), initLogger })
     }
     // Note: We slice off the binary/script name from argv.
     result = await cli.run({ args, exitOnError })
     code = result.code
   } catch (err) {
-    // tslint:disable-next-line: no-console
-    console.log(err.message)
+    // eslint-disable-next-line no-console
+    console.log(`Warning: Exiting with unhandled error\n${err.message}`)
     code = 1
   } finally {
-    await cli?.processRecord?.remove()
+    if (cli?.processRecord) {
+      const globalConfigStore = new GlobalConfigStore()
+      await globalConfigStore.delete("activeProcesses", String(cli.processRecord.pid))
+    }
     await shutdown(code)
   }
 

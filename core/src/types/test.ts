@@ -11,11 +11,11 @@ import { TestConfig, testConfigSchema } from "../config/test"
 import { getEntityVersion, hashStrings, versionStringPrefix } from "../vcs/vcs"
 import { findByName } from "../util/util"
 import { NotFoundError } from "../exceptions"
-import { joi, joiUserIdentifier, versionStringSchema } from "../config/common"
-import { ConfigGraph } from "../config-graph"
-import { makeTestTaskName } from "../tasks/helpers"
+import { createSchema, joi, joiUserIdentifier, versionStringSchema } from "../config/common"
 import { sortBy } from "lodash"
 import { serializeConfig } from "../config/module"
+import { RunResult, runResultSchema } from "../plugin/base"
+import { ModuleGraph } from "../graph/modules"
 
 export interface GardenTest<M extends GardenModule = GardenModule> {
   name: string
@@ -26,27 +26,27 @@ export interface GardenTest<M extends GardenModule = GardenModule> {
   version: string
 }
 
-export const testSchema = () =>
-  joi
-    .object()
-    .options({ presence: "required" })
-    .keys({
-      name: joiUserIdentifier().description("The name of the test."),
-      module: joi.object().unknown(true), // This causes a stack overflow: joi.lazy(() => moduleSchema()),
-      disabled: joi.boolean().default(false).description("Set to true if the test is disabled."),
-      config: testConfigSchema(),
-      spec: joi.object().description("The raw configuration of the test (specific to each plugin)."),
-      version: versionStringSchema().description("The version of the test."),
-    })
+export const testSchema = createSchema({
+  name: "module-test",
+  keys: () => ({
+    name: joiUserIdentifier().description("The name of the test."),
+    module: joi.object().unknown(true), // This causes a stack overflow: joi.lazy(() => moduleSchema()),
+    disabled: joi.boolean().default(false).description("Set to true if the test is disabled."),
+    config: testConfigSchema(),
+    spec: joi.object().description("The raw configuration of the test (specific to each plugin)."),
+    version: versionStringSchema().description("The version of the test."),
+  }),
+  options: { presence: "required" },
+})
 
 export function testFromConfig<M extends GardenModule = GardenModule>(
   module: M,
   config: TestConfig,
-  graph: ConfigGraph
+  graph: ModuleGraph
 ): GardenTest<M> {
   const deps = graph.getDependencies({
-    nodeType: "test",
-    name: makeTestTaskName(module.name, config.name),
+    kind: "test",
+    name: module.name + "." + config.name,
     recursive: true,
   })
   // We sort the dependencies by type and name to avoid unnecessary cache invalidation due to possible ordering changes.
@@ -69,7 +69,7 @@ export function testFromConfig<M extends GardenModule = GardenModule>(
 export function testFromModule<M extends GardenModule = GardenModule>(
   module: M,
   name: string,
-  graph: ConfigGraph
+  graph: ModuleGraph
 ): GardenTest<M> {
   const config = findByName(module.testConfigs, name)
 
@@ -79,3 +79,11 @@ export function testFromModule<M extends GardenModule = GardenModule>(
 
   return testFromConfig(module, config, graph)
 }
+
+export interface TestResult extends RunResult {}
+
+export const testResultSchema = createSchema({
+  name: "test-result",
+  keys: () => ({}),
+  extend: runResultSchema,
+})

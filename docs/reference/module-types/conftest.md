@@ -5,12 +5,16 @@ tocTitle: "`conftest`"
 
 # `conftest` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Creates a test that runs `conftest` on the specified files, with the specified (or default) policy and
 namespace.
 
-> Note: In many cases, you'll let specific conftest providers (e.g. [`conftest-container`](../providers/conftest-container.md) and [`conftest-kubernetes`](../providers/conftest-kubernetes.md) create this module type automatically, but you may in some cases want or need to manually specify files to test.
+> Note: In many cases, you'll let specific conftest providers (e.g. [`conftest-container`](../providers/conftest-container.md) and [`conftest-kubernetes`](../providers/conftest-kubernetes.md) create this action type automatically, but you may in some cases want or need to manually specify files to test.
 
 See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
 
@@ -26,8 +30,8 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
+# The schema version of this config.
+apiVersion: garden.io/v1
 
 kind: Module
 
@@ -54,7 +58,7 @@ build:
           target:
 
   # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
+  timeout: 600
 
 # A description of the module.
 description:
@@ -94,8 +98,8 @@ include:
 # Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-# directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+# Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+# directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
 # directories that should not be watched for changes.
 exclude:
 
@@ -113,7 +117,7 @@ allowPublish: true
 # generate (and template) any supporting files needed for the module.
 generateFiles:
   - # POSIX-style filename to read the source file contents from, relative to the path of the module (or the
-    # ModuleTemplate configuration file if one is being applied).
+    # ConfigTemplate configuration file if one is being applied).
     # This file may contain template strings, much like any other field in the configuration.
     sourcePath:
 
@@ -160,7 +164,7 @@ varfile:
 sourceModule:
 
 # POSIX-style path to a directory containing the policies to match the config against, or a
-# specific .rego file, relative to the module root.
+# specific .rego file, relative to the action root.
 # Must be a relative path, and should in most cases be within the project root.
 # Defaults to the `policyPath` set in the provider config.
 policyPath:
@@ -170,20 +174,17 @@ namespace: main
 
 # Set to true to use the conftest --combine flag
 combine: false
-
-# A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
-files:
 ```
 
 ## Configuration Keys
 
 ### `apiVersion`
 
-The schema version of this config (currently not used).
+The schema version of this config.
 
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
+| Type     | Allowed Values                 | Default          | Required |
+| -------- | ------------------------------ | ---------------- | -------- |
+| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `kind`
 
@@ -295,7 +296,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `description`
 
@@ -343,7 +344,7 @@ Specify a list of POSIX-style paths or glob patterns that should be excluded fro
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
-Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large directories that should not be watched for changes.
+Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -393,7 +394,7 @@ A list of files to write to the module directory when resolving this module. Thi
 
 [generateFiles](#generatefiles) > sourcePath
 
-POSIX-style filename to read the source file contents from, relative to the path of the module (or the ModuleTemplate configuration file if one is being applied).
+POSIX-style filename to read the source file contents from, relative to the path of the module (or the ConfigTemplate configuration file if one is being applied).
 This file may contain template strings, much like any other field in the configuration.
 
 | Type        | Required |
@@ -478,7 +479,7 @@ Specify a module whose sources we want to test.
 ### `policyPath`
 
 POSIX-style path to a directory containing the policies to match the config against, or a
-specific .rego file, relative to the module root.
+specific .rego file, relative to the action root.
 Must be a relative path, and should in most cases be within the project root.
 Defaults to the `policyPath` set in the provider config.
 
@@ -501,14 +502,6 @@ Set to true to use the conftest --combine flag
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
-
-### `files[]`
-
-A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `array[posixPath]` | Yes      |
 
 
 ## Outputs
@@ -542,7 +535,7 @@ The name of the module.
 
 ### `${modules.<module-name>.path}`
 
-The local path of the module.
+The source path of the module.
 
 | Type     |
 | -------- |

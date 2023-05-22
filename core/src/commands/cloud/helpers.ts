@@ -9,7 +9,7 @@
 import { SecretResult as SecretResultApi, UserResult as UserResultApi } from "@garden-io/platform-api-types"
 import { dedent } from "../../util/string"
 
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { capitalize } from "lodash"
 import minimatch from "minimatch"
 import pluralize from "pluralize"
@@ -107,8 +107,8 @@ export function handleBulkOperationResult<T>({
   cmdLog,
   resource,
 }: {
-  log: LogEntry
-  cmdLog: LogEntry
+  log: Log
+  cmdLog: Log
   results: T[]
   errors: ApiCommandError[]
   action: "create" | "delete"
@@ -120,7 +120,7 @@ export function handleBulkOperationResult<T>({
   log.info("")
 
   if (errors.length > 0) {
-    cmdLog.setError({ msg: "Error", append: true })
+    cmdLog.error("Error")
 
     const actionVerb = action === "create" ? "creating" : "deleting"
     const errorMsgs = errors
@@ -140,7 +140,7 @@ export function handleBulkOperationResult<T>({
       ${errorMsgs}\n
     `)
   } else {
-    cmdLog.setSuccess()
+    cmdLog.success("Done")
   }
 
   if (successCount > 0) {

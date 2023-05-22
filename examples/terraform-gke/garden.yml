@@ -1,25 +1,46 @@
+apiVersion: garden.io/v1
 kind: Project
 name: terraform-gke
+
+environments:
+  - name: dev
+    defaultNamespace: ${project.name}-${variables.userId}
+  - name: prod
+    defaultNamespace: ${project.name}
+    production: true
+
+variables:
+  # change these values to your own
+  username: worldofgeese
+  gcpProjectId: devrel-348008
+  gcpRegion: europe-north1
+  registryHostname: docker.io
+  registryNamespace: worldofgeese
+  terraformInitRoot: "./terraform/"
+  userId: ${local.username}
 providers:
   - name: terraform
-    # This must be set to indicate that there is a stack in the project root.
-    initRoot: "."
+    # This must be set to indicate that there is a stack in the terraform project folder.
+    initRoot: "${var.terraformInitRoot}"
+    autoApply: true
     # You can either uncomment and replace these with your own values, or provide the values in a
     # terraform.tfvars file in the project root.
     # variables:
     #   gcp_project_id: garden-gke-tf-${var.userId}
     #   gcp_region: europe-west1
+    allowDestroy: true
+    # You can either uncomment and replace these with your own values, or provide the values in a
+    # terraform.tfvars file in the project root.
+    variables:
+      project_id: ${var.gcpProjectId}
+      region: ${var.gcpRegion}
+
   - name: kubernetes
-    kubeconfig: ${providers.terraform.outputs.kubeconfig_path}
-    context: gke
-    defaultHostname: terraform-gke-${var.userId}.dev-2.sys.garden
-    buildMode: kaniko
+    kubeconfig: ${var.terraformInitRoot}/${providers.terraform.outputs.kubeconfig_path}
+    context: ${providers.terraform.outputs.cluster_name}
+    # any hostname that points to your cluster's ingress controller
+    defaultHostname: ${var.userId}-gke.dev-1.sys.garden
     # Replace the below values as appropriate
     deploymentRegistry:
-      hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
-      namespace: garden-ci   # <- set this to the project ID of the target cluster
-    imagePullSecrets:
-      # Make sure this matches the name and namespace of the imagePullSecret you've created
-      # to authenticate with your registry (if needed)
-      - name: gcr-config
-        namespace: default
+      hostname: ${variables.registryHostname}
+      namespace: ${variables.registryNamespace}

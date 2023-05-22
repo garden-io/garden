@@ -15,10 +15,13 @@ import {
   readTreeVersionFile,
   GetFilesParams,
   VcsFile,
-  getModuleTreeCacheKey,
+  getResourceTreeCacheKey,
   hashModuleVersion,
   NamedModuleVersion,
   NamedTreeVersion,
+  describeConfig,
+  getConfigBasePath,
+  getConfigFilePath,
 } from "../../../../src/vcs/vcs"
 import { makeTestGardenA, makeTestGarden, getDataDir, TestGarden, defaultModuleConfig } from "../../../helpers"
 import { expect } from "chai"
@@ -29,9 +32,11 @@ import { resolve, join } from "path"
 import td from "testdouble"
 import tmp from "tmp-promise"
 import { realpath, readFile, writeFile } from "fs-extra"
-import { DEFAULT_API_VERSION, GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
-import { defaultDotIgnoreFiles, fixedProjectExcludes } from "../../../../src/util/fs"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
+import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs"
+import { Log } from "../../../../src/logger/log-entry"
+import { BaseActionConfig } from "../../../../src/actions/types"
+import { TreeCache } from "../../../../src/cache"
 
 export class TestVcsHandler extends VcsHandler {
   name = "test"
@@ -53,7 +58,7 @@ export class TestVcsHandler extends VcsHandler {
     }
   }
 
-  async getTreeVersion(log: LogEntry, projectName: string, moduleConfig: ModuleConfig) {
+  async getTreeVersion(log: Log, projectName: string, moduleConfig: ModuleConfig) {
     return this.testTreeVersions[moduleConfig.path] || super.getTreeVersion(log, projectName, moduleConfig)
   }
 
@@ -80,51 +85,34 @@ describe("VcsHandler", () => {
 
   beforeEach(async () => {
     gardenA = await makeTestGardenA()
-    handlerA = new TestVcsHandler(
-      gardenA.projectRoot,
-      join(gardenA.projectRoot, ".garden"),
-      defaultDotIgnoreFiles,
-      gardenA.cache
-    )
+    handlerA = new TestVcsHandler({
+      garden: gardenA,
+      projectRoot: gardenA.projectRoot,
+      gardenDirPath: join(gardenA.projectRoot, ".garden"),
+      ignoreFile: defaultDotIgnoreFile,
+      cache: new TreeCache(),
+    })
   })
 
   describe("getTreeVersion", () => {
     it("should sort the list of files in the returned version", async () => {
-      const getFiles = td.replace(handlerA, "getFiles")
       const moduleConfig = await gardenA.resolveModule("module-a")
-      td.when(
-        getFiles({
-          log: gardenA.log,
-          path: moduleConfig.path,
-          include: undefined,
-          exclude: undefined,
-          pathDescription: "module root",
-        })
-      ).thenResolve([
+      handlerA.getFiles = async () => [
         { path: "c", hash: "c" },
         { path: "b", hash: "b" },
         { path: "d", hash: "d" },
-      ])
+      ]
       const version = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
       expect(version.files).to.eql(["b", "c", "d"])
     })
 
     it("should not include the module config file in the file list", async () => {
-      const getFiles = td.replace(handlerA, "getFiles")
       const moduleConfig = await gardenA.resolveModule("module-a")
-      td.when(
-        getFiles({
-          log: gardenA.log,
-          path: moduleConfig.path,
-          include: undefined,
-          exclude: undefined,
-          pathDescription: "module root",
-        })
-      ).thenResolve([
-        { path: moduleConfig.configPath, hash: "c" },
+      handlerA.getFiles = async () => [
+        { path: moduleConfig.configPath!, hash: "c" },
         { path: "b", hash: "b" },
         { path: "d", hash: "d" },
-      ])
+      ]
       const version = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
       expect(version.files).to.eql(["b", "d"])
     })
@@ -133,7 +121,13 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-a")
-      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles, garden.cache)
+      const handler = new GitHandler({
+        garden,
+        projectRoot: garden.projectRoot,
+        gardenDirPath: garden.gardenDirPath,
+        ignoreFile: garden.dotIgnoreFile,
+        cache: garden.treeCache,
+      })
 
       const version = await handler.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
 
@@ -147,7 +141,13 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-b")
-      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles, garden.cache)
+      const handler = new GitHandler({
+        garden,
+        projectRoot: garden.projectRoot,
+        gardenDirPath: garden.gardenDirPath,
+        ignoreFile: garden.dotIgnoreFile,
+        cache: garden.treeCache,
+      })
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
 
@@ -158,7 +158,14 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-c")
-      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles, garden.cache)
+
+      const handler = new GitHandler({
+        garden,
+        projectRoot: garden.projectRoot,
+        gardenDirPath: garden.gardenDirPath,
+        ignoreFile: garden.dotIgnoreFile,
+        cache: garden.treeCache,
+      })
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
 
@@ -216,7 +223,7 @@ describe("VcsHandler", () => {
 
     it("should get a cached tree version if available", async () => {
       const moduleConfig = await gardenA.resolveModule("module-a")
-      const cacheKey = getModuleTreeCacheKey(moduleConfig)
+      const cacheKey = getResourceTreeCacheKey(moduleConfig)
 
       const cachedResult = { contentHash: "abcdef", files: ["foo"] }
       handlerA["cache"].set(gardenA.log, cacheKey, cachedResult, ["foo", "bar"])
@@ -227,7 +234,7 @@ describe("VcsHandler", () => {
 
     it("should cache the resolved version", async () => {
       const moduleConfig = await gardenA.resolveModule("module-a")
-      const cacheKey = getModuleTreeCacheKey(moduleConfig)
+      const cacheKey = getResourceTreeCacheKey(moduleConfig)
 
       const result = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
       const cachedResult = handlerA["cache"].get(gardenA.log, cacheKey)
@@ -235,36 +242,12 @@ describe("VcsHandler", () => {
       expect(result).to.eql(cachedResult)
     })
   })
-
-  describe("resolveTreeVersion", () => {
-    it("should return the version from a version file if it exists", async () => {
-      const moduleConfig = await gardenA.resolveModule("module-a")
-      const result = await handlerA.resolveTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
-
-      expect(result).to.eql({
-        contentHash: "1234567890",
-        files: [],
-      })
-    })
-
-    it("should call getTreeVersion if there is no version file", async () => {
-      const moduleConfig = await gardenA.resolveModule("module-b")
-
-      const version = {
-        contentHash: "qwerty",
-        files: [],
-      }
-      handlerA.setTestTreeVersion(moduleConfig.path, version)
-
-      const result = await handlerA.resolveTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
-      expect(result).to.eql(version)
-    })
-  })
 })
 
 describe("getModuleVersionString", () => {
   const namedVersionA: NamedModuleVersion = {
     name: "module-a",
+    contentHash: "qwerty",
     versionString: "qwerty",
     dependencyVersions: {},
     files: [],
@@ -276,6 +259,7 @@ describe("getModuleVersionString", () => {
   }
   const namedVersionB: NamedModuleVersion = {
     name: "module-b",
+    contentHash: "qwerty",
     versionString: "qwerty",
     dependencyVersions: { "module-a": namedVersionA.versionString },
     files: [],
@@ -283,6 +267,7 @@ describe("getModuleVersionString", () => {
 
   const namedVersionC: NamedModuleVersion = {
     name: "module-c",
+    contentHash: "qwerty",
     versionString: "qwerty",
     dependencyVersions: { "module-b": namedVersionB.versionString },
     files: [],
@@ -347,7 +332,7 @@ describe("getModuleVersionString", () => {
     const garden = await makeTestGarden(projectRoot, { noCache: true })
     const module = await garden.resolveModule("module-a")
 
-    const fixedVersionString = "v-6f85bdd407"
+    const fixedVersionString = "v-d3e58c6cb9"
     expect(module.version.versionString).to.eql(fixedVersionString)
 
     delete process.env.TEST_ENV_VAR
@@ -411,7 +396,7 @@ describe("hashModuleVersion", () => {
       path: "/tmp",
       name: "foo",
       allowPublish: false,
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       disabled: false,
       serviceConfigs: [],
       taskConfigs: [],
@@ -432,7 +417,7 @@ describe("hashModuleVersion", () => {
       const b = hashModuleVersion(
         {
           ...config,
-          serviceConfigs: [{ name: "bla", dependencies: [], disabled: false, hotReloadable: false, spec: {} }],
+          serviceConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {} }],
           taskConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {}, timeout: 123, cacheResult: false }],
           testConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {}, timeout: 123 }],
           spec: { foo: "bar" },
@@ -452,7 +437,7 @@ describe("hashModuleVersion", () => {
       }
       const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
       const b = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [
-        { name: "dep", versionString: "blabalbalba", files: [], dependencyVersions: {} },
+        { name: "dep", contentHash: "abcdefabced", versionString: "blabalbalba", files: [], dependencyVersions: {} },
       ])
       expect(a).to.not.equal(b)
     })
@@ -483,7 +468,7 @@ describe("hashModuleVersion", () => {
       const b = hashModuleVersion(
         {
           ...config,
-          serviceConfigs: [{ name: "bla", dependencies: [], disabled: false, hotReloadable: false, spec: {} }],
+          serviceConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {} }],
           taskConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {}, timeout: 123, cacheResult: false }],
           testConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {}, timeout: 123 }],
         },
@@ -499,9 +484,69 @@ describe("hashModuleVersion", () => {
       }
       const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
       const b = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [
-        { name: "dep", versionString: "blabalbalba", files: [], dependencyVersions: {} },
+        { name: "dep", contentHash: "abcdefabced", versionString: "blabalbalba", files: [], dependencyVersions: {} },
       ])
       expect(a).to.not.equal(b)
+    })
+  })
+})
+
+describe("helpers", () => {
+  context("BaseActionConfig", () => {
+    const baseActionConfig: BaseActionConfig = {
+      internal: { basePath: "/path/to/build-action", configFilePath: "/path/to/build-action/garden.yml" },
+      kind: "Build",
+      name: "build-action",
+      spec: {},
+      type: "",
+      timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+    }
+
+    it("getConfigFilePath", () => {
+      const configFilePath = getConfigFilePath(baseActionConfig)
+      expect(configFilePath).to.equal(baseActionConfig.internal.configFilePath)
+    })
+
+    it("getConfigBasePath", () => {
+      const configBasePath = getConfigBasePath(baseActionConfig)
+      expect(configBasePath).to.equal(baseActionConfig.internal.basePath)
+    })
+
+    it("describeConfig", () => {
+      const configDescription = describeConfig(baseActionConfig)
+      expect(configDescription).to.equal(`${baseActionConfig.kind} action ${baseActionConfig.name}`)
+    })
+  })
+
+  context("ModuleConfig", () => {
+    const moduleConfig: ModuleConfig = {
+      allowPublish: false,
+      apiVersion: DEFAULT_API_VERSION,
+      build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+      disabled: false,
+      name: "module-a",
+      path: "/path/to/module/a",
+      configPath: "/path/to/module/a/garden.yml",
+      serviceConfigs: [],
+      spec: undefined,
+      taskConfigs: [],
+      testConfigs: [],
+      type: "",
+    }
+
+    it("getConfigFilePath", () => {
+      const configFilePath = getConfigFilePath(moduleConfig)
+      expect(configFilePath).to.equal(moduleConfig.configPath)
+    })
+
+    it("getConfigBasePath", () => {
+      const configBasePath = getConfigBasePath(moduleConfig)
+      expect(configBasePath).to.equal(moduleConfig.path)
+    })
+
+    it("describeConfig", () => {
+      const configDescription = describeConfig(moduleConfig)
+      expect(configDescription).to.equal(`module ${moduleConfig.name}`)
     })
   })
 })

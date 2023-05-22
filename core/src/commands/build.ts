@@ -12,40 +12,38 @@ import {
   CommandResult,
   CommandParams,
   handleProcessResults,
-  PrepareParams,
   ProcessCommandResult,
   processCommandResultSchema,
 } from "./base"
 import dedent from "dedent"
-import { processModules } from "../process"
 import { printHeader } from "../logger/util"
-import { startServer } from "../server/server"
 import { flatten } from "lodash"
 import { BuildTask } from "../tasks/build"
 import { StringsParameter, BooleanParameter } from "../cli/params"
-import { Garden } from "../garden"
-import { GardenModule } from "../types/module"
 import { uniqByName } from "../util/util"
 import { deline } from "../util/string"
+import { isBuildAction } from "../actions/build"
+import { watchParameter, watchRemovedWarning } from "./helpers"
+import { warnOnLinkedActions } from "../actions/helpers"
 
 const buildArgs = {
-  modules: new StringsParameter({
-    help: "Specify module(s) to build. Use comma as a separator to specify multiple modules.",
+  names: new StringsParameter({
+    help: "Specify Builds to run. You may specify multiple names, separated by spaces.",
+    spread: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Build)
+    },
   }),
 }
 
 const buildOpts = {
-  "force": new BooleanParameter({ help: "Force rebuild of module(s).", alias: "f" }),
-  "watch": new BooleanParameter({
-    help: "Watch for changes in module(s) and auto-build.",
-    alias: "w",
-    cliOnly: true,
-  }),
+  "force": new BooleanParameter({ help: "Force re-build.", aliases: ["f"] }),
+  "watch": watchParameter,
   "with-dependants": new BooleanParameter({
     help: deline`
-      Also rebuild modules that have build dependencies on one of the modules specified as CLI arguments (recursively).
-      Note: This option has no effect unless a list of module names is specified as CLI arguments (since then, every
-      module in the project will be rebuilt).
+      Also rebuild any Builds that depend on one of the Builds specified as CLI arguments (recursively).
+      Note: This option has no effect unless a list of Build names is specified as CLI arguments (since otherwise, every
+      Build in the project will be performed anyway).
   `,
   }),
 }
@@ -55,96 +53,75 @@ type Opts = typeof buildOpts
 
 export class BuildCommand extends Command<Args, Opts> {
   name = "build"
-  help = "Build your modules."
+  help = "Perform your Builds."
 
   protected = true
   streamEvents = true
 
   description = dedent`
-    Builds all or specified modules, taking into account build dependency order.
-    Optionally stays running and automatically builds modules if their source (or their dependencies' sources) change.
+    Runs all or specified Builds, taking into account build dependency order.
+    Optionally stays running and automatically builds when sources (or dependencies' sources) change.
 
     Examples:
 
-        garden build            # build all modules in the project
-        garden build my-module  # only build my-module
-        garden build --force    # force rebuild of modules
-        garden build --watch    # watch for changes to code
+        garden build                   # build everything in the project
+        garden build my-image          # only build my-image
+        garden build image-a image-b   # build image-a and image-b
+        garden build --force    # force re-builds, even if builds had already been performed at current version
   `
 
   arguments = buildArgs
   options = buildOpts
 
-  private garden?: Garden
-
   outputsSchema = () => processCommandResultSchema()
 
-  isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts.watch
+  printHeader({ log }) {
+    printHeader(log, "Build", "🔨")
   }
 
-  async prepare(params: PrepareParams<Args, Opts>) {
-    if (this.isPersistent(params)) {
-      this.server = await startServer({ log: params.footerLog })
-    }
-  }
+  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
+    const { garden, log, args, opts } = params
 
-  terminate() {
-    this.garden?.events.emit("_exit", {})
-  }
-
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Build", "hammer")
-  }
-
-  async action({
-    garden,
-    log,
-    footerLog,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
-    this.garden = garden
-
-    if (this.server) {
-      this.server.setGarden(garden)
+    if (opts.watch) {
+      await watchRemovedWarning(garden, log)
     }
 
     await garden.clearBuilds()
 
     const graph = await garden.getConfigGraph({ log, emit: true })
-    let modules: GardenModule[] = graph.getModules({ names: args.modules })
+    let actions = graph.getBuilds({ names: args.names })
+
     if (opts["with-dependants"]) {
       // Then we include build dependants (recursively) in the list of modules to build.
-      modules = uniqByName([
-        ...modules,
-        ...flatten(modules.map((m) => graph.getDependants({ nodeType: "build", name: m.name, recursive: true }).build)),
+      actions = uniqByName([
+        ...actions,
+        ...flatten(
+          actions.map((m) =>
+            graph.getDependants({ kind: "Build", name: m.name, recursive: true }).filter(isBuildAction)
+          )
+        ),
       ])
     }
-    const moduleNames = modules.map((m) => m.name)
 
-    const initialTasks = flatten(
-      await Bluebird.map(modules, (module) => BuildTask.factory({ garden, graph, log, module, force: opts.force }))
+    await warnOnLinkedActions(garden, log, actions)
+
+    const tasks = flatten(
+      await Bluebird.map(
+        actions,
+        (action) =>
+          new BuildTask({
+            garden,
+            graph,
+            log,
+            action,
+            force: opts.force,
+            forceActions: [],
+          })
+      )
     )
 
-    const results = await processModules({
-      garden,
-      graph,
-      log,
-      footerLog,
-      modules,
-      watch: opts.watch,
-      initialTasks,
-      changeHandler: async (newGraph, module) => {
-        const deps = newGraph.getDependants({ nodeType: "build", name: module.name, recursive: true })
-        const tasks = [module]
-          .concat(deps.build)
-          .filter((m) => moduleNames.includes(m.name))
-          .map((m) => BuildTask.factory({ garden, graph, log, module: m, force: true }))
-        return flatten(await Promise.all(tasks))
-      },
-    })
+    const result = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(footerLog, "build", results)
+    return handleProcessResults(garden, log, "build", result)
   }
 }

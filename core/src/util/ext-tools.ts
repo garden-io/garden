@@ -10,20 +10,21 @@ import split2 from "split2"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError, RuntimeError } from "../exceptions"
 import { join, dirname, basename, posix } from "path"
-import { hashString, exec, uuidv4, getPlatform, getArchitecture, isDarwinARM } from "./util"
+import { hashString, exec, getPlatform, getArchitecture, isDarwinARM } from "./util"
 import tar from "tar"
 import { GARDEN_GLOBAL_PATH } from "../constants"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { createHash } from "crypto"
 import crossSpawn from "cross-spawn"
 import { spawn } from "./util"
 import { Writable } from "stream"
 import got from "got/dist/source"
-import { PluginToolSpec, ToolBuildSpec } from "../types/plugin/tools"
+import { PluginToolSpec, ToolBuildSpec } from "../plugin/tools"
 import { parse } from "url"
 import AsyncLock from "async-lock"
 import { PluginContext } from "../plugin-context"
 import { LogLevel } from "../logger/logger"
+import { uuidv4 } from "./random"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 const lock = new AsyncLock()
@@ -36,7 +37,7 @@ export interface ExecParams {
   args?: string[]
   cwd?: string
   env?: { [key: string]: string }
-  log: LogEntry
+  log: Log
   timeoutSec?: number
   input?: Buffer | string
   ignoreError?: boolean
@@ -58,7 +59,7 @@ export class CliWrapper {
     this.toolPath = path
   }
 
-  async getPath(_: LogEntry) {
+  async getPath(_: Log) {
     return this.toolPath
   }
 
@@ -129,7 +130,7 @@ export class CliWrapper {
     log,
     ctx,
     errorPrefix,
-  }: SpawnParams & { errorPrefix: string; ctx: PluginContext; statusLine?: LogEntry }) {
+  }: SpawnParams & { errorPrefix: string; ctx: PluginContext; statusLine?: Log }) {
     const proc = await this.spawn({ args, cwd, env, log })
 
     const logStream = split2()
@@ -153,11 +154,11 @@ export class CliWrapper {
 
     const logEventContext = {
       origin: this.name,
-      log: log.placeholder({ level: LogLevel.verbose }),
+      level: "verbose" as const,
     }
 
     logStream.on("data", (line: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
     })
 
     await new Promise<void>((resolve, reject) => {
@@ -272,7 +273,7 @@ export class PluginTool extends CliWrapper {
     this.chmodDone = false
   }
 
-  async getPath(log: LogEntry) {
+  async getPath(log: Log) {
     await this.download(log)
     const path = join(this.versionPath, ...this.targetSubpath.split(posix.sep))
 
@@ -287,7 +288,7 @@ export class PluginTool extends CliWrapper {
     return path
   }
 
-  protected async download(log: LogEntry) {
+  protected async download(log: Log) {
     return lock.acquire(this.versionPath, async () => {
       if (await pathExists(this.versionPath)) {
         return
@@ -296,11 +297,12 @@ export class PluginTool extends CliWrapper {
       const tmpPath = join(this.toolPath, this.versionDirname + "." + uuidv4().substr(0, 8))
       const targetAbsPath = join(tmpPath, ...this.targetSubpath.split(posix.sep))
 
-      const logEntry = log.info({
-        status: "active",
-        msg: `Fetching ${this.name}...`,
-      })
-      const debug = logEntry.debug(`Downloading ${this.buildSpec.url}...`)
+      const downloadLog = log.createLog().info(`Fetching ${this.name}...`)
+      const debug = downloadLog
+        .createLog({
+          fixLevel: LogLevel.debug,
+        })
+        .info(`Downloading ${this.buildSpec.url}...`)
 
       await ensureDir(tmpPath)
 
@@ -322,12 +324,12 @@ export class PluginTool extends CliWrapper {
         }
       }
 
-      debug && debug.setSuccess("Done")
-      logEntry.setSuccess(`Fetched ${this.name}`)
+      debug && debug.success("Done")
+      downloadLog.success(`Fetched ${this.name}`)
     })
   }
 
-  protected async fetch(tmpPath: string, log: LogEntry) {
+  protected async fetch(tmpPath: string, log: Log) {
     const parsed = parse(this.buildSpec.url)
     const protocol = parsed.protocol
 
@@ -346,7 +348,7 @@ export class PluginTool extends CliWrapper {
 
     return new Promise<void>((resolve, reject) => {
       response.on("error", (err) => {
-        log.setError(`Failed fetching ${this.buildSpec.url}`)
+        log.error(`Failed fetching ${this.buildSpec.url}`)
         reject(err)
       })
 
@@ -402,7 +404,7 @@ export class PluginTool extends CliWrapper {
         response.pipe(extractor)
 
         extractor.on("error", (err) => {
-          log.setError(`Failed extracting ${format} archive ${this.buildSpec.url}`)
+          log.error(`Failed extracting ${format} archive ${this.buildSpec.url}`)
           reject(err)
         })
       }

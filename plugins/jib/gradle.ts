@@ -8,7 +8,7 @@
 
 import execa from "execa"
 import { find } from "lodash"
-import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
 import { resolve } from "path"
 import { pathExists } from "fs-extra"
@@ -74,7 +74,7 @@ async function checkGradleVersion(gradlePath: string) {
   try {
     const res = await execa(gradlePath, ["--version"])
     return res.stdout
-  } catch (err) {
+  } catch (error) {
     const composeErrorMessage = (err: any): string => {
       if (err.code === "EACCES") {
         return `${baseErrorMessage(
@@ -86,7 +86,7 @@ async function checkGradleVersion(gradlePath: string) {
         return baseErrorMessage(gradlePath)
       }
     }
-    throw new RuntimeError(composeErrorMessage(err), { gradlePath })
+    throw new RuntimeError(composeErrorMessage(error), { gradlePath })
   }
 }
 
@@ -127,7 +127,7 @@ export async function gradle({
   ctx: PluginContext
   args: string[]
   cwd: string
-  log: LogEntry
+  log: Log
   openJdkPath: string
   gradlePath?: string
   outputStream: Writable

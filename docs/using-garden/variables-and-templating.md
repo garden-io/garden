@@ -134,6 +134,7 @@ services:
 And the `+` operator can also be used to concatenate two arrays or strings:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 # ...
 variables:
@@ -161,9 +162,27 @@ You can use a variety of helper functions in template strings, for things like s
 
 Check out [the reference](../reference/template-strings/functions.md) to explore all the available functions.
 
-### Multi-line if/else statements
+### If/else conditional objects
 
-In addition to the conditionals described above, you can use if/else blocks. These are particularly handy when templating multi-line strings and generated files in [module templates](./module-templates.md).
+You can conditionally set values by specifying an object with `$if`, `$then` and (optionally) `$else` keys. This can in many cases be clearer and easier to work with, compared to specifying values within conditional template strings.
+
+Here's an example:
+
+```yaml
+spec:
+  command:
+    $if: ${this.mode == "sync"}
+    $then: [npm, run, watch]
+    $else: [npm, start]
+```
+
+This sets `spec.command` to `[npm, run, watch]` when the action is in sync mode, otherwise to `[npm, start]`.
+
+You can also skip the `$else` key to default the conditional to _no value_ (i.e. undefined).
+
+### Multi-line if/else blocks in strings
+
+You can use if/else blocks in strings. These are particularly handy when templating multi-line strings and generated files in [module templates](./config-templates.md).
 
 The syntax is `${if <expression>}<content>[${else}]<alternative content>${endif}`, where `<expression>` is any expression you'd put in a normal template string.
 
@@ -195,6 +214,7 @@ This style offer nested template resolution, which is quite powerful, because yo
 For example, you can declare a mapping variable for your project, and look up values by another variable such as the current environment name. To illustrate, here's an excerpt from a project config with a mapping variable:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 variables:
@@ -354,6 +374,7 @@ Any object or mapping field supports a special `$merge` key, which allows you to
 Here's an example where we share a common set of environment variables for two services:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 variables:
@@ -398,6 +419,7 @@ In some cases, you may want to provide configuration values only for certain cas
 Example:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 providers:
@@ -419,6 +441,7 @@ You might, for example, define project defaults using the `variables` key, and t
 The variables can then be referenced via `${var.<key>}` template string keys. For example:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 variables:
@@ -445,6 +468,7 @@ Variable values can be any valid JSON/YAML values (strings, numbers, nulls, nest
 You can also output objects or arrays from template strings. For example:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 ...
 variables:
@@ -567,7 +591,7 @@ You can also set variables on the command line, with `--var` flags. Note that wh
 
 ```sh
 # Override two specific variables value and run a task
-garden run task my-task --var my-task-arg=foo,some-numeric-var=123
+garden run my-task --var my-task-arg=foo,some-numeric-var=123
 ```
 
 Multiple variables are separated with a comma, and each part is parsed using [dotenv](https://github.com/motdotla/dotenv#rules) syntax.
@@ -577,8 +601,8 @@ Multiple variables are separated with a comma, and each part is parsed using [do
 The order of precedence is as follows (from highest to lowest):
 
 1. Individual variables set with `--var` CLI flags.
-2. The module-level varfile (if configured).
-3. Module variables set in `module.variables`.
+2. The module/action-level varfile (if configured).
+3. Module/action variables set in `module.variables`.
 4. The environment-specific varfile (defaults to `garden.<env-name>.env`).
 5. The environment-specific variables set in `environment[].variables`.
 6. Configured project-wide varfile (defaults to `garden.env`).
@@ -594,6 +618,7 @@ Here's an example, where we have some project variables defined in our project c
 
 ```yaml
 # garden.yml
+apiVersion: garden.io/v1
 kind: Project
 ...
 variables:
@@ -695,7 +720,7 @@ Here the output from `prep-task` is copied to an environment variable for `my-se
 
 For a practical use case, you might for example make a task that provisions some infrastructure or prepares some data, and then passes information about it to services.
 
-Different module types expose different output keys for their services and tasks. Please refer to the [module type reference docs](https://docs.garden.io/reference/module-types) for details.
+Different module types expose different output keys for their services and tasks. Please refer to the [module type reference docs](../reference/module-types/README.md) for details.
 
 ## Next steps
 

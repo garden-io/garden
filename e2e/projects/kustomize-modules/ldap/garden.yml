@@ -1,0 +1,6 @@
+kind: Module
+type: kubernetes
+name: ldap
+kustomize:
+  # Pick an overlay based on the environment name
+  path: ./overlays/${environment.name}

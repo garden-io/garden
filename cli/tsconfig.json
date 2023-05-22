@@ -25,9 +25,6 @@
       "path": "../plugins/jib"
     },
     {
-      "path": "../plugins/maven-container"
-    },
-    {
       "path": "../plugins/terraform"
     },
     {

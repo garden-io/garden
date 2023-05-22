@@ -1,0 +1,30 @@
+kind: ConfigTemplate
+name: combo
+inputsSchemaPath: schema.json
+configs:
+  - kind: Build
+    type: test
+    name: ${parent.name}-${inputs.name}
+    include: []
+    spec:
+      command: ["${inputs.value}"]
+  - kind: Deploy
+    type: test
+    name: ${parent.name}-${inputs.name}
+    build: ${parent.name}-${inputs.name}
+  - kind: Test
+    type: test
+    name: ${parent.name}-${inputs.name}
+    dependencies: ["build.${parent.name}-${inputs.name}"]
+    spec:
+      command: [echo, "${inputs.envName}", "${inputs.providerKey}"]
+
+---
+
+kind: ConfigTemplate
+name: workflows
+configs:
+  - kind: Workflow
+    name: ${parent.name}-${inputs.name}
+    steps:
+      - script: echo "${inputs.envName}"

@@ -7,7 +7,7 @@
  */
 
 import { exec } from "./util"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { LogLevel } from "../logger/logger"
 
 /**
@@ -29,7 +29,7 @@ export async function syncWithOptions({
   withDelete,
   files,
 }: {
-  log: LogEntry
+  log: Log
   syncOpts: string[]
   sourcePath: string
   destinationPath: string

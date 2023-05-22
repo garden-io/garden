@@ -18,12 +18,14 @@ import { IntegerParameter, PathParameter, StringParameter, StringsParameter } fr
 import { StringMap } from "../../../config/common"
 import dotenv = require("dotenv")
 import { getCloudDistributionName } from "../../../util/util"
+import { CloudProject } from "../../../cloud/api"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
     help: deline`The names and values of the secrets to create, separated by '='.
-      Use comma as a separator to specify multiple secret name/value pairs. Note
+      You may specify multiple secret name/value pairs, separated by spaces. Note
       that you can also leave this empty and have Garden read the secrets from file.`,
+    spread: true,
   }),
 }
 
@@ -48,7 +50,7 @@ type Opts = typeof secretsCreateOpts
 
 export class SecretsCreateCommand extends Command<Args, Opts> {
   name = "create"
-  help = "Create secrets"
+  help = "Create secrets in Garden Cloud."
   description = dedent`
     Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
     them to an environment, or an environment and a user.
@@ -59,7 +61,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     You can optionally read the secrets from a file.
 
     Examples:
-        garden cloud secrets create DB_PASSWORD=my-pwd,ACCESS_KEY=my-key   # create two secrets
+        garden cloud secrets create DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two secrets
         garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci    # create a secret and scope it to the ci environment
         garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
         garden cloud secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
@@ -68,8 +70,8 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
   arguments = secretsCreateArgs
   options = secretsCreateOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Create secrets", "lock")
+  printHeader({ log }) {
+    printHeader(log, "Create secrets", "🔒")
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
@@ -126,7 +128,11 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError(noApiMsg("create", "secrets"), {})
     }
 
-    const project = await api.getProject()
+    let project: CloudProject | undefined
+
+    if (garden.projectId) {
+      project = await api.getProjectById(garden.projectId)
+    }
 
     if (!project) {
       throw new CloudApiError(
@@ -159,13 +165,14 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     }
 
     const secretsToCreate = Object.entries(secrets)
-    const cmdLog = log.info({ status: "active", section: "secrets-command", msg: "Creating secrets..." })
+    const cmdLog = log.createLog({ name: "secrets-command" })
+    cmdLog.info("Creating secrets...")
 
     let count = 1
     const errors: ApiCommandError[] = []
     const results: SecretResult[] = []
     for (const [name, value] of secretsToCreate) {
-      cmdLog.setState({ msg: `Creating secrets... → ${count}/${secretsToCreate.length}` })
+      cmdLog.info({ msg: `Creating secrets... → ${count}/${secretsToCreate.length}` })
       count++
       try {
         const body = { environmentId, userId, projectId: project.id, name, value }

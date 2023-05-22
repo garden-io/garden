@@ -10,9 +10,16 @@ import { resolve } from "path"
 import { GardenModule } from "@garden-io/sdk/types"
 import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
 import { getDockerBuildArgs } from "@garden-io/core/build/src/plugins/container/build"
-import { ContainerBuildSpec, ContainerModuleSpec } from "@garden-io/core/build/src/plugins/container/config"
+import {
+  ContainerBuildActionSpec,
+  ContainerModuleBuildSpec,
+  ContainerModuleSpec,
+} from "@garden-io/core/build/src/plugins/container/moduleConfig"
+import { BuildAction, BuildActionConfig } from "@garden-io/core/build/src/actions/build"
+import { ContainerBuildOutputs } from "@garden-io/core/build/src/plugins/container/config"
+import { Resolved } from "@garden-io/core/build/src/actions/types"
 
-interface JibModuleBuildSpec extends ContainerBuildSpec {
+interface JibBuildSpec {
   dockerBuild?: boolean
   projectType: "gradle" | "maven" | "mavend" | "auto"
   jdkVersion: number
@@ -24,9 +31,15 @@ interface JibModuleBuildSpec extends ContainerBuildSpec {
   gradlePath?: string
 }
 
+type JibModuleBuildSpec = ContainerModuleBuildSpec & JibBuildSpec
+
 interface JibModuleSpec extends ContainerModuleSpec {
   build: JibModuleBuildSpec
 }
+
+export type JibBuildActionSpec = ContainerBuildActionSpec & JibBuildSpec
+export type JibBuildConfig = BuildActionConfig<"jib-container", JibBuildActionSpec>
+export type JibBuildAction = BuildAction<JibBuildConfig, ContainerBuildOutputs>
 
 export type JibContainerModule = GardenModule<JibModuleSpec>
 export type JibPluginType = "gradle" | "maven"
@@ -42,8 +55,8 @@ const gradlePaths = [
 ]
 const mavenPaths = ["pom.xml", ".mvn"]
 
-export function detectProjectType(module: GardenModule): JibPluginType {
-  const moduleFiles = module.version.files
+export function detectProjectType(action: BuildAction): JibPluginType {
+  const moduleFiles = action.getFullVersion().files
 
   // TODO: support the Jib CLI
 
@@ -61,11 +74,11 @@ export function detectProjectType(module: GardenModule): JibPluginType {
     }
   }
 
-  throw new ConfigurationError(`Could not detect a gradle or maven project to build module ${module.name}`, {})
+  throw new ConfigurationError(`Could not detect a gradle or maven project to build ${action.name}`, {})
 }
 
-export function getBuildFlags(module: JibContainerModule, projectType: JibModuleBuildSpec["projectType"]) {
-  const { tarOnly, tarFormat, dockerBuild } = module.spec.build
+export function getBuildFlags(action: Resolved<JibBuildAction>, projectType: JibModuleBuildSpec["projectType"]) {
+  const { tarOnly, tarFormat, dockerBuild, extraFlags, buildArgs } = action.getSpec()
 
   let targetDir: string
   let target: string
@@ -91,14 +104,15 @@ export function getBuildFlags(module: JibContainerModule, projectType: JibModule
   }
 
   // Make sure the target directory is scoped by module name, in case there are multiple modules in a project
-  const basenameSuffix = `-${module.name}-${module.version.versionString}`
+  const basenameSuffix = `-${action.name}-${action.versionString()}`
   const tarFilename = `jib-image${basenameSuffix}.tar`
 
   // TODO: don't assume module path is the project root
   const tarPath = resolve(module.path, targetDir, tarFilename)
 
-  const dockerBuildArgs = getDockerBuildArgs(module)
-  const imageId = module.outputs["deployment-image-id"]
+  const dockerBuildArgs = getDockerBuildArgs(action.versionString(), buildArgs)
+  const outputs = action.getOutputs()
+  const imageId = outputs.deploymentImageId
 
   const args = [
     target,
@@ -122,7 +136,7 @@ export function getBuildFlags(module: JibContainerModule, projectType: JibModule
     }
   }
 
-  args.push(...(module.spec.extraFlags || []))
+  args.push(...(extraFlags || []))
 
   return { args, tarPath }
 }

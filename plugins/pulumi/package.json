@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-pulumi",
-  "version": "0.12.56",
+  "version": "0.12.51",
   "description": "Pulumi plugin for Garden",
   "main": "index.js",
   "dependencies": {
@@ -8,20 +8,20 @@
     "@garden-io/sdk": "*",
     "chalk": "^4.1.0",
     "execa": "^4.0.3",
-    "fs-extra": "^10.0.0",
+    "fs-extra": "^11.1.0",
     "slash": "^3.0.0",
-    "which": "^2.0.2"
+    "which": "^3.0.0"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.12",
+    "@types/chai": "^4.3.4",
     "@types/node": "^18",
-    "chai": "^4.2.0",
-    "mocha": "^8.1.2",
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
     "strip-ansi": "^6.0.0"
   },
   "scripts": {
     "fix-format": "prettier --write \"**/*.ts\"",
-    "lint": "tslint -p .",
+    "lint": "eslint -c ../../.eslintrc  --ignore-pattern 'test/**' --ext .ts .",
     "test": "mocha"
   },
   "author": "Garden Technologies, Inc. <info@garden.io>",

@@ -8,20 +8,17 @@
 
 import { expect } from "chai"
 import { join } from "path"
-import stripAnsi = require("strip-ansi")
 import { keyBy } from "lodash"
 import { ConfigContext } from "../../../../../src/config/template-contexts/base"
-import { expectError, makeTestGardenA, TestGarden } from "../../../../helpers"
-import { prepareRuntimeContext } from "../../../../../src/runtime-context"
-import { GardenService } from "../../../../../src/types/service"
-import { resolveTemplateString } from "../../../../../src/template-string/template-string"
+import { makeTestGardenA, TestGarden } from "../../../../helpers"
 import { ModuleConfigContext } from "../../../../../src/config/template-contexts/module"
-import { WorkflowConfigContext, WorkflowStepConfigContext } from "../../../../../src/config/template-contexts/workflow"
+import { WorkflowConfigContext } from "../../../../../src/config/template-contexts/workflow"
 import { GardenModule } from "../../../../../src/types/module"
-import { ConfigGraph } from "../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
+
 interface TestValues {
   [key: string]: TestValue
 }
@@ -44,9 +41,13 @@ describe("ModuleConfigContext", () => {
       resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
       variables: garden.variables,
       modules,
-      moduleConfig: module,
       buildPath: module.buildPath,
       partialRuntimeResolution: false,
+      name: module.name,
+      path: module.path,
+      parentName: module.parentName,
+      inputs: module.inputs,
+      templateName: module.templateName,
     })
   })
 
@@ -133,88 +134,6 @@ describe("ModuleConfigContext", () => {
       })
     })
   })
-
-  context("runtimeContext is set", () => {
-    let withRuntime: ModuleConfigContext
-    let serviceA: GardenService
-
-    before(async () => {
-      const modules = graph.getModules()
-      serviceA = graph.getService("service-a")
-      const serviceB = graph.getService("service-b")
-      const taskB = graph.getTask("task-b")
-
-      const runtimeContext = await prepareRuntimeContext({
-        garden,
-        graph,
-        dependencies: {
-          build: [],
-          deploy: [serviceB],
-          run: [taskB],
-          test: [],
-        },
-        version: serviceA.version,
-        moduleVersion: serviceA.module.version.versionString,
-        serviceStatuses: {
-          "service-b": {
-            state: "ready",
-            outputs: { foo: "bar" },
-            detail: {},
-          },
-        },
-        taskResults: {
-          "task-b": {
-            moduleName: "module-b",
-            taskName: "task-b",
-            command: [],
-            outputs: { moo: "boo" },
-            success: true,
-            version: taskB.version,
-            startedAt: new Date(),
-            completedAt: new Date(),
-            log: "boo",
-          },
-        },
-      })
-
-      withRuntime = new ModuleConfigContext({
-        garden,
-        resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
-        variables: garden.variables,
-        modules,
-        moduleConfig: serviceA.module,
-        buildPath: serviceA.module.buildPath,
-        runtimeContext,
-        partialRuntimeResolution: false,
-      })
-    })
-
-    it("should resolve service outputs", async () => {
-      const result = withRuntime.resolve({
-        key: ["runtime", "services", "service-b", "outputs", "foo"],
-        nodePath: [],
-        opts: {},
-      })
-      expect(result).to.eql({ resolved: "bar" })
-    })
-
-    it("should resolve task outputs", async () => {
-      const result = withRuntime.resolve({
-        key: ["runtime", "tasks", "task-b", "outputs", "moo"],
-        nodePath: [],
-        opts: {},
-      })
-      expect(result).to.eql({ resolved: "boo" })
-    })
-
-    it("should allow using a runtime key as a test in a ternary (positive)", async () => {
-      const result = resolveTemplateString(
-        "${runtime.tasks.task-b ? runtime.tasks.task-b.outputs.moo : 'default'}",
-        withRuntime
-      )
-      expect(result).to.equal("boo")
-    })
-  })
 })
 
 describe("WorkflowConfigContext", () => {
@@ -267,79 +186,5 @@ describe("WorkflowConfigContext", () => {
         resolved: "someSecretValue",
       })
     })
-  })
-})
-
-describe("WorkflowStepConfigContext", () => {
-  let garden: TestGarden
-
-  before(async () => {
-    garden = await makeTestGardenA()
-  })
-
-  it("should successfully resolve an output from a prior resolved step", () => {
-    const c = new WorkflowStepConfigContext({
-      garden,
-      allStepNames: ["step-1", "step-2"],
-      resolvedSteps: {
-        "step-1": {
-          log: "bla",
-          number: 1,
-          outputs: { some: "value" },
-        },
-      },
-      stepName: "step-2",
-    })
-    expect(c.resolve({ key: ["steps", "step-1", "outputs", "some"], nodePath: [], opts: {} }).resolved).to.equal(
-      "value"
-    )
-  })
-
-  it("should successfully resolve the log from a prior resolved step", () => {
-    const c = new WorkflowStepConfigContext({
-      garden,
-      allStepNames: ["step-1", "step-2"],
-      resolvedSteps: {
-        "step-1": {
-          log: "bla",
-          number: 1,
-          outputs: {},
-        },
-      },
-      stepName: "step-2",
-    })
-    expect(c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }).resolved).to.equal("bla")
-  })
-
-  it("should throw error when attempting to reference a following step", () => {
-    const c = new WorkflowStepConfigContext({
-      garden,
-      allStepNames: ["step-1", "step-2"],
-      resolvedSteps: {},
-      stepName: "step-1",
-    })
-    expectError(
-      () => c.resolve({ key: ["steps", "step-2", "log"], nodePath: [], opts: {} }),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Step step-2 is referenced in a template for step step-1, but step step-2 is later in the execution order. Only previous steps in the workflow can be referenced."
-        )
-    )
-  })
-
-  it("should throw error when attempting to reference current step", () => {
-    const c = new WorkflowStepConfigContext({
-      garden,
-      allStepNames: ["step-1", "step-2"],
-      resolvedSteps: {},
-      stepName: "step-1",
-    })
-    expectError(
-      () => c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Step step-1 references itself in a template. Only previous steps in the workflow can be referenced."
-        )
-    )
   })
 })

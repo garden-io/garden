@@ -9,10 +9,11 @@
 import { CommandGroup } from "../base"
 import { LinkSourceCommand } from "./source"
 import { LinkModuleCommand } from "./module"
+import { LinkActionCommand } from "./action"
 
 export class LinkCommand extends CommandGroup {
   name = "link"
   help = "Link a remote source or module to a local path."
 
-  subCommands = [LinkSourceCommand, LinkModuleCommand]
+  subCommands = [LinkSourceCommand, LinkActionCommand, LinkModuleCommand]
 }

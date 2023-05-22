@@ -8,7 +8,7 @@
 
 import { readlink, copyFile, constants, utimes } from "fs"
 import readdir from "@jsdevtools/readdir-enhanced"
-import { splitLast } from "../util/util"
+import { splitLast } from "../util/string"
 import { Minimatch } from "minimatch"
 import { promisify } from "bluebird"
 import { isAbsolute, parse, basename, resolve } from "path"
@@ -123,7 +123,7 @@ function doClone(params: CopyParams) {
   const dir = parse(to).dir
 
   // TODO: take care of this ahead of time to avoid the extra i/o
-  ensureDir(dir, undefined, (err) => {
+  ensureDir(dir, (err) => {
     if (err) {
       return done(err)
     }

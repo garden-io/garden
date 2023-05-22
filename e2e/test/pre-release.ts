@@ -11,17 +11,9 @@ import chalk from "chalk"
 import { expect } from "chai"
 import { resolve } from "path"
 import { replaceInFile } from "replace-in-file"
+import { changeFileStep, GardenWatch, runGarden, waitingForChangesStep, sleepStep } from "../run-garden"
 import {
-  changeFileStep,
-  commandReloadedStep,
-  GardenWatch,
-  runGarden,
-  taskCompletedStep,
-  waitingForChangesStep,
-  sleepStep,
-} from "../run-garden"
-import {
-  examplesDir,
+  projectsDir,
   deleteExampleNamespaces,
   parsedArgs,
   searchLog,
@@ -29,8 +21,10 @@ import {
   stringifyJsonLog,
 } from "../helpers"
 import username from "username"
+import { realpath } from "fs-extra"
 
 function log(msg: string) {
+  // eslint-disable-next-line
   console.log(chalk.magentaBright(msg))
 }
 
@@ -43,7 +37,7 @@ describe("PreReleaseTests", () => {
   const userId = process.env.CIRCLE_BUILD_NUM ? "ci-" + process.env.CIRCLE_BUILD_NUM : username.sync()
 
   if (!project) {
-    throw new Error(`Must specify project name with --project parameter`)
+    throw new Error("Must specify project name with --project parameter")
   }
 
   function getProjectNamespaces() {
@@ -58,28 +52,27 @@ describe("PreReleaseTests", () => {
     }
     // Override the userId variable
     if (process.env.CIRCLE_BUILD_NUM) {
-      command.push("--var", "userId=" + userId)
+      command.push("--var", "userId=" + userId + "-e2e")
     }
     return command
   }
 
   async function runWithEnv(command: string[]) {
-    const dir = resolve(examplesDir, project)
-    return runGarden(dir, getCommand(command))
+    return runGarden(projectPath, getCommand(command))
   }
 
   function watchWithEnv(command: string[]) {
-    const dir = resolve(examplesDir, project)
-    return new GardenWatch(dir, getCommand(command))
+    return new GardenWatch(projectPath, getCommand(command))
   }
 
   const namespaces = getProjectNamespaces()
-  const projectPath = resolve(examplesDir, project)
+  let projectPath: string
 
   before(async () => {
     log("deleting .garden folder")
     await removeExampleDotGardenDir(projectPath)
     log("ready")
+    projectPath = await realpath(resolve(projectsDir, project))
   })
 
   after(async () => {
@@ -87,8 +80,8 @@ describe("PreReleaseTests", () => {
     await deleteExampleNamespaces(namespaces)
     // Checkout changes to example dir when running locally
     if (!env) {
-      log("Checking out example project directories to HEAD")
-      await execa("git", ["checkout", examplesDir])
+      log("Checking out example project directory to HEAD")
+      await execa("git", ["checkout", projectPath])
     }
   })
 
@@ -106,39 +99,21 @@ describe("PreReleaseTests", () => {
     })
     it("runs the test command", async () => {
       const logEntries = await runWithEnv(["test"])
-      expect(searchLog(logEntries, /Done!/), "expected to find 'Done!' in log output").to.eql("passed")
+      expect(
+        searchLog(logEntries, /(Done!|No Test actions were found)/),
+        "expected to find 'Done!' in log output"
+      ).to.eql("passed")
     })
   })
-
-  if (project === "demo-project") {
-    describe("demo-project", () => {
-      describe("top-level sanity checks", () => {
-        it("runs the deploy command", async () => {
-          const gardenWatch = watchWithEnv(["deploy", "--watch"])
-
-          const testSteps = [
-            taskCompletedStep("deploy.backend", 1),
-            waitingForChangesStep(),
-            changeFileStep(resolve(projectPath, "backend/main.go"), "change app code in backend service"),
-            taskCompletedStep("deploy.backend", 2),
-            changeFileStep(resolve(projectPath, "backend/garden.yml"), "change garden.yml in backend service"),
-            commandReloadedStep(),
-          ]
-
-          await gardenWatch.run({ testSteps })
-        })
-      })
-    })
-  }
 
   if (project === "vote") {
     describe("vote", () => {
       describe("top-level sanity checks", () => {
-        it("runs the run workflow command", async () => {
+        it("runs the workflow command", async () => {
           const workflowName = "full-test"
-          const logEntries = await runWithEnv(["run", "workflow", workflowName])
+          const logEntries = await runWithEnv(["workflow", workflowName])
           expect(
-            searchLog(logEntries, new RegExp(`Workflow ${workflowName} completed successfully.`, `g`)),
+            searchLog(logEntries, new RegExp(`Workflow ${workflowName} completed successfully.`, "g")),
             `expected to find "Workflow ${workflowName} completed successfully." in log output.`
           ).to.eql("passed")
         })
@@ -146,33 +121,9 @@ describe("PreReleaseTests", () => {
     })
   }
 
-  if (project === "tasks") {
-    /*
-     * TODO: Re-enable once this has been debugged:
-     *
-     * TimeoutError: Knex: Timeout acquiring a connection. The pool is probably full.
-     * Are you missing a .transacting(trx) call?
-     */
-    describe.skip("tasks", () => {
-      it("calls the hello service to fetch the usernames populated by the ruby migration", async () => {
-        /**
-         * Verify that the output includes the usernames populated by the ruby-migration task.
-         * The users table was created by the node-migration task.
-         */
-        await runWithEnv(["deploy"])
-        const logEntries = await runWithEnv(["call", "hello"])
-        expect(
-          searchLog(logEntries, /John, Paul, George, Ringo/),
-          "expected to find populated usernames in log output"
-        ).to.eql("passed")
-      })
-    })
-  }
-
   if (project === "code-synchronization") {
     describe("code-synchronization", () => {
       it("runs the dev command with code-synchronization enabled", async () => {
-        const currentProjectPath = resolve(examplesDir, "code-synchronization")
         const gardenWatch = watchWithEnv(["dev"])
 
         const testSteps = [
@@ -182,7 +133,7 @@ describe("PreReleaseTests", () => {
             description: "change 'Node' -> 'foo' in node-service/app.js",
             action: async () => {
               await replaceInFile({
-                files: resolve(currentProjectPath, "node-service/src/app.js"),
+                files: resolve(projectPath, "node-service/src/app.js"),
                 from: /Hello from Node/,
                 to: "Hello from foo",
               })
@@ -193,6 +144,7 @@ describe("PreReleaseTests", () => {
             description: "node-service returns the updated response text",
             condition: async () => {
               const callLogEntries = await runWithEnv(["call", "node-service"])
+              // eslint-disable-next-line
               console.log(callLogEntries.map((l) => stringifyJsonLog(l)).join("\n"))
               return searchLog(callLogEntries, /Hello from foo/)
             },
@@ -204,7 +156,6 @@ describe("PreReleaseTests", () => {
 
       it("should get logs after code-synchronization", async () => {
         const gardenWatch = watchWithEnv(["dev"])
-        const currentProjectPath = resolve(examplesDir, "code-synchronization")
 
         const testSteps = [
           waitingForChangesStep(),
@@ -215,7 +166,7 @@ describe("PreReleaseTests", () => {
               return searchLog(logEntries, /App started/)
             },
           },
-          changeFileStep(resolve(currentProjectPath, "node-service/src/app.js"), "change node-service/src/app.js"),
+          changeFileStep(resolve(projectPath, "node-service/src/app.js"), "change node-service/src/app.js"),
           {
             description: "get logs for node-service after code-synchronization event",
             condition: async () => {
@@ -223,43 +174,6 @@ describe("PreReleaseTests", () => {
               return searchLog(logEntries, /App started/)
             },
           },
-        ]
-
-        await gardenWatch.run({ testSteps })
-      })
-    })
-  }
-
-  if (project === "vote-helm") {
-    describe("vote-helm: helm & dependency calculations", () => {
-      it("runs the deploy command", async () => {
-        const gardenWatch = watchWithEnv(["deploy", "--watch"])
-
-        const testSteps = [
-          waitingForChangesStep(),
-          changeFileStep(resolve(projectPath, "api-image/app.py"), "change api-image/app.py"),
-          taskCompletedStep("build.api-image", 2),
-          taskCompletedStep("build.api", 2),
-          taskCompletedStep("deploy.api", 2),
-          taskCompletedStep("deploy.vote", 2),
-        ]
-
-        await gardenWatch.run({ testSteps })
-      })
-    })
-  }
-
-  if (project === "vote") {
-    describe("vote: dependency calculations", () => {
-      it("runs the deploy command", async () => {
-        const gardenWatch = watchWithEnv(["deploy", "--watch"])
-
-        const testSteps = [
-          waitingForChangesStep(),
-          changeFileStep(resolve(projectPath, "api/app.py"), "change api/app.py"),
-          taskCompletedStep("build.api", 2),
-          taskCompletedStep("deploy.api", 2),
-          taskCompletedStep("deploy.vote", 2),
         ]
 
         await gardenWatch.run({ testSteps })
@@ -278,25 +192,6 @@ describe("PreReleaseTests", () => {
         const logEntries = await runWithEnv(["call", "result"])
         expect(searchLog(logEntries, /200 OK/), "expected to find '200 OK' in log output").to.eql("passed")
         expect(searchLog(logEntries, /Cats/), "expected to find 'Cats' in log output").to.eql("passed")
-      })
-    })
-  }
-
-  if (project === "deployment-strategies") {
-    describe("deployment-strategies: top-level sanity checks", () => {
-      it("runs the deploy command", async () => {
-        const gardenWatch = watchWithEnv(["deploy", "--watch"])
-
-        const testSteps = [
-          taskCompletedStep("deploy.backend", 1),
-          waitingForChangesStep(),
-          changeFileStep(resolve(projectPath, "backend/main.go"), "change app code in backend service"),
-          taskCompletedStep("deploy.backend", 2),
-          changeFileStep(resolve(projectPath, "backend/garden.yml"), "change garden.yml in backend service"),
-          commandReloadedStep(),
-        ]
-
-        await gardenWatch.run({ testSteps })
       })
     })
   }

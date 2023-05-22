@@ -1,6 +1,5 @@
 # Note: This is used by build-pkg.ts, and is not usable as a Garden container
-ARG NODE_VERSION=18-alpine3.17
-FROM node:${NODE_VERSION} as builder
+FROM node:18-alpine@sha256:44aaf1ccc80eaed6572a0f2ef7d6b5a2982d54481e4255480041ac92221e2f11 as builder
 
 RUN apk add --no-cache \
   ca-certificates \
@@ -31,7 +30,8 @@ ADD sdk /garden-tmp/sdk
 # Install the CLI deps
 WORKDIR /garden-tmp/cli
 
-RUN yarn && \
+# Need multiple attempts unfortunately, the old yarn version doesn't handle network issues quite gracefully
+RUN for i in 1 2 3 4 5; do yarn --production && break || sleep 5; done && \
   # Fix for error in this particular package
   rm -rf node_modules/es-get-iterator/test
 
@@ -40,5 +40,4 @@ ADD static /garden/static
 # Create the binary
 RUN mkdir -p /garden \
   && node_modules/.bin/pkg --compress Brotli --target node18-alpine-x64 . --output /garden/garden \
-  && cp node_modules/better-sqlite3/build/Release/better_sqlite3.node /garden \
   && /garden/garden version

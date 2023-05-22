@@ -5,11 +5,15 @@ title: Modules
 
 # Modules
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](./actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 Modules are the basic **unit of building** in Garden. They are usually the first thing you add after creating the project-level configuration.
 
-A module can correspond to a Dockerfile and its associated code, a remote Docker image, a Helm chart, an OpenFaaS function, and more, all depending on the module type.
+A module can correspond to a Dockerfile and its associated code, a remote Docker image, a Helm chart, Kubernetes manifests, and more, all depending on the module type.
 
-Below is a simple example of a module's `garden.yml` (from the [`demo-project`](https://github.com/garden-io/garden/tree/0.12.56/examples/demo-project) example project):
+Below is a simple example of a module's `garden.yml` (from the [`demo-project`](https://github.com/garden-io/garden/tree/0.12.51/examples/demo-project) example project):
 
 ```yaml
 kind: Module
@@ -26,7 +30,7 @@ tests:
 
 ## How it Works
 
-A Garden project is usually split up into the project-level configuration file, and several module-level configuration files, each in the root directory of the respective module:
+A Garden project is usually split up into the project-level configuration file, and several module-level configuration files, each in the root directory of the respective module:
 
 ```console
 .
@@ -45,7 +49,7 @@ A Garden project is usually split up into the project-level configuration file,
 You can also choose any `*.garden.yml` filename for each module configuration file. For example, you might prefer to set the module name in the filename, e.g. `my-module.garden.yml` to make it easier to find in a large project.
 
 {% hint style="info" %}
-It's also possible to [define several modules in the same `garden.yml` file](#multiple-modules-in-the-same-directory) and/or in the same file as the the project-level configuration. If you only have a couple of modules, you might for example define them together in a single `modules.garden.yml` file. See [below](#multiple-modules-in-the-same-directory) for more details.
+It's also possible to [define several modules in the same `garden.yml` file](#multiple-modules-in-the-same-directory) and/or in the same file as the project-level configuration. If you only have a couple of modules, you might for example define them together in a single `modules.garden.yml` file. See [below](#multiple-modules-in-the-same-directory) for more details.
 {% endhint %}
 
 Modules must have a type. Different [module _types_](#module-types) behave in different ways. For example, the `container` module type corresponds to a Docker image, either built from a local Dockerfile or pulled from a remote repository.
@@ -62,7 +66,7 @@ Garden is pluggable and features a number of module types. You can find all of t
 
 - [container](../other-plugins/container.md) modules are a high level and portable way to describe how container images are both built and deployed. When working with containers you'll at least use this to build the images, but you may also specify `services`, `tasks` and `tests` on them. The `kubernetes` providers, for example, can take these service definitions, generate Kubernetes manifests and deploy them. This is generally much easier to use than the below `kubernetes` and `helm` module types, but in turn loses some of the flexibility of those two.
 - [kubernetes](../reference/module-types/kubernetes.md) modules are quite simple. They allow you to provide your own Kubernetes manifests, which the `kubernetes` providers can then deploy. Use this for any custom manifests you need or already have, and when you don't need the capabilities of the more complex `helm` modules.
-- [helm](../k8s-plugins/module-types/helm.md) modules allow you to deploy your own Helm charts, or 3rd-party charts from remote repositories. [Helm](https://helm.sh/) is a powerful tool, especially when deploying 3rd-party (or otherwise external) charts. You can also make your own charts, but we recommend only doing so when you need its flexible templating capabilities, or if you aim to publish the charts.
+- [helm](../k8s-plugins/action-types/helm.md) modules allow you to deploy your own Helm charts, or 3rd-party charts from remote repositories. [Helm](https://helm.sh/) is a powerful tool, especially when deploying 3rd-party (or otherwise external) charts. You can also make your own charts, but we recommend only doing so when you need its flexible templating capabilities, or if you aim to publish the charts.
 - [exec](../reference/module-types/exec.md) modules offer a flexible way to weave in arbitrary scripts and commands that are executed locally. These can be custom build steps, tasks, tests or really anything else. The caveat is that they always run on the same machine as the Garden CLI, and not e.g. in a Kubernetes cluster, and thus not quite as portable.
 - [terraform](../reference/module-types/terraform.md) modules offer a powerful way to deploy any cloud resources as part of your project. See the [Terraform guide](../terraform-plugin/README.md) for more information.
 
@@ -90,9 +94,9 @@ Here, we only include the `Dockerfile` and all the `.py` files under `my-sources
 
 If you specify a list with `include`, only those files/patterns are included. If you then specify one or more `exclude` files or patterns, those are filtered out of the files matched by `include`. If you _only_ specify `exclude`, those patterns will be filtered out of all files in the module directory.
 
-Note that the module `include` and `exclude` fields have no effect on which paths Garden watches for changes. Use the [project `modules.exclude` field](./projects.md#) for that purpose.
+Note that the module `include` and `exclude` fields have no effect on which paths Garden watches for changes. Use the [project `scan.exclude` field](./projects.md) for that purpose.
 
-You can also use [.gardenignore files](./configuration-overview.md#ignore-files), much like `.gitignore` files, to exclude files across your project. You can place them in your project root, in module roots, and even in individual sub-directories of modules.
+You can also use [.gardenignore file](./configuration-overview.md#ignore-file), much like `.gitignore` files, to exclude files across your project. You can place them in your project root, in module roots, and even in individual sub-directories of modules.
 
 ### Multiple modules in the same directory
 
@@ -151,7 +155,7 @@ You can learn more about different module types in the [module type reference do
 
 ### Container Module
 
-Below is the configuration for a simple container module. Here we're assuming that the the Dockerfile and source files are in the same directory as the `garden.yml` file.
+Below is the configuration for a simple container module. Here we're assuming that the `Dockerfile` and source files are in the same directory as the `garden.yml` file.
 
 ```yaml
 kind: Module
@@ -162,7 +166,7 @@ type: container
 
 ### Multiple Modules in the Same File
 
-In this example, we declare multiple container modules in the same file. We use the `include` directive to tell Garden where the source code for each modules resides.
+In this example, we declare multiple container modules in the same file. We use the `include` directive to tell Garden where the source code for each module resides.
 
 ```yaml
 kind: Module

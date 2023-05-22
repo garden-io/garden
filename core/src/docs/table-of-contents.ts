@@ -175,7 +175,7 @@ export function generateTableOfContents(docsRoot: string): string {
 }
 
 export async function writeTableOfContents(docsRoot: string, outputFileName: string) {
-  // tslint:disable: no-console
+  /* eslint-disable no-console */
   const toWrite = generateTableOfContents(docsRoot)
   const tocPath = resolve(docsRoot, outputFileName)
   await createFile(tocPath)

@@ -9,7 +9,6 @@
 import { Command, CommandParams } from "../base"
 import dedent from "dedent"
 import { StringParameter } from "../../cli/params"
-import { hideWarning } from "../../warnings"
 
 const hideWarningArgs = {
   key: new StringParameter({
@@ -35,8 +34,8 @@ export class HideWarningCommand extends Command<Args, {}> {
 
   printHeader() {}
 
-  async action({ args }: CommandParams<Args, {}>) {
-    await hideWarning(args.key)
+  async action({ garden, args }: CommandParams<Args, {}>) {
+    await garden.hideWarning(args.key)
     return {}
   }
 }

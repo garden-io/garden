@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-const stripAnsi = require("strip-ansi")
+
 import {
   identifierRegex,
   envVarRegex,
@@ -17,6 +17,9 @@ import {
   joiPrimitive,
   joiSparseArray,
   allowUnknown,
+  createSchema,
+  metadataFromDescription,
+  removeSchema,
 } from "../../../../src/config/common"
 import { validateSchema } from "../../../../src/config/validation"
 import { expectError } from "../../../helpers"
@@ -153,12 +156,10 @@ describe("validate", () => {
         .required(),
     })
 
-    await expectError(
-      () => validateSchema(obj, schema),
-      (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.equal("key .A is required, key .B.b is required")
-      }
-    )
+    await expectError(() => validateSchema(obj, schema), {
+      contains: "key .A is required, key .B.b is required",
+      errorMessageGetter: (err) => err.detail.errorDescription,
+    })
   })
 
   it("should throw a nice error when keys are wrong in a pattern object", async () => {
@@ -180,12 +181,10 @@ describe("validate", () => {
         .required(),
     })
 
-    await expectError(
-      () => validateSchema(obj, schema),
-      (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.equal("key .A.B[c].C is required")
-      }
-    )
+    await expectError(() => validateSchema(obj, schema), {
+      contains: "key .A.B[c].C is required",
+      errorMessageGetter: (err) => err.detail.errorDescription,
+    })
   })
 
   it("should throw a nice error when key is invalid", async () => {
@@ -195,24 +194,20 @@ describe("validate", () => {
       .pattern(/[a-z]+/, joi.string())
       .unknown(false)
 
-    await expectError(
-      () => validateSchema(obj, schema),
-      (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.equal('key "123" is not allowed at path .')
-      }
-    )
+    await expectError(() => validateSchema(obj, schema), {
+      contains: 'key "123" is not allowed at path .',
+      errorMessageGetter: (err) => err.detail.errorDescription,
+    })
   })
 
   it("should throw a nice error when nested key is invalid", async () => {
     const obj = { a: { 123: "abc" } }
     const schema = joi.object().keys({ a: joi.object().pattern(/[a-z]+/, joi.string()) })
 
-    await expectError(
-      () => validateSchema(obj, schema),
-      (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.equal('key "123" is not allowed at path .a')
-      }
-    )
+    await expectError(() => validateSchema(obj, schema), {
+      contains: 'key "123" is not allowed at path .a',
+      errorMessageGetter: (err) => err.detail.errorDescription,
+    })
   })
 
   it("should throw a nice error when xor rule fails", async () => {
@@ -225,12 +220,10 @@ describe("validate", () => {
       })
       .xor("a", "b")
 
-    await expectError(
-      () => validateSchema(obj, schema),
-      (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.equal("object at . can only contain one of [a, b]")
-      }
-    )
+    await expectError(() => validateSchema(obj, schema), {
+      contains: "object at . can only contain one of [a, b]",
+      errorMessageGetter: (err) => err.detail.errorDescription,
+    })
   })
 })
 
@@ -306,7 +299,7 @@ describe("joi.hostname", () => {
   it("should reject hostnames with wildcard DNS labels that are not the first label", () => {
     const result = schema.validate("foo.*.bas")
     expect(result.error).to.exist
-    expect(result!.error!.message).to.eql(`"value" only first DNS label my contain a wildcard.`)
+    expect(result!.error!.message).to.eql(`"value" only first DNS label may contain a wildcard.`)
   })
 })
 
@@ -464,27 +457,22 @@ describe("joi.customObject", () => {
 
   it("should give validation error if object doesn't match specified JSON Schema", async () => {
     const joiSchema = joi.object().jsonSchema(jsonSchema)
-    await expectError(
-      () => validateSchema({ numberProperty: "oops", blarg: "blorg" }, joiSchema),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Validation error: value at . should not have additional properties, value at . should have required property 'stringProperty', value at ..numberProperty should be integer"
-        )
-    )
+    await expectError(() => validateSchema({ numberProperty: "oops", blarg: "blorg" }, joiSchema), {
+      contains:
+        "Validation error: value at . must have required property 'stringProperty', value at . must NOT have additional properties, value at ./numberProperty must be integer",
+    })
   })
 
   it("should throw if schema with wrong type is passed to .jsonSchema()", async () => {
-    await expectError(
-      () => joi.object().jsonSchema({ type: "number" }),
-      (err) => expect(err.message).to.equal("jsonSchema must be a valid JSON Schema with type=object or reference")
-    )
+    await expectError(() => joi.object().jsonSchema({ type: "number" }), {
+      contains: "jsonSchema must be a valid JSON Schema with type=object or reference",
+    })
   })
 
   it("should throw if invalid schema is passed to .jsonSchema()", async () => {
-    await expectError(
-      () => joi.object().jsonSchema({ type: "banana", blorg: "blarg" }),
-      (err) => expect(err.message).to.equal("jsonSchema must be a valid JSON Schema with type=object or reference")
-    )
+    await expectError(() => joi.object().jsonSchema({ type: "banana", blorg: "blarg" }), {
+      contains: "jsonSchema must be a valid JSON Schema with type=object or reference",
+    })
   })
 })
 
@@ -492,28 +480,25 @@ describe("validateSchema", () => {
   it("should format a basic object validation error", async () => {
     const schema = joi.object().keys({ foo: joi.string() })
     const value = { foo: 123 }
-    await expectError(
-      () => validateSchema(value, schema),
-      (err) => expect(stripAnsi(err.message)).to.equal("Validation error: key .foo must be a string")
-    )
+    await expectError(() => validateSchema(value, schema), {
+      contains: "Validation error: key .foo must be a string",
+    })
   })
 
   it("should format a nested object validation error", async () => {
     const schema = joi.object().keys({ foo: joi.object().keys({ bar: joi.string() }) })
     const value = { foo: { bar: 123 } }
-    await expectError(
-      () => validateSchema(value, schema),
-      (err) => expect(stripAnsi(err.message)).to.equal("Validation error: key .foo.bar must be a string")
-    )
+    await expectError(() => validateSchema(value, schema), {
+      contains: "Validation error: key .foo.bar must be a string",
+    })
   })
 
   it("should format a nested pattern object validation error", async () => {
     const schema = joi.object().keys({ foo: joi.object().pattern(/.+/, joi.string()) })
     const value = { foo: { bar: 123 } }
-    await expectError(
-      () => validateSchema(value, schema),
-      (err) => expect(stripAnsi(err.message)).to.equal("Validation error: key .foo[bar] must be a string")
-    )
+    await expectError(() => validateSchema(value, schema), {
+      contains: "Validation error: key .foo[bar] must be a string",
+    })
   })
 })
 
@@ -550,5 +535,91 @@ describe("allowUnknown", () => {
     const loose = allowUnknown(schema)
     const result = loose.validate([{ foo: 123 }])
     expect(result.error).to.be.undefined
+  })
+})
+
+describe("createSchema", () => {
+  afterEach(() => {
+    removeSchema("foo")
+    removeSchema("bar")
+  })
+
+  it("creates an object schema and sets its name", () => {
+    const schema = createSchema({
+      name: "foo",
+      keys: () => ({
+        foo: joi.boolean(),
+      }),
+    })
+    // This will only work with a schema
+    const metadata = metadataFromDescription(schema().describe())
+    expect(metadata).to.eql({
+      name: "foo",
+    })
+  })
+
+  it("throws if a schema name is used twice", () => {
+    createSchema({
+      name: "foo",
+      keys: () => ({
+        foo: joi.boolean(),
+      }),
+    })
+    return expectError(
+      () =>
+        createSchema({
+          name: "foo",
+          keys: () => ({
+            foo: joi.boolean(),
+          }),
+        }),
+      { contains: "Object schema foo defined multiple times" }
+    )
+  })
+
+  it("applies metadata to schemas", () => {
+    const schema = createSchema({
+      name: "foo",
+      keys: () => ({
+        foo: joi.boolean(),
+      }),
+      meta: {
+        internal: true,
+      },
+    })
+    const metadata = metadataFromDescription(schema().describe())
+    expect(metadata).to.eql({
+      name: "foo",
+      internal: true,
+    })
+  })
+
+  it("extends another schema", () => {
+    const base = createSchema({
+      name: "foo",
+      keys: () => ({
+        foo: joi.boolean(),
+      }),
+    })
+    const schema = createSchema({
+      name: "bar",
+      keys: () => ({
+        bar: joi.string(),
+      }),
+      extend: base,
+    })
+    validateSchema({ foo: true, bar: "baz" }, schema())
+  })
+
+  it("caches the created schema", () => {
+    const f = createSchema({
+      name: "bar",
+      keys: () => ({
+        bar: joi.string(),
+      }),
+    })
+    const a = f()
+    const b = f()
+    expect(a).to.equal(b)
   })
 })

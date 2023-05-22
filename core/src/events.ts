@@ -8,18 +8,27 @@
 
 import { omit } from "lodash"
 import { EventEmitter2 } from "eventemitter2"
-import { GraphResult } from "./task-graph"
-import { LogEntryEventPayload } from "./cloud/buffered-event-stream"
-import { ServiceStatus } from "./types/service"
-import { NamespaceStatus, RunStatus } from "./types/plugin/base"
-import { Omit } from "./util/util"
-import { AuthTokenResponse } from "./cloud/api"
-import { RenderedActionGraph } from "./config-graph"
-import { BuildState } from "./types/plugin/module/build"
-import { CommandInfo } from "./plugin-context"
-import { sanitizeObject } from "./logger/util"
+import type { LogEntryEventPayload } from "./cloud/buffered-event-stream"
+import type { DeployState, DeployStatusForEventPayload } from "./types/service"
+import type { RunState, RunStatusForEventPayload } from "./plugin/base"
+import type { Omit } from "./util/util"
+import type { AuthTokenResponse } from "./cloud/api"
+import type { ConfigGraph, RenderedActionGraph } from "./graph/config-graph"
+import type { CommandInfo } from "./plugin-context"
+import type { GraphResult } from "./graph/results"
+import { NamespaceStatus } from "./types/namespace"
+import { BuildState, BuildStatusForEventPayload } from "./plugin/handlers/Build/get-status"
+import { ActionStateForEvent } from "./actions/types"
 
-export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
+interface EventContext {
+  gardenKey?: string
+  sessionId?: string
+}
+
+type EventPayload<T extends EventName> = Events[T] & { $context?: EventContext }
+
+export type GardenEventListener<T extends EventName> = (payload: EventPayload<T>) => void
+export type GardenEventAnyListener<E extends EventName = any> = (name: E, payload: EventPayload<E>) => void
 
 /**
  * This simple class serves as the central event bus for a Garden instance. Its function
@@ -28,27 +37,108 @@ export type GardenEventListener<T extends EventName> = (payload: Events[T]) => v
  * See below for the event interfaces.
  */
 export class EventBus extends EventEmitter2 {
-  constructor() {
+  private keyIndex: {
+    [key: string]: { [eventName: string]: ((payload: any) => void)[] }
+  }
+
+  constructor(private context: EventContext = {}) {
     super({
       wildcard: false,
       newListener: false,
-      maxListeners: 100, // we may need to adjust this
+      maxListeners: 5000, // we may need to adjust this
     })
+    this.keyIndex = {}
   }
 
-  emit<T extends EventName>(name: T, payload: Events[T]) {
-    return super.emit(name, payload)
+  emit<T extends EventName>(name: T, payload: EventPayload<T>) {
+    // The context set in the constructor is added on the $context field
+    return super.emit(name, { $context: { ...payload.$context, ...this.context }, ...payload })
   }
 
-  on<T extends EventName>(name: T, listener: (payload: Events[T]) => void) {
+  on<T extends EventName>(name: T, listener: GardenEventListener<T>) {
     return super.on(name, listener)
   }
 
-  onAny(listener: <T extends EventName>(name: T, payload: Events[T]) => void) {
+  /**
+   * Registers the listener under the provided key for easy cleanup via `offKey`. This is useful e.g. for the
+   * plugin event broker, which is instantiated in several places and where there isn't a single obvious place to
+   * remove listeners from all instances generated in a single command run.
+   */
+  onKey<T extends EventName>(name: T, listener: GardenEventListener<T>, key: string) {
+    if (!this.keyIndex[key]) {
+      this.keyIndex[key] = {}
+    }
+    if (!this.keyIndex[key][name]) {
+      this.keyIndex[key][name] = []
+    }
+    this.keyIndex[key][name].push(listener)
+    return super.on(name, listener)
+  }
+
+  /**
+   * Removes all event listeners for the event `name` that were registered under `key` (via `onKey`).
+   */
+  offKey<T extends EventName>(name: T, key: string) {
+    if (!this.keyIndex[key]) {
+      return
+    }
+    if (!this.keyIndex[key][name]) {
+      return
+    }
+    for (const listener of this.keyIndex[key][name]) {
+      this.removeListener(name, listener)
+    }
+    delete this.keyIndex[key][name]
+  }
+
+  /**
+   * Removes all event listeners that were registered under `key` (via `onKey`).
+   */
+  clearKey(key: string) {
+    if (!this.keyIndex[key]) {
+      return
+    }
+    for (const name of Object.keys(this.keyIndex[key])) {
+      for (const listener of this.keyIndex[key][name]) {
+        this.removeListener(name, listener)
+      }
+    }
+    delete this.keyIndex[key]
+  }
+
+  /**
+   * Add the given listener if it's not already been added.
+   * Basically an idempotent version of on(), which otherwise adds the same listener again if called twice with
+   * the same listener.
+   */
+  ensure<T extends EventName>(name: T, listener: GardenEventListener<T>) {
+    for (const l of this.listeners(name)) {
+      if (l === listener) {
+        return this
+      }
+    }
+    return super.on(name, listener)
+  }
+
+  onAny(listener: GardenEventAnyListener) {
     return super.onAny(<any>listener)
   }
 
-  once<T extends EventName>(name: T, listener: (payload: Events[T]) => void) {
+  /**
+   * Add the given listener if it's not already been added.
+   * Basically an idempotent version of onAny(), which otherwise adds the same listener again if called twice with
+   * the same listener.
+   */
+  ensureAny(listener: GardenEventAnyListener) {
+    for (const l of this.listenersAny()) {
+      if (l === listener) {
+        return this
+      }
+    }
+    return super.onAny(<any>listener)
+  }
+
+  once<T extends EventName>(name: T, listener: GardenEventListener<T>) {
     return super.once(name, listener)
   }
 
@@ -58,24 +148,9 @@ export class EventBus extends EventEmitter2 {
 /**
  * Supported logger events and their interfaces.
  */
-export interface LoggerEvents {
-  _test: any
-  logEntry: LogEntryEventPayload
-}
 
-export type LoggerEventName = keyof LoggerEvents
-
-export type GraphResultEventPayload = Omit<GraphResult, "dependencyResults">
-
-export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
-  /**
-   * ISO format date string
-   */
-  deployStartedAt?: string
-  /**
-   * ISO format date string
-   */
-  deployCompletedAt?: string
+export type GraphResultEventPayload = Omit<GraphResult, "result" | "task" | "dependencyResults" | "error"> & {
+  error: string | null
 }
 
 export interface CommandInfoPayload extends CommandInfo {
@@ -93,29 +168,34 @@ export interface CommandInfoPayload extends CommandInfo {
 }
 
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
-  const payload = sanitizeObject(omit(result, "dependencyResults"))
+  return {
+    ...omit(result, "result", "dependencyResults", "task"),
+    error: result.error ? String(result.error) : null,
+  }
+}
 
-  // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
-  if (result.error) {
-    payload.error = omit(result.error, "detail")
-  }
-  if (result.output) {
-    payload.output = omit(result.output, "dependencyResults", "log", "buildLog", "detail")
-    if (result.output.version) {
-      payload.output.version = result.output.version.versionString || null
-    }
-  }
-  return payload
+export type ActionStatusDetailedState = DeployState | BuildState | RunState
+
+export interface ActionStatusPayload<S = { state: ActionStatusDetailedState }> {
+  actionName: string
+  actionVersion: string
+  actionUid: string
+  moduleName: string | null // DEPRECATED: Remove in 0.14
+  startedAt: string
+  completedAt?: string
+  state: ActionStateForEvent
+  status: S
 }
 
 /**
  * Supported Garden events and their interfaces.
  */
-export interface Events extends LoggerEvents {
+export interface Events {
   // Internal test/control events
   _exit: {}
   _restart: {}
-  _test: any
+  _test: { msg?: string }
+
   _workflowRunRegistered: {
     workflowRunUid: string
   }
@@ -124,7 +204,7 @@ export interface Events extends LoggerEvents {
   serversUpdated: {
     servers: { host: string; command: string; serverAuthKey: string }[]
   }
-  serverReady: {}
+  connectionReady: {}
   receivedToken: AuthTokenResponse
 
   // Session events - one of these is emitted when the command process ends
@@ -133,26 +213,18 @@ export interface Events extends LoggerEvents {
   sessionCancelled: {} // Command exited because of an interrupt signal (e.g. CTRL-C)
 
   // Watcher events
-  configAdded: {
-    path: string
-  }
-  configRemoved: {
-    path: string
-  }
   internalError: {
     timestamp: Date
     error: Error
   }
-  projectConfigChanged: {}
-  moduleConfigChanged: {
-    names: string[]
+  // TODO: We may want to split this up into `projectConfigChanged` and `actionConfigChanged`, but we don't currently
+  // need that distinction for our purposes.
+  configChanged: {
     path: string
   }
-  moduleSourcesChanged: {
-    names: string[]
-    pathsChanged: string[]
-  }
-  moduleRemoved: {}
+
+  configGraph: { graph: ConfigGraph }
+  configsScanned: {}
 
   // Command/project metadata events
   commandInfo: CommandInfoPayload
@@ -160,36 +232,27 @@ export interface Events extends LoggerEvents {
   // Stack Graph events
   stackGraph: RenderedActionGraph
 
+  // TODO: Remove these once the Cloud UI no longer uses them.
+
   // TaskGraph events
-  taskPending: {
-    /**
-     * ISO format date string
-     */
-    addedAt: string
-    batchId: string
-    key: string
-    type: string
-    name: string
-  }
   taskProcessing: {
     /**
      * ISO format date string
      */
     startedAt: string
-    batchId: string
     key: string
     type: string
     name: string
-    versionString: string
+    inputVersion: string
   }
   taskComplete: GraphResultEventPayload
+  taskReady: GraphResult
   taskError: GraphResultEventPayload
   taskCancelled: {
     /**
      * ISO format date string
      */
     cancelledAt: string
-    batchId: string
     type: string
     key: string
     name: string
@@ -206,95 +269,50 @@ export interface Events extends LoggerEvents {
      */
     completedAt: string
   }
-  watchingForChanges: {}
+
+  /**
+   * Line-by-line action log events. These are emitted by the `PluginEventBroker` instance passed to action handlers.
+   *
+   * This is in contrast with the `logEntry` event below, which represents framework-level logs emitted by the logger.
+   *
+   * TODO: Instead of having two event types (`log` and `logEntry`), we may want to unify the two.
+   */
   log: {
     /**
      * ISO format date string
      */
     timestamp: string
     actionUid: string
-    entity: {
-      moduleName: string
-      type: string
-      key: string
-    }
+    actionName: string
+    actionType: string
+    moduleName: string | null
+    origin: string
     data: string
   }
+  logEntry: LogEntryEventPayload
 
-  // Status events
+  // Action status events
 
   /**
-   * In the `buildStatus`, `taskStatus`, `testStatus` and `serviceStatus` events, the optional `actionUid` field
-   * identifies a single build/deploy/run.
+   * In the `buildStatus`, `runStatus`, `testStatus` and `deployStatus` events, the optional `actionUid` field
+   * identifies a single build/run/test/deploy.
    *
-   * The `build`/`testModule`/`runTask`/`deployService` actions emit two events: One before the plugin handler is
-   * called (a "building"/"running"/"deploying" event), and another one after the handler finishes successfully or
-   * throws an error.
+   * The `ActionRouter.build.build`/`ActionRouter.test.test`/`ActionRouter.run.run`/`ActionRouter.deploy.deploy`
+   * actions emit two events: One before the plugin handler is called (a "building"/"running"/"deploying" event), and
+   * another one after the handler finishes successfully or throws an error.
    *
    * When logged in, the `actionUid` is used by the Garden Cloud backend to group these two events for each of these
    * action invocations.
    *
-   * No `actionUid` is set for the corresponding "get status" actions (e.g. `getBuildStatus` or `getServiceStatus`),
-   * since those actions don't result in a build/deploy/run (so there are no associated logs or timestamps to track).
+   * No `actionUid` is set for the corresponding "get status/result" actions (e.g. `ActionRouter.build.getStatus` or
+   * `ActionRouter.test.getResult`), since those actions don't result in a build/deploy/run being executed (so there
+   * are no associated logs or timestamps to track).
    */
 
-  buildStatus: {
-    moduleName: string
-    moduleVersion: string
-    /**
-     * `actionUid` should only be defined if `state = "building" | "built" | "failed"` (and not if `state = "fetched",
-     * since in that case, no build took place and there are no logs/timestamps to view).
-     */
-    actionUid?: string
-    status: {
-      state: BuildState
-      /**
-       * ISO format date string
-       */
-      startedAt?: string
-      /**
-       * ISO format date string
-       */
-      completedAt?: string
-    }
-  }
-  taskStatus: {
-    taskName: string
-    moduleName: string
-    moduleVersion: string
-    taskVersion: string
-    /**
-     * `actionUid` should only be defined if the task was run , i.e. if `state = "running" | "succeeded" | "failed"`
-     * (and not if `state = "outdated" | "not-implemented, since in that case, no run took place and there are no
-     * logs/timestamps to view).
-     */
-    actionUid?: string
-    status: RunStatus
-  }
-  testStatus: {
-    testName: string
-    moduleName: string
-    moduleVersion: string
-    testVersion: string
-    /**
-     * `actionUid` should only be defined if the test was run, i.e. if `state = "running" | "succeeded" | "failed"`
-     * (and not if `state = "outdated" | "not-implemented, since in that case, no run took place and there are no
-     * logs/timestamps to view).
-     */
-    actionUid?: string
-    status: RunStatus
-  }
-  serviceStatus: {
-    serviceName: string
-    moduleName: string
-    moduleVersion: string
-    serviceVersion: string
-    /**
-     * `actionUid` should only be defined if a deploy took place (i.e. when emitted from the `deployService` action).
-     */
-    actionUid?: string
-    status: ServiceStatusPayload
-  }
+  buildStatus: ActionStatusPayload<BuildStatusForEventPayload>
+  runStatus: ActionStatusPayload<RunStatusForEventPayload>
+  testStatus: ActionStatusPayload<RunStatusForEventPayload>
+  deployStatus: ActionStatusPayload<DeployStatusForEventPayload>
   namespaceStatus: NamespaceStatus
 
   // Workflow events
@@ -315,48 +333,37 @@ export interface Events extends LoggerEvents {
     index: number
     durationMsec: number
   }
-
-  // Cloud UI events
 }
 
 export type EventName = keyof Events
 
-/**
- * These events indicate a request from Cloud to Core.
- */
+type GraphEventName = Extract<EventName, "taskCancelled" | "taskComplete" | "taskError" | "taskProcessing">
+type ConfigEventName = Extract<EventName, "configChanged" | "configsScanned">
 
-// Note: Does not include logger events.
-export const pipedEventNames: EventName[] = [
-  "_exit",
-  "_restart",
+// These are the events we POST over https via the BufferedEventStream
+const pipedEventNamesSet = new Set<EventName>([
   "_test",
   "_workflowRunRegistered",
+  "configsScanned",
+  "configChanged",
   "sessionCompleted",
   "sessionFailed",
   "sessionCancelled",
-  "configAdded",
-  "configRemoved",
   "internalError",
   "log",
-  "moduleConfigChanged",
-  "moduleRemoved",
   "commandInfo",
-  "moduleSourcesChanged",
   "namespaceStatus",
-  "projectConfigChanged",
-  "serviceStatus",
+  "deployStatus",
   "stackGraph",
   "taskCancelled",
   "taskComplete",
   "taskError",
   "taskGraphComplete",
   "taskGraphProcessing",
-  "taskPending",
   "taskProcessing",
   "buildStatus",
-  "taskStatus",
+  "runStatus",
   "testStatus",
-  "watchingForChanges",
   "workflowComplete",
   "workflowError",
   "workflowRunning",
@@ -364,4 +371,42 @@ export const pipedEventNames: EventName[] = [
   "workflowStepError",
   "workflowStepProcessing",
   "workflowStepSkipped",
-]
+])
+
+// We send graph and config events over a websocket connection via the Garden server
+const taskGraphEventNames = new Set<GraphEventName>(["taskCancelled", "taskComplete", "taskError", "taskProcessing"])
+const configEventNames = new Set<ConfigEventName>(["configsScanned", "configChanged"])
+
+// We do not emit these task graph events because they're simply not needed, and there's a lot of them.
+const skipTaskGraphEventTypes = ["resolve-action", "resolve-provider"]
+
+const isPipedEvent = (name: string, _payload: any): _payload is Events[EventName] => {
+  return pipedEventNamesSet.has(<any>name)
+}
+
+const isConfigEvent = (name: string, _payload: any): _payload is Events[ConfigEventName] => {
+  return configEventNames.has(<any>name)
+}
+
+const isTaskGraphEvent = (name: string, _payload: any): _payload is Events[GraphEventName] => {
+  return taskGraphEventNames.has(<any>name)
+}
+
+export function shouldStreamWsEvent(name: string, payload: any) {
+  if (isTaskGraphEvent(name, payload) && !skipTaskGraphEventTypes.includes(payload.type)) {
+    return true
+  } else if (isConfigEvent(name, payload)) {
+    return true
+  }
+  return false
+}
+
+export function shouldStreamEvent(name: string, payload: any) {
+  if (isTaskGraphEvent(name, payload) && skipTaskGraphEventTypes.includes(payload.type)) {
+    return false
+  } else if (!isPipedEvent(name, payload)) {
+    return false
+  }
+  return true
+}
+

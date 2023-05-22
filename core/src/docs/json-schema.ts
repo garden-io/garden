@@ -9,7 +9,7 @@
 import { isArray } from "lodash"
 import { BaseKeyDescription } from "./common"
 import { ValidationError } from "../exceptions"
-import { safeDumpYaml } from "../util/util"
+import { safeDumpYaml } from "../util/serialization"
 
 export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
   private schema: any

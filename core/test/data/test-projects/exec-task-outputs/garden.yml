@@ -1,2 +1,5 @@
+apiVersion: garden.io/v1
 kind: Project
 name: exec-task-outputs
+environments:
+  - name: local

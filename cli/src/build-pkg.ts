@@ -24,14 +24,12 @@ const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const tmpDir = resolve(repoRoot, "tmp", "pkg")
 const tmpStaticDir = resolve(tmpDir, "static")
 const pkgPath = resolve(repoRoot, "cli", "node_modules", ".bin", "pkg")
-const prebuildInstallPath = resolve(repoRoot, "node_modules", ".bin", "prebuild-install")
 const distPath = resolve(repoRoot, "dist")
-const sqliteBinFilename = "better_sqlite3.node"
 
 // Allow larger heap size than default
 const nodeOptions = ["max-old-space-size=4096"]
 
-// tslint:disable: no-console
+/* eslint-disable no-console */
 
 interface TargetHandlerParams {
   targetName: string
@@ -203,7 +201,7 @@ async function pkgAlpine({ targetName, version }: TargetHandlerParams) {
   await mkdirp(targetPath)
 
   console.log(` - ${targetName} -> docker build`)
-  const imageName = "gardendev/garden:alpine-builder"
+  const imageName = "garden-alpine-builder"
   const containerName = "alpine-builder-" + randomString(8)
   const supportDir = resolve(repoRoot, "support")
 
@@ -269,27 +267,6 @@ async function pkgCommon({
     { env: { PKG_CACHE_PATH: pkgFetchTmpDir } }
   )
 
-  console.log(` - ${targetName} -> ${sqliteBinFilename}`)
-
-  // Copy the package to avoid conflicts with other targets
-  const betterSqlitePath = resolve(sourcePath, "node_modules", "better-sqlite3")
-  const tmpRoot = resolve(tmpDir, "better-sqlite3")
-  const tmpPath = resolve(tmpRoot, targetName)
-  await mkdirp(tmpRoot)
-  await remove(tmpPath)
-  await copy(betterSqlitePath, tmpPath)
-
-  const { nodeBinaryPlatform } = targets[targetName]
-
-  await exec(
-    prebuildInstallPath,
-    ["--download", "--runtime", "node", "--arch", "x64", "--platform", nodeBinaryPlatform, "--force"],
-    {
-      cwd: tmpPath,
-    }
-  )
-  await copy(resolve(tmpPath, "build", "Release", sqliteBinFilename), resolve(targetPath, sqliteBinFilename))
-
   console.log(` - ${targetName} -> static`)
   await copyStatic(targetName)
 }
@@ -324,7 +301,7 @@ async function tarball(targetName: string, version: string): Promise<void> {
       hash.end()
       const sha256 = hash.read()
 
-      // tslint:disable-next-line: no-floating-promises
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       writeFile(hashPath, sha256 + "\n")
         .catch(reject)
         .then(_resolve)
@@ -334,7 +311,9 @@ async function tarball(targetName: string, version: string): Promise<void> {
   })
 }
 
-buildBinaries(process.argv.slice(2)).catch((err) => {
-  console.error(chalk.red(err.message))
-  process.exit(1)
-})
+if (require.main === module) {
+  buildBinaries(process.argv.slice(2)).catch((err) => {
+    console.error(chalk.red(err.message))
+    process.exit(1)
+  })
+}

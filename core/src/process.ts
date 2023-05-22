@@ -7,302 +7,107 @@
  */
 
 import Bluebird from "bluebird"
-import chalk from "chalk"
-import { keyBy, flatten } from "lodash"
 
-import { GardenModule } from "./types/module"
-import { BaseTask } from "./tasks/base"
-import { GraphResults } from "./task-graph"
-import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
-import { LogEntry } from "./logger/log-entry"
-import { ConfigGraph } from "./config-graph"
-import { dedent } from "./util/string"
-import { ConfigurationError } from "./exceptions"
-import { getCloudDistributionName, getCloudLogSectionName, uniqByName } from "./util/util"
-import { renderDivider } from "./logger/util"
-import { renderCloudLinkForBasicLogger } from "./cli/helpers"
+import { Log } from "./logger/log-entry"
+import { GardenProcess, GlobalConfigStore } from "./config-store/global"
+import { SpawnOutput, sleep, spawn } from "./util/util"
+import psTree from "ps-tree"
 
-export type ProcessHandler = (graph: ConfigGraph, module: GardenModule) => Promise<BaseTask[]>
-
-interface ProcessParams {
-  garden: Garden
-  graph: ConfigGraph
-  log: LogEntry
-  footerLog?: LogEntry
-  watch: boolean
-  /**
-   * If provided, and if `watch === true`, will log this to the statusline when waiting for changes
-   */
-  overRideWatchStatusLine?: string
-  /**
-   * If provided, and if `watch === true`, don't watch files in the module roots of these modules.
-   */
-  skipWatchModules?: GardenModule[]
-  initialTasks: BaseTask[]
-  /**
-   * Use this if the behavior should be different on watcher changes than on initial processing
-   */
-  changeHandler: ProcessHandler
-}
-
-export interface ProcessModulesParams extends ProcessParams {
-  modules: GardenModule[]
-}
-
-export interface ProcessResults {
-  taskResults: GraphResults
-  restartRequired?: boolean
-}
-
-let statusLine: LogEntry
-
-export async function processModules({
-  garden,
-  graph,
-  log,
-  footerLog,
-  modules,
-  initialTasks,
-  skipWatchModules,
-  watch,
-  changeHandler,
-  overRideWatchStatusLine,
-}: ProcessModulesParams): Promise<ProcessResults> {
-  log.silly("Starting processModules")
-
-  // Let the user know if any modules are linked to a local path
-  const linkedModulesMsg = modules
-    .filter((m) => isModuleLinked(m, garden))
-    .map((m) => `${chalk.cyan(m.name)} linked to path ${chalk.white(m.path)}`)
-    .map((msg) => "  " + msg) // indent list
-
-  if (linkedModulesMsg.length > 0) {
-    log.info(renderDivider())
-    log.info(chalk.gray(`The following modules are linked to a local path:\n${linkedModulesMsg.join("\n")}`))
-    log.info(renderDivider())
-  }
-
-  // true if one or more tasks failed when the task graph last finished processing all its nodes.
-  let taskErrorDuringLastProcess = false
-
-  if (watch && !!footerLog) {
-    if (!statusLine) {
-      statusLine = footerLog.info("").placeholder()
-    }
-
-    garden.events.on("taskGraphProcessing", () => {
-      taskErrorDuringLastProcess = false
-      if (log.root.type === "fancy") {
-        statusLine.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
-      }
-    })
-  }
-
-  const results = await garden.processTasks(initialTasks)
-
-  if (!watch && !garden.persistent) {
-    return {
-      taskResults: results,
-      restartRequired: false,
-    }
-  }
-
-  if (!watch && garden.persistent) {
-    // Garden process is persistent but not in watch mode. E.g. used to
-    // keep port forwards alive without enabling watch or dev mode.
-    await new Promise((resolve) => {
-      garden.events.on("_restart", () => {
-        log.debug({ symbol: "info", msg: `Manual restart triggered` })
-        resolve({})
-      })
-
-      garden.events.on("_exit", () => {
-        log.debug({ symbol: "info", msg: `Manual exit triggered` })
-        restartRequired = false
-        resolve({})
-      })
-    })
-    return {
-      taskResults: results,
-      restartRequired: false,
-    }
-  }
-
-  const deps = graph.getDependenciesForMany({
-    nodeType: "build",
-    names: modules.map((m) => m.name),
-    recursive: true,
-  })
-  const modulesToWatch = uniqByName(deps.build.concat(modules))
-  const modulesByName = keyBy(modulesToWatch, "name")
-
-  await garden.startWatcher({ graph, skipModules: skipWatchModules })
-
-  const taskError = () => {
-    if (!!statusLine) {
-      statusLine.setState({
-        emoji: "heavy_exclamation_mark",
-        msg: chalk.red("One or more actions failed, see the log output above for details."),
-      })
-    }
-  }
-
-  // FIXME: This is a bit clumsy and the user should just be available on the Garden or CloudApi class.
-  const cloudUserId = garden.cloudApi ? (await garden.cloudApi.getProfile()).id : null
-  const waiting = () => {
-    if (!!statusLine) {
-      if (log.root.type === "fancy") {
-        statusLine.setState({
-          emoji: "clock2",
-          msg: chalk.gray(overRideWatchStatusLine || "Waiting for code changes..."),
-        })
-      } else {
-        if (garden.cloudApi && cloudUserId) {
-          const commandResultUrl = garden.cloudApi.getCommandResultUrl({
-            sessionId: garden.sessionId,
-            userId: cloudUserId,
-          }).href
-          const distroName = getCloudDistributionName(garden.cloudApi.domain || "")
-          const section = getCloudLogSectionName(distroName)
-          const msg = renderCloudLinkForBasicLogger({ commandResultUrl, distroName })
-          log.info({ section, msg })
-        }
-        log.info({ symbol: "success", section: "garden", msg: chalk.green("Ready! Waiting for code changes...\n") })
-      }
-    }
-
-    garden.events.emit("watchingForChanges", {})
-  }
-
-  let restartRequired = true
-
+export async function waitForExitEvent(garden: Garden, log: Log) {
   await new Promise((resolve) => {
-    garden.events.on("taskError", () => {
-      taskErrorDuringLastProcess = true
-      taskError()
-    })
-
-    garden.events.on("taskGraphComplete", () => {
-      if (!taskErrorDuringLastProcess) {
-        waiting()
-      }
-    })
-
-    garden.events.on("_restart", () => {
-      log.debug({ symbol: "info", msg: `Manual restart triggered` })
-      resolve({})
-    })
-
     garden.events.on("_exit", () => {
-      log.debug({ symbol: "info", msg: `Manual exit triggered` })
-      restartRequired = false
+      log.debug(`Manual exit triggered`)
       resolve({})
     })
-
-    garden.events.on("projectConfigChanged", async () => {
-      if (await validateConfigChange(garden, log, garden.projectRoot, "changed")) {
-        log.info({
-          symbol: "info",
-          msg: `Project configuration changed, reloading...`,
-        })
-        resolve({})
-      }
-    })
-
-    garden.events.on("configAdded", async (event) => {
-      if (await validateConfigChange(garden, log, event.path, "added")) {
-        log.info({
-          symbol: "info",
-          msg: `Garden config added at ${event.path}, reloading...`,
-        })
-        resolve({})
-      }
-    })
-
-    garden.events.on("configRemoved", async (event) => {
-      if (await validateConfigChange(garden, log, event.path, "removed")) {
-        log.info({
-          symbol: "info",
-          msg: `Garden config at ${event.path} removed, reloading...`,
-        })
-        resolve({})
-      }
-    })
-
-    garden.events.on("moduleConfigChanged", async (event) => {
-      if (await validateConfigChange(garden, log, event.path, "changed")) {
-        const moduleNames = event.names
-        const section = moduleNames.length === 1 ? moduleNames[0] : undefined
-        log.info({
-          symbol: "info",
-          section,
-          msg: `Module configuration changed, reloading...`,
-        })
-        resolve({})
-      }
-    })
-
-    garden.events.on("moduleSourcesChanged", async (event) => {
-      graph = await garden.getConfigGraph({ log, emit: false })
-      const changedModuleNames = event.names.filter((moduleName) => !!modulesByName[moduleName])
-
-      if (changedModuleNames.length === 0) {
-        return
-      }
-
-      // Make sure the modules' versions are up to date.
-      const changedModules = graph.getModules({ names: changedModuleNames })
-
-      const moduleTasks = flatten(
-        await Bluebird.map(changedModules, async (m) => {
-          modulesByName[m.name] = m
-          return changeHandler!(graph, m)
-        })
-      )
-      await garden.processTasks(moduleTasks)
-    })
-
-    waiting()
   })
-
-  return {
-    taskResults: {}, // TODO: Return latest results for each task key processed between restarts?
-    restartRequired,
-  }
 }
 
 /**
- * When config files change / are added / are removed, we try initializing a new Garden instance
- * with the changed config files and performing a bit of validation on it before proceeding with
- * a restart. If a config error was encountered, we simply log the error and keep the existing
- * Garden instance.
- *
- * Returns true if no configuration errors occurred.
+ * Retrieve all active processes from the global config store,
+ * and clean up any inactive processes from the store along the way.
  */
-async function validateConfigChange(
-  garden: Garden,
-  log: LogEntry,
-  changedPath: string,
-  operationType: "added" | "changed" | "removed"
-): Promise<boolean> {
-  try {
-    const nextGarden = await Garden.factory(garden.projectRoot, garden.opts)
-    await nextGarden.getConfigGraph({ log, emit: false })
-    await nextGarden.close()
-  } catch (error) {
-    if (error instanceof ConfigurationError) {
-      const msg = dedent`
-        Encountered configuration error after ${changedPath} was ${operationType}:
+export async function getActiveProcesses(globalConfigStore: GlobalConfigStore) {
+  const processes = await globalConfigStore.get("activeProcesses")
 
-        ${error.message}
-
-        Keeping existing configuration and skipping restart.`
-      log.error({ symbol: "error", msg, error })
-      return false
-    } else {
-      throw error
+  // TODO: avoid multiple writes here
+  await Bluebird.map(Object.entries(processes), async ([key, p]) => {
+    if (!isRunning(p.pid)) {
+      await globalConfigStore.delete("activeProcesses", key)
+      delete processes[key]
     }
+  })
+
+  return Object.values(processes)
+}
+
+/**
+ * Register the currently running process in the global config store,
+ * and clean up any inactive processes from the store along the way.
+ */
+export async function registerProcess(
+  globalConfigStore: GlobalConfigStore,
+  command: string,
+  args: string[]
+): Promise<GardenProcess> {
+  await getActiveProcesses(globalConfigStore)
+
+  const pid = process.pid
+
+  const record: GardenProcess = {
+    command,
+    arguments: args,
+    pid,
+    startedAt: new Date(),
+    sessionId: null,
+    projectName: null,
+    projectRoot: null,
+    environmentName: null,
+    namespace: null,
+    persistent: false,
+    serverAuthKey: null,
+    serverHost: null,
   }
-  return true
+
+  await globalConfigStore.set("activeProcesses", String(pid), record)
+
+  return record
+}
+
+/**
+ * Kills the process with the provided pid, and any of its child processes.
+ *
+ * `signalName` should be a POSIX kill signal, e.g. + `INT` or `KILL`
+ *
+ * See: https://github.com/sindresorhus/execa/issues/96#issuecomment-776280798
+ */
+export async function killRecursive(signalName: string, pid: number) {
+  return new Promise<SpawnOutput>((resolve, reject) => {
+    psTree(pid, function (_err, children) {
+      const killArgs = ["-s", signalName, "" + pid].concat(
+          children.map(function (p) {
+            return p.PID
+          })
+        )
+      spawn("kill", killArgs)
+        .then(resolve)
+        .catch(reject)
+    })
+  })
+}
+
+export function isRunning(pid: number) {
+  // Taken from https://stackoverflow.com/a/21296291. Doesn't actually kill the process.
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Note: Circumvents an issue where the process exits before the output is fully flushed.
+// Needed for output renderers and Winston (see: https://github.com/winstonjs/winston/issues/228)
+export async function waitForOutputFlush() {
+  await sleep(100)
 }

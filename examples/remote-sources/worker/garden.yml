@@ -1,14 +1,21 @@
-kind: Module
+kind: Build
+type: container
+name: worker
+source:
+  repository:
+    url: https://github.com/garden-io/garden-example-remote-module-jworker.git#0.13
+
+---
+kind: Deploy
 description: The worker that collects votes and stores results in a postgres table
 type: container
 name: worker
-repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git#v0.3.0
-services:
-  - name: worker
-    dependencies:
-      - redis
-      - db-init
-    env:
-      PGDATABASE: ${var.postgres-database}
-      PGUSER: ${var.postgres-username}
-      PGPASSWORD: ${var.postgres-password}
+build: worker
+dependencies:
+  - deploy.redis
+  - run.db-init
+spec:
+  env:
+    PGDATABASE: ${var.postgres-database}
+    PGUSER: ${var.postgres-username}
+    PGPASSWORD: ${var.postgres-password}

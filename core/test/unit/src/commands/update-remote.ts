@@ -16,11 +16,13 @@ import {
   withDefaultGlobalOpts,
   makeExtProjectSourcesGarden,
   makeExtModuleSourcesGarden,
+  makeExtActionSourcesGarden,
 } from "../../../helpers"
 import { UpdateRemoteSourcesCommand } from "../../../../src/commands/update-remote/sources"
 import { UpdateRemoteModulesCommand } from "../../../../src/commands/update-remote/modules"
 import { Garden } from "../../../../src/garden"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
+import { UpdateRemoteActionsCommand } from "../../../../src/commands/update-remote/actions"
 
 function withDefaultOpts(opts: any) {
   return withDefaultGlobalOpts({ parallel: false, ...opts })
@@ -29,7 +31,7 @@ function withDefaultOpts(opts: any) {
 describe("UpdateRemoteCommand", () => {
   describe("UpdateRemoteSourcesCommand", () => {
     let garden: Garden
-    let log: LogEntry
+    let log: Log
     const cmd = new UpdateRemoteSourcesCommand()
 
     before(async () => {
@@ -45,8 +47,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { sources: undefined },
         opts: withDefaultOpts({}),
       })
@@ -60,8 +60,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { sources: undefined },
         opts: withDefaultOpts({ parallel: true }),
       })
@@ -75,8 +73,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { sources: ["source-a"] },
         opts: withDefaultOpts({}),
       })
@@ -87,8 +83,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { sources: ["source-a"] },
         opts: withDefaultOpts({ parallel: true }),
       })
@@ -101,8 +95,6 @@ describe("UpdateRemoteCommand", () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { sources: undefined },
         opts: withDefaultOpts({}),
       })
@@ -115,9 +107,90 @@ describe("UpdateRemoteCommand", () => {
           await cmd.action({
             garden,
             log,
-            headerLog: log,
-            footerLog: log,
             args: { sources: ["banana"] },
+            opts: withDefaultOpts({}),
+          }),
+        "parameter"
+      )
+    })
+  })
+
+  describe("UpdateRemoteActionsCommand", () => {
+    let garden: Garden
+    let log: Log
+    const cmd = new UpdateRemoteActionsCommand()
+
+    beforeEach(async () => {
+      garden = await makeExtActionSourcesGarden()
+      td.replace(garden.vcs, "updateRemoteSource", async () => undefined)
+      log = garden.log
+    })
+
+    it("should update all actions sources", async () => {
+      const { result } = await cmd.action({
+        garden,
+        log,
+        args: { actions: undefined },
+        opts: withDefaultOpts({}),
+      })
+
+      expect(cmd.outputsSchema().validate(result).error).to.be.undefined
+
+      expect(result!.sources.map((s) => s.name).sort()).to.eql(["build.a", "build.b"])
+    })
+
+    it("should update all actions sources in parallel if supplied", async () => {
+      const { result } = await cmd.action({
+        garden,
+        log,
+        args: { actions: undefined },
+        opts: withDefaultOpts({ parallel: true }),
+      })
+
+      expect(cmd.outputsSchema().validate(result).error).to.be.undefined
+
+      expect(result!.sources.map((s) => s.name).sort()).to.eql(["build.a", "build.b"])
+    })
+
+    it("should update the specified action sources", async () => {
+      const { result } = await cmd.action({
+        garden,
+        log,
+        args: { actions: ["build.a"] },
+        opts: withDefaultOpts({}),
+      })
+      expect(result!.sources.map((s) => s.name).sort()).to.eql(["build.a"])
+    })
+
+    it("should update the specified action sources in parallel if supplied", async () => {
+      const { result } = await cmd.action({
+        garden,
+        log,
+        args: { actions: ["build.a"] },
+        opts: withDefaultOpts({ parallel: true }),
+      })
+      expect(result!.sources.map((s) => s.name).sort()).to.eql(["build.a"])
+    })
+
+    it("should remove stale remote action sources", async () => {
+      const stalePath = join(garden.gardenDirPath, "sources", "action", "stale-source")
+      await mkdirp(stalePath)
+      await cmd.action({
+        garden,
+        log,
+        args: { actions: undefined },
+        opts: withDefaultOpts({}),
+      })
+      expect(await pathExists(stalePath)).to.be.false
+    })
+
+    it("should throw if action source is not found", async () => {
+      await expectError(
+        async () =>
+          await cmd.action({
+            garden,
+            log,
+            args: { actions: ["build.banana"] },
             opts: withDefaultOpts({}),
           }),
         "parameter"
@@ -127,7 +200,7 @@ describe("UpdateRemoteCommand", () => {
 
   describe("UpdateRemoteModulesCommand", () => {
     let garden: Garden
-    let log: LogEntry
+    let log: Log
     const cmd = new UpdateRemoteModulesCommand()
 
     beforeEach(async () => {
@@ -140,8 +213,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { modules: undefined },
         opts: withDefaultOpts({}),
       })
@@ -155,8 +226,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { modules: undefined },
         opts: withDefaultOpts({ parallel: true }),
       })
@@ -170,8 +239,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { modules: ["module-a"] },
         opts: withDefaultOpts({}),
       })
@@ -182,8 +249,6 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { modules: ["module-a"] },
         opts: withDefaultOpts({ parallel: true }),
       })
@@ -196,8 +261,6 @@ describe("UpdateRemoteCommand", () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { modules: undefined },
         opts: withDefaultOpts({}),
       })
@@ -210,8 +273,6 @@ describe("UpdateRemoteCommand", () => {
           await cmd.action({
             garden,
             log,
-            headerLog: log,
-            footerLog: log,
             args: { modules: ["banana"] },
             opts: withDefaultOpts({}),
           }),

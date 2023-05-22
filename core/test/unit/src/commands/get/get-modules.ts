@@ -10,7 +10,7 @@ import { expect } from "chai"
 import { keyBy, mapValues } from "lodash"
 import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetModulesCommand } from "../../../../../src/commands/get/get-modules"
-import { withoutInternalFields } from "../../../../../src/logger/util"
+import { withoutInternalFields } from "../../../../../src/util/logging"
 
 describe("GetModulesCommand", () => {
   const command = new GetModulesCommand()
@@ -22,8 +22,6 @@ describe("GetModulesCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { modules: undefined },
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "full": false }),
     })
@@ -45,8 +43,6 @@ describe("GetModulesCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { modules: undefined },
       opts: withDefaultGlobalOpts({ "exclude-disabled": true, "full": false }),
     })
@@ -64,8 +60,6 @@ describe("GetModulesCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { modules: ["module-a"] },
       opts: withDefaultGlobalOpts({ "exclude-disabled": false, "full": false }),
     })

@@ -9,11 +9,10 @@
 import { expect } from "chai"
 
 import {
-  getRemoteSourcesDirname,
   getLinkedSources,
   addLinkedSources,
   removeLinkedSources,
-  getRemoteSourceRelPath,
+  getRemoteSourceLocalPath,
   hashRepoUrl,
 } from "../../../../src/util/ext-source-util"
 import { expectError, makeTestGardenA } from "../../../helpers"
@@ -22,7 +21,11 @@ import { join } from "path"
 
 describe("ext-source-util", () => {
   let garden: Garden
-  const sources = [
+  const sourcesObj = {
+    "name-a": { name: "name-a", path: "path-a" },
+    "name-b": { name: "name-b", path: "path-b" },
+  }
+  const sourcesList = [
     { name: "name-a", path: "path-a" },
     { name: "name-b", path: "path-b" },
   ]
@@ -31,123 +34,137 @@ describe("ext-source-util", () => {
     garden = await makeTestGardenA()
   })
 
-  describe("getExtSourcesDirName", () => {
-    it("should return the relative path to the remote projects directory", () => {
-      const dirName = getRemoteSourcesDirname("project")
-      expect(dirName).to.equal(join("sources", "project"))
-    })
-
-    it("should return the relative path to the remote modules directory", () => {
-      const dirName = getRemoteSourcesDirname("module")
-      expect(dirName).to.equal(join("sources", "module"))
-    })
-  })
-
-  describe("getRemoteSourceRelPath", () => {
-    it("should return the relative path to a remote project source", () => {
+  describe("getRemoteSourceLocalPath", () => {
+    it("should return the path to a remote project source", () => {
       const url = "banana"
       const urlHash = hashRepoUrl(url)
 
-      const path = getRemoteSourceRelPath({
+      const path = getRemoteSourceLocalPath({
+        gardenDirPath: garden.gardenDirPath,
         url,
         name: "my-source",
-        sourceType: "project",
+        type: "project",
       })
-      expect(path).to.equal(join("sources", "project", `my-source--${urlHash}`))
+      expect(path).to.equal(join(garden.gardenDirPath, "sources", "project", `my-source--${urlHash}`))
+    })
+
+    it("should return the relative path to a remote action source", () => {
+      const url = "banana"
+      const urlHash = hashRepoUrl(url)
+
+      const path = getRemoteSourceLocalPath({
+        gardenDirPath: garden.gardenDirPath,
+        url,
+        name: "my-action",
+        type: "action",
+      })
+      expect(path).to.equal(join(garden.gardenDirPath, "sources", "action", `my-action--${urlHash}`))
     })
 
     it("should return the relative path to a remote module source", () => {
       const url = "banana"
       const urlHash = hashRepoUrl(url)
 
-      const path = getRemoteSourceRelPath({
+      const path = getRemoteSourceLocalPath({
+        gardenDirPath: garden.gardenDirPath,
         url,
         name: "my-module",
-        sourceType: "module",
+        type: "module",
       })
-      expect(path).to.equal(join("sources", "module", `my-module--${urlHash}`))
+      expect(path).to.equal(join(garden.gardenDirPath, "sources", "module", `my-module--${urlHash}`))
     })
   })
 
   describe("getLinkedSources", () => {
     it("should get linked project sources", async () => {
-      await garden.configStore.set(["linkedProjectSources"], sources)
-      expect(await getLinkedSources(garden, "project")).to.eql(sources)
+      await garden.localConfigStore.set("linkedProjectSources", sourcesObj)
+      expect(await getLinkedSources(garden, "project")).to.eql(sourcesList)
     })
 
     it("should get linked module sources", async () => {
-      await garden.configStore.set(["linkedModuleSources"], sources)
-      expect(await getLinkedSources(garden, "module")).to.eql(sources)
+      await garden.localConfigStore.set("linkedModuleSources", sourcesObj)
+      expect(await getLinkedSources(garden, "module")).to.eql(sourcesList)
     })
   })
 
   describe("addLinkedSources", () => {
     it("should add linked project sources to local config", async () => {
-      await addLinkedSources({ garden, sourceType: "project", sources })
-      expect(await garden.configStore.get(["linkedProjectSources"])).to.eql(sources)
+      await addLinkedSources({ garden, sourceType: "project", sources: sourcesList })
+      expect(await garden.localConfigStore.get("linkedProjectSources")).to.eql(sourcesObj)
     })
 
     it("should add linked module sources to local config", async () => {
-      await addLinkedSources({ garden, sourceType: "module", sources })
-      expect(await garden.configStore.get(["linkedModuleSources"])).to.eql(sources)
+      await addLinkedSources({ garden, sourceType: "module", sources: sourcesList })
+      expect(await garden.localConfigStore.get("linkedModuleSources")).to.eql(sourcesObj)
     })
 
     it("should append sources to local config if key already has value", async () => {
-      const { configStore: localConfigStore } = garden
-      await localConfigStore.set(["linkedModuleSources"], sources)
+      const { localConfigStore: localConfigStore } = garden
+      await localConfigStore.set("linkedModuleSources", sourcesObj)
 
-      const newSources = [{ name: "name-c", path: "path-c" }]
       await addLinkedSources({
         garden,
         sourceType: "module",
-        sources: newSources,
+        sources: [{ name: "name-c", path: "path-c" }],
       })
 
-      expect(await garden.configStore.get(["linkedModuleSources"])).to.eql(sources.concat(newSources))
+      expect(await garden.localConfigStore.get("linkedModuleSources")).to.eql({
+        ...sourcesObj,
+        "name-c": {
+          name: "name-c",
+          path: "path-c",
+        },
+      })
     })
   })
 
   describe("removeLinkedSources", () => {
     it("should remove linked project sources from local config", async () => {
-      await garden.configStore.set(["linkedModuleSources"], sources)
+      await garden.localConfigStore.set("linkedModuleSources", sourcesObj)
 
       const names = ["name-a"]
       await removeLinkedSources({ garden, sourceType: "module", names })
 
-      expect(await garden.configStore.get(["linkedModuleSources"])).to.eql([
-        {
+      expect(await garden.localConfigStore.get("linkedModuleSources")).to.eql({
+        "name-b": {
           name: "name-b",
           path: "path-b",
         },
-      ])
+      })
     })
 
     it("should remove linked module sources from local config", async () => {
-      await garden.configStore.set(["linkedProjectSources"], sources)
+      await garden.localConfigStore.set("linkedProjectSources", sourcesObj)
 
       const names = ["name-a"]
       await removeLinkedSources({ garden, sourceType: "project", names })
 
-      expect(await garden.configStore.get(["linkedProjectSources"])).to.eql([
-        {
+      expect(await garden.localConfigStore.get("linkedProjectSources")).to.eql({
+        "name-b": {
           name: "name-b",
           path: "path-b",
         },
-      ])
+      })
     })
 
     it("should remove multiple sources from local config", async () => {
-      await garden.configStore.set(["linkedModuleSources"], sources.concat({ name: "name-c", path: "path-c" }))
+      await garden.localConfigStore.set("linkedModuleSources", {
+        ...sourcesObj,
+        "name-c": {
+          name: "name-c",
+          path: "path-c",
+        },
+      })
 
       const names = ["name-a", "name-b"]
       await removeLinkedSources({ garden, sourceType: "module", names })
 
-      expect(await garden.configStore.get(["linkedModuleSources"])).to.eql([
-        {
+      expect(await garden.localConfigStore.get("linkedModuleSources")).to.eql({
+        "name-c": {
           name: "name-c",
           path: "path-c",
         },
-      ])
+      })
     })
 
     it("should throw if source not currently linked", async () => {

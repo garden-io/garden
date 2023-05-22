@@ -7,39 +7,36 @@
  */
 
 import { expect } from "chai"
-
-import { getLogger, Logger, LogLevel } from "../../../../src/logger/logger"
+import { getRootLogger, Logger, LogLevel, RootLogger } from "../../../../src/logger/logger"
 import { LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream"
 import { freezeTime } from "../../../helpers"
+import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
 
-const logger: Logger = getLogger()
+const logger: Logger = getRootLogger()
 
 describe("Logger", () => {
   beforeEach(() => {
-    logger["children"] = []
+    logger["entries"] = []
   })
 
   describe("events", () => {
-    let loggerEvents: LogEntryEventPayload[] = []
-    let listener = (event: LogEntryEventPayload) => loggerEvents.push(event)
+    let logWriterEvents: LogEntryEventPayload[] = []
+    let listener = (event: LogEntryEventPayload) => logWriterEvents.push(event)
 
     before(() => logger.events.on("logEntry", listener))
     after(() => logger.events.off("logEntry", listener))
 
     beforeEach(() => {
-      loggerEvents = []
+      logWriterEvents = []
     })
 
-    describe("onGraphChange", () => {
+    describe("log", () => {
       it("should emit a loggerEvent event when an entry is created", () => {
         const now = freezeTime()
-        const log = logger.info({
+        const log = logger.createLog({ name: "log-context-name" })
+        log.info({
           msg: "hello",
-          emoji: "admission_tickets",
-          status: "active",
-          section: "80",
-          symbol: "info",
-          append: true,
+          symbol: "success",
           data: { foo: "bar" },
           dataFormat: "json",
           metadata: {
@@ -48,23 +45,24 @@ describe("Logger", () => {
             },
           },
         })
-        const e = loggerEvents[0]
-        expect(loggerEvents.length).to.eql(1)
+        const e = logWriterEvents[0]
+        expect(logWriterEvents.length).to.eql(1)
         expect(e).to.eql({
-          key: log.key,
-          parentKey: null,
-          revision: 0,
-          timestamp: now,
+          $context: {},
+          key: e.key,
+          timestamp: now.toISOString(),
           level: 2,
           message: {
             msg: "hello",
-            emoji: "admission_tickets",
-            status: "active",
-            section: "80",
-            symbol: "info",
-            append: true,
+            section: "log-context-name",
+            symbol: "success",
             dataFormat: "json",
             data: { foo: "bar" },
+          },
+          context: {
+            name: "log-context-name",
+            origin: undefined,
+            type: "coreLog",
           },
           metadata: {
             workflowStep: {
@@ -73,149 +71,52 @@ describe("Logger", () => {
           },
         })
       })
-      it("should include parent key on nested entries", () => {
-        const now = freezeTime()
-        const log = logger.info("hello")
-        const nested = log.warn("world")
-        const emptyMsg = {
-          emoji: undefined,
-          status: undefined,
-          section: undefined,
-          symbol: undefined,
-          append: undefined,
-          dataFormat: undefined,
-          data: undefined,
-        }
-
-        const [e1, e2] = loggerEvents
-        expect(loggerEvents.length).to.eql(2)
-        expect(e1).to.eql({
-          key: log.key,
-          parentKey: null,
-          revision: 0,
-          timestamp: now,
-          level: 2,
-          message: {
-            ...emptyMsg,
-            msg: "hello",
-          },
-          metadata: undefined,
-        })
-        expect(e2).to.eql({
-          key: nested.key,
-          parentKey: log.key,
-          revision: 0,
-          timestamp: now,
-          level: 1,
-          message: {
-            ...emptyMsg,
-            msg: "world",
-          },
-          metadata: undefined,
-        })
-      })
-      it("should emit a loggerEvent with a bumped revision when an entry is updated", () => {
-        const log = logger.info({ msg: "0" })
-        log.setState("1")
-        logger.info({ msg: "0" })
-        const [e1, e2, e3] = loggerEvents
-        expect(loggerEvents.length).to.eql(3)
-        expect(e1.revision).to.eql(0)
-        expect(e2.revision).to.eql(1)
-        expect(e3.revision).to.eql(0)
-      })
-      it("should not emit a loggerEvent for placeholder log entries", () => {
-        logger.placeholder()
-        expect(loggerEvents.length).to.eql(0)
-      })
-      it("should emit a loggerEvent when a placeholder entry is updated", () => {
-        const log = logger.placeholder()
-        expect(loggerEvents.length).to.eql(0)
-
-        logger.info({ msg: "1" })
-        log.setState("2")
-
-        const [e1, e2] = loggerEvents
-        expect(loggerEvents.length).to.eql(2)
-        expect(e1.message.msg).to.eql("1")
-        expect(e2.message.msg).to.eql("2")
-      })
     })
   })
-  describe("addNode", () => {
-    it("should add new child entries to the respective node", () => {
-      logger.error("error")
-      logger.warn("warn")
-      logger.info("info")
-      logger.verbose("verbose")
-      logger.debug("debug")
-      logger.silly("silly")
+  describe("log", () => {
+    it("should collect entries if storeEntries=true", () => {
+      const log = logger.createLog()
+      log.error("error")
+      log.warn("warn")
+      log.info("info")
+      log.verbose("verbose")
+      log.debug("debug")
+      log.silly("silly")
 
-      const prevLength = logger.children.length
-      const entry = logger.children[0]
-      const nested = entry.info("nested")
-      const deepNested = nested.info("deep")
-
-      expect(logger.children[0].children).to.have.lengthOf(1)
-      expect(logger.children[0].children[0]).to.eql(nested)
-      expect(logger.children[0].children[0].children[0]).to.eql(deepNested)
-      expect(logger.children).to.have.lengthOf(prevLength)
+      const entries = logger.getLogEntries()
+      expect(entries).to.have.lengthOf(6)
+      const messages = entries.map((e) => e.msg)
+      expect(messages).to.eql(["error", "warn", "info", "verbose", "debug", "silly"])
     })
-    it("should not store entires if storeEntries=false", () => {
-      const loggerB = new Logger({
+    it("should not store entries if storeEntries=false", () => {
+      const logWriterB = RootLogger._createInstanceForTests({
         level: LogLevel.info,
-        writers: [],
+        writers: {
+          display: new QuietWriter({ level: LogLevel.info }),
+          file: [],
+        },
         storeEntries: false,
-        type: "basic",
       })
+      const log = logWriterB.createLog()
 
-      loggerB.error("error")
-      loggerB.warn("warn")
-      const entry = loggerB.info("info")
-      loggerB.verbose("verbose")
-      loggerB.debug("debug")
-      loggerB.silly("silly")
+      log.error("error")
+      log.warn("warn")
+      log.verbose("verbose")
+      log.debug("debug")
+      log.silly("silly")
 
-      const nested = entry.info("nested")
-      const deepNested = nested.info("deep")
-
-      expect(logger.children).to.eql([])
-      expect(entry.children).to.eql([])
-      expect(nested.children).to.eql([])
-      expect(deepNested.children).to.eql([])
+      expect(logger.getLogEntries()).to.eql([])
     })
   })
-  describe("findById", () => {
-    it("should return the first log entry with a matching id and undefined otherwise", () => {
-      logger.info({ msg: "0" })
-      logger.info({ msg: "a1", id: "a" })
-      logger.info({ msg: "a2", id: "a" })
-      expect(logger.findById("a")["messages"][0]["msg"]).to.eql("a1")
-      expect(logger.findById("z")).to.be.undefined
-    })
-  })
-
-  describe("filterBySection", () => {
-    it("should return an array of all entries with the matching section name", () => {
-      logger.info({ section: "s0" })
-      logger.info({ section: "s1", id: "a" })
-      logger.info({ section: "s2" })
-      logger.info({ section: "s1", id: "b" })
-      const s1 = logger.filterBySection("s1")
-      const sEmpty = logger.filterBySection("s99")
-      expect(s1.map((entry) => entry.id)).to.eql(["a", "b"])
-      expect(sEmpty).to.eql([])
-    })
-  })
-
   describe("getLogEntries", () => {
-    it("should return an ordered list of log entries", () => {
-      logger.error("error")
-      logger.warn("warn")
-      logger.info("info")
-      logger.verbose("verbose")
-      logger.debug("debug")
-      logger.silly("silly")
+    it("should return the list of log entries", () => {
+      const log = logger.createLog()
+      log.error("error")
+      log.warn("warn")
+      log.info("info")
+      log.verbose("verbose")
+      log.debug("debug")
+      log.silly("silly")
 
       const entries = logger.getLogEntries()
       const levels = entries.map((e) => e.level)

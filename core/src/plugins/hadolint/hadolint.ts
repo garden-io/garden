@@ -6,8 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
-import { join, relative, resolve } from "path"
+import { join, resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "../../config/provider"
 import { joi } from "../../config/common"
@@ -16,12 +15,15 @@ import { STATIC_DIR } from "../../constants"
 import { padStart, padEnd } from "lodash"
 import chalk from "chalk"
 import { ConfigurationError } from "../../exceptions"
-import { containerHelpers } from "../container/helpers"
+import { defaultDockerfileName } from "../container/config"
 import { baseBuildSpecSchema } from "../../config/module"
 import { getGitHubUrl } from "../../docs/common"
-import { TestModuleParams } from "../../types/plugin/module/testModule"
-import { GardenModule } from "../../types/module"
-import { createGardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../plugin/plugin"
+import { TestAction, TestActionConfig } from "../../actions/test"
+import { TestActionDefinition } from "../../plugin/action-types"
+import { mayContainTemplateString } from "../../template-string/template-string"
+import { BaseAction } from "../../actions/base"
+import { BuildAction } from "../../actions/build"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
@@ -40,7 +42,7 @@ const configSchema = providerConfigBaseSchema()
       .default(true)
       .description(
         dedent`
-          By default, the provider automatically creates a \`hadolint\` module for every \`container\` module in your
+          By default, the provider automatically creates a \`hadolint\` Test for every \`container\` Build in your
           project. Set this to \`false\` to disable this behavior.
         `
       ),
@@ -57,75 +59,249 @@ const configSchema = providerConfigBaseSchema()
   })
   .unknown(false)
 
-interface HadolintModuleSpec {
+interface HadolintTestSpec {
   dockerfilePath: string
 }
 
-type HadolintModule = GardenModule<HadolintModuleSpec>
+type HadolintTestConfig = TestActionConfig<"hadolint", HadolintTestSpec>
+type HadolintTest = TestAction<HadolintTestConfig, {}>
+
+const isHadolintTest = (action: BaseAction): action is HadolintTest =>
+  action.kind === "Test" && action.isCompatible("hadolint")
 
 const gitHubUrl = getGitHubUrl("examples/hadolint")
+
+const defaultHadolintTimeoutSec = 10
 
 export const gardenPlugin = () =>
   createGardenPlugin({
     name: "hadolint",
     dependencies: [{ name: "container" }],
     docs: dedent`
-    This provider creates a [\`hadolint\`](../module-types/hadolint.md) module type, and (by default) generates one such module for each \`container\` module that contains a Dockerfile in your project. Each module creates a single test that runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to ensure that the Dockerfile is valid and follows best practices.
+    This provider creates a [\`hadolint\`](../action-types/Test/hadolint.md) Test action type, and (by default) generates one such action for each \`container\` Build that contains a Dockerfile in your project. Each Test runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to ensure that the Dockerfile is valid and follows best practices.
 
-    To configure \`hadolint\`, you can use \`.hadolint.yaml\` config files. For each test, we first look for one in the relevant module root. If none is found there, we check the project root, and if none is there we fall back to default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
+    To configure \`hadolint\`, you can use \`.hadolint.yaml\` config files. For each Test, we first look for one in the relevant action's root. If none is found there, we check the project root, and if none is there we fall back to default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
     See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the [hadolint example project](${gitHubUrl}) for a usage example.
   `,
     configSchema,
     handlers: {
-      augmentGraph: async ({ ctx, modules }) => {
+      augmentGraph: async ({ ctx, actions }) => {
         const provider = ctx.provider as HadolintProvider
 
         if (!provider.config.autoInject) {
           return {}
         }
 
-        const allModuleNames = new Set(modules.map((m) => m.name))
+        const allTestNames = new Set(actions.filter((a) => a.kind === "Test").map((m) => m.name))
 
-        const existingHadolintModuleDockerfiles = modules
-          .filter((m) => m.compatibleTypes.includes("hadolint"))
-          .map((m) => resolve(m.path, m.spec.dockerfilePath))
+        const existingHadolintDockerfiles = actions
+          .filter(isHadolintTest)
+          // Can't really reason about templated dockerfile spec field
+          .filter((a) => !mayContainTemplateString(a.getConfig("spec").dockerfilePath))
+          .map((a) => resolve(a.basePath(), a.getConfig("spec").dockerfilePath))
+
+        const pickCompatibleAction = (action: BaseAction): action is BuildAction | HadolintTest => {
+          // Make sure we don't step on an existing custom hadolint module
+          if (isHadolintTest(action)) {
+            const dockerfilePath = action.getConfig("spec").dockerfilePath
+            if (
+              !mayContainTemplateString(dockerfilePath) &&
+              existingHadolintDockerfiles.includes(resolve(action.basePath(), dockerfilePath))
+            ) {
+              return false
+            }
+          }
+
+          // Pick all container or container-based modules
+          return action.kind === "Build" && action.isCompatible("container")
+        }
+
+        const makeHadolintTestAction = (action: BuildAction | HadolintTest): HadolintTestConfig => {
+          const baseName = "hadolint-" + action.name
+
+          let name = baseName
+          let i = 2
+
+          while (allTestNames.has(name)) {
+            name = `${baseName}-${i++}`
+          }
+
+          allTestNames.add(name)
+
+          const dockerfilePath =
+            (isHadolintTest(action) ? action.getConfig("spec").dockerfilePath : action.getConfig("spec").dockerfile) ||
+            defaultDockerfileName
+
+          const include = mayContainTemplateString(dockerfilePath) ? undefined : [dockerfilePath]
+
+          return {
+            kind: "Test",
+            type: "hadolint",
+            name,
+            description: `hadolint test for '${action.longDescription()}' (auto-generated)`,
+            include,
+            internal: {
+              basePath: action.basePath(),
+            },
+            timeout: action.getConfig().timeout,
+            spec: {
+              dockerfilePath,
+            },
+          }
+        }
 
         return {
-          addModules: await Bluebird.filter(modules, async (module) => {
-            const dockerfilePath = containerHelpers.getDockerfileSourcePath(module)
-
-            return (
-              // Pick all container or container-based modules
-              module.compatibleTypes.includes("container") &&
-              // Make sure we don't step on an existing custom hadolint module
-              !existingHadolintModuleDockerfiles.includes(dockerfilePath) &&
-              // Only create for modules with Dockerfiles
-              containerHelpers.hasDockerfile(module, module.version)
-            )
-          }).map((module) => {
-            const baseName = "hadolint-" + module.name
-
-            let name = baseName
-            let i = 2
-
-            while (allModuleNames.has(name)) {
-              name = `${baseName}-${i++}`
-            }
-
-            allModuleNames.add(name)
-
-            return {
-              kind: "Module",
-              type: "hadolint",
-              name,
-              description: `hadolint test for module '${module.name}' (auto-generated)`,
-              path: module.path,
-              dockerfilePath: relative(module.path, containerHelpers.getDockerfileSourcePath(module)),
-            }
-          }),
+          addActions: actions.filter(pickCompatibleAction).map(makeHadolintTestAction),
         }
       },
+    },
+    createActionTypes: {
+      Test: [
+        <TestActionDefinition<HadolintTest>>{
+          name: "hadolint",
+          docs: dedent`
+          Runs \`hadolint\` on the specified Dockerfile.
+
+          > Note: In most cases, you'll let the [provider](../../providers/hadolint.md) create this action type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
+
+          To configure \`hadolint\`, you can use \`.hadolint.yaml\` config files. For each test, we first look for one in the action source directory. If none is found there, we check the project root, and if none is there we fall back to   configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
+
+          See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it.
+          `,
+          schema: joi.object().keys({
+            dockerfilePath: joi
+              .posixPath()
+              .relativeOnly()
+              .subPathOnly()
+              .required()
+              .description("POSIX-style path to a Dockerfile that you want to lint with `hadolint`."),
+          }),
+          handlers: {
+            configure: async ({ ctx, config }) => {
+              let dockerfilePath = config.spec.dockerfilePath
+
+              if (!config.include) {
+                config.include = []
+              }
+
+              if (!config.include.includes(dockerfilePath)) {
+                try {
+                  dockerfilePath = ctx.resolveTemplateStrings(dockerfilePath)
+                } catch (error) {
+                  throw new ConfigurationError(
+                    `The spec.dockerfilePath field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
+                    { config, error }
+                  )
+                }
+                config.include.push(dockerfilePath)
+              }
+
+              return { config, supportedModes: {} }
+            },
+
+            run: async ({ ctx, log, action }) => {
+              const spec = action.getSpec()
+              const dockerfilePath = join(action.basePath(), spec.dockerfilePath)
+              const startedAt = new Date()
+              let dockerfile: string
+
+              try {
+                dockerfile = (await readFile(dockerfilePath)).toString()
+              } catch {
+                throw new ConfigurationError(`hadolint: Could not find Dockerfile at ${spec.dockerfilePath}`, {
+                  actionPath: action.basePath(),
+                  ...spec,
+                })
+              }
+
+              let configPath: string
+              const moduleConfigPath = join(action.basePath(), configFilename)
+              const projectConfigPath = join(ctx.projectRoot, configFilename)
+
+              if (await pathExists(moduleConfigPath)) {
+                // Prefer configuration from the module root
+                configPath = moduleConfigPath
+              } else if (await pathExists(projectConfigPath)) {
+                // 2nd preference is configuration in project root
+                configPath = projectConfigPath
+              } else {
+                // Fall back to empty default config
+                configPath = defaultConfigPath
+              }
+
+              const args = ["--config", configPath, "--format", "json", dockerfilePath]
+              const result = await ctx.tools["hadolint.hadolint"].exec({ log, args, ignoreError: true })
+
+              let success = true
+
+              const parsed = JSON.parse(result.stdout)
+              const errors = parsed.filter((p: any) => p.level === "error")
+              const warnings = parsed.filter((p: any) => p.level === "warning")
+              const provider = ctx.provider as HadolintProvider
+
+              const resultCategories: string[] = []
+              let formattedResult = "OK"
+
+              if (errors.length > 0) {
+                resultCategories.push(`${errors.length} error(s)`)
+              }
+
+              if (warnings.length > 0) {
+                resultCategories.push(`${warnings.length} warning(s)`)
+              }
+
+              let formattedHeader = `hadolint reported ${naturalList(resultCategories)}`
+
+              if (parsed.length > 0) {
+                const dockerfileLines = splitLines(dockerfile)
+
+                formattedResult =
+                  `${formattedHeader}:\n\n` +
+                  parsed
+                    .map((msg: any) => {
+                      const color = msg.level === "error" ? chalk.bold.red : chalk.bold.yellow
+                      const rawLine = dockerfileLines[msg.line - 1]
+                      const linePrefix = padEnd(`${msg.line}:`, 5, " ")
+                      const columnCursorPosition = (msg.column || 1) + linePrefix.length
+
+                      return dedent`
+                      ${color(msg.code + ":")} ${chalk.bold(msg.message || "")}
+                      ${linePrefix}${chalk.gray(rawLine)}
+                      ${chalk.gray(padStart("^", columnCursorPosition, "-"))}
+                    `
+                    })
+                    .join("\n")
+              }
+
+              const threshold = provider.config.testFailureThreshold
+
+              if (warnings.length > 0 && threshold === "warning") {
+                success = false
+              } else if (errors.length > 0 && threshold !== "none") {
+                success = false
+              } else if (warnings.length > 0) {
+                log.warn(chalk.yellow(formattedHeader))
+              }
+
+              return {
+                state: "ready",
+                detail: {
+                  testName: action.name,
+                  moduleName: action.moduleName(),
+                  command: ["hadolint", ...args],
+                  version: action.versionString(),
+                  success,
+                  startedAt,
+                  completedAt: new Date(),
+                  log: formattedResult,
+                },
+                outputs: {},
+              }
+            },
+          },
+        },
+      ],
     },
     createModuleTypes: [
       {
@@ -141,6 +317,7 @@ export const gardenPlugin = () =>
 
         See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it.
       `,
+        needsBuild: false,
         schema: joi.object().keys({
           build: baseBuildSpecSchema(),
           dockerfilePath: joi
@@ -153,102 +330,30 @@ export const gardenPlugin = () =>
         handlers: {
           configure: async ({ moduleConfig }) => {
             moduleConfig.include = [moduleConfig.spec.dockerfilePath]
-            moduleConfig.testConfigs = [{ name: "lint", dependencies: [], spec: {}, timeout: 10, disabled: false }]
             return { moduleConfig }
           },
-          testModule: async ({ ctx, log, module, test }: TestModuleParams<HadolintModule>) => {
-            const dockerfilePath = join(module.path, module.spec.dockerfilePath)
-            const startedAt = new Date()
-            let dockerfile: string
 
-            try {
-              dockerfile = (await readFile(dockerfilePath)).toString()
-            } catch {
-              throw new ConfigurationError(`hadolint: Could not find Dockerfile at ${module.spec.dockerfilePath}`, {
-                modulePath: module.path,
-                ...module.spec,
-              })
+          convert: async (params) => {
+            const { module } = params
+
+            const action: HadolintTestConfig = {
+              kind: "Test",
+              type: "hadolint",
+              name: module.name,
+
+              ...params.baseFields,
+
+              include: [module.spec.dockerfilePath],
+
+              timeout: defaultHadolintTimeoutSec,
+
+              spec: {
+                dockerfilePath: module.spec.dockerfilePath,
+              },
             }
+            action.internal.configFilePath = module.configPath
 
-            let configPath: string
-            const moduleConfigPath = join(module.path, configFilename)
-            const projectConfigPath = join(ctx.projectRoot, configFilename)
-
-            if (await pathExists(moduleConfigPath)) {
-              // Prefer configuration from the module root
-              configPath = moduleConfigPath
-            } else if (await pathExists(projectConfigPath)) {
-              // 2nd preference is configuration in project root
-              configPath = projectConfigPath
-            } else {
-              // Fall back to empty default config
-              configPath = defaultConfigPath
-            }
-
-            const args = ["--config", configPath, "--format", "json", dockerfilePath]
-            const result = await ctx.tools["hadolint.hadolint"].exec({ log, args, ignoreError: true })
-
-            let success = true
-
-            const parsed = JSON.parse(result.stdout)
-            const errors = parsed.filter((p: any) => p.level === "error")
-            const warnings = parsed.filter((p: any) => p.level === "warning")
-            const provider = ctx.provider as HadolintProvider
-
-            const resultCategories: string[] = []
-            let formattedResult = "OK"
-
-            if (errors.length > 0) {
-              resultCategories.push(`${errors.length} error(s)`)
-            }
-
-            if (warnings.length > 0) {
-              resultCategories.push(`${warnings.length} warning(s)`)
-            }
-
-            let formattedHeader = `hadolint reported ${naturalList(resultCategories)}`
-
-            if (parsed.length > 0) {
-              const dockerfileLines = splitLines(dockerfile)
-
-              formattedResult =
-                `${formattedHeader}:\n\n` +
-                parsed
-                  .map((msg: any) => {
-                    const color = msg.level === "error" ? chalk.bold.red : chalk.bold.yellow
-                    const rawLine = dockerfileLines[msg.line - 1]
-                    const linePrefix = padEnd(`${msg.line}:`, 5, " ")
-                    const columnCursorPosition = (msg.column || 1) + linePrefix.length
-
-                    return dedent`
-                    ${color(msg.code + ":")} ${chalk.bold(msg.message || "")}
-                    ${linePrefix}${chalk.gray(rawLine)}
-                    ${chalk.gray(padStart("^", columnCursorPosition, "-"))}
-                  `
-                  })
-                  .join("\n")
-            }
-
-            const threshold = provider.config.testFailureThreshold
-
-            if (warnings.length > 0 && threshold === "warning") {
-              success = false
-            } else if (errors.length > 0 && threshold !== "none") {
-              success = false
-            } else if (warnings.length > 0) {
-              log.warn(chalk.yellow(formattedHeader))
-            }
-
-            return {
-              testName: test.name,
-              moduleName: module.name,
-              command: ["hadolint", ...args],
-              version: test.version,
-              success,
-              startedAt,
-              completedAt: new Date(),
-              log: formattedResult,
-            }
+            return { actions: [action] }
           },
         },
       },
@@ -264,20 +369,20 @@ export const gardenPlugin = () =>
           {
             platform: "darwin",
             architecture: "amd64",
-            url: "https://github.com/hadolint/hadolint/releases/download/v1.17.2/hadolint-Darwin-x86_64",
-            sha256: "da3bd1fae47f1ba4c4bca6a86d2c70bdbd6705308bd300d1f897c162bc32189a",
+            url: "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Darwin-x86_64",
+            sha256: "2a5b7afcab91645c39a7cebefcd835b865f7488e69be24567f433dfc3d41cd27",
           },
           {
             platform: "linux",
             architecture: "amd64",
-            url: "https://github.com/hadolint/hadolint/releases/download/v1.17.2/hadolint-Linux-x86_64",
-            sha256: "b23e4d0e8964774cc0f4dd7ff81f1d05b5d7538b0b80dae5235b1239ab60749d",
+            url: "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64",
+            sha256: "56de6d5e5ec427e17b74fa48d51271c7fc0d61244bf5c90e828aab8362d55010",
           },
           {
             platform: "windows",
             architecture: "amd64",
-            url: "https://github.com/hadolint/hadolint/releases/download/v1.17.2/hadolint-Windows-x86_64.exe",
-            sha256: "8ba81d1fe79b91afb7ee16ac4e9fc6635646c2f770071d1ba924a8d26debe298",
+            url: "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Windows-x86_64.exe",
+            sha256: "ed89a156290e15452276b2b4c84efa688a5183d3b578bfaec7cfdf986f0632a8",
           },
         ],
       },

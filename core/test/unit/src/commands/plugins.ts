@@ -8,7 +8,7 @@
 
 import { PluginsCommand } from "../../../../src/commands/plugins"
 import { withDefaultGlobalOpts, TestGarden, makeTempDir, TempDirectory } from "../../../helpers"
-import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { writeFile } from "fs-extra"
 import { join } from "path"
 import { dedent } from "../../../../src/util/string"
@@ -58,6 +58,7 @@ describe("PluginsCommand", () => {
     await writeFile(
       join(tmpDir.path, "garden.yml"),
       dedent`
+      apiVersion: garden.io/v1
       kind: Project
       name: test
       environments:
@@ -85,8 +86,6 @@ describe("PluginsCommand", () => {
     await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { plugin: undefined, command: undefined },
       opts: withDefaultGlobalOpts({}),
     })
@@ -120,8 +119,6 @@ describe("PluginsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { "plugin": "test-plugin-a", "command": "command-a", "--": ["foo"] },
       opts: withDefaultGlobalOpts({}),
     })
@@ -136,8 +133,6 @@ describe("PluginsCommand", () => {
     const result = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { plugin: undefined, command: undefined },
       opts: withDefaultGlobalOpts({ env: "invalid-env" }),
     })

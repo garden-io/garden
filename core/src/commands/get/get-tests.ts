@@ -6,45 +6,53 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { sortBy, uniq } from "lodash"
+import { keyBy, sortBy } from "lodash"
 import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { StringsParameter } from "../../cli/params"
-import { makeGetTestOrTaskLog, makeGetTestOrTaskResult } from "../helpers"
+import { makeGetTestOrTaskLog } from "../helpers"
+import { ActionDescriptionMap } from "../../actions/base"
 
 const getTestsArgs = {
-  tests: new StringsParameter({
-    help: "Specify tests(s) to list. Use comma as a separator to specify multiple tests.",
+  names: new StringsParameter({
+    help: "Specify tests(s) to list. You may specify multiple test names, separated by spaces.",
+    spread: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Test)
+    },
   }),
 }
 
 type Args = typeof getTestsArgs
 
-export class GetTestsCommand extends Command<Args> {
+export class GetTestsCommand extends Command<Args, {}, ActionDescriptionMap> {
   name = "tests"
-  help = "Lists the tests defined in your project's modules."
+  help = "Lists the tests defined in your project."
+
+  // TODO-0.13.0: add output schema
 
   arguments = getTestsArgs
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Tests", "open_book")
+  printHeader({ log }) {
+    printHeader(log, "Tests", "📖")
   }
 
-  async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult> {
+  async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult<ActionDescriptionMap>> {
     const graph = await garden.getConfigGraph({ log, emit: false })
-    const tests = graph.getTests({ names: args.tests })
-    const testModuleNames = uniq(tests.map((t) => t.module.name))
-    const modules = sortBy(graph.getModules({ names: testModuleNames }), (m) => m.name)
+    const actions = sortBy(graph.getTests({ names: args.names }), "name")
 
-    const testListing = makeGetTestOrTaskResult(modules, tests)
-
-    if (testListing.length > 0) {
-      const logStr = makeGetTestOrTaskLog(modules, tests, "tests")
+    if (actions.length > 0) {
+      const logStr = makeGetTestOrTaskLog(actions)
       log.info(logStr.trim())
     } else {
-      log.info(`No tests defined for project ${garden.projectName}`)
+      log.info(`No Test actions defined for project ${garden.projectName}`)
     }
 
-    return { result: testListing }
+    return {
+      result: keyBy(
+        actions.map((t) => t.describe()),
+        "key"
+      ),
+    }
   }
 }

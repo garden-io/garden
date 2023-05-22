@@ -30,7 +30,7 @@ export class GetEysiCommand extends Command {
 
   async action(): Promise<CommandResult> {
     const eysi = (await readFile(join(STATIC_DIR, "eysi.txt"))).toString()
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(eysi)
 
     try {

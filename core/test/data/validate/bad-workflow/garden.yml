@@ -1,5 +1,8 @@
+apiVersion: garden.io/v1
 kind: Project
 name: bad-workflow-project
+environments:
+  - name: local
 
 ---
 

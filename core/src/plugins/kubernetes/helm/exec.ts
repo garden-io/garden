@@ -7,61 +7,64 @@
  */
 
 import { includes } from "lodash"
-import { DeploymentError } from "../../../exceptions"
+import { ConfigurationError, DeploymentError } from "../../../exceptions"
 import { getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
-import { execInWorkload, getServiceResource, getServiceResourceSpec } from "../util"
-import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
-import { HelmModule } from "./config"
-import { getServiceStatus } from "./status"
-import { getBaseModule, getChartResources } from "./common"
+import { execInWorkload, getTargetResource } from "../util"
+import { getHelmDeployStatus } from "./status"
+import { getChartResources } from "./common"
+import { DeployActionHandler } from "../../../plugin/action-types"
+import { HelmDeployAction } from "./config"
+import chalk from "chalk"
 
-export async function execInHelmService(params: ExecInServiceParams<HelmModule>) {
-  const { ctx, log, service, command, interactive } = params
-  const module = service.module
+export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = async (params) => {
+  const { ctx, log, action, command, interactive } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const status = await getServiceStatus({
-    ...params,
-    // The runtime context doesn't matter here. We're just checking if the service is running.
-    runtimeContext: {
-      envVars: {},
-      dependencies: [],
-    },
-    devMode: false,
-    hotReload: false,
-    localMode: false,
+
+  // TODO: We should allow for alternatives here
+  const defaultTarget = action.getSpec("defaultTarget")
+
+  if (!defaultTarget) {
+    throw new ConfigurationError(
+      `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with. This is currently necessary for the ${chalk.white(
+        "exec"
+      )} command to work with helm Deploy actions.`,
+      {
+        name: action.name,
+      }
+    )
+  }
+
+  const status = await getHelmDeployStatus({
+    ctx,
+    action,
+    log,
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
-  const baseModule = getBaseModule(module)
-  const serviceResourceSpec = getServiceResourceSpec(module, baseModule)
   const manifests = await getChartResources({
     ctx: k8sCtx,
-    module,
-    devMode: false,
-    hotReload: false,
-    localMode: false,
+    action,
     log,
-    version: service.version,
   })
 
-  const serviceResource = await getServiceResource({
+  const target = await getTargetResource({
     ctx,
     log,
     provider,
-    module,
+    action,
     manifests,
-    resourceSpec: serviceResourceSpec,
+    query: defaultTarget,
   })
 
   // TODO: this check should probably live outside of the plugin
-  if (!serviceResource || !includes(["ready", "outdated"], status.state)) {
-    throw new DeploymentError(`Service ${service.name} is not running`, {
-      name: service.name,
-      state: status.state,
+  if (!target || !includes(["ready", "outdated"], status.detail?.state)) {
+    throw new DeploymentError(`${action.longDescription()} is not running`, {
+      name: action.name,
+      state: status.detail?.state || status.state,
     })
   }
 
-  return execInWorkload({ ctx, provider, log, namespace, workload: serviceResource, command, interactive })
+  return execInWorkload({ ctx, provider, log, namespace, workload: target, command, interactive })
 }

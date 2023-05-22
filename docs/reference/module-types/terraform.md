@@ -5,6 +5,10 @@ tocTitle: "`terraform`"
 
 # `terraform` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Resolves a Terraform stack and either applies it automatically (if `autoApply: true`) or warns when the stack resources are not up-to-date.
@@ -29,8 +33,8 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
+# The schema version of this config.
+apiVersion: garden.io/v1
 
 kind: Module
 
@@ -57,7 +61,7 @@ build:
           target:
 
   # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
+  timeout: 600
 
 # A description of the module.
 description:
@@ -97,8 +101,8 @@ include:
 # Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-# directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+# Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+# directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
 # directories that should not be watched for changes.
 exclude:
 
@@ -116,7 +120,7 @@ allowPublish: true
 # generate (and template) any supporting files needed for the module.
 generateFiles:
   - # POSIX-style filename to read the source file contents from, relative to the path of the module (or the
-    # ModuleTemplate configuration file if one is being applied).
+    # ConfigTemplate configuration file if one is being applied).
     # This file may contain template strings, much like any other field in the configuration.
     sourcePath:
 
@@ -161,8 +165,12 @@ variables:
 # varfiles exist).
 varfile:
 
-# If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete
-# service <module name>`.
+# The names of any services that this service depends on at runtime, and the names of any tasks that should be
+# executed before this service is deployed.
+dependencies: []
+
+# If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete namespace` or `garden
+# delete deploy <deploy name>`.
 allowDestroy: false
 
 # If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not
@@ -174,11 +182,7 @@ allowDestroy: false
 # Defaults to the value set in the provider config.
 autoApply: null
 
-# The names of any services that this service depends on at runtime, and the names of any tasks that should be
-# executed before this service is deployed.
-dependencies: []
-
-# Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
+# Specify the path to the working directory root—i.e. where your Terraform files are—relative to the config directory.
 root: .
 
 # The version of Terraform to use. Defaults to the version set in the provider config.
@@ -193,11 +197,11 @@ workspace:
 
 ### `apiVersion`
 
-The schema version of this config (currently not used).
+The schema version of this config.
 
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
+| Type     | Allowed Values                 | Default          | Required |
+| -------- | ------------------------------ | ---------------- | -------- |
+| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `kind`
 
@@ -309,7 +313,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `description`
 
@@ -357,7 +361,7 @@ Specify a list of POSIX-style paths or glob patterns that should be excluded fro
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
-Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large directories that should not be watched for changes.
+Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -407,7 +411,7 @@ A list of files to write to the module directory when resolving this module. Thi
 
 [generateFiles](#generatefiles) > sourcePath
 
-POSIX-style filename to read the source file contents from, relative to the path of the module (or the ModuleTemplate configuration file if one is being applied).
+POSIX-style filename to read the source file contents from, relative to the path of the module (or the ConfigTemplate configuration file if one is being applied).
 This file may contain template strings, much like any other field in the configuration.
 
 | Type        | Required |
@@ -485,9 +489,17 @@ Example:
 varfile: "my-module.env"
 ```
 
+### `dependencies[]`
+
+The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
+
 ### `allowDestroy`
 
-If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete service <module name>`.
+If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete namespace` or `garden delete deploy <deploy name>`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -507,17 +519,9 @@ Defaults to the value set in the provider config.
 | --------- | ------- | -------- |
 | `boolean` | `null`  | No       |
 
-### `dependencies[]`
-
-The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
-
 ### `root`
 
-Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
+Specify the path to the working directory root—i.e. where your Terraform files are—relative to the config directory.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
@@ -572,7 +576,7 @@ The name of the module.
 
 ### `${modules.<module-name>.path}`
 
-The local path of the module.
+The source path of the module.
 
 | Type     |
 | -------- |
@@ -631,20 +635,6 @@ Example:
 ```yaml
 my-variable: ${runtime.services.my-service.version}
 ```
-
-### `${runtime.services.<service-name>.outputs.*}`
-
-A map of all the outputs defined in the Terraform stack.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${runtime.services.<service-name>.outputs.<name>}`
-
-| Type                                                 |
-| ---------------------------------------------------- |
-| `string \| number \| boolean \| link \| array[link]` |
 
 
 ### Task Outputs

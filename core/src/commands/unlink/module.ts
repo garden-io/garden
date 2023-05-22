@@ -11,19 +11,22 @@ import dedent = require("dedent")
 import { Command, CommandResult, CommandParams } from "../base"
 import { removeLinkedSources } from "../../util/ext-source-util"
 import { printHeader } from "../../logger/util"
-import { localConfigKeys, LinkedSource } from "../../config-store"
+import { LinkedSource } from "../../config-store/local"
 import { StringsParameter, BooleanParameter } from "../../cli/params"
 
 const unlinkModuleArguments = {
   modules: new StringsParameter({
-    help: "The name(s) of the module(s) to unlink. Use comma as a separator to specify multiple modules.",
+    help: "The name(s) of the module(s) to unlink. You may specify multiple modules, separated by spaces.",
+    spread: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.moduleConfigs)
+    },
   }),
 }
 
 const unlinkModuleOptions = {
   all: new BooleanParameter({
     help: "Unlink all modules.",
-    alias: "a",
   }),
 }
 
@@ -46,8 +49,8 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
         garden unlink module --all      # unlink all modules
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Unlink module", "chains")
+  printHeader({ log }) {
+    printHeader(log, "Unlink module", "⛓️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
@@ -56,7 +59,7 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
     const { modules = [] } = args
 
     if (opts.all) {
-      await garden.configStore.set([localConfigKeys().linkedModuleSources], [])
+      await garden.localConfigStore.set("linkedModuleSources", {})
       log.info("Unlinked all modules")
       return { result: [] }
     }

@@ -10,10 +10,10 @@ import Joi from "@hapi/joi"
 import { readFileSync } from "fs"
 import linewrap from "linewrap"
 import { resolve } from "path"
-import { projectDocsSchema } from "../config/project"
+import { projectSchema } from "../config/project"
 import { get, isFunction, isString } from "lodash"
 import handlebars = require("handlebars")
-import { joi, JoiDescription } from "../config/common"
+import { JoiDescription } from "../config/common"
 import { STATIC_DIR } from "../constants"
 import {
   indent,
@@ -25,7 +25,7 @@ import {
   isArrayType,
 } from "./common"
 import { JoiKeyDescription } from "./joi-schema"
-import { safeDumpYaml } from "../util/util"
+import { safeDumpYaml } from "../util/serialization"
 
 export const TEMPLATES_DIR = resolve(STATIC_DIR, "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
@@ -433,10 +433,7 @@ export function renderTemplateStringReference({
 
 export function renderProjectConfigReference(opts: RenderConfigOpts = {}) {
   return renderConfigReference(
-    projectDocsSchema().keys({
-      // Hide this from docs until we actually use it
-      apiVersion: joi.string().meta({ internal: true }),
-    }),
+    projectSchema(),
     opts
   )
 }

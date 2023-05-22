@@ -7,91 +7,39 @@
  */
 
 import { expect } from "chai"
-import { resolve } from "path"
 import { TestTask } from "../../../../src/tasks/test"
-import { dataDir, makeTestGarden, TestGarden } from "../../../helpers"
-import { LogEntry } from "../../../../src/logger/log-entry"
-import { ConfigGraph } from "../../../../src/config-graph"
-import { testFromConfig } from "../../../../src/types/test"
+import { getDataDir, makeTestGarden, TestGarden } from "../../../helpers"
+import { Log } from "../../../../src/logger/log-entry"
+import { ConfigGraph } from "../../../../src/graph/config-graph"
 
 describe("TestTask", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: LogEntry
+  let log: Log
 
   beforeEach(async () => {
-    garden = await makeTestGarden(resolve(dataDir, "test-project-test-deps"))
+    garden = await makeTestGarden(getDataDir("test-project-test-deps"))
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     log = garden.log
   })
 
   describe("process", () => {
     it("should correctly resolve runtime outputs from tasks", async () => {
-      const moduleA = graph.getModule("module-a")
-      const testConfig = moduleA.testConfigs[0]
+      const action = graph.getTest("module-a-integ")
 
       const testTask = new TestTask({
         garden,
         log,
         graph,
-        test: testFromConfig(moduleA, testConfig, graph),
+        action,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
-      const key = testTask.getKey()
-      const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+      const res = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+      const result = res.results.getResult(testTask)!
 
-      expect(result!.output.log).to.eql("echo task-a-ok")
-    })
-  })
-
-  describe("getDependencies", () => {
-    it("should include task dependencies", async () => {
-      const moduleA = graph.getModule("module-a")
-      const testConfig = moduleA.testConfigs[0]
-
-      const task = new TestTask({
-        garden,
-        log,
-        graph,
-        test: testFromConfig(moduleA, testConfig, graph),
-        force: true,
-        forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
-      })
-
-      const deps = await task.resolveDependencies()
-
-      expect(deps.map((d) => d.getKey())).to.eql(["build.module-a", "deploy.service-b", "task.task-a"])
-    })
-
-    context("when skipRuntimeDependencies = true", () => {
-      it("doesn't return deploy or task dependencies", async () => {
-        const moduleA = graph.getModule("module-a")
-        const testConfig = moduleA.testConfigs[0]
-
-        const task = new TestTask({
-          garden,
-          log,
-          graph,
-          test: testFromConfig(moduleA, testConfig, graph),
-          force: true,
-          forceBuild: false,
-          skipRuntimeDependencies: true, // <-----
-          devModeServiceNames: [],
-          hotReloadServiceNames: [],
-          localModeServiceNames: [],
-        })
-
-        const deps = await task.resolveDependencies()
-        expect(deps.find((dep) => dep.type === "deploy" || dep.type === "task")).to.be.undefined
-      })
+      expect(result.result?.detail?.log).to.eql("echo echo task-a-ok")
     })
   })
 })

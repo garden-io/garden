@@ -12,12 +12,12 @@ import { realpath, writeFile } from "fs-extra"
 import normalizePath from "normalize-path"
 import { join } from "path"
 import { getArtifactFileList, getArtifactKey } from "../../../../src/util/artifacts"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 
 describe("artifacts", () => {
   describe("getArtifactKey", () => {
     it("should return the artifact key with format type.name.version", () => {
-      expect(getArtifactKey("task", "task-name", "v-123456")).to.equal("task.task-name.v-123456")
+      expect(getArtifactKey("run", "task-name", "v-123456")).to.equal("run.task-name.v-123456")
       expect(getArtifactKey("test", "test-name", "v-123456")).to.equal("test.test-name.v-123456")
     })
   })
@@ -25,7 +25,7 @@ describe("artifacts", () => {
   describe("getArtifactFileList", () => {
     let tmpDir: tmp.DirectoryResult
     let artifactsPath: string
-    const log = getLogger().info("")
+    const log = getRootLogger().createLog()
 
     beforeEach(async () => {
       tmpDir = await tmp.dir({ unsafeCleanup: true })

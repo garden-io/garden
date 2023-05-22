@@ -23,7 +23,7 @@ The guide uses the [Remote Kubernetes plugin](../k8s-plugins/remote-k8s/README.m
 
 ## Project overview
 
-The project is based on our basic [demo-project](https://github.com/garden-io/garden/tree/0.12.56/examples/demo-project) example, but configured for multiple environments. Additionally it contains a CircleCI config file. You'll find the entire source code [here](https://github.com/garden-io/ci-demo-project).
+The project is based on our basic [demo-project](https://github.com/garden-io/garden/tree/0.12.51/examples/demo-project) example, but configured for multiple environments. Additionally it contains a CircleCI config file. You'll find the entire source code [here](https://github.com/garden-io/ci-demo-project).
 
 The CI pipeline is configured so that Garden tests the project and deploys it to a **preview** environment on every pull request. Additionally, it tests the project and deploys it to a separate **staging** environment on every merge to the `main` branch.
 
@@ -39,6 +39,7 @@ We deploy to the `preview` environment every time someone makes a pull request o
 
 ```yaml
 # garden.yml
+apiVersion: garden.io/v1
 kind: Project
 name: ci-demo-project
 environments:
@@ -62,11 +63,6 @@ You'll find the rest of the config [here](https://github.com/garden-io/ci-demo-p
 ## Configure the kubectl context
 
 We need to make sure that it can access our remote cluster. We do this by setting up a [kubectl context](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/) on the CI agent. How you set this up will vary by how and where you have deployed your cluster. What follows is specific to GKE.
-
-Note: Below we use the `gardendev/garden-gcloud` container image, that extends the standard
-`gardendev/garden` image to bundle the `gcloud` binary. You could also add an installation step to install `gcloud`
-(or any other binaries needed for your setup), or you could fashion your own container image to save time when testing.
-_(You're also more than welcome to ask us to add another pre-packaged container to our release pipeline :))_
 
 We create a re-usable command for configuring the kubectl context:
 
@@ -100,6 +96,10 @@ You'll find the entire CircleCI config for this project
 
 Now that we have everything set up, we can [add the project](https://circleci.com/docs/2.0/getting-started/#setting-up-your-build-on-circleci) to CircleCI and start using Garden in our CI pipelines.
 
+Note: Below we use the `gardendev/garden-gcloud` container image, that extends the standard
+`gardendev/garden` image to bundle the `gcloud` binary (Google Cloud CLI).
+For an overview of all official Garden convenience containers, please refer to [the reference guide for DockerHub containers](../reference/dockerhub-containers.md).
+
 Here's what our preview job looks like:
 
 ```yaml
@@ -107,23 +107,20 @@ Here's what our preview job looks like:
 jobs:
   preview:
     docker:
-      - image: gardendev/garden-gcloud:v0.10.0-1
+      - image: gardendev/garden-gcloud:bonsai-alpine
     environment:
-      GARDEN_LOG_LEVEL: debug # set the log level to your preference here
-      GARDEN_LOGGER_TYPE: basic # this is important, since the default logger doesn't play nice with CI :)
+      GARDEN_LOG_LEVEL: verbose # set the log level to your preference here
     steps:
       - checkout
       - configure_kubectl_context
       - run:
           name: Test project
-          command: garden test --logger-type=basic --env=preview
+          command: garden test --env=preview
       - run:
           name: Deploy project
-          command: garden deploy --logger-type=basic --env=preview
+          command: garden deploy --env=preview
 ```
 
-Note the two environment variables. Setting `GARDEN_LOGGER_TYPE=basic` is important, because the default fancy logger will not play nice with CI and just spam it with spinner glyphs.
-
-Also, notice that there are no configuration steps outside of just configuring the kubectl context.
+Notice that there are no configuration steps outside of just configuring the kubectl context.
 And no matter how you change your stack, these steps will remain the same, making for a highly portable
 workflow—and much less fiddling around with CI!

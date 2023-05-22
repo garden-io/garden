@@ -5,11 +5,17 @@ tocTitle: "`templated`"
 
 # `templated` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
-A special module type, for rendering [module templates](../../using-garden/module-templates.md). See the [Module Templates guide](../../using-garden/module-templates.md) for more information.
+**[DEPRECATED] Please use the new `RenderTemplate` config kind instead.**
 
-Specify the name of a ModuleTemplate with the `template` field, and provide any expected inputs using the `inputs` field. The generated modules becomes sub-modules of this module.
+A special module type, for rendering [module templates](../../using-garden/config-templates.md). See the [Config Templates guide](../../using-garden/config-templates.md) for more information.
+
+Specify the name of a ConfigTemplate with the `template` field, and provide any expected inputs using the `inputs` field. The generated modules becomes sub-modules of this module.
 
 Note that the following common Module configuration fields are disallowed for this module type:
 `build`, `description`, `include`, `exclude`, `repositoryUrl`, `allowPublish`, `generateFiles`, `variables` and `varfile`
@@ -26,8 +32,8 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
+# The schema version of this config.
+apiVersion: garden.io/v1
 
 kind: Module
 
@@ -54,23 +60,12 @@ build:
           target:
 
   # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
+  timeout: 600
 
 # A description of the module.
 description:
 
-# Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
-# based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`).
-# This can be handy when you only need certain modules for specific environments, e.g. only for development.
-#
-# Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also
-# means that the module is not built _unless_ it is declared as a build dependency by another enabled module (in which
-# case building this module is necessary for the dependant to be built).
-#
-# If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden will
-# automatically ignore those dependency declarations. Note however that template strings referencing the module's
-# service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled, so you need to make
-# sure to provide alternate values for those if you're using them, using conditional expressions.
+# Set to true to skip rendering this template.
 disabled: false
 
 # Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that
@@ -94,8 +89,8 @@ include:
 # Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-# directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+# Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+# directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
 # directories that should not be watched for changes.
 exclude:
 
@@ -113,7 +108,7 @@ allowPublish: true
 # generate (and template) any supporting files needed for the module.
 generateFiles:
   - # POSIX-style filename to read the source file contents from, relative to the path of the module (or the
-    # ModuleTemplate configuration file if one is being applied).
+    # ConfigTemplate configuration file if one is being applied).
     # This file may contain template strings, much like any other field in the configuration.
     sourcePath:
 
@@ -156,16 +151,16 @@ variables:
 # varfiles exist).
 varfile:
 
-# The ModuleTemplate to use to generate the sub-modules of this module.
+# The ConfigTemplate to use to generate the sub-modules of this module.
 template:
 
-# A map of inputs to pass to the ModuleTemplate. These must match the inputs schema of the ModuleTemplate.
+# A map of inputs to pass to the ConfigTemplate. These must match the inputs schema of the ConfigTemplate.
 #
 # Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting
-# module names and other top-level identifiers must be resolvable when scanning for modules, and thus cannot reference
-# other modules or runtime variables. See the [environment configuration context
+# config names and other top-level identifiers must be resolvable when scanning for configs, and thus cannot reference
+# other actions, modules or runtime variables. See the [environment configuration context
 # reference](../template-strings/environments.md) to see template strings that are safe to use for inputs used to
-# generate module identifiers.
+# generate config identifiers.
 inputs:
 ```
 
@@ -173,11 +168,11 @@ inputs:
 
 ### `apiVersion`
 
-The schema version of this config (currently not used).
+The schema version of this config.
 
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
+| Type     | Allowed Values                 | Default          | Required |
+| -------- | ------------------------------ | ---------------- | -------- |
+| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `kind`
 
@@ -289,7 +284,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `description`
 
@@ -301,11 +296,7 @@ A description of the module.
 
 ### `disabled`
 
-Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
-
-Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also means that the module is not built _unless_ it is declared as a build dependency by another enabled module (in which case building this module is necessary for the dependant to be built).
-
-If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden will automatically ignore those dependency declarations. Note however that template strings referencing the module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
+Set to true to skip rendering this template.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -337,7 +328,7 @@ Specify a list of POSIX-style paths or glob patterns that should be excluded fro
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
-Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large directories that should not be watched for changes.
+Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -387,7 +378,7 @@ A list of files to write to the module directory when resolving this module. Thi
 
 [generateFiles](#generatefiles) > sourcePath
 
-POSIX-style filename to read the source file contents from, relative to the path of the module (or the ModuleTemplate configuration file if one is being applied).
+POSIX-style filename to read the source file contents from, relative to the path of the module (or the ConfigTemplate configuration file if one is being applied).
 This file may contain template strings, much like any other field in the configuration.
 
 | Type        | Required |
@@ -463,7 +454,7 @@ varfile: "my-module.env"
 
 ### `template`
 
-The ModuleTemplate to use to generate the sub-modules of this module.
+The ConfigTemplate to use to generate the sub-modules of this module.
 
 | Type     | Required |
 | -------- | -------- |
@@ -471,9 +462,9 @@ The ModuleTemplate to use to generate the sub-modules of this module.
 
 ### `inputs`
 
-A map of inputs to pass to the ModuleTemplate. These must match the inputs schema of the ModuleTemplate.
+A map of inputs to pass to the ConfigTemplate. These must match the inputs schema of the ConfigTemplate.
 
-Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting module names and other top-level identifiers must be resolvable when scanning for modules, and thus cannot reference other modules or runtime variables. See the [environment configuration context reference](../template-strings/environments.md) to see template strings that are safe to use for inputs used to generate module identifiers.
+Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting config names and other top-level identifiers must be resolvable when scanning for configs, and thus cannot reference other actions, modules or runtime variables. See the [environment configuration context reference](../template-strings/environments.md) to see template strings that are safe to use for inputs used to generate config identifiers.
 
 | Type     | Required |
 | -------- | -------- |
@@ -511,7 +502,7 @@ The name of the module.
 
 ### `${modules.<module-name>.path}`
 
-The local path of the module.
+The source path of the module.
 
 | Type     |
 | -------- |

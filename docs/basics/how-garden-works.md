@@ -27,27 +27,31 @@ To make a concrete example, here’s a simplified description of a three tier we
 ```yaml
 # This config is in a single file for convenience.
 # You can split it into multiple files and even across repositories!
-kind: Module
+kind: Deploy
 name: db
 type: container
-image: postgres:12
-tasks:
-  - name: db-seed
+spec:
+  image: postgres:12
     # ...
 ---
-kind: Module
+kind: Run
+name: db-init
+type: container
+dependencies: [deploy.db]
+---
+kind: Deploy
 name: api
 type: helm
-dependencies: [db-seed]
+build: api
+dependencies:
+  - run.db-init
 ---
-kind: Module
-name: web
-type: kubernetes
-dependencies: [api]
-tests:
-  - name: e2e
-    # ...
-
+kind: Test
+name: e2e
+type: kubernetes-exec
+dependencies: [deploy.api]
+spec:
+  args: [python, /app/test.py]
 ```
 
 Garden collects all of these descriptions, even across multiple repositories, into the Stack Graph—**an executable blueprint for going from zero to a running system in a single command**.
@@ -76,10 +80,10 @@ Or say a developer wants to run an end-to-end test from their laptop as they cod
 garden test --name e2e
 ```
 
-Garden also has a special mode called “dev mode” which live reloads changes to your running services—ensuring **blazing fast feedback while developing**. To enable it, simply run:
+Garden also has a special mode called "sync mode" which live reloads changes to your running services—ensuring **blazing fast feedback while developing**. To enable it, simply run:
 
 ```yaml
-garden dev
+garden deploy --sync
 ```
 
 There are also a handful of utility commands for getting logs, exec-ing into services, publishing images, and more.
@@ -91,7 +95,7 @@ Thanks to the Stack Graph, these workflows stay consistent no matter how big you
 
 ## **Plugins**
 
-Garden is pluggable by design and supports a variety of providers and module types, which you can choose based on preference and to suit your existing set-up.
+Garden is pluggable by design and supports a variety of providers and action types, which you can choose based on preference and to suit your existing set-up.
 
 It’s the plugins that determine what happens when you run a given Garden command. Each action, or node in the graph, belongs to a plugin which is responsible for executing it.
 

@@ -8,33 +8,36 @@
 
 import Joi from "@hapi/joi"
 import normalize = require("normalize-path")
-import { sortBy, omit } from "lodash"
+import { sortBy, pick } from "lodash"
 import { createHash } from "crypto"
 import { validateSchema } from "../config/validation"
 import { join, relative, isAbsolute } from "path"
 import { GARDEN_VERSIONFILE_NAME as GARDEN_TREEVERSION_FILENAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
-import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } from "../util/ext-source-util"
+import { ExternalSourceType, getRemoteSourceLocalPath, getRemoteSourcesPath } from "../util/ext-source-util"
 import { ModuleConfig, serializeConfig } from "../config/module"
-import { LogEntry } from "../logger/log-entry"
-import { treeVersionSchema, moduleVersionSchema } from "../config/common"
+import type { Log } from "../logger/log-entry"
+import { treeVersionSchema } from "../config/common"
 import { dedent } from "../util/string"
 import { fixedProjectExcludes } from "../util/fs"
-import { TreeCache } from "../cache"
-import { getModuleCacheContext } from "../types/module"
-import { ServiceConfig } from "../config/service"
-import { TaskConfig } from "../config/task"
-import { TestConfig } from "../config/test"
-import { GardenModule } from "../types/module"
-import { emitWarning } from "../warnings"
+import { pathToCacheContext, TreeCache } from "../cache"
+import type { ServiceConfig } from "../config/service"
+import type { TaskConfig } from "../config/task"
+import type { TestConfig } from "../config/test"
+import type { GardenModule } from "../types/module"
 import { validateInstall } from "../util/validateInstall"
+import { isActionConfig } from "../actions/base"
+import type { BaseActionConfig } from "../actions/types"
+import { Garden } from "../garden"
+import chalk = require("chalk")
+import { Profile } from "../util/profiling"
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
 
 export const versionStringPrefix = "v-"
-export const NEW_MODULE_VERSION = "0000000000"
+export const NEW_RESOURCE_VERSION = "0000000000"
 const fileCountWarningThreshold = 10000
 
 const minGitVersion = "2.14.0"
@@ -61,9 +64,17 @@ export interface TreeVersions {
   [moduleName: string]: TreeVersion
 }
 
-export interface ModuleVersion {
+// TODO: rename, maybe to ResourceVersion
+export interface ModuleVersion extends TreeVersion {
   versionString: string
   dependencyVersions: DependencyVersions
+}
+
+export interface ActionVersion {
+  versionString: string
+  dependencyVersions: DependencyVersions
+  configVersion: string
+  sourceVersion: string
   files: string[]
 }
 
@@ -72,7 +83,7 @@ export interface NamedModuleVersion extends ModuleVersion {
 }
 
 export interface DependencyVersions {
-  [moduleName: string]: string
+  [key: string]: string
 }
 
 export interface NamedTreeVersion extends TreeVersion {
@@ -86,7 +97,7 @@ export interface VcsInfo {
 }
 
 export interface GetFilesParams {
-  log: LogEntry
+  log: Log
   path: string
   pathDescription?: string
   include?: string[]
@@ -99,7 +110,7 @@ export interface RemoteSourceParams {
   url: string
   name: string
   sourceType: ExternalSourceType
-  log: LogEntry
+  log: Log
   failOnPrompt?: boolean
 }
 
@@ -108,68 +119,100 @@ export interface VcsFile {
   hash: string
 }
 
+export interface VcsHandlerParams {
+  garden?: Garden
+  projectRoot: string
+  gardenDirPath: string
+  ignoreFile: string
+  cache: TreeCache
+}
+
+@Profile()
 export abstract class VcsHandler {
-  constructor(
-    protected projectRoot: string,
-    protected gardenDirPath: string,
-    protected ignoreFiles: string[],
-    private cache: TreeCache
-  ) {}
+  protected garden?: Garden
+  protected projectRoot: string
+  protected gardenDirPath: string
+  protected ignoreFile: string
+  private cache: TreeCache
+
+  constructor(params: VcsHandlerParams) {
+    this.garden = params.garden
+    this.projectRoot = params.projectRoot
+    this.gardenDirPath = params.gardenDirPath
+    this.ignoreFile = params.ignoreFile
+    this.cache = params.cache
+  }
 
   abstract name: string
-  abstract getRepoRoot(log: LogEntry, path: string): Promise<string>
+  abstract getRepoRoot(log: Log, path: string): Promise<string>
   abstract getFiles(params: GetFilesParams): Promise<VcsFile[]>
   abstract ensureRemoteSource(params: RemoteSourceParams): Promise<string>
   abstract updateRemoteSource(params: RemoteSourceParams): Promise<void>
-  abstract getPathInfo(log: LogEntry, path: string): Promise<VcsInfo>
+  abstract getPathInfo(log: Log, path: string): Promise<VcsInfo>
+
+  clearTreeCache() {
+    this.cache.clear()
+  }
 
   async getTreeVersion(
-    log: LogEntry,
+    log: Log,
     projectName: string,
-    moduleConfig: ModuleConfig,
+    config: ModuleConfig | BaseActionConfig,
     force = false
   ): Promise<TreeVersion> {
-    const configPath = moduleConfig.configPath
+    const cacheKey = getResourceTreeCacheKey(config)
+    const description = describeConfig(config)
 
-    // Apply project root excludes if the module config is in the project root and `include` isn't set
-    const exclude =
-      moduleConfig.path === this.projectRoot && !moduleConfig.include
-        ? [...(moduleConfig.exclude || []), ...fixedProjectExcludes]
-        : moduleConfig.exclude
+    // Note: duplicating this as an optimization (avoid the async lock)
+    if (!force) {
+      const cached = this.cache.get(log, cacheKey)
+      if (cached) {
+        log.silly(`Got cached tree version for ${description} (key ${cacheKey})`)
+        return cached
+      }
+    }
 
-    let result: TreeVersion = { contentHash: NEW_MODULE_VERSION, files: [] }
+    const configPath = getConfigFilePath(config)
+    const path = getConfigBasePath(config)
 
-    const cacheKey = getModuleTreeCacheKey(moduleConfig)
+    let result: TreeVersion = { contentHash: NEW_RESOURCE_VERSION, files: [] }
 
     // Make sure we don't concurrently scan the exact same context
     await scanLock.acquire(cacheKey.join(":"), async () => {
       if (!force) {
         const cached = this.cache.get(log, cacheKey)
         if (cached) {
-          log.silly(`Got cached tree version for module ${moduleConfig.name} (key ${cacheKey})`)
+          log.silly(`Got cached tree version for ${description} (key ${cacheKey})`)
           result = cached
           return
         }
       }
 
+      // Apply project root excludes if the module config is in the project root and `include` isn't set
+      const exclude =
+        path === this.projectRoot && !config.include
+          ? [...(config.exclude || []), ...fixedProjectExcludes]
+          : config.exclude
+
       // No need to scan for files if nothing should be included
-      if (!(moduleConfig.include && moduleConfig.include.length === 0)) {
+      if (!(config.include && config.include.length === 0)) {
         let files = await this.getFiles({
           log,
-          path: moduleConfig.path,
-          pathDescription: "module root",
-          include: moduleConfig.include,
+          path,
+          pathDescription: description + " root",
+          include: config.include,
           exclude,
         })
 
         if (files.length > fileCountWarningThreshold) {
-          await emitWarning({
-            key: `${projectName}-filecount-${moduleConfig.name}`,
+          // TODO-0.13.0: This will be repeated for modules and actions resulting from module conversion
+          await this.garden?.emitWarning({
+            key: `${projectName}-filecount-${config.name}`,
             log,
-            message: dedent`
-              Large number of files (${files.length}) found in module ${moduleConfig.name}. You may need to configure file exclusions.
+            message: chalk.yellow(dedent`
+              Large number of files (${files.length}) found in ${description}. You may need to configure file exclusions.
               See https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories for details.
-            `,
+            `),
           })
         }
 
@@ -181,28 +224,31 @@ export abstract class VcsHandler {
         result.files = files.map((f) => f.path)
       }
 
-      this.cache.set(log, cacheKey, result, getModuleCacheContext(moduleConfig))
+      this.cache.set(log, cacheKey, result, pathToCacheContext(path))
     })
 
     return result
   }
 
-  async resolveTreeVersion(log: LogEntry, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
+  async resolveTreeVersion(log: Log, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control
     const versionFilePath = join(moduleConfig.path, GARDEN_TREEVERSION_FILENAME)
     const fileVersion = await readTreeVersionFile(versionFilePath)
     return fileVersion || (await this.getTreeVersion(log, projectName, moduleConfig))
   }
 
-  getRemoteSourcesDirname(type: ExternalSourceType) {
-    return getRemoteSourcesDirname(type)
+  /**
+   * Returns the absolute path to the local directory for all remote sources
+   */
+  getRemoteSourcesLocalPath(type: ExternalSourceType) {
+    return getRemoteSourcesPath({ gardenDirPath: this.gardenDirPath, type })
   }
 
   /**
-   * Returns the path to the remote source directory, relative to the project level Garden directory (.garden)
+   * Returns the absolute path to the local directory for the remote source
    */
-  getRemoteSourceRelPath(name: string, url: string, sourceType: ExternalSourceType) {
-    return getRemoteSourceRelPath({ name, url, sourceType })
+  getRemoteSourceLocalPath(name: string, url: string, type: ExternalSourceType) {
+    return getRemoteSourceLocalPath({ gardenDirPath: this.gardenDirPath, name, url, type })
   }
 }
 
@@ -233,10 +279,6 @@ export async function readTreeVersionFile(path: string): Promise<TreeVersion | n
   return readVersionFile(path, treeVersionSchema())
 }
 
-export async function readModuleVersionFile(path: string): Promise<ModuleVersion | null> {
-  return readVersionFile(path, moduleVersionSchema())
-}
-
 /**
  * Writes a normalized TreeVersion file to the specified directory
  *
@@ -253,10 +295,6 @@ export async function writeTreeVersionFile(dir: string, version: TreeVersion) {
   }
   const path = join(dir, GARDEN_TREEVERSION_FILENAME)
   await writeFile(path, JSON.stringify(processed, null, 4) + "\n")
-}
-
-export async function writeModuleVersionFile(path: string, version: ModuleVersion) {
-  await writeFile(path, JSON.stringify(version, null, 4) + "\n")
 }
 
 /**
@@ -288,7 +326,7 @@ export function hashModuleVersion(
   // build output.
   const configToHash =
     moduleConfig.buildConfig ||
-    omit(moduleConfig, ["configPath", "path", "outputs", "serviceConfigs", "taskConfigs", "testConfigs"])
+    pick(moduleConfig, ["apiVersion", "name", "spec", "type", "variables", "varfile", "inputs"])
 
   const configString = serializeConfig(configToHash)
 
@@ -318,15 +356,27 @@ export function hashStrings(hashes: string[]) {
   return versionHash.digest("hex").slice(0, 10)
 }
 
-export function getModuleTreeCacheKey(moduleConfig: ModuleConfig) {
-  const cacheKey = [moduleConfig.path]
+export function getResourceTreeCacheKey(config: ModuleConfig | BaseActionConfig) {
+  const cacheKey = ["source", getConfigBasePath(config)]
 
-  if (moduleConfig.include) {
-    cacheKey.push("include", hashStrings(moduleConfig.include))
+  if (config.include) {
+    cacheKey.push("include", hashStrings(config.include.sort()))
   }
-  if (moduleConfig.exclude) {
-    cacheKey.push("exclude", hashStrings(moduleConfig.exclude))
+  if (config.exclude) {
+    cacheKey.push("exclude", hashStrings(config.exclude.sort()))
   }
 
   return cacheKey
+}
+
+export function getConfigFilePath(config: ModuleConfig | BaseActionConfig) {
+  return isActionConfig(config) ? config.internal?.configFilePath : config.configPath
+}
+
+export function getConfigBasePath(config: ModuleConfig | BaseActionConfig) {
+  return isActionConfig(config) ? config.internal.basePath : config.path
+}
+
+export function describeConfig(config: ModuleConfig | BaseActionConfig) {
+  return isActionConfig(config) ? `${config.kind} action ${config.name}` : `module ${config.name}`
 }

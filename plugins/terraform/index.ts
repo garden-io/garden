@@ -14,19 +14,24 @@ import { dedent } from "@garden-io/sdk/util/string"
 import { defaultTerraformVersion, supportedVersions, terraformCliSpecs } from "./cli"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import { TerraformBaseSpec, variablesSchema } from "./common"
-import {
-  configureTerraformModule,
-  deleteTerraformModule,
-  deployTerraform,
-  getTerraformStatus,
-  terraformModuleSchema,
-} from "./module"
+import { configureTerraformModule, TerraformModule, terraformModuleSchema } from "./module"
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { listDirectory } from "@garden-io/sdk/util/fs"
 import { getTerraformCommands } from "./commands"
+import {
+  deleteTerraformModule,
+  deployTerraform,
+  getTerraformStatus,
+  TerraformDeployConfig,
+  terraformDeployOutputsSchema,
+  terraformDeploySchemaKeys,
+} from "./action"
 
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
-import { joi, joiVariables } from "@garden-io/core/build/src/config/common"
+import { joi } from "@garden-io/core/build/src/config/common"
+import { DOCS_BASE_URL } from "@garden-io/core/build/src/constants"
+import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/config"
+import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
 
 type TerraformProviderConfig = GenericProviderConfig &
   TerraformBaseSpec & {
@@ -50,13 +55,13 @@ const configSchema = providerConfigBaseSchema()
 
         See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for more information.
       `),
-    // When you provide variables directly in \`terraform\` modules, those variables will
+    // When you provide variables directly in \`terraform\` axtions, those variables will
     // extend the ones specified here, and take precedence if the keys overlap.
     variables: variablesSchema().description(dedent`
         A map of variables to use when applying Terraform stacks. You can define these here, in individual
-        \`terraform\` module configs, or you can place a \`terraform.tfvars\` file in each working directory.
+        \`terraform\` action configs, or you can place a \`terraform.tfvars\` file in each working directory.
       `),
-    // May be overridden by individual \`terraform\` modules.
+    // May be overridden by individual \`terraform\` actions.
     version: joi
       .string()
       .allow(...supportedVersions, null)
@@ -69,8 +74,11 @@ const configSchema = providerConfigBaseSchema()
   .unknown(false)
 
 // Need to make these variables to avoid escaping issues
+const deployOutputsTemplateString = "${deploys.<deploy-name>.outputs.<key>}"
 const serviceOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
 const providerOutputsTemplateString = "${providers.terraform.outputs.<key>}"
+
+const defaultTerraformTimeoutSec = 600
 
 export const gardenPlugin = () =>
   createGardenPlugin({
@@ -102,6 +110,62 @@ export const gardenPlugin = () =>
       },
     },
     commands: getTerraformCommands(),
+
+    createActionTypes: {
+      Deploy: [
+        {
+          name: "terraform",
+          docs: dedent`
+          Resolves a Terraform stack and either applies it automatically (if \`autoApply: true\`) or warns when the stack resources are not up-to-date.
+
+          **Note: It is not recommended to set \`autoApply\` to \`true\` for any production or shared environments, since this may result in accidental or conflicting changes to the stack.** Instead, it is recommended to manually plan and apply using the provided plugin commands. Run \`garden plugins terraform\` for details.
+
+          Stack outputs are made available as service outputs, that can be referenced by other actions under \`${deployOutputsTemplateString}\`. You can template in those values as e.g. command arguments or environment variables for other services.
+
+          Note that you can also declare a Terraform root in the \`terraform\` provider configuration by setting the \`initRoot\` parameter. This may be preferable if you need the outputs of the Terraform stack to be available to other provider configurations, e.g. if you spin up an environment with the Terraform provider, and then use outputs from that to configure another provider or other actions via \`${providerOutputsTemplateString}\` template strings.
+
+          See the [Terraform guide](${DOCS_BASE_URL}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
+          `,
+          schema: joi.object().keys(terraformDeploySchemaKeys()),
+          runtimeOutputsSchema: terraformDeployOutputsSchema(),
+          handlers: {
+            configure: async ({ ctx, config }) => {
+              const provider = ctx.provider as TerraformProvider
+
+              // Use the provider config if no value is specified for the module
+              if (config.spec.autoApply === null) {
+                config.spec.autoApply = provider.config.autoApply
+              }
+              if (!config.spec.version) {
+                config.spec.version = provider.config.version
+              }
+
+              return { config, supportedModes: {} }
+            },
+
+            validate: async ({ action }) => {
+              const root = action.getSpec("root")
+              if (root) {
+                const absRoot = join(action.basePath(), root)
+                const exists = await pathExists(absRoot)
+
+                if (!exists) {
+                  throw new ConfigurationError(`Terraform: configured root directory '${root}' does not exist`, {
+                    root,
+                  })
+                }
+              }
+              return {}
+            },
+
+            deploy: deployTerraform,
+            getStatus: getTerraformStatus,
+            delete: deleteTerraformModule,
+          },
+        },
+      ],
+    },
+
     createModuleTypes: [
       {
         name: "terraform",
@@ -116,9 +180,42 @@ export const gardenPlugin = () =>
 
       See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
     `,
-        serviceOutputsSchema: joiVariables().description("A map of all the outputs defined in the Terraform stack."),
         schema: terraformModuleSchema(),
+        needsBuild: false,
         handlers: {
+          async convert(params: ConvertModuleParams<TerraformModule>) {
+            const { module, dummyBuild, prepareRuntimeDependencies } = params
+            const actions: (ExecBuildConfig | TerraformDeployConfig)[] = []
+
+            if (dummyBuild) {
+              actions.push(dummyBuild)
+            }
+
+            actions.push({
+              kind: "Deploy",
+              type: "terraform",
+              name: module.name,
+              ...params.baseFields,
+
+              build: dummyBuild?.name,
+              dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
+
+              timeout: defaultTerraformTimeoutSec,
+              spec: {
+                ...module.spec,
+              },
+            })
+
+            return {
+              group: {
+                kind: "Group",
+                name: module.name,
+                path: module.path,
+                actions,
+              },
+            }
+          },
+
           async suggestModules({ name, path }) {
             const files = await listDirectory(path, { recursive: false })
 
@@ -139,12 +236,11 @@ export const gardenPlugin = () =>
               return { suggestions: [] }
             }
           },
+
           configure: configureTerraformModule,
-          getServiceStatus: getTerraformStatus,
-          deployService: deployTerraform,
-          deleteService: deleteTerraformModule,
         },
       },
     ],
+
     tools: Object.values(terraformCliSpecs),
   })

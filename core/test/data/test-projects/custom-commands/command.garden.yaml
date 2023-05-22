@@ -5,5 +5,4 @@ description:
   long: An entirely unnecessary alias for garden run task
 gardenCommand:
   - run
-  - task
   - $concat: ${args.$all}

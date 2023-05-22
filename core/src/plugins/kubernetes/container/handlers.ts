@@ -6,25 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { deployContainerService, deleteService } from "./deployment"
-import { hotReloadContainer } from "../hot-reload/hot-reload"
-import { getServiceLogs } from "./logs"
-import { runContainerModule, runContainerService, runContainerTask } from "./run"
-import { execInService } from "./exec"
-import { testContainerModule } from "./test"
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesProvider } from "../config"
-import { ConfigureModuleParams } from "../../../types/plugin/module/configure"
-import { getContainerServiceStatus } from "./status"
-import { getTestResult } from "../test-results"
-import { ContainerModule } from "../../container/config"
-import { getTaskResult } from "../task-results"
-import { k8sBuildContainer, k8sGetContainerBuildStatus } from "./build/build"
-import { k8sPublishContainerModule } from "./publish"
-import { getPortForwardHandler } from "../port-forward"
-import { GetModuleOutputsParams } from "../../../types/plugin/module/getModuleOutputs"
+import { ConfigureModuleParams } from "../../../plugin/handlers/Module/configure"
+import {
+  ContainerBuildAction,
+  ContainerBuildOutputs,
+  ContainerDeploySpec,
+  ContainerModule,
+  ContainerServiceSpec,
+} from "../../container/moduleConfig"
+import { GetModuleOutputsParams } from "../../../plugin/handlers/Module/get-outputs"
 import { containerHelpers } from "../../container/helpers"
 import { getContainerModuleOutputs } from "../../container/container"
+import { getContainerBuildActionOutputs } from "../../container/build"
+import { Resolved } from "../../../actions/types"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   let { moduleConfig } = await params.base!(params)
@@ -35,22 +31,6 @@ async function configure(params: ConfigureModuleParams<ContainerModule>) {
 export const containerHandlers = {
   configure,
   getModuleOutputs: k8sGetContainerModuleOutputs,
-  build: k8sBuildContainer,
-  deployService: deployContainerService,
-  deleteService,
-  execInService,
-  getBuildStatus: k8sGetContainerBuildStatus,
-  getPortForward: getPortForwardHandler,
-  getServiceLogs,
-  getServiceStatus: getContainerServiceStatus,
-  getTestResult,
-  hotReloadService: hotReloadContainer,
-  publish: k8sPublishContainerModule,
-  runModule: runContainerModule,
-  runService: runContainerService,
-  runTask: runContainerTask,
-  getTaskResult,
-  testModule: testContainerModule,
 }
 
 export async function k8sGetContainerModuleOutputs(params: GetModuleOutputsParams) {
@@ -60,10 +40,11 @@ export async function k8sGetContainerModuleOutputs(params: GetModuleOutputsParam
 
   const provider = <KubernetesProvider>ctx.provider
   outputs["deployment-image-name"] = containerHelpers.getDeploymentImageName(
-    moduleConfig,
+    moduleConfig.name,
+    moduleConfig.spec.image,
     provider.config.deploymentRegistry
   )
-  outputs["deployment-image-id"] = containerHelpers.getDeploymentImageId(
+  outputs["deployment-image-id"] = containerHelpers.getModuleDeploymentImageId(
     moduleConfig,
     version,
     provider.config.deploymentRegistry
@@ -72,30 +53,63 @@ export async function k8sGetContainerModuleOutputs(params: GetModuleOutputsParam
   return { outputs }
 }
 
-async function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {
+export function k8sGetContainerBuildActionOutputs({
+  provider,
+  action,
+}: {
+  provider: KubernetesProvider
+  action: Resolved<ContainerBuildAction>
+}): ContainerBuildOutputs {
+  const localId = action.getSpec("localId")
+  const outputs = getContainerBuildActionOutputs(action)
+
+  outputs.deploymentImageName = outputs["deployment-image-name"] = containerHelpers.getDeploymentImageName(
+    action.name,
+    localId,
+    provider.config.deploymentRegistry
+  )
+  outputs.deploymentImageId = outputs["deployment-image-id"] = containerHelpers.getBuildDeploymentImageId(
+    action.name,
+    localId,
+    action.moduleVersion(),
+    provider.config.deploymentRegistry
+  )
+
+  return outputs
+}
+
+function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {
   // validate ingress specs
   const moduleConfig = params.moduleConfig
   const provider = <KubernetesProvider>params.ctx.provider
 
   for (const serviceConfig of moduleConfig.serviceConfigs) {
-    for (const ingressSpec of serviceConfig.spec.ingresses) {
-      const hostname = ingressSpec.hostname || provider.config.defaultHostname
-
-      if (!hostname) {
-        throw new ConfigurationError(
-          `No hostname configured for one of the ingresses on service ${serviceConfig.name}. ` +
-            `Please configure a default hostname or specify a hostname for the ingress.`,
-          {
-            serviceName: serviceConfig.name,
-            ingressSpec,
-          }
-        )
-      }
-
-      // make sure the hostname is set
-      ingressSpec.hostname = hostname
-    }
+    validateDeploySpec(serviceConfig.name, provider, serviceConfig.spec)
   }
 
   return { moduleConfig }
+}
+
+export function validateDeploySpec(
+  name: string,
+  provider: KubernetesProvider,
+  spec: ContainerServiceSpec | ContainerDeploySpec
+) {
+  for (const ingressSpec of spec.ingresses) {
+    const hostname = ingressSpec.hostname || provider.config.defaultHostname
+
+    if (!hostname) {
+      throw new ConfigurationError(
+        `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
+          `Please configure a default hostname or specify a hostname for the ingress.`,
+        {
+          name,
+          ingressSpec,
+        }
+      )
+    }
+
+    // make sure the hostname is set
+    ingressSpec.hostname = hostname
+  }
 }

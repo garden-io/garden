@@ -10,6 +10,7 @@ import _dedent = require("dedent")
 import _deline = require("deline")
 import _urlJoin = require("proper-url-join")
 import _stableStringify = require("json-stable-stringify")
+import _titleize = require("titleize")
 import CliTable from "cli-table3"
 import cliTruncate from "cli-truncate"
 import { getTerminalWidth } from "../logger/util"
@@ -22,14 +23,18 @@ export const deline = _deline
 export const urlJoin = _urlJoin as (...args: string[]) => string
 export const stableStringify = _stableStringify
 
-export const gardenAnnotationPrefix = "garden.io/"
+// helper to enforce annotating images that we bundle with
+// Garden to include the sha256 digest for extra security.
+export type DockerImageWithDigest = `${string}:${string}@sha256:${string}`
+
+const gardenAnnotationPrefix = "garden.io/"
 
 export type GardenAnnotationKey =
-  | "dev-mode"
+  | "actionType"
+  | "action"
+  | "mode"
   | "generated"
   | "helm-migrated"
-  | "hot-reload"
-  | "local-mode"
   | "manifest-hash"
   | "module"
   | "moduleVersion"
@@ -39,11 +44,6 @@ export type GardenAnnotationKey =
   | "version"
 
 export function gardenAnnotationKey(key: GardenAnnotationKey) {
-  // FIXME: We need to work out a transition for existing deployments, but we had previously set these two keys
-  // without the prefix and K8s doesn't allow modifying label selectors on existing workloads. (yay.)
-  if (key === "module" || key === "service") {
-    return key
-  }
   return gardenAnnotationPrefix + key
 }
 
@@ -79,13 +79,16 @@ export function base64(str: string) {
  * Returns an array of strings, joined together as a string in a natural language manner.
  * Example: `naturalList(["a", "b", "c"])` -> `"a, b and c"`
  */
-export function naturalList(list: string[]) {
+export function naturalList(list: string[], { trailingWord = "and", quote = false } = {}) {
+  if (quote) {
+    list = list.map((s) => "'" + s + "'")
+  }
   if (list.length === 0) {
     return ""
   } else if (list.length === 1) {
     return list[0]
   } else {
-    return list.slice(0, -1).join(", ") + " and " + list[list.length - 1]
+    return list.slice(0, -1).join(", ") + " " + trailingWord + " " + list[list.length - 1]
   }
 }
 
@@ -177,4 +180,24 @@ export function stripQuotes(string: string) {
   } else {
     return string
   }
+}
+
+export function titleize(string: string) {
+  return _titleize(string)
+}
+
+/**
+ * Splits the input string on the first occurrence of `delimiter`.
+ */
+export function splitFirst(s: string, delimiter: string) {
+  const parts = s.split(delimiter)
+  return [parts[0], parts.slice(1).join(delimiter)]
+}
+
+/**
+ * Splits the input string on the last occurrence of `delimiter`.
+ */
+export function splitLast(s: string, delimiter: string) {
+  const parts = s.split(delimiter)
+  return [parts.slice(0, parts.length - 1).join(delimiter), parts[parts.length - 1]]
 }

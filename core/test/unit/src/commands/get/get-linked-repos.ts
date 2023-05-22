@@ -15,10 +15,12 @@ import {
   makeExtModuleSourcesGarden,
   makeExtProjectSourcesGarden,
   TestGarden,
+  makeExtActionSourcesGarden,
 } from "../../../../helpers"
 import { LinkSourceCommand } from "../../../../../src/commands/link/source"
 import { LinkModuleCommand } from "../../../../../src/commands/link/module"
 import { GetLinkedReposCommand } from "../../../../../src/commands/get/get-linked-repos"
+import { LinkActionCommand } from "../../../../../src/commands/link/action"
 
 describe("GetLinkedReposCommand", () => {
   let garden: TestGarden
@@ -30,15 +32,13 @@ describe("GetLinkedReposCommand", () => {
   it("should list all linked project sources in the project", async () => {
     garden = await makeExtProjectSourcesGarden()
     const log = garden.log
-    const sourcesDir = getDataDir("test-project-local-project-sources")
+    const sourcesDir = getDataDir("test-project", "local-project-sources")
     const linkSourceCmd = new LinkSourceCommand()
     const sourceNames = ["source-a", "source-b", "source-c"]
     for (const sourceName of sourceNames) {
       await linkSourceCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { source: sourceName, path: join(sourcesDir, sourceName) },
         opts: withDefaultGlobalOpts({}),
       })
@@ -48,8 +48,6 @@ describe("GetLinkedReposCommand", () => {
     const results = await getLinkedReposCommand.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })
@@ -61,18 +59,46 @@ describe("GetLinkedReposCommand", () => {
     expect(results.result).to.eql(expected)
   })
 
+  it("should list all linked actions in the project", async () => {
+    garden = await makeExtActionSourcesGarden()
+    const log = garden.log
+    const sourcesDir = getDataDir("test-projects", "local-action-sources")
+    const linkModuleCmd = new LinkActionCommand()
+    const sourceKeys = ["build.a", "build.b"]
+    for (const key of sourceKeys) {
+      await linkModuleCmd.action({
+        garden,
+        log,
+        args: { action: key, path: join(sourcesDir, key) },
+        opts: withDefaultGlobalOpts({}),
+      })
+    }
+
+    const getLinkedReposCommand = new GetLinkedReposCommand()
+    const results = await getLinkedReposCommand.action({
+      garden,
+      log,
+      args: {},
+      opts: withDefaultGlobalOpts({}),
+    })
+
+    const expected = sourceKeys.map((name) => {
+      return { name, path: join(sourcesDir, name) }
+    })
+
+    expect(results.result).to.eql(expected)
+  })
+
   it("should list all linked modules in the project", async () => {
     garden = await makeExtModuleSourcesGarden()
     const log = garden.log
-    const sourcesDir = getDataDir("test-project-local-module-sources")
+    const sourcesDir = getDataDir("test-projects", "local-module-sources")
     const linkModuleCmd = new LinkModuleCommand()
     const sourceNames = ["module-a", "module-b", "module-c"]
     for (const moduleName of sourceNames) {
       await linkModuleCmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: { module: moduleName, path: join(sourcesDir, moduleName) },
         opts: withDefaultGlobalOpts({}),
       })
@@ -82,8 +108,6 @@ describe("GetLinkedReposCommand", () => {
     const results = await getLinkedReposCommand.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({}),
     })

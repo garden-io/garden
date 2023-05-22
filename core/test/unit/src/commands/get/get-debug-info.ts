@@ -23,7 +23,7 @@ import { readdir, remove, pathExists, readJSON, readFile } from "fs-extra"
 import { ERROR_LOG_FILENAME } from "../../../../../src/constants"
 import { join, relative, basename } from "path"
 import { Garden } from "../../../../../src/garden"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { defaultConfigFilename } from "../../../../../src/util/fs"
 import { makeTestGarden } from "../../../../helpers"
 import { getDataDir } from "../../../../helpers"
@@ -44,7 +44,7 @@ async function cleanupTmpDebugFiles(root: string, gardenDirPath: string) {
 
 describe("GetDebugInfoCommand", () => {
   let garden: Garden
-  let log: LogEntry
+  let log: Log
   let gardenDebugTmp: string
 
   before(async () => {
@@ -67,8 +67,6 @@ describe("GetDebugInfoCommand", () => {
       const res = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "format": "json", "include-project": false }),
       })
@@ -171,7 +169,6 @@ describe("GetDebugInfoCommand", () => {
       expect(systemInfoFile).to.have.property("gardenVersion")
       expect(systemInfoFile).to.have.property("platform")
       expect(systemInfoFile).to.have.property("platformVersion")
-      expect(systemInfoFile).to.have.property("dockerVersion")
     })
 
     it("should create a system info report in a temporary folder with yaml format", async () => {
@@ -190,7 +187,6 @@ describe("GetDebugInfoCommand", () => {
       expect(systemInfoFile).to.have.property("gardenVersion")
       expect(systemInfoFile).to.have.property("platform")
       expect(systemInfoFile).to.have.property("platformVersion")
-      expect(systemInfoFile).to.have.property("dockerVersion")
     })
   })
 

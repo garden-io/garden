@@ -23,7 +23,7 @@ If you want to install Garden from source, see the instructions in our [contribu
 You need the following dependencies on your local machine to use Garden:
 
 - Git (v2.14 or newer)
-- rsync (v3.1.0 or newer)
+- _[Windows only]_ rsync (v3.1.0 or newer)
 
 And if you'd like to build and run services locally, you need [a local installation of Kubernetes](https://kubernetes.io/docs/tutorials/hello-minikube/). Garden is committed to supporting [the _latest six_ stable versions (i.e. if the latest stable version is v1.23.x, Garden supports v1.18.x and newer)](https://kubernetes.io/releases/).
 

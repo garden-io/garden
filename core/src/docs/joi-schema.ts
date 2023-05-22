@@ -8,9 +8,10 @@
 
 import { uniq, isFunction, extend, isArray, isPlainObject } from "lodash"
 import { BaseKeyDescription, isArrayType } from "./common"
-import { findByName, safeDumpYaml } from "../util/util"
+import { findByName } from "../util/util"
 import { JsonKeyDescription } from "./json-schema"
 import { JoiDescription } from "../config/common"
+import { safeDumpYaml } from "../util/serialization"
 
 export class JoiKeyDescription extends BaseKeyDescription {
   private joiDescription: JoiDescription
@@ -100,7 +101,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
         const metas: any = extend({}, ...(objSchema.metas || []))
         childDescriptions.push(
           new JoiKeyDescription({
-            joiDescription: (objSchema.patterns[0].rule as JoiDescription) as JoiDescription,
+            joiDescription: objSchema.patterns[0].rule as JoiDescription as JoiDescription,
             name: metas.keyPlaceholder || "<name>",
             level: nextLevel,
             parent,
@@ -114,7 +115,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
         const jsonSchema = jsonSchemaRule.args.jsonSchema.schema
 
         childDescriptions.push(
-          ...Object.entries(jsonSchema.properties).map(
+          ...Object.entries(jsonSchema.properties || {}).map(
             ([childName, schema]) =>
               new JsonKeyDescription({
                 schema,

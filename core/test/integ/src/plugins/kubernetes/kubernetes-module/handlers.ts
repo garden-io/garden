@@ -14,30 +14,33 @@ import tmp from "tmp-promise"
 import { TestGarden } from "../../../../../helpers"
 import { getKubernetesTestGarden } from "./common"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { getManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-module/common"
+import { getManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { LogEntry } from "../../../../../../src/logger/log-entry"
+import { ActionLog, createActionLog, Log } from "../../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { getModuleNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
+import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
 import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/status/status"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { BaseResource, KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
-import { DeleteServiceTask } from "../../../../../../src/tasks/delete-service"
+import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy"
 import {
-  deployKubernetesService,
-  getKubernetesServiceStatus,
-} from "../../../../../../src/plugins/kubernetes/kubernetes-module/handlers"
-import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
+  kubernetesDeploy,
+  getKubernetesDeployStatus,
+} from "../../../../../../src/plugins/kubernetes/kubernetes-type/handlers"
 import Bluebird from "bluebird"
 import { buildHelmModules } from "../helm/common"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
-import { getServiceStatuses } from "../../../../../../src/tasks/base"
+import { getDeployStatuses } from "../../../../../../src/tasks/helpers"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
+import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../../src/constants"
+import { ActionModeMap } from "../../../../../../src/actions/types"
 
 describe("kubernetes-module handlers", () => {
   let tmpDir: tmp.DirectoryResult
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
+  let actionLog: ActionLog
   let ctx: KubernetesPluginContext
   let api: KubeApi
   /**
@@ -61,9 +64,9 @@ describe("kubernetes-module handlers", () => {
     return cloned
   }
 
-  const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logEntry: LogEntry) => {
+  const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logCtx: Log) => {
     const maybeDeployedObjects = await Bluebird.map(manifests, (resource) =>
-      getDeployedResource(ctx, ctx.provider, resource, logEntry)
+      getDeployedResource(ctx, ctx.provider, resource, logCtx)
     )
     return <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
   }
@@ -72,17 +75,20 @@ describe("kubernetes-module handlers", () => {
     garden = await getKubernetesTestGarden()
     moduleConfigBackup = await garden.getRawModuleConfigs()
     log = garden.log
+    actionLog = createActionLog({ log, actionName: "", actionKind: "" })
     const provider = <KubernetesProvider>await garden.resolveProvider(log, "local-kubernetes")
-    ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
+    ctx = <KubernetesPluginContext>(
+      await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    )
     api = await KubeApi.factory(log, ctx, ctx.provider)
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
     nsModuleConfig = {
-      apiVersion: "garden.io/v0",
+      apiVersion: DEFAULT_API_VERSION,
       kind: "Module",
       disabled: false,
       allowPublish: false,
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       description: "Kubernetes module that includes a Namespace resource",
       name: "namespace-resource",
       path: tmpDir.path,
@@ -117,26 +123,25 @@ describe("kubernetes-module handlers", () => {
     garden.setModuleConfigs(moduleConfigBackup)
     await tmpDir.cleanup()
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 
   describe("getServiceStatus", () => {
-    it("should return missing status for a manifest with a missing resource type", async () => {
+    it("should return not-ready status for a manifest with a missing resource type", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const service = graph.getService("module-simple")
+      const action = await garden.resolveAction<KubernetesDeployAction>({
+        action: graph.getDeploy("module-simple"),
+        log: garden.log,
+        graph,
+      })
       const deployParams = {
         ctx,
-        log: garden.log,
-        module: service.module,
-        service,
+        log: actionLog,
+        action,
         force: false,
-        devMode: false,
-        hotReload: false,
-        localMode: false,
-        runtimeContext: emptyRuntimeContext,
       }
-      service.module.spec.manifests = [
+      action["_config"].spec.manifests = [
         {
           apiVersion: "foo.bar/baz",
           kind: "Whatever",
@@ -145,29 +150,56 @@ describe("kubernetes-module handlers", () => {
         },
       ]
 
-      const status = await getKubernetesServiceStatus(deployParams)
-      expect(status.state).to.equal("missing")
+      const status = await getKubernetesDeployStatus(deployParams)
+      expect(status.state).to.equal("not-ready")
     })
   })
 
-  describe("deployKubernetesService", () => {
-    it("should successfully deploy when serviceResource doesn't have a containerModule", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const service = graph.getService("module-simple")
+  describe("kubernetesDeploy", () => {
+    async function getTestData(actionName: string, mode: ActionModeMap) {
+      const graph = await garden.getConfigGraph({
+        log: garden.log,
+        emit: false,
+        actionModes: mode,
+      })
+      const action = graph.getDeploy(actionName)
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
       const deployParams = {
         ctx,
-        log: garden.log,
-        module: service.module,
-        service,
+        log: actionLog,
+        action: resolvedAction,
         force: false,
-        devMode: false,
-        hotReload: false,
-        localMode: false,
-        runtimeContext: emptyRuntimeContext,
       }
-      const status = await deployKubernetesService(deployParams)
+      const namespace = await getActionNamespace({
+        ctx,
+        log,
+        action: resolvedAction,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+      const manifests = await getManifests({
+        ctx,
+        api,
+        log,
+        action: resolvedAction,
+        defaultNamespace: namespace,
+        readFromSrcDir: true,
+      })
+      return { deployParams, manifests }
+    }
+
+    it("should successfully deploy when serviceResource doesn't have a containerModule", async () => {
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const action = graph.getDeploy("module-simple")
+      const deployParams = {
+        ctx,
+        log: actionLog,
+        action: await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph }),
+        force: false,
+      }
+      const status = await kubernetesDeploy(deployParams)
       expect(status.state).to.eql("ready")
-      expect(status.namespaceStatuses).to.eql([
+      expect(status.detail?.namespaceStatuses).to.eql([
         {
           pluginName: "local-kubernetes",
           namespaceName: "kubernetes-module-test-default",
@@ -176,225 +208,78 @@ describe("kubernetes-module handlers", () => {
       ])
     })
 
-    it("should toggle hot reload", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const service = graph.getService("with-source-module")
-      const namespace = await getModuleNamespace({
-        ctx,
-        log,
-        module: service.module,
-        provider: ctx.provider,
-        skipCreate: true,
+    it("should toggle sync mode", async () => {
+      const syncData = await getTestData("with-source-module", {
+        sync: ["deploy.with-source-module"],
       })
-      const deployParams = {
-        ctx,
-        log: garden.log,
-        module: service.module,
-        service,
-        force: false,
-        devMode: false,
-        hotReload: false,
-        localMode: false,
-        runtimeContext: emptyRuntimeContext,
-      }
-      const manifests = await getManifests({
-        ctx,
-        api,
-        log,
-        module: service.module,
-        defaultNamespace: namespace,
-        readFromSrcDir: true,
+      const defaultData = await getTestData("with-source-module", {
+        default: ["deploy.with-source-module"],
       })
 
-      // Deploy without hot reload
-      await deployKubernetesService(deployParams)
-      const res1 = await findDeployedResources(manifests, log)
+      // Deploy without sync mode
+      await kubernetesDeploy(defaultData.deployParams)
+      const res1 = await findDeployedResources(defaultData.manifests, log)
 
-      // Deploy with hot reload
-      await deployKubernetesService({ ...deployParams, hotReload: true })
-      const res2 = await findDeployedResources(manifests, log)
+      // Deploy with sync mode
+      await kubernetesDeploy(syncData.deployParams)
+      const res2 = await findDeployedResources(syncData.manifests, log)
 
-      // // Deploy without hot reload again
-      await deployKubernetesService(deployParams)
-      const res3 = await findDeployedResources(manifests, log)
+      // Deploy without sync mode again
+      await kubernetesDeploy(defaultData.deployParams)
+      const res3 = await findDeployedResources(defaultData.manifests, log)
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("false")
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("true")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("false")
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("sync")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
     })
 
-    it("should toggle devMode", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const service = graph.getService("with-source-module")
-      const namespace = await getModuleNamespace({
-        ctx,
-        log,
-        module: service.module,
-        provider: ctx.provider,
-        skipCreate: true,
+    it("should handle local mode", async () => {
+      const localData = await getTestData("with-source-module", {
+        local: ["deploy.with-source-module"],
       })
-      const deployParams = {
-        ctx,
-        log: garden.log,
-        module: service.module,
-        service,
-        force: false,
-        devMode: false,
-        hotReload: false,
-        localMode: false,
-        runtimeContext: emptyRuntimeContext,
-      }
-      const manifests = await getManifests({
-        ctx,
-        api,
-        log,
-        module: service.module,
-        defaultNamespace: namespace,
-        readFromSrcDir: true,
-      })
-
-      // Deploy without dev mode
-      await deployKubernetesService(deployParams)
-      const res1 = await findDeployedResources(manifests, log)
-
-      // Deploy with dev mode
-      await deployKubernetesService({ ...deployParams, devMode: true })
-      const res2 = await findDeployedResources(manifests, log)
-
-      // Deploy without dev mode again
-      await deployKubernetesService(deployParams)
-      const res3 = await findDeployedResources(manifests, log)
-
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("true")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
-    })
-
-    it("should toggle localMode", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const service = graph.getService("with-source-module")
-      const namespace = await getModuleNamespace({
-        ctx,
-        log,
-        module: service.module,
-        provider: ctx.provider,
-        skipCreate: true,
-      })
-      const deployParams = {
-        ctx,
-        log: garden.log,
-        module: service.module,
-        service,
-        force: false,
-        devMode: false,
-        hotReload: false,
-        localMode: false,
-        runtimeContext: emptyRuntimeContext,
-      }
-      const manifests = await getManifests({
-        ctx,
-        api,
-        log,
-        module: service.module,
-        defaultNamespace: namespace,
-        readFromSrcDir: true,
+      const defaultData = await getTestData("with-source-module", {
+        default: ["deploy.with-source-module"],
       })
 
       // Deploy without local mode
-      await deployKubernetesService(deployParams)
-      const res1 = await findDeployedResources(manifests, log)
+      await kubernetesDeploy(defaultData.deployParams)
+      const res1 = await findDeployedResources(defaultData.manifests, log)
 
       // Deploy with local mode
-      await deployKubernetesService({ ...deployParams, localMode: true })
-      const res2 = await findDeployedResources(manifests, log)
+      await kubernetesDeploy(localData.deployParams)
+      const res2 = await findDeployedResources(localData.manifests, log)
       // shut down local app and tunnels to avoid retrying after redeploy
       LocalModeProcessRegistry.getInstance().shutdown()
       ProxySshKeystore.getInstance(log).shutdown(log)
 
       // Deploy without local mode again
-      await deployKubernetesService(deployParams)
-      const res3 = await findDeployedResources(manifests, log)
+      await kubernetesDeploy(defaultData.deployParams)
+      const res3 = await findDeployedResources(defaultData.manifests, log)
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("true")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
-    })
-
-    it("localMode should always take precedence over devMode", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const service = graph.getService("with-source-module")
-      const namespace = await getModuleNamespace({
-        ctx,
-        log,
-        module: service.module,
-        provider: ctx.provider,
-        skipCreate: true,
-      })
-      const deployParams = {
-        ctx,
-        log: garden.log,
-        module: service.module,
-        service,
-        force: false,
-        devMode: false,
-        hotReload: false,
-        localMode: false,
-        runtimeContext: emptyRuntimeContext,
-      }
-      const manifests = await getManifests({
-        ctx,
-        api,
-        log,
-        module: service.module,
-        defaultNamespace: namespace,
-        readFromSrcDir: true,
-      })
-
-      // Deploy without local mode
-      await deployKubernetesService(deployParams)
-      const res1 = await findDeployedResources(manifests, log)
-
-      // Deploy with local mode
-      await deployKubernetesService({ ...deployParams, localMode: true, devMode: true })
-      const res2 = await findDeployedResources(manifests, log)
-      // shut down local app and tunnels to avoid retrying after redeploy
-      LocalModeProcessRegistry.getInstance().shutdown()
-      ProxySshKeystore.getInstance(log).shutdown(log)
-
-      // Deploy without local mode again
-      await deployKubernetesService(deployParams)
-      const res3 = await findDeployedResources(manifests, log)
-
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("true")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
-
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("local")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
     })
 
     it("should not delete previously deployed namespace resources", async () => {
       garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-1")])
       let graph = await garden.getConfigGraph({ log, emit: false })
-      let k8smodule = graph.getModule("namespace-resource")
-      const defaultNamespace = await getModuleNamespace({ ctx, log, module: k8smodule, provider: ctx.provider })
-      let manifests = await getManifests({ ctx, api, log, module: k8smodule, defaultNamespace })
+      let action = graph.getDeploy("namespace-resource")
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
+      const defaultNamespace = await getActionNamespace({ ctx, log, action: resolvedAction, provider: ctx.provider })
+      let manifests = await getManifests({ ctx, api, log, action: resolvedAction, defaultNamespace })
       ns1Manifest = manifests.find((resource) => resource.kind === "Namespace")
 
       const deployTask = new DeployTask({
         garden,
         graph,
         log,
-        service: graph.getService("namespace-resource"),
+        action,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
-      const results = await garden.processTasks([deployTask], { throwOnError: true })
-      const status = getServiceStatuses(results)["namespace-resource"]
+      const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+      const status = getDeployStatuses(results.results)["namespace-resource"]
       ns1Resource = await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log)
 
       expect(ns1Manifest, "ns1Manifest").to.exist
@@ -402,7 +287,7 @@ describe("kubernetes-module handlers", () => {
       expect(ns1Resource, "ns1Resource").to.exist
       // Here, we expect one status for the app namespace, and one status for the namespace resource defined by
       // this module.
-      expect(status.namespaceStatuses).to.eql([
+      expect(status.detail?.namespaceStatuses).to.eql([
         {
           pluginName: "local-kubernetes",
           namespaceName: "kubernetes-module-test-default",
@@ -418,21 +303,24 @@ describe("kubernetes-module handlers", () => {
       // This should result in a new namespace with a new name being deployed.
       garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-2")])
       graph = await garden.getConfigGraph({ log, emit: false })
-      k8smodule = graph.getModule("namespace-resource")
-      manifests = await getManifests({ ctx, api, log, module: k8smodule, defaultNamespace })
+      action = graph.getDeploy("namespace-resource")
+      manifests = await getManifests({
+        ctx,
+        api,
+        log,
+        action: await garden.resolveAction({ action, log: garden.log, graph }),
+        defaultNamespace,
+      })
       ns2Manifest = manifests.find((resource) => resource.kind === "Namespace")
       const deployTask2 = new DeployTask({
         garden,
         graph,
         log,
-        service: graph.getService("namespace-resource"),
+        action,
         force: true,
         forceBuild: true,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
-      await garden.processTasks([deployTask2], { throwOnError: true })
+      await garden.processTasks({ tasks: [deployTask2], throwOnError: true })
       ns2Resource = await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log)
 
       expect(ns2Manifest, "ns2Manifest").to.exist
@@ -453,15 +341,16 @@ describe("kubernetes-module handlers", () => {
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.exist
 
       const graph = await garden.getConfigGraph({ log, emit: false })
-      const deleteServiceTask = new DeleteServiceTask({
+      const deleteServiceTask = new DeleteDeployTask({
         garden,
         graph,
         log,
-        service: graph.getService("namespace-resource"),
+        action: graph.getDeploy("namespace-resource"),
+        force: false,
       })
 
       // This should only delete kubernetes-module-ns-2.
-      await garden.processTasks([deleteServiceTask], { throwOnError: true })
+      await garden.processTasks({ tasks: [deleteServiceTask], throwOnError: true })
 
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.not.exist

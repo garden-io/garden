@@ -10,7 +10,7 @@ import which from "which"
 
 import { CliWrapper } from "@garden-io/sdk/util/ext-tools"
 import { ConfigurationError, RuntimeError } from "@garden-io/sdk/exceptions"
-import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { PulumiProvider } from "./config"
 
 /**
@@ -49,7 +49,7 @@ export class GlobalPulumi extends CliWrapper {
     super("pulumi", "pulumi/pulumi")
   }
 
-  async getPath(_: LogEntry) {
+  async getPath(_: Log) {
     try {
       return await which("pulumi")
     } catch (err) {

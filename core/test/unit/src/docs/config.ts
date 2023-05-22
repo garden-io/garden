@@ -63,7 +63,7 @@ describe("docs config module", () => {
       # Example:
       #
       # \`\`\`yaml
-      # modules:
+      # scan:
       #   exclude:
       #     - node_modules/**/*
       #     - vendor/**/*
@@ -75,7 +75,7 @@ describe("docs config module", () => {
       # Example:
       #
       # \`\`\`javascript
-      # modules:
+      # scan:
       #   exclude:
       #     - node_modules/**/*
       #     - vendor/**/*
@@ -87,7 +87,7 @@ describe("docs config module", () => {
       # Example:
       #
       # \`\`\`
-      # modules:
+      # scan:
       #   exclude:
       #     - node_modules/**/*
       #     - vendor/**/*
@@ -98,7 +98,7 @@ describe("docs config module", () => {
       const expected = dedent`
       # Example:
       #
-      # modules:
+      # scan:
       #   exclude:
       #     - node_modules/**/*
       #     - vendor/**/*

@@ -8,14 +8,19 @@
 
 import { join } from "path"
 
-import { ConfigGraph, GardenModule, ProjectConfig } from "@garden-io/sdk/types"
+import { GardenModule, ProjectConfig } from "@garden-io/sdk/types"
 import { expect } from "chai"
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { defaultApiVersion, defaultNamespace } from "@garden-io/sdk/constants"
 import { gardenPlugin } from ".."
+import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
+import { JibBuildAction } from "../util"
+import { Resolved } from "@garden-io/core/build/src/actions/types"
+import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
+import { createActionLog } from "@garden-io/core/build/src/logger/log-entry"
 
 describe("jib-container", function () {
-  // tslint:disable-next-line: no-invalid-this
+  // eslint-disable-next-line no-invalid-this
   this.timeout(180 * 1000) // initial jib build can take a long time
 
   const projectRoot = join(__dirname, "test-project")
@@ -26,29 +31,29 @@ describe("jib-container", function () {
     name: "test",
     path: projectRoot,
     defaultEnvironment: "default",
-    dotIgnoreFiles: [],
+    dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "jib" }],
     variables: {},
   }
 
   let garden: TestGarden
-  let graph: ConfigGraph
-  let actions: TestGarden["actionHelper"]
+  let graph: ResolvedConfigGraph
   let module: GardenModule
+  let action: Resolved<JibBuildAction>
 
   before(async () => {
     garden = await makeTestGarden(projectRoot, {
       plugins: [gardenPlugin()],
       config: projectConfig,
     })
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    actions = await garden.getActionRouter()
+    graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
     module = graph.getModule("module")
+    action = graph.getBuild("module")
   })
 
   describe("configure", () => {
@@ -76,31 +81,37 @@ describe("jib-container", function () {
   describe("build", () => {
     context("tarOnly=true", () => {
       it("builds a maven project", async () => {
-        module.spec.build.projectType = "maven"
-        module.spec.build.tarOnly = true
+        action["spec"].projectType = "maven"
+        action["spec"].tarOnly = true
 
-        const res = await actions.build({
-          module,
-          log: garden.log,
+        const router = await garden.getActionRouter()
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+        const { result: res } = await router.build.build({
+          action,
+          log: actionLog,
           graph,
         })
 
-        const { tarPath } = res.details
+        const { tarPath } = <any>res.detail
 
         expect(tarPath).to.equal(join(module.path, "target", `jib-image-module-${module.version.versionString}.tar`))
       })
 
       it("builds a gradle project", async () => {
-        module.spec.build.projectType = "gradle"
-        module.spec.build.tarOnly = true
+        action["spec"].projectType = "gradle"
+        action["spec"].tarOnly = true
 
-        const res = await actions.build({
-          module,
-          log: garden.log,
+        const router = await garden.getActionRouter()
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+        const { result: res } = await router.build.build({
+          action,
+          log: actionLog,
           graph,
         })
 
-        const { tarPath } = res.details
+        const { tarPath } = <any>res.detail
 
         expect(tarPath).to.equal(join(module.path, "build", `jib-image-module-${module.version.versionString}.tar`))
       })
@@ -110,23 +121,29 @@ describe("jib-container", function () {
     // This however is covered by the jib-container e2e test project
     context("tarOnly=false", () => {
       it.skip("builds a maven project and pushed to a registry", async () => {
-        module.spec.build.projectType = "maven"
-        module.spec.build.tarOnly = false
+        action["spec"].projectType = "maven"
+        action["spec"].tarOnly = false
 
-        await actions.build({
-          module,
-          log: garden.log,
+        const router = await garden.getActionRouter()
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+        await router.build.build({
+          action,
+          log: actionLog,
           graph,
         })
       })
 
       it.skip("builds a gradle project and pushes to a registry", async () => {
-        module.spec.build.projectType = "gradle"
-        module.spec.build.tarOnly = false
+        action["spec"].projectType = "gradle"
+        action["spec"].tarOnly = false
 
-        await actions.build({
-          module,
-          log: garden.log,
+        const router = await garden.getActionRouter()
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+        await router.build.build({
+          action,
+          log: actionLog,
           graph,
         })
       })
@@ -134,25 +151,31 @@ describe("jib-container", function () {
 
     context("dockerBuild=true", () => {
       it("builds a maven project", async () => {
-        module.spec.build.projectType = "maven"
-        module.spec.build.tarOnly = false
-        module.spec.build.dockerBuild = true
+        action["spec"].projectType = "maven"
+        action["spec"].tarOnly = false
+        action["spec"].dockerBuild = true
 
-        await actions.build({
-          module,
-          log: garden.log,
+        const router = await garden.getActionRouter()
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+        await router.build.build({
+          action,
+          log: actionLog,
           graph,
         })
       })
 
       it("builds a gradle project", async () => {
-        module.spec.build.projectType = "gradle"
-        module.spec.build.tarOnly = false
-        module.spec.build.dockerBuild = true
+        action["spec"].projectType = "gradle"
+        action["spec"].tarOnly = false
+        action["spec"].dockerBuild = true
 
-        await actions.build({
-          module,
-          log: garden.log,
+        const router = await garden.getActionRouter()
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+        await router.build.build({
+          action,
+          log: actionLog,
           graph,
         })
       })

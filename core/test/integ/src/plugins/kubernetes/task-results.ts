@@ -12,10 +12,11 @@ import { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config"
 import { getDataDir, makeTestGarden } from "../../../../helpers"
 import { randomString } from "../../../../../src/util/string"
 import { expect } from "chai"
-import { storeTaskResult, getTaskResult } from "../../../../../src/plugins/kubernetes/task-results"
+import { k8sGetRunResult, storeRunResult } from "../../../../../src/plugins/kubernetes/run-results"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants"
+import { createActionLog } from "../../../../../src/logger/log-entry"
 
-describe("kubernetes task results", () => {
+describe("kubernetes Run results", () => {
   let garden: Garden
   let provider: Provider<KubernetesConfig>
 
@@ -26,46 +27,46 @@ describe("kubernetes task results", () => {
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
-  describe("storeTaskResult", () => {
+  describe("storeRunResult", () => {
     it("should trim logs when necessary", async () => {
-      const ctx = await garden.getPluginContext(provider)
+      const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const task = graph.getTask("echo-task")
+      const action = graph.getRun("echo-task")
 
       const data = randomString(1024 * 1024)
 
-      const trimmed = await storeTaskResult({
+      const trimmed = await storeRunResult({
         ctx,
         log: garden.log,
-        module: task.module,
-        task,
+        // module: task.module,
+        action,
         result: {
-          moduleName: task.module.name,
-          taskName: task.name,
-          outputs: { log: data },
+          // moduleName: task.module.name,
+          // taskName: task.name,
+          // outputs: { log: data },
           log: data,
           startedAt: new Date(),
           completedAt: new Date(),
-          command: [],
-          version: task.version,
+          // command: [],
+          // version: task.version,
           success: true,
         },
       })
 
       expect(trimmed.log.length).to.be.lte(MAX_RUN_RESULT_LOG_LENGTH)
+      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
-      const stored = await getTaskResult({
+      const stored = await k8sGetRunResult({
         ctx,
-        log: garden.log,
-        module: task.module,
-        task,
+        log: actionLog,
+        action,
       })
 
       expect(stored).to.exist
-      expect(stored!.log.length).to.equal(trimmed.log.length)
+      expect(stored!.detail?.log.length).to.equal(trimmed.log.length)
 
       const outputsLog = stored!.outputs.log as string
       expect(outputsLog.length).to.equal(trimmed.log.length)

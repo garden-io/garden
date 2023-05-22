@@ -6,26 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ForwardablePort, GardenService, ServiceIngress, ServiceState, ServiceStatus } from "../../../types/service"
-import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
-import { LogEntry } from "../../../logger/log-entry"
+import { ForwardablePort, ServiceIngress, DeployState, ServiceStatus } from "../../../types/service"
+import { Log } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
-import { HelmModule } from "./config"
-import { getBaseModule, getReleaseName, loadTemplate } from "./common"
+import { getReleaseName, loadTemplate } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
-import { KubernetesServerResource } from "../types"
-import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
-import { getServiceResource, getServiceResourceSpec, isWorkload } from "../util"
-import { startDevModeSync } from "../dev-mode"
-import { isConfiguredForDevMode, isConfiguredForLocalMode } from "../status/status"
+import { KubernetesResource, KubernetesServerResource } from "../types"
+import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
+import { getTargetResource, isWorkload } from "../util"
+import { getDeployedResource, isConfiguredForLocalMode } from "../status/status"
 import { KubeApi } from "../api"
 import Bluebird from "bluebird"
 import { getK8sIngresses } from "../status/ingress"
+import { DeployActionHandler } from "../../../plugin/action-types"
+import { HelmDeployAction } from "./config"
+import { ActionMode, Resolved } from "../../../actions/types"
+import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
+import { isTruthy } from "../../../util/util"
 
 export const gardenCloudAECPauseAnnotation = "garden.io/aec-status"
 
-const helmStatusMap: { [status: string]: ServiceState } = {
+const helmStatusMap: { [status: string]: DeployState } = {
   unknown: "unknown",
   deployed: "ready",
   deleted: "missing",
@@ -40,46 +42,31 @@ interface HelmStatusDetail {
 
 export type HelmServiceStatus = ServiceStatus<HelmStatusDetail>
 
-export async function getServiceStatus({
-  ctx,
-  module,
-  service,
-  log,
-  devMode,
-  hotReload,
-  localMode,
-}: GetServiceStatusParams<HelmModule>): Promise<HelmServiceStatus> {
+export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAction> = async (params) => {
+  const { ctx, action, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const releaseName = getReleaseName(module)
+  const provider = k8sCtx.provider
+
+  const releaseName = getReleaseName(action)
 
   const detail: HelmStatusDetail = {}
-  let state: ServiceState
+  let state: DeployState
   let helmStatus: ServiceStatus
 
-  const namespaceStatus = await getModuleNamespaceStatus({
+  const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
-    module,
-    provider: k8sCtx.provider,
+    action,
+    provider,
   })
 
-  let deployedWithDevModeOrHotReloading: boolean | undefined
-  let deployedWithLocalMode: boolean | undefined
+  const mode = action.mode()
+  let deployedMode: ActionMode = "default"
 
   try {
-    helmStatus = await getReleaseStatus({
-      ctx: k8sCtx,
-      module,
-      service,
-      releaseName,
-      log,
-      devMode,
-      hotReload,
-      localMode,
-    })
+    helmStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log })
     state = helmStatus.state
-    deployedWithDevModeOrHotReloading = helmStatus.devMode
-    deployedWithLocalMode = helmStatus.localMode
+    deployedMode = helmStatus.detail.mode || "default"
   } catch (err) {
     state = "missing"
   }
@@ -87,98 +74,94 @@ export async function getServiceStatus({
   let forwardablePorts: ForwardablePort[] = []
   let ingresses: ServiceIngress[] = []
 
-  if (state !== "missing") {
-    const deployedResources = await getRenderedResources({ ctx: k8sCtx, module, releaseName, log })
+  const spec = action.getSpec()
 
-    forwardablePorts = !!deployedWithLocalMode ? [] : getForwardablePorts(deployedResources, service)
+  if (state !== "missing") {
+    const deployedResources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
+
+    forwardablePorts = deployedMode === "local" ? [] : getForwardablePorts(deployedResources, action)
     ingresses = getK8sIngresses(deployedResources)
 
     if (state === "ready") {
-      // Local mode always takes precedence over dev mode
-      if (localMode && service.spec.localMode) {
-        const baseModule = getBaseModule(module)
-        const serviceResourceSpec = getServiceResourceSpec(module, baseModule)
-        const target = await getServiceResource({
-          ctx: k8sCtx,
-          log,
-          provider: k8sCtx.provider,
-          module,
-          manifests: deployedResources,
-          resourceSpec: serviceResourceSpec,
-        })
+      // Local mode always takes precedence over sync mode
+      if (mode === "local" && spec.localMode) {
+        const query = spec.localMode.target || spec.defaultTarget
 
-        if (!isConfiguredForLocalMode(target)) {
-          state = "outdated"
-        }
-      } else if (devMode && service.spec.devMode) {
-        // Need to start the dev-mode sync here, since the deployment handler won't be called.
-        const baseModule = getBaseModule(module)
-        const serviceResourceSpec = getServiceResourceSpec(module, baseModule)
-        const target = await getServiceResource({
-          ctx: k8sCtx,
-          log,
-          provider: k8sCtx.provider,
-          module,
-          manifests: deployedResources,
-          resourceSpec: serviceResourceSpec,
-        })
-
-        // Make sure we don't fail if the service isn't actually properly configured (we don't want to throw in the
-        // status handler, generally)
-        if (isConfiguredForDevMode(target)) {
-          const namespace =
-            target.metadata.namespace ||
-            (await getModuleNamespace({
-              ctx: k8sCtx,
-              log,
-              module,
-              provider: k8sCtx.provider,
-            }))
-
-          await startDevModeSync({
-            ctx,
+        // If no target is set, a warning is emitted during deployment
+        if (query) {
+          const target = await getTargetResource({
+            ctx: k8sCtx,
             log,
-            moduleRoot: service.sourceModule.path,
-            namespace,
-            target,
-            spec: service.spec.devMode,
-            containerName: service.spec.devMode.containerName,
-            serviceName: service.name,
+            provider: k8sCtx.provider,
+            action,
+            manifests: deployedResources,
+            query,
           })
-        } else {
-          state = "outdated"
+
+          if (!isConfiguredForLocalMode(target)) {
+            state = "outdated"
+          }
         }
+      } else if (mode === "sync" && spec.sync?.paths && deployedMode !== mode) {
+        // TODO: might want to check every target resource here
+        state = "outdated"
       }
     }
   }
 
   return {
-    forwardablePorts,
-    state,
-    version: state === "ready" ? service.version : undefined,
-    detail,
-    devMode: deployedWithDevModeOrHotReloading,
-    localMode: deployedWithLocalMode,
-    namespaceStatuses: [namespaceStatus],
-    ingresses,
+    state: deployStateToActionState(state),
+    detail: {
+      forwardablePorts,
+      state,
+      version: state === "ready" ? action.versionString() : undefined,
+      detail,
+      mode: deployedMode,
+      namespaceStatuses: [namespaceStatus],
+      ingresses,
+    },
+    // TODO-0.13.1
+    outputs: {},
   }
+}
+
+/**
+ * Renders the chart for the provided Helm Deploy and fetches all matching resources for the rendered manifests
+ * from the cluster.
+ */
+export async function getDeployedChartResources({
+  ctx,
+  releaseName,
+  log,
+  action,
+}: {
+  ctx: KubernetesPluginContext
+  releaseName: string
+  log: Log
+  action: Resolved<HelmDeployAction>
+}): Promise<KubernetesResource[]> {
+  const manifests = await getRenderedResources({ ctx, action, releaseName, log })
+  const deployedResources = (
+    await Bluebird.map(manifests, (resource) => getDeployedResource(ctx, ctx.provider, resource, log))
+  ).filter(isTruthy)
+  return deployedResources
 }
 
 export async function getRenderedResources({
   ctx,
   releaseName,
   log,
-  module,
+  action,
 }: {
   ctx: KubernetesPluginContext
   releaseName: string
-  log: LogEntry
-  module: HelmModule
-}) {
-  const namespace = await getModuleNamespace({
+  log: Log
+  action: Resolved<HelmDeployAction>
+}): Promise<KubernetesResource[]> {
+  const namespace = await getActionNamespace({
     ctx,
     log,
-    module,
+    action,
     provider: ctx.provider,
   })
 
@@ -195,29 +178,21 @@ export async function getRenderedResources({
 
 export async function getReleaseStatus({
   ctx,
-  module,
-  service,
+  action,
   releaseName,
   log,
-  devMode,
-  hotReload,
-  localMode,
 }: {
   ctx: KubernetesPluginContext
-  module: HelmModule
-  service: GardenService
+  action: Resolved<HelmDeployAction>
   releaseName: string
-  log: LogEntry
-  devMode: boolean
-  hotReload: boolean
-  localMode: boolean
+  log: Log
 }): Promise<ServiceStatus> {
   try {
     log.silly(`Getting the release status for ${releaseName}`)
-    const namespace = await getModuleNamespace({
+    const namespace = await getActionNamespace({
       ctx,
       log,
-      module: service.module,
+      action,
       provider: ctx.provider,
     })
 
@@ -235,9 +210,7 @@ export async function getReleaseStatus({
     let state = helmStatusMap[res.info.status] || "unknown"
     let values = {}
 
-    let devModeEnabled = false
-    let hotReloadEnabled = false
-    let localModeEnabled = false
+    let deployedMode: ActionMode = "default"
 
     if (state === "ready") {
       // Make sure the right version is deployed
@@ -252,35 +225,24 @@ export async function getReleaseStatus({
         })
       )
 
-      const deployedVersion = values[".garden"] && values[".garden"].version
-      devModeEnabled = values[".garden"] && values[".garden"].devMode === true
-      hotReloadEnabled = values[".garden"] && values[".garden"].hotReload === true
-      localModeEnabled = values[".garden"] && values[".garden"].localMode === true
+      const deployedVersion = values[".garden"]?.version
+      deployedMode = values[".garden"]?.mode
 
-      if (
-        (devMode && !devModeEnabled) ||
-        (hotReload && !hotReloadEnabled) ||
-        (localMode && !localModeEnabled) ||
-        (!localMode && localModeEnabled) || // this is still a valid case for local-mode
-        !deployedVersion ||
-        deployedVersion !== service.version
-      ) {
+      if (action.mode() !== deployedMode || !deployedVersion || deployedVersion !== action.versionString()) {
         state = "outdated"
       }
 
       // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
       // that could have been paused by Garden Cloud's AEC functionality. We therefore make sure to check for
       // the annotations Garden Cloud adds to Helm Deployments and StatefulSets when pausing an environment.
-      if (ctx.cloudApi && (await isPaused({ ctx, namespace, module, releaseName, log }))) {
+      if (ctx.cloudApi && (await isPaused({ ctx, namespace, action, releaseName, log }))) {
         state = "outdated"
       }
     }
 
     return {
       state,
-      detail: { ...res, values },
-      devMode: devModeEnabled || hotReloadEnabled,
-      localMode: localModeEnabled,
+      detail: { ...res, values, mode: deployedMode },
     }
   } catch (err) {
     if (err.message.includes("release: not found")) {
@@ -296,19 +258,19 @@ export async function getReleaseStatus({
  */
 export async function getPausedResources({
   ctx,
-  module,
+  action,
   namespace,
   releaseName,
   log,
 }: {
   ctx: KubernetesPluginContext
   namespace: string
-  module: HelmModule
+  action: Resolved<HelmDeployAction>
   releaseName: string
-  log: LogEntry
+  log: Log
 }) {
   const api = await KubeApi.factory(log, ctx, ctx.provider)
-  const renderedResources = await getRenderedResources({ ctx, module, releaseName, log })
+  const renderedResources = await getRenderedResources({ ctx, action, releaseName, log })
   const workloads = renderedResources.filter(isWorkload)
   const deployedResources = await Bluebird.all(
     workloads.map((workload) => api.readBySpec({ log, namespace, manifest: workload }))
@@ -322,16 +284,16 @@ export async function getPausedResources({
 
 async function isPaused({
   ctx,
-  module,
+  action,
   namespace,
   releaseName,
   log,
 }: {
   ctx: KubernetesPluginContext
   namespace: string
-  module: HelmModule
+  action: Resolved<HelmDeployAction>
   releaseName: string
-  log: LogEntry
+  log: Log
 }) {
-  return (await getPausedResources({ ctx, module, namespace, releaseName, log })).length > 0
+  return (await getPausedResources({ ctx, action, namespace, releaseName, log })).length > 0
 }

@@ -6,35 +6,30 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginCommand } from "../../../types/plugin/command"
 import chalk from "chalk"
-import { getMutagenEnv, mutagenCliSpec, parseSyncListResult } from "../mutagen"
-import { LATEST_MUTAGEN_DATA_DIR_NAME, MUTAGEN_DIR_NAME } from "../../../constants"
+import { getMutagenEnv, mutagenCliSpec, parseSyncListResult } from "../../../mutagen"
+import { MUTAGEN_DIR_NAME } from "../../../constants"
 import { join } from "path"
-import { pathExists, readlink } from "fs-extra"
+import { pathExists } from "fs-extra"
 import { dedent } from "../../../util/string"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { PluginTool } from "../../../util/ext-tools"
+import { PluginCommand } from "../../../plugin/command"
 
-const logSuccess = (log: LogEntry) => log.info({ msg: chalk.green("\nDone!"), status: "success" })
-
-const commonDocs = `'garden dev' or 'garden deploy --dev' must be running in this project for this command to work.`
+const logSuccess = (log: Log) => log.info({ msg: chalk.green("\nDone!") })
 
 export const syncStatus: PluginCommand = {
   name: "sync-status",
-  description: `Get the sync status for the current dev mode command. ${commonDocs}`,
+  description: `Get the sync status for any active Kubernetes/container syncs.`,
   title: "Get the current sync status",
 
   handler: async ({ ctx, log }) => {
-    const dataDir = await getMutagenDataDir(ctx.gardenDirPath)
+    const dataDir = getMutagenDataDir(ctx.gardenDirPath)
     const mutagen = new PluginTool(mutagenCliSpec)
 
     if (!(await pathExists(dataDir))) {
       log.info(dedent`
         No active sync session found.
-
-        Garden needs to be running in dev mode in this project for sync statuses to
-        be available.
       `)
 
       logSuccess(log)
@@ -59,11 +54,11 @@ export const syncStatus: PluginCommand = {
 
 export const syncPause: PluginCommand = {
   name: "sync-pause",
-  description: `Pause all active syncs. Can be resumed with the sync-resume command. ${commonDocs}`,
+  description: `Pause all active Kubernetes/container syncs. Can be resumed with the sync-resume command.`,
   title: "Pause sync",
 
   handler: async ({ ctx, log }) => {
-    const dataDir = await getMutagenDataDir(ctx.gardenDirPath)
+    const dataDir = getMutagenDataDir(ctx.gardenDirPath)
     const mutagen = new PluginTool(mutagenCliSpec)
 
     if (!(await pathExists(dataDir))) {
@@ -100,11 +95,11 @@ export const syncPause: PluginCommand = {
 
 export const syncResume: PluginCommand = {
   name: "sync-resume",
-  description: `Resume all paused syncs. ${commonDocs}`,
+  description: `Resume all paused syncs.`,
   title: "Resume sync",
 
   handler: async ({ ctx, log }) => {
-    const dataDir = await getMutagenDataDir(ctx.gardenDirPath)
+    const dataDir = getMutagenDataDir(ctx.gardenDirPath)
     const mutagen = new PluginTool(mutagenCliSpec)
 
     if (!(await pathExists(dataDir))) {
@@ -139,15 +134,7 @@ export const syncResume: PluginCommand = {
   },
 }
 
-async function getMutagenSyncSessions({
-  mutagen,
-  dataDir,
-  log,
-}: {
-  mutagen: PluginTool
-  dataDir: string
-  log: LogEntry
-}) {
+async function getMutagenSyncSessions({ mutagen, dataDir, log }: { mutagen: PluginTool; dataDir: string; log: Log }) {
   const res = await mutagen.exec({
     cwd: dataDir,
     log,
@@ -157,17 +144,6 @@ async function getMutagenSyncSessions({
   return parseSyncListResult(res)
 }
 
-/**
- * Returns the "real" path to the Mutagen data dir for this project
- * by reading it from the 'LATEST_MUTAGEN_DATA_DIR_NAME' symlink which
- * is always created when the Mutagen daemon is started.
- *
- * This is based on the assumption that there's only a single Mutagen daemon
- * running per project.
- *
- * It's a little hacky but works.
- */
-async function getMutagenDataDir(gardenDirPath: string) {
-  const mutagenDataDirSymlink = join(gardenDirPath, MUTAGEN_DIR_NAME, LATEST_MUTAGEN_DATA_DIR_NAME)
-  return readlink(mutagenDataDirSymlink)
+function getMutagenDataDir(gardenDirPath: string) {
+  return join(gardenDirPath, MUTAGEN_DIR_NAME)
 }

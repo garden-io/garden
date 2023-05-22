@@ -13,27 +13,35 @@ import { apply as jsonMerge } from "json-merge-patch"
 import chalk from "chalk"
 import hasha from "hasha"
 
-import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource, isPodResource } from "./types"
-import { splitLast, serializeValues, findByName, exec } from "../../util/util"
+import {
+  KubernetesResource,
+  KubernetesWorkload,
+  KubernetesPod,
+  KubernetesServerResource,
+  isPodResource,
+  SupportedRuntimeAction,
+} from "./types"
+import { findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
-import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
-import { inClusterRegistryHostname, MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
-import { ContainerEnvVars } from "../container/config"
-import { ConfigurationError, DeploymentError, PluginError } from "../../exceptions"
-import { ServiceResourceSpec, KubernetesProvider, KubernetesPluginContext } from "./config"
-import { LogEntry } from "../../logger/log-entry"
+import { gardenAnnotationKey, base64, deline, stableStringify, splitLast, truncate } from "../../util/string"
+import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
+import { ContainerEnvVars } from "../container/moduleConfig"
+import { ConfigurationError, DeploymentError, InternalError, PluginError } from "../../exceptions"
+import { KubernetesProvider, KubernetesPluginContext, KubernetesTargetResourceSpec } from "./config"
+import { Log } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
-import { HelmModule } from "./helm/config"
-import { KubernetesModule } from "./kubernetes-module/config"
-import { getChartPath, renderHelmTemplateString } from "./helm/common"
-import { SyncableResource } from "./hot-reload/hot-reload"
+import { HelmModule } from "./helm/module-config"
+import { KubernetesModule } from "./kubernetes-type/module-config"
+import { prepareTemplates, renderHelmTemplateString } from "./helm/common"
+import { SyncableResource } from "./types"
 import { ProviderMap } from "../../config/provider"
-import { PodRunner } from "./run"
+import { PodRunner, PodRunnerExecParams } from "./run"
 import { isSubset } from "../../util/is-subset"
 import { checkPodStatus } from "./status/pod"
-import { getModuleNamespace } from "./namespace"
-
-export const skopeoImage = "gardendev/skopeo:1.41.0-3"
+import { getActionNamespace } from "./namespace"
+import { Resolved } from "../../actions/types"
+import { serializeValues } from "../../util/serialization"
+import { PassThrough } from "stream"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -168,7 +176,7 @@ export async function getWorkloadPods(api: KubeApi, namespace: string, resource:
     return [await api.core.readNamespacedPod(resource.metadata.name, resource.metadata.namespace || namespace)]
   }
 
-  // We don't match on the garden.io/version label because it can fall out of sync during hot reloads
+  // We don't match on the garden.io/version label because it can fall out of sync
   const selector = omit(getSelectorFromResource(resource), gardenAnnotationKey("version"))
   const pods = await getPods(api, resource.metadata?.namespace || namespace, selector)
 
@@ -241,14 +249,16 @@ export async function execInWorkload({
   namespace,
   workload,
   command,
+  streamLogs = false,
   interactive,
 }: {
   ctx: PluginContext
   provider: KubernetesProvider
-  log: LogEntry
+  log: Log
   namespace: string
   workload: KubernetesWorkload | KubernetesPod
   command: string[]
+  streamLogs?: boolean
   interactive: boolean
 }) {
   const api = await KubeApi.factory(log, ctx, provider)
@@ -258,9 +268,35 @@ export async function execInWorkload({
 
   if (!pod) {
     // This should not happen because of the prior status check, but checking to be sure
-    throw new DeploymentError(`Could not find running pod for ${workload.kind}/${workload.metadata.name}`, {
+    throw new DeploymentError(`Could not find running pod for ${getResourceKey(workload)}`, {
       workload,
     })
+  }
+
+  const execParams: PodRunnerExecParams = {
+    log,
+    command,
+    timeoutSec: 999999,
+    tty: interactive,
+    buffer: true,
+  }
+
+  if (streamLogs) {
+    const logEventContext = {
+      // To avoid an awkwardly long prefix for the log lines when rendered, we set a max length here.
+      origin: truncate(command.join(" "), 25),
+      level: "verbose" as const,
+    }
+
+    const outputStream = new PassThrough()
+    outputStream.on("error", () => {})
+    outputStream.on("data", (line: Buffer) => {
+      // For some reason, we're getting extra newlines for each line here, so we trim them.
+      const msg = line.toString().trimEnd()
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg, ...logEventContext })
+    })
+    execParams.stdout = outputStream
+    execParams.stderr = outputStream
   }
 
   const runner = new PodRunner({
@@ -271,13 +307,7 @@ export async function execInWorkload({
     pod,
   })
 
-  const res = await runner.exec({
-    log,
-    command,
-    timeoutSec: 999999,
-    tty: interactive,
-    buffer: true,
-  })
+  const res = await runner.exec(execParams)
 
   return { code: res.exitCode, output: res.log }
 }
@@ -445,42 +475,6 @@ export function prepareEnvVars(env: ContainerEnvVars): V1EnvVar[] {
 }
 
 /**
- * Makes sure a Kubernetes manifest has an up-to-date API version.
- * See https://kubernetes.io/blog/2019/07/18/api-deprecations-in-1-16/
- *
- * @param manifest any Kubernetes manifest
- */
-export function convertDeprecatedManifestVersion(manifest: KubernetesWorkload): KubernetesWorkload {
-  const { apiVersion, kind } = manifest
-
-  if (workloadTypes.includes(kind)) {
-    manifest.apiVersion = "apps/v1"
-  } else if (apiVersion === "extensions/v1beta1") {
-    switch (kind) {
-      case "NetworkPolicy":
-        manifest.apiVersion = "networking.k8s.io/v1"
-        break
-
-      case "PodSecurityPolicy":
-        manifest.apiVersion = "policy/v1beta1"
-        break
-    }
-  }
-
-  // apps/v1/Deployment requires spec.selector to be set
-  if (kind === "Deployment") {
-    if (manifest.spec && !manifest.spec.selector) {
-      manifest.spec.selector = {
-        // This resolves to an empty object if both of these are (for whatever reason) undefined
-        ...{ matchLabels: manifest.spec.template?.metadata?.labels || manifest.metadata.labels },
-      }
-    }
-  }
-
-  return manifest
-}
-
-/**
  * Given a deployment name, return a running Pod from it, or throw if none is found.
  */
 export async function getRunningDeploymentPod({
@@ -537,134 +531,180 @@ export function matchSelector(selector: { [key: string]: string }, labels: { [ke
  * Returns the `serviceResource` spec on the module. If the module has a base module, the two resource specs
  * are merged using a JSON Merge Patch (RFC 7396).
  *
- * Throws error if no resource spec is configured, or it is empty.
+ * Returns undefined if no resource spec is configured, or it is empty.
  */
-export function getServiceResourceSpec(
-  module: HelmModule | KubernetesModule,
-  baseModule: HelmModule | undefined
-): ServiceResourceSpec {
+export function getServiceResourceSpec(module: HelmModule | KubernetesModule, baseModule: HelmModule | undefined) {
   let resourceSpec = module.spec.serviceResource || {}
 
   if (baseModule) {
     resourceSpec = jsonMerge(cloneDeep(baseModule.spec.serviceResource || {}), resourceSpec)
   }
 
-  if (isEmpty(resourceSpec)) {
-    throw new ConfigurationError(
-      chalk.red(
-        deline`${module.type} module ${chalk.white(module.name)} doesn't specify a ${chalk.underline("serviceResource")}
-        in its configuration. You must specify a resource in the module config in order to use certain Garden features,
-        such as hot reloading, tasks and tests.`
-      ),
-      { resourceSpec }
-    )
-  }
-
-  return <ServiceResourceSpec>resourceSpec
+  return isEmpty(resourceSpec) ? undefined : resourceSpec
 }
 
-interface GetServiceResourceParams {
+interface GetTargetResourceParams {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   provider: KubernetesProvider
-  manifests: KubernetesResource[]
-  module: HelmModule | KubernetesModule
-  resourceSpec: ServiceResourceSpec
+  manifests?: KubernetesResource[]
+  action: Resolved<SupportedRuntimeAction>
+  query: KubernetesTargetResourceSpec
 }
 
 /**
- * Finds and returns the configured service resource from the specified manifests, that we can use for
- * hot-reloading and other service-specific functionality.
+ * Finds and returns the configured resource.
  *
- * Optionally provide a `resourceSpec`, which is then used instead of the default `module.serviceResource` spec.
- * This is used when individual tasks or tests specify a resource.
+ * If a `podSelector` is set on the query, we look for a running Pod matching the selector.
+ * If `manifests` are provided and the query doesn't set a `podSelector`, the resource is looked for in the given list.
+ * Otherwise, the project namespace is queried for resource matching the kind and name in the query.
  *
- * Throws an error if no valid resource spec is given, or the resource spec doesn't match any of the given resources.
+ * Throws an error if an invalid query is given, or the resource spec doesn't match any of the given resources.
  */
-export async function getServiceResource({
+export async function getTargetResource({
   ctx,
   log,
   provider,
   manifests,
-  module,
-  resourceSpec,
-}: GetServiceResourceParams): Promise<SyncableResource> {
-  const resourceMsgName = resourceSpec ? "resource" : "serviceResource"
+  action,
+  query,
+}: GetTargetResourceParams): Promise<SyncableResource> {
+  const api = await KubeApi.factory(log, ctx, provider)
+  const k8sCtx = ctx as KubernetesPluginContext
+  const namespace = await getActionNamespace({
+    ctx: k8sCtx,
+    log,
+    action,
+    provider: k8sCtx.provider,
+  })
 
-  if (resourceSpec.podSelector && !isEmpty(resourceSpec.podSelector)) {
-    const api = await KubeApi.factory(log, ctx, provider)
-    const k8sCtx = ctx as KubernetesPluginContext
-    const namespace = await getModuleNamespace({
-      ctx: k8sCtx,
-      log,
-      module,
-      provider: k8sCtx.provider,
-    })
-
-    const pods = await getReadyPods(api, namespace, resourceSpec.podSelector)
+  if (query.podSelector && !isEmpty(query.podSelector)) {
+    const pods = await getReadyPods(api, namespace, query.podSelector)
     const pod = sample(pods)
     if (!pod) {
-      const selectorStr = getSelectorString(resourceSpec.podSelector)
+      const selectorStr = getSelectorString(query.podSelector)
       throw new ConfigurationError(
         chalk.red(
-          `Could not find any Pod matching provided podSelector (${selectorStr}) for ${resourceMsgName} in ` +
-            `${module.type} module ${chalk.white(module.name)}`
+          `Could not find any Pod matching provided podSelector (${selectorStr}) for target in ` +
+            `${action.longDescription()}`
         ),
-        { resourceSpec }
+        { query }
       )
     }
     return pod
   }
 
-  let targetName = resourceSpec.name
+  const targetKind = query.kind
+  let targetName = query.name
   let target: SyncableResource
 
-  const targetKind = resourceSpec.kind
-  const chartResourceNames = manifests.map((o) => `${o.kind}/${o.metadata.name}`)
-
-  const applicableChartResources = manifests.filter((o) => o.kind === targetKind)
-
-  if (targetKind && targetName) {
-    if (module.type === "helm" && targetName.includes("{{")) {
-      // need to resolve the template string
-      const chartPath = await getChartPath(<HelmModule>module)
-      targetName = await renderHelmTemplateString(ctx, log, module as HelmModule, chartPath, targetName)
-    }
-
-    target = find(<SyncableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!
-
-    if (!target) {
-      throw new ConfigurationError(
-        chalk.red(
-          deline`${module.type} module ${chalk.white(module.name)} does not contain specified ${targetKind}
-          ${chalk.white(targetName)}`
-        ),
-        { resourceSpec, chartResourceNames }
-      )
-    }
-  } else {
-    if (applicableChartResources.length === 0) {
-      throw new ConfigurationError(`${module.type} module ${chalk.white(module.name)} contains no ${targetKind}s.`, {
-        resourceSpec,
-        chartResourceNames,
-      })
-    }
-
-    if (applicableChartResources.length > 1) {
-      throw new ConfigurationError(
-        chalk.red(
-          deline`${module.type} module ${chalk.white(module.name)} contains multiple ${targetKind}s.
-          You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
-          to use.`
-        ),
-        { resourceSpec, chartResourceNames }
-      )
-    }
-
-    target = <SyncableResource>applicableChartResources[0]
+  if (!targetKind) {
+    // This should be caught in config/schema validation
+    throw new InternalError(`Neither kind nor podSelector set in resource query`, { query })
   }
 
-  return target
+  // Look in the specified manifests, if provided
+  if (manifests) {
+    const chartResourceNames = manifests.map((o) => getResourceKey(o))
+
+    const applicableChartResources = manifests.filter((o) => o.kind === targetKind)
+
+    if (targetKind && targetName) {
+      if (action.type === "helm" && targetName.includes("{{")) {
+        // need to resolve the Helm template string
+        const { chartPath, valuesPath, reference } = await prepareTemplates({ ctx: k8sCtx, action, log })
+        targetName = await renderHelmTemplateString({
+          ctx,
+          log,
+          action,
+          chartPath,
+          reference,
+          value: targetName,
+          valuesPath,
+        })
+      }
+
+      target = find(<SyncableResource[]>applicableChartResources, (o) => o.metadata.name === targetName)!
+
+      if (!target) {
+        throw new ConfigurationError(
+          chalk.red(
+            deline`${action.longDescription()} does not contain specified ${targetKind}
+            ${chalk.white(targetName)}`
+          ),
+          { query, chartResourceNames }
+        )
+      }
+    } else {
+      if (applicableChartResources.length === 0) {
+        throw new ConfigurationError(`${action.longDescription()} contains no ${targetKind}s.`, {
+          query,
+          chartResourceNames,
+        })
+      }
+
+      if (applicableChartResources.length > 1) {
+        throw new ConfigurationError(
+          chalk.red(
+            deline`${action.longDescription()} contains multiple ${targetKind}s.
+            You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
+            to use.`
+          ),
+          { query, chartResourceNames }
+        )
+      }
+
+      target = <SyncableResource>applicableChartResources[0]
+    }
+
+    return target
+  }
+
+  // No manifests provided, need to look up in the remote namespace
+  try {
+    target = await readTargetResource({ api, namespace, query })
+    return target
+  } catch (err) {
+    if (err.statusCode === 404) {
+      throw new ConfigurationError(
+        chalk.red(
+          deline`${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.`
+        ),
+        { query, namespace }
+      )
+    } else {
+      throw err
+    }
+  }
+}
+
+export async function readTargetResource({
+  api,
+  namespace,
+  query,
+}: {
+  api: KubeApi
+  namespace: string
+  query: KubernetesTargetResourceSpec
+}): Promise<SyncableResource> {
+  const targetKind = query.kind
+  let targetName = query.name
+
+  if (!targetName) {
+    // This should be caught in config/schema validation
+    throw new InternalError(`Must specify name in resource/target query`, { query })
+  }
+
+  if (targetKind === "Deployment") {
+    return api.apps.readNamespacedDeployment(targetName, namespace)
+  } else if (targetKind === "DaemonSet") {
+    return api.apps.readNamespacedDaemonSet(targetName, namespace)
+  } else if (targetKind === "StatefulSet") {
+    return api.apps.readNamespacedStatefulSet(targetName, namespace)
+  } else {
+    // This should be caught in config/schema validation
+    throw new InternalError(`Unsupported kind specified in resource/target query`, { query })
+  }
 }
 
 /**
@@ -711,29 +751,9 @@ const maxPodNamePrefixLength = maxPodNameLength - podNameHashLength - 1
  * @param key the specific key of the task, test etc.
  */
 export function makePodName(type: string, ...parts: string[]) {
-  const id = `${type}-${parts.join("-")}`
+  const id = `${type.toLowerCase()}-${parts.join("-")}`
   const hash = hasha(`${id}-${Math.round(new Date().getTime())}`, { algorithm: "sha1" })
   return id.slice(0, maxPodNamePrefixLength) + "-" + hash.slice(0, podNameHashLength)
-}
-
-/**
- * Creates a skopeo container configuration to be execued by a PodRunner.
- *
- * @param command the skopeo command to execute
- */
-export function getSkopeoContainer(command: string) {
-  return {
-    name: "skopeo",
-    image: skopeoImage,
-    command: ["sh", "-c", command],
-    volumeMounts: [
-      {
-        name: systemDockerAuthSecretName,
-        mountPath: "/root/.docker",
-        readOnly: true,
-      },
-    ],
-  }
 }
 
 /**
@@ -754,13 +774,6 @@ export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
   }
 
   return provider as KubernetesProvider
-}
-
-/**
- * Returns true if the in-cluster registry is being used by the given `kubernetes` provider.
- */
-export function usingInClusterRegistry(provider: KubernetesProvider) {
-  return provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname
 }
 
 export function renderPodEvents(events: CoreV1Event[]): string {

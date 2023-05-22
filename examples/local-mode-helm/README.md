@@ -1,23 +1,15 @@
-# Local mode for `helm` modules
+# Local mode for `helm` action type
 
 A very basic demo project for Garden [local mode](../../docs/guides/running-service-in-local-mode.md) for `helm`
-module type.
+action type.
 
 This project is based on the [local-mode-k8s](../local-mode-k8s). The only difference is that this one has the `backend`
-service defined as a `helm` module. The backend service can be started in the _local mode_.
+service defined as a `helm` deploy action. The backend service can be started in the _local mode_.
 
 The local backend service implementation can be found in [backend-local](./backend-local).
-
-To build the local backend service, locate to its directory and run the following commands:
-
-```shell
-# optional command to re-generate `main.mod` file
-go mod init main
-# build binary
-go build -o main
-# make the binary executable
-chmod +x main
-```
+The `backend-local` application has its own `garden.yml` config that defines a single `Run` action to compile the
+application binary. The `Deploy` action defined in the [backend](./backend/garden.yml) depends on the `Run` action of
+the `backend-local` when deployment is running in local mode.
 
 To start the backend in local mode, try the following commands:
 
@@ -28,17 +20,6 @@ garden deploy --local=backend
 # To start both services in local mode
 garden deploy --local
 garden deploy --local=*
-```
-
-Alternatively, you can also run the local mode using the `garden dev` command:
-
-```shell
-# To start a specific service in local mode
-garden dev --local=backend
-
-# To start both services in local mode
-garden dev --local
-garden dev --local=*
 ```
 
 To verify the result, call the corresponding ingress URLs of the `frontend` and `backend` applications. The local

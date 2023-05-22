@@ -13,11 +13,11 @@ import stripAnsi from "strip-ansi"
 
 import { LogLevel } from "../logger"
 import { LogEntry } from "../log-entry"
-import { Writer } from "./base"
+import { BaseWriterParams, Writer } from "./base"
 import { renderError, renderMsg } from "../renderers"
 import { InternalError } from "../../exceptions"
 
-export interface FileWriterConfig {
+export interface FileWriterConfig extends BaseWriterParams {
   level: LogLevel
   logFilePath: string
   fileTransportOptions?: {}
@@ -42,7 +42,7 @@ export const levelToStr = (lvl: LogLevel): string => LogLevel[lvl]
 
 export function render(level: LogLevel, entry: LogEntry): string | null {
   if (level >= entry.level) {
-    const renderFn = entry.level === LogLevel.error ? renderError : renderMsg
+    const renderFn = entry.error ? renderError : renderMsg
     return stripAnsi(renderFn(entry))
   }
   return null
@@ -55,11 +55,10 @@ export class FileWriter extends Writer {
   protected logFilePath: string
   protected fileTransportOptions: FileTransportOptions
 
-  constructor(logFilePath: string, config: FileWriterConfig) {
-    super(config.level)
+  constructor(config: FileWriterConfig) {
+    super({ level: config.level })
 
-    const { fileTransportOptions = DEFAULT_FILE_TRANSPORT_OPTIONS, level } = config
-    this.level = level
+    const { logFilePath, fileTransportOptions = DEFAULT_FILE_TRANSPORT_OPTIONS } = config
     this.fileTransportOptions = fileTransportOptions
     this.logFilePath = logFilePath
     this.fileLogger = null
@@ -68,7 +67,7 @@ export class FileWriter extends Writer {
   static async factory(config: FileWriterConfig) {
     const { logFilePath, truncatePrevious } = config
     if (!isAbsolute(logFilePath)) {
-      throw new InternalError(`FilewWriter expected absolute log file path, got ${logFilePath}`, { logFilePath })
+      throw new InternalError(`FileWriter expected absolute log file path, got ${logFilePath}`, { logFilePath })
     }
     await ensureDir(dirname(logFilePath))
     if (truncatePrevious) {
@@ -76,7 +75,7 @@ export class FileWriter extends Writer {
         await truncate(logFilePath)
       } catch (_) {}
     }
-    return new this(logFilePath, config) // We use `this` in order for this factory method to work for subclasses
+    return new this(config) // We use `this` in order for this factory method to work for subclasses
   }
 
   // Only init if needed to prevent unnecessary file writes
@@ -96,7 +95,7 @@ export class FileWriter extends Writer {
     return render(this.level, entry)
   }
 
-  onGraphChange(entry: LogEntry) {
+  write(entry: LogEntry) {
     const out = this.render(entry)
     if (out) {
       if (!this.fileLogger) {
@@ -105,6 +104,4 @@ export class FileWriter extends Writer {
       this.fileLogger.log(levelToStr(entry.level), out)
     }
   }
-
-  stop() {}
 }

@@ -7,97 +7,225 @@
  */
 
 import { expect } from "chai"
-import { loadConfigResources, findProjectConfig, prepareModuleResource } from "../../../../src/config/base"
+import {
+  loadConfigResources,
+  findProjectConfig,
+  prepareModuleResource,
+  prepareProjectResource,
+  noTemplateFields,
+  validateRawConfig,
+  configTemplateKind,
+} from "../../../../src/config/base"
 import { resolve, join } from "path"
-import { dataDir, expectError, getDataDir } from "../../../helpers"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import stripAnsi = require("strip-ansi")
-import { getLogger } from "../../../../src/logger/logger"
+import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, PREVIOUS_API_VERSION } from "../../../../src/constants"
+import { defaultDotIgnoreFile } from "../../../../src/util/fs"
+import { safeDumpYaml } from "../../../../src/util/serialization"
+import { getRootLogger } from "../../../../src/logger/logger"
+import { ConfigurationError } from "../../../../src/exceptions"
+import { resetNonRepeatableWarningHistory } from "../../../../src/warnings"
 
-const projectPathA = resolve(dataDir, "test-project-a")
+const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
 
-const projectPathMultipleModules = resolve(dataDir, "test-projects", "multiple-module-config")
+const projectPathMultipleModules = getDataDir("test-projects", "multiple-module-config")
 const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
 
-const projectPathDuplicateProjects = resolve(dataDir, "test-project-duplicate-project-config")
+const projectPathDuplicateProjects = getDataDir("test-project-duplicate-project-config")
+const logger = getRootLogger()
+const log = logger.createLog()
+
+// TODO-0.14: remove this describe block in 0.14
+describe("prepareProjectResource", () => {
+  const projectResourceTemplate = {
+    apiVersion: DEFAULT_API_VERSION,
+    kind: "Project",
+    name: "test",
+    path: "/tmp/", // the path does not matter in this test suite
+    defaultEnvironment: "default",
+    environments: [{ name: "default", defaultNamespace: null, variables: {} }],
+    providers: [{ name: "foo" }],
+    variables: {},
+  }
+
+  beforeEach(() => {
+    // we reset the non repeatable warning before each test to make sure that a
+    // previously displayed warning is logged in all tests
+    resetNonRepeatableWarningHistory()
+  })
+
+  it("no changes if new `dotIgnoreFile` field is provided explicitly", () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      dotIgnoreFile: ".somedotignore",
+    }
+
+    const migratedProjectResource = prepareProjectResource(log, projectResource)
+    expect(migratedProjectResource).to.eql(projectResource)
+  })
+
+  it("no changes if neither new `dotIgnoreFile` nor `dotIgnoreFiles` fields are defined in the project config", () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+    }
+
+    const migratedProjectResource = prepareProjectResource(log, projectResource)
+    expect(migratedProjectResource).to.eql(projectResource)
+  })
+
+  it("empty `dotIgnoreFiles` array is automatically remapped to the default `dotIgnoreFile`", () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      dotIgnoreFiles: [],
+    }
+
+    const migratedProjectResource = prepareProjectResource(log, projectResource)
+    const expectedProjectResource = {
+      ...projectResource,
+      dotIgnoreFile: defaultDotIgnoreFile,
+    }
+    expect(migratedProjectResource).to.eql(expectedProjectResource)
+  })
+
+  it("singe-valued `dotIgnoreFiles` array is automatically remapped to scalar `dotIgnoreFile`", () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      dotIgnoreFiles: [".somedotignore"],
+    }
+
+    const migratedProjectResource = prepareProjectResource(log, projectResource)
+    const expectedProjectResource = {
+      ...projectResource,
+      dotIgnoreFile: ".somedotignore",
+    }
+    expect(migratedProjectResource).to.eql(expectedProjectResource)
+  })
+
+  it("throw an error if multi-valued `dotIgnoreFiles` array is defined in the project config", () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      dotIgnoreFiles: [".somedotignore", ".gitignore"],
+    }
+
+    const processConfigAction = () => prepareProjectResource(log, projectResource)
+    expect(processConfigAction).to.throw(
+      "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.somedotignore, .gitignore]"
+    )
+  })
+
+  it("should throw an error if the apiVersion is not known", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: "unknown",
+    }
+
+    const processConfigAction = () => prepareProjectResource(log, projectResource)
+    expect(processConfigAction).to.throw(ConfigurationError, /\`apiVersion: unknown\` is not supported/)
+  })
+
+  it("should fall back to the previous apiVersion when not defined", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: undefined,
+    }
+
+    const returnedProjectResource = prepareProjectResource(log, projectResource)
+
+    // The apiVersion is set to the previous version for backwards compatibility.
+    const expectedProjectResource = {
+      ...projectResource,
+      apiVersion: PREVIOUS_API_VERSION,
+    }
+    expect(returnedProjectResource).to.eql(expectedProjectResource)
+
+    const logEntry = log.getLatestEntry()
+    expect(logEntry.msg).to.include(`"apiVersion" is missing in the Project config`)
+  })
+
+  it("should log a warning if the apiVersion is against the previous version", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: PREVIOUS_API_VERSION,
+    }
+
+    const returnedProjectResource = prepareProjectResource(log, projectResource)
+    expect(returnedProjectResource).to.eql(projectResource)
+
+    const logEntry = log.getLatestEntry()
+    expect(logEntry.msg).to.include(
+      `Project is configured with \`apiVersion: ${PREVIOUS_API_VERSION}\`, running with backwards compatibility.`
+    )
+  })
+})
 
 describe("loadConfigResources", () => {
-  const log = getLogger().placeholder()
-
   it("should throw a config error if the file couldn't be parsed", async () => {
-    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
       async () =>
-        await loadConfigResources({
-          log,
-          projectRoot: projectPath,
-          configPath: resolve(projectPath, "invalid-syntax-module", "garden.yml"),
-        }),
-      (err) => {
-        expect(err.message).to.match(/Could not parse/)
-        expect(err.message).to.match(/duplicated mapping key/) // include syntax erorrs in the output
-      }
+        await loadConfigResources(log, projectPath, resolve(projectPath, "invalid-syntax-module", "garden.yml")),
+      { contains: ["Could not parse", "duplicated mapping key"] }
     )
   })
 
   it("should throw if a config doesn't specify a kind", async () => {
-    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    const projectPath = getDataDir("test-project-invalid-config")
+    await expectError(
+      async () => await loadConfigResources(log, projectPath, resolve(projectPath, "missing-kind", "garden.yml")),
+      { contains: "Missing `kind` field in config at missing-kind/garden.yml" }
+    )
+  })
+
+  it("should throw if a config specifies an invalid kind", async () => {
+    const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
       async () =>
-        await loadConfigResources({
-          log,
-          projectRoot: projectPath,
-          configPath: resolve(projectPath, "missing-kind", "garden.yml"),
-        }),
-      (err) => {
-        expect(err.message).to.equal("Missing `kind` field in config at missing-kind/garden.yml")
-      }
+        await loadConfigResources(log, projectPath, resolve(projectPath, "invalid-config-kind", "garden.yml")),
+      { contains: "Unknown kind banana in config at invalid-config-kind/garden.yml" }
     )
   })
 
   it("should throw if a module config doesn't specify a type", async () => {
-    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
-      async () =>
-        await loadConfigResources({
-          log,
-          projectRoot: projectPath,
-          configPath: resolve(projectPath, "missing-type", "garden.yml"),
-        }),
-      (err) => {
-        expect(stripAnsi(err.message)).to.equal(
-          "Error validating module (missing-type/garden.yml): key .type is required"
-        )
+      async () => await loadConfigResources(log, projectPath, resolve(projectPath, "missing-type", "garden.yml")),
+      {
+        contains: "Error validating module (missing-type/garden.yml): key .type is required",
       }
     )
   })
 
   it("should throw if a module config doesn't specify a name", async () => {
-    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
-      async () =>
-        await loadConfigResources({
-          log,
-          projectRoot: projectPath,
-          configPath: resolve(projectPath, "missing-name", "garden.yml"),
-        }),
-      (err) => {
-        expect(stripAnsi(err.message)).to.equal(
-          "Error validating module (missing-name/garden.yml): key .name is required"
-        )
+      async () => await loadConfigResources(log, projectPath, resolve(projectPath, "missing-name", "garden.yml")),
+      {
+        contains: "Error validating module (missing-name/garden.yml): key .name is required",
       }
     )
+  })
+
+  it("throws if basic fields contain template strings", async () => {
+    for (const field of noTemplateFields) {
+      const basicProjectConfig = getDefaultProjectConfig()
+      basicProjectConfig[field] = '${camelCase("No templating should be allowed here")}'
+      const configRaw = safeDumpYaml(basicProjectConfig)
+      await expectError(
+        async () =>
+          validateRawConfig({ log, rawConfig: configRaw, configPath: "fake/path", projectRoot: "fake/projec/root" }),
+        { contains: "does not allow templating" }
+      )
+    }
   })
 
   // TODO: test more cases
   it("should load and parse a project config", async () => {
     const configPath = resolve(projectPathA, "garden.yml")
-    const parsed = await loadConfigResources({ log, projectRoot: projectPathA, configPath })
+    const parsed = await loadConfigResources(log, projectPathA, configPath)
 
     expect(parsed).to.eql([
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         path: projectPathA,
         configPath,
@@ -124,11 +252,11 @@ describe("loadConfigResources", () => {
 
   it("should load and parse a module config", async () => {
     const configPath = resolve(modulePathA, "garden.yml")
-    const parsed = await loadConfigResources({ log, projectRoot: projectPathA, configPath })
+    const parsed = await loadConfigResources(log, projectPathA, configPath)
 
     expect(parsed).to.eql([
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         name: "module-a",
         type: "test",
@@ -140,7 +268,7 @@ describe("loadConfigResources", () => {
         exclude: undefined,
         repositoryUrl: undefined,
         allowPublish: undefined,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         path: modulePathA,
         variables: { msg: "OK" },
         varfile: undefined,
@@ -183,23 +311,28 @@ describe("loadConfigResources", () => {
 
   it("should load and parse a module template", async () => {
     const projectPath = getDataDir("test-projects", "module-templates")
-    const configPath = resolve(projectPath, "templates.garden.yml")
-    const parsed: any = await loadConfigResources({ log, projectRoot: projectPath, configPath })
+    const configFilePath = resolve(projectPath, "templates.garden.yml")
+    const parsed: any = await loadConfigResources(log, projectPath, configFilePath)
 
     expect(parsed).to.eql([
       {
-        apiVersion: "garden.io/v0",
-        configPath,
-        path: projectPath,
-        kind: "ModuleTemplate",
+        kind: configTemplateKind,
         name: "combo",
+
+        internal: {
+          basePath: projectPath,
+          configFilePath,
+        },
+
         inputsSchemaPath: "module-templates.json",
         modules: [
           {
             type: "test",
             name: "${parent.name}-${inputs.name}-a",
             include: [],
-            extraFlags: ["${inputs.value}"],
+            build: {
+              command: ["${inputs.value}"],
+            },
             generateFiles: [
               {
                 targetPath: "module-a.log",
@@ -243,11 +376,11 @@ describe("loadConfigResources", () => {
 
   it("should load and parse a config file defining a project and a module", async () => {
     const configPath = resolve(projectPathMultipleModules, "garden.yml")
-    const parsed = await loadConfigResources({ log, projectRoot: projectPathMultipleModules, configPath })
+    const parsed = await loadConfigResources(log, projectPathMultipleModules, configPath)
 
     expect(parsed).to.eql([
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         configPath,
         path: projectPathMultipleModules,
@@ -267,7 +400,7 @@ describe("loadConfigResources", () => {
         variables: { some: "variable" },
       },
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         name: "module-from-project-config",
         type: "test",
@@ -279,7 +412,7 @@ describe("loadConfigResources", () => {
         exclude: undefined,
         repositoryUrl: undefined,
         allowPublish: undefined,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         path: projectPathMultipleModules,
         serviceConfigs: [],
         spec: {
@@ -298,11 +431,11 @@ describe("loadConfigResources", () => {
 
   it("should load and parse a config file defining multiple modules", async () => {
     const configPath = resolve(modulePathAMultiple, "garden.yml")
-    const parsed = await loadConfigResources({ log, projectRoot: projectPathMultipleModules, configPath })
+    const parsed = await loadConfigResources(log, projectPathMultipleModules, configPath)
 
     expect(parsed).to.eql([
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         name: "module-a1",
         type: "test",
@@ -316,6 +449,7 @@ describe("loadConfigResources", () => {
         repositoryUrl: undefined,
         build: {
           dependencies: [{ name: "module-from-project-config", copy: [] }],
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         },
         path: modulePathAMultiple,
         serviceConfigs: [],
@@ -334,7 +468,7 @@ describe("loadConfigResources", () => {
         varfile: undefined,
       },
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         name: "module-a2",
         type: "test",
@@ -346,7 +480,7 @@ describe("loadConfigResources", () => {
         include: ["*"],
         exclude: undefined,
         repositoryUrl: undefined,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         path: modulePathAMultiple,
         serviceConfigs: [],
         spec: {
@@ -369,11 +503,11 @@ describe("loadConfigResources", () => {
   it("should load a project config with a top-level provider field", async () => {
     const projectPath = getDataDir("test-projects", "new-provider-spec")
     const configPath = resolve(projectPath, "garden.yml")
-    const parsed = await loadConfigResources({ log, projectRoot: projectPath, configPath })
+    const parsed = await loadConfigResources(log, projectPath, configPath)
 
     expect(parsed).to.eql([
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         path: projectPath,
         configPath,
@@ -385,24 +519,22 @@ describe("loadConfigResources", () => {
   })
 
   it("should throw if config file is not found", async () => {
-    await expectError(
-      async () => await loadConfigResources({ log, projectRoot: "/thisdoesnotexist", configPath: "/thisdoesnotexist" }),
-      (err) => {
-        expect(err.message).to.equal("Could not find configuration file at /thisdoesnotexist")
-      }
-    )
+    await expectError(async () => await loadConfigResources(log, "/thisdoesnotexist", "/thisdoesnotexist"), {
+      contains: "Could not find configuration file at /thisdoesnotexist",
+    })
   })
 
   it("should ignore empty documents in multi-doc YAML", async () => {
-    const path = resolve(dataDir, "test-projects", "empty-doc")
+    const path = getDataDir("test-projects", "empty-doc")
     const configPath = resolve(path, "garden.yml")
-    const parsed = await loadConfigResources({ log, projectRoot: path, configPath })
+    const parsed = await loadConfigResources(log, path, configPath)
 
     expect(parsed).to.eql([
       {
         apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         name: "foo",
+        environments: [{ name: "local" }],
         path,
         configPath,
       },
@@ -413,8 +545,7 @@ describe("loadConfigResources", () => {
 describe("prepareModuleResource", () => {
   it("should normalize build dependencies", async () => {
     const moduleConfigPath = resolve(modulePathA, "garden.yml")
-    const log = getLogger().placeholder()
-    const parsed: any = (await loadConfigResources({ log, projectRoot: projectPathA, configPath: moduleConfigPath }))[0]
+    const parsed: any = (await loadConfigResources(log, projectPathA, moduleConfigPath))[0]
     parsed.build!.dependencies = [{ name: "apple" }, "banana", null]
     const prepared = prepareModuleResource(parsed, moduleConfigPath, projectPathA)
     expect(prepared.build!.dependencies).to.eql([
@@ -428,33 +559,30 @@ describe("findProjectConfig", async () => {
   const customConfigPath = getDataDir("test-projects", "custom-config-names")
 
   it("should find the project config when path is projectRoot", async () => {
-    const project = await findProjectConfig(projectPathA)
+    const project = await findProjectConfig({ log, path: projectPathA })
     expect(project && project.path).to.eq(projectPathA)
   })
 
   it("should find the project config when path is a subdir of projectRoot", async () => {
     // modulePathA is a subdir of projectPathA
-    const project = await findProjectConfig(modulePathA)
+    const project = await findProjectConfig({ log, path: modulePathA })
     expect(project && project.path).to.eq(projectPathA)
   })
 
   it("should find the project config when path is projectRoot and config is in a custom-named file", async () => {
-    const project = await findProjectConfig(customConfigPath)
+    const project = await findProjectConfig({ log, path: customConfigPath })
     expect(project && project.path).to.eq(customConfigPath)
   })
 
   it("should find the project root from a subdir of projectRoot and config is in a custom-named file", async () => {
     const modulePath = join(customConfigPath, "module-a")
-    const project = await findProjectConfig(modulePath)
+    const project = await findProjectConfig({ log, path: modulePath })
     expect(project && project.path).to.eq(customConfigPath)
   })
 
   it("should throw an error if multiple projects are found", async () => {
-    await expectError(
-      async () => await findProjectConfig(projectPathDuplicateProjects),
-      (err) => {
-        expect(err.message).to.match(/Multiple project declarations found/)
-      }
-    )
+    await expectError(async () => await findProjectConfig({ log, path: projectPathDuplicateProjects }), {
+      contains: "Multiple project declarations found",
+    })
   })
 })

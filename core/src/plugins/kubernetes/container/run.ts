@@ -6,90 +6,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModule } from "../../container/config"
+import { ContainerRunAction } from "../../container/moduleConfig"
 import { runAndCopy } from "../run"
-import { KubernetesProvider, KubernetesPluginContext } from "../config"
-import { storeTaskResult } from "../task-results"
-import { RunModuleParams } from "../../../types/plugin/module/runModule"
-import { RunResult } from "../../../types/plugin/base"
-import { RunServiceParams } from "../../../types/plugin/service/runService"
-import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
+import { KubernetesPluginContext } from "../config"
+import { storeRunResult } from "../run-results"
 import { makePodName } from "../util"
 import { getAppNamespaceStatus } from "../namespace"
+import { RunActionHandler } from "../../../plugin/action-types"
+import { getDeployedImageId } from "./util"
+import { runResultToActionState } from "../../../actions/base"
 
-export async function runContainerModule(params: RunModuleParams<ContainerModule>): Promise<RunResult> {
-  const { module, ctx, log } = params
-  const provider = <KubernetesProvider>ctx.provider
-
-  const image = module.outputs["deployment-image-id"]
-  const namespaceStatus = await getAppNamespaceStatus(ctx, log, provider)
-
-  const result = await runAndCopy({
-    ...params,
-    image,
-    namespace: namespaceStatus.namespaceName,
-    version: module.version.versionString,
-  })
-
-  return {
-    ...result,
-    namespaceStatus,
-  }
-}
-
-export async function runContainerService(params: RunServiceParams<ContainerModule>): Promise<RunResult> {
-  const { module, ctx, log, service, runtimeContext, interactive, timeout } = params
-  const { command, args, env, privileged, addCapabilities, dropCapabilities } = service.spec
-
-  runtimeContext.envVars = { ...runtimeContext.envVars, ...env }
-
-  const provider = <KubernetesProvider>ctx.provider
-
-  const image = module.outputs["deployment-image-id"]
-  const namespaceStatus = await getAppNamespaceStatus(ctx, log, provider)
-
-  const result = await runAndCopy({
-    ...params,
-    args,
-    command,
-    timeout,
-    image,
-    interactive,
-    runtimeContext,
-    namespace: namespaceStatus.namespaceName,
-    version: service.version,
-    privileged,
-    addCapabilities,
-    dropCapabilities,
-  })
-
-  return {
-    ...result,
-    namespaceStatus,
-  }
-}
-
-export async function runContainerTask(params: RunTaskParams<ContainerModule>): Promise<RunTaskResult> {
-  const { ctx, log, module, task } = params
+export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = async (params) => {
+  const { ctx, log, action } = params
   const {
     args,
     command,
+    cacheResult,
     artifacts,
     env,
     cpu,
     memory,
-    timeout,
     volumes,
     privileged,
     addCapabilities,
     dropCapabilities,
-  } = task.spec
+  } = action.getSpec()
 
-  const image = module.outputs["deployment-image-id"]
+  const timeout = action.getConfig("timeout")
   const k8sCtx = ctx as KubernetesPluginContext
+  const image = getDeployedImageId(action, k8sCtx.provider)
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
 
-  const res = await runAndCopy({
+  const runResult = await runAndCopy({
     ...params,
     command,
     args,
@@ -98,34 +46,27 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
     resources: { cpu, memory },
     image,
     namespace: namespaceStatus.namespaceName,
-    podName: makePodName("task", module.name, task.name),
-    description: `Task '${task.name}' in container module '${module.name}'`,
-    timeout: timeout || undefined,
+    podName: makePodName("run", action.name),
+    timeout,
     volumes,
-    version: task.version,
+    version: action.versionString(),
     privileged,
     addCapabilities,
     dropCapabilities,
   })
 
-  const result: RunTaskResult = {
-    ...res,
-    namespaceStatus,
-    taskName: task.name,
-    outputs: {
-      log: res.log || "",
-    },
-  }
-
-  if (task.config.cacheResult) {
-    await storeTaskResult({
+  if (cacheResult) {
+    await storeRunResult({
       ctx,
       log,
-      module,
-      result,
-      task,
+      action,
+      result: runResult,
     })
   }
 
-  return result
+  return {
+    state: runResultToActionState(runResult),
+    detail: { ...runResult, namespaceStatus },
+    outputs: { log: runResult.log },
+  }
 }

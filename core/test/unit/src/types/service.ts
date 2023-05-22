@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { combineStates, serviceStates, serviceFromConfig } from "../../../../src/types/service"
+import { combineStates, deployStates, serviceFromConfig } from "../../../../src/types/service"
 import { ServiceConfig } from "../../../../src/config/service"
 import { makeTestGardenA } from "../../../helpers"
 
@@ -18,7 +18,7 @@ describe("combineStates", () => {
   })
 
   it("should return the common state if all states are the same", () => {
-    for (const state of serviceStates) {
+    for (const state of deployStates) {
       const result = combineStates([state, state, state])
       expect(result).to.equal(state)
     }
@@ -46,14 +46,14 @@ describe("serviceFromConfig", () => {
       name: "test",
       dependencies: [],
       disabled: true,
-      hotReloadable: false,
+
       spec: {},
     }
 
     const garden = await makeTestGardenA()
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("module-a")
-    const service = await serviceFromConfig(graph, module, config)
+    const service = serviceFromConfig(graph.moduleGraph, module, config)
 
     expect(service.disabled).to.be.true
   })
@@ -63,7 +63,7 @@ describe("serviceFromConfig", () => {
       name: "test",
       dependencies: [],
       disabled: false,
-      hotReloadable: false,
+
       spec: {},
     }
 
@@ -71,7 +71,7 @@ describe("serviceFromConfig", () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("module-a")
     module.disabled = true
-    const service = await serviceFromConfig(graph, module, config)
+    const service = serviceFromConfig(graph.moduleGraph, module, config)
 
     expect(service.disabled).to.be.true
   })

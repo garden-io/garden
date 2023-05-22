@@ -1,0 +1,5 @@
+kind: Deploy
+name: reviews
+description: Reviews service chart
+type: helm
+dependencies: [deploy.istio-gateway]

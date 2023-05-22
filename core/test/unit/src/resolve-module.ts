@@ -9,6 +9,7 @@
 import { expect } from "chai"
 import { join } from "path"
 import { makeTestGardenA } from "../../helpers"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../src/constants"
 
 describe("ModuleResolver", () => {
   // Note: We test the ModuleResolver via the TestGarden.resolveModule method, for convenience.
@@ -21,17 +22,13 @@ describe("ModuleResolver", () => {
         name: "test-project-a",
         type: "test",
         path: join(garden.projectRoot, "module-a"),
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       },
       {
         name: "module-b",
         type: "test",
         path: join(garden.projectRoot, "module-b"),
-        build: {
-          dependencies: [{ name: "${project.name}", copy: [] }],
-        },
+        build: { dependencies: [{ name: "${project.name}", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       },
     ])
 
@@ -47,17 +44,13 @@ describe("ModuleResolver", () => {
         name: "module-a",
         type: "test",
         path: join(garden.projectRoot, "module-a"),
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       },
       {
         name: "module-b",
         type: "test",
         path: join(garden.projectRoot, "module-b"),
-        build: {
-          dependencies: [{ name: "${modules.module-a.name}", copy: [] }],
-        },
+        build: { dependencies: [{ name: "${modules.module-a.name}", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       },
     ])
 

@@ -14,18 +14,8 @@ export const getSupportedPlugins = () => [
   { name: "kubernetes", callback: () => require("./kubernetes/kubernetes").gardenPlugin() },
   { name: "local-kubernetes", callback: () => require("./kubernetes/local/local").gardenPlugin() },
   { name: "octant", callback: () => require("./octant/octant").gardenPlugin() },
-  { name: "openfaas", callback: () => require("./openfaas/openfaas").gardenPlugin() },
 ]
 
 // These plugins are always registered
 export const getBuiltinPlugins = () =>
-  getSupportedPlugins().concat([
-    { name: "google-app-engine", callback: () => require("./google/google-app-engine").gardenPlugin() },
-    { name: "google-cloud-functions", callback: () => require("./google/google-cloud-functions").gardenPlugin() },
-    {
-      name: "local-google-cloud-functions",
-      callback: () => require("./local/local-google-cloud-functions").gardenPlugin(),
-    },
-    { name: "npm-package", callback: () => require("./npm-package").gardenPlugin() },
-    { name: "templated", callback: () => require("./templated").gardenPlugin() },
-  ])
+  getSupportedPlugins().concat([{ name: "templated", callback: () => require("./templated").gardenPlugin() }])

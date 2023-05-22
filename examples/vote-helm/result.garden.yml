@@ -1,0 +1,19 @@
+kind: Deploy
+description: Helm chart for the results UI
+type: helm
+name: result
+dependencies:
+  - run.db-init
+spec:
+  chart:
+    # chart path must be a subpath (no .. allowed), so this file result.garden.yml has to be at the project root
+    path: ./base-chart/
+  values:
+    name: result
+    image:
+      repository: ${actions.build.result-image.outputs.deployment-image-name}
+      tag: ${actions.build.result-image.version}
+    ingress:
+      enabled: true
+      paths: [/]
+      hosts: ["result.${var.baseHostname}"]

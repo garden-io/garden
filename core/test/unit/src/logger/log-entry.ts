@@ -8,337 +8,383 @@
 
 import { expect } from "chai"
 
-import { getLogger, Logger } from "../../../../src/logger/logger"
+import { getRootLogger, LogLevel, Logger } from "../../../../src/logger/logger"
 import { freezeTime } from "../../../helpers"
-import { LogEntryMetadata, TaskMetadata } from "../../../../src/logger/log-entry"
+import { CoreLog, createActionLog, Log, LogMetadata } from "../../../../src/logger/log-entry"
+import { omit } from "lodash"
+import chalk from "chalk"
 
-const logger: Logger = getLogger()
+const logger: Logger = getRootLogger()
 
 beforeEach(() => {
-  logger["children"] = []
+  logger["entries"] = []
 })
 
-describe("LogEntry", () => {
-  const emptyState = {
-    msg: undefined,
-    emoji: undefined,
-    section: undefined,
-    symbol: undefined,
-    status: undefined,
-    data: undefined,
-    dataFormat: undefined,
-    append: undefined,
-  }
-  it("should create log entries with the appropriate fields set", () => {
-    const timestamp = freezeTime()
-    const entry = logger.info({
-      id: "my-id",
-      msg: "hello",
-      emoji: "alien",
-      status: "error",
-      section: "80",
-      symbol: "info",
-      append: true,
-      data: { foo: "bar" },
-      dataFormat: "json",
-      metadata: {
-        workflowStep: {
-          index: 2,
+describe("Log", () => {
+  let log: Log
+  beforeEach(() => {
+    log = logger.createLog()
+  })
+
+  describe("silly", () => {
+    it("should log an entry with the silly level", () => {
+      const entry = log.silly("silly").getLatestEntry()
+      expect(entry.level).to.eql(LogLevel.silly)
+    })
+  })
+  describe("debug", () => {
+    it("should log an entry with the debug level", () => {
+      const entry = log.debug("debug").getLatestEntry()
+      expect(entry.level).to.eql(LogLevel.debug)
+    })
+  })
+  describe("verbose", () => {
+    it("should log an entry with the verbose level", () => {
+      const entry = log.verbose("verbose").getLatestEntry()
+      expect(entry.level).to.eql(LogLevel.verbose)
+    })
+  })
+  describe("info", () => {
+    it("should log an entry with the info level", () => {
+      const entry = log.info("info").getLatestEntry()
+      expect(entry.level).to.eql(LogLevel.info)
+    })
+  })
+  describe("warn", () => {
+    it("should log an entry with the warn level", () => {
+      const entry = log.warn("warn").getLatestEntry()
+      expect(entry.level).to.eql(LogLevel.warn)
+    })
+    it("should set the log symbol to 'warning'", () => {
+      const entry = log.warn("warn").getLatestEntry()
+      expect(entry.symbol).to.eql("warning")
+    })
+  })
+  describe("error", () => {
+    it("should log an entry with the error level", () => {
+      const entry = log.error("error").getLatestEntry()
+      expect(entry.level).to.eql(LogLevel.error)
+    })
+    it("should set the log symbol to 'error'", () => {
+      const entry = log.error("error").getLatestEntry()
+      expect(entry.symbol).to.eql("error")
+    })
+    it("should print the duration if showDuration=true", () => {
+      const errorLog = log.createLog({ name: "test-log", showDuration: true })
+      const entry = errorLog.error("error").getLatestEntry()
+      expect(entry.msg).to.include("(took ")
+    })
+  })
+  describe("success", () => {
+    it("should log success message in green color by default", () => {
+      const entry = log.success("success").getLatestEntry()
+      expect(entry.level).to.eql(LogLevel.info)
+      expect(entry.msg).to.eql(chalk.green("success"))
+    })
+    it("should log success message in original color if it has ansi", () => {
+      const entry = log.success(`hello ${chalk.cyan("cyan")}`).getLatestEntry()
+      expect(entry.msg).to.eql(`hello ${chalk.cyan("cyan")}`)
+    })
+    it("should set the symbol to success", () => {
+      const entry = log.success("success").getLatestEntry()
+      expect(entry.symbol).to.eql("success")
+    })
+    it("should print the duration if showDuration=true", () => {
+      const successLog = log.createLog({ name: "success-log", showDuration: true })
+      const entry = successLog.success("success").getLatestEntry()
+      expect(entry.msg).to.include("(took ")
+    })
+  })
+  describe("general logging", () => {
+    context("metadata", () => {
+      const metadata: LogMetadata = { workflowStep: { index: 1 } }
+      it("should pass on any metadata to child logs", () => {
+        const log1 = logger.createLog({ metadata })
+        const log2 = log1.createLog()
+        const log3 = log2.createLog()
+        const log4 = log3.createLog({ metadata })
+        expect(log1.metadata).to.eql(metadata)
+        expect(log2.metadata).to.eql(metadata)
+        expect(log3.metadata).to.eql(metadata)
+        expect(log4.metadata).to.eql(metadata)
+      })
+      it("should not set empty metadata objects on child entries", () => {
+        const log = logger.createLog()
+        const childLog = log.createLog()
+        expect(log.metadata).to.eql(undefined)
+        expect(childLog.metadata).to.eql(undefined)
+      })
+    })
+    context("fixLevel=verbose", () => {
+      it("should create a log whose child logs and entries inherit the level", () => {
+        const logVerbose = logger.createLog({ fixLevel: LogLevel.verbose })
+        const verboseEntryInfo = logVerbose.info("").getLatestEntry()
+        const verboseEntryError = logVerbose.error("").getLatestEntry()
+        const verboseEntrySilly = logVerbose.silly("").getLatestEntry()
+        const childLog = logVerbose.createLog()
+        const childEntryInfo = childLog.info("").getLatestEntry()
+        const childEntryError = childLog.error("").getLatestEntry()
+        const childEntrySilly = childLog.silly("").getLatestEntry()
+
+        expect(logVerbose.fixLevel).to.eql(LogLevel.verbose)
+        expect(verboseEntryInfo.level).to.eql(LogLevel.verbose)
+        expect(verboseEntryError.level).to.eql(LogLevel.verbose)
+        expect(verboseEntrySilly.level).to.eql(LogLevel.silly)
+
+        expect(childLog.fixLevel).to.eql(LogLevel.verbose)
+        expect(childEntryInfo.level).to.eql(LogLevel.verbose)
+        expect(childEntryError.level).to.eql(LogLevel.verbose)
+        expect(childEntrySilly.level).to.eql(LogLevel.silly)
+      })
+    })
+  })
+})
+
+describe("CoreLog", () => {
+  let log: Log
+  beforeEach(() => {
+    log = logger.createLog()
+  })
+
+  describe("createLog", () => {
+    it("should create a new CoreLog", () => {
+      const timestamp = freezeTime().toISOString()
+      const coreLog = log.createLog({
+        name: "core-log",
+        origin: "origin",
+        fixLevel: LogLevel.verbose,
+        metadata: { workflowStep: { index: 2 } },
+      })
+      const partialCoreLog = omit(coreLog, "root")
+
+      expect(coreLog.root).to.exist
+      expect(partialCoreLog).to.eql({
+        entries: [],
+        key: coreLog.key,
+        metadata: {
+          workflowStep: { index: 2 },
         },
-      },
-    })
-    expect(entry.getMetadata()).to.eql({
-      workflowStep: {
-        index: 2,
-      },
-    })
-    expect(entry.getMessages()).to.eql([
-      {
-        msg: "hello",
-        emoji: "alien",
-        status: "error",
-        section: "80",
-        symbol: "info",
-        append: true,
-        data: { foo: "bar" },
-        dataFormat: "json",
+        fixLevel: LogLevel.verbose,
+        showDuration: false,
         timestamp,
-      },
-    ])
-    expect(entry.isPlaceholder).to.be.false
-    expect(entry.revision).to.eql(0)
-    expect(entry.id).to.eql("my-id")
-  })
-  it("should indent nested log entries", () => {
-    const entry = logger.info("hello")
-    const nested = entry.info("nested")
-    const deepNested = nested.info("deep nested")
-    const deepDeepNested = deepNested.info("deep deep inside")
-    const deepDeepPh = deepDeepNested.placeholder()
-    const deepDeepNested2 = deepDeepPh.info("")
-    const indents = [
-      entry.indent,
-      nested.indent,
-      deepNested.indent,
-      deepDeepNested.indent,
-      deepDeepPh.indent,
-      deepDeepNested2.indent,
-    ]
-    expect(indents).to.eql([undefined, 1, 2, 3, 2, 3])
-  })
-  context("placeholders", () => {
-    it("should dedent placeholder log entries", () => {
-      const ph1 = logger.placeholder()
-      const ph2 = ph1.placeholder()
-      const nonEmpty = ph1.info("foo")
-      const nested = nonEmpty.info("foo")
-      const nestedPh = nested.placeholder()
-      const indents = [ph1.indent, ph2.indent, nonEmpty.indent, nested.indent, nestedPh.indent]
-      expect(indents).to.eql([-1, -1, 0, 1, 0])
+        context: {
+          name: "core-log",
+          origin: "origin",
+          type: "coreLog",
+        },
+        parentConfigs: [
+          {
+            context: log.context,
+            metadata: log.metadata,
+            timestamp: log.timestamp,
+            key: log.key,
+            fixLevel: log.fixLevel,
+          },
+        ],
+      })
     })
-    it("should initialize placeholders with an empty message and a timestamp", () => {
-      const timestamp = freezeTime()
-      const ph = logger.placeholder()
-      expect(ph.isPlaceholder).to.be.true
-      expect(ph.getMessages()).to.eql([{ timestamp }])
+    it("should ensure child log inherits config", () => {
+      const timestamp = freezeTime().toISOString()
+      const coreLog = log.createLog({
+        name: "core-log",
+        origin: "origin",
+        fixLevel: LogLevel.verbose,
+        metadata: { workflowStep: { index: 2 } },
+      })
+
+      const coreLogChild = coreLog.createLog()
+      const partialCoreLogChild = omit(coreLogChild, "root")
+      expect(partialCoreLogChild).to.eql({
+        entries: [],
+        key: coreLogChild.key,
+        fixLevel: LogLevel.verbose,
+        showDuration: false,
+        timestamp,
+        context: {
+          name: "core-log", // <--- Inherits context
+          origin: "origin",
+          type: "coreLog",
+        },
+        metadata: { workflowStep: { index: 2 } },
+        parentConfigs: [log.getConfig(), coreLog.getConfig()],
+      })
     })
-    it("should correctly update placeholders", () => {
-      const timestamp = freezeTime()
-      const ph = logger.placeholder()
-      const hello = ph.info("hello")
-      ph.setState("world")
-      expect(hello.getMessages()).to.eql([{ ...emptyState, timestamp, msg: "hello" }])
-      expect(hello.isPlaceholder).to.be.false
-      expect(ph.getMessages()).to.eql([{ ...emptyState, timestamp, msg: "world" }])
-      expect(ph.isPlaceholder).to.be.false
-    })
-  })
-  context("metadata", () => {
-    const metadata: LogEntryMetadata = { workflowStep: { index: 1 } }
-    it("should pass on any metadata to placeholder or child nodes", () => {
-      const ph1 = logger.placeholder({ metadata })
-      const ph2 = ph1.placeholder()
-      const entry = logger.info({ msg: "hello", metadata })
-      const ph3 = entry.placeholder()
-      const nested = entry.info("nested")
-      const entry2 = logger.info("hello")
-      const ph4 = entry2.placeholder({ metadata })
-      expect(ph1.getMetadata()).to.eql(metadata)
-      expect(ph2.getMetadata()).to.eql(metadata)
-      expect(ph3.getMetadata()).to.eql(metadata)
-      expect(ph4.getMetadata()).to.eql(metadata)
-      expect(entry.getMetadata()).to.eql(metadata)
-      expect(entry2.getMetadata()).to.eql(undefined)
-      expect(nested.getMetadata()).to.eql(metadata)
-    })
-    it("should not set metadata on parent when creating placeholders or child nodes", () => {
-      const entry = logger.info("hello")
-      const ph = entry.placeholder({ metadata })
-      expect(entry.getMetadata()).to.eql(undefined)
-      expect(ph.getMetadata()).to.eql(metadata)
-    })
-    it("should not set empty metadata objects on child entries", () => {
-      const entry = logger.info("hello")
-      const child = entry.info("world")
-      expect(entry.getMetadata()).to.eql(undefined)
-      expect(child.getMetadata()).to.eql(undefined)
+    it("should optionally overwrite context", () => {
+      const coreLog = log.createLog({ name: "core-log", origin: "foo" }) as CoreLog
+
+      expect(coreLog.context.name).to.eql("core-log")
+      expect(coreLog.context.origin).to.eql("foo")
+
+      const coreLogChild = coreLog.createLog({ name: "core-log-2", origin: "foo-2" })
+
+      expect(coreLogChild.context.name).to.eql("core-log-2")
+      expect(coreLogChild.context.origin).to.eql("foo-2")
     })
   })
-  context("childEntriesInheritLevel is set to true", () => {
-    it("should create a log entry whose children inherit the parent level", () => {
-      const verbose = logger.verbose({ childEntriesInheritLevel: true })
-      const error = verbose.error("")
-      const silly = verbose.silly("")
-      const deepError = error.error("")
-      const deepSillyError = silly.error("")
-      const deepSillySilly = silly.silly("")
-      const levels = [
-        verbose.warn("").level,
-        verbose.info("").level,
-        verbose.verbose("").level,
-        verbose.debug("").level,
-        verbose.silly("").level,
-        deepError.level,
-        deepSillyError.level,
-        deepSillySilly.level,
-      ]
-      expect(levels).to.eql([3, 3, 3, 4, 5, 3, 3, 5])
-    })
-  })
-  describe("setState", () => {
-    it("should update entry state", () => {
-      const timestamp = freezeTime()
-      const taskMetadata: TaskMetadata = {
-        type: "a",
-        key: "a",
-        status: "active",
-        uid: "1",
-        versionString: "123",
-      }
-      const entry = logger.placeholder()
-      entry.setState({
+  describe("createLogEntry", () => {
+    it("should pass its config on to the log entry", () => {
+      const timestamp = freezeTime().toISOString()
+      const testLog = log.createLog({
+        name: "test-log",
+        origin: "foo",
+        metadata: { workflowStep: { index: 2 } },
+      })
+      const entry = testLog.info("hello").getLatestEntry()
+
+      expect(entry.key).to.be.a.string
+      expect(entry).to.eql({
+        key: entry.key,
+        level: LogLevel.info,
+        metadata: {
+          workflowStep: {
+            index: 2,
+          },
+        },
         msg: "hello",
-        emoji: "haircut",
-        section: "caesar",
-        symbol: "info",
-        status: "done",
-        data: { some: "data" },
-        dataFormat: "json",
-        metadata: { task: taskMetadata },
+        parentLogKey: testLog.key,
+        timestamp,
+        context: {
+          name: "test-log",
+          type: "coreLog",
+          origin: "foo",
+        },
+      })
+    })
+  })
+})
+
+describe("ActionLog", () => {
+  let log: Log
+  const inheritedMetadata = { workflowStep: { index: 2 } }
+
+  beforeEach(() => {
+    log = logger.createLog({
+      metadata: inheritedMetadata,
+    })
+  })
+
+  describe("createActionLog helper", () => {
+    it("should create a new ActionLog", () => {
+      const timestamp = freezeTime().toISOString()
+      const actionLog = createActionLog({
+        log,
+        origin: "origin",
+        actionName: "api",
+        actionKind: "build",
+        fixLevel: LogLevel.verbose,
+      })
+      const partialActionLog = omit(actionLog, "root")
+
+      expect(actionLog.root).to.exist
+      expect(partialActionLog).to.eql({
+        entries: [],
+        key: actionLog.key,
+        metadata: inheritedMetadata,
+        fixLevel: LogLevel.verbose,
+        showDuration: true,
+        timestamp,
+        context: {
+          actionKind: "build",
+          actionName: "api",
+          origin: "origin",
+          type: "actionLog",
+        },
+        parentConfigs: [
+          {
+            context: log.context,
+            metadata: log.metadata,
+            timestamp: log.timestamp,
+            key: log.key,
+            fixLevel: log.fixLevel,
+          },
+        ],
+      })
+    })
+
+    it("inherits context from input log", () => {
+      log.context.sessionId = "foo"
+      const actionLog = createActionLog({
+        log,
+        origin: "origin",
+        actionName: "api",
+        actionKind: "build",
+        fixLevel: LogLevel.verbose,
+      })
+      expect(actionLog.context.sessionId).to.equal("foo")
+    })
+
+    it("should ensure child log inherits config", () => {
+      const timestamp = freezeTime().toISOString()
+      const actionLog = createActionLog({
+        log,
+        origin: "origin",
+        actionName: "api",
+        actionKind: "build",
+        fixLevel: LogLevel.verbose,
       })
 
-      expect(entry.getMessages()).to.eql([
-        {
-          msg: "hello",
-          emoji: "haircut",
-          section: "caesar",
-          symbol: "info",
-          status: "done",
-          data: { some: "data" },
-          dataFormat: "json",
-          append: undefined,
-          timestamp,
+      const actionLogChild = actionLog.createLog()
+      const partialActionLogChild = omit(actionLogChild, "root")
+      expect(partialActionLogChild).to.eql({
+        entries: [],
+        key: actionLogChild.key,
+        fixLevel: LogLevel.verbose,
+        showDuration: true,
+        timestamp,
+        context: {
+          actionKind: "build", // <--- Inherits context
+          actionName: "api",
+          origin: "origin",
+          type: "actionLog",
         },
-      ])
-      expect(entry.getMetadata()).to.eql({ task: taskMetadata })
+        metadata: inheritedMetadata,
+        parentConfigs: [log.getConfig(), actionLog.getConfig()],
+      })
     })
-    it("should overwrite previous values", () => {
-      const timestamp = freezeTime()
-      const entry = logger.placeholder()
-      entry.setState({
+    it("should optionally overwrite origin", () => {
+      const actionLog = createActionLog({
+        log,
+        origin: "origin",
+        actionName: "api",
+        actionKind: "build",
+        fixLevel: LogLevel.verbose,
+      })
+
+      const actionLogChild = actionLog.createLog({ origin: "origin-2" })
+      expect(actionLogChild.context.origin).to.eql("origin-2")
+    })
+    it("should always show duration", () => {
+      const testLog = createActionLog({ log, actionName: "api", actionKind: "build" })
+      expect(testLog.showDuration).to.be.true
+    })
+  })
+
+  describe("createLogEntry", () => {
+    it("should pass its config on to the log entry", () => {
+      const timestamp = freezeTime().toISOString()
+      const testLog = createActionLog({
+        log,
+        actionKind: "build",
+        actionName: "api",
+        origin: "foo",
+      })
+      const entry = testLog.info("hello").getLatestEntry()
+
+      expect(entry.key).to.be.a.string
+      expect(entry).to.eql({
+        key: entry.key,
+        level: LogLevel.info,
+        metadata: inheritedMetadata,
         msg: "hello",
-        emoji: "haircut",
-        section: "caesar",
-        symbol: "info",
-        status: "done",
-        data: { some: "data" },
-      })
-      entry.setState({
-        msg: "world",
-        emoji: "hamburger",
-        data: { some: "data_updated" },
-      })
-
-      expect(entry.getMessages()).to.eql([
-        {
-          msg: "hello",
-          emoji: "haircut",
-          section: "caesar",
-          symbol: "info",
-          status: "done",
-          data: { some: "data" },
-          dataFormat: undefined,
-          append: undefined,
-          timestamp,
+        parentLogKey: testLog.key,
+        timestamp,
+        context: {
+          type: "actionLog",
+          origin: "foo",
+          actionKind: "build",
+          actionName: "api",
         },
-        {
-          msg: "world",
-          emoji: "hamburger",
-          section: "caesar",
-          symbol: "info",
-          status: "done",
-          data: { some: "data_updated" },
-          dataFormat: undefined,
-          append: undefined,
-          timestamp,
-        },
-      ])
-    })
-    it("should set the 'append' field separately for each message state", () => {
-      const timestamp = freezeTime()
-      const entry = logger.placeholder()
-
-      entry.setState({ append: true })
-      expect(entry.getMessages()).to.eql([{ ...emptyState, append: true, timestamp }])
-
-      entry.setState({ msg: "boo" })
-      expect(entry.getMessages()).to.eql([
-        { ...emptyState, append: true, timestamp },
-        { ...emptyState, append: undefined, msg: "boo", timestamp },
-      ])
-
-      entry.setState({ append: true })
-      expect(entry.getMessages()).to.eql([
-        { ...emptyState, append: true, timestamp },
-        { ...emptyState, append: undefined, msg: "boo", timestamp },
-        { ...emptyState, append: true, msg: "boo", timestamp },
-      ])
-    })
-    it("should preserve status", () => {
-      const entry = logger.info("")
-      entry.setSuccess()
-      entry.setState("change text")
-      expect(entry.getLatestMessage().status).to.equal("success")
-    })
-    it("should set symbol to empty if entry has section and spinner disappears (to preserve alignment)", () => {
-      const entry = logger.info({ status: "active", section: "foo" })
-      entry.setState({ status: "error" })
-      expect(entry.getLatestMessage().symbol).to.equal("empty")
-
-      const newEntry = logger.info({
-        status: "active",
-        section: "foo",
-        symbol: "info",
       })
-      newEntry.setState({ status: "error" })
-      expect(newEntry.getLatestMessage().symbol).to.equal("info")
-    })
-    it("should update the metadata property", () => {
-      const timestamp = freezeTime()
-      const taskMetadataA: TaskMetadata = {
-        type: "a",
-        key: "a",
-        status: "active",
-        uid: "1",
-        versionString: "123",
-      }
-      const taskMetadataB: TaskMetadata = {
-        ...taskMetadataA,
-        status: "error",
-      }
-      const entry = logger.placeholder()
-      entry.setState({ metadata: { task: taskMetadataA } })
-      expect(entry.getMetadata()).to.eql({ task: taskMetadataA })
-      // Message states should not change
-      expect(entry.getMessages()).to.eql([{ ...emptyState, timestamp }])
-
-      entry.setState({ metadata: { task: taskMetadataB } })
-      expect(entry.getMetadata()).to.eql({ task: taskMetadataB })
-      expect(entry.getMessages()).to.eql([
-        { ...emptyState, timestamp },
-        { ...emptyState, timestamp },
-      ])
-    })
-  })
-  describe("setDone", () => {
-    it("should update entry state and set status to done", () => {
-      const entry = logger.info("")
-      entry.setDone()
-      expect(entry.getLatestMessage().status).to.equal("done")
-    })
-  })
-  describe("setSuccess", () => {
-    it("should update entry state and set status and symbol to success", () => {
-      const entry = logger.info("")
-      entry.setSuccess()
-      expect(entry.getLatestMessage().status).to.equal("success")
-      expect(entry.getLatestMessage().symbol).to.equal("success")
-    })
-  })
-  describe("setError", () => {
-    it("should update entry state and set status and symbol to error", () => {
-      const entry = logger.info("")
-      entry.setError()
-      expect(entry.getLatestMessage().status).to.equal("error")
-      expect(entry.getLatestMessage().symbol).to.equal("error")
-    })
-  })
-  describe("setWarn", () => {
-    it("should update entry state and set status and symbol to warn", () => {
-      const entry = logger.info("")
-      entry.setWarn()
-      expect(entry.getLatestMessage().status).to.equal("warn")
-      expect(entry.getLatestMessage().symbol).to.equal("warning")
     })
   })
 })

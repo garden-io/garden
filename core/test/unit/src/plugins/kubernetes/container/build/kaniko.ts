@@ -13,13 +13,12 @@ import {
   getKanikoBuilderPodManifest,
 } from "../../../../../../../src/plugins/kubernetes/container/build/kaniko"
 import { expect } from "chai"
-import { DeepPartial } from "typeorm-with-better-sqlite3"
 import {
   defaultResources,
-  DEFAULT_KANIKO_IMAGE,
   KubernetesProvider,
 } from "../../../../../../../src/plugins/kubernetes/config"
-import { k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
+import { defaultKanikoImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
+import { DeepPartial } from "utility-types"
 
 describe("kaniko build", () => {
   it("should return as successful when immutable tag already exists in destination", () => {
@@ -27,9 +26,6 @@ describe("kaniko build", () => {
 
     expect(
       kanikoBuildFailed({
-        moduleName: "foo",
-        command: [],
-        version: "",
         startedAt: new Date(),
         completedAt: new Date(),
         success: false,
@@ -43,9 +39,6 @@ describe("kaniko build", () => {
 
     expect(
       kanikoBuildFailed({
-        moduleName: "foo",
-        command: [],
-        version: "",
         startedAt: new Date(),
         completedAt: new Date(),
         success: false,
@@ -57,9 +50,6 @@ describe("kaniko build", () => {
   it("should return as success when the build succeeded", () => {
     expect(
       kanikoBuildFailed({
-        moduleName: "foo",
-        command: [],
-        version: "",
         startedAt: new Date(),
         completedAt: new Date(),
         success: true,
@@ -106,7 +96,7 @@ describe("kaniko build", () => {
           containers: [
             {
               command: ["sh", "-c", "build command"],
-              image: DEFAULT_KANIKO_IMAGE,
+              image: defaultKanikoImageName,
               name: "kaniko",
               resources: {
                 limits: {

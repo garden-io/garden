@@ -6,79 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeleteSecretCommand, DeleteEnvironmentCommand, DeleteServiceCommand } from "../../../../src/commands/delete"
+import { DeleteEnvironmentCommand, DeleteDeployCommand } from "../../../../src/commands/delete"
 import {
-  expectError,
-  makeTestGardenA,
   getDataDir,
-  configureTestModule,
+  customizedTestPlugin,
   withDefaultGlobalOpts,
   makeTestGarden,
   makeModuleConfig,
   TestGarden,
 } from "../../../helpers"
 import { expect } from "chai"
-import { ServiceStatus } from "../../../../src/types/service"
-import { EnvironmentStatus } from "../../../../src/types/plugin/provider/getEnvironmentStatus"
-import { DeleteServiceParams } from "../../../../src/types/plugin/service/deleteService"
-import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
-import { testModuleSpecSchema } from "../../../helpers"
+import { EnvironmentStatus } from "../../../../src/plugin/handlers/Provider/getEnvironmentStatus"
 import { ModuleConfig } from "../../../../src/config/module"
-import { LogEntry } from "../../../../src/logger/log-entry"
-
-describe("DeleteSecretCommand", () => {
-  const pluginName = "test-plugin"
-  const provider = pluginName
-
-  it("should delete a secret", async () => {
-    const garden = await makeTestGardenA()
-    const log = garden.log
-    const command = new DeleteSecretCommand()
-
-    const key = "mykey"
-    const value = "myvalue"
-
-    const actions = await garden.getActionRouter()
-    await actions.setSecret({ log, key, value, pluginName })
-
-    await command.action({
-      garden,
-      log,
-      headerLog: log,
-      footerLog: log,
-      args: { provider, key },
-      opts: withDefaultGlobalOpts({}),
-    })
-
-    expect(await actions.getSecret({ log, pluginName, key })).to.eql({
-      value: null,
-    })
-  })
-
-  it("should throw on missing key", async () => {
-    const garden = await makeTestGardenA()
-    const log = garden.log
-    const command = new DeleteSecretCommand()
-
-    await expectError(
-      async () =>
-        await command.action({
-          garden,
-          log,
-          headerLog: log,
-          footerLog: log,
-          args: { provider, key: "foo" },
-          opts: withDefaultGlobalOpts({}),
-        }),
-      "not-found"
-    )
-  })
-
-  it("should be protected", async () => {
-    const command = new DeleteSecretCommand()
-    expect(command.protected).to.be.true
-  })
-})
+import { Log } from "../../../../src/logger/log-entry"
+import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
+import { ActionStatus } from "../../../../src/actions/types"
 
 const projectRootB = getDataDir("test-project-b")
 const moduleConfigs: ModuleConfig[] = [
@@ -86,7 +28,7 @@ const moduleConfigs: ModuleConfig[] = [
     name: "module-a",
     include: [],
     spec: {
-      services: [{ name: "service-a" }],
+      services: [{ name: "service-a", deployCommand: ["echo", "ok"] }],
       tests: [],
       tasks: [],
       build: { dependencies: [] },
@@ -96,7 +38,7 @@ const moduleConfigs: ModuleConfig[] = [
     name: "module-b",
     include: [],
     spec: {
-      services: [{ name: "service-b", dependencies: ["service-a"] }],
+      services: [{ name: "service-b", deployCommand: ["echo", "ok"], dependencies: ["service-a"] }],
       tests: [],
       tasks: [],
       build: { dependencies: [] },
@@ -106,7 +48,7 @@ const moduleConfigs: ModuleConfig[] = [
     name: "module-c",
     include: [],
     spec: {
-      services: [{ name: "service-c", dependencies: ["service-b"] }],
+      services: [{ name: "service-c", deployCommand: ["echo", "ok"], dependencies: ["service-b"] }],
       tests: [],
       tasks: [],
       build: { dependencies: [] },
@@ -116,7 +58,7 @@ const moduleConfigs: ModuleConfig[] = [
     name: "module-d",
     include: [],
     spec: {
-      services: [{ name: "service-d", dependencies: ["service-c"] }],
+      services: [{ name: "service-d", deployCommand: ["echo", "ok"], dependencies: ["service-c"] }],
       tests: [],
       tasks: [],
       build: { dependencies: [] },
@@ -124,8 +66,10 @@ const moduleConfigs: ModuleConfig[] = [
   }),
 ]
 
-const getServiceStatus = async (): Promise<ServiceStatus> => {
-  return { state: "ready", detail: {} }
+const missingDeployStatus: ActionStatus = {
+  state: "not-ready",
+  detail: { state: "missing", forwardablePorts: [], outputs: {}, detail: {}, mode: "default" },
+  outputs: {},
 }
 
 describe("DeleteEnvironmentCommand", () => {
@@ -133,9 +77,9 @@ describe("DeleteEnvironmentCommand", () => {
   let deleteOrder: string[] = []
   const testEnvStatuses: { [key: string]: EnvironmentStatus } = {}
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
 
-  const testProvider = createGardenPlugin({
+  const testProvider = customizedTestPlugin({
     name: "test-plugin",
     handlers: {
       cleanupEnvironment: async ({ ctx }) => {
@@ -146,22 +90,28 @@ describe("DeleteEnvironmentCommand", () => {
         return testEnvStatuses[ctx.environmentName] || { ready: true, outputs: {} }
       },
     },
-    createModuleTypes: [
-      {
-        name: "test",
-        docs: "Test plugin",
-        schema: testModuleSpecSchema(),
-        handlers: {
-          configure: configureTestModule,
-          getServiceStatus,
-          deleteService: async ({ service }): Promise<ServiceStatus> => {
-            deletedServices.push(service.name)
-            deleteOrder.push(service.name)
-            return { state: "missing", detail: {} }
+    createActionTypes: {
+      Deploy: [
+        {
+          name: "test",
+          docs: "Test Deploy action",
+          schema: execDeployActionSchema(),
+          handlers: {
+            deploy: async (_params) => {
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+            },
+            getStatus: async (_params) => {
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+            },
+            delete: async (params) => {
+              deletedServices.push(params.action.name)
+              deleteOrder.push(params.action.name)
+              return { state: "not-ready", detail: { state: "missing", detail: {} }, outputs: {} }
+            },
           },
         },
-      },
-    ],
+      ],
+    },
   })
 
   beforeEach(async () => {
@@ -179,8 +129,6 @@ describe("DeleteEnvironmentCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      footerLog: log,
-      headerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "dependants-first": false }),
     })
@@ -188,11 +136,14 @@ describe("DeleteEnvironmentCommand", () => {
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
     expect(result!.providerStatuses["test-plugin"]["ready"]).to.be.false
-    expect(result!.serviceStatuses).to.eql({
-      "service-a": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
-      "service-b": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
-      "service-c": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
-      "service-d": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
+
+    expect(result!.deployStatuses["service-a"]?.state).to.equal("not-ready")
+
+    expect(result!.deployStatuses).to.eql({
+      "service-a": missingDeployStatus,
+      "service-b": missingDeployStatus,
+      "service-c": missingDeployStatus,
+      "service-d": missingDeployStatus,
     })
     expect(deletedServices.sort()).to.eql(["service-a", "service-b", "service-c", "service-d"])
   })
@@ -202,8 +153,6 @@ describe("DeleteEnvironmentCommand", () => {
       const { result } = await command.action({
         garden,
         log,
-        footerLog: log,
-        headerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({ "dependants-first": true }),
       })
@@ -211,11 +160,11 @@ describe("DeleteEnvironmentCommand", () => {
       expect(command.outputsSchema().validate(result).error).to.be.undefined
 
       expect(result!.providerStatuses["test-plugin"]["ready"]).to.be.false
-      expect(result!.serviceStatuses).to.eql({
-        "service-a": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
-        "service-b": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
-        "service-c": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
-        "service-d": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
+      expect(result!.deployStatuses).to.eql({
+        "service-a": missingDeployStatus,
+        "service-b": missingDeployStatus,
+        "service-c": missingDeployStatus,
+        "service-d": missingDeployStatus,
       })
       expect(deletedServices.sort()).to.eql(["service-a", "service-b", "service-c", "service-d"])
 
@@ -229,56 +178,46 @@ describe("DeleteEnvironmentCommand", () => {
   })
 })
 
-describe("DeleteServiceCommand", () => {
+describe("DeleteDeployCommand", () => {
   let deleteOrder: string[] = []
 
-  const testStatuses: { [key: string]: ServiceStatus } = {
-    "service-a": {
-      state: "unknown",
-      ingresses: [],
-      detail: {},
-    },
-    "service-b": {
-      state: "unknown",
-      ingresses: [],
-      detail: {},
-    },
-    "service-c": {
-      state: "unknown",
-      ingresses: [],
-      detail: {},
-    },
-    "service-d": {
-      state: "unknown",
-      ingresses: [],
-      detail: {},
-    },
+  const testStatuses: { [key: string]: ActionStatus } = {
+    "service-a": missingDeployStatus,
+    "service-b": missingDeployStatus,
+    "service-c": missingDeployStatus,
+    "service-d": missingDeployStatus,
   }
 
-  const testProvider = createGardenPlugin({
+  const testProvider = customizedTestPlugin({
     name: "test-plugin",
-    createModuleTypes: [
-      {
-        name: "test",
-        docs: "Test plugin",
-        schema: testModuleSpecSchema(),
-        handlers: {
-          configure: configureTestModule,
-          getServiceStatus,
-          deleteService: async ({ service }: DeleteServiceParams) => {
-            deleteOrder.push(service.name)
-            return testStatuses[service.name]
+    createActionTypes: {
+      Deploy: [
+        {
+          name: "test",
+          docs: "Test Deploy action",
+          schema: execDeployActionSchema(),
+          handlers: {
+            deploy: async (_params) => {
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+            },
+            getStatus: async (_params) => {
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+            },
+            delete: async (params) => {
+              deleteOrder.push(params.action.name)
+              return testStatuses[params.action.name]
+            },
           },
         },
-      },
-    ],
+      ],
+    },
   })
 
   const plugins = [testProvider]
 
-  const command = new DeleteServiceCommand()
+  const command = new DeleteDeployCommand()
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
 
   beforeEach(async () => {
     deleteOrder = []
@@ -291,16 +230,14 @@ describe("DeleteServiceCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
-      args: { services: ["service-a"] },
+      args: { names: ["service-a"] },
       opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false }),
     })
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
     expect(result).to.eql({
-      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-a": missingDeployStatus,
     })
   })
 
@@ -308,16 +245,14 @@ describe("DeleteServiceCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
-      args: { services: ["service-a", "service-b", "service-c"] },
+      args: { names: ["service-a", "service-b", "service-c"] },
       opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false }),
     })
 
     expect(result).to.eql({
-      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-      "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-      "service-c": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-a": missingDeployStatus,
+      "service-b": missingDeployStatus,
+      "service-c": missingDeployStatus,
     })
   })
 
@@ -326,16 +261,14 @@ describe("DeleteServiceCommand", () => {
       const { result } = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
-        args: { services: ["service-a", "service-b", "service-c"] },
+        args: { names: ["service-a", "service-b", "service-c"] },
         opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": true }),
       })
       expect(deleteOrder).to.eql(["service-c", "service-b", "service-a"])
       expect(result).to.eql({
-        "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-        "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-        "service-c": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+        "service-a": missingDeployStatus,
+        "service-b": missingDeployStatus,
+        "service-c": missingDeployStatus,
       })
     })
   })
@@ -345,17 +278,15 @@ describe("DeleteServiceCommand", () => {
       const { result } = await command.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
-        args: { services: ["service-a"] },
+        args: { names: ["service-a"] },
         opts: withDefaultGlobalOpts({ "with-dependants": true, "dependants-first": false }),
       })
       expect(deleteOrder).to.eql(["service-d", "service-c", "service-b", "service-a"])
       expect(result).to.eql({
-        "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-        "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-        "service-c": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-        "service-d": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+        "service-a": missingDeployStatus,
+        "service-b": missingDeployStatus,
+        "service-c": missingDeployStatus,
+        "service-d": missingDeployStatus,
       })
     })
   })
@@ -364,16 +295,14 @@ describe("DeleteServiceCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
-      args: { services: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": true }),
     })
     expect(result).to.eql({
-      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-      "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-      "service-c": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-      "service-d": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-a": missingDeployStatus,
+      "service-b": missingDeployStatus,
+      "service-c": missingDeployStatus,
+      "service-d": missingDeployStatus,
     })
   })
 

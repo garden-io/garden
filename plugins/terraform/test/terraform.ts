@@ -13,14 +13,13 @@ import { pathExists, readFile, remove } from "fs-extra"
 
 import { getLogMessages, makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { findByName } from "@garden-io/core/build/src/util/util"
-import { TaskTask } from "@garden-io/core/build/src/tasks/task"
 import { getTerraformCommands } from "../commands"
-import { LogLevel } from "@garden-io/sdk/types"
-import { ConfigGraph } from "@garden-io/core/build/src/config-graph"
+import { ConfigGraph, LogLevel } from "@garden-io/sdk/types"
 import { gardenPlugin, TerraformProvider } from ".."
 import { DeployTask } from "@garden-io/core/build/src/tasks/deploy"
-import { emptyRuntimeContext } from "@garden-io/core/build/src/runtime-context"
 import { getWorkspaces, setWorkspace } from "../common"
+import { resolveAction } from "@garden-io/core/build/src/graph/actions"
+import { RunTask } from "@garden-io/core/build/src/tasks/run"
 
 describe("Terraform provider", () => {
   const testRoot = join(__dirname, "test-project")
@@ -51,7 +50,7 @@ describe("Terraform provider", () => {
       await reset()
       garden = await makeTestGarden(testRoot, {
         plugins: [gardenPlugin()],
-        environmentName: "prod",
+        environmentString: "prod",
         forceRefresh: true,
       })
       tfRoot = join(garden.projectRoot, "tf")
@@ -75,17 +74,17 @@ describe("Terraform provider", () => {
 
     it("should expose outputs to template contexts after applying", async () => {
       const provider = await garden.resolveProvider(garden.log, "terraform")
-      const ctx = await garden.getPluginContext(provider)
+      const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       const applyRootCommand = findByName(getTerraformCommands(), "apply-root")!
       await applyRootCommand.handler({
         garden,
         ctx,
         args: ["-auto-approve", "-input=false"],
         log: garden.log,
-        modules: [],
+        graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
       })
 
-      const _garden = await makeTestGarden(testRoot, { environmentName: "prod", plugins: [gardenPlugin()] })
+      const _garden = await makeTestGarden(testRoot, { environmentString: "prod", plugins: [gardenPlugin()] })
       const _provider = await _garden.resolveProvider(_garden.log, "terraform")
 
       expect(_provider.status.outputs).to.eql({
@@ -97,7 +96,7 @@ describe("Terraform provider", () => {
     describe("apply-root command", () => {
       it("calls terraform apply for the project root", async () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
-        const ctx = await garden.getPluginContext(provider)
+        const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         const command = findByName(getTerraformCommands(), "apply-root")!
         await command.handler({
@@ -105,7 +104,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-auto-approve", "-input=false"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
       })
 
@@ -113,7 +112,7 @@ describe("Terraform provider", () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         provider.config.workspace = "foo"
 
-        const ctx = await garden.getPluginContext(provider)
+        const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         const command = findByName(getTerraformCommands(), "apply-root")!
         await command.handler({
@@ -121,7 +120,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-auto-approve", "-input=false"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
 
         const testFileContent = await readFile(testFilePath)
@@ -132,7 +131,7 @@ describe("Terraform provider", () => {
     describe("plan-root command", () => {
       it("calls terraform plan for the project root", async () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
-        const ctx = await garden.getPluginContext(provider)
+        const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         const command = findByName(getTerraformCommands(), "plan-root")!
         await command.handler({
@@ -140,7 +139,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-input=false"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
       })
 
@@ -148,7 +147,7 @@ describe("Terraform provider", () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         provider.config.workspace = "foo"
 
-        const ctx = await garden.getPluginContext(provider)
+        const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         const command = findByName(getTerraformCommands(), "plan-root")!
         await command.handler({
@@ -156,7 +155,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-input=false"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
 
         const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: garden.log })
@@ -167,7 +166,7 @@ describe("Terraform provider", () => {
     describe("destroy-root command", () => {
       it("calls terraform destroy for the project root", async () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
-        const ctx = await garden.getPluginContext(provider)
+        const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         const command = findByName(getTerraformCommands(), "destroy-root")!
         await command.handler({
@@ -175,7 +174,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-input=false", "-auto-approve"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
       })
 
@@ -183,7 +182,7 @@ describe("Terraform provider", () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         provider.config.workspace = "foo"
 
-        const ctx = await garden.getPluginContext(provider)
+        const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         const command = findByName(getTerraformCommands(), "destroy-root")!
         await command.handler({
@@ -191,7 +190,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-input=false", "-auto-approve"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
 
         const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: garden.log })
@@ -202,7 +201,7 @@ describe("Terraform provider", () => {
     context("allowDestroy=false", () => {
       it("doesn't call terraform destroy when calling the delete service handler", async () => {
         const provider = await garden.resolveProvider(garden.log, "terraform")
-        const ctx = await garden.getPluginContext(provider)
+        const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         // This creates the test file
         const command = findByName(getTerraformCommands(), "apply-root")!
@@ -211,11 +210,11 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-auto-approve", "-input=false"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
 
         const actions = await garden.getActionRouter()
-        await actions.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
+        await actions.provider.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
 
         // File should still exist
         const testFileContent = await readFile(testFilePath)
@@ -228,7 +227,7 @@ describe("Terraform provider", () => {
     before(async () => {
       garden = await makeTestGarden(testRoot, {
         plugins: [gardenPlugin()],
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
       })
     })
@@ -249,9 +248,9 @@ describe("Terraform provider", () => {
 
     it("sets the workspace before applying the stack", async () => {
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
       await _garden.resolveProvider(garden.log, "terraform")
@@ -274,7 +273,7 @@ describe("Terraform provider", () => {
 
         // This should remove the file
         const actions = await garden.getActionRouter()
-        await actions.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
+        await actions.provider.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
 
         expect(await pathExists(testFilePath)).to.be.false
       })
@@ -314,21 +313,24 @@ describe("Terraform module type", () => {
     garden["moduleConfigs"]["tf"].spec.autoApply = autoApply
 
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const service = graph.getService("tf")
+
+    const action = await resolveAction({
+      garden,
+      graph,
+      action: graph.getDeploy("tf"),
+      log: garden.log,
+    })
 
     const deployTask = new DeployTask({
       garden,
       graph,
-      service,
+      action,
       log: garden.log,
       force: false,
       forceBuild: false,
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
     })
 
-    return garden.processTasks([deployTask], { throwOnError: true })
+    return garden.processTasks({ tasks: [deployTask], throwOnError: true })
   }
 
   async function runTestTask(autoApply: boolean, allowDestroy = false) {
@@ -337,61 +339,64 @@ describe("Terraform module type", () => {
     garden["moduleConfigs"]["tf"].spec.autoApply = autoApply
 
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const task = graph.getTask("test-task")
 
-    const taskTask = new TaskTask({
+    const action = await resolveAction({
       garden,
       graph,
-      task,
+      action: graph.getRun("test-task"),
+      log: garden.log,
+    })
+
+    const taskTask = new RunTask({
+      garden,
+      graph,
+      action,
       log: garden.log,
       force: false,
       forceBuild: false,
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
     })
 
-    return garden.processTasks([taskTask], { throwOnError: true })
+    return garden.processTasks({ tasks: [taskTask], throwOnError: true })
   }
 
-  describe("apply-module command", () => {
-    it("calls terraform apply for the module root", async () => {
+  describe("apply-deploy command", () => {
+    it("calls terraform apply for the action", async () => {
       const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
-      const ctx = await garden.getPluginContext(provider)
+      const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-      const command = findByName(getTerraformCommands(), "apply-module")!
+      const command = findByName(getTerraformCommands(), "apply-deploy")!
       await command.handler({
         ctx,
         garden,
         args: ["tf", "-auto-approve", "-input=false"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
     })
 
     it("sets the workspace before running the command", async () => {
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
 
       const provider = (await _garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
-      const ctx = await _garden.getPluginContext(provider)
+      const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
       await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
       graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
-      const command = findByName(getTerraformCommands(), "apply-module")!
+      const command = findByName(getTerraformCommands(), "apply-deploy")!
       await command.handler({
         ctx,
         garden,
         args: ["tf", "-auto-approve", "-input=false"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
 
       const testFileContent = await readFile(testFilePath)
@@ -399,44 +404,44 @@ describe("Terraform module type", () => {
     })
   })
 
-  describe("plan-module command", () => {
-    it("calls terraform apply for the module root", async () => {
+  describe("plan-deploy command", () => {
+    it("calls terraform apply for the action root", async () => {
       const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
-      const ctx = await garden.getPluginContext(provider)
+      const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-      const command = findByName(getTerraformCommands(), "plan-module")!
+      const command = findByName(getTerraformCommands(), "plan-deploy")!
       await command.handler({
         ctx,
         garden,
         args: ["tf", "-input=false"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
     })
 
     it("sets the workspace before running the command", async () => {
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
 
       const provider = (await _garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
-      const ctx = await _garden.getPluginContext(provider)
+      const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
       await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
       graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
-      const command = findByName(getTerraformCommands(), "plan-module")!
+      const command = findByName(getTerraformCommands(), "plan-deploy")!
       await command.handler({
         ctx,
         garden,
         args: ["tf", "-input=false"],
         log: _garden.log,
-        modules: graph.getModules(),
+        graph,
       })
 
       const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: _garden.log })
@@ -444,44 +449,44 @@ describe("Terraform module type", () => {
     })
   })
 
-  describe("destroy-module command", () => {
-    it("calls terraform destroy for the module root", async () => {
+  describe("destroy-deploy command", () => {
+    it("calls terraform destroy for the action root", async () => {
       const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
-      const ctx = await garden.getPluginContext(provider)
+      const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-      const command = findByName(getTerraformCommands(), "destroy-module")!
+      const command = findByName(getTerraformCommands(), "destroy-deploy")!
       await command.handler({
         ctx,
         garden,
         args: ["tf", "-input=false", "-auto-approve"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
     })
 
     it("sets the workspace before running the command", async () => {
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
 
       const provider = (await _garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
-      const ctx = await _garden.getPluginContext(provider)
+      const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
       await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
       graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
-      const command = findByName(getTerraformCommands(), "destroy-module")!
+      const command = findByName(getTerraformCommands(), "destroy-deploy")!
       await command.handler({
         ctx,
         garden,
         args: ["tf", "-input=false", "-auto-approve"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
 
       const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: _garden.log })
@@ -500,46 +505,49 @@ describe("Terraform module type", () => {
 
     it("should expose runtime outputs to template contexts if stack had already been applied", async () => {
       const provider = await garden.resolveProvider(garden.log, "terraform")
-      const ctx = await garden.getPluginContext(provider)
-      const applyCommand = findByName(getTerraformCommands(), "apply-module")!
+      const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+      const applyCommand = findByName(getTerraformCommands(), "apply-deploy")!
       await applyCommand.handler({
         ctx,
         garden,
         args: ["tf", "-auto-approve", "-input=false"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
 
       const result = await runTestTask(false)
 
-      expect(result["task.test-task"]!.output.log).to.equal("workspace: default, input: foo")
-      expect(result["task.test-task"]!.output.outputs.log).to.equal("workspace: default, input: foo")
+      expect(result["task.test-task"]!.result.log).to.equal("workspace: default, input: foo")
+      expect(result["task.test-task"]!.result.outputs.log).to.equal("workspace: default, input: foo")
     })
 
     it("should return outputs with the service status", async () => {
       const provider = await garden.resolveProvider(garden.log, "terraform")
-      const ctx = await garden.getPluginContext(provider)
-      const applyCommand = findByName(getTerraformCommands(), "apply-module")!
+      const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+      const applyCommand = findByName(getTerraformCommands(), "apply-deploy")!
       await applyCommand.handler({
         ctx,
         garden,
         args: ["tf", "-auto-approve", "-input=false"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
+      })
+
+      const resolvedAction = await resolveAction({
+        garden,
+        graph,
+        action: graph.getDeploy("tf"),
+        log: garden.log,
       })
 
       const actions = await garden.getActionRouter()
-      const status = await actions.getServiceStatus({
-        service: graph.getService("tf"),
-        devMode: false,
-        hotReload: false,
-        localMode: false,
-        log: garden.log,
+      const status = await actions.deploy.getStatus({
+        action: resolvedAction,
+        log: resolvedAction.createLog(garden.log),
         graph,
-        runtimeContext: emptyRuntimeContext,
       })
 
-      expect(status.outputs).to.eql({
+      expect(status.result.outputs).to.eql({
         "map-output": {
           first: "second",
         },
@@ -550,35 +558,38 @@ describe("Terraform module type", () => {
 
     it("sets the workspace before getting the status and returning outputs", async () => {
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
 
       const provider = await _garden.resolveProvider(_garden.log, "terraform")
-      const ctx = await _garden.getPluginContext(provider)
-      const applyCommand = findByName(getTerraformCommands(), "apply-module")!
+      const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+      const applyCommand = findByName(getTerraformCommands(), "apply-deploy")!
       await applyCommand.handler({
         ctx,
         garden,
         args: ["tf", "-auto-approve", "-input=false"],
         log: _garden.log,
-        modules: graph.getModules(),
+        graph,
+      })
+
+      const resolvedAction = await resolveAction({
+        garden: _garden,
+        graph,
+        action: graph.getDeploy("tf"),
+        log: _garden.log,
       })
 
       const actions = await _garden.getActionRouter()
-      const status = await actions.getServiceStatus({
-        service: graph.getService("tf"),
-        devMode: false,
-        hotReload: false,
-        localMode: false,
-        log: _garden.log,
+      const status = await actions.deploy.getStatus({
+        action: resolvedAction,
+        log: resolvedAction.createLog(_garden.log),
         graph,
-        runtimeContext: emptyRuntimeContext,
       })
 
-      expect(status.outputs?.["my-output"]).to.equal("workspace: default, input: foo")
+      expect(status.result.outputs?.["my-output"]).to.equal("workspace: default, input: foo")
     })
   })
 
@@ -592,15 +603,15 @@ describe("Terraform module type", () => {
     it("should expose runtime outputs to template contexts", async () => {
       const result = await runTestTask(true)
 
-      expect(result["task.test-task"]!.output.log).to.equal("workspace: default, input: foo")
-      expect(result["task.test-task"]!.output.outputs.log).to.equal("workspace: default, input: foo")
+      expect(result["task.test-task"]!.result.log).to.equal("workspace: default, input: foo")
+      expect(result["task.test-task"]!.result.outputs.log).to.equal("workspace: default, input: foo")
     })
 
     it("sets the workspace before applying", async () => {
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
 
@@ -608,22 +619,25 @@ describe("Terraform module type", () => {
       _garden["moduleConfigs"]["tf"].spec.autoApply = true
 
       const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
-      const task = _graph.getTask("test-task")
 
-      const taskTask = new TaskTask({
+      const resolvedAction = await resolveAction({
         garden: _garden,
         graph: _graph,
-        task,
+        action: _graph.getRun("test-task"),
+        log: garden.log,
+      })
+
+      const runTask = new RunTask({
+        garden: _garden,
+        graph: _graph,
+        action: resolvedAction,
         log: _garden.log,
         force: false,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
-      const result = await _garden.processTasks([taskTask], { throwOnError: true })
-      expect(result["task.test-task"]!.output.outputs.log).to.equal("workspace: foo, input: foo")
+      const result = await _garden.processTasks({ tasks: [runTask], throwOnError: true })
+      expect(result["task.test-task"]!.result.outputs.log).to.equal("workspace: foo, input: foo")
     })
   })
 
@@ -632,9 +646,13 @@ describe("Terraform module type", () => {
       await runTestTask(true, false)
 
       const actions = await garden.getActionRouter()
-      const service = graph.getService("tf")
-
-      await actions.deleteService({ service, log: garden.log, graph })
+      const action = await resolveAction({
+        garden,
+        graph,
+        action: graph.getDeploy("tf"),
+        log: garden.log,
+      })
+      await actions.deploy.delete({ action, log: action.createLog(garden.log), graph })
 
       const testFileContent = await readFile(testFilePath)
       expect(testFileContent.toString()).to.equal("default")
@@ -646,9 +664,15 @@ describe("Terraform module type", () => {
       await runTestTask(true, true)
 
       const actions = await garden.getActionRouter()
-      const service = graph.getService("tf")
 
-      await actions.deleteService({ service, log: garden.log, graph })
+      const action = await resolveAction({
+        garden,
+        graph,
+        action: graph.getDeploy("tf"),
+        log: garden.log,
+      })
+
+      await actions.deploy.delete({ action, log: action.createLog(garden.log), graph })
 
       expect(await pathExists(testFilePath)).to.be.false
     })
@@ -657,21 +681,27 @@ describe("Terraform module type", () => {
       await runTestTask(true, true)
 
       const _garden = await makeTestGarden(testRoot, {
-        environmentName: "local",
+        environmentString: "local",
         forceRefresh: true,
-        variables: { workspace: "foo" },
+        variableOverrides: { workspace: "foo" },
         plugins: [gardenPlugin()],
       })
 
       const provider = (await _garden.resolveProvider(_garden.log, "terraform")) as TerraformProvider
-      const ctx = await _garden.getPluginContext(provider)
+      const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       const actions = await _garden.getActionRouter()
       const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
-      const service = _graph.getService("tf")
+
+      const action = await resolveAction({
+        garden,
+        graph,
+        action: graph.getDeploy("tf"),
+        log: garden.log,
+      })
 
       await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
-      await actions.deleteService({ service, log: _garden.log, graph: _graph })
+      await actions.deploy.delete({ action, log: action.createLog(garden.log), graph: _graph })
 
       const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: _garden.log })
       expect(selected).to.equal("foo")

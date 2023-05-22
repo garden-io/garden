@@ -33,7 +33,8 @@ export class GroupsCommand extends CommandGroup {
 
 export const groupsListOpts = {
   "filter-names": new StringsParameter({
-    help: deline`Filter on group name. Use comma as a separator to filter on multiple names. Accepts glob patterns.`,
+    help: deline`Filter on group name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.`,
+    spread: true,
   }),
 }
 
@@ -41,7 +42,7 @@ type Opts = typeof groupsListOpts
 
 export class GroupsListCommand extends Command<{}, Opts> {
   name = "list"
-  help = "List groups."
+  help = "List groups defined in Garden Cloud."
   description = dedent`
     List all groups from Garden Cloud. This is useful for getting the group IDs when creating
     users via the \`garden cloud users create\` command.
@@ -53,8 +54,8 @@ export class GroupsListCommand extends Command<{}, Opts> {
 
   options = groupsListOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "List groups", "balloon")
+  printHeader({ log }) {
+    printHeader(log, "List groups", "")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<Groups[]>> {

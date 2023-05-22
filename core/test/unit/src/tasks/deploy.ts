@@ -7,135 +7,135 @@
  */
 
 import tmp from "tmp-promise"
-import execa from "execa"
 
-import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import { Garden } from "../../../../src/garden"
-import { ConfigGraph } from "../../../../src/config-graph"
-import { createGardenPlugin, GardenPlugin } from "../../../../src/types/plugin/plugin"
-import { joi } from "../../../../src/config/common"
-import { ServiceState } from "../../../../src/types/service"
+import { ProjectConfig } from "../../../../src/config/project"
+import { ConfigGraph } from "../../../../src/graph/config-graph"
+import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
 import { DeployTask } from "../../../../src/tasks/deploy"
-import { DeployServiceParams } from "../../../../src/types/plugin/service/deployService"
-import { RunTaskParams } from "../../../../src/types/plugin/task/runTask"
 import { expect } from "chai"
-import { TestGarden } from "../../../helpers"
+import { createProjectConfig, makeTempDir, TestGarden } from "../../../helpers"
+import { joi } from "../../../../src/config/common"
 
 describe("DeployTask", () => {
   let tmpDir: tmp.DirectoryResult
-  let garden: Garden
+  let garden: TestGarden
   let graph: ConfigGraph
   let config: ProjectConfig
   let testPlugin: GardenPlugin
 
   before(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
 
-    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
-
-    config = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
+    config = createProjectConfig({
       path: tmpDir.path,
-      defaultEnvironment: "default",
-      dotIgnoreFiles: [],
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
-      variables: {},
-    }
+    })
 
     testPlugin = createGardenPlugin({
       name: "test",
-      createModuleTypes: [
-        {
-          name: "test",
-          docs: "test",
-          serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
-          handlers: {
-            build: async () => ({}),
-            getServiceStatus: async () => {
-              return {
-                state: <ServiceState>"missing",
-                detail: {},
-                outputs: {},
-              }
-            },
-            deployService: async ({ service }: DeployServiceParams) => {
-              return {
-                state: <ServiceState>"ready",
-                detail: {},
-                outputs: { log: service.spec.log },
-              }
-            },
-            runTask: async ({ task }: RunTaskParams) => {
-              const log = task.spec.log
-
-              return {
-                taskName: task.name,
-                moduleName: task.module.name,
-                success: true,
-                outputs: { log },
-                command: [],
-                log,
-                startedAt: new Date(),
-                completedAt: new Date(),
-                version: task.version,
-              }
+      docs: "asd",
+      createActionTypes: {
+        Build: [
+          {
+            name: "test",
+            docs: "asd",
+            schema: joi.object(),
+            handlers: {
+              build: async (_) => ({ state: "ready", detail: {}, outputs: {} }),
             },
           },
-        },
-      ],
-    })
+        ],
+        Deploy: [
+          {
+            name: "test",
+            docs: "asd",
+            schema: joi.object(),
+            handlers: {
+              deploy: async (params) => ({
+                state: "ready",
+                detail: { detail: {}, state: "ready" },
+                outputs: { log: params.action.getSpec().log },
+              }),
+              getStatus: async (params) => ({
+                state: "ready",
+                detail: { detail: {}, state: "ready" },
+                outputs: { log: params.action.getSpec().log },
+              }),
+            },
+          },
+        ],
+        Run: [
+          {
+            name: "test",
+            docs: "asdü",
+            schema: joi.object(),
+            handlers: {
+              run: async (params) => {
+                const log = params.action.getSpec().log
 
+                return {
+                  detail: {
+                    completedAt: new Date(),
+                    log,
+                    startedAt: new Date(),
+                    success: true,
+                  },
+                  outputs: {
+                    log,
+                  },
+                  state: "ready",
+                }
+              },
+            },
+          },
+        ],
+      },
+    })
     garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
-    garden["moduleConfigs"] = {
-      test: {
-        apiVersion: DEFAULT_API_VERSION,
-        name: "test",
+    garden.setActionConfigs([
+      {
+        name: "test-deploy",
         type: "test",
-        allowPublish: false,
+        kind: "Deploy",
+        internal: {
+          basePath: "foo",
+        },
+        dependencies: ["deploy.dep-deploy", "run.test-run"],
         disabled: false,
-        build: { dependencies: [] },
-        path: tmpDir.path,
-        serviceConfigs: [
-          {
-            name: "test-service",
-            dependencies: ["dep-service", "test-task"],
-            disabled: false,
-            hotReloadable: false,
-            spec: {
-              log: "${runtime.tasks.test-task.outputs.log}",
-            },
-          },
-          {
-            name: "dep-service",
-            dependencies: [],
-            disabled: false,
-            hotReloadable: false,
-            spec: {
-              log: "apples and pears",
-            },
-          },
-        ],
-        taskConfigs: [
-          {
-            name: "test-task",
-            cacheResult: true,
-            dependencies: [],
-            disabled: false,
-            spec: {
-              log: "test output",
-            },
-            timeout: 10,
-          },
-        ],
-        testConfigs: [],
-        spec: { bla: "fla" },
+
+        spec: {
+          log: "${runtime.tasks.test-run.outputs.log}",
+        },
       },
-    }
+      {
+        name: "dep-deploy",
+        type: "test",
+        kind: "Deploy",
+        internal: {
+          basePath: "foo",
+        },
+        dependencies: [],
+        disabled: false,
+        spec: {
+          log: "apples and pears",
+        },
+      },
+      {
+        name: "test-run",
+        type: "test",
+        kind: "Run",
+        dependencies: [],
+        disabled: false,
+        timeout: 10,
+        internal: {
+          basePath: "./",
+        },
+        spec: {
+          log: "test output",
+        },
+      },
+    ])
 
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
@@ -144,99 +144,35 @@ describe("DeployTask", () => {
     await tmpDir.cleanup()
   })
 
-  describe("getDependencies", () => {
-    it("should always return task dependencies having force = false", async () => {
-      const testService = graph.getService("test-service")
+  describe("resolveProcessDependencies", () => {
+    it("should always return deploy action's dependencies having force = false", async () => {
+      const action = graph.getDeploy("test-deploy")
 
       const forcedDeployTask = new DeployTask({
         garden,
         graph,
-        service: testService,
+        action,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         log: garden.log,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
-      expect((await forcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
+      expect(forcedDeployTask.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force).to
+        .be.false
 
       const unforcedDeployTask = new DeployTask({
         garden,
         graph,
-        service: testService,
+        action,
         force: false,
         forceBuild: false,
-        fromWatch: false,
+
         log: garden.log,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
-      expect((await unforcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
-
-      const deployTaskFromWatch = new DeployTask({
-        garden,
-        graph,
-        service: testService,
-        force: false,
-        forceBuild: false,
-        fromWatch: true,
-        log: garden.log,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
-      })
-
-      expect((await deployTaskFromWatch.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
-    })
-
-    context("when skipRuntimeDependencies = true", () => {
-      it("doesn't return deploy or task dependencies", async () => {
-        const testService = graph.getService("test-service")
-
-        const deployTask = new DeployTask({
-          garden,
-          graph,
-          service: testService,
-          force: true,
-          forceBuild: false,
-          fromWatch: false,
-          log: garden.log,
-          skipRuntimeDependencies: true, // <-----
-          devModeServiceNames: [],
-          hotReloadServiceNames: [],
-          localModeServiceNames: [],
-        })
-
-        const deps = await deployTask.resolveDependencies()
-        expect(deps.find((dep) => dep.type === "deploy" || dep.type === "task")).to.be.undefined
-      })
-    })
-  })
-
-  describe("process", () => {
-    it("should correctly resolve runtime outputs from tasks", async () => {
-      const testService = graph.getService("test-service")
-
-      const deployTask = new DeployTask({
-        garden,
-        graph,
-        service: testService,
-        force: true,
-        forceBuild: false,
-        log: garden.log,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
-      })
-
-      const result = await garden.processTasks([deployTask], { throwOnError: true })
-
-      expect(result[deployTask.getKey()]!.output.outputs).to.eql({ log: "test output" })
+      expect(unforcedDeployTask.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force)
+        .to.be.false
     })
   })
 })

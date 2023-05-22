@@ -13,22 +13,17 @@ import {
   deleteNamespaces,
   getSystemNamespace,
   getAppNamespaceStatus,
+  clearNamespaceCache,
 } from "./namespace"
 import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config"
 import { prepareSystemServices, getSystemServiceStatus, getSystemGarden } from "./system"
-import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
-import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../types/plugin/provider/prepareEnvironment"
-import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../../types/plugin/provider/cleanupEnvironment"
+import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../plugin/handlers/Provider/getEnvironmentStatus"
+import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../plugin/handlers/Provider/prepareEnvironment"
+import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../../plugin/handlers/Provider/cleanupEnvironment"
 import { millicpuToString, megabytesToString } from "./util"
 import chalk from "chalk"
 import { deline, dedent, gardenAnnotationKey } from "../../util/string"
-import { combineStates, ServiceStatusMap, ServiceState } from "../../types/service"
-import {
-  setupCertManager,
-  checkCertManagerStatus,
-  checkCertificateStatusByName,
-  getCertificateName,
-} from "./integrations/cert-manager"
+import { combineStates, DeployState } from "../../types/service"
 import { ConfigurationError } from "../../exceptions"
 import Bluebird from "bluebird"
 import { readSecret } from "./secrets"
@@ -37,12 +32,10 @@ import { V1IngressClass, V1Secret, V1Toleration } from "@kubernetes/client-node"
 import { KubernetesResource } from "./types"
 import { compareDeployedResources } from "./status/status"
 import { PrimitiveMap } from "../../config/common"
-import { mapValues } from "lodash"
+import { mapValues, omit } from "lodash"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress"
-import { LogEntry } from "../../logger/log-entry"
-
-// Note: We need to increment a version number here if we ever make breaking changes to the NFS provisioner StatefulSet
-const nfsStorageClassVersion = 2
+import { Log } from "../../logger/log-entry"
+import { DeployStatusMap } from "../../plugin/handlers/Deploy/get-status"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
@@ -52,15 +45,13 @@ a registry auth secret.
 
 interface KubernetesProviderOutputs extends PrimitiveMap {
   "app-namespace": string
-  "metadata-namespace": string
   "default-hostname": string | null
 }
 
 interface KubernetesEnvironmentDetail {
-  projectHelmMigrated: boolean
-  serviceStatuses: ServiceStatusMap
+  deployStatuses: DeployStatusMap
   systemReady: boolean
-  systemServiceState: ServiceState
+  systemServiceState: DeployState
   systemCertManagerReady: boolean
   systemManagedCertificatesReady: boolean
 }
@@ -80,17 +71,14 @@ export async function getEnvironmentStatus({
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
-  let projectHelmMigrated = true
-
   const namespaces = await prepareNamespaces({ ctx, log })
   const systemServiceNames = k8sCtx.provider.config._systemServices
-  const systemNamespace = await getSystemNamespace(ctx, k8sCtx.provider, log)
+  const systemNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
 
   const detail: KubernetesEnvironmentDetail = {
-    projectHelmMigrated,
-    serviceStatuses: {},
+    deployStatuses: {},
     systemReady: true,
-    systemServiceState: <ServiceState>"unknown",
+    systemServiceState: <DeployState>"unknown",
     systemCertManagerReady: true,
     systemManagedCertificatesReady: true,
   }
@@ -102,7 +90,7 @@ export async function getEnvironmentStatus({
     log,
     api
   )
-  ingressWarnings.forEach((w) => log.warn({ symbol: "warning", msg: chalk.yellow(w) }))
+  ingressWarnings.forEach((w) => log.warn(w))
 
   const namespaceNames = mapValues(namespaces, (s) => s.namespaceName)
   const result: KubernetesEnvironmentStatus = {
@@ -126,41 +114,6 @@ export async function getEnvironmentStatus({
   const variables = getKubernetesSystemVariables(provider.config)
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
 
-  if (provider.config.certManager) {
-    const certManagerStatus = await checkCertManagerStatus({ ctx, provider, log })
-
-    // A running cert-manager installation couldn't be found.
-    if (certManagerStatus !== "ready") {
-      if (!provider.config.certManager.install) {
-        // Cert manager installation couldn't be found AND user doesn't want to let garden install it.
-        throw new ConfigurationError(
-          deline`
-          Couldn't find a running installation of cert-manager in namespace "cert-manager".
-          Please set providers[].certManager.install == true or install cert-manager manually.
-        `,
-          {}
-        )
-      } else {
-        // garden will proceed with intstallation and certificate creation.
-        result.ready = false
-        detail.systemCertManagerReady = false
-        detail.systemManagedCertificatesReady = false
-      }
-    } else {
-      // A running cert-manager installation has been found and we can safely check for the status of the certificates.
-      const certManager = provider.config.certManager
-      const certificateNames = provider.config.tlsCertificates
-        .filter((cert) => cert.managedBy === "cert-manager")
-        .map((cert) => getCertificateName(certManager, cert))
-      const certificatesStatus = await checkCertificateStatusByName({ ctx, log, provider, resources: certificateNames })
-      if (!certificatesStatus) {
-        // Some certificates are not ready/created and will be taken care of by the integration.
-        result.ready = false
-        detail.systemManagedCertificatesReady = false
-      }
-    }
-  }
-
   // Check if builder auth secret is up-to-date
   let secretsUpToDate = true
 
@@ -176,7 +129,7 @@ export async function getEnvironmentStatus({
     log,
     sysGarden,
     namespace: systemNamespace,
-    serviceNames: systemServiceNames,
+    names: systemServiceNames,
   })
 
   if (!secretsUpToDate || systemServiceStatus.state !== "ready") {
@@ -184,10 +137,10 @@ export async function getEnvironmentStatus({
     detail.systemReady = false
   }
 
-  detail.serviceStatuses = systemServiceStatus.serviceStatuses
+  detail.deployStatuses = mapValues(systemServiceStatus.serviceStatuses, (s) => omit(s, "executedAction"))
   detail.systemServiceState = systemServiceStatus.state
 
-  sysGarden.log.setSuccess()
+  sysGarden.log.success("Done")
 
   return result
 }
@@ -195,9 +148,9 @@ export async function getEnvironmentStatus({
 export async function getIngressMisconfigurationWarnings(
   customIngressClassName: string | undefined,
   ingressApiVersion: string | undefined,
-  log: LogEntry,
+  log: Log,
   api: KubeApi
-): Promise<String[]> {
+): Promise<string[]> {
   if (!customIngressClassName) {
     return []
   }
@@ -235,7 +188,6 @@ export async function prepareEnvironment(
   // Prepare system services
   await prepareSystem({ ...params, clusterInit: false })
   const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
-  await setupCertManager({ ctx: k8sCtx, provider: k8sCtx.provider, log, status })
 
   return { status: { namespaceStatuses: [ns], ready: true, outputs: status.outputs } }
 }
@@ -258,8 +210,8 @@ export async function prepareSystem({
     return {}
   }
 
-  const serviceStatuses: ServiceStatusMap = (status.detail && status.detail.serviceStatuses) || {}
-  const serviceStates = Object.values(serviceStatuses).map((s) => (s && s.state) || "unknown")
+  const deployStatuses: DeployStatusMap = (status.detail && status.detail.deployStatuses) || {}
+  const serviceStates = Object.values(deployStatuses).map((s) => s.detail?.state || "unknown")
   const combinedState = combineStates(serviceStates)
 
   const remoteCluster = provider.name !== "local-kubernetes"
@@ -300,13 +252,10 @@ export async function prepareSystem({
       // If system services are outdated but none are *missing*, we warn instead of flagging as not ready here.
       // This avoids blocking users where there's variance in configuration between users of the same cluster,
       // that often doesn't affect usage.
-      log.warn({
-        symbol: "warning",
-        msg: chalk.gray(deline`
-          One or more cluster-wide system services are outdated or their configuration does not match your current
-          configuration. You may want to run ${initCommand} to update them, or contact a cluster admin to do so.
-        `),
-      })
+      log.warn(deline`
+        One or more cluster-wide system services are outdated or their configuration does not match your current
+        configuration. You may want to run ${initCommand} to update them, or contact a cluster admin to do so.
+      `)
 
       return {}
     }
@@ -314,7 +263,7 @@ export async function prepareSystem({
 
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
   const sysProvider = <KubernetesProvider>await sysGarden.resolveProvider(log, provider.name)
-  const systemNamespace = await getSystemNamespace(ctx, sysProvider, log)
+  const systemNamespace = await getSystemNamespace(k8sCtx, sysProvider, log)
   const sysApi = await KubeApi.factory(log, ctx, sysProvider)
 
   await sysGarden.clearBuilds()
@@ -326,19 +275,6 @@ export async function prepareSystem({
     await sysApi.upsert({ kind: "Secret", namespace: systemNamespace, obj: authSecret, log })
   }
 
-  // We need to install the NFS provisioner separately, so that we can optionally install it
-  // FIXME: when we've added an `enabled` field, we should get rid of this special case
-  if (systemServiceNames.includes("nfs-provisioner")) {
-    await prepareSystemServices({
-      log,
-      sysGarden,
-      namespace: systemNamespace,
-      force,
-      ctx: k8sCtx,
-      serviceNames: ["nfs-provisioner"],
-    })
-  }
-
   // Install system services
   await prepareSystemServices({
     log,
@@ -346,10 +282,10 @@ export async function prepareSystem({
     namespace: systemNamespace,
     force,
     ctx: k8sCtx,
-    serviceNames: systemServiceNames.filter((name) => name !== "nfs-provisioner"),
+    names: systemServiceNames,
   })
 
-  sysGarden.log.setSuccess()
+  sysGarden.log.success("Done")
 
   return {}
 }
@@ -387,24 +323,21 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
     nsDescription = `namespaces ${namespacesToDelete[0]} and ${namespacesToDelete[1]}`
   }
 
-  const entry = log.info({
-    section: "kubernetes",
-    msg: `Deleting ${nsDescription} (this may take a while)`,
-    status: "active",
-  })
+  const entry = log
+    .createLog({
+      name: "kubernetes",
+    })
+    .info(`Deleting ${nsDescription} (this may take a while)`)
 
   await deleteNamespaces(<string[]>namespacesToDelete, api, entry)
+
+  // Since we've deleted one or more namespaces, we invalidate the NS cache for this provider instance.
+  clearNamespaceCache(provider)
 
   return { namespaceStatuses: [{ namespaceName: namespace, state: "missing", pluginName: provider.name }] }
 }
 
-export function getNfsStorageClass(config: KubernetesConfig) {
-  return `${config.gardenSystemNamespace}-nfs-v${nfsStorageClassVersion}`
-}
-
 export function getKubernetesSystemVariables(config: KubernetesConfig) {
-  const nfsStorageClass = getNfsStorageClass(config)
-  const syncStorageClass = config.storage.sync.storageClass || nfsStorageClass
   const systemNamespace = config.gardenSystemNamespace
   const systemTolerations: V1Toleration[] = [
     {
@@ -414,64 +347,23 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
       effect: "NoSchedule",
     },
   ]
-  const registryProxyTolerations = config.registryProxyTolerations || systemTolerations
 
   return {
     "namespace": systemNamespace,
 
-    "registry-hostname": getInClusterRegistryHostname(config),
     "builder-mode": config.buildMode,
 
     "builder-limits-cpu": millicpuToString(config.resources.builder.limits.cpu),
     "builder-limits-memory": megabytesToString(config.resources.builder.limits.memory),
     "builder-requests-cpu": millicpuToString(config.resources.builder.requests.cpu),
     "builder-requests-memory": megabytesToString(config.resources.builder.requests.memory),
-    "builder-storage-size": megabytesToString(config.storage.builder.size!),
-    "builder-storage-class": config.storage.builder.storageClass,
 
     "ingress-http-port": config.ingressHttpPort,
     "ingress-https-port": config.ingressHttpsPort,
 
-    // We only use NFS for the build-sync volume, so we allocate the space we need for that plus 1GB for margin.
-    "nfs-storage-size": megabytesToString(config.storage.sync.size! + 1024),
-    "nfs-storage-class": config.storage.nfs.storageClass,
-
-    "registry-limits-cpu": millicpuToString(config.resources.registry.limits.cpu),
-    "registry-limits-memory": megabytesToString(config.resources.registry.limits.memory),
-    ...(config.resources.registry.limits.ephemeralStorage
-      ? { "registry-limits-ephemeralStorage": megabytesToString(config.resources.registry.limits.ephemeralStorage) }
-      : {}),
-    "registry-requests-cpu": millicpuToString(config.resources.registry.requests.cpu),
-    "registry-requests-memory": megabytesToString(config.resources.registry.requests.memory),
-    ...(config.resources.registry.requests.ephemeralStorage
-      ? { "registry-requests-ephemeralStorage": megabytesToString(config.resources.registry.requests.ephemeralStorage) }
-      : {}),
-    "registry-storage-size": megabytesToString(config.storage.registry.size!),
-    "registry-storage-class": config.storage.registry.storageClass,
-
-    "sync-limits-cpu": millicpuToString(config.resources.sync.limits.cpu),
-    "sync-limits-memory": megabytesToString(config.resources.sync.limits.memory),
-    ...(config.resources.sync.limits.ephemeralStorage
-      ? { "sync-limits-ephemeralStorage": megabytesToString(config.resources.sync.limits.ephemeralStorage) }
-      : {}),
-    "sync-requests-cpu": millicpuToString(config.resources.sync.requests.cpu),
-    "sync-requests-memory": megabytesToString(config.resources.sync.requests.memory),
-    ...(config.resources.sync.requests.ephemeralStorage
-      ? { "sync-requests-ephemeralStorage": megabytesToString(config.resources.sync.requests.ephemeralStorage) }
-      : {}),
-    "sync-storage-size": megabytesToString(config.storage.sync.size!),
-    "sync-storage-class": syncStorageClass,
-    "sync-volume-name": `garden-sync-${syncStorageClass}`,
-
-    "registry-proxy-tolerations": <PrimitiveMap[]>registryProxyTolerations,
     "system-tolerations": <PrimitiveMap[]>systemTolerations,
     "system-node-selector": config.systemNodeSelector,
   }
-}
-
-export function getInClusterRegistryHostname(config: KubernetesConfig) {
-  const systemNamespace = config.gardenSystemNamespace
-  return `garden-docker-registry.${systemNamespace}.svc.cluster.local`
 }
 
 interface DockerConfigJson {

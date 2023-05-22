@@ -16,13 +16,17 @@ import { pruneRemoteSources, updateRemoteSharedOptions } from "./helpers"
 import { SourceConfig, projectSourceSchema } from "../../config/project"
 import { printHeader } from "../../logger/util"
 import { Garden } from "../../garden"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { joiArray, joi } from "../../config/common"
 import { StringsParameter, ParameterValues } from "../../cli/params"
 
 const updateRemoteSourcesArguments = {
   sources: new StringsParameter({
-    help: "The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.",
+    help: "The name(s) of the remote source(s) to update. You may specify multiple sources, separated by spaces.",
+    spread: true,
+    getSuggestions: ({ configDump }) => {
+      return configDump.sources.map((s) => s.name)
+    },
   }),
 }
 
@@ -59,8 +63,8 @@ export class UpdateRemoteSourcesCommand extends Command<Args, Opts> {
         garden update-remote sources my-source  # update remote source my-source
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Update remote sources", "hammer_and_wrench")
+  printHeader({ log }) {
+    printHeader(log, "Update remote sources", "🛠️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<Output>> {
@@ -75,7 +79,7 @@ export async function updateRemoteSources({
   opts,
 }: {
   garden: Garden
-  log: LogEntry
+  log: Log
   args: ParameterValues<Args>
   opts: ParameterValues<Opts>
 }) {

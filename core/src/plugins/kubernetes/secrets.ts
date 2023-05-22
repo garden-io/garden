@@ -7,81 +7,10 @@
  */
 
 import { KubeApi } from "./api"
-import { ProviderSecretRef, KubernetesPluginContext } from "./config"
+import { ProviderSecretRef } from "./config"
 import { ConfigurationError } from "../../exceptions"
-import { getAppNamespace } from "./namespace"
-import { GetSecretParams } from "../../types/plugin/provider/getSecret"
-import { SetSecretParams } from "../../types/plugin/provider/setSecret"
-import { DeleteSecretParams } from "../../types/plugin/provider/deleteSecret"
 import { pick } from "lodash"
-import { LogEntry } from "../../logger/log-entry"
-
-export async function getSecret({ ctx, log, key }: GetSecretParams) {
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-  const ns = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-
-  try {
-    const res = await api.core.readNamespacedSecret(key, ns)
-    return { value: Buffer.from(res.data!.value, "base64").toString() }
-  } catch (err) {
-    if (err.statusCode === 404) {
-      return { value: null }
-    } else {
-      throw err
-    }
-  }
-}
-
-export async function setSecret({ ctx, log, key, value }: SetSecretParams) {
-  // we store configuration in a separate metadata namespace, so that configs aren't cleared when wiping the namespace
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-  const ns = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-  const body = {
-    body: {
-      apiVersion: "v1",
-      kind: "Secret",
-      metadata: {
-        name: key,
-        annotations: {
-          "garden.io/generated": "true",
-        },
-      },
-      type: "exec",
-      stringData: { value },
-    },
-  }
-
-  try {
-    await api.core.createNamespacedSecret(ns, <any>body)
-  } catch (err) {
-    if (err.statusCode === 409) {
-      await api.core.patchNamespacedSecret(key, ns, body)
-    } else {
-      throw err
-    }
-  }
-
-  return {}
-}
-
-export async function deleteSecret({ ctx, log, key }: DeleteSecretParams) {
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-  const ns = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-
-  try {
-    await api.core.deleteNamespacedSecret(key, ns, <any>{})
-  } catch (err) {
-    if (err.statusCode === 404) {
-      return { found: false }
-    } else {
-      throw err
-    }
-  }
-  return { found: true }
-}
+import { Log } from "../../logger/log-entry"
 
 /**
  * Read the specified secret ref from the cluster.
@@ -107,7 +36,7 @@ export async function readSecret(api: KubeApi, secretRef: ProviderSecretRef) {
 /**
  * Make sure the specified secret exists in the target namespace, copying it if necessary.
  */
-export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, targetNamespace: string, log: LogEntry) {
+export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, targetNamespace: string, log: Log) {
   const secret = await readSecret(api, secretRef)
 
   if (secretRef.namespace === targetNamespace) {
@@ -136,7 +65,7 @@ export async function prepareSecrets({
   api: KubeApi
   namespace: string
   secrets: Array<ProviderSecretRef>
-  log: LogEntry
+  log: Log
 }) {
   await Promise.all(secrets.map((s) => ensureSecret(api, s, namespace, log)))
   return secrets.map((s) => ({ name: s.name }))

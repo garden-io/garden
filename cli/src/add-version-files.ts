@@ -8,7 +8,7 @@
 
 import { GitHandler } from "@garden-io/core/build/src/vcs/git"
 import { Garden } from "@garden-io/core/build/src/garden"
-import { Logger, LogLevel } from "@garden-io/core/build/src/logger/logger"
+import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger"
 import { resolve, relative } from "path"
 import Bluebird from "bluebird"
 import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "@garden-io/core/build/src/constants"
@@ -18,9 +18,7 @@ import { TreeCache } from "@garden-io/core/build/src/cache"
 require("source-map-support").install()
 
 // make sure logger is initialized
-try {
-  Logger.initialize({ level: LogLevel.info, type: "quiet", storeEntries: false })
-} catch (_) {}
+RootLogger.initialize({ level: LogLevel.info, displayWriterType: "quiet", storeEntries: false })
 
 /**
  * Write .garden-version files for modules in garden-system/static.
@@ -34,18 +32,26 @@ async function addVersionFiles() {
     const path = config.path
     const versionFilePath = resolve(path, GARDEN_VERSIONFILE_NAME)
 
-    const vcsHandler = new GitHandler(STATIC_DIR, garden.gardenDirPath, garden.dotIgnoreFiles, new TreeCache())
+    const vcsHandler = new GitHandler({
+      garden,
+      projectRoot: STATIC_DIR,
+      gardenDirPath: garden.gardenDirPath,
+      ignoreFile: garden.dotIgnoreFile,
+      cache: new TreeCache(),
+    })
     const treeVersion = await vcsHandler.getTreeVersion(garden.log, garden.projectName, config)
 
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(`${config.name} -> ${relative(STATIC_DIR, versionFilePath)}`)
 
     return writeTreeVersionFile(path, treeVersion)
   })
 }
 
-addVersionFiles().catch((err) => {
-  // tslint:disable-next-line: no-console
-  console.error(err)
-  process.exit(1)
-})
+if (require.main === module) {
+  addVersionFiles().catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error(err)
+    process.exit(1)
+  })
+}

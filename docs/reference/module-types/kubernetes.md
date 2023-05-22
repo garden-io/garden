@@ -5,17 +5,19 @@ tocTitle: "`kubernetes`"
 
 # `kubernetes` Module Type
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 ## Description
 
 Specify one or more Kubernetes manifests to deploy.
 
-You can either (or both) specify the manifests as part of the `garden.yml` configuration, or you can refer to
-one or more files with existing manifests.
+You can either (or both) specify the manifests as part of the `garden.yml` configuration, or you can refer to one or more files with existing manifests.
 
-Note that if you include the manifests in the `garden.yml` file, you can use
-[template strings](../../using-garden/variables-and-templating.md) to interpolate values into the manifests.
+Note that if you include the manifests in the `garden.yml` file, you can use [template strings](https://docs.garden.io/using-garden/variables-and-templating) to interpolate values into the manifests.
 
-If you need more advanced templating features you can use the [helm](./helm.md) module type.
+If you need more advanced templating features you can use the [helm](./helm.md) Deploy type.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
@@ -29,8 +31,8 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
+# The schema version of this config.
+apiVersion: garden.io/v1
 
 kind: Module
 
@@ -57,7 +59,7 @@ build:
           target:
 
   # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
+  timeout: 600
 
 # A description of the module.
 description:
@@ -100,8 +102,8 @@ include:
 # Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-# directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+# Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+# directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
 # directories that should not be watched for changes.
 exclude:
 
@@ -119,7 +121,7 @@ allowPublish: true
 # generate (and template) any supporting files needed for the module.
 generateFiles:
   - # POSIX-style filename to read the source file contents from, relative to the path of the module (or the
-    # ModuleTemplate configuration file if one is being applied).
+    # ConfigTemplate configuration file if one is being applied).
     # This file may contain template strings, much like any other field in the configuration.
     sourcePath:
 
@@ -162,115 +164,6 @@ variables:
 # varfiles exist).
 varfile:
 
-# The names of any services that this service depends on at runtime, and the names of any tasks that should be
-# executed before this service is deployed.
-dependencies: []
-
-# Specifies which files or directories to sync to which paths inside the running containers of the service when it's
-# in dev mode, and overrides for the container command and/or arguments.
-#
-# Note that `serviceResource` must also be specified to enable dev mode.
-#
-# Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy`
-# command.
-#
-# See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
-# information.
-devMode:
-  # Override the default container arguments when in dev mode.
-  args:
-
-  # Override the default container command (i.e. entrypoint) when in dev mode.
-  command:
-
-  # Specify one or more source files or directories to automatically sync with the running container.
-  sync:
-    - # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
-      # allowed.
-      target:
-
-      # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
-      #
-      # `.git` directories and `.garden` directories are always ignored.
-      exclude:
-
-      # POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path.
-      # Defaults to the module's top-level directory if no value is provided.
-      source: .
-
-      # The sync mode to use for the given paths. See the [Dev Mode
-      # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
-      mode: one-way-safe
-
-      # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user
-      # read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions)
-      # for more information.
-      defaultFileMode:
-
-      # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700
-      # (user read/write). See the [Mutagen
-      # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-      defaultDirectoryMode:
-
-      # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
-      # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
-      # more information.
-      defaultOwner:
-
-      # Set the default group on files and directories at the target. Specify either an integer ID or a string name.
-      # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
-      # more information.
-      defaultGroup:
-
-  # Optionally specify the name of a specific container to sync to. If not specified, the first container in the
-  # workload is used.
-  containerName:
-
-# Configures the local application which will send and receive network requests instead of the target resource
-# specified by `serviceResource`.
-#
-# Note that `serviceResource` must also be specified to enable local mode. Local mode configuration for the
-# `kubernetes` module type relies on the `serviceResource.kind` and `serviceResource.name` fields to select a target
-# Kubernetes resource.
-#
-# The `serviceResource.containerName` field is not used by local mode configuration.
-# Note that `localMode` uses its own field `containerName` to specify a target container name explicitly.
-#
-# The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH
-# server to proxy requests.
-# Reverse port-forwarding will be automatically configured to route traffic to the locally deployed application and
-# back.
-#
-# Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
-# Local mode always takes the precedence over dev mode if there are any conflicting service names.
-#
-# Health checks are disabled for services running in local mode.
-#
-# See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
-localMode:
-  # The reverse port-forwards configuration for the local application.
-  ports:
-    - # The local port to be used for reverse port-forward.
-      local:
-
-      # The remote port to be used for reverse port-forward.
-      remote:
-
-  # The command to run the local application. If not present, then the local application should be started manually.
-  command:
-
-  # Specifies restarting policy for the local application. By default, the local application will be restarting
-  # infinitely with 1000ms between attempts.
-  restart:
-    # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
-    delayMsec: 1000
-
-    # Max number of the local application restarts. Unlimited by default.
-    max: .inf
-
-  # The name of the target container. The first available container will be used if this field is not defined.
-  containerName:
-
 # POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any
 # Garden template strings, which will be resolved before applying the manifests.
 files: []
@@ -279,16 +172,16 @@ files: []
 # `manifests` as well, these are also included.
 kustomize:
   # The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an
-  # overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module
-  # root. Defaults to the module root. If you set this to null, kustomize will not be run.
+  # overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the action
+  # root. Defaults to the action root. If you set this to null, kustomize will not be run.
   path: .
 
   # A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output'
   # is not allowed.
   extraArgs: []
 
-# List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you need to resolve
-# template strings in any of the manifests.
+# List of Kubernetes resource manifests to deploy. If `files` is also specified, this is combined with the manifests
+# read from the files.
 manifests:
   - # The API version of the resource.
     apiVersion:
@@ -323,6 +216,125 @@ portForwards:
     # not available, a warning is shown and a random port chosen instead.
     localPort:
 
+# The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+timeout: 300
+
+# The names of any services that this service depends on at runtime, and the names of any tasks that should be
+# executed before this service is deployed.
+dependencies: []
+
+# Specifies which files or directories to sync to which paths inside the running containers of the service when it's
+# in sync mode, and overrides for the container command and/or arguments.
+#
+# Note that `serviceResource` must also be specified to enable sync.
+#
+# Sync is enabled by setting the `--sync` flag on the `garden deploy` command.
+#
+# See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
+# information.
+sync:
+  # Override the default container arguments when in sync mode.
+  args:
+
+  # Override the default container command (i.e. entrypoint) when in sync mode.
+  command:
+
+  # Specify one or more source files or directories to automatically sync with the running container.
+  paths:
+    - # POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no
+      # value is provided.
+      source: .
+
+      # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
+      target:
+
+      # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+      #
+      # `.git` directories and `.garden` directories are always ignored.
+      exclude:
+
+      # The sync mode to use for the given paths. See the [Code Synchronization
+      # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
+      mode: one-way-safe
+
+      # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user
+      # read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions)
+      # for more information.
+      defaultFileMode:
+
+      # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700
+      # (user read/write). See the [Mutagen
+      # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+      defaultDirectoryMode:
+
+      # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
+      # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+      # more information.
+      defaultOwner:
+
+      # Set the default group on files and directories at the target. Specify either an integer ID or a string name.
+      # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+      # more information.
+      defaultGroup:
+
+  # Optionally specify the name of a specific container to sync to. If not specified, the first container in the
+  # workload is used.
+  containerName:
+
+# [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target
+# resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local
+# mode for the action.
+#
+# The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH
+# server to proxy requests.
+# Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
+#
+# Local mode is enabled by setting the `--local` option on the `garden deploy` command.
+# Local mode always takes the precedence over sync mode if there are any conflicting service names.
+#
+# Health checks are disabled for services running in local mode.
+#
+# See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+#
+# Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
+# release.
+localMode:
+  # The reverse port-forwards configuration for the local application.
+  ports:
+    - # The local port to be used for reverse port-forward.
+      local:
+
+      # The remote port to be used for reverse port-forward.
+      remote:
+
+  # The command to run the local application. If not present, then the local application should be started manually.
+  command:
+
+  # Specifies restarting policy for the local application. By default, the local application will be restarting
+  # infinitely with 1000ms between attempts.
+  restart:
+    # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+    delayMsec: 1000
+
+    # Max number of the local application restarts. Unlimited by default.
+    max: .inf
+
+  # The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`.
+  target:
+    # The kind of Kubernetes resource to find.
+    kind:
+
+    # The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
+    name:
+
+    # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with
+    # matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+    podSelector:
+
+    # The name of a container in the target. Specify this if the target contains more than one container and the main
+    # container is not the first container in the spec.
+    containerName:
+
 # The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module
 # (not to be confused with Kubernetes Service resources).
 #
@@ -335,7 +347,7 @@ serviceResource:
   # The type of Kubernetes resource to sync files to.
   kind: Deployment
 
-  # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be
+  # The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can be
   # omitted.
   name:
 
@@ -348,16 +360,10 @@ serviceResource:
   podSelector:
 
   # The Garden module that contains the sources for the container. This needs to be specified under `serviceResource`
-  # in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
-  #
-  # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
-  # container module (not required for dev mode).
+  # in order to enable syncing, but is not necessary for tasks and tests. Must be a `container` module.
   #
   # _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
   containerModule:
-
-  # If specified, overrides the arguments for the main container when running in hot-reload mode.
-  hotReloadArgs:
 
 tasks:
   - # The name of the task.
@@ -384,7 +390,7 @@ tasks:
     disabled: false
 
     # Maximum duration (in seconds) of the task's execution.
-    timeout: null
+    timeout: 600
 
     # The Deployment, DaemonSet, StatefulSet or Pod that Garden should use to execute this task.
     # If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
@@ -426,7 +432,7 @@ tasks:
       # The type of Kubernetes resource to sync files to.
       kind: Deployment
 
-      # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can
+      # The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can
       # be omitted.
       name:
 
@@ -439,15 +445,15 @@ tasks:
       # type.
       podSelector:
 
-    # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
-    # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its
-    # version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run task`.
+    # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
+    # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
+    # changes, or when you run `garden run`.
     cacheResult: true
 
-    # The command/entrypoint used to run the task inside the container.
+    # The command/entrypoint used to run inside the container.
     command:
 
-    # The arguments to pass to the container used for execution.
+    # The arguments to pass to the command/entypoint used for execution.
     args:
 
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
@@ -464,6 +470,11 @@ tasks:
         # `.garden/artifacts`.
         target: .
 
+    # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
+    # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63
+    # characters.
+    namespace:
+
 tests:
   - # The name of the test.
     name:
@@ -479,7 +490,7 @@ tests:
     disabled: false
 
     # Maximum duration (in seconds) of the test run.
-    timeout: null
+    timeout: 600
 
     # The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this test suite.
     # If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
@@ -521,7 +532,7 @@ tests:
       # The type of Kubernetes resource to sync files to.
       kind: Deployment
 
-      # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can
+      # The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can
       # be omitted.
       name:
 
@@ -553,20 +564,17 @@ tests:
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
         # `.garden/artifacts`.
         target: .
-
-# The maximum duration (in seconds) to wait for resources to deploy and become healthy.
-timeout: 300
 ```
 
 ## Configuration Keys
 
 ### `apiVersion`
 
-The schema version of this config (currently not used).
+The schema version of this config.
 
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
+| Type     | Allowed Values                 | Default          | Required |
+| -------- | ------------------------------ | ---------------- | -------- |
+| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `kind`
 
@@ -678,7 +686,7 @@ Maximum time in seconds to wait for build to finish.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1200`  | No       |
+| `number` | `600`   | No       |
 
 ### `description`
 
@@ -729,7 +737,7 @@ Specify a list of POSIX-style paths or glob patterns that should be excluded fro
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
-Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large directories that should not be watched for changes.
+Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -779,7 +787,7 @@ A list of files to write to the module directory when resolving this module. Thi
 
 [generateFiles](#generatefiles) > sourcePath
 
-POSIX-style filename to read the source file contents from, relative to the path of the module (or the ModuleTemplate configuration file if one is being applied).
+POSIX-style filename to read the source file contents from, relative to the path of the module (or the ConfigTemplate configuration file if one is being applied).
 This file may contain template strings, much like any other field in the configuration.
 
 | Type        | Required |
@@ -853,282 +861,6 @@ Example:
 varfile: "my-module.env"
 ```
 
-### `dependencies[]`
-
-The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
-
-### `devMode`
-
-Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
-
-Note that `serviceResource` must also be specified to enable dev mode.
-
-Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
-
-See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `devMode.args[]`
-
-[devMode](#devmode) > args
-
-Override the default container arguments when in dev mode.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `devMode.command[]`
-
-[devMode](#devmode) > command
-
-Override the default container command (i.e. entrypoint) when in dev mode.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `devMode.sync[]`
-
-[devMode](#devmode) > sync
-
-Specify one or more source files or directories to automatically sync with the running container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
-
-### `devMode.sync[].target`
-
-[devMode](#devmode) > [sync](#devmodesync) > target
-
-POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not allowed.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-Example:
-
-```yaml
-devMode:
-  ...
-  sync:
-    - target: "/app/src"
-```
-
-### `devMode.sync[].exclude[]`
-
-[devMode](#devmode) > [sync](#devmodesync) > exclude
-
-Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
-
-`.git` directories and `.garden` directories are always ignored.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `array[posixPath]` | No       |
-
-Example:
-
-```yaml
-devMode:
-  ...
-  sync:
-    - exclude:
-        - dist/**/*
-        - '*.log'
-```
-
-### `devMode.sync[].source`
-
-[devMode](#devmode) > [sync](#devmodesync) > source
-
-POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path. Defaults to the module's top-level directory if no value is provided.
-
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
-
-Example:
-
-```yaml
-devMode:
-  ...
-  sync:
-    - source: "src"
-```
-
-### `devMode.sync[].mode`
-
-[devMode](#devmode) > [sync](#devmodesync) > mode
-
-The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
-
-| Type     | Allowed Values                                                                                                                            | Default          | Required |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
-| `string` | "one-way", "one-way-safe", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way", "two-way-safe", "two-way-resolved" | `"one-way-safe"` | Yes      |
-
-### `devMode.sync[].defaultFileMode`
-
-[devMode](#devmode) > [sync](#devmodesync) > defaultFileMode
-
-The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `devMode.sync[].defaultDirectoryMode`
-
-[devMode](#devmode) > [sync](#devmodesync) > defaultDirectoryMode
-
-The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `devMode.sync[].defaultOwner`
-
-[devMode](#devmode) > [sync](#devmodesync) > defaultOwner
-
-Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `number \| string` | No       |
-
-### `devMode.sync[].defaultGroup`
-
-[devMode](#devmode) > [sync](#devmodesync) > defaultGroup
-
-Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `number \| string` | No       |
-
-### `devMode.containerName`
-
-[devMode](#devmode) > containerName
-
-Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `localMode`
-
-Configures the local application which will send and receive network requests instead of the target resource specified by `serviceResource`.
-
-Note that `serviceResource` must also be specified to enable local mode. Local mode configuration for the `kubernetes` module type relies on the `serviceResource.kind` and `serviceResource.name` fields to select a target Kubernetes resource.
-
-The `serviceResource.containerName` field is not used by local mode configuration.
-Note that `localMode` uses its own field `containerName` to specify a target container name explicitly.
-
-The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
-Reverse port-forwarding will be automatically configured to route traffic to the locally deployed application and back.
-
-Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
-Local mode always takes the precedence over dev mode if there are any conflicting service names.
-
-Health checks are disabled for services running in local mode.
-
-See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `localMode.ports[]`
-
-[localMode](#localmode) > ports
-
-The reverse port-forwards configuration for the local application.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
-
-### `localMode.ports[].local`
-
-[localMode](#localmode) > [ports](#localmodeports) > local
-
-The local port to be used for reverse port-forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `localMode.ports[].remote`
-
-[localMode](#localmode) > [ports](#localmodeports) > remote
-
-The remote port to be used for reverse port-forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `localMode.command[]`
-
-[localMode](#localmode) > command
-
-The command to run the local application. If not present, then the local application should be started manually.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `localMode.restart`
-
-[localMode](#localmode) > restart
-
-Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
-
-| Type     | Default                         | Required |
-| -------- | ------------------------------- | -------- |
-| `object` | `{"delayMsec":1000,"max":null}` | No       |
-
-### `localMode.restart.delayMsec`
-
-[localMode](#localmode) > [restart](#localmoderestart) > delayMsec
-
-Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `localMode.restart.max`
-
-[localMode](#localmode) > [restart](#localmoderestart) > max
-
-Max number of the local application restarts. Unlimited by default.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `null`  | No       |
-
-### `localMode.containerName`
-
-[localMode](#localmode) > containerName
-
-The name of the target container. The first available container will be used if this field is not defined.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
 ### `files[]`
 
 POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.
@@ -1149,7 +881,7 @@ Resolve the specified kustomization and include the resulting resources. Note th
 
 [kustomize](#kustomize) > path
 
-The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module root. Defaults to the module root. If you set this to null, kustomize will not be run.
+The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the action root. Defaults to the action root. If you set this to null, kustomize will not be run.
 
 | Type                  | Default | Required |
 | --------------------- | ------- | -------- |
@@ -1167,7 +899,7 @@ A list of additional arguments to pass to the `kustomize build` command. Note th
 
 ### `manifests[]`
 
-List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you need to resolve template strings in any of the manifests.
+List of Kubernetes resource manifests to deploy. If `files` is also specified, this is combined with the manifests read from the files.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -1267,6 +999,327 @@ The _preferred_ local port to forward from. If none is set, a random port is cho
 | -------- | -------- |
 | `number` | No       |
 
+### `timeout`
+
+The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
+
+### `dependencies[]`
+
+The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
+
+### `sync`
+
+Specifies which files or directories to sync to which paths inside the running containers of the service when it's in sync mode, and overrides for the container command and/or arguments.
+
+Note that `serviceResource` must also be specified to enable sync.
+
+Sync is enabled by setting the `--sync` flag on the `garden deploy` command.
+
+See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `sync.args[]`
+
+[sync](#sync) > args
+
+Override the default container arguments when in sync mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `sync.command[]`
+
+[sync](#sync) > command
+
+Override the default container command (i.e. entrypoint) when in sync mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `sync.paths[]`
+
+[sync](#sync) > paths
+
+Specify one or more source files or directories to automatically sync with the running container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `sync.paths[].source`
+
+[sync](#sync) > [paths](#syncpaths) > source
+
+POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `"."`   | No       |
+
+Example:
+
+```yaml
+sync:
+  ...
+  paths:
+    - source: "src"
+```
+
+### `sync.paths[].target`
+
+[sync](#sync) > [paths](#syncpaths) > target
+
+POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+Example:
+
+```yaml
+sync:
+  ...
+  paths:
+    - target: "/app/src"
+```
+
+### `sync.paths[].exclude[]`
+
+[sync](#sync) > [paths](#syncpaths) > exclude
+
+Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+
+`.git` directories and `.garden` directories are always ignored.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
+
+Example:
+
+```yaml
+sync:
+  ...
+  paths:
+    - exclude:
+        - dist/**/*
+        - '*.log'
+```
+
+### `sync.paths[].mode`
+
+[sync](#sync) > [paths](#syncpaths) > mode
+
+The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
+
+| Type     | Allowed Values                                                                                                                            | Default          | Required |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
+| `string` | "one-way", "one-way-safe", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way", "two-way-safe", "two-way-resolved" | `"one-way-safe"` | Yes      |
+
+### `sync.paths[].defaultFileMode`
+
+[sync](#sync) > [paths](#syncpaths) > defaultFileMode
+
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `sync.paths[].defaultDirectoryMode`
+
+[sync](#sync) > [paths](#syncpaths) > defaultDirectoryMode
+
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `sync.paths[].defaultOwner`
+
+[sync](#sync) > [paths](#syncpaths) > defaultOwner
+
+Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
+
+### `sync.paths[].defaultGroup`
+
+[sync](#sync) > [paths](#syncpaths) > defaultGroup
+
+Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
+
+### `sync.containerName`
+
+[sync](#sync) > containerName
+
+Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `localMode`
+
+[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
+
+The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
+Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
+
+Local mode is enabled by setting the `--local` option on the `garden deploy` command.
+Local mode always takes the precedence over sync mode if there are any conflicting service names.
+
+Health checks are disabled for services running in local mode.
+
+See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+
+Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `localMode.ports[]`
+
+[localMode](#localmode) > ports
+
+The reverse port-forwards configuration for the local application.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `localMode.ports[].local`
+
+[localMode](#localmode) > [ports](#localmodeports) > local
+
+The local port to be used for reverse port-forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `localMode.ports[].remote`
+
+[localMode](#localmode) > [ports](#localmodeports) > remote
+
+The remote port to be used for reverse port-forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `localMode.command[]`
+
+[localMode](#localmode) > command
+
+The command to run the local application. If not present, then the local application should be started manually.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `localMode.restart`
+
+[localMode](#localmode) > restart
+
+Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
+
+| Type     | Default                         | Required |
+| -------- | ------------------------------- | -------- |
+| `object` | `{"delayMsec":1000,"max":null}` | No       |
+
+### `localMode.restart.delayMsec`
+
+[localMode](#localmode) > [restart](#localmoderestart) > delayMsec
+
+Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `localMode.restart.max`
+
+[localMode](#localmode) > [restart](#localmoderestart) > max
+
+Max number of the local application restarts. Unlimited by default.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
+
+### `localMode.target`
+
+[localMode](#localmode) > target
+
+The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `localMode.target.kind`
+
+[localMode](#localmode) > [target](#localmodetarget) > kind
+
+The kind of Kubernetes resource to find.
+
+| Type     | Allowed Values                           | Required |
+| -------- | ---------------------------------------- | -------- |
+| `string` | "Deployment", "DaemonSet", "StatefulSet" | Yes      |
+
+### `localMode.target.name`
+
+[localMode](#localmode) > [target](#localmodetarget) > name
+
+The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `localMode.target.podSelector`
+
+[localMode](#localmode) > [target](#localmodetarget) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `localMode.target.containerName`
+
+[localMode](#localmode) > [target](#localmodetarget) > containerName
+
+The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `serviceResource`
 
 The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources).
@@ -1293,7 +1346,7 @@ The type of Kubernetes resource to sync files to.
 
 [serviceResource](#serviceresource) > name
 
-The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
+The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can be omitted.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1323,9 +1376,7 @@ A map of string key/value labels to match on any Pods in the namespace. When spe
 
 [serviceResource](#serviceresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
-
-Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module (not required for dev mode).
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable syncing, but is not necessary for tasks and tests. Must be a `container` module.
 
 _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
 
@@ -1339,26 +1390,6 @@ Example:
 serviceResource:
   ...
   containerModule: "my-container-module"
-```
-
-### `serviceResource.hotReloadArgs[]`
-
-[serviceResource](#serviceresource) > hotReloadArgs
-
-If specified, overrides the arguments for the main container when running in hot-reload mode.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-serviceResource:
-  ...
-  hotReloadArgs:
-    - nodemon
-    - my-server.js
 ```
 
 ### `tasks[]`
@@ -1419,7 +1450,7 @@ Maximum duration (in seconds) of the task's execution.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `null`  | No       |
+| `number` | `600`   | No       |
 
 ### `tasks[].resource`
 
@@ -1479,7 +1510,7 @@ The type of Kubernetes resource to sync files to.
 
 [tasks](#tasks) > [resource](#tasksresource) > name
 
-The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
+The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can be omitted.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1509,7 +1540,7 @@ A map of string key/value labels to match on any Pods in the namespace. When spe
 
 [tasks](#tasks) > cacheResult
 
-Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run task`.
+Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -1519,7 +1550,7 @@ Set to false if you don't want the task's result to be cached. Use this if the t
 
 [tasks](#tasks) > command
 
-The command/entrypoint used to run the task inside the container.
+The command/entrypoint used to run inside the container.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -1538,7 +1569,7 @@ tasks:
 
 [tasks](#tasks) > args
 
-The arguments to pass to the container used for execution.
+The arguments to pass to the command/entypoint used for execution.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -1623,6 +1654,16 @@ tasks:
       - target: "outputs/foo/"
 ```
 
+### `tasks[].namespace`
+
+[tasks](#tasks) > namespace
+
+A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `tests[]`
 
 | Type            | Default | Required |
@@ -1670,7 +1711,7 @@ Maximum duration (in seconds) of the test run.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `null`  | No       |
+| `number` | `600`   | No       |
 
 ### `tests[].resource`
 
@@ -1730,7 +1771,7 @@ The type of Kubernetes resource to sync files to.
 
 [tests](#tests) > [resource](#testsresource) > name
 
-The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
+The name of the resource to sync to. If the action contains a single resource of the specified Kind, this can be omitted.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1864,14 +1905,6 @@ tests:
       - target: "outputs/foo/"
 ```
 
-### `timeout`
-
-The maximum duration (in seconds) to wait for resources to deploy and become healthy.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `300`   | No       |
-
 
 ## Outputs
 
@@ -1904,7 +1937,7 @@ The name of the module.
 
 ### `${modules.<module-name>.path}`
 
-The local path of the module.
+The source path of the module.
 
 | Type     |
 | -------- |
@@ -1983,12 +2016,4 @@ Example:
 ```yaml
 my-variable: ${runtime.tasks.my-tasks.version}
 ```
-
-### `${runtime.tasks.<task-name>.outputs.log}`
-
-The full log from the executed task. (Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)
-
-| Type     | Default |
-| -------- | ------- |
-| `string` | `""`    |
 

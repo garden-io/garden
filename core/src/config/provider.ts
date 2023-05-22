@@ -7,15 +7,27 @@
  */
 
 import { deline } from "../util/string"
-import { joiIdentifier, joiUserIdentifier, joiArray, joi, joiIdentifierMap, joiSparseArray } from "./common"
+import {
+  joiIdentifier,
+  joiUserIdentifier,
+  joiArray,
+  joi,
+  joiIdentifierMap,
+  joiSparseArray,
+  PrimitiveMap,
+  createSchema,
+} from "./common"
 import { collectTemplateReferences } from "../template-string/template-string"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig, moduleConfigSchema } from "./module"
-import { uniq } from "lodash"
-import { GardenPlugin } from "../types/plugin/plugin"
-import { EnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
+import { memoize, uniq } from "lodash"
+import { GardenPlugin } from "../plugin/plugin"
+import { EnvironmentStatus } from "../plugin/handlers/Provider/getEnvironmentStatus"
 import { environmentStatusSchema } from "./status"
-import { DashboardPage, dashboardPagesSchema } from "../types/plugin/provider/getDashboardPage"
+import { DashboardPage, dashboardPagesSchema } from "../plugin/handlers/Provider/getDashboardPage"
+import type { ActionState } from "../actions/types"
+import { ValidResultType } from "../tasks/base"
+import { uuidv4 } from "../util/random"
 
 export interface BaseProviderConfig {
   name: string
@@ -27,7 +39,7 @@ export interface GenericProviderConfig extends BaseProviderConfig {
   [key: string]: any
 }
 
-const providerFixedFieldsSchema = () =>
+const providerFixedFieldsSchema = memoize(() =>
   joi.object().keys({
     name: joiIdentifier().required().description("The name of the provider plugin to use.").example("local-kubernetes"),
     dependencies: joiSparseArray(joiIdentifier())
@@ -45,30 +57,41 @@ const providerFixedFieldsSchema = () =>
       )
       .example(["dev", "stage"]),
   })
+)
 
-export const providerConfigBaseSchema = () =>
+export const providerConfigBaseSchema = memoize(() =>
   providerFixedFieldsSchema().unknown(true).meta({ extendable: true }).id("providerConfig")
+)
 
-export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> {
+export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> extends ValidResultType {
   name: string
+  uid: string // This is generated at creatinon time, and is intended for use by plugins e.g. for caching purposes.
   dependencies: { [name: string]: Provider }
   environments?: string[]
   moduleConfigs: ModuleConfig[]
   config: T
+  state: ActionState
   status: EnvironmentStatus
   dashboardPages: DashboardPage[]
+  outputs: PrimitiveMap
 }
 
-export const providerSchema = () =>
-  providerFixedFieldsSchema().keys({
+export const providerSchema = createSchema({
+  name: "Provider",
+  extend: providerFixedFieldsSchema,
+  keys: () => ({
     dependencies: joiIdentifierMap(joi.link("..."))
       .description("Map of all the providers that this provider depends on.")
       .required(),
+    uid: joi.string().required().meta({ internal: true }),
     config: providerConfigBaseSchema().required(),
     moduleConfigs: joiArray(moduleConfigSchema().optional()),
     status: environmentStatusSchema(),
+    state: joi.string(),
+    outputs: joi.any(),
     dashboardPages: dashboardPagesSchema(),
-  })
+  }),
+})
 
 export interface ProviderMap {
   [name: string]: Provider<GenericProviderConfig>
@@ -79,11 +102,14 @@ export const defaultProviders = [{ name: "container" }]
 // this is used for default handlers in the action handler
 export const defaultProvider: Provider = {
   name: "_default",
+  uid: uuidv4(),
   dependencies: {},
   moduleConfigs: [],
+  state: "ready",
   config: { name: "_default" },
   status: { ready: true, outputs: {} },
   dashboardPages: [],
+  outputs: {},
 }
 
 export function providerFromConfig({
@@ -101,11 +127,14 @@ export function providerFromConfig({
 }): Provider {
   return {
     name: config.name,
+    uid: uuidv4(),
     dependencies,
     moduleConfigs,
     config,
+    state: status.ready ? "ready" : "not-ready",
     status,
     dashboardPages: plugin.dashboardPages,
+    outputs: status.outputs,
   }
 }
 
@@ -117,14 +146,14 @@ export async function getAllProviderDependencyNames(plugin: GardenPlugin, config
   return uniq([
     ...(plugin.dependencies || []).map((d) => d.name),
     ...(config.dependencies || []),
-    ...(await getProviderTemplateReferences(config)),
+    ...getProviderTemplateReferences(config),
   ]).sort()
 }
 
 /**
  * Given a provider config, return implicit dependencies based on template strings.
  */
-export async function getProviderTemplateReferences(config: GenericProviderConfig) {
+export function getProviderTemplateReferences(config: GenericProviderConfig) {
   const references = collectTemplateReferences(config)
   const deps: string[] = []
 

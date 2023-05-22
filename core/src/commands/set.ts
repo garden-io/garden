@@ -6,77 +6,56 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams, CommandGroup } from "./base"
-import dedent = require("dedent")
-import { SetSecretResult } from "../types/plugin/provider/setSecret"
-import { StringParameter } from "../cli/params"
-import { printHeader } from "../logger/util"
+import chalk from "chalk"
+import { EnvironmentParameter } from "../cli/params"
+import { dedent } from "../util/string"
+import { Command, CommandGroup, CommandParams } from "./base"
 
 export class SetCommand extends CommandGroup {
   name = "set"
-  help = "Set or modify data, e.g. secrets."
+  help = "Set or modify data and configuration values."
   hidden = true
 
-  subCommands = [SetSecretCommand]
+  subCommands = [SetDefaultEnvCommand]
 }
 
-const setSecretArgs = {
-  provider: new StringParameter({
-    help: "The name of the provider to store the secret with.",
-    required: true,
-  }),
-  key: new StringParameter({
-    help: "A unique identifier for the secret.",
-    required: true,
-  }),
-  value: new StringParameter({
-    help: "The value of the secret.",
-    required: true,
+const setDefaultEnvArgs = {
+  env: new EnvironmentParameter({
+    help: "The default environment to set for the current project",
+    required: false,
   }),
 }
 
-type SetArgs = typeof setSecretArgs
+type SetDefaultEnvArgs = typeof setDefaultEnvArgs
 
-// TODO: allow storing data from files
+export class SetDefaultEnvCommand extends Command<SetDefaultEnvArgs, {}> {
+  name = "default-env"
 
-export class SetSecretCommand extends Command<typeof setSecretArgs> {
-  name = "secret"
-  help = "Set a secret value for a provider in an environment."
-  hidden = true
+  help = "Locally override the default environment for the project."
 
   description = dedent`
-    These secrets are handled by each provider, and may for example be exposed as environment
-    variables for services or mounted as files, depending on how the provider is implemented
-    and configured.
-
-    The value is currently always stored as a string.
-
-    >**Note**: The \`get|set secret\` commands are currently quite limited.
-    For Kubernetes secrets, we recommend using kubectl for
-    most non-trivial use-cases.
+    Override the default environment for the project for this working copy.
 
     Examples:
 
-        garden set secret kubernetes somekey myvalue
-        garden set secret local-kubernets somekey myvalue
+      garden set default-env remote       # Set the default env to remote (with the configured default namespace)
+      garden set default-env dev.my-env   # Set the default env to dev.my-env
+      garden set default-env              # Clear any previously set override
   `
 
-  arguments = setSecretArgs
+  arguments = setDefaultEnvArgs
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Set secret", "lock")
-  }
+  async action({ garden, log, args }: CommandParams<SetDefaultEnvArgs, {}>) {
+    await garden.localConfigStore.set("defaultEnv", args.env || "")
 
-  async action({ garden, log, args }: CommandParams<SetArgs>): Promise<CommandResult<SetSecretResult>> {
-    const key = args.key
-    const actions = await garden.getActionRouter()
-    const result = await actions.setSecret({
-      pluginName: args.provider,
-      key,
-      value: args.value,
-      log,
-    })
-    log.info(`Set config key ${args.key}`)
-    return { result }
+    log.info("")
+
+    if (args.env) {
+      log.success(chalk.white(`Set the default environment to ${chalk.cyan(args.env)}`))
+    } else {
+      log.success(chalk.white("Cleared the default environment"))
+    }
+
+    return {}
   }
 }

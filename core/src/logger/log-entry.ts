@@ -7,22 +7,23 @@
  */
 
 import logSymbols from "log-symbols"
-import nodeEmoji from "node-emoji"
 import { cloneDeep, round } from "lodash"
 
-import { LogLevel, logLevelMap, LogNode } from "./logger"
+import { LogLevel } from "./logger"
 import { Omit } from "../util/util"
-import { getChildEntries, findParentEntry, getAllSections } from "./util"
-import { GardenError } from "../exceptions"
-import { CreateNodeParams, Logger, PlaceholderOpts } from "./logger"
+import { Logger } from "./logger"
 import uniqid from "uniqid"
+import chalk from "chalk"
+import { GardenError } from "../exceptions"
+import hasAnsi from "has-ansi"
+import { omitUndefined } from "../util/objects"
+import { renderDuration } from "./util"
 
-export type EmojiName = keyof typeof nodeEmoji.emoji
 export type LogSymbol = keyof typeof logSymbols | "empty"
-export type EntryStatus = "active" | "done" | "error" | "success" | "warn"
 export type TaskLogStatus = "active" | "success" | "error"
 
-export interface LogEntryMetadata {
+export interface LogMetadata {
+  // TODO Remove this in favour of reading the task data from the (action) context.
   task?: TaskMetadata
   workflowStep?: WorkflowStepMetadata
 }
@@ -32,7 +33,8 @@ export interface TaskMetadata {
   key: string
   status: TaskLogStatus
   uid: string
-  versionString: string
+  inputVersion: string
+  outputVersion?: string
   durationMs?: number
 }
 
@@ -40,350 +42,386 @@ export interface WorkflowStepMetadata {
   index: number
 }
 
-interface MessageBase {
+interface BaseContext {
+  /**
+   * Reference to what created the log message, e.g. tool that generated it (such as "docker")
+   */
+  origin?: string
+  type: "coreLog" | "actionLog"
+  /**
+   * A session ID, to identify the log entry as part of a specific command execution.
+   */
+  sessionId?: string
+  /**
+   * If applicable, the session ID of the parent command (e.g. serve or dev)
+   */
+  parentSessionId?: string
+  /**
+   * The key of a Garden instance, if applicable.
+   */
+  gardenKey?: string
+}
+
+export interface CoreLogContext extends BaseContext {
+  type: "coreLog"
+  /**
+   * The name of the log context. Will be printed as the "section" part of the log lines
+   * belonging to this context.
+   */
+  name?: string
+}
+export interface ActionLogContext extends BaseContext {
+  type: "actionLog"
+  /**
+   * The name of the action that produced the log entry. Is printed in the "section" part of the log lines.
+   */
+  actionName: string
+  /**
+   * The kind of the action that produced the log entry. Is printed in the "section" part of the log lines.
+   */
+  actionKind: string
+}
+
+export type LogContext = CoreLogContext | ActionLogContext
+
+/**
+ * Common Log config that the class implements and other interfaces pick / omit from.
+ */
+interface LogConfig<C extends BaseContext> {
+  /**
+   * A unique ID that's assigned to the config when it's created.
+   */
+  key: string
+  timestamp: string
+  /**
+   * Additional metadata to pass to the log context. The metadata gets added to
+   * all log entries which can optionally extend it.
+   */
+  metadata?: LogMetadata
+  /**
+   * Fix the level of all log entries created by this Log such that they're
+   * geq to this value.
+   *
+   *  Useful to enforce the level in a given log context, e.g.:
+   *  const debugLog = log.createLog({ fixLevel: LogLevel.debug })
+   */
+  fixLevel?: LogLevel
+  context: C
+  /**
+   * Append the duration from when the log context was created and until the
+   * success or error methods are called to the success/error message.
+   * E.g.: If calling `log.sucess(Done!)`, then the log message becomes "Done! (in 4 sec)" if showDuration=true.
+   */
+  showDuration?: boolean
+}
+
+interface LogConstructor<C extends BaseContext> extends Omit<LogConfig<C>, "key" | "timestamp"> {
+  root: Logger
+  parentConfigs: LogConfig<LogContext>[]
+}
+
+interface CreateLogParams
+  extends Pick<LogConfig<LogContext>, "metadata" | "fixLevel" | "showDuration">,
+    Pick<LogContext, "origin"> {}
+
+interface CreateCoreLogParams
+  extends Pick<LogConfig<CoreLogContext>, "metadata" | "fixLevel" | "showDuration">,
+    Pick<CoreLogContext, "name" | "origin"> {
+  name?: string
+  origin?: string
+}
+
+export interface LogEntry<C extends BaseContext = LogContext>
+  extends Pick<LogConfig<C>, "key" | "timestamp" | "metadata" | "context"> {
+  /**
+   * The unique ID of the log context that created the log entry.
+   */
+  parentLogKey: string
+  level: LogLevel
+  /**
+   * The actual text of the log message.
+   */
   msg?: string
-  emoji?: EmojiName
-  status?: EntryStatus
-  section?: string
+  /**
+   * A symbol that's printed with the log message to indicate it's type (e.g. "error" or "success").
+   */
   symbol?: LogSymbol
-  append?: boolean
   data?: any
   dataFormat?: "json" | "yaml"
-}
-
-export interface LogEntryMessage extends MessageBase {
-  timestamp: Date
-}
-
-export interface UpdateLogEntryParams extends MessageBase {
-  metadata?: LogEntryMetadata
-}
-
-export interface LogEntryParams extends UpdateLogEntryParams {
   error?: GardenError
-  indent?: number
-  childEntriesInheritLevel?: boolean
-  fromStdStream?: boolean
-  id?: string
+  skipEmit?: boolean
 }
 
-export interface LogEntryConstructor extends LogEntryParams {
+interface LogParams
+  extends Pick<LogEntry, "metadata" | "msg" | "symbol" | "data" | "dataFormat" | "error" | "skipEmit">,
+    Pick<LogContext, "origin">,
+    Pick<LogConfig<LogContext>, "showDuration"> {}
+
+interface CreateLogEntryParams extends LogParams {
   level: LogLevel
-  root: Logger
-  parent?: LogEntry
-  isPlaceholder?: boolean
 }
 
-function resolveCreateParams(level: LogLevel, params: string | LogEntryParams): CreateNodeParams {
-  if (typeof params === "string") {
-    return { msg: params, level }
-  }
-  return { ...params, level }
+/**
+ * A helper function for creating instances of ActionLogs. That is, the log class required
+ * by most actions.
+ *
+ * It differs from the "normal" CoreLog class in that it's context type is "ActionLogContext"
+ * which includes the action name and aciton kind.
+ */
+export function createActionLog({
+  log,
+  actionName,
+  actionKind,
+  origin,
+  fixLevel,
+}: {
+  log: Log
+  actionName: string
+  actionKind: string
+  origin?: string
+  fixLevel?: LogLevel
+}) {
+  return new ActionLog({
+    parentConfigs: [...log.parentConfigs, log.getConfig()],
+    metadata: log.metadata,
+    root: log.root,
+    fixLevel,
+    context: {
+      ...omitUndefined(log.context),
+      type: "actionLog",
+      origin,
+      actionName,
+      actionKind,
+    },
+  })
 }
 
-function resolveUpdateParams(params?: string | UpdateLogEntryParams): UpdateLogEntryParams {
-  if (typeof params === "string") {
-    return { msg: params }
-  } else if (!params) {
-    return {}
-  } else {
-    return params
-  }
-}
-
-export class LogEntry implements LogNode {
-  private messages: LogEntryMessage[]
-  private metadata?: LogEntryMetadata
-  public readonly parent?: LogEntry
-  public readonly timestamp: Date
+/**
+ * The abstract log class which the CoreLog, ActionLog, and others extends.
+ *
+ * Contains all the methods the log classes use for writing logs at different levels
+ * a long with a handful of helper methods.
+ */
+export abstract class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
+  public readonly showDuration?: boolean
+  public readonly metadata?: LogMetadata
   public readonly key: string
-  public readonly level: LogLevel
+  public readonly parentConfigs: LogConfig<LogContext>[]
+  public readonly timestamp: string
   public readonly root: Logger
-  public readonly fromStdStream?: boolean
-  public readonly indent?: number
-  public readonly errorData?: GardenError
-  public readonly childEntriesInheritLevel?: boolean
-  public readonly id?: string
-  public children: LogEntry[]
-  public isPlaceholder: boolean
-  public revision: number
+  public readonly fixLevel?: LogLevel
+  public readonly entries: LogEntry[]
+  public readonly context: C
 
-  constructor(params: LogEntryConstructor) {
+  constructor(params: LogConstructor<C>) {
     this.key = uniqid()
-    this.children = []
-    this.timestamp = new Date()
-    this.level = params.level
-    this.parent = params.parent
-    this.id = params.id
+    this.entries = []
+    this.timestamp = new Date().toISOString()
+    this.parentConfigs = params.parentConfigs || []
     this.root = params.root
-    this.fromStdStream = params.fromStdStream
-    this.indent = params.indent
-    this.errorData = params.error
-    this.childEntriesInheritLevel = params.childEntriesInheritLevel
+    this.fixLevel = params.fixLevel
     this.metadata = params.metadata
-    this.id = params.id
-    this.isPlaceholder = params.isPlaceholder || false
-    this.revision = -1
-
-    if (!params.isPlaceholder) {
-      this.update({
-        msg: params.msg,
-        emoji: params.emoji,
-        section: params.section,
-        symbol: params.symbol,
-        status: params.level === LogLevel.error ? "error" : params.status,
-        data: params.data,
-        dataFormat: params.dataFormat,
-        append: params.append,
-      })
-    } else {
-      this.messages = [{ timestamp: new Date() }]
-    }
+    this.context = params.context
+    this.showDuration = params.showDuration || false
   }
 
   /**
-   * Updates the log entry with a few invariants:
-   * 1. msg, emoji, section, status, and symbol can only be replaced with a value of same type, not removed
-   * 2. append is always set explicitly (the next message does not inherit the previous value)
-   * 3. next metadata is merged with the previous metadata
+   * Helper method for creating the actual log entry shape that gets passed to the root
+   * logger for writing.
    */
-  private update(updateParams: UpdateLogEntryParams): void {
-    this.revision = this.revision + 1
-    const latestMessage = this.getLatestMessage()
+  private createLogEntry(params: CreateLogEntryParams): LogEntry<C> {
+    const level = this.fixLevel ? Math.max(this.fixLevel, params.level) : params.level
 
-    // Explicitly set all the fields so the shape stays consistent
-    const nextMessage: LogEntryMessage = {
-      // Ensure empty string gets set
-      msg: typeof updateParams.msg === "string" ? updateParams.msg : latestMessage.msg,
-      emoji: updateParams.emoji || latestMessage.emoji,
-      section: updateParams.section || latestMessage.section,
-      status: updateParams.status || latestMessage.status,
-      symbol: updateParams.symbol || latestMessage.symbol,
-      data: updateParams.data || latestMessage.data,
-      dataFormat: updateParams.dataFormat || latestMessage.dataFormat,
-      // Next message does not inherit the append field
-      append: updateParams.append,
-      timestamp: new Date(),
-    }
-
-    // Hack to preserve section alignment if spinner disappears
-    const hadSpinner = latestMessage.status === "active"
-    const hasSymbolOrSpinner = nextMessage.symbol || nextMessage.status === "active"
-    if (nextMessage.section && hadSpinner && !hasSymbolOrSpinner) {
-      nextMessage.symbol = "empty"
-    }
-
-    if (this.isPlaceholder) {
-      // If it's a placeholder, this will be the first message...
-      this.messages = [nextMessage]
-      this.isPlaceholder = false
-    } else {
-      // ...otherwise we push it
-      this.messages = [...(this.messages || []), nextMessage]
-    }
-
-    if (updateParams.metadata) {
-      this.metadata = { ...(this.metadata || {}), ...updateParams.metadata }
-    }
-  }
-
-  // Update node and child nodes
-  private deepUpdate(updateParams: UpdateLogEntryParams): void {
-    const wasActive = this.getLatestMessage().status === "active"
-
-    this.update(updateParams)
-
-    // Stop active child nodes if no longer active
-    if (wasActive && updateParams.status !== "active") {
-      getChildEntries(this).forEach((entry) => {
-        if (entry.getLatestMessage().status === "active") {
-          entry.update({ status: "done" })
-        }
-      })
-    }
-  }
-
-  private createNode(params: CreateNodeParams) {
-    const indent = params.indent !== undefined ? params.indent : (this.indent || 0) + 1
-
-    // If childEntriesInheritLevel is set to true, all children must have a level geq to the level
-    // of the parent entry that set the flag.
-    const parentWithPreserveFlag = findParentEntry(this, (entry) => !!entry.childEntriesInheritLevel)
-    const level = parentWithPreserveFlag ? Math.max(parentWithPreserveFlag.level, params.level) : params.level
-
-    let metadata: LogEntryMetadata | undefined = undefined
+    let metadata: LogMetadata | undefined = undefined
     if (this.metadata || params.metadata) {
       metadata = { ...cloneDeep(this.metadata || {}), ...(params.metadata || {}) }
     }
 
-    return new LogEntry({
+    return {
       ...params,
-      indent,
+      parentLogKey: this.key,
+      context: {
+        ...this.context,
+        origin: params.origin || this.context.origin,
+      },
       level,
+      timestamp: new Date().toISOString(),
       metadata,
+      key: uniqid(),
+    }
+  }
+
+  /**
+   * Helper method for creating the basic log config that gets passed down to child logs
+   * when creating new log instances.
+   */
+  protected makeLogConfig(params: CreateLogParams) {
+    return {
+      metadata: params.metadata || this.metadata,
+      fixLevel: params.fixLevel || this.fixLevel,
+      showDuration: params.showDuration || false,
+      context: {
+        ...this.context,
+        origin: params.origin || this.context.origin,
+      },
       root: this.root,
-      parent: this,
-    })
+      parentConfigs: [...this.parentConfigs, this.getConfig()],
+    }
   }
 
-  private addNode(params: CreateNodeParams): LogEntry {
-    const entry = this.createNode(params)
+  /**
+   * Create a new log instance of the same type as the parent log.
+   */
+  abstract createLog(params?: CreateLogParams | CreateCoreLogParams): CoreLog | ActionLog
+
+  private log(params: CreateLogEntryParams) {
+    const entry = this.createLogEntry(params) as LogEntry
     if (this.root.storeEntries) {
-      this.children.push(entry)
+      this.entries.push(entry)
     }
-    this.root.onGraphChange(entry)
-    return entry
-  }
-
-  silly(params: string | LogEntryParams): LogEntry {
-    return this.addNode(resolveCreateParams(LogLevel.silly, params))
-  }
-
-  debug(params: string | LogEntryParams): LogEntry {
-    return this.addNode(resolveCreateParams(LogLevel.debug, params))
-  }
-
-  verbose(params: string | LogEntryParams): LogEntry {
-    return this.addNode(resolveCreateParams(LogLevel.verbose, params))
-  }
-
-  info(params: string | LogEntryParams): LogEntry {
-    return this.addNode(resolveCreateParams(LogLevel.info, params))
-  }
-
-  warn(params: string | LogEntryParams): LogEntry {
-    return this.addNode(resolveCreateParams(LogLevel.warn, params))
-  }
-
-  error(params: string | LogEntryParams): LogEntry {
-    return this.addNode(resolveCreateParams(LogLevel.error, params))
-  }
-
-  getMetadata() {
-    return this.metadata
-  }
-
-  getMessages() {
-    return this.messages
+    this.root.log(entry)
+    return this
   }
 
   /**
-   * Returns a deep copy of the latest message, if availble.
-   * Otherwise returns an empty object of type LogEntryMessage for convenience.
+   * Append the duration to the log message if showDuration=true.
+   *
+   * That is, the time from when the log instance got created until now.
    */
-  getLatestMessage() {
-    if (!this.messages) {
-      return <LogEntryMessage>{}
+  private getMsgWithDuration(params: CreateLogEntryParams) {
+    // If params.showDuration is set, it takes precedence over this.duration (since it's set at the call site for the
+    // log line in question).
+    const showDuration = params.showDuration !== undefined
+      ? params.showDuration
+      : this.showDuration
+    if (showDuration && params.msg) {
+      const msg = hasAnsi(params.msg) ? params.msg : chalk.green(params.msg)
+      return msg + " " + chalk.white(renderDuration(this.getDuration(1)))
     }
-
-    // Use spread operator to clone the array
-    const message = [...this.messages][this.messages.length - 1]
-    // ...and the object itself
-    return { ...message }
+    return params.msg
   }
 
-  placeholder({
-    level = LogLevel.info,
-    childEntriesInheritLevel = false,
-    indent = 0,
-    metadata,
-  }: PlaceholderOpts = {}): LogEntry {
-    // Ensure placeholder child entries align with parent context
-    const indentForNode = Math.max((indent || this.indent || 0) - 1, -1)
-    return this.addNode({
-      level,
-      indent: indentForNode,
-      childEntriesInheritLevel,
-      isPlaceholder: true,
-      metadata,
-    })
-  }
-
-  // Preserves status
-  setState(params?: string | UpdateLogEntryParams): LogEntry {
-    this.deepUpdate({ ...resolveUpdateParams(params) })
-    this.root.onGraphChange(this)
-    return this
-  }
-
-  setDone(params?: string | Omit<UpdateLogEntryParams, "status">): LogEntry {
-    this.deepUpdate({ ...resolveUpdateParams(params), status: "done" })
-    this.root.onGraphChange(this)
-    return this
-  }
-
-  setSuccess(params?: string | Omit<UpdateLogEntryParams, "status" & "symbol">): LogEntry {
-    this.deepUpdate({
-      ...resolveUpdateParams(params),
-      symbol: "success",
-      status: "success",
-    })
-    this.root.onGraphChange(this)
-    return this
-  }
-
-  setError(params?: string | Omit<UpdateLogEntryParams, "status" & "symbol">): LogEntry {
-    this.deepUpdate({
-      ...resolveUpdateParams(params),
-      symbol: "error",
-      status: "error",
-    })
-    this.root.onGraphChange(this)
-    return this
-  }
-
-  setWarn(param?: string | Omit<UpdateLogEntryParams, "status" & "symbol">): LogEntry {
-    this.deepUpdate({
-      ...resolveUpdateParams(param),
-      symbol: "warning",
-      status: "warn",
-    })
-    this.root.onGraphChange(this)
-    return this
-  }
-
-  stopAll() {
-    return this.root.stop()
-  }
-
-  stop() {
-    // Stop gracefully if still in active state
-    if (this.getLatestMessage().status === "active") {
-      this.update({ symbol: "empty", status: "done" })
-      this.root.onGraphChange(this)
+  private resolveCreateParams(level: LogLevel, params: string | LogParams): CreateLogEntryParams {
+    if (typeof params === "string") {
+      return { msg: params, level }
     }
-    return this
-  }
-
-  getChildEntries() {
-    return getChildEntries(this)
+    return { ...params, level }
   }
 
   /**
-   * Get the log level of the entry as a string.
+   * Render a log entry at the silly level. This is the highest verbosity.
    */
-  getStringLevel(): string {
-    return logLevelMap[this.level]
+  silly(params: string | LogParams) {
+    return this.log(this.resolveCreateParams(LogLevel.silly, params))
   }
 
   /**
-   * Get the full list of sections including all parent entries.
+   * Render a log entry at the debug level. Intended for internal information
+   * which can be useful for debugging.
    */
-  getAllSections(): string[] {
-    const msg = this.getLatestMessage()
-    return msg ? getAllSections(this, msg) : []
+  debug(params: string | LogParams) {
+    return this.log(this.resolveCreateParams(LogLevel.debug, params))
   }
 
   /**
-   * Dumps the log entry and all child entries as a string, optionally filtering the entries with `filter`.
+   * Render a log entry at the verbose level. Intended for logs generated when
+   * actios are executed. E.g. logs from Kubernetes.
+   */
+  verbose(params: string | LogParams) {
+    return this.log(this.resolveCreateParams(LogLevel.verbose, params))
+  }
+
+  /**
+   * Render a log entry at the info level. Intended for framework level logs
+   * such as information about the action being executed.
+   */
+  info(params: string | (LogParams & { symbol?: Extract<LogSymbol, "info" | "empty" | "success"> })) {
+    return this.log(this.resolveCreateParams(LogLevel.info, params))
+  }
+
+  /**
+   * Render a log entry at the warning level.
+   */
+  warn(params: string | Omit<LogParams, "symbol">) {
+    return this.log({
+      ...this.resolveCreateParams(LogLevel.warn, params),
+      symbol: "warning" as LogSymbol,
+    })
+  }
+
+  /**
+   * Render a log entry at the error level.
+   * Appends the duration to the message if showDuration=true.
+   */
+  error(params: string | Omit<LogParams, "symbol">) {
+    const resolved = {
+      ...this.resolveCreateParams(LogLevel.error, params),
+      symbol: "error" as LogSymbol,
+    }
+    return this.log({
+      ...resolved,
+      msg: this.getMsgWithDuration(resolved),
+    })
+  }
+
+  /**
+   * Render a log entry at the info level with "success" styling.
+   * Appends the duration to the message if showDuration=true.
+   *
+   * TODO @eysi: This should really happen in the renderer and the parent log context
+   * timestamp, the log entry timestamp, and showDuration should just be fields on the entry.
+   */
+  success(params: string | Omit<LogParams, "symbol">) {
+    const resolved = {
+      ...this.resolveCreateParams(LogLevel.info, params),
+      symbol: "success" as LogSymbol,
+    }
+    const msgWithDuration = this.getMsgWithDuration(resolved)
+    const msg = hasAnsi(msgWithDuration || "") ? msgWithDuration : chalk.green(msgWithDuration)
+    return this.log({
+      ...resolved,
+      msg,
+    })
+  }
+
+  getConfig(): LogConfig<C> {
+    return {
+      context: this.context,
+      metadata: this.metadata,
+      timestamp: this.timestamp,
+      key: this.key,
+      fixLevel: this.fixLevel,
+    }
+  }
+
+  /**
+   * Get the latest entry for this particular log context.
+   */
+  getLatestEntry() {
+    return this.entries.slice(-1)[0]
+  }
+
+  getChildLogEntries() {
+    return this.entries
+  }
+
+  /**
+   * Get all log entries, from this and other contexts, via the root logger.
+   */
+  getAllLogEntries() {
+    return this.root.getLogEntries()
+  }
+
+  /**
+   * Dumps child entries as a string, optionally filtering the entries with `filter`.
    * For example, to dump all the logs of level info or higher:
    *
    *   log.toString((entry) => entry.level <= LogLevel.info)
    */
   toString(filter?: (log: LogEntry) => boolean) {
-    return this.getChildEntries()
+    return this.getChildLogEntries()
       .filter((entry) => (filter ? filter(entry) : true))
-      .flatMap((entry) => entry.getMessages()?.map((message) => message.msg))
+      .map((entry) => entry.msg)
       .join("\n")
   }
 
@@ -391,6 +429,57 @@ export class LogEntry implements LogNode {
    * Returns the duration in seconds, defaults to 2 decimal precision
    */
   getDuration(precision: number = 2): number {
-    return round((new Date().getTime() - this.timestamp.getTime()) / 1000, precision)
+    return round((new Date().getTime() - new Date(this.timestamp).getTime()) / 1000, precision)
+  }
+
+  toSanitizedValue() {
+    // TODO: add a bit more info here
+    return "<Log>"
+  }
+}
+
+/**
+ * This is the default log class and mostly used for log entries created before invoking
+ * actions and plugins.
+ *
+ * The corresponding log context has a name which is used in the section part when printing log
+ * lines.
+ *
+ * The log context can be overwritten when creating child logs.
+ */
+export class CoreLog extends Log<CoreLogContext> {
+  /**
+   * Create a new CoreLog instance, optionally overwriting the context.
+   */
+  createLog(params: CreateCoreLogParams = {}): CoreLog {
+    return new CoreLog({
+      ...this.makeLogConfig(params),
+      context: {
+        ...this.context,
+        // Allow overwriting name
+        name: params.name || this.context.name,
+        // Allow overwriting origin
+        origin: params.origin || this.context.origin,
+      },
+    })
+  }
+}
+
+/**
+ * The ActionLog class is used for log entries created by actions.
+ *
+ * The corresponding log context requires 'actionName' and 'actionKind' fields
+ * which are used in the section part when printing log lines.
+ *
+ * The 'actionName' and 'actionKind' cannot be overwritten when creating child logs.
+ */
+export class ActionLog extends Log<ActionLogContext> {
+  showDuration = true
+
+  /**
+   * Create a new ActionLog instance. The new instance inherits the parent context.
+   */
+  createLog(params: CreateLogParams = {}): ActionLog {
+    return new ActionLog(this.makeLogConfig(params))
   }
 }

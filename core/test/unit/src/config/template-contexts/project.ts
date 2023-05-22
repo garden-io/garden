@@ -302,13 +302,10 @@ describe("ProjectConfigContext", () => {
       loggedIn: true,
       enterpriseDomain,
       secrets: {},
-      commandInfo: { name: "deploy", args: {}, opts: { "hot-reload": ["my-service"] } },
+      commandInfo: { name: "deploy", args: {}, opts: { sync: ["my-service"] } },
     })
 
-    let result = resolveTemplateString(
-      "${command.name == 'deploy' && (command.params.hot-reload contains 'my-service')}",
-      c
-    )
+    let result = resolveTemplateString("${command.name == 'deploy' && (command.params.sync contains 'my-service')}", c)
     expect(result).to.be.true
   })
 
@@ -326,7 +323,7 @@ describe("ProjectConfigContext", () => {
     })
 
     let result = resolveTemplateString(
-      "${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}",
+      "${command.params contains 'sync' && command.params.sync contains 'my-service'}",
       c
     )
     expect(result).to.be.false

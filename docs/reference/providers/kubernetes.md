@@ -7,11 +7,11 @@ tocTitle: "`kubernetes`"
 
 ## Description
 
-The `kubernetes` provider allows you to deploy [`container` modules](../module-types/container.md) to
-Kubernetes clusters, and adds the [`helm`](../module-types/helm.md) and
-[`kubernetes`](../module-types/kubernetes.md) module types.
+The `kubernetes` provider allows you to deploy [`container` actions](../../k8s-plugins/action-types/container.md) to
+Kubernetes clusters, and adds the [`helm`](../../k8s-plugins/action-types/helm.md) and
+[`kubernetes`](../../k8s-plugins/action-types/kubernetes.md) action types.
 
-For usage information, please refer to the [guides section](https://docs.garden.io/guides). A good place to start is
+For usage information, please refer to the [guides section](../../guides). A good place to start is
 the [Remote Kubernetes guide](../../k8s-plugins/remote-k8s/README.md) guide if you're connecting to remote clusters.
 The [Quickstart guide](../../basics/quickstart.md) guide is also helpful as an introduction.
 
@@ -41,8 +41,6 @@ providers:
     #
     # For more details on all the different options and what makes sense to use for your setup, please check out the
     # [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
-    #
-    # **Note:** The `cluster-docker` mode has been deprecated and will be removed in a future release!
     buildMode: local-docker
 
     # Configuration options for the `cluster-buildkit` build mode.
@@ -70,7 +68,6 @@ providers:
       # | Azure Container Registry        | `azurecr.io`          | Yes                          |
       # | GitHub Container Registry       | `ghcr.io`             | Yes                          |
       # | DockerHub                       | `hub.docker.com`     | Yes                          |
-      # | Garden In-Cluster Registry      |                         | Yes                          |
       # | Any other registry              |                         | No                           |
       #
       # In case you need to override the defaults for your registry, you can do it like so:
@@ -115,8 +112,7 @@ providers:
 
           # The registry from which the cache should be imported from, or which it should be exported to.
           #
-          # If not specified, use the configured `deploymentRegistry` in your kubernetes provider config, or the
-          # internal in-cluster registry in case `deploymentRegistry` is not set.
+          # If not specified, use the configured `deploymentRegistry` in your kubernetes provider config.
           #
           # Important: You must make sure `imagePullSecrets` includes authentication with the specified cache
           # registry, that has the appropriate write privileges (usually full write access to the configured
@@ -216,18 +212,16 @@ providers:
 
     # Configuration options for the `kaniko` build mode.
     kaniko:
-      # Specify extra flags to use when building the container image with kaniko. Flags set on `container` modules
-      # take precedence over these.
+      # Specify extra flags to use when building the container image with kaniko. Flags set on `container` Builds take
+      # precedence over these.
       extraFlags:
 
       # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
-      image: 'gcr.io/kaniko-project/executor:v1.8.1-debug'
+      image: >-
+  gcr.io/kaniko-project/executor:v1.8.1-debug@sha256:3bc3f3a05f803cac29164ce12617a7be64931748c944f6c419565f500b65e8db
 
-      # Choose the namespace where the Kaniko pods will be run. Set to `null` to use the project namespace.
-      #
-      # **IMPORTANT: The default namespace will change to the project namespace instead of the garden-system namespace
-      # in an upcoming release!**
-      namespace: garden-system
+      # Choose the namespace where the Kaniko pods will be run. Defaults to the project namespace.
+      namespace:
 
       # Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko
       # pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are
@@ -308,32 +302,20 @@ providers:
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
 
-    # Sets the deployment strategy for `container` services.
-    #
-    # The default is `"rolling"`, which performs rolling updates. There is also experimental support for blue/green
-    # deployments (via the `"blue-green"` strategy).
-    #
-    # Note that this setting only applies to `container` services (and not, for example,  `kubernetes` or `helm`
-    # services).
-    deploymentStrategy: rolling
-
-    # Configuration options for dev mode.
-    devMode:
-      # Specifies default settings for dev mode syncs (e.g. for `container`, `kubernetes` and `helm` services).
+    # Configuration options for code synchronization.
+    sync:
+      # Specifies default settings for syncs (e.g. for `container`, `kubernetes` and `helm` services).
       #
-      # These are overridden/extended by the settings of any individual dev mode sync specs for a given module or
-      # service.
+      # These are overridden/extended by the settings of any individual sync specs.
       #
-      # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden
-      # deploy` command.
+      # Sync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.
       #
       # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
       # information.
       defaults:
         # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
         #
-        # Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these
-        # patterns.
+        # Any exclusion patterns defined in individual sync specs will be applied in addition to these patterns.
         #
         # `.git` directories and `.garden` directories are always ignored.
         exclude:
@@ -358,12 +340,12 @@ providers:
         # more information.
         group:
 
-    # Require SSL on all `container` module services. If set to true, an error is raised when no certificate is
-    # available for a configured hostname on a `container` module.
+    # Require SSL on all `container` Deploys. If set to true, an error is raised when no certificate is available for
+    # a configured hostname on a `container`Deploy.
     forceSsl: false
 
     # References to `docker-registry` secrets to use for authenticating with remote registries when pulling
-    # images. This is necessary if you reference private images in your module configuration, and is required
+    # images. This is necessary if you reference private images in your action configuration, and is required
     # when configuring a remote Kubernetes environment with buildMode=local.
     imagePullSecrets:
       - # The name of the Kubernetes secret.
@@ -383,8 +365,7 @@ providers:
         # namespace before use.
         namespace: default
 
-    # Resource requests and limits for the in-cluster builder, container registry and code sync service. (which are
-    # automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
+    # Resource requests and limits for the in-cluster builder..
     resources:
       # Resource requests and limits for the in-cluster builder. It's important to consider which build mode you're
       # using when configuring this.
@@ -394,11 +375,6 @@ providers:
       #
       # When `buildMode` is `cluster-buildkit`, this applies to the BuildKit deployment created in _each project
       # namespace_. So think of this as the resource spec for each individual user or project namespace.
-      #
-      # When `buildMode` is `cluster-docker`, this applies to the single Docker Daemon that is installed and run
-      # cluster-wide. This is shared across all users and builds in the cluster, so it should be resourced
-      # accordingly, factoring in how many concurrent builds you expect and how heavy your builds tend to be. **Note
-      # that the cluster-docker build mode has been deprecated!**
       builder:
         limits:
           # CPU limit in millicpu.
@@ -413,32 +389,6 @@ providers:
         requests:
           # CPU request in millicpu.
           cpu: 100
-
-          # Memory request in megabytes.
-          memory: 512
-
-          # Ephemeral storage request in megabytes.
-          ephemeralStorage:
-
-      # Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
-      # so that they are available to all the nodes in your cluster.
-      #
-      # This is shared across all users and builds, so it should be resourced accordingly, factoring
-      # in how many concurrent builds you expect and how large your images tend to be.
-      registry:
-        limits:
-          # CPU limit in millicpu.
-          cpu: 2000
-
-          # Memory limit in megabytes.
-          memory: 4096
-
-          # Ephemeral storage limit in megabytes.
-          ephemeralStorage:
-
-        requests:
-          # CPU request in millicpu.
-          cpu: 200
 
           # Memory request in megabytes.
           memory: 512
@@ -471,23 +421,6 @@ providers:
           # Ephemeral storage request in megabytes.
           ephemeralStorage:
 
-    # Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
-    # (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
-    #
-    # These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
-    # factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
-    storage:
-      # Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
-      # are available to all the nodes in your cluster.
-      #
-      # Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
-      registry:
-        # Volume size in megabytes.
-        size: 20480
-
-        # Storage class to use for the volume.
-        storageClass: null
-
     # One or more certificates to use for ingress.
     tlsCertificates:
       - # A unique identifier for this certificate.
@@ -512,37 +445,6 @@ providers:
     # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide
     # to assigning Pods to nodes.
     systemNodeSelector: {}
-
-    # For setting tolerations on the registry-proxy when using in-cluster building.
-    # The registry-proxy is a DaemonSet that proxies connections to the docker registry service on each node.
-    #
-    # Use this only if you're doing in-cluster building and the nodes in your cluster
-    # have [taints](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/).
-    registryProxyTolerations:
-      - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
-        # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
-        effect:
-
-        # "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
-        # If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
-        key:
-
-        # "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults
-        # to
-        # "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
-        # particular category.
-        operator: Equal
-
-        # "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
-        # otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
-        # the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
-        # by the system.
-        tolerationSeconds:
-
-        # "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be
-        # empty,
-        # otherwise just a regular string.
-        value:
 
     # The name of the provider plugin to use.
     name: kubernetes
@@ -667,11 +569,9 @@ Choose the mechanism for building container images before deploying. By default 
 
 For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
 
-**Note:** The `cluster-docker` mode has been deprecated and will be removed in a future release!
-
-| Type     | Allowed Values                                                 | Default          | Required |
-| -------- | -------------------------------------------------------------- | ---------------- | -------- |
-| `string` | "local-docker", "cluster-docker", "kaniko", "cluster-buildkit" | `"local-docker"` | Yes      |
+| Type     | Allowed Values                               | Default          | Required |
+| -------- | -------------------------------------------- | ---------------- | -------- |
+| `string` | "local-docker", "kaniko", "cluster-buildkit" | `"local-docker"` | Yes      |
 
 ### `providers[].clusterBuildkit`
 
@@ -712,7 +612,6 @@ See the following table for details on our detection mechanism:
 | Azure Container Registry        | `azurecr.io`          | Yes                          |
 | GitHub Container Registry       | `ghcr.io`             | Yes                          |
 | DockerHub                       | `hub.docker.com`     | Yes                          |
-| Garden In-Cluster Registry      |                         | Yes                          |
 | Any other registry              |                         | No                           |
 
 In case you need to override the defaults for your registry, you can do it like so:
@@ -774,7 +673,7 @@ See also the [buildkit registry cache documentation](https://github.com/moby/bui
 
 The registry from which the cache should be imported from, or which it should be exported to.
 
-If not specified, use the configured `deploymentRegistry` in your kubernetes provider config, or the internal in-cluster registry in case `deploymentRegistry` is not set.
+If not specified, use the configured `deploymentRegistry` in your kubernetes provider config.
 
 Important: You must make sure `imagePullSecrets` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured `namespace`).
 
@@ -1009,34 +908,6 @@ providers:
           cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
 ```
 
-### `providers[].clusterDocker`
-
-[providers](#providers) > clusterDocker
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Configuration options for the `cluster-docker` build mode.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `object` | `{}`    | No       |
-
-### `providers[].clusterDocker.enableBuildKit`
-
-[providers](#providers) > [clusterDocker](#providersclusterdocker) > enableBuildKit
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be more performant, but we're opting to keep it optional until it's enabled by default in Docker.
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `false` | No       |
-
 ### `providers[].jib`
 
 [providers](#providers) > jib
@@ -1071,7 +942,7 @@ Configuration options for the `kaniko` build mode.
 
 [providers](#providers) > [kaniko](#providerskaniko) > extraFlags
 
-Specify extra flags to use when building the container image with kaniko. Flags set on `container` modules take precedence over these.
+Specify extra flags to use when building the container image with kaniko. Flags set on `container` Builds take precedence over these.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -1083,21 +954,19 @@ Specify extra flags to use when building the container image with kaniko. Flags 
 
 Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
 
-| Type     | Default                                         | Required |
-| -------- | ----------------------------------------------- | -------- |
-| `string` | `"gcr.io/kaniko-project/executor:v1.8.1-debug"` | No       |
+| Type     | Default                                                                                                                 | Required |
+| -------- | ----------------------------------------------------------------------------------------------------------------------- | -------- |
+| `string` | `"gcr.io/kaniko-project/executor:v1.8.1-debug@sha256:3bc3f3a05f803cac29164ce12617a7be64931748c944f6c419565f500b65e8db"` | No       |
 
 ### `providers[].kaniko.namespace`
 
 [providers](#providers) > [kaniko](#providerskaniko) > namespace
 
-Choose the namespace where the Kaniko pods will be run. Set to `null` to use the project namespace.
+Choose the namespace where the Kaniko pods will be run. Defaults to the project namespace.
 
-**IMPORTANT: The default namespace will change to the project namespace instead of the garden-system namespace in an upcoming release!**
-
-| Type     | Default           | Required |
-| -------- | ----------------- | -------- |
-| `string` | `"garden-system"` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `providers[].kaniko.nodeSelector`
 
@@ -1332,35 +1201,41 @@ providers:
 **Experimental**: this is an experimental feature and the API might change in the future.
 {% endhint %}
 
-Sets the deployment strategy for `container` services.
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
-The default is `"rolling"`, which performs rolling updates. There is also experimental support for blue/green deployments (via the `"blue-green"` strategy).
+Sets the deployment strategy for `container` deploy actions.
 
-Note that this setting only applies to `container` services (and not, for example,  `kubernetes` or `helm` services).
+Note that this field has been deprecated since 0.13, and has no effect.
+The `"rolling"` will be applied in all cases.
+The experimental support for blue/green deployments (via the `"blue-green"` strategy) has been removed.
+
+Note that this setting only applies to `container` deploy actions (and not, for example,  `kubernetes` or `helm` deploy actions).
 
 | Type     | Default     | Required |
 | -------- | ----------- | -------- |
 | `string` | `"rolling"` | No       |
 
-### `providers[].devMode`
+### `providers[].sync`
 
-[providers](#providers) > devMode
+[providers](#providers) > sync
 
-Configuration options for dev mode.
+Configuration options for code synchronization.
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `providers[].devMode.defaults`
+### `providers[].sync.defaults`
 
-[providers](#providers) > [devMode](#providersdevmode) > defaults
+[providers](#providers) > [sync](#providerssync) > defaults
 
-Specifies default settings for dev mode syncs (e.g. for `container`, `kubernetes` and `helm` services).
+Specifies default settings for syncs (e.g. for `container`, `kubernetes` and `helm` services).
 
-These are overridden/extended by the settings of any individual dev mode sync specs for a given module or service.
+These are overridden/extended by the settings of any individual sync specs.
 
-Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
+Sync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.
 
 See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
 
@@ -1368,13 +1243,13 @@ See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchron
 | -------- | -------- |
 | `object` | No       |
 
-### `providers[].devMode.defaults.exclude[]`
+### `providers[].sync.defaults.exclude[]`
 
-[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > exclude
+[providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > exclude
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
 
-Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these patterns.
+Any exclusion patterns defined in individual sync specs will be applied in addition to these patterns.
 
 `.git` directories and `.garden` directories are always ignored.
 
@@ -1386,7 +1261,7 @@ Example:
 
 ```yaml
 providers:
-  - devMode:
+  - sync:
       ...
       defaults:
         ...
@@ -1395,9 +1270,9 @@ providers:
           - '*.log'
 ```
 
-### `providers[].devMode.defaults.fileMode`
+### `providers[].sync.defaults.fileMode`
 
-[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > fileMode
+[providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > fileMode
 
 The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
@@ -1405,9 +1280,9 @@ The default permission bits, specified as an octal, to set on files at the sync 
 | -------- | -------- |
 | `number` | No       |
 
-### `providers[].devMode.defaults.directoryMode`
+### `providers[].sync.defaults.directoryMode`
 
-[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > directoryMode
+[providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > directoryMode
 
 The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
@@ -1415,9 +1290,9 @@ The default permission bits, specified as an octal, to set on directories at the
 | -------- | -------- |
 | `number` | No       |
 
-### `providers[].devMode.defaults.owner`
+### `providers[].sync.defaults.owner`
 
-[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > owner
+[providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > owner
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
@@ -1425,9 +1300,9 @@ Set the default owner of files and directories at the target. Specify either an 
 | ------------------ | -------- |
 | `number \| string` | No       |
 
-### `providers[].devMode.defaults.group`
+### `providers[].sync.defaults.group`
 
-[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > group
+[providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > group
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
@@ -1439,7 +1314,7 @@ Set the default group on files and directories at the target. Specify either an 
 
 [providers](#providers) > forceSsl
 
-Require SSL on all `container` module services. If set to true, an error is raised when no certificate is available for a configured hostname on a `container` module.
+Require SSL on all `container` Deploys. If set to true, an error is raised when no certificate is available for a configured hostname on a `container`Deploy.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -1450,7 +1325,7 @@ Require SSL on all `container` module services. If set to true, an error is rais
 [providers](#providers) > imagePullSecrets
 
 References to `docker-registry` secrets to use for authenticating with remote registries when pulling
-images. This is necessary if you reference private images in your module configuration, and is required
+images. This is necessary if you reference private images in your action configuration, and is required
 when configuring a remote Kubernetes environment with buildMode=local.
 
 | Type            | Default | Required |
@@ -1528,11 +1403,11 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 [providers](#providers) > resources
 
-Resource requests and limits for the in-cluster builder, container registry and code sync service. (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
+Resource requests and limits for the in-cluster builder..
 
-| Type     | Default                                                                                                                                                                                                                                                                                                                                   | Required |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":100,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}},"util":{"limits":{"cpu":256,"memory":512},"requests":{"cpu":256,"memory":512}}}` | No       |
+| Type     | Default                                                                                                                                                                                                                                              | Required |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":100,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}},"util":{"limits":{"cpu":256,"memory":512},"requests":{"cpu":256,"memory":512}}}` | No       |
 
 ### `providers[].resources.builder`
 
@@ -1543,8 +1418,6 @@ Resource requests and limits for the in-cluster builder. It's important to consi
 When `buildMode` is `kaniko`, this refers to _each Kaniko pod_, i.e. each individual build, so you'll want to consider the requirements for your individual image builds, with your most expensive/heavy images in mind.
 
 When `buildMode` is `cluster-buildkit`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
-
-When `buildMode` is `cluster-docker`, this applies to the single Docker Daemon that is installed and run cluster-wide. This is shared across all users and builds in the cluster, so it should be resourced accordingly, factoring in how many concurrent builds you expect and how heavy your builds tend to be. **Note that the cluster-docker build mode has been deprecated!**
 
 | Type     | Default                                                                     | Required |
 | -------- | --------------------------------------------------------------------------- | -------- |
@@ -1698,174 +1571,6 @@ providers:
   - resources:
       ...
       builder:
-        ...
-        requests:
-          ...
-          ephemeralStorage: 8192
-```
-
-### `providers[].resources.registry`
-
-[providers](#providers) > [resources](#providersresources) > registry
-
-Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
-so that they are available to all the nodes in your cluster.
-
-This is shared across all users and builds, so it should be resourced accordingly, factoring
-in how many concurrent builds you expect and how large your images tend to be.
-
-| Type     | Default                                                                     | Required |
-| -------- | --------------------------------------------------------------------------- | -------- |
-| `object` | `{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}}` | No       |
-
-### `providers[].resources.registry.limits`
-
-[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > limits
-
-| Type     | Default                      | Required |
-| -------- | ---------------------------- | -------- |
-| `object` | `{"cpu":2000,"memory":4096}` | No       |
-
-### `providers[].resources.registry.limits.cpu`
-
-[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [limits](#providersresourcesregistrylimits) > cpu
-
-CPU limit in millicpu.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `2000`  | No       |
-
-Example:
-
-```yaml
-providers:
-  - resources:
-      ...
-      registry:
-        ...
-        limits:
-          ...
-          cpu: 2000
-```
-
-### `providers[].resources.registry.limits.memory`
-
-[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [limits](#providersresourcesregistrylimits) > memory
-
-Memory limit in megabytes.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `4096`  | No       |
-
-Example:
-
-```yaml
-providers:
-  - resources:
-      ...
-      registry:
-        ...
-        limits:
-          ...
-          memory: 4096
-```
-
-### `providers[].resources.registry.limits.ephemeralStorage`
-
-[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [limits](#providersresourcesregistrylimits) > ephemeralStorage
-
-Ephemeral storage limit in megabytes.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-Example:
-
-```yaml
-providers:
-  - resources:
-      ...
-      registry:
-        ...
-        limits:
-          ...
-          ephemeralStorage: 8192
-```
-
-### `providers[].resources.registry.requests`
-
-[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > requests
-
-| Type     | Default                    | Required |
-| -------- | -------------------------- | -------- |
-| `object` | `{"cpu":200,"memory":512}` | No       |
-
-### `providers[].resources.registry.requests.cpu`
-
-[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [requests](#providersresourcesregistryrequests) > cpu
-
-CPU request in millicpu.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `200`   | No       |
-
-Example:
-
-```yaml
-providers:
-  - resources:
-      ...
-      registry:
-        ...
-        requests:
-          ...
-          cpu: 200
-```
-
-### `providers[].resources.registry.requests.memory`
-
-[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [requests](#providersresourcesregistryrequests) > memory
-
-Memory request in megabytes.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `512`   | No       |
-
-Example:
-
-```yaml
-providers:
-  - resources:
-      ...
-      registry:
-        ...
-        requests:
-          ...
-          memory: 512
-```
-
-### `providers[].resources.registry.requests.ephemeralStorage`
-
-[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [requests](#providersresourcesregistryrequests) > ephemeralStorage
-
-Ephemeral storage request in megabytes.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-Example:
-
-```yaml
-providers:
-  - resources:
-      ...
-      registry:
         ...
         requests:
           ...
@@ -2241,177 +1946,6 @@ providers:
           ephemeralStorage: 8192
 ```
 
-### `providers[].storage`
-
-[providers](#providers) > storage
-
-Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
-(which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
-
-These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
-factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
-
-| Type     | Default                                                                                                                                                              | Required |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `object` | `{"builder":{"size":20480,"storageClass":null},"nfs":{"storageClass":null},"registry":{"size":20480,"storageClass":null},"sync":{"size":10240,"storageClass":null}}` | No       |
-
-### `providers[].storage.builder`
-
-[providers](#providers) > [storage](#providersstorage) > builder
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Storage parameters for the data volume for the in-cluster Docker Daemon.
-
-Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
-
-| Type     | Default                              | Required |
-| -------- | ------------------------------------ | -------- |
-| `object` | `{"size":20480,"storageClass":null}` | No       |
-
-### `providers[].storage.builder.size`
-
-[providers](#providers) > [storage](#providersstorage) > [builder](#providersstoragebuilder) > size
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Volume size in megabytes.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `20480` | No       |
-
-### `providers[].storage.builder.storageClass`
-
-[providers](#providers) > [storage](#providersstorage) > [builder](#providersstoragebuilder) > storageClass
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Storage class to use for the volume.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `string` | `null`  | No       |
-
-### `providers[].storage.nfs`
-
-[providers](#providers) > [storage](#providersstorage) > nfs
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Storage parameters for the NFS provisioner, which we automatically create for the sync volume, _unless_
-you specify a `storageClass` for the sync volume. See the below `sync` parameter for more.
-
-Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"storageClass":null}` | No       |
-
-### `providers[].storage.nfs.storageClass`
-
-[providers](#providers) > [storage](#providersstorage) > [nfs](#providersstoragenfs) > storageClass
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Storage class to use as backing storage for NFS .
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `string` | `null`  | No       |
-
-### `providers[].storage.registry`
-
-[providers](#providers) > [storage](#providersstorage) > registry
-
-Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
-are available to all the nodes in your cluster.
-
-Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
-
-| Type     | Default                              | Required |
-| -------- | ------------------------------------ | -------- |
-| `object` | `{"size":20480,"storageClass":null}` | No       |
-
-### `providers[].storage.registry.size`
-
-[providers](#providers) > [storage](#providersstorage) > [registry](#providersstorageregistry) > size
-
-Volume size in megabytes.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `20480` | No       |
-
-### `providers[].storage.registry.storageClass`
-
-[providers](#providers) > [storage](#providersstorage) > [registry](#providersstorageregistry) > storageClass
-
-Storage class to use for the volume.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `string` | `null`  | No       |
-
-### `providers[].storage.sync`
-
-[providers](#providers) > [storage](#providersstorage) > sync
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Storage parameters for the code sync volume, which build contexts are synced to ahead of running
-in-cluster builds.
-
-Important: The storage class configured here has to support _ReadWriteMany_ access.
-If you don't specify a storage class, Garden creates an NFS provisioner and provisions an
-NFS volume for the sync data volume.
-
-Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
-
-| Type     | Default                              | Required |
-| -------- | ------------------------------------ | -------- |
-| `object` | `{"size":10240,"storageClass":null}` | No       |
-
-### `providers[].storage.sync.size`
-
-[providers](#providers) > [storage](#providersstorage) > [sync](#providersstoragesync) > size
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Volume size in megabytes.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `10240` | No       |
-
-### `providers[].storage.sync.storageClass`
-
-[providers](#providers) > [storage](#providersstorage) > [sync](#providersstoragesync) > storageClass
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Storage class to use for the volume.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `string` | `null`  | No       |
-
 ### `providers[].tlsCertificates[]`
 
 [providers](#providers) > tlsCertificates
@@ -2511,152 +2045,6 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 | -------- | ----------- | -------- |
 | `string` | `"default"` | No       |
 
-### `providers[].tlsCertificates[].managedBy`
-
-[providers](#providers) > [tlsCertificates](#providerstlscertificates) > managedBy
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
-certificate. See our
-[cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-Example:
-
-```yaml
-providers:
-  - tlsCertificates:
-      - managedBy: "cert-manager"
-```
-
-### `providers[].certManager`
-
-[providers](#providers) > certManager
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-cert-manager configuration, for creating and managing TLS certificates. See the
-[cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `providers[].certManager.install`
-
-[providers](#providers) > [certManager](#providerscertmanager) > install
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Automatically install `cert-manager` on initialization. See the
-[cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `false` | No       |
-
-### `providers[].certManager.email`
-
-[providers](#providers) > [certManager](#providerscertmanager) > email
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-The email to use when requesting Let's Encrypt certificates.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-Example:
-
-```yaml
-providers:
-  - certManager:
-      ...
-      email: "yourname@example.com"
-```
-
-### `providers[].certManager.issuer`
-
-[providers](#providers) > [certManager](#providerscertmanager) > issuer
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-The type of issuer for the certificate (only ACME is supported for now).
-
-| Type     | Default  | Required |
-| -------- | -------- | -------- |
-| `string` | `"acme"` | No       |
-
-Example:
-
-```yaml
-providers:
-  - certManager:
-      ...
-      issuer: "acme"
-```
-
-### `providers[].certManager.acmeServer`
-
-[providers](#providers) > [certManager](#providerscertmanager) > acmeServer
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod servers are supported.
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `string` | `"letsencrypt-staging"` | No       |
-
-Example:
-
-```yaml
-providers:
-  - certManager:
-      ...
-      acmeServer: "letsencrypt-staging"
-```
-
-### `providers[].certManager.acmeChallengeType`
-
-[providers](#providers) > [certManager](#providerscertmanager) > acmeChallengeType
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-The type of ACME challenge used to validate hostnames and generate the certificates (only HTTP-01 is supported for now).
-
-| Type     | Default     | Required |
-| -------- | ----------- | -------- |
-| `string` | `"HTTP-01"` | No       |
-
-Example:
-
-```yaml
-providers:
-  - certManager:
-      ...
-      acmeChallengeType: "HTTP-01"
-```
-
 ### `providers[].systemNodeSelector`
 
 [providers](#providers) > systemNodeSelector
@@ -2676,78 +2064,6 @@ providers:
   - systemNodeSelector:
         disktype: ssd
 ```
-
-### `providers[].registryProxyTolerations[]`
-
-[providers](#providers) > registryProxyTolerations
-
-For setting tolerations on the registry-proxy when using in-cluster building.
-The registry-proxy is a DaemonSet that proxies connections to the docker registry service on each node.
-
-Use this only if you're doing in-cluster building and the nodes in your cluster
-have [taints](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/).
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `providers[].registryProxyTolerations[].effect`
-
-[providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > effect
-
-"Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
-allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `providers[].registryProxyTolerations[].key`
-
-[providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > key
-
-"Key" is the taint key that the toleration applies to. Empty means match all taint keys.
-If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `providers[].registryProxyTolerations[].operator`
-
-[providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > operator
-
-"Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
-"Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
-particular category.
-
-| Type     | Default   | Required |
-| -------- | --------- | -------- |
-| `string` | `"Equal"` | No       |
-
-### `providers[].registryProxyTolerations[].tolerationSeconds`
-
-[providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > tolerationSeconds
-
-"TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
-otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
-the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
-by the system.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `providers[].registryProxyTolerations[].value`
-
-[providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > value
-
-"Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
-otherwise just a regular string.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
 
 ### `providers[].name`
 
@@ -2988,18 +2304,6 @@ The primary namespace used for resource deployments.
 ### `${providers.<provider-name>.outputs.default-hostname}`
 
 The default hostname configured on the provider.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${providers.<provider-name>.outputs.metadata-namespace}`
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-The namespace used for Garden metadata (currently always the same as app-namespace).
 
 | Type     |
 | -------- |

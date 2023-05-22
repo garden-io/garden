@@ -16,7 +16,7 @@ import { loadConfigResources, findProjectConfig } from "../../config/base"
 import { resolve, basename, relative, join } from "path"
 import { GardenBaseError, ParameterError } from "../../exceptions"
 import { getModuleTypes, getPluginBaseNames } from "../../plugins"
-import { addConfig, createBaseOpts } from "./helpers"
+import { addConfig } from "./helpers"
 import { getSupportedPlugins } from "../../plugins/plugins"
 import { baseModuleSpecSchema } from "../../config/module"
 import { renderConfigReference } from "../../docs/config"
@@ -25,17 +25,15 @@ import { flatten, keyBy } from "lodash"
 import { fixedPlugins } from "../../config/project"
 import { deline, wordWrap, truncate } from "../../util/string"
 import { joi } from "../../config/common"
-import { LoggerType } from "../../logger/logger"
 import Bluebird from "bluebird"
-import { ModuleTypeMap } from "../../types/plugin/plugin"
-import { LogEntry } from "../../logger/log-entry"
+import { ModuleTypeMap } from "../../types/module"
+import { Log } from "../../logger/log-entry"
 import { getProviderUrl, getModuleTypeUrl } from "../../docs/common"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
 import { userPrompt } from "../../util/util"
 
 const createModuleArgs = {}
 const createModuleOpts = {
-  ...createBaseOpts,
   dir: new PathParameter({
     help: "Directory to place the module in (defaults to current directory).",
     defaultValue: ".",
@@ -45,7 +43,7 @@ const createModuleOpts = {
     defaultValue: defaultConfigFilename,
   }),
   interactive: new BooleanParameter({
-    alias: "i",
+    aliases: ["i"],
     help: "Set to false to disable interactive prompts.",
     defaultValue: true,
   }),
@@ -92,17 +90,12 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
   arguments = createModuleArgs
   options = createModuleOpts
 
-  getLoggerType(): LoggerType {
-    return "basic"
+  printHeader({ log }) {
+    printHeader(log, "Create new module", "✏️")
   }
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Create new module", "pencil2")
-  }
-
-  // Defining it like this because it'll stall on waiting for user input.
-  isPersistent() {
-    return true
+  allowInDevCommand() {
+    return false
   }
 
   async action({
@@ -128,8 +121,6 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     const allModuleTypes = getModuleTypes(getSupportedPlugins().map((p) => p.callback()))
 
     if (opts.interactive && (!opts.name || !opts.type)) {
-      log.root.stop()
-
       if (!opts.type) {
         const choices = await getModuleTypeSuggestions(log, allModuleTypes, configDir, name)
 
@@ -166,7 +157,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     // Throw if module with same name already exists
     if (await pathExists(configPath)) {
-      const configs = await loadConfigResources({ log: undefined, projectRoot: configDir, configPath })
+      const configs = await loadConfigResources(log, configDir, configPath)
 
       if (configs.filter((c) => c.kind === "Module" && c.name === name).length > 0) {
         throw new CreateError(
@@ -196,9 +187,9 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       }
     )
 
-    const { yaml } = renderConfigReference(schema, {
+    let { yaml } = renderConfigReference(schema, {
       yamlOpts: {
-        onEmptyValue: opts["skip-comments"] ? "remove" : "comment out",
+        onEmptyValue: "remove",
         filterMarkdown: true,
         renderBasicDescription: !opts["skip-comments"],
         renderFullDescription: false,
@@ -207,6 +198,8 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       },
     })
 
+    const moduleTypeUrl = getModuleTypeUrl(type)
+    yaml = `# See the documentation and reference for ${type} modules at ${moduleTypeUrl}\n\n${yaml}`
     await addConfig(configPath, yaml)
 
     log.info(chalk.green(`-> Created new module config in ${chalk.bold.white(relative(process.cwd(), configPath))}`))
@@ -214,18 +207,13 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     // Warn if module type is defined by provider that isn't configured OR if not in a project, ask to make sure
     // it is configured in the project that will use the module.
-    const projectConfig = await findProjectConfig(configDir)
+    const projectConfig = await findProjectConfig({ log, path: configDir })
     const pluginName = definition.plugin.name
 
     if (!fixedPlugins.includes(pluginName)) {
       if (projectConfig) {
-        const allProviders = flatten([
-          projectConfig.providers,
-          ...(projectConfig.environments || []).map((e) => e.providers || []),
-        ])
-
         const allProvidersWithBases = flatten(
-          allProviders.map((p) => getPluginBaseNames(p.name, keyBy(getSupportedPlugins, "name")))
+          projectConfig.providers.map((p) => getPluginBaseNames(p.name, keyBy(getSupportedPlugins, "name")))
         )
 
         if (!allProvidersWithBases.includes(pluginName)) {
@@ -257,23 +245,20 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     }
 
     // This is to avoid `prettier` messing with the string formatting...
-    const moduleTypeUrl = chalk.cyan.underline(getModuleTypeUrl(type))
+    const moduleTypeUrlFormatted = chalk.cyan.underline(moduleTypeUrl)
     const providerUrl = chalk.cyan.underline(getProviderUrl(pluginName))
     const configFilesUrl = chalk.cyan.underline(`${DOCS_BASE_URL}/using-garden/configuration-overview`)
     const formattedType = chalk.bold(type)
     const formattedPluginName = chalk.bold(pluginName)
 
-    log.info({
-      symbol: "info",
-      msg: wordWrap(
+    log.info(
+      wordWrap(
         dedent`
-        We recommend reviewing the generated config, uncommenting fields that you'd like to configure, and cleaning up any commented fields that you don't need to use.
-
-        For more information about ${formattedType} modules, please check out ${moduleTypeUrl}, and the ${formattedPluginName} provider docs at ${providerUrl}. For general information about Garden configuration files, take a look at ${configFilesUrl}.
+        For more information about ${formattedType} modules, please check out ${moduleTypeUrlFormatted}, and the ${formattedPluginName} provider docs at ${providerUrl}. For general information about Garden configuration files, take a look at ${configFilesUrl}.
         `,
         120
-      ),
-    })
+      )
+    )
 
     log.info("")
 
@@ -282,7 +267,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 }
 
 export async function getModuleTypeSuggestions(
-  log: LogEntry,
+  log: Log,
   moduleTypes: ModuleTypeMap,
   path: string,
   defaultName: string

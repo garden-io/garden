@@ -1,0 +1,15 @@
+kind: Build
+type: test
+name: b
+source:
+  repository:
+    url: https://example.com/my-repo.git#main
+
+---
+
+kind: Test
+type: test
+name: b-unit
+build: b
+spec:
+  command: [echo, OK]

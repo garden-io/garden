@@ -6,61 +6,126 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiIdentifier, joi, joiSparseArray } from "../../../config/common"
+import { joiIdentifier, joi, joiSparseArray, createSchema } from "../../../config/common"
 import { dedent } from "../../../util/string"
-import { BaseVolumeSpec } from "../../base-volume"
 import { V1PersistentVolumeClaimSpec, V1PersistentVolumeClaim } from "@kubernetes/client-node"
 import { readFileSync } from "fs-extra"
 import { join } from "path"
-import { ModuleTypeDefinition } from "../../../types/plugin/plugin"
+import { ModuleTypeDefinition } from "../../../plugin/plugin"
 import { STATIC_DIR } from "../../../constants"
 import { baseBuildSpecSchema } from "../../../config/module"
-import { ConfigureModuleParams } from "../../../types/plugin/module/configure"
-import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
+import { ConfigureModuleParams } from "../../../plugin/handlers/Module/configure"
 import { GardenModule } from "../../../types/module"
-import { KubernetesModule, KubernetesModuleConfig } from "../kubernetes-module/config"
 import { KubernetesResource } from "../types"
-import { getKubernetesServiceStatus, deployKubernetesService } from "../kubernetes-module/handlers"
-import { DeployServiceParams } from "../../../types/plugin/service/deployService"
-import { GardenService } from "../../../types/service"
+import { ConvertModuleParams } from "../../../plugin/handlers/Module/convert"
+import { DeployAction, DeployActionConfig, ResolvedDeployAction } from "../../../actions/deploy"
+import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
+import { DeployActionDefinition } from "../../../plugin/action-types"
+import { getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/handlers"
+import { Resolved } from "../../../actions/types"
+import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
+import { memoize } from "lodash"
 
-export interface PersistentVolumeClaimSpec extends BaseVolumeSpec {
-  dependencies: string[]
-  namespace: string
+export interface PersistentVolumeClaimDeploySpec {
+  namespace?: string
   spec: V1PersistentVolumeClaimSpec
 }
 
-type PersistentVolumeClaimModule = GardenModule<PersistentVolumeClaimSpec, PersistentVolumeClaimSpec>
-type PersistentVolumeClaimService = GardenService<PersistentVolumeClaimModule>
+const commonSpecKeys = memoize(() => ({
+  namespace: joiIdentifier().description(
+    "The namespace to deploy the PVC in. Note that any resources referencing the PVC must be in the same namespace, so in most cases you should leave this unset."
+  ),
+  // TODO: validation for this doesn't work, but kubernetes does the validation for us on apply
+  spec: kubernetesPVCSchema(),
+}))
 
-// Need to use a sync read to avoid having to refactor createGardenPlugin()
-// The `persistentvolumeclaim.json` file is copied from the handy
-// kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.17.0-standalone).
-const jsonSchema = JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "persistentvolumeclaim.json")).toString())
+interface PersistentVolumeClaimSpec extends PersistentVolumeClaimDeploySpec {
+  dependencies: string[]
+}
+
+type PersistentVolumeClaimModule = GardenModule<PersistentVolumeClaimSpec, PersistentVolumeClaimSpec>
+
+type PersistentVolumeClaimActionConfig = DeployActionConfig<"persistentvolumeclaim", PersistentVolumeClaimDeploySpec>
+type PersistentVolumeClaimAction = DeployAction<PersistentVolumeClaimActionConfig, {}>
+
+const getPVCJsonSchema = memoize(() => {
+  // Need to use a sync read to avoid having to refactor createGardenPlugin()
+  // The `persistentvolumeclaim.json` file is copied from the handy
+  // kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.17.0-standalone).
+  const jsonSchemaRaw = () =>
+    JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "persistentvolumeclaim.json")).toString())
+
+  const jsonSchema = { ...jsonSchemaRaw().properties.spec, type: "object" }
+
+  return jsonSchema
+})
+
+const kubernetesPVCSchema = memoize(() => joi
+  .object()
+  .jsonSchema(getPVCJsonSchema())
+  .required()
+  .description(
+    "The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec schema may include (or even require) additional fields, depending on the used `storageClass`. See the [PersistentVolumeClaim docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details."
+  ))
+
+export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<PersistentVolumeClaimAction> => ({
+  name: "persistentvolumeclaim",
+  docs: dedent`
+    Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [\`container\` Deploy actions](./container.md).
+
+    See the [PersistentVolumeClaim](../../../k8s-plugins/action-types/persistentvolumeclaim.md) guide for more info and usage examples.
+  `,
+  schema: joi.object().keys(commonSpecKeys()),
+  handlers: {
+    configure: async ({ config }) => {
+      // No need to scan for files
+      config.include = []
+
+      return { config, supportedModes: {} }
+    },
+
+    deploy: async (params) => {
+      const result = await kubernetesDeploy({
+        ...(<any>params),
+        action: getKubernetesAction(params.action),
+      })
+
+      return { ...result, outputs: {} }
+    },
+
+    getStatus: async (params) => {
+      const result = await getKubernetesDeployStatus({
+        ...(<any>params),
+        action: getKubernetesAction(params.action),
+      })
+
+      return { ...result, outputs: {} }
+    },
+  },
+})
+
+const pvcModuleSchema = createSchema({
+  name: "kubernetes:persistentvolumeclaim:Module",
+  keys: () => ({
+    build: baseBuildSpecSchema(),
+    dependencies: joiSparseArray(joiIdentifier()).description(
+      "List of services and tasks to deploy/run before deploying this PVC."
+    ),
+    ...commonSpecKeys(),
+  }),
+})
 
 export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
   name: "persistentvolumeclaim",
   docs: dedent`
     Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-    See the [PersistentVolumeClaim](../../k8s-plugins/module-types/persistentvolumeclaim.md) guide for more info and usage examples.
-    `,
-  schema: joi.object().keys({
-    build: baseBuildSpecSchema(),
-    dependencies: joiSparseArray(joiIdentifier()).description(
-      "List of services and tasks to deploy/run before deploying this PVC."
-    ),
-    namespace: joiIdentifier().description(
-      "The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset."
-    ),
-    spec: joi
-      .object()
-      .jsonSchema({ ...jsonSchema.properties.spec, type: "object" })
-      .required()
-      .description(
-        "The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec schema may include (or even require) additional fields, depending on the used `storageClass`. See the [PersistentVolumeClaim docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details."
-      ),
-  }),
+    See the [PersistentVolumeClaim](../../k8s-plugins/action-types/persistentvolumeclaim.md) guide for more info and usage examples.
+  `,
+
+  schema: pvcModuleSchema(),
+  needsBuild: false,
+
   handlers: {
     async configure({ moduleConfig }: ConfigureModuleParams) {
       // No need to scan for files
@@ -73,7 +138,6 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
         {
           dependencies: moduleConfig.spec.dependencies,
           disabled: moduleConfig.spec.disabled,
-          hotReloadable: false,
           name: moduleConfig.name,
           spec: moduleConfig.spec,
         },
@@ -82,85 +146,70 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
       return { moduleConfig }
     },
 
-    async getServiceStatus(params: GetServiceStatusParams) {
-      params.service = getKubernetesService(params.service)
-      params.module = params.service.module
+    async convert(params: ConvertModuleParams<PersistentVolumeClaimModule>) {
+      const { module, dummyBuild, prepareRuntimeDependencies } = params
 
-      return getKubernetesServiceStatus({
-        ...params,
-        devMode: false,
-      })
-    },
+      return {
+        group: {
+          kind: "Group",
+          name: module.name,
+          path: module.path,
+          actions: [
+            ...(dummyBuild ? [dummyBuild] : []),
+            {
+              kind: "Deploy",
+              type: "persistentvolumeclaim",
+              name: module.name,
+              ...params.baseFields,
 
-    async deployService(params: DeployServiceParams) {
-      params.service = getKubernetesService(params.service)
-      params.module = params.service.module
+              build: dummyBuild?.name,
+              dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
-      return deployKubernetesService({
-        ...params,
-        devMode: false,
-      })
+              timeout: KUBECTL_DEFAULT_TIMEOUT,
+              spec: {
+                namespace: module.spec.namespace,
+                spec: module.spec.spec,
+              },
+            },
+          ],
+        },
+      }
     },
   },
 })
 
 /**
- * Maps a `persistentvolumeclaim` module to a `kubernetes` module (so we can re-use those handlers).
+ * Maps a `persistentvolumeclaim` action to a `kubernetes` action (so we can re-use those handlers).
  */
-function getKubernetesService(
-  pvcService: PersistentVolumeClaimService
-): GardenService<KubernetesModule, KubernetesModule> {
+function getKubernetesAction(action: Resolved<PersistentVolumeClaimAction>) {
   const pvcManifest: KubernetesResource<V1PersistentVolumeClaim> = {
     apiVersion: "v1",
     kind: "PersistentVolumeClaim",
     metadata: {
-      name: pvcService.name,
+      name: action.name,
     },
-    spec: pvcService.spec.spec,
+    spec: action.getSpec("spec"),
   }
 
-  const spec = {
-    dependencies: pvcService.spec.dependencies,
-    files: [],
-    manifests: [pvcManifest],
-    tasks: [],
-    tests: [],
-  }
-
-  const serviceConfig = {
-    ...pvcService.config,
-    spec,
-  }
-
-  const config: KubernetesModuleConfig = {
-    ...pvcService.module,
+  const config: KubernetesDeployActionConfig = {
+    kind: "Deploy",
+    type: "kubernetes",
+    name: action.name,
+    internal: {
+      basePath: action.basePath(),
+    },
     include: [],
-    serviceConfigs: [serviceConfig],
-    spec,
-    taskConfigs: [],
-    testConfigs: [],
-  }
-
-  const module: KubernetesModule = {
-    ...pvcService.module,
-    _config: config,
-    ...config,
+    timeout: KUBECTL_DEFAULT_TIMEOUT,
     spec: {
-      ...pvcService.spec,
+      namespace: action.getSpec("namespace"),
       files: [],
       manifests: [pvcManifest],
-      tasks: [],
-      tests: [],
     },
   }
 
-  return {
-    name: pvcService.name,
-    config: serviceConfig,
-    disabled: pvcService.disabled,
-    module,
-    sourceModule: module,
-    spec,
-    version: pvcService.version,
-  }
+  return new ResolvedDeployAction<KubernetesDeployActionConfig, {}>({
+    ...action["params"],
+    config,
+    spec: config.spec,
+  })
 }

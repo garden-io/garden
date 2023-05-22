@@ -8,6 +8,7 @@ build:
   dependencies: [simple-service]
 services:
   - name: volume-reference
+    dependencies: [simple-service]
     command: [sh, -c, "nc -l -p 8080"]
     ports:
       - name: http

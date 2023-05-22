@@ -22,7 +22,7 @@ In the guide we'll:
 You need the following dependencies on your local machine to use Garden:
 
 * Git (v2.14 or newer)
-* rsync (v3.1.0 or newer)
+* _[Windows only]_ rsync (v3.1.0 or newer)
 
 Run `git version` and `rsync --version` to verify that a recent enough version of Git and rsync is installed.
 
@@ -142,10 +142,10 @@ And then change into the directory of the quickstart example with:
 cd quickstart-example
 ```
 
-And finally deploy the project with Garden in dev mode:
+And finally deploy the project with Garden in sync mode:
 
 ```sh
-garden deploy --dev
+garden deploy --sync
 ```
 
 You should now be able to visit the example project at [http://vote.local.demo.garden](http://vote.local.demo.garden).
@@ -206,7 +206,7 @@ If you'd like to better understand how a Garden project is configured when using
 through our [first project tutorial](../tutorials/your-first-project/README.md) which walks you through configuring a Garden project step-by-step.
 
 If you like to dive right in and configure your own project for Garden, we recommend using our [example
-projects on GitHub](https://github.com/garden-io/garden/tree/0.12.56/examples) for reference and reading through the different pages
+projects on GitHub](https://github.com/garden-io/garden/tree/0.12.51/examples) for reference and reading through the different pages
 of the [Using Garden section](../using-garden/configuration-overview.md) of our docs.
 
 And if you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://discord.gg/FrmhuUjFs6)!

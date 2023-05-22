@@ -16,11 +16,11 @@ import { loadConfigResources } from "../../config/base"
 import { resolve, basename, relative, join } from "path"
 import { GardenBaseError, ParameterError } from "../../exceptions"
 import { renderProjectConfigReference } from "../../docs/config"
-import { addConfig, createBaseOpts } from "./helpers"
+import { addConfig } from "./helpers"
 import { wordWrap } from "../../util/string"
-import { LoggerType } from "../../logger/logger"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
 import { userPrompt } from "../../util/util"
+import { DEFAULT_API_VERSION } from "../../constants"
 
 const ignorefileName = ".gardenignore"
 const defaultIgnorefile = dedent`
@@ -33,7 +33,6 @@ export const defaultProjectConfigFilename = "project.garden.yml"
 
 const createProjectArgs = {}
 const createProjectOpts = {
-  ...createBaseOpts,
   dir: new PathParameter({
     help: "Directory to place the project in (defaults to current directory).",
     defaultValue: ".",
@@ -43,7 +42,7 @@ const createProjectOpts = {
     defaultValue: defaultProjectConfigFilename,
   }),
   interactive: new BooleanParameter({
-    alias: "i",
+    aliases: ["i"],
     help: "Set to false to disable interactive prompts.",
     defaultValue: true,
   }),
@@ -88,17 +87,17 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
   arguments = createProjectArgs
   options = createProjectOpts
 
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
-
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Create new project", "pencil2")
+  printHeader({ log }) {
+    printHeader(log, "Create new project", "✏️")
   }
 
   // Defining it like this because it'll stall on waiting for user input.
-  isPersistent() {
+  maybePersistent() {
     return true
+  }
+
+  allowInDevCommand() {
+    return false
   }
 
   async action({
@@ -115,7 +114,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
     // Throw if a project config already exists in the config path
     if (await pathExists(configPath)) {
-      const configs = await loadConfigResources({ log: undefined, projectRoot: configDir, configPath })
+      const configs = await loadConfigResources(log, configDir, configPath)
 
       if (configs.filter((c) => c.kind === "Project").length > 0) {
         throw new CreateError(`A Garden project already exists in ${configPath}`, { configDir, configPath })
@@ -125,8 +124,6 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     let name = opts.name || basename(configDir)
 
     if (opts.interactive && !opts.name) {
-      log.root.stop()
-
       const answer = await userPrompt({
         name: "name",
         message: "Project name:",
@@ -139,9 +136,9 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
       log.info("")
     }
 
-    const { yaml } = renderProjectConfigReference({
+    let { yaml } = renderProjectConfigReference({
       yamlOpts: {
-        onEmptyValue: opts["skip-comments"] ? "remove" : "comment out",
+        onEmptyValue: "remove",
         filterMarkdown: true,
         renderBasicDescription: !opts["skip-comments"],
         renderFullDescription: false,
@@ -149,11 +146,19 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
         presetValues: {
           kind: "Project",
           name,
+          apiVersion: DEFAULT_API_VERSION,
           environments: [{ name: "default" }],
           providers: [{ name: "local-kubernetes" }],
         },
       },
     })
+
+    const projectDocURL = "https://docs.garden.io/using-garden/projects"
+    const projectReferenceURL = "https://docs.garden.io/reference/project-config"
+    yaml =
+      dedent`
+    # Documentation about Garden projects can be found at ${projectDocURL}
+    # Reference for Garden projects can be found at ${projectReferenceURL}` + `\n\n${yaml}`
 
     await addConfig(configPath, yaml)
 
@@ -189,21 +194,17 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     log.info("")
 
     // This is to avoid `prettier` messing with the string formatting...
-    const formattedIgnoreName = chalk.bold.white(".gardenignore")
     const configFilesUrl = chalk.cyan.underline("https://docs.garden.io/using-garden/configuration-overview")
-    const referenceUrl = chalk.cyan.underline("https://docs.garden.io/reference/config")
+    const referenceUrl = chalk.cyan.underline(projectReferenceURL)
 
-    log.info({
-      symbol: "info",
-      msg: wordWrap(
+    log.info(
+      wordWrap(
         dedent`
-        We recommend reviewing the generated config, uncommenting fields that you'd like to configure, and cleaning up any commented fields that you don't need to use. Also make sure to update the ${formattedIgnoreName} file with any files you'd like to exclude from the Garden project.
-
         For more information about Garden configuration files, please check out ${configFilesUrl}, and for a detailed reference, take a look at ${referenceUrl}.
         `,
         120
-      ),
-    })
+      )
+    )
 
     log.info("")
 

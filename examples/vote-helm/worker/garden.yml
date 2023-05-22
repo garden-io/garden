@@ -1,12 +1,9 @@
-kind: Module
-description: Helm chart for the worker container
+kind: Deploy
+description: Helm deploy for the worker container
 type: helm
-name: worker
-serviceResource:
-  kind: Deployment
-build:
-  dependencies: [worker-image]
-values:
-  image:
-    repository: ${modules.worker-image.outputs.deployment-image-name}
-    tag: ${modules.worker-image.version}
+name: worker-deploy
+spec:
+  values:
+    image:
+      repository: ${actions.build.worker-image.outputs.deployment-image-name}
+      tag: ${actions.build.worker-image.version}

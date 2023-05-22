@@ -18,17 +18,19 @@ import { gradle, gradleSpec, gradleVersion } from "./gradle"
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
 import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
-import { containerModuleSpecSchema } from "@garden-io/core/build/src/plugins/container/config"
+import {
+  containerBuildSpecSchema,
+  containerModuleSpecSchema,
+} from "@garden-io/core/build/src/plugins/container/moduleConfig"
 import { joi } from "@garden-io/core/build/src/config/common"
-import { BuildModuleParams } from "@garden-io/core/build/src/types/plugin/module/build"
-import { renderOutputStream } from "@garden-io/core/build/src/util/util"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
-import { ConfigureModuleParams } from "@garden-io/core/build/src/types/plugin/module/configure"
+import { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/configure"
 import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
-import { cloneDeep } from "lodash"
+import { cloneDeep, pick } from "lodash"
 import { LogLevel } from "@garden-io/core/build/src/logger/logger"
-import { detectProjectType, getBuildFlags, JibContainerModule } from "./util"
-import { PluginEventLogContext } from "@garden-io/core/src/plugin-context"
+import { detectProjectType, getBuildFlags, JibBuildActionSpec, JibBuildConfig, JibContainerModule } from "./util"
+import { ConvertModuleParams, ConvertModuleResult } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
+import { PluginEventLogContext } from "@garden-io/core/build/src/plugin-context"
 
 export interface JibProviderConfig extends GenericProviderConfig {}
 
@@ -37,64 +39,59 @@ export interface JibProvider extends Provider<JibProviderConfig> {}
 export const configSchema = () => providerConfigBaseSchema().unknown(false)
 
 const exampleUrl = getGitHubUrl("examples/jib-container")
-
 const systemJdkGardenEnvVar = "${local.env.JAVA_HOME}"
 
-const jibModuleSchema = () =>
-  containerModuleSpecSchema().keys({
-    build: baseBuildSpecSchema().keys({
-      projectType: joi
-        .string()
-        .valid("gradle", "maven", "jib", "auto", "mavend")
-        .default("auto")
-        .description(
-          dedent`
-            The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
+const jibBuildSchemaKeys = () => ({
+  projectType: joi
+    .string()
+    .valid("gradle", "maven", "jib", "auto", "mavend")
+    .default("auto")
+    .description(
+      dedent`
+            The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the action root), but in some cases you may need to specify it.
             `
-        ),
-      jdkVersion: joi
-        .number()
-        .integer()
-        .valid(8, 11, 13, 17)
-        .default(11)
-        .description(
-          dedent`
+    ),
+  jdkVersion: joi
+    .number()
+    .integer()
+    .valid(8, 11, 13, 17)
+    .default(11)
+    .description(
+      dedent`
             The JDK version to use.
 
             The chosen version will be downloaded by Garden and used to define \`JAVA_HOME\` environment variable for Gradle and Maven.
 
             To use an arbitrary JDK distribution, please use the \`jdkPath\` configuration option.
             `
-        ),
-      jdkPath: joi
-        .string()
-        .optional()
-        .description(
-          dedent`
+    ),
+  jdkPath: joi
+    .string()
+    .optional()
+    .description(
+      dedent`
             The JDK home path. This **always overrides** the JDK defined in \`jdkVersion\`.
 
             The value will be used as \`JAVA_HOME\` environment variable for Gradle and Maven.
             `
-        )
-        .example(systemJdkGardenEnvVar),
-      dockerBuild: joi
-        .boolean()
-        .default(false)
-        .description(
-          "Build the image and push to a local Docker daemon (i.e. use the `jib:dockerBuild` / `jibDockerBuild` target)."
-        ),
-      tarOnly: joi
-        .boolean()
-        .default(false)
-        .description(
-          "Don't load or push the resulting image to a Docker daemon or registry, only build it as a tar file."
-        ),
-      tarFormat: joi
-        .string()
-        .valid("docker", "oci")
-        .default("docker")
-        .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
-      gradlePath: joi.string().optional().description(dedent`
+    )
+    .example(systemJdkGardenEnvVar),
+  dockerBuild: joi
+    .boolean()
+    .default(false)
+    .description(
+      "Build the image and push to a local Docker daemon (i.e. use the `jib:dockerBuild` / `jibDockerBuild` target)."
+    ),
+  tarOnly: joi
+    .boolean()
+    .default(false)
+    .description("Don't load or push the resulting image to a Docker daemon or registry, only build it as a tar file."),
+  tarFormat: joi
+    .string()
+    .valid("docker", "oci")
+    .default("docker")
+    .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
+  gradlePath: joi.string().optional().description(dedent`
         Defines the location of the custom executable Gradle binary.
 
         If not provided, then the Gradle binary available in the working directory will be used.
@@ -103,7 +100,7 @@ const jibModuleSchema = () =>
         **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Gradle.
         To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
       `),
-      mavenPath: joi.string().optional().description(dedent`
+  mavenPath: joi.string().optional().description(dedent`
         Defines the location of the custom executable Maven binary.
 
         If not provided, then Maven ${mvnVersion} will be downloaded and used.
@@ -111,17 +108,39 @@ const jibModuleSchema = () =>
         **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Maven.
         To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
       `),
-      mavenPhases: joi
-        .array()
-        .items(joi.string())
-        .default(["compile"])
-        .description("Defines the Maven phases to be executed during the Garden build step."),
-      extraFlags: joi
-        .sparseArray()
-        .items(joi.string())
-        .description(`Specify extra flags to pass to maven/gradle when building the container image.`),
-    }),
+  mavenPhases: joi
+    .array()
+    .items(joi.string())
+    .default(["compile"])
+    .description("Defines the Maven phases to be executed during the Garden build step."),
+  extraFlags: joi
+    .sparseArray()
+    .items(joi.string())
+    .description(`Specify extra flags to pass to maven/gradle when building the container image.`),
+})
+
+const jibModuleSchema = () =>
+  containerModuleSpecSchema().keys({
+    build: baseBuildSpecSchema().keys(jibBuildSchemaKeys()),
   })
+
+const jibBuildSchema = () => containerBuildSpecSchema().keys(jibBuildSchemaKeys())
+
+const docs = dedent`
+  Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](${exampleUrl}) to see it in action.
+
+  The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set \`build.tarOnly: true\` to only build the image as a tarball.
+
+  By default (and when not using remote building), the image is pushed to the local Docker daemon, to match the behavior of and stay compatible with normal \`container\` actions.
+
+  When using remote building with the \`kubernetes\` provider, the image is synced to the cluster (where individual layers are cached) and then pushed to the deployment registry from there. This is to make sure any registry auth works seamlessly and exactly like for normal Docker image builds.
+
+  Please consult the [Jib documentation](https://github.com/GoogleContainerTools/jib) for how to configure Jib in your Gradle or Maven project.
+
+  To provide additional arguments to Gradle/Maven when building, you can set the \`extraFlags\` field.
+
+  **Important note:** Unlike many other types, \`jib-container\` builds are done from the _source_ directory instead of the build staging directory, because of how Java projects are often laid out across a repository. This means build dependency copy directives are effectively ignored, and any include/exclude statements and .gardenignore files will not impact the build result. _Note that you should still configure includes, excludes and/or a .gardenignore to tell Garden which files to consider as part of the Build version hash, to correctly detect whether a new build is required.**
+`
 
 export const gardenPlugin = () =>
   createGardenPlugin({
@@ -129,32 +148,126 @@ export const gardenPlugin = () =>
     docs: dedent`
       **EXPERIMENTAL**: Please provide feedback via GitHub issues or our community forum!
 
-      Provides support for [Jib](https://github.com/GoogleContainerTools/jib) via the [jib module type](../module-types/jib-container.md).
+      Provides support for [Jib](https://github.com/GoogleContainerTools/jib) via the [jib action type](../action-types/Build/jib-container.md).
 
       Use this to efficiently build container images for Java services. Check out the [jib example](${exampleUrl}) to see it in action.
     `,
     dependencies: [{ name: "container" }],
     configSchema: configSchema(),
+    tools: [mavenSpec, gradleSpec, mavendSpec, ...openJdkSpecs],
+
+    createActionTypes: {
+      Build: [
+        {
+          name: "jib-container",
+          base: "container",
+          docs,
+          schema: jibBuildSchema(),
+          handlers: {
+            build: async (params) => {
+              const { ctx, log, action } = params
+              const spec = action.getSpec()
+              const { jdkVersion, jdkPath, mavenPhases, mavenPath, gradlePath } = spec
+
+              let openJdkPath: string
+              if (!!jdkPath) {
+                log.verbose(`Using explicitly specified JDK from ${jdkPath}`)
+                openJdkPath = jdkPath
+              } else {
+                log.verbose(`The JDK path hasn't been specified explicitly. JDK ${jdkVersion} will be used by default.`)
+                const openJdk = ctx.tools["jib.openjdk-" + jdkVersion]
+                openJdkPath = await openJdk.getPath(log)
+              }
+
+              const statusLine = log.createLog({ fixLevel: LogLevel.verbose })
+
+              let projectType = spec.projectType
+
+              if (!projectType) {
+                projectType = detectProjectType(action)
+                statusLine.info(`Detected project type ${projectType}`)
+              }
+
+              let buildLog = ""
+
+              const logEventContext: PluginEventLogContext = {
+                level: "verbose",
+                origin: ["maven", "mavend", "gradle"].includes(projectType) ? projectType : "gradle",
+              }
+
+              const outputStream = split2()
+              outputStream.on("error", () => {})
+              outputStream.on("data", (data: Buffer) => {
+                ctx.events.emit("log", {
+                  timestamp: new Date().toISOString(),
+                  msg: data.toString(),
+                  ...logEventContext,
+                })
+                buildLog += data.toString()
+              })
+
+              statusLine.info(`Using JAVA_HOME=${openJdkPath}`)
+
+              const { args, tarPath } = getBuildFlags(action, projectType)
+
+              if (projectType === "maven") {
+                await mvn({
+                  ctx,
+                  log,
+                  cwd: action.basePath(),
+                  args: [...mavenPhases, ...args],
+                  openJdkPath,
+                  mavenPath,
+                  outputStream,
+                })
+              } else if (projectType === "mavend") {
+                await mvnd({
+                  ctx,
+                  log,
+                  cwd: action.basePath(),
+                  args: [...mavenPhases, ...args],
+                  openJdkPath,
+                  outputStream,
+                })
+              } else {
+                await gradle({
+                  ctx,
+                  log,
+                  cwd: action.basePath(),
+                  args,
+                  openJdkPath,
+                  gradlePath,
+                  outputStream,
+                })
+              }
+
+              const outputs = action.getOutputs()
+
+              return {
+                state: "ready",
+                detail: {
+                  fetched: false,
+                  buildLog,
+                  details: {
+                    tarPath,
+                  },
+                  outputs,
+                },
+                outputs,
+              }
+            },
+          },
+        },
+      ],
+    },
+
     createModuleTypes: [
       {
         name: "jib-container",
         base: "container",
-        docs: dedent`
-        Extends the [container module type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](${exampleUrl}) to see it in action.
-
-        The image is always built locally, directly from the module source directory (see the note on that below), before shipping the container image to the right place. You can set \`build.tarOnly: true\` to only build the image as a tarball.
-
-        By default (and when not using remote building), the image is pushed to the local Docker daemon, to match the behavior of and stay compatible with normal \`container\` modules.
-
-        When using remote building with the \`kubernetes\` provider, the image is synced to the cluster (where individual layers are cached) and then pushed to the deployment registry from there. This is to make sure any registry auth works seamlessly and exactly like for normal Docker image builds.
-
-        Please consult the [Jib documentation](https://github.com/GoogleContainerTools/jib) for how to configure Jib in your Gradle or Maven project.
-
-        To provide additional arguments to Gradle/Maven when building, you can set the \`extraFlags\` field.
-
-        **Important note:** Unlike many other module types, \`jib\` modules are built from the module _source_ directory instead of the build staging directory, because of how Java projects are often laid out across a repository. This means \`build.dependencies[].copy\` directives are effectively ignored, and any include/exclude statements and .gardenignore files will not impact the build result. _Note that you should still configure includes, excludes and/or a .gardenignore to tell Garden which files to consider as part of the module version hash, to correctly detect whether a new build is required._
-      `,
+        docs,
         schema: jibModuleSchema(),
+        needsBuild: true,
         handlers: {
           async configure(params: ConfigureModuleParams<JibContainerModule>) {
             let { base, moduleConfig } = params
@@ -178,12 +291,70 @@ export const gardenPlugin = () =>
             return { moduleConfig }
           },
 
+          async convert(params: ConvertModuleParams<JibContainerModule>) {
+            const { base, module, dummyBuild, convertBuildDependency } = params
+            const output: ConvertModuleResult = await base!(params)
+
+            const actions = output.group!.actions
+            const buildActionIndex = actions.findIndex((a) => a.kind === "Build")
+
+            const defaults = pick(module.spec.build, Object.keys(jibBuildSchemaKeys())) as Partial<JibBuildActionSpec>
+            const buildAction: JibBuildConfig = {
+              kind: "Build",
+              type: "jib-container",
+              name: module.name,
+              ...params.baseFields,
+
+              copyFrom: dummyBuild?.copyFrom,
+              allowPublish: module.allowPublish,
+              dependencies: module.build.dependencies.map(convertBuildDependency),
+
+              timeout: module.build.timeout,
+              spec: {
+                // base container fields
+                buildArgs: module.spec.buildArgs,
+                extraFlags: module.spec.extraFlags,
+                publishId: module.spec.image,
+                targetStage: module.spec.build.targetImage,
+
+                // jib fields
+                ...defaults,
+                jdkVersion: module.spec.build.jdkVersion,
+                projectType: module.spec.build.projectType,
+                tarFormat: module.spec.build.tarFormat,
+                tarOnly: module.spec.build.tarOnly,
+                dockerfile: "_jib", // See configure handler above
+                mavenPhases: module.spec.build.mavenPhases,
+              },
+            }
+
+            // Replace existing Build if any, otherwise add and update deps on other actions
+            if (buildActionIndex >= 0) {
+              actions[buildActionIndex] = buildAction
+            } else {
+              actions.push(buildAction)
+
+              for (const action of actions) {
+                if (!action.dependencies) {
+                  action.dependencies = []
+                }
+                action.dependencies.push("build." + buildAction.name)
+              }
+            }
+
+            return output
+          },
+
           // Need to override this handler because the base handler checks if there is a Dockerfile,
           // which doesn't apply here
           async getModuleOutputs({ moduleConfig, version }) {
-            const deploymentImageName = containerHelpers.getDeploymentImageName(moduleConfig, undefined)
+            const deploymentImageName = containerHelpers.getDeploymentImageName(
+              moduleConfig.name,
+              moduleConfig.spec.image,
+              undefined
+            )
 
-            const localImageId = containerHelpers.getLocalImageId(moduleConfig, version)
+            const localImageId = containerHelpers.getLocalImageId(moduleConfig.name, moduleConfig.spec.image, version)
 
             let repository = deploymentImageName
             let tag = version.versionString
@@ -203,96 +374,14 @@ export const gardenPlugin = () =>
 
             return {
               outputs: {
-                "local-image-name": containerHelpers.getLocalImageName(moduleConfig),
+                "local-image-name": containerHelpers.getLocalImageName(moduleConfig.name, moduleConfig.spec.image),
                 "local-image-id": localImageId,
                 "deployment-image-name": deploymentImageName,
                 "deployment-image-id": deploymentImageId,
               },
             }
           },
-
-          async build(params: BuildModuleParams<JibContainerModule>) {
-            const { ctx, log, module } = params
-            const { jdkVersion, jdkPath, mavenPhases } = module.spec.build
-
-            let openJdkPath: string
-            if (!!jdkPath) {
-              log.verbose(`Using explicitly specified JDK from ${jdkPath}`)
-              openJdkPath = jdkPath
-            } else {
-              log.verbose(`The JDK path hasn't been specified explicitly. JDK ${jdkVersion} will be used by default.`)
-              const openJdk = ctx.tools["jib.openjdk-" + jdkVersion]
-              openJdkPath = await openJdk.getPath(log)
-            }
-
-            const statusLine = log.placeholder({ level: LogLevel.verbose, childEntriesInheritLevel: true })
-
-            let projectType = module.spec.build.projectType
-
-            if (!projectType) {
-              projectType = detectProjectType(module)
-              statusLine.setState(renderOutputStream(`Detected project type ${projectType}`))
-            }
-
-            let buildLog = ""
-
-            const logEventContext: PluginEventLogContext = {
-              origin: ["maven", "mavend", "gradle"].includes(projectType) ? projectType : "gradle",
-              log: log.placeholder({ level: LogLevel.verbose }),
-            }
-
-            const outputStream = split2()
-            outputStream.on("error", () => {})
-            outputStream.on("data", (data: Buffer) => {
-              ctx.events.emit("log", { timestamp: new Date().toISOString(), data, ...logEventContext })
-              buildLog += data.toString()
-            })
-
-            statusLine.setState({ section: module.name, msg: `Using JAVA_HOME=${openJdkPath}` })
-
-            const { args, tarPath } = getBuildFlags(module, projectType)
-
-            if (projectType === "maven") {
-              await mvn({
-                ctx,
-                log,
-                cwd: module.path,
-                args: [...mavenPhases, ...args],
-                openJdkPath,
-                mavenPath: module.spec.build.mavenPath,
-                outputStream,
-              })
-            } else if (projectType === "mavend") {
-              await mvnd({
-                ctx,
-                log,
-                cwd: module.path,
-                args: [...mavenPhases, ...args],
-                openJdkPath,
-                outputStream,
-              })
-            } else {
-              await gradle({
-                ctx,
-                log,
-                cwd: module.path,
-                args,
-                openJdkPath,
-                gradlePath: module.spec.build.gradlePath,
-                outputStream,
-              })
-            }
-
-            return {
-              fetched: false,
-              buildLog,
-              details: {
-                tarPath,
-              },
-            }
-          },
         },
       },
     ],
-    tools: [mavenSpec, gradleSpec, mavendSpec, ...openJdkSpecs],
   })

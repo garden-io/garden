@@ -53,13 +53,11 @@ const selfUpdateOpts = {
   // TODO Core 1.0 major release: uncomment this:
   // "minor": new BooleanParameter({
   //   defaultValue: false,
-  //   help: dedent`Install the latest minor version greater than the current one.
-  //   Falls back to the current version if the greater minor version does not exist.
+  //   help: dedent`Install the latest minor version greater than the current one. Falls back to the current version if the greater minor version does not exist.
   //
   //   The latest patch version will be installed if neither --major nor --minor flags are specified.
   //
-  //   Note! If you use a non-stable version (i.e. pre-release, or draft, or edge),
-  //   then the latest possible major version will be installed.`,
+  //   Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.`,
   // }),
 }
 
@@ -67,7 +65,7 @@ export type SelfUpdateArgs = typeof selfUpdateArgs
 export type SelfUpdateOpts = typeof selfUpdateOpts
 
 const versionScopes = ["major", "minor", "patch"] as const
-export type VersionScope = typeof versionScopes[number]
+export type VersionScope = (typeof versionScopes)[number]
 
 function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>): VersionScope {
   if (opts["major"]) {
@@ -187,8 +185,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   // Overridden during testing
   _baseReleasesUrl = "https://download.garden.io/core/"
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Update Garden", "rolled_up_newspaper")
+  printHeader({ log }) {
+    printHeader(log, "Update Garden", "🗞️")
   }
 
   async action({
@@ -405,8 +403,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
    * @param versionScope the SemVer version scope
    *
    * @return the matching version tag
-   * @throws {RuntimeError} if the desired version cannot be detected,
-   * or if the current version cannot be recognized as a valid release version
+   * @throws {RuntimeError} if the desired version cannot be detected, or if the current version cannot be recognized as a valid release version
    */
   private async findTargetVersion(currentVersion: string, versionScope: VersionScope): Promise<string> {
     if (isEdgeVersion(currentVersion)) {
@@ -421,8 +418,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     // The current version is necessary, it's not possible to proceed without its value
     if (!currentSemVer) {
       throw new RuntimeError(
-        `Unexpected current version: ${currentVersion}. ` +
-          `Please make sure it is either a valid (semver) release version.`,
+        `Unexpected current version: ${currentVersion}. Please make sure it is either a valid (semver) release version.`,
         {}
       )
     }

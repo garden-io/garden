@@ -16,7 +16,8 @@ import { ApiCommandError, confirmDelete, DeleteResult, handleBulkOperationResult
 
 export const secretsDeleteArgs = {
   ids: new StringsParameter({
-    help: deline`The IDs of the secrets to delete.`,
+    help: deline`The ID(s) of the secrets to delete.`,
+    spread: true,
   }),
 }
 
@@ -24,19 +25,19 @@ type Args = typeof secretsDeleteArgs
 
 export class SecretsDeleteCommand extends Command<Args> {
   name = "delete"
-  help = "Delete secrets."
+  help = "Delete secrets from Garden Cloud."
   description = dedent`
     Delete secrets in Garden Cloud. You will need the IDs of the secrets you want to delete,
     which you which you can get from the \`garden cloud secrets list\` command.
 
     Examples:
-        garden cloud secrets delete <ID 1>,<ID 2>,<ID 3>   # delete three secrets with the given IDs.
+        garden cloud secrets delete <ID 1> <ID 2> <ID 3>   # delete three secrets with the given IDs.
   `
 
   arguments = secretsDeleteArgs
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Delete secrets", "lock")
+  printHeader({ log }) {
+    printHeader(log, "Delete secrets", "🔒")
   }
 
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
@@ -56,13 +57,14 @@ export class SecretsDeleteCommand extends Command<Args> {
       throw new ConfigurationError(noApiMsg("delete", "secrets"), {})
     }
 
-    const cmdLog = log.info({ status: "active", section: "secrets-command", msg: "Deleting secrets..." })
+    const cmdLog = log.createLog({ name: "secrets-command" })
+    cmdLog.info("Deleting secrets...")
 
     let count = 1
     const errors: ApiCommandError[] = []
     const results: DeleteResult[] = []
     for (const id of secretsToDelete) {
-      cmdLog.setState({ msg: `Deleting secrets... → ${count}/${secretsToDelete.length}` })
+      cmdLog.info({ msg: `Deleting secrets... → ${count}/${secretsToDelete.length}` })
       count++
       try {
         const res = await api.delete<BaseResponse>(`/secrets/${id}`)

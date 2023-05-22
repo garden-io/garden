@@ -30,14 +30,15 @@ const MAX_USERS_PER_REQUEST = 100
 export const secretsCreateArgs = {
   users: new StringsParameter({
     help: deline`The VCS usernames and the names of the users to create, separated by '='.
-      Use comma as a separator to specify multiple VCS username/name pairs. Note
+      You may specify multiple VCS username/name pairs, separated by spaces. Note
       that you can also leave this empty and have Garden read the users from file.`,
+    spread: true,
   }),
 }
 
 export const secretsCreateOpts = {
   "add-to-groups": new StringsParameter({
-    help: deline`Add the user to the group with the given ID. Use comma as a separator to add the user to multiple groups.`,
+    help: deline`Add the user to the group with the given ID. You may add the user to multiple groups by setting this flag multiple times.`,
   }),
   "from-file": new PathParameter({
     help: deline`Read the users from the file at the given path. The file should have standard "dotenv"
@@ -51,7 +52,7 @@ type Opts = typeof secretsCreateOpts
 
 export class UsersCreateCommand extends Command<Args, Opts> {
   name = "create"
-  help = "Create users"
+  help = "Create users in Garden Cloud."
   description = dedent`
     Create users in Garden Cloud and optionally add the users to specific groups.
     You can get the group IDs from the \`garden cloud users list\` command.
@@ -66,7 +67,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
     gordon99="Gordon G"
 
     Examples:
-        garden cloud users create fatema_m="Fatema M",gordon99="Gordon G"      # create two users
+        garden cloud users create fatema_m="Fatema M" gordon99="Gordon G"  # create two users
         garden cloud users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
         garden cloud users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
   `
@@ -74,8 +75,8 @@ export class UsersCreateCommand extends Command<Args, Opts> {
   arguments = secretsCreateArgs
   options = secretsCreateOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Create users", "lock")
+  printHeader({ log }) {
+    printHeader(log, "Create users", "🔒")
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<UserResult[]>> {
@@ -119,7 +120,8 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError(noApiMsg("create", "users"), {})
     }
 
-    const cmdLog = log.info({ status: "active", section: "users-command", msg: "Creating users..." })
+    const cmdLog = log.createLog({ name: "users-command" })
+    cmdLog.info("Creating users...")
 
     const usersToCreate = Object.entries(users).map(([vcsUsername, name]) => ({
       name,
@@ -142,7 +144,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
         const asyncBatch = Math.ceil(count / nAsyncBatches)
         if (asyncBatch > currentAsyncBatch) {
           currentAsyncBatch = asyncBatch
-          cmdLog.setState({ msg: `Creating users... → Batch ${currentAsyncBatch}/${nAsyncBatches}` })
+          cmdLog.info({ msg: `Creating users... → Batch ${currentAsyncBatch}/${nAsyncBatches}` })
         }
         count++
         try {

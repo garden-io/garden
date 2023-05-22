@@ -8,7 +8,7 @@
 
 import { Garden } from "../../../../../src/garden"
 import { Provider } from "../../../../../src/config/provider"
-import { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config"
+import { KubernetesConfig, KubernetesPluginContext } from "../../../../../src/plugins/kubernetes/config"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
 import { getDataDir, makeTestGarden } from "../../../../helpers"
 import { getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace"
@@ -33,13 +33,13 @@ describe("KubeApi", () => {
     const root = getDataDir("test-projects", "container")
     garden = await makeTestGarden(root)
     provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
-    ctx = await garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     api = await KubeApi.factory(garden.log, ctx, provider)
-    namespace = await getAppNamespace(ctx, garden.log, provider)
+    namespace = await getAppNamespace(ctx as KubernetesPluginContext, garden.log, provider)
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
   function makePod(command: string[], image = "busybox"): KubernetesPod {
@@ -102,7 +102,7 @@ describe("KubeApi", () => {
         namespace,
         ctx,
         provider,
-        serviceName: "exec-test",
+        actionName: "exec-test",
         resources: [pod],
         log: garden.log,
         timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
@@ -136,7 +136,7 @@ describe("KubeApi", () => {
         namespace,
         ctx,
         provider,
-        serviceName: "exec-test",
+        actionName: "exec-test",
         resources: [pod],
         log: garden.log,
         timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
@@ -170,7 +170,7 @@ describe("KubeApi", () => {
         namespace,
         ctx,
         provider,
-        serviceName: "exec-test",
+        actionName: "exec-test",
         resources: [pod],
         log: garden.log,
         timeoutSec: KUBECTL_DEFAULT_TIMEOUT,

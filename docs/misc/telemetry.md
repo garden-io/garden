@@ -65,7 +65,7 @@ Sent every time a Garden command is run.
 
 ### Call API
 
-Sent whenever the Dashboard makes an API call to Garden.
+Sent whenever an API call is made to Garden.
 
 ```js
 {

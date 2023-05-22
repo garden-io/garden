@@ -1,5 +1,5 @@
-kind: Module
-name: module-b
-type: local-openfaas
-build:
-  command: [echo, project]
+module:
+  name: module-b
+  type: exec
+  build:
+    command: [echo, project]

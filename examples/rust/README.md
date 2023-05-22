@@ -2,10 +2,10 @@
 
 Example of using the Rust programming language with Garden.
 
-Local development with hot reload:
+Local development with live code synchronization:
 
 ```bash
-garden dev
+garden deploy --sync
 ```
 
 Local deployment with a release mode build:

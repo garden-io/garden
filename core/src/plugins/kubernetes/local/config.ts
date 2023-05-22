@@ -13,14 +13,13 @@ import {
   KubernetesProvider,
   namespaceSchema,
 } from "../config"
-import { ConfigureProviderParams } from "../../../types/plugin/provider/configureProvider"
+import { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider"
 import { joiProviderName, joi } from "../../../config/common"
 import { getKubeConfig } from "../api"
 import { configureMicrok8sAddons } from "./microk8s"
 import { setMinikubeDockerEnv } from "./minikube"
 import { exec } from "../../../util/util"
 import { remove } from "lodash"
-import { getNfsStorageClass } from "../init"
 import chalk from "chalk"
 import { isKindCluster } from "./kind"
 import { getK8sClientServerVersions, K8sClientServerVersions } from "../util"
@@ -28,7 +27,7 @@ import { getK8sClientServerVersions, K8sClientServerVersions } from "../util"
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 // note: this is in order of preference, in case neither is set as the current kubectl context
 // and none is explicitly configured in the garden.yml
-const supportedContexts = ["docker-for-desktop", "docker-desktop", "microk8s", "minikube", "kind-kind"]
+const supportedContexts = ["docker-for-desktop", "docker-desktop", "microk8s", "minikube", "kind-kind", "colima"]
 const nginxServices = ["ingress-controller", "default-backend"]
 
 function isSupportedContext(context: string) {
@@ -60,12 +59,13 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
   const { base, log, projectName, ctx } = params
 
   let { config } = await base!(params)
+  const providerLog = log.createLog({ name: config.name })
 
   const provider = ctx.provider as KubernetesProvider
   provider.config = config
   const _systemServices = config._systemServices
 
-  const kubeConfig: any = await getKubeConfig(log, ctx, provider)
+  const kubeConfig: any = await getKubeConfig(providerLog, ctx, provider)
 
   const currentContext = kubeConfig["current-context"]!
 
@@ -74,14 +74,14 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     if (currentContext && isSupportedContext(currentContext)) {
       // prefer current context if set and supported
       config.context = currentContext
-      log.debug({ section: config.name, msg: `Using current context: ${config.context}` })
+      providerLog.debug(`Using current context: ${config.context}`)
     } else {
       const availableContexts = kubeConfig.contexts?.map((c: any) => c.name) || []
 
       for (const context of availableContexts) {
         if (isSupportedContext(context)) {
           config.context = context
-          log.debug({ section: config.name, msg: `Using detected context: ${config.context}` })
+          providerLog.debug(`Using detected context: ${config.context}`)
           break
         }
       }
@@ -89,30 +89,27 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
 
     if (!config.context && kubeConfig.contexts?.length > 0) {
       config.context = kubeConfig.contexts[0]!.name
-      log.debug({
-        section: config.name,
-        msg: `No kubectl context auto-detected, using first available: ${config.context}`,
-      })
+      providerLog.debug(`No kubectl context auto-detected, using first available: ${config.context}`)
     }
   }
 
   // TODO: change this in 0.12 to use the current context
   if (!config.context) {
     config.context = supportedContexts[0]
-    log.debug({ section: config.name, msg: `No kubectl context configured, using default: ${config.context}` })
+    providerLog.debug(`No kubectl context configured, using default: ${config.context}`)
   }
 
-  if (await isKindCluster(ctx, provider, log)) {
+  if (await isKindCluster(ctx, provider, providerLog)) {
     config.clusterType = "kind"
 
     if (config.setupIngressController === "nginx") {
-      log.debug("Using nginx-kind service for ingress")
+      providerLog.debug("Using nginx-kind service for ingress")
       remove(_systemServices, (s) => nginxServices.includes(s))
       let versions: K8sClientServerVersions | undefined
       try {
         versions = await getK8sClientServerVersions(config.context)
       } catch (err) {
-        log.debug("failed to get k8s version with error: " + err)
+        providerLog.debug("failed to get k8s version with error: " + err)
       }
       // TODO: remove this once we no longer support k8s v1.20
       if (versions && versions.serverVersion.minor >= 21) {
@@ -133,11 +130,11 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     }
 
     if (config.setupIngressController === "nginx") {
-      log.debug("Using minikube's ingress addon")
+      providerLog.debug("Using minikube's ingress addon")
       try {
         await exec("minikube", ["addons", "enable", "ingress"])
       } catch (err) {
-        log.warn(chalk.yellow(`Unable to enable minikube ingress addon: ${err.all}`))
+        providerLog.warn(chalk.yellow(`Unable to enable minikube ingress addon: ${err.all}`))
       }
       remove(_systemServices, (s) => nginxServices.includes(s))
     }
@@ -149,19 +146,13 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     config.clusterType = "microk8s"
 
     if (config.setupIngressController === "nginx") {
-      log.debug("Using microk8s's ingress addon")
+      providerLog.debug("Using microk8s's ingress addon")
       addons.push("ingress")
       remove(_systemServices, (s) => nginxServices.includes(s))
       _systemServices.push("nginx-ingress-class")
     }
 
-    await configureMicrok8sAddons(log, addons)
-  }
-
-  // Docker Desktop, minikube and others are unable to run docker-in-docker overlayfs
-  // on top of their default storage class, so we override the default here to use the NFS storage class.
-  if (config.buildMode !== "local-docker" && !config.storage.builder.storageClass) {
-    config.storage.builder.storageClass = getNfsStorageClass(config)
+    await configureMicrok8sAddons(providerLog, addons)
   }
 
   if (!config.defaultHostname) {

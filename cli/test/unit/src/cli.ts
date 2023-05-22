@@ -16,18 +16,24 @@ import { testRoot } from "../../helpers"
 import { GardenCli } from "@garden-io/core/build/src/cli/cli"
 import { projectRootA } from "@garden-io/core/build/test/helpers"
 import { Command, CommandParams } from "@garden-io/core/build/src/commands/base"
-import { GardenProcess } from "@garden-io/core/build/src/db/entities/garden-process"
-import { ensureConnected } from "@garden-io/core/build/src/db/connection"
 import { randomString } from "@garden-io/core/build/src/util/string"
+import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global"
+import { testFlags } from "@garden-io/core/build/src/util/util"
 
 describe("runCli", () => {
-  before(async () => {
-    await ensureConnected()
+  const globalConfigStore = new GlobalConfigStore()
+
+  before(() => {
+    testFlags.disableShutdown = true
   })
 
   it("should add bundled plugins", async () => {
     const projectRoot = resolve(testRoot, "test-projects", "bundled-projects")
-    const { cli, result } = await runCli({ args: ["tools", "--root", projectRoot], exitOnError: false })
+    const { cli, result } = await runCli({
+      args: ["tools", "--root", projectRoot],
+      exitOnError: false,
+      initLogger: false,
+    })
 
     expect(cli!["plugins"].map((p) => p.name)).to.eql(getBundledPlugins().map((p) => p.name))
 
@@ -35,20 +41,18 @@ describe("runCli", () => {
     expect(conftestTool).to.exist
   })
 
-  it("should register a GardenProcess entry and pass to cli.run()", (done) => {
+  it("should register a GardenProcess entry and pass to cli.run()", async () => {
     class TestCommand extends Command {
       name = randomString(10)
       help = "halp!"
 
       printHeader() {}
       async action({}: CommandParams) {
-        const allProcesses = await GardenProcess.getActiveProcesses()
+        const allProcesses = Object.values(await globalConfigStore.get("activeProcesses"))
         const record = find(allProcesses, (p) => p.command)
 
-        if (record) {
-          done()
-        } else {
-          done("Couldn't find process record")
+        if (!record) {
+          throw new Error("Could not find process record")
         }
 
         return { result: {} }
@@ -59,7 +63,14 @@ describe("runCli", () => {
     const cmd = new TestCommand()
     cli.addCommand(cmd)
 
-    runCli({ args: [cmd.name, "--root", projectRootA], cli }).catch(done)
+    const { result } = await runCli({
+      args: [cmd.name, "--root", projectRootA],
+      cli,
+      exitOnError: false,
+      initLogger: false,
+    })
+
+    expect(result?.errors.length).to.equal(0)
   })
 
   it("should clean up the GardenProcess entry on exit", async () => {
@@ -77,9 +88,9 @@ describe("runCli", () => {
     const cmd = new TestCommand()
     cli.addCommand(cmd)
 
-    await runCli({ args: [cmd.name, "--root", projectRootA], cli })
+    await runCli({ args: [cmd.name, "--root", projectRootA], cli, exitOnError: false, initLogger: false })
 
-    const allProcesses = await GardenProcess.getActiveProcesses()
+    const allProcesses = Object.values(await globalConfigStore.get("activeProcesses"))
     const record = find(allProcesses, (p) => p.command)
 
     expect(record).to.be.undefined

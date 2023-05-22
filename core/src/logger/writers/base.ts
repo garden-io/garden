@@ -10,12 +10,20 @@ import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { LogLevel } from "../logger"
 
+export interface BaseWriterParams {
+  level?: LogLevel
+  output?: NodeJS.WriteStream
+}
+
 export abstract class Writer {
   abstract type: string
+  public level: LogLevel
+  public output: NodeJS.WriteStream
 
-  constructor(public level: LogLevel = LogLevel.info, public output = process.stdout) {}
+  constructor({ level = LogLevel.info, output = process.stdout }: BaseWriterParams = {}) {
+    this.level = level
+    this.output = output
+  }
 
-  abstract onGraphChange(entry: LogEntry, logger: Logger): void
-  abstract stop(): void
-  cleanup(): void {}
+  abstract write(entry: LogEntry, logger: Logger): void
 }

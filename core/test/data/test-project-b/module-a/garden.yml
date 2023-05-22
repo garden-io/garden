@@ -3,6 +3,7 @@ name: module-a
 type: test
 services:
   - name: service-a
+    timeout: 600
     ingresses:
       - path: /path-a
         port: http

@@ -7,21 +7,43 @@
  */
 
 import { expect } from "chai"
-import { DeepPartial } from "typeorm-with-better-sqlite3"
+import { DeepPartial } from "utility-types"
+import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
 import {
   ClusterBuildkitCacheConfig,
   defaultResources,
   KubernetesProvider,
 } from "../../../../../../../src/plugins/kubernetes/config"
-import { inClusterRegistryHostname, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
+import { buildkitImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
 import {
-  buildkitImageName,
   getBuildkitDeployment,
+  getBuildkitFlags,
   getBuildkitImageFlags,
-  getBuildkitModuleFlags,
 } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { getDataDir, makeTestGarden } from "../../../../../../helpers"
 
+describe("getBuildkitModuleFlags", () => {
+  it("should correctly format the build target option", async () => {
+    const projectRoot = getDataDir("test-project-container")
+    const garden = await makeTestGarden(projectRoot)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const rawBuild = graph.getBuild("module-a") as ContainerBuildAction
+    const build = await garden.resolveAction({ action: rawBuild, log: garden.log, graph })
+
+    build._config.spec.targetStage = "foo"
+
+    const flags = getBuildkitFlags(build)
+
+    expect(flags).to.eql([
+      "--opt",
+      "build-arg:GARDEN_MODULE_VERSION=" + build.versionString(),
+      "--opt",
+      "build-arg:GARDEN_ACTION_VERSION=" + build.versionString(),
+      "--opt",
+      "target=foo",
+    ])
+  })
+})
 describe("buildkit build", () => {
   describe("getBuildkitDeployment", () => {
     const _provider: DeepPartial<KubernetesProvider> = {
@@ -192,15 +214,18 @@ describe("buildkit build", () => {
       const projectRoot = getDataDir("test-project-container")
       const garden = await makeTestGarden(projectRoot)
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("module-a")
+      const act = await graph.getBuild("module-a")
+      const module = await garden.resolveAction({ action: act, graph, log: garden.log })
 
-      module.spec.build.targetImage = "foo"
+      module.getSpec().targetStage = "foo"
 
-      const flags = getBuildkitModuleFlags(module)
+      const flags = getBuildkitFlags(module)
 
       expect(flags).to.eql([
         "--opt",
-        "build-arg:GARDEN_MODULE_VERSION=" + module.version.versionString,
+        "build-arg:GARDEN_MODULE_VERSION=" + module.getFullVersion().versionString,
+        "--opt",
+        "build-arg:GARDEN_ACTION_VERSION=" + module.getFullVersion().versionString,
         "--opt",
         "target=foo",
       ])
@@ -348,32 +373,6 @@ describe("buildkit build", () => {
         `type=image,"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache",push=true`,
         "--import-cache",
         `type=registry,ref=${registry}/namespace/name:_buildcache`,
-      ])
-    })
-
-    it("uses registry.insecure=true with the in-cluster registry", async () => {
-      const registry = inClusterRegistryHostname
-
-      const moduleOutputs = {
-        "local-image-id": "name:v-xxxxxx",
-        "local-image-name": "name",
-        "deployment-image-id": `${registry}/namespace/name:v-xxxxxx`,
-        "deployment-image-name": `${registry}/namespace/name`,
-      }
-
-      const flags = getBuildkitImageFlags(
-        defaultConfig,
-        moduleOutputs,
-        true // deploymentRegistryInsecure
-      )
-
-      expect(flags).to.eql([
-        "--output",
-        `type=image,"name=${registry}/namespace/name:v-xxxxxx",push=true,registry.insecure=true`,
-        "--import-cache",
-        `type=registry,ref=${registry}/namespace/name:_buildcache,registry.insecure=true`,
-        "--export-cache",
-        `type=registry,ref=${registry}/namespace/name:_buildcache,mode=max,registry.insecure=true`,
       ])
     })
 

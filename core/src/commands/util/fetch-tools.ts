@@ -9,7 +9,7 @@
 import { Command, CommandParams } from "../base"
 import { RuntimeError } from "../../exceptions"
 import dedent from "dedent"
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { GardenPlugin } from "../../plugin/plugin"
 import { findProjectConfig } from "../../config/base"
 import { Garden, DummyGarden } from "../../garden"
 import Bluebird from "bluebird"
@@ -59,9 +59,9 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
 
     if (opts.all) {
       plugins = await garden.getAllPlugins()
-      printHeader(log, "Fetching tools for all registered providers", "hammer_and_wrench")
+      printHeader(log, "Fetching tools for all registered providers", "🛠️")
     } else {
-      const projectRoot = findProjectConfig(garden.projectRoot)
+      const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
 
       if (!projectRoot) {
         throw new RuntimeError(
@@ -76,7 +76,7 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
 
       plugins = await garden.getConfiguredPlugins()
 
-      printHeader(log, "Fetching all tools for the current project and environment", "hammer_and_wrench")
+      printHeader(log, "Fetching all tools for the current project and environment", "🛠️")
     }
 
     let tools = plugins.flatMap((plugin) =>

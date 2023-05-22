@@ -1,0 +1,7 @@
+apiVersion: garden.io/v1
+kind: Project
+name: modules-to-actions
+environments:
+  - name: local
+providers:
+  - name: local-kubernetes

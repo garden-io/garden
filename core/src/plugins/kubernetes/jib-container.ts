@@ -6,77 +6,69 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { mkdirp } from "fs-extra"
 import { resolve } from "path"
 import tar from "tar"
-import { defaultBuildTimeout } from "../../config/module"
 import { ConfigurationError, PluginError } from "../../exceptions"
-import { GardenModule } from "../../types/module"
-import { BuildModuleParams } from "../../types/plugin/module/build"
-import { ModuleActionHandlers } from "../../types/plugin/plugin"
+import { ModuleActionHandlers } from "../../plugin/plugin"
 import { makeTempDir } from "../../util/fs"
 import { KubeApi } from "./api"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
-import { buildkitDeploymentName, ensureBuildkit } from "./container/build/buildkit"
-import {
-  ensureUtilDeployment,
-  syncToBuildSync,
-  utilContainerName,
-  utilDeploymentName,
-  utilRsyncPort,
-} from "./container/build/common"
+import { ensureBuildkit } from "./container/build/buildkit"
+import { ensureUtilDeployment, syncToBuildSync, utilContainerName, utilDeploymentName } from "./container/build/common"
 import { loadToLocalK8s } from "./container/build/local"
 import { containerHandlers } from "./container/handlers"
 import { getNamespaceStatus } from "./namespace"
 import { PodRunner } from "./run"
 import { getRunningDeploymentPod } from "./util"
+import { BuildActionExtension, BuildActionParams } from "../../plugin/action-types"
+import { ContainerBuildAction } from "../container/config"
+import { buildkitDeploymentName } from "./constants"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
   ...containerHandlers,
-
-  // Note: Can't import the JibContainerModule type until we move the kubernetes plugin out of the core package
-  async build(params: BuildModuleParams<GardenModule>) {
-    const { ctx, log, module, base } = params
-    const k8sCtx = ctx as KubernetesPluginContext
-
-    const provider = <KubernetesProvider>ctx.provider
-    let buildMode = provider.config.buildMode
-
-    if (buildMode === "cluster-docker") {
-      log.warn(
-        chalk.yellow(
-          `The jib-container module type doesn't support the cluster-docker build mode, which has been deprecated. Falling back to local-docker.`
-        )
-      )
-      buildMode = "local-docker"
-    }
-
-    if (provider.name === "local-kubernetes") {
-      const result = await base!(params)
-
-      if (module.spec.build.dockerBuild) {
-        // We may need to explicitly load the image into the cluster if it's built in the docker daemon directly
-        await loadToLocalK8s(params)
-      }
-      return result
-    } else if (k8sCtx.provider.config.jib?.pushViaCluster) {
-      return buildAndPushViaRemote(params)
-    } else {
-      return base!(params)
-    }
-  },
 }
 
-async function buildAndPushViaRemote(params: BuildModuleParams<GardenModule>) {
-  const { ctx, log, module, base } = params
+// Note: Can't import the JibContainerModule type until we move the kubernetes plugin out of the core package
+export const k8sJibContainerBuildExtension = (): BuildActionExtension<ContainerBuildAction> => ({
+  name: "jib-container",
+  handlers: {
+    build: async (params) => {
+      const { ctx, action, base } = params
+      const k8sCtx = ctx as KubernetesPluginContext
+
+      const provider = <KubernetesProvider>ctx.provider
+
+      if (provider.name === "local-kubernetes") {
+        const result = await base!(params)
+
+        const spec: any = action.getSpec()
+
+        if (spec.dockerBuild) {
+          // We may need to explicitly load the image into the cluster if it's built in the docker daemon directly
+          await loadToLocalK8s(params)
+        }
+        return result
+      } else if (k8sCtx.provider.config.jib?.pushViaCluster) {
+        return buildAndPushViaRemote(params)
+      } else {
+        return base!(params)
+      }
+    },
+  },
+})
+
+async function buildAndPushViaRemote(params: BuildActionParams<"build", ContainerBuildAction>) {
+  const { ctx, log, action, base } = params
+  const k8sCtx = ctx as KubernetesPluginContext
 
   const provider = <KubernetesProvider>ctx.provider
   let buildMode = provider.config.buildMode
 
   // Build the tarball with the base handler
-  module.spec.build.tarOnly = true
-  module.spec.build.tarFormat = "oci"
+  const spec: any = action.getSpec()
+  spec.tarOnly = true
+  spec.tarFormat = "oci"
 
   const baseResult = await base!(params)
   const { tarPath } = baseResult.details
@@ -88,13 +80,13 @@ async function buildAndPushViaRemote(params: BuildModuleParams<GardenModule>) {
   // Push to util or buildkit deployment on remote, and push to registry from there to make sure auth/access is
   // consistent with normal image pushes.
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   const tempDir = await makeTempDir()
 
   try {
     // Extract the tarball
-    const extractPath = resolve(tempDir.path, module.name)
+    const extractPath = resolve(tempDir.path, action.name)
     await mkdirp(extractPath)
     log.debug(`Extracting built image tarball from ${tarPath} to ${extractPath}`)
 
@@ -133,15 +125,14 @@ async function buildAndPushViaRemote(params: BuildModuleParams<GardenModule>) {
     // Sync the archive to the remote
     const { dataPath } = await syncToBuildSync({
       ...params,
-      ctx: ctx as KubernetesPluginContext,
+      ctx: k8sCtx,
       api,
       namespace,
       deploymentName,
-      rsyncPort: utilRsyncPort,
       sourcePath: extractPath,
     })
 
-    const pushTimeout = module.build.timeout || defaultBuildTimeout
+    const pushTimeout = action.getConfig("timeout")
 
     const syncCommand = ["skopeo", `--command-timeout=${pushTimeout}s`, "copy", "--authfile", "/.docker/config.json"]
 
@@ -149,9 +140,10 @@ async function buildAndPushViaRemote(params: BuildModuleParams<GardenModule>) {
       syncCommand.push("--dest-tls-verify=false")
     }
 
-    syncCommand.push("oci:" + dataPath, "docker://" + module.outputs["deployment-image-id"])
+    const deploymentImageId = baseResult.outputs.deploymentImageId
+    syncCommand.push("oci:" + dataPath, "docker://" + deploymentImageId)
 
-    log.setState(`Pushing image ${module.outputs["deployment-image-id"]} to registry`)
+    log.info(`Pushing image ${deploymentImageId} to registry`)
 
     const runner = new PodRunner({
       api,
@@ -174,7 +166,7 @@ async function buildAndPushViaRemote(params: BuildModuleParams<GardenModule>) {
     })
 
     log.debug(skopeoLog)
-    log.setState(`Image ${module.outputs["deployment-image-id"]} built and pushed to registry`)
+    log.info(`Image ${deploymentImageId} built and pushed to registry`)
 
     return baseResult
   } finally {

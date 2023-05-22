@@ -16,6 +16,9 @@ import { gardenPlugin } from ".."
 import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest"
 
 import { ProjectConfig, defaultNamespace } from "@garden-io/core/build/src/config/project"
+import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
+import { defaultDockerfileName } from "@garden-io/core/build/src/plugins/container/config"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "@garden-io/core/build/src/constants"
 
 describe("conftest-container provider", () => {
   const projectRoot = join(__dirname, "test-project")
@@ -26,7 +29,7 @@ describe("conftest-container provider", () => {
     name: "test",
     path: projectRoot,
     defaultEnvironment: "default",
-    dotIgnoreFiles: [],
+    dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "conftest-container", policyPath: "dockerfile.rego" }],
     variables: {},
@@ -45,7 +48,7 @@ describe("conftest-container provider", () => {
     expect(module.path).to.equal(containerModule.path)
     expect(module.spec).to.eql({
       build: { dependencies: [], timeout: 1200 },
-      files: ["Dockerfile"],
+      files: [defaultDockerfileName],
       namespace: "main",
       combine: false,
       policyPath: "dockerfile.rego",
@@ -61,6 +64,7 @@ describe("conftest-container provider", () => {
           name: "foo",
           base: "container",
           docs: "foo",
+          needsBuild: true,
           handlers: {},
         },
       ],
@@ -83,13 +87,13 @@ describe("conftest-container provider", () => {
         name: "foo",
         type: "foo",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         path: containerModule.path,
         serviceConfigs: [],
         taskConfigs: [],
         testConfigs: [],
-        spec: { dockerfile: "Dockerfile" },
+        spec: { dockerfile: defaultDockerfileName },
       },
     }
 
@@ -99,7 +103,7 @@ describe("conftest-container provider", () => {
     expect(module.path).to.equal(projectRoot)
     expect(module.spec).to.eql({
       build: { dependencies: [], timeout: 1200 },
-      files: ["Dockerfile"],
+      files: [defaultDockerfileName],
       namespace: "main",
       combine: false,
       policyPath: "dockerfile.rego",

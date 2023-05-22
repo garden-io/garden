@@ -87,7 +87,7 @@ export function customMinimist(args, opts: minimist.Opts): minimist.ParsedArgs {
   function setKey(obj, keys, value) {
     let o = obj
     for (let i = 0; i < keys.length - 1; i++) {
-      // tslint:disable-next-line: no-shadowed-variable
+      // eslint-disable-next-line no-shadowed-variable
       let key = keys[i]
       if (key === "__proto__") {
         return

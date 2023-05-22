@@ -17,13 +17,14 @@ import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
 import { getCloudDistributionName } from "../../../util/util"
+import { CloudProject } from "../../../cloud/api"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
-    help: deline`Filter on user name. Use comma as a separator to filter on multiple names. Accepts glob patterns.`,
+    help: deline`Filter on user name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.`,
   }),
   "filter-groups": new StringsParameter({
-    help: deline`Filter on the groups the user belongs to. Use comma as a separator to filter on multiple groups. Accepts glob patterns.`,
+    help: deline`Filter on the groups the user belongs to. You may filter on multiple groups by setting this flag multiple times. Accepts glob patterns.`,
   }),
 }
 
@@ -31,7 +32,7 @@ type Opts = typeof usersListOpts
 
 export class UsersListCommand extends Command<{}, Opts> {
   name = "list"
-  help = "List users."
+  help = "List users defined in Garden Cloud."
   description = dedent`
     List all users from Garden Cloud. Optionally filter on group names or user names.
 
@@ -43,8 +44,8 @@ export class UsersListCommand extends Command<{}, Opts> {
 
   options = usersListOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "List users", "information_desk_person")
+  printHeader({ log }) {
+    printHeader(log, "List users", "💁‍♀️")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<UserResult[]>> {
@@ -56,7 +57,11 @@ export class UsersListCommand extends Command<{}, Opts> {
       throw new ConfigurationError(noApiMsg("list", "users"), {})
     }
 
-    const project = await api.getProject()
+    let project: CloudProject | undefined
+
+    if (garden.projectId) {
+      project = await api.getProjectById(garden.projectId)
+    }
 
     if (!project) {
       throw new CloudApiError(

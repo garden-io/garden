@@ -7,19 +7,22 @@
  */
 
 import { getContainerTestGarden } from "../container"
-import { ClusterBuildkitCacheConfig, KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
+import {
+  ClusterBuildkitCacheConfig,
+  KubernetesPluginContext,
+  KubernetesProvider
+} from "../../../../../../../src/plugins/kubernetes/config"
 import { Garden } from "../../../../../../../src"
 import { PluginContext } from "../../../../../../../src/plugin-context"
 import {
   ensureBuildkit,
-  buildkitDeploymentName,
 } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api"
 import { getNamespaceStatus } from "../../../../../../../src/plugins/kubernetes/namespace"
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
 import { buildDockerAuthConfig } from "../../../../../../../src/plugins/kubernetes/init"
-import { dockerAuthSecretKey } from "../../../../../../../src/plugins/kubernetes/constants"
+import { buildkitDeploymentName, dockerAuthSecretKey } from "../../../../../../../src/plugins/kubernetes/constants"
 import { grouped } from "../../../../../../helpers"
 
 grouped("cluster-buildkit").describe("ensureBuildkit", () => {
@@ -44,14 +47,14 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
 
   beforeEach(async () => {
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     api = await KubeApi.factory(garden.log, ctx, provider)
-    namespace = (await getNamespaceStatus({ log: garden.log, ctx, provider })).namespaceName
+    namespace = (await getNamespaceStatus({ log: garden.log, ctx: ctx as KubernetesPluginContext, provider })).namespaceName
   })
 
   after(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 

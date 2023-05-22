@@ -6,47 +6,57 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { keyBy, isEqual, cloneDeep } from "lodash"
-import { Garden, GardenOpts, resolveGardenParams } from "../garden"
-import { StringMap, DeepPrimitiveMap } from "../config/common"
-import { GardenParams } from "../garden"
+import { GlobalOptions, globalOptions, ParameterValues } from "../cli/params"
+import { cloneDeep, isEqual, keyBy, set, mapValues } from "lodash"
+import { Garden, GardenOpts, GardenParams, GetConfigGraphParams, resolveGardenParams } from "../garden"
+import { DeepPrimitiveMap, StringMap } from "../config/common"
 import { ModuleConfig } from "../config/module"
 import { WorkflowConfig } from "../config/workflow"
-import { LogEntry } from "../logger/log-entry"
-import { RuntimeContext } from "../runtime-context"
+import { Log, LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
-import { findByName, getNames, ValueOf, isPromise, serializeObject, hashString, uuidv4 } from "./util"
-import { GardenBaseError, GardenError } from "../exceptions"
-import { EventBus, Events } from "../events"
+import { findByName, getNames } from "./util"
+import { GardenBaseError, GardenError, InternalError } from "../exceptions"
+import { EventBus, EventName, Events } from "../events"
 import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
-import { resolve } from "path"
-import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../constants"
-import { getLogger } from "../logger/logger"
-import { ConfigGraph } from "../config-graph"
+import { join, resolve } from "path"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT } from "../constants"
+import { getRootLogger } from "../logger/logger"
 import stripAnsi from "strip-ansi"
 import { VcsHandler } from "../vcs/vcs"
+import { ConfigGraph } from "../graph/config-graph"
+import { SolveParams } from "../graph/solver"
+import { GraphResults } from "../graph/results"
+import { expect } from "chai"
+import { ActionConfig, ActionKind, ActionStatus } from "../actions/types"
+import { WrappedActionRouterHandlers } from "../router/base"
+import { BuiltinArgs, Command, CommandResult } from "../commands/base"
+import { validateSchema } from "../config/validation"
+import { mkdirp, remove } from "fs-extra"
+import { GlobalConfigStore } from "../config-store/global"
+import { isPromise } from "./objects"
 
 export class TestError extends GardenBaseError {
   type = "_test"
 }
 
-export interface EventLogEntry {
-  name: string
-  payload: ValueOf<Events>
+export interface EventLogEntry<N extends EventName = any> {
+  name: N
+  payload: Events[N]
 }
 
 /**
  * Retrieves all the child log entries from the given LogEntry and returns a list of all the messages,
  * stripped of ANSI characters. Useful to check if a particular message was logged.
  */
-export function getLogMessages(log: LogEntry, filter?: (log: LogEntry) => boolean) {
+export function getLogMessages(log: Log, filter?: (log: LogEntry) => boolean) {
   return log
-    .getChildEntries()
+    .getChildLogEntries()
     .filter((entry) => (filter ? filter(entry) : true))
-    .flatMap((entry) => entry.getMessages()?.map((state) => stripAnsi(state.msg || "")) || [])
+    .map((entry) => stripAnsi(entry.msg || ""))
 }
 
+type PartialActionConfig = Partial<ActionConfig> & { kind: ActionKind; type: string; name: string }
 type PartialModuleConfig = Partial<ModuleConfig> & { name: string; path: string }
 
 const moduleConfigDefaults: ModuleConfig = {
@@ -54,6 +64,7 @@ const moduleConfigDefaults: ModuleConfig = {
   apiVersion: DEFAULT_API_VERSION,
   build: {
     dependencies: [],
+    timeout: DEFAULT_BUILD_TIMEOUT_SEC,
   },
   disabled: false,
   name: "foo",
@@ -120,9 +131,13 @@ const defaultCommandinfo = { name: "test", args: {}, opts: {} }
 const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
 
 const paramCache: { [key: string]: GardenParams } = {}
-const configGraphCache: { [key: string]: ConfigGraph } = {}
+// const configGraphCache: { [key: string]: ConfigGraph } = {}
 
-export type TestGardenOpts = Partial<GardenOpts> & { noCache?: boolean; noTempDir?: boolean }
+export type TestGardenOpts = Partial<GardenOpts> & {
+  noCache?: boolean
+  noTempDir?: boolean
+  onlySpecifiedPlugins?: boolean
+}
 
 export class TestGarden extends Garden {
   events: TestEventBus
@@ -143,16 +158,18 @@ export class TestGarden extends Garden {
     opts?: TestGardenOpts
   ): Promise<InstanceType<T>> {
     // Cache the resolved params to save a bunch of time during tests
-    const cacheKey = opts?.noCache
-      ? undefined
-      : hashString(serializeObject([currentDirectory, { ...opts, log: undefined }]))
+    // TODO: re-instate this after we're done refactoring
+    const cacheKey = undefined
+    // const cacheKey = opts?.noCache
+    //   ? undefined
+    //   : hashString(serializeObject([currentDirectory, { ...opts, log: undefined }]))
 
     let params: GardenParams
 
     if (cacheKey && paramCache[cacheKey]) {
       params = cloneDeep(paramCache[cacheKey])
       // Need to do these separately to avoid issues around cloning
-      params.log = opts?.log || getLogger().placeholder()
+      params.log = opts?.log || getRootLogger().createLog()
       params.plugins = opts?.plugins || []
     } else {
       params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })
@@ -160,8 +177,6 @@ export class TestGarden extends Garden {
         paramCache[cacheKey] = cloneDeep({ ...params, log: <any>{}, plugins: [] })
       }
     }
-
-    params.sessionId = uuidv4()
 
     const garden = new this(params) as InstanceType<T>
 
@@ -171,39 +186,48 @@ export class TestGarden extends Garden {
 
     garden["cacheKey"] = cacheKey
 
+    const globalDir = join(garden.gardenDirPath, "_global")
+    await remove(globalDir)
+    await mkdirp(globalDir)
+
+    garden["globalConfigStore"] = new GlobalConfigStore(globalDir)
+
     return garden
+  }
+
+  async processTasks(params: Omit<SolveParams, "log"> & { log?: Log }) {
+    return super.processTasks({ ...params, log: params.log || this.log })
   }
 
   /**
    * Override to cache the config graph.
    */
-  async getConfigGraph(params: { log: LogEntry; runtimeContext?: RuntimeContext; emit: boolean; noCache?: boolean }) {
-    // We don't try to cache if a runtime context is given (TODO: might revisit that)
-    let cacheKey: string | undefined = undefined
-
-    if (this.cacheKey && !params.noCache) {
-      const moduleConfigHash = hashString(serializeObject(await this.getRawModuleConfigs()))
-      const runtimeContextHash = hashString(serializeObject(params.runtimeContext || {}))
-      cacheKey = [this.cacheKey, moduleConfigHash, runtimeContextHash].join("-")
+  async getConfigGraph(
+    params: GetConfigGraphParams & {
+      noCache?: boolean
     }
+  ): Promise<ConfigGraph> {
+    // TODO: re-instate this after we're done refactoring
+    // let cacheKey: string | undefined = undefined
 
-    if (cacheKey) {
-      const cached = configGraphCache[cacheKey]
-      if (cached) {
-        // Clone the cached graph and return
-        const clone = new ConfigGraph([], {})
-        for (const key of Object.getOwnPropertyNames(cached)) {
-          clone[key] = cloneDeep(cached[key])
-        }
-        return clone
-      }
-    }
+    // if (this.cacheKey && !params.noCache) {
+    //   const moduleConfigHash = hashString(serializeObject(await this.getRawModuleConfigs()))
+    //   cacheKey = [this.cacheKey, moduleConfigHash].join("-")
+    // }
+
+    // if (cacheKey) {
+    //   const cached = configGraphCache[cacheKey]
+    //   if (cached) {
+    //     // Clone the cached graph and return
+    //     return configGraphCache[cacheKey].clone()
+    //   }
+    // }
 
     const graph = await super.getConfigGraph(params)
 
-    if (cacheKey) {
-      configGraphCache[cacheKey] = graph
-    }
+    // if (cacheKey) {
+    //   configGraphCache[cacheKey] = graph
+    // }
     return graph
   }
 
@@ -215,13 +239,67 @@ export class TestGarden extends Garden {
     return await super.getRepoRoot()
   }
 
+  /**
+   * Public wrapper around this.addActionConfig()
+   */
+  addAction(config: ActionConfig) {
+    this.addActionConfig(config)
+  }
+
   setModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
-    this.configsScanned = true
+    this.state.configsScanned = true
     this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
+  }
+
+  setActionConfigs(actionConfigs: PartialActionConfig[]) {
+    this.actionConfigs = {
+      Build: {},
+      Deploy: {},
+      Run: {},
+      Test: {},
+    }
+    actionConfigs.forEach((ac) => {
+      this.addActionConfig({
+        spec: {},
+        ...ac,
+        // TODO: consider making `timeout` mandatory in `PartialActionConfig`.
+        //  It will require extra code changes in tests.
+        timeout: ac.timeout || 10,
+        internal: {
+          basePath: this.projectRoot,
+          ...ac.internal,
+        },
+      })
+    })
   }
 
   setWorkflowConfigs(workflowConfigs: WorkflowConfig[]) {
     this.workflowConfigs = keyBy(workflowConfigs, "name")
+  }
+
+  /**
+   * Set the action status for a given action key, to be returned by corresponding getStatus/getResult
+   * on the test plugin.
+   */
+  async setTestActionStatus({
+    log,
+    kind,
+    name,
+    status,
+  }: {
+    log: Log
+    kind: ActionKind
+    name: string
+    status: ActionStatus<any>
+  }) {
+    const providers = await this.resolveProviders(log)
+
+    if (providers["test-plugin"]) {
+      set(providers["test-plugin"], ["_actionStatuses", kind, name], status)
+    }
+    if (providers["test-plugin-b"]) {
+      set(providers["test-plugin-b"], ["_actionStatuses", kind, name], status)
+    }
   }
 
   /**
@@ -232,14 +310,14 @@ export class TestGarden extends Garden {
    */
   async resolveModules({
     log,
-    runtimeContext,
+    graphResults,
     includeDisabled = false,
   }: {
-    log: LogEntry
-    runtimeContext?: RuntimeContext
+    log: Log
+    graphResults?: GraphResults
     includeDisabled?: boolean
   }): Promise<GardenModule[]> {
-    const graph = await this.getConfigGraph({ log, runtimeContext, emit: false })
+    const graph = await this.getConfigGraph({ log, graphResults, emit: false })
     return graph.getModules({ includeDisabled })
   }
 
@@ -247,8 +325,8 @@ export class TestGarden extends Garden {
    * Helper to get a single module. We don't put this on the Garden class because it is highly inefficient
    * and not advisable except for testing.
    */
-  async resolveModule(name: string, runtimeContext?: RuntimeContext) {
-    const modules = await this.resolveModules({ log: this.log, runtimeContext })
+  async resolveModule(name: string, graphResults?: GraphResults) {
+    const modules = await this.resolveModules({ log: this.log, graphResults })
     const config = findByName(modules, name)
 
     if (!config) {
@@ -257,35 +335,125 @@ export class TestGarden extends Garden {
 
     return config
   }
+
+  /**
+   * Overrides the given action plugin handler, for testing purposes
+   *
+   * @param actionKind The action kind
+   * @param handlerType The handler type (e.g. deploy, run, getStatus etc.)
+   * @param handler The handler function to apply
+   */
+  async stubRouterAction<K extends ActionKind, H extends keyof WrappedActionRouterHandlers<K>>(
+    actionKind: K,
+    handlerType: H,
+    handler: WrappedActionRouterHandlers<K>[H]
+  ) {
+    const router = await this.getActionRouter()
+    const actionKindHandlers: WrappedActionRouterHandlers<K> = router.getRouterForActionKind(actionKind)
+    actionKindHandlers[handlerType] = handler
+  }
+
+  /**
+   * Shorthand helper to call the action method on the given command class.
+   * Also validates the result against the outputsSchema on the command, if applicable.
+   *
+   * @returns The result from the command action
+   */
+  async runCommand<C extends Command>({
+    command,
+    args,
+    opts,
+  }: {
+    command: C
+    args: ParameterValues<C["arguments"]> & BuiltinArgs
+    opts: ParameterValues<C["options"]>
+  }): Promise<CommandResult<C["_resultType"]>> {
+    const log = this.log
+
+    const result = await command.action({
+      garden: this,
+      log,
+      args,
+      opts: <ParameterValues<GlobalOptions> & C["options"]>{
+        ...mapValues(globalOptions, (opt) => opt.defaultValue),
+        ...opts,
+      },
+    })
+
+    if (result.result && command.outputsSchema) {
+      await validateSchema(result.result, command.outputsSchema(), {
+        context: `outputs from '${command.name}' command`,
+        ErrorClass: InternalError,
+      })
+    }
+
+    return result
+  }
 }
 
-export function expectError(fn: Function, typeOrCallback?: string | ((err: any) => void)) {
+export function expectFuzzyMatch(str: string, sample: string | string[]) {
+  const errorMessageNonAnsi = stripAnsi(str)
+  const samples = typeof sample === "string" ? [sample] : sample
+  samples.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
+}
+
+export function expectLogsContain(logs: string[], sample: string) {
+  expect(logs.some((line) => line.includes(sample))).to.be.true
+}
+
+type ExpectErrorAssertion =
+  | string
+  | ((err: any) => void)
+  | { type?: string; contains?: string | string[]; errorMessageGetter?: (err: any) => string }
+
+const defaultErrorMessageGetter = (err: any) => err.message
+
+export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) {
   const handleError = (err: GardenError) => {
-    if (typeOrCallback === undefined) {
-      return true
-    } else if (typeof typeOrCallback === "function") {
-      typeOrCallback(err)
-      return true
-    } else {
-      if (!err.type) {
-        const newError = Error(`Expected GardenError with type ${typeOrCallback}, got: ${err}`)
-        newError.stack = err.stack
-        throw newError
-      }
-      if (err.type !== typeOrCallback) {
-        const newError = Error(`Expected ${typeOrCallback} error, got: ${err.type} error`)
-        newError.stack = err.stack
-        throw newError
-      }
+    if (assertion === undefined) {
       return true
     }
+
+    if (typeof assertion === "function") {
+      assertion(err)
+      return true
+    }
+
+    const type = typeof assertion === "string" ? assertion : assertion.type
+    const contains = typeof assertion === "object" && assertion.contains
+    const errorMessageGetter = typeof assertion === "object" && assertion.errorMessageGetter
+    const message = errorMessageGetter && errorMessageGetter(err)
+
+    if (type) {
+      if (!err.type) {
+        const newError = Error(`Expected GardenError with type ${type}, got: ${err}`)
+        newError.stack = err.stack
+        throw newError
+      }
+      if (err.type !== type) {
+        const newError = Error(`Expected ${type} error, got: ${err.type} error`)
+        newError.stack = err.stack
+        throw newError
+      }
+    }
+
+    if (contains) {
+      const errorMessage = (errorMessageGetter || defaultErrorMessageGetter)(err)
+      expectFuzzyMatch(errorMessage, contains)
+    }
+
+    if (message) {
+      return err.message === message
+    }
+
+    return true
   }
 
   const handleNonError = (caught: boolean) => {
     if (caught) {
       return
-    } else if (typeof typeOrCallback === "string") {
-      throw new Error(`Expected ${typeOrCallback} error (got no error)`)
+    } else if (typeof assertion === "string") {
+      throw new Error(`Expected ${assertion} error (got no error)`)
     } else {
       throw new Error(`Expected error (got no error)`)
     }

@@ -11,19 +11,22 @@ import dedent = require("dedent")
 import { Command, CommandResult, CommandParams } from "../base"
 import { removeLinkedSources } from "../../util/ext-source-util"
 import { printHeader } from "../../logger/util"
-import { localConfigKeys, LinkedSource } from "../../config-store"
+import { LinkedSource } from "../../config-store/local"
 import { StringsParameter, BooleanParameter } from "../../cli/params"
 
 const unlinkSourceArguments = {
   sources: new StringsParameter({
-    help: "The name(s) of the source(s) to unlink. Use comma as a separator to specify multiple sources.",
+    help: "The name(s) of the source(s) to unlink. You may specify multiple sources, separated by spaces.",
+    spread: true,
+    getSuggestions: ({ configDump }) => {
+      return configDump.sources.map((s) => s.name)
+    },
   }),
 }
 
 const unlinkSourceOptions = {
   all: new BooleanParameter({
     help: "Unlink all sources.",
-    alias: "a",
   }),
 }
 
@@ -46,8 +49,8 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
         garden unlink source --all      # unlinks all sources
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Unlink source", "chains")
+  printHeader({ log }) {
+    printHeader(log, "Unlink source", "⛓️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
@@ -56,7 +59,7 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
     const { sources = [] } = args
 
     if (opts.all) {
-      await garden.configStore.set([localConfigKeys().linkedProjectSources], [])
+      await garden.localConfigStore.set("linkedProjectSources", {})
       log.info("Unlinked all sources")
       return { result: [] }
     }

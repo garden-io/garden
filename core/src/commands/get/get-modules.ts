@@ -6,24 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { emoji as nodeEmoji } from "node-emoji"
 import { Command, CommandParams } from "../base"
 import { StringsParameter, BooleanParameter } from "../../cli/params"
 import { moduleSchema, GardenModule } from "../../types/module"
 import { keyBy, omit, sortBy } from "lodash"
-import { joiIdentifierMap, joi, StringMap } from "../../config/common"
-import { printHeader, renderDivider, withoutInternalFields } from "../../logger/util"
+import { joiIdentifierMap, StringMap, createSchema } from "../../config/common"
+import { printEmoji, printHeader, renderDivider } from "../../logger/util"
+import { withoutInternalFields } from "../../util/logging"
 import chalk from "chalk"
 import { renderTable, dedent, deline } from "../../util/string"
 import { relative, sep } from "path"
 import { Garden } from "../.."
-import { LogEntry } from "../../logger/log-entry"
-import { deepMap, highlightYaml, safeDumpYaml } from "../../util/util"
+import { Log } from "../../logger/log-entry"
+import { highlightYaml, safeDumpYaml } from "../../util/serialization"
+import { deepMap } from "../../util/objects"
 
 const getModulesArgs = {
   modules: new StringsParameter({
-    help:
-      "Specify module(s) to list. Use comma as a separator to specify multiple modules. Skip to return all modules.",
+    help: "Specify module(s) to list. You may specify multiple modules, separated by spaces. Skip to return all modules.",
+    spread: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.moduleConfigs)
+    },
   }),
 }
 
@@ -43,9 +47,14 @@ type Opts = typeof getModulesOptions
 
 type OutputModule = Omit<GardenModule, "_config" | "buildDependencies">
 
+const outputsSchema = createSchema({
+  name: "GetModulesCommand:outputs",
+  keys: () => ({ modules: joiIdentifierMap(moduleSchema()) }),
+})
+
 export class GetModulesCommand extends Command {
   name = "modules"
-  alias = "module"
+  aliases = ["module"]
   help = "Outputs all or specified modules."
   description = dedent`
     Outputs all or specified modules. Use with --output=json and jq to extract specific fields.
@@ -61,10 +70,10 @@ export class GetModulesCommand extends Command {
   arguments = getModulesArgs
   options = getModulesOptions
 
-  outputsSchema = () => joi.object().keys({ modules: joiIdentifierMap(moduleSchema()) })
+  outputsSchema = outputsSchema
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Get Modules", "open_book")
+  printHeader({ log }) {
+    printHeader(log, "Get Modules", "📖")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>) {
@@ -86,7 +95,7 @@ export class GetModulesCommand extends Command {
   }
 }
 
-function logFull(garden: Garden, modules: GardenModule[], log: LogEntry) {
+function logFull(garden: Garden, modules: GardenModule[], log: Log) {
   const divider = chalk.gray(renderDivider())
   log.info("")
   for (const module of modules) {
@@ -101,7 +110,6 @@ function logFull(garden: Garden, modules: GardenModule[], log: LogEntry) {
         "_config",
         "variables",
         "buildPath",
-        "buildMetadataPath",
         "configPath",
         "plugin",
         "serviceConfigs",
@@ -117,14 +125,14 @@ function logFull(garden: Garden, modules: GardenModule[], log: LogEntry) {
     const yaml = safeDumpYaml(rendered, { noRefs: true, sortKeys: true })
     log.info(dedent`
       ${divider}
-      ${nodeEmoji.seedling}  Module: ${chalk.green(module.name)}
+      ${printEmoji("🌱", log)}  Module: ${chalk.green(module.name)}
       ${divider}\n
     `)
     log.info(highlightYaml(yaml))
   }
 }
 
-function logAsTable(garden: Garden, modules: GardenModule[], log: LogEntry) {
+function logAsTable(garden: Garden, modules: GardenModule[], log: Log) {
   const heading = ["Name", "Version", "Type", "Path"].map((s) => chalk.bold(s))
   const rows: string[][] = modules.map((m) => [
     chalk.cyan.bold(m.name),

@@ -9,13 +9,13 @@
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { pulumi } from "./cli"
-import { ModuleActionHandlers, PluginActionHandlers, ServiceActionHandlers } from "@garden-io/sdk/types"
+import { ModuleActionHandlers, ProviderHandlers } from "@garden-io/sdk/types"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import {
   applyConfig,
   clearStackVersionTag,
   ensureEnv,
-  getModuleStackRoot,
+  getActionStackRoot,
   getPlanPath,
   getStackConfigPath,
   getStackOutputs,
@@ -23,11 +23,13 @@ import {
   selectStack,
   setStackVersionTag,
 } from "./helpers"
-import { PulumiModule, PulumiProvider } from "./config"
-import { ServiceStatus } from "@garden-io/core/build/src/types/service"
+import { PulumiDeploy, PulumiProvider } from "./config"
 import chalk from "chalk"
+import { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types"
+import { DeployState } from "@garden-io/core/build/src/types/service"
+import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status"
 
-export const cleanupEnvironment: PluginActionHandlers["cleanupEnvironment"] = async (_params) => {
+export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async (_params) => {
   // To properly implement this handler, we'd need access to the config graph (or at least the list of pulumi services
   // in the project), since we'd need to walk through them and delete each in turn.
   //
@@ -35,7 +37,7 @@ export const cleanupEnvironment: PluginActionHandlers["cleanupEnvironment"] = as
   return {}
 }
 
-export const configurePulumiModule: ModuleActionHandlers<PulumiModule>["configure"] = async ({ ctx, moduleConfig }) => {
+export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({ ctx, moduleConfig }) => {
   // Make sure the configured root path exists
   const root = moduleConfig.spec.root
   if (root) {
@@ -76,7 +78,6 @@ export const configurePulumiModule: ModuleActionHandlers<PulumiModule>["configur
       name: moduleConfig.name,
       dependencies: moduleConfig.spec.dependencies,
       disabled: false,
-      hotReloadable: false,
       spec: moduleConfig.spec,
     },
   ]
@@ -84,64 +85,63 @@ export const configurePulumiModule: ModuleActionHandlers<PulumiModule>["configur
   return { moduleConfig }
 }
 
-export const getPulumiServiceStatus: ServiceActionHandlers["getServiceStatus"] = async ({
-  ctx,
-  log,
-  module,
-  service,
-}) => {
+export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatus"] = async ({ ctx, log, action }) => {
   const provider = ctx.provider as PulumiProvider
-  const pulumiModule: PulumiModule = module
-  const pulumiParams = { log, ctx, provider, module: pulumiModule }
-  const { cacheStatus } = pulumiModule.spec
-  const serviceVersion = service.version
+  const pulumiParams = { log, ctx, provider, action }
+  const { cacheStatus } = action.getSpec()
 
   if (!cacheStatus) {
     return {
-      state: "outdated",
-      version: serviceVersion,
+      state: deployStateToActionState("outdated"),
       outputs: {},
-      detail: {},
+      detail: {
+        state: "outdated",
+        detail: {},
+      },
     }
   }
 
   await selectStack(pulumiParams)
-  const stackStatus = await getStackStatusFromTag({ ...pulumiParams, serviceVersion })
+  const stackStatus = await getStackStatusFromTag(pulumiParams)
 
-  const serviceStatus: ServiceStatus = {
-    state: stackStatus === "up-to-date" ? "ready" : "outdated",
-    version: serviceVersion,
+  const deployState: DeployState = stackStatus === "up-to-date" ? "ready" : "outdated"
+
+  return {
+    state: deployStateToActionState(deployState),
     outputs: await getStackOutputs(pulumiParams),
-    detail: {},
+    detail: {
+      state: deployState,
+      detail: {},
+    },
   }
-  return serviceStatus
 }
 
-export const deployPulumiService: ServiceActionHandlers["deployService"] = async ({ ctx, log, module, service }) => {
+export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async ({ ctx, log, action }) => {
   const provider = ctx.provider as PulumiProvider
-  const pulumiModule: PulumiModule = module
-  const pulumiParams = { log, ctx, provider, module: pulumiModule }
-  const { autoApply, deployFromPreview } = pulumiModule.spec
-  const serviceVersion = service.version
-  const { cacheStatus } = pulumiModule.spec
+  const pulumiParams = { log, ctx, provider, action }
+  const { autoApply, deployFromPreview } = action.getSpec()
+  const { cacheStatus } = action.getSpec()
 
   if (!autoApply && !deployFromPreview) {
-    log.info(`${pulumiModule.name} has autoApply = false, but no planPath was provided. Skipping deploy.`)
+    log.info(`${action.longDescription()} has autoApply = false, but no planPath was provided. Skipping deploy.`)
     return {
       state: "ready",
-      version: serviceVersion,
       outputs: await getStackOutputs(pulumiParams),
-      detail: {},
+      detail: {
+        state: "ready",
+        detail: {},
+      },
     }
   }
-  const root = getModuleStackRoot(pulumiModule)
+
+  const root = getActionStackRoot(action)
   const env = ensureEnv(pulumiParams)
 
   let planPath: string | null
   // TODO: does the plan include the backend config?
   if (deployFromPreview) {
     // A pulumi plan for this module has already been generated, so we use that.
-    planPath = getPlanPath(ctx, pulumiModule)
+    planPath = getPlanPath(ctx, action)
     log.verbose(`Deploying from plan at path ${planPath}`)
   } else {
     await applyConfig(pulumiParams)
@@ -149,14 +149,7 @@ export const deployPulumiService: ServiceActionHandlers["deployService"] = async
   }
   await selectStack(pulumiParams)
   log.verbose(`Applying pulumi stack...`)
-  const upArgs = [
-    "up",
-    "--yes",
-    "--color",
-    "always",
-    "--config-file",
-    getStackConfigPath(pulumiModule, ctx.environmentName),
-  ]
+  const upArgs = ["up", "--yes", "--color", "always", "--config-file", getStackConfigPath(action, ctx.environmentName)]
   planPath && upArgs.push("--plan", planPath)
   await pulumi(ctx, provider).spawnAndStreamLogs({
     args: upArgs,
@@ -167,30 +160,34 @@ export const deployPulumiService: ServiceActionHandlers["deployService"] = async
     errorPrefix: "Error when applying pulumi stack",
   })
   if (cacheStatus) {
-    await setStackVersionTag({ ...pulumiParams, serviceVersion })
+    await setStackVersionTag(pulumiParams)
   }
+
   return {
     state: "ready",
-    version: serviceVersion,
     outputs: await getStackOutputs(pulumiParams),
-    detail: {},
+    detail: {
+      state: "ready",
+      detail: {},
+    },
   }
 }
 
-export const deletePulumiService: ServiceActionHandlers["deleteService"] = async ({ ctx, log, module, service }) => {
-  const pulumiModule: PulumiModule = module
-  if (!pulumiModule.spec.allowDestroy) {
-    log.warn(chalk.yellow(`${pulumiModule.name} has allowDestroy = false. Skipping destroy.`))
+export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = async ({ ctx, log, action }) => {
+  if (!action.getSpec("allowDestroy")) {
+    log.warn(chalk.yellow(`${action.longDescription()} has allowDestroy = false. Skipping destroy.`))
     return {
-      state: "outdated",
-      version: service.version,
+      state: deployStateToActionState("outdated"),
       outputs: {},
-      detail: {},
+      detail: {
+        state: "outdated",
+        detail: {},
+      },
     }
   }
   const provider = ctx.provider as PulumiProvider
-  const pulumiParams = { log, ctx, provider, module: pulumiModule }
-  const root = getModuleStackRoot(pulumiModule)
+  const pulumiParams = { log, ctx, provider, action }
+  const root = getActionStackRoot(action)
   const env = ensureEnv(pulumiParams)
   await selectStack(pulumiParams)
 
@@ -198,7 +195,7 @@ export const deletePulumiService: ServiceActionHandlers["deleteService"] = async
   await selectStack(pulumiParams)
   log.verbose(`Destroying pulumi stack...`)
   await cli.spawnAndStreamLogs({
-    args: ["destroy", "--yes", "--config-file", getStackConfigPath(pulumiModule, ctx.environmentName)],
+    args: ["destroy", "--yes", "--config-file", getStackConfigPath(action, ctx.environmentName)],
     cwd: root,
     log,
     env,
@@ -208,9 +205,11 @@ export const deletePulumiService: ServiceActionHandlers["deleteService"] = async
   await clearStackVersionTag(pulumiParams)
 
   return {
-    state: "missing",
-    version: service.version,
+    state: deployStateToActionState("missing"),
     outputs: {},
-    detail: {},
+    detail: {
+      state: "missing",
+      detail: {},
+    },
   }
 }

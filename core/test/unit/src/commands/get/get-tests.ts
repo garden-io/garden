@@ -6,16 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { resolve } from "path"
-import { makeTestGarden, dataDir, withDefaultGlobalOpts } from "../../../../helpers"
+import { makeTestGarden, withDefaultGlobalOpts, getDataDir } from "../../../../helpers"
 import { GetTestsCommand } from "../../../../../src/commands/get/get-tests"
 import { expect } from "chai"
-import { sortBy } from "lodash"
 
 describe("GetTestsCommand", () => {
-  const projectRoot = resolve(dataDir, "test-project-a")
+  const projectRoot = getDataDir("test-project-a")
 
-  it("should return tests, grouped by module", async () => {
+  it("should return all tests in the project", async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
     const command = new GetTestsCommand()
@@ -23,80 +21,19 @@ describe("GetTestsCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
-      args: { tests: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({}),
     })
 
-    const modules = sortBy(res.result, (m) => {
-      return Object.keys(m)[0]
-    })
-    const testsForModuleA = sortBy(modules[0]["module-a"], "name")
-    const testsForModuleB = sortBy(modules[1]["module-b"], "name")
-    const testsForModuleC = sortBy(modules[2]["module-c"], "name")
-    expect(modules.length).to.eql(3)
-    expect(testsForModuleA).to.eql([
-      {
-        name: "integration",
-        command: ["echo", "OK"],
-        dependencies: ["service-a"],
-        disabled: false,
-        timeout: null,
-        env: {},
-        cpu: { min: 10, max: 1000 },
-        memory: { min: 90, max: 1024 },
-        volumes: [],
-      },
-      {
-        name: "unit",
-        command: ["echo", "OK"],
-        dependencies: [],
-        disabled: false,
-        timeout: null,
-        env: {},
-        cpu: { min: 10, max: 1000 },
-        memory: { min: 90, max: 1024 },
-        volumes: [],
-      },
-    ])
-    expect(testsForModuleB).to.eql([
-      {
-        name: "unit",
-        command: ["echo", "OK"],
-        dependencies: [],
-        disabled: false,
-        timeout: null,
-        env: {},
-        cpu: { min: 10, max: 1000 },
-        memory: { min: 90, max: 1024 },
-        volumes: [],
-      },
-    ])
-    expect(testsForModuleC).to.eql([
-      {
-        name: "integ",
-        command: ["echo", "OK"],
-        dependencies: [],
-        disabled: false,
-        timeout: null,
-        env: {},
-        cpu: { min: 10, max: 1000 },
-        memory: { min: 90, max: 1024 },
-        volumes: [],
-      },
-      {
-        name: "unit",
-        command: ["echo", "OK"],
-        dependencies: [],
-        disabled: false,
-        timeout: null,
-        env: {},
-        cpu: { min: 10, max: 1000 },
-        memory: { min: 90, max: 1024 },
-        volumes: [],
-      },
-    ])
+    const graph = await garden.getConfigGraph({ log, emit: false })
+    const action = graph.getTest("module-a-integration")
+
+    expect(res.errors).to.be.undefined
+
+    const result = res.result!
+
+    expect(Object.keys(result).length).to.equal(5)
+    expect(result["test.module-a-integration"]).to.eql(action.describe())
   })
 
   it("should return only the applicable tests when called with a list of test names", async () => {
@@ -107,29 +44,17 @@ describe("GetTestsCommand", () => {
     const res = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
-      args: { tests: ["integration"] },
+      args: { names: ["module-a-integration"] },
       opts: withDefaultGlobalOpts({}),
     })
-    expect(res).to.eql({
-      result: [
-        {
-          "module-a": [
-            {
-              name: "integration",
-              command: ["echo", "OK"],
-              dependencies: ["service-a"],
-              disabled: false,
-              timeout: null,
-              env: {},
-              cpu: { min: 10, max: 1000 },
-              memory: { min: 90, max: 1024 },
-              volumes: [],
-            },
-          ],
-        },
-      ],
+
+    const graph = await garden.getConfigGraph({ log, emit: false })
+    const action = graph.getTest("module-a-integration")
+
+    const result = res.result!
+
+    expect(result).to.eql({
+      "test.module-a-integration": action.describe(),
     })
   })
 })

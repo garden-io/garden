@@ -9,12 +9,13 @@
 import { expect } from "chai"
 import { withDefaultGlobalOpts, TempDirectory, makeTempDir, expectError } from "../../../../helpers"
 import { CreateProjectCommand, defaultProjectConfigFilename } from "../../../../../src/commands/create/create-project"
-import { makeDummyGarden } from "../../../../../src/cli/cli"
+import { makeDummyGarden } from "../../../../../src/garden"
 import { Garden } from "../../../../../src/garden"
 import { basename, join } from "path"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { safeLoadAll } from "js-yaml"
-import { exec, safeDumpYaml } from "../../../../../src/util/util"
+import { safeDumpYaml } from "../../../../../src/util/serialization"
+import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 
 describe("CreateProjectCommand", () => {
   const command = new CreateProjectCommand()
@@ -22,8 +23,7 @@ describe("CreateProjectCommand", () => {
   let garden: Garden
 
   beforeEach(async () => {
-    tmp = await makeTempDir()
-    await exec("git", ["init", "--initial-branch=main"], { cwd: tmp.path })
+    tmp = await makeTempDir({ git: true, initialCommit: false })
     garden = await makeDummyGarden(tmp.path, { commandInfo: { name: "create project", args: {}, opts: {} } })
   })
 
@@ -34,16 +34,13 @@ describe("CreateProjectCommand", () => {
   it("should create a project config and a .gardenignore", async () => {
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        "dir": tmp.path,
-        "interactive": false,
-        "name": undefined,
-        "filename": defaultProjectConfigFilename,
-        "skip-comments": false,
+        dir: tmp.path,
+        interactive: false,
+        name: undefined,
+        filename: defaultProjectConfigFilename,
       }),
     })
     const { name, configPath, ignoreFileCreated, ignoreFilePath } = result!
@@ -59,6 +56,7 @@ describe("CreateProjectCommand", () => {
 
     expect(parsed).to.eql([
       {
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         name,
         environments: [{ name: "default" }],
@@ -73,16 +71,13 @@ describe("CreateProjectCommand", () => {
 
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        "dir": tmp.path,
-        "interactive": false,
-        "name": undefined,
-        "filename": defaultProjectConfigFilename,
-        "skip-comments": false,
+        dir: tmp.path,
+        interactive: false,
+        name: undefined,
+        filename: defaultProjectConfigFilename,
       }),
     })
     const { ignoreFileCreated, ignoreFilePath } = result!
@@ -98,16 +93,13 @@ describe("CreateProjectCommand", () => {
 
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        "dir": tmp.path,
-        "interactive": false,
-        "name": undefined,
-        "filename": defaultProjectConfigFilename,
-        "skip-comments": false,
+        dir: tmp.path,
+        interactive: false,
+        name: undefined,
+        filename: defaultProjectConfigFilename,
       }),
     })
     const { ignoreFileCreated, ignoreFilePath } = result!
@@ -120,16 +112,13 @@ describe("CreateProjectCommand", () => {
   it("should optionally set a project name", async () => {
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        "dir": tmp.path,
-        "interactive": false,
-        "name": "foo",
-        "filename": defaultProjectConfigFilename,
-        "skip-comments": false,
+        dir: tmp.path,
+        interactive: false,
+        name: "foo",
+        filename: defaultProjectConfigFilename,
       }),
     })
     const { name, configPath } = result!
@@ -138,6 +127,7 @@ describe("CreateProjectCommand", () => {
     const parsed = safeLoadAll((await readFile(configPath)).toString())
     expect(parsed).to.eql([
       {
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         name: "foo",
         environments: [{ name: "default" }],
@@ -156,16 +146,13 @@ describe("CreateProjectCommand", () => {
 
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        "dir": tmp.path,
-        "interactive": false,
-        "name": undefined,
-        "filename": "garden.yml",
-        "skip-comments": false,
+        dir: tmp.path,
+        interactive: false,
+        name: undefined,
+        filename: "garden.yml",
       }),
     })
     const { name, configPath } = result!
@@ -174,6 +161,7 @@ describe("CreateProjectCommand", () => {
     expect(parsed).to.eql([
       existing,
       {
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         name,
         environments: [{ name: "default" }],
@@ -185,16 +173,13 @@ describe("CreateProjectCommand", () => {
   it("should allow overriding the default generated filename", async () => {
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        "dir": tmp.path,
-        "interactive": false,
-        "name": undefined,
-        "filename": "custom.garden.yml",
-        "skip-comments": false,
+        dir: tmp.path,
+        interactive: false,
+        name: undefined,
+        filename: "custom.garden.yml",
       }),
     })
     const { configPath } = result!
@@ -205,6 +190,7 @@ describe("CreateProjectCommand", () => {
 
   it("should throw if a project is already in the directory", async () => {
     const existing = {
+      apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
       name: "foo",
     }
@@ -215,19 +201,16 @@ describe("CreateProjectCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
-            "dir": tmp.path,
-            "interactive": false,
-            "name": undefined,
-            "filename": defaultProjectConfigFilename,
-            "skip-comments": false,
+            dir: tmp.path,
+            interactive: false,
+            name: undefined,
+            filename: defaultProjectConfigFilename,
           }),
         }),
-      (err) => expect(err.message).to.equal("A Garden project already exists in " + configPath)
+      { contains: `A Garden project already exists in ${configPath}` }
     )
   })
 
@@ -237,19 +220,16 @@ describe("CreateProjectCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
             dir,
-            "interactive": false,
-            "name": undefined,
-            "filename": defaultProjectConfigFilename,
-            "skip-comments": false,
+            interactive: false,
+            name: undefined,
+            filename: defaultProjectConfigFilename,
           }),
         }),
-      (err) => expect(err.message).to.equal(`Path ${dir} does not exist`)
+      { contains: `Path ${dir} does not exist` }
     )
   })
 })

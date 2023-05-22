@@ -12,9 +12,9 @@ import chalk from "chalk"
 
 import { ParameterError } from "../../exceptions"
 import { Command, CommandResult, CommandParams } from "../base"
-import { LinkedSource } from "../../config-store"
+import { LinkedSource } from "../../config-store/local"
 import { printHeader } from "../../logger/util"
-import { addLinkedSources, hasRemoteSource } from "../../util/ext-source-util"
+import { addLinkedSources, moduleHasRemoteSource } from "../../util/ext-source-util"
 import { joiArray, joi } from "../../config/common"
 import { linkedModuleSchema } from "../../config/project"
 import { StringParameter, PathParameter } from "../../cli/params"
@@ -23,6 +23,9 @@ const linkModuleArguments = {
   module: new StringParameter({
     help: "Name of the module to link.",
     required: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.moduleConfigs)
+    },
   }),
   path: new PathParameter({
     help: "Path to the local directory that contains the module.",
@@ -38,7 +41,7 @@ interface Output {
 
 export class LinkModuleCommand extends Command<Args> {
   name = "module"
-  help = "Link a module to a local directory."
+  help = "Link a remote module to a local directory."
   arguments = linkModuleArguments
 
   outputsSchema = () =>
@@ -56,8 +59,8 @@ export class LinkModuleCommand extends Command<Args> {
         garden link module my-module path/to/my-module # links my-module to its local version at the given path
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Link module", "link")
+  printHeader({ log }) {
+    printHeader(log, "Link module", "🔗")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
@@ -67,9 +70,9 @@ export class LinkModuleCommand extends Command<Args> {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const moduleToLink = graph.getModule(moduleName)
 
-    const isRemote = [moduleToLink].filter(hasRemoteSource)[0]
+    const isRemote = [moduleToLink].filter(moduleHasRemoteSource)[0]
     if (!isRemote) {
-      const modulesWithRemoteSource = graph.getModules().filter(hasRemoteSource).sort()
+      const modulesWithRemoteSource = graph.getModules().filter(moduleHasRemoteSource).sort()
 
       throw new ParameterError(
         `Expected module(s) ${chalk.underline(moduleName)} to have a remote source.` +

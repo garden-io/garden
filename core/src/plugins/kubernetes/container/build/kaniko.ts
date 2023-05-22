@@ -7,24 +7,21 @@
  */
 
 import { V1PodSpec } from "@kubernetes/client-node"
-import { ContainerModule } from "../../../container/config"
-import { makePodName, usingInClusterRegistry } from "../../util"
-import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName } from "../../constants"
+import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName, defaultKanikoImageName } from "../../constants"
 import { KubeApi } from "../../api"
-import { LogEntry } from "../../../../logger/log-entry"
-import { KubernetesProvider, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } from "../../config"
+import { Log } from "../../../../logger/log-entry"
+import { KubernetesProvider, KubernetesPluginContext } from "../../config"
 import { BuildError, ConfigurationError } from "../../../../exceptions"
 import { PodRunner } from "../../run"
 import { ensureNamespace, getNamespaceStatus, getSystemNamespace } from "../../namespace"
 import { prepareSecrets } from "../../secrets"
 import { dedent } from "../../../../util/string"
-import { RunResult } from "../../../../types/plugin/base"
+import { RunResult } from "../../../../plugin/base"
 import { PluginContext } from "../../../../plugin-context"
 import { KubernetesPod } from "../../types"
 import {
   BuildStatusHandler,
   skopeoBuildStatus,
-  getSocatContainer,
   BuildHandler,
   utilRsyncPort,
   syncToBuildSync,
@@ -36,9 +33,11 @@ import {
 } from "./common"
 import { differenceBy, isEmpty } from "lodash"
 import chalk from "chalk"
-import { LogLevel } from "../../../../logger/logger"
 import { getDockerBuildFlags } from "../../../container/build"
+import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { stringifyResources } from "../util"
+import { makePodName } from "../../util"
+import { defaultDockerfileName, ContainerBuildAction } from "../../../container/config"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 
@@ -47,12 +46,12 @@ const sharedMountPath = "/.garden"
 const contextPath = sharedMountPath + "/context"
 
 export const getKanikoBuildStatus: BuildStatusHandler = async (params) => {
-  const { ctx, module, log } = params
+  const { ctx, action, log } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   await ensureUtilDeployment({
     ctx,
@@ -70,20 +69,24 @@ export const getKanikoBuildStatus: BuildStatusHandler = async (params) => {
     api,
     ctx,
     provider,
-    module,
+    action,
   })
 }
 
 export const kanikoBuild: BuildHandler = async (params) => {
-  const { ctx, module, log } = params
+  const { ctx, action, log } = params
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
+  const k8sCtx = ctx as KubernetesPluginContext
 
-  const projectNamespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const projectNamespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
-  const localId = module.outputs["local-image-id"]
-  const deploymentImageId = module.outputs["deployment-image-id"]
-  const dockerfile = module.spec.dockerfile || "Dockerfile"
+  const spec = action.getSpec()
+  const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
+
+  const localId = outputs.localImageId
+  const deploymentImageId = outputs.deploymentImageId
+  const dockerfile = spec.dockerfile || defaultDockerfileName
 
   let { authSecret } = await ensureUtilDeployment({
     ctx,
@@ -99,25 +102,22 @@ export const kanikoBuild: BuildHandler = async (params) => {
     api,
     namespace: projectNamespace,
     deploymentName: utilDeploymentName,
-    rsyncPort: utilRsyncPort,
   })
 
-  log.setState(`Building image ${localId}...`)
+  log.info(`Building image ${localId}...`)
 
-  // Use the project namespace if set to null in config
-  // TODO: change in 0.13 to default to project namespace
-  let kanikoNamespace =
-    provider.config.kaniko?.namespace === null ? projectNamespace : provider.config.kaniko?.namespace
+  // Use the project namespace by default
+  let kanikoNamespace = provider.config.kaniko?.namespace || projectNamespace
 
   if (!kanikoNamespace) {
-    kanikoNamespace = await getSystemNamespace(ctx, provider, log)
+    kanikoNamespace = await getSystemNamespace(k8sCtx, provider, log)
   }
 
   if (kanikoNamespace !== projectNamespace) {
     // Make sure the Kaniko Pod namespace has the auth secret ready
     const secretRes = await ensureBuilderSecret({
       provider,
-      log: log.placeholder(),
+      log: log.createLog(),
       api,
       namespace: kanikoNamespace,
     })
@@ -125,7 +125,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     authSecret = secretRes.authSecret
   }
 
-  await ensureNamespace(api, { name: kanikoNamespace }, log)
+  await ensureNamespace(api, k8sCtx, { name: kanikoNamespace }, log)
 
   // Execute the build
   const args = [
@@ -135,7 +135,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     dockerfile,
     "--destination",
     deploymentImageId,
-    ...getKanikoFlags(module.spec.extraFlags, provider.config.kaniko?.extraFlags),
+    ...getKanikoFlags(spec.extraFlags, provider.config.kaniko?.extraFlags),
   ]
 
   if (provider.config.deploymentRegistry?.insecure === true) {
@@ -143,7 +143,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     args.push("--insecure")
   }
 
-  args.push(...getDockerBuildFlags(module))
+  args.push(...getDockerBuildFlags(action))
 
   const buildRes = await runKaniko({
     ctx,
@@ -152,23 +152,27 @@ export const kanikoBuild: BuildHandler = async (params) => {
     kanikoNamespace,
     utilNamespace: projectNamespace,
     authSecretName: authSecret.metadata.name,
-    module,
+    action,
     args,
   })
 
   const buildLog = buildRes.log
 
   if (kanikoBuildFailed(buildRes)) {
-    throw new BuildError(`Failed building module ${chalk.bold(module.name)}:\n\n${buildLog}`, { buildLog })
+    throw new BuildError(`Failed building ${chalk.bold(action.name)}:\n\n${buildLog}`, { buildLog })
   }
 
   log.silly(buildLog)
 
   return {
-    buildLog,
-    fetched: false,
-    fresh: true,
-    version: module.version.versionString,
+    state: "ready",
+    outputs,
+    detail: {
+      buildLog,
+      fetched: false,
+      fresh: true,
+      outputs,
+    },
   }
 }
 
@@ -198,6 +202,17 @@ export function kanikoBuildFailed(buildRes: RunResult) {
   )
 }
 
+interface RunKanikoParams {
+  ctx: PluginContext
+  provider: KubernetesProvider
+  kanikoNamespace: string
+  utilNamespace: string
+  authSecretName: string
+  log: Log
+  action: ContainerBuildAction
+  args: string[]
+}
+
 export function getKanikoBuilderPodManifest({
   provider,
   kanikoNamespace,
@@ -219,7 +234,7 @@ export function getKanikoBuilderPodManifest({
   podName: string
   commandStr: string
 }) {
-  const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
+  const kanikoImage = provider.config.kaniko?.image || defaultKanikoImageName
   const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
 
   const spec: V1PodSpec = {
@@ -292,46 +307,6 @@ export function getKanikoBuilderPodManifest({
     tolerations: kanikoTolerations,
   }
 
-  if (usingInClusterRegistry(provider)) {
-    spec.containers = spec.containers.concat([
-      getSocatContainer(provider),
-      // This is a workaround so that the kaniko executor can wait until socat starts, and so that the socat proxy
-      // doesn't just keep running after the build finishes. Doing this in the kaniko Pod is currently not possible
-      // because of https://github.com/GoogleContainerTools/distroless/issues/225
-      {
-        name: "support",
-        image: "busybox:1.31.1",
-        command: [
-          "sh",
-          "-c",
-          dedent`
-              while true; do
-                if pidof socat 2> /dev/null; then
-                  touch ${sharedMountPath}/socatStarted;
-                  break;
-                else
-                  sleep 0.3;
-                fi
-              done
-              while true; do
-                if ls ${sharedMountPath}/done 2> /dev/null; then
-                  killall socat; exit 0;
-                else
-                  sleep 0.3;
-                fi
-              done
-            `,
-        ],
-        volumeMounts: [
-          {
-            name: sharedVolumeName,
-            mountPath: sharedMountPath,
-          },
-        ],
-      },
-    ])
-  }
-
   const pod: KubernetesPod = {
     apiVersion: "v1",
     kind: "Pod",
@@ -353,21 +328,12 @@ async function runKaniko({
   utilNamespace,
   authSecretName,
   log,
-  module,
+  action,
   args,
-}: {
-  ctx: PluginContext
-  provider: KubernetesProvider
-  kanikoNamespace: string
-  utilNamespace: string
-  authSecretName: string
-  log: LogEntry
-  module: ContainerModule
-  args: string[]
-}): Promise<RunResult> {
+}: RunKanikoParams): Promise<RunResult> {
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const podName = makePodName("kaniko", module.name)
+  const podName = makePodName("kaniko", action.name)
 
   // Escape the args so that we can safely interpolate them into the kaniko command
   const argsStr = args.map((arg) => JSON.stringify(arg)).join(" ")
@@ -379,23 +345,8 @@ async function runKaniko({
     exit $exitcode;
   `
 
-  if (usingInClusterRegistry(provider)) {
-    // This may seem kind of insane but we have to wait until the socat proxy is up (because Kaniko immediately tries to
-    // reach the registry we plan on pushing to). See the support container in the Pod spec below for more on this
-    // hackery.
-    commandStr = dedent`
-      while true; do
-        if ls ${sharedMountPath}/socatStarted 2> /dev/null; then
-          ${commandStr}
-        else
-          sleep 0.3;
-        fi
-      done
-    `
-  }
-
   const utilHostname = `${utilDeploymentName}.${utilNamespace}.svc.cluster.local`
-  const sourceUrl = `rsync://${utilHostname}:${utilRsyncPort}/volume/${ctx.workingCopyId}/${module.name}/`
+  const sourceUrl = `rsync://${utilHostname}:${utilRsyncPort}/volume/${ctx.workingCopyId}/${action.name}/`
   const imagePullSecrets = await prepareSecrets({
     api,
     namespace: kanikoNamespace,
@@ -421,31 +372,27 @@ async function runKaniko({
     pod.spec.nodeSelector = provider.config.kaniko?.nodeSelector
   }
 
-  const logEventContext = {
-    origin: "kaniko",
-    log: log.placeholder({ level: LogLevel.verbose }),
-  }
-
   const runner = new PodRunner({
     ctx,
-    logEventContext,
+    logEventContext: {
+      origin: "kaniko",
+      level: "verbose",
+    },
     api,
     pod,
     provider,
     namespace: kanikoNamespace,
   })
 
+  const timeoutSec = action.getConfig("timeout")
+
   const result = await runner.runAndWait({
     log,
     remove: true,
     events: ctx.events,
-    timeoutSec: module.spec.build.timeout,
+    timeoutSec,
     tty: false,
   })
 
-  return {
-    ...result,
-    moduleName: module.name,
-    version: module.version.versionString,
-  }
+  return result
 }

@@ -11,25 +11,20 @@ import Bluebird from "bluebird"
 import {
   ConfigGraph,
   Garden,
-  GardenService,
-  LogEntry,
   PluginCommand,
   PluginCommandParams,
   PluginContext,
-  BuildTask,
-  PluginTask,
   GraphResults,
+  PluginActionTask,
 } from "@garden-io/sdk/types"
 
-import { PulumiModule, PulumiProvider } from "./config"
+import { PulumiDeploy, PulumiProvider } from "./config"
 import { Profile } from "@garden-io/core/build/src/util/profiling"
 import {
   cancelUpdate,
   getModifiedPlansDirPath,
   getPlanFileName,
   getPreviewDirPath,
-  OperationCounts,
-  PreviewResult,
   previewStack,
   PulumiParams,
   refreshResources,
@@ -38,43 +33,53 @@ import {
 } from "./helpers"
 import { dedent, deline } from "@garden-io/sdk/util/string"
 import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/util/cli"
-import { copy, writeJSON, emptyDir } from "fs-extra"
-import { ModuleConfigContext } from "@garden-io/core/build/src/config/template-contexts/module"
-import { splitLast } from "@garden-io/core/build/src/util/util"
-import { deletePulumiService } from "./handlers"
+import { copy, emptyDir } from "fs-extra"
 import { join } from "path"
-import { flatten, pickBy } from "lodash"
+import { isDeployAction } from "@garden-io/core/build/src/actions/deploy"
+import { ActionConfigContext } from "@garden-io/core/build/src/config/template-contexts/actions"
+import { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base"
+import { deletePulumiDeploy } from "./handlers"
+import { ActionLog, createActionLog, Log } from "@garden-io/core/build/src/logger/log-entry"
 
-interface PulumiParamsWithService extends PulumiParams {
-  service: GardenService
-}
+type PulumiBaseParams = Omit<PulumiParams, "action">
 
-type PulumiRunFn = (params: PulumiParamsWithService) => Promise<any>
+type PulumiRunFn = (params: PulumiParams) => Promise<any>
 
 interface PulumiCommandSpec {
   name: string
   commandDescription: string
-  beforeFn?: ({ ctx, log }: { ctx: PluginContext; log: LogEntry }) => Promise<any>
+  beforeFn?: ({ ctx, log }: { ctx: PluginContext; log: Log }) => Promise<any>
   runFn: PulumiRunFn
-  afterFn?: ({ ctx, log, results }: { ctx: PluginContext; log: LogEntry; results: GraphResults }) => Promise<any>
+  afterFn?: ({
+    ctx,
+    log,
+    results,
+    pulumiTasks,
+  }: {
+    ctx: PluginContext
+    log: Log
+    results: GraphResults
+    pulumiTasks: PulumiPluginCommandTask[]
+  }) => Promise<any>
 }
 
-interface TotalSummary {
-  /**
-   * The ISO timestamp of when the plan was completed.
-   */
-  completedAt: string
-  /**
-   * The total number of operations by step type (excluding `same` steps).
-   */
-  totalStepCounts: OperationCounts
-  /**
-   * A more detailed summary for each pulumi service affected by the plan.
-   */
-  results: {
-    [serviceName: string]: PreviewResult
-  }
-}
+// TODO-G2-thor: Re-enable and test when 0.13 is stable enough to run commands.
+// interface TotalSummary {
+//   /**
+//    * The ISO timestamp of when the plan was completed.
+//    */
+//   completedAt: string
+//   /**
+//    * The total number of operations by step type (excluding `same` steps).
+//    */
+//   totalStepCounts: OperationCounts
+//   /**
+//    * A more detailed summary for each pulumi service affected by the plan.
+//    */
+//   results: {
+//     [serviceName: string]: PreviewResult
+//   }
+// }
 
 const pulumiCommandSpecs: PulumiCommandSpec[] = [
   {
@@ -87,7 +92,7 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
       await emptyDir(previewDirPath)
     },
     runFn: async (params) => {
-      const { ctx, module, log } = params
+      const { ctx, action, log } = params
       const previewDirPath = getPreviewDirPath(ctx)
       const { affectedResourcesCount, operationCounts, previewUrl, planPath } = await previewStack({
         ...params,
@@ -98,7 +103,7 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
         // We copy the plan to a subdirectory of the preview dir.
         // This is to facilitate copying only those plans that aren't no-ops out of the preview dir for subsequent
         // use in a deployment.
-        const planFileName = getPlanFileName(module, ctx.environmentName)
+        const planFileName = getPlanFileName(action, ctx.environmentName)
         const modifiedPlanPath = join(getModifiedPlansDirPath(ctx), planFileName)
         await copy(planPath, modifiedPlanPath)
         log.debug(`Copied plan to ${modifiedPlanPath}`)
@@ -112,33 +117,31 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
         return null
       }
     },
-    afterFn: async ({ ctx, log, results }) => {
-      // No-op plans (i.e. where no resources were changed) are omitted here.
-      const pulumiTaskResults = Object.fromEntries(
-        Object.entries(pickBy(results, (r) => r && r.type === "plugin" && r.output)).map(([k, r]) => [
-          splitLast(k, ".")[1],
-          r ? r.output : null,
-        ])
-      )
-      const totalStepCounts: OperationCounts = {}
-      for (const result of Object.values(pulumiTaskResults)) {
-        const opCounts = (<PreviewResult>result).operationCounts
-        for (const [stepType, count] of Object.entries(opCounts)) {
-          totalStepCounts[stepType] = (totalStepCounts[stepType] || 0) + count
-        }
-      }
-      const totalSummary: TotalSummary = {
-        completedAt: new Date().toISOString(),
-        totalStepCounts,
-        results: pulumiTaskResults,
-      }
-      const previewDirPath = getPreviewDirPath(ctx)
-      const summaryPath = join(previewDirPath, "plan-summary.json")
-      await writeJSON(summaryPath, totalSummary, { spaces: 2 })
-      log.info("")
-      log.info(chalk.green(`Wrote plan summary to ${chalk.white(summaryPath)}`))
-      return totalSummary
-    },
+    // TODO-G2-thor: Re-enable and test when 0.13 is stable enough to run commands.
+    // afterFn: async ({ ctx, log, results, pulumiTasks }) => {
+    //   // No-op plans (i.e. where no resources were changed) are omitted here.
+    //   const pulumiTaskResults = Object.fromEntries(
+    //     pulumiTasks.map((t) => [t.getName(), results.getResult(t)?.outputs || null])
+    //   )
+    //   const totalStepCounts: OperationCounts = {}
+    //   for (const result of Object.values(pulumiTaskResults)) {
+    //     const opCounts = (<PreviewResult>result).operationCounts
+    //     for (const [stepType, count] of Object.entries(opCounts)) {
+    //       totalStepCounts[stepType] = (totalStepCounts[stepType] || 0) + count
+    //     }
+    //   }
+    //   const totalSummary: TotalSummary = {
+    //     completedAt: new Date().toISOString(),
+    //     totalStepCounts,
+    //     results: pulumiTaskResults,
+    //   }
+    //   const previewDirPath = getPreviewDirPath(ctx)
+    //   const summaryPath = join(previewDirPath, "plan-summary.json")
+    //   await writeJSON(summaryPath, totalSummary, { spaces: 2 })
+    //   log.info("")
+    //   log.info(chalk.green(`Wrote plan summary to ${chalk.white(summaryPath)}`))
+    //   return totalSummary
+    // },
   },
   {
     name: "cancel",
@@ -159,45 +162,37 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
     name: "destroy",
     commandDescription: "pulumi destroy",
     runFn: async (params) => {
-      if (params.module.spec.allowDestroy) {
-        await deletePulumiService(params)
+      if (params.action.getSpec("allowDestroy")) {
+        await deletePulumiDeploy!(params)
       }
     },
   },
 ]
 
-const makePluginContextForService = async (
-  params: PulumiParamsWithService & { garden: Garden; graph: ConfigGraph }
-) => {
-  const { log, garden, graph, service, provider, ctx } = params
-  const allProviders = await garden.resolveProviders(log)
-  const allModules = graph.getModules()
-  const templateContext = ModuleConfigContext.fromModule({
-    garden,
-    resolvedProviders: allProviders,
-    module: service.module,
-    modules: allModules,
-    partialRuntimeResolution: false,
-  })
-  const ctxForService = await garden.getPluginContext(provider, templateContext, ctx.events)
-  return ctxForService
+const makePluginContextForDeploy = async (params: PulumiParams & { garden: Garden; graph: ConfigGraph }) => {
+  const { garden, provider, ctx, action } = params
+  const templateContext = new ActionConfigContext(garden, action.getConfig())
+  const ctxForDeploy = await garden.getPluginContext({ provider, templateContext, events: ctx.events })
+  return ctxForDeploy
 }
 
 interface PulumiPluginCommandTaskParams {
   garden: Garden
   graph: ConfigGraph
-  log: LogEntry
+  log: ActionLog
+  action: PulumiDeploy
   commandName: string
   commandDescription: string
   skipRuntimeDependencies: boolean
   runFn: PulumiRunFn
-  pulumiParams: PulumiParamsWithService
+  pulumiParams: PulumiBaseParams
 }
 
+interface PulumiCommandResult extends ValidResultType {}
+
 @Profile()
-class PulumiPluginCommandTask extends PluginTask {
-  graph: ConfigGraph
-  pulumiParams: PulumiParamsWithService
+class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiCommandResult> {
+  pulumiParams: PulumiBaseParams
   commandName: string
   commandDescription: string
   skipRuntimeDependencies: boolean
@@ -207,14 +202,20 @@ class PulumiPluginCommandTask extends PluginTask {
     garden,
     graph,
     log,
+    action,
     commandName,
     commandDescription,
     skipRuntimeDependencies = false,
     runFn,
     pulumiParams,
   }: PulumiPluginCommandTaskParams) {
-    super({ garden, log, force: false, version: pulumiParams.service.version })
-    this.graph = graph
+    super({
+      garden,
+      log,
+      force: false,
+      action,
+      graph,
+    })
     this.commandName = commandName
     this.commandDescription = commandDescription
     this.skipRuntimeDependencies = skipRuntimeDependencies
@@ -224,81 +225,64 @@ class PulumiPluginCommandTask extends PluginTask {
     this.concurrencyLimit = provider.config.pluginTaskConcurrencyLimit
   }
 
-  getName() {
-    return this.pulumiParams.service.name
+  getDescription() {
+    return this.action.longDescription()
   }
 
-  getDescription(): string {
-    return `running ${chalk.white(this.commandName)} for ${this.pulumiParams.service.name}`
-  }
+  resolveDependencies() {
+    const pulumiDeployNames = this.graph
+      .getDeploys()
+      .filter((d) => d.type === "pulumi")
+      .map((d) => d.name)
 
-  async resolveDependencies() {
-    // We process any build dependencies, since by default we don't have a build step for plugin tasks.
-    const buildDeps = flatten(
-      await Bluebird.map(Object.values(this.pulumiParams.service.module.buildDependencies), async (depModule) => {
-        return BuildTask.factory({
-          garden: this.garden,
-          graph: this.graph,
-          log: this.log,
-          module: depModule,
-          force: false,
-        })
-      })
-    )
-
-    if (this.skipRuntimeDependencies) {
-      return [...buildDeps]
-    }
-
-    const pulumiServiceNames = this.graph
-      .getModules()
-      .filter((m) => m.type === "pulumi")
-      .map((m) => m.name) // module names are the same as service names for pulumi modules
-    const deployDeps = this.graph
+    const deps = this.graph
       .getDependencies({
-        nodeType: "deploy",
+        kind: "Deploy",
         name: this.getName(),
         recursive: false,
-        filter: (depNode) => pulumiServiceNames.includes(depNode.name),
+        filter: (depNode) => pulumiDeployNames.includes(depNode.name),
       })
-      .deploy.map((depService) => {
-        return new PulumiPluginCommandTask({
-          garden: this.garden,
-          graph: this.graph,
-          log: this.log,
-          commandName: this.commandName,
-          commandDescription: this.commandDescription,
-          skipRuntimeDependencies: this.skipRuntimeDependencies,
-          runFn: this.runFn,
-          pulumiParams: { ...this.pulumiParams, module: depService.module, service: depService },
-        })
+      .filter(isDeployAction)
+
+    const tasks = deps.map((action) => {
+      return new PulumiPluginCommandTask({
+        garden: this.garden,
+        graph: this.graph,
+        log: this.log,
+        action,
+        commandName: this.commandName,
+        commandDescription: this.commandDescription,
+        skipRuntimeDependencies: this.skipRuntimeDependencies,
+        runFn: this.runFn,
+        pulumiParams: this.pulumiParams,
       })
-    return [...buildDeps, ...deployDeps]
+    })
+
+    return [this.getResolveTask(this.action), ...tasks]
   }
 
-  async process(): Promise<{}> {
-    const log = this.log.info({
-      section: this.getName(),
-      msg: chalk.gray(`Running ${chalk.white(this.commandDescription)}`),
-      status: "active",
-    })
+  async getStatus() {
+    return null
+  }
+
+  async process({ dependencyResults }: ActionTaskProcessParams<PulumiDeploy, PulumiCommandResult>) {
+    this.log.info(chalk.gray(`Running ${chalk.white(this.commandDescription)}`))
+
+    const params = { ...this.pulumiParams, action: this.getResolvedAction(this.action, dependencyResults) }
+
     try {
-      await selectStack(this.pulumiParams)
+      await selectStack(params)
       // We need to make sure that the template resolution context is specific to this service's module.
-      const ctxForService = await makePluginContextForService({
-        ...this.pulumiParams,
+      const ctxForService = await makePluginContextForDeploy({
+        ...params,
         garden: this.garden,
         graph: this.graph,
       })
-      const result = await this.runFn({ ...this.pulumiParams, ctx: ctxForService })
-      log.setSuccess({
-        msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`),
-      })
+      const result = await this.runFn({ ...params, ctx: ctxForService })
+      this.log.success("Success")
       return result
     } catch (err) {
-      log.setError({
-        msg: chalk.red(`Failed! (took ${log.getDuration(1)} sec)`),
-      })
+      this.log.error("Failed")
       throw err
     }
   }
@@ -314,30 +298,26 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
     "skip-dependencies": new BooleanParameter({
       help: deline`Run ${pulumiCommand} for the specified services, but not for any pulumi services that they depend on
       (unless they're specified too).`,
-      alias: "nodeps",
+      aliases: ["nodeps"],
     }),
   }
 
   return {
     name,
     description: dedent`
-      Runs ${pulumiCommand} for the specified pulumi services, in dependency order (or for all pulumi services if no
-      service names are provided).
+      Runs ${pulumiCommand} for the specified pulumi actions, in dependency order (or for all pulumi actions if no
+      names are provided).
 
-      If the --skip-dependencies option is used, ${pulumiCommand} will only be run for the specified services, but not
-      any pulumi services that they depend on (unless they're specified too).
+      If the --skip-dependencies option is used, ${pulumiCommand} will only be run for the specified actions, but not any pulumi actions that they depend on (unless they're specified too).
 
       Note: The --skip-dependencies option has to be put after the -- when invoking pulumi plugin commands.
     `,
-    // We don't want to call `garden.getConfigGraph` twice (we need to do it in the handler anyway)
-    resolveModules: false,
+    resolveGraph: true,
 
     title: ({ args }) =>
-      chalk.bold.magenta(`Running ${chalk.white.bold(pulumiCommand)} for module ${chalk.white.bold(args[0] || "")}`),
+      chalk.bold.magenta(`Running ${chalk.white.bold(pulumiCommand)} for actions ${chalk.white.bold(args[0] || "")}`),
 
-    async handler({ garden, ctx, args, log }: PluginCommandParams) {
-      const graph = await garden.getConfigGraph({ log, emit: false })
-
+    async handler({ garden, ctx, args, log, graph }: PluginCommandParams) {
       const parsed = parsePluginCommandArgs({
         stringArgs: args,
         optionSpec: pulumiCommandOpts,
@@ -345,27 +325,29 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
       })
       const { args: parsedArgs, opts } = parsed
       const skipRuntimeDependencies = opts["skip-dependencies"]
-      const serviceNames = parsedArgs.length === 0 ? undefined : parsedArgs
+      const names = parsedArgs.length === 0 ? undefined : parsedArgs
 
       beforeFn && (await beforeFn({ ctx, log }))
 
       const provider = ctx.provider as PulumiProvider
-      const services = graph.getServices({ names: serviceNames }).filter((s) => s.module.type === "pulumi")
 
-      const tasks = await Bluebird.map(services, async (service) => {
-        const pulumiParams: PulumiParamsWithService = {
-          ctx,
+      const actions = graph.getDeploys({ names }).filter((a) => a.type === "pulumi")
+
+      const tasks = await Bluebird.map(actions, async (action) => {
+        const templateContext = new ActionConfigContext(garden, action.getConfig())
+        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+
+        const pulumiParams: PulumiBaseParams = {
+          ctx: await garden.getPluginContext({ provider, templateContext, events: ctx.events }),
           provider,
-          log,
-          module: <PulumiModule>service.module,
-          service,
+          log: actionLog,
         }
-        // TODO: Generate a non-empty runtime context to provide runtime values for template resolution in varfiles.
-        // This will require processing deploy & task dependencies (also for non-pulumi modules).
+
         return new PulumiPluginCommandTask({
           garden,
           graph,
-          log,
+          log: actionLog,
+          action,
           commandName: name,
           commandDescription,
           skipRuntimeDependencies,
@@ -374,11 +356,11 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
         })
       })
 
-      const results = await garden.processTasks(tasks)
+      const results = (await garden.processTasks({ log, tasks, throwOnError: true })).results
 
       let commandResult: any = {}
       if (afterFn) {
-        commandResult = await afterFn({ ctx, log, results })
+        commandResult = await afterFn({ ctx, log, results, pulumiTasks: tasks })
       }
 
       return { result: commandResult }

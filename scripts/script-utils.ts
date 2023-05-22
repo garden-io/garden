@@ -5,7 +5,7 @@ import { mapValues, pickBy } from "lodash";
 import minimatch from "minimatch"
 import { resolve } from "path"
 
-export const yarnPath = resolve(__dirname, "..", ".yarn", "releases", "yarn-1.22.5.js")
+export const yarnPath = resolve(__dirname, "..", ".yarn", "releases", "yarn-1.22.19.js")
 
 export async function getPackages({ scope, ignore }: { scope?: string; ignore?: string } = {}) {
   let packages = JSON.parse((await execa("node", [yarnPath, "--silent", "workspaces", "info"])).stdout)

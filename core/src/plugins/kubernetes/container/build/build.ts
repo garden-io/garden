@@ -6,38 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModule } from "../../../container/config"
-import { containerHelpers } from "../../../container/helpers"
-import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/module/getBuildStatus"
-import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
+import { ContainerBuildAction } from "../../../container/moduleConfig"
 import { KubernetesProvider, ContainerBuildMode } from "../../config"
 import { getKanikoBuildStatus, kanikoBuild } from "./kaniko"
-import { clusterDockerBuild, getClusterDockerBuildStatus } from "./cluster-docker"
 import { getLocalBuildStatus, localBuild } from "./local"
 import { BuildStatusHandler, BuildHandler } from "./common"
 import { buildkitBuildHandler, getBuildkitBuildStatus } from "./buildkit"
+import { BuildActionHandler } from "../../../../plugin/action-types"
 
-export async function k8sGetContainerBuildStatus(params: GetBuildStatusParams<ContainerModule>): Promise<BuildStatus> {
-  const { ctx, module } = params
+export const k8sGetContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async (params) => {
+  const { ctx } = params
   const provider = <KubernetesProvider>ctx.provider
-
-  const hasDockerfile = containerHelpers.hasDockerfile(module, module.version)
-
-  if (!hasDockerfile) {
-    // Nothing to build
-    return { ready: true }
-  }
 
   const handler = buildStatusHandlers[provider.config.buildMode]
   return handler(params)
 }
 
-export async function k8sBuildContainer(params: BuildModuleParams<ContainerModule>): Promise<BuildResult> {
-  const { ctx, module } = params
-
-  if (!containerHelpers.hasDockerfile(module, module.version)) {
-    return {}
-  }
+export const k8sBuildContainer: BuildActionHandler<"build", ContainerBuildAction> = async (params) => {
+  const { ctx } = params
 
   const provider = <KubernetesProvider>ctx.provider
   const handler = buildHandlers[provider.config.buildMode]
@@ -48,13 +34,11 @@ export async function k8sBuildContainer(params: BuildModuleParams<ContainerModul
 const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } = {
   "local-docker": getLocalBuildStatus,
   "cluster-buildkit": getBuildkitBuildStatus,
-  "cluster-docker": getClusterDockerBuildStatus,
   "kaniko": getKanikoBuildStatus,
 }
 
 const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
   "local-docker": localBuild,
   "cluster-buildkit": buildkitBuildHandler,
-  "cluster-docker": clusterDockerBuild,
   "kaniko": kanikoBuild,
 }

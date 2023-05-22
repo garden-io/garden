@@ -21,6 +21,7 @@ import { resolveTemplateStrings } from "../../../../../src/template-string/templ
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
+
 interface TestValues {
   [key: string]: TestValue
 }
@@ -52,26 +53,24 @@ describe("ConfigContext", () => {
       const c = new TestContext({})
       const { resolved, message } = resolveKey(c, ["basic"])
       expect(resolved).to.be.undefined
-      expect(stripAnsi(message!)).to.equal("Could not find key basic.")
+      expect(stripAnsi(message!)).to.include("Could not find key basic.")
     })
 
     context("allowPartial=true", () => {
       it("should throw on missing key when allowPartial=true", async () => {
         const c = new TestContext({})
-        expectError(
-          () => resolveKey(c, ["basic"], { allowPartial: true }),
-          (err) => expect(stripAnsi(err.message)).to.equal("Could not find key basic.")
-        )
+        expectError(() => resolveKey(c, ["basic"], { allowPartial: true }), {
+          contains: "Could not find key basic.",
+        })
       })
 
       it("should throw on missing key on nested context", async () => {
         const c = new TestContext({
           nested: new TestContext({ key: "value" }),
         })
-        expectError(
-          () => resolveKey(c, ["nested", "bla"], { allowPartial: true }),
-          (err) => expect(stripAnsi(err.message)).to.equal("Could not find key bla under nested. Available keys: key.")
-        )
+        expectError(() => resolveKey(c, ["nested", "bla"], { allowPartial: true }), {
+          contains: "Could not find key bla under nested. Available keys: key.",
+        })
       })
     })
 
@@ -142,6 +141,7 @@ describe("ConfigContext", () => {
           return c.resolve({ key: circularKey, nodePath: [], opts })
         }
       }
+
       const c = new TestContext({
         nested: new NestedContext(),
       })
@@ -157,9 +157,10 @@ describe("ConfigContext", () => {
           this.nested = new Map()
         }
       }
+
       const c = new Context()
       const { message } = resolveKey(c, ["nested", "bla"])
-      expect(stripAnsi(message!)).to.equal("Could not find key bla under nested.")
+      expect(stripAnsi(message!)).to.include("Could not find key bla under nested.")
     })
 
     it("should show helpful error when unable to resolve nested key in object", async () => {
@@ -171,9 +172,10 @@ describe("ConfigContext", () => {
           this.nested = {}
         }
       }
+
       const c = new Context()
       const { message } = resolveKey(c, ["nested", "bla"])
-      expect(stripAnsi(message!)).to.equal("Could not find key bla under nested.")
+      expect(stripAnsi(message!)).to.include("Could not find key bla under nested.")
     })
 
     it("should show helpful error when unable to resolve two-level nested key in object", async () => {
@@ -185,13 +187,15 @@ describe("ConfigContext", () => {
           this.nested = { deeper: {} }
         }
       }
+
       const c = new Context()
       const { message } = resolveKey(c, ["nested", "deeper", "bla"])
-      expect(stripAnsi(message!)).to.equal("Could not find key bla under nested.deeper.")
+      expect(stripAnsi(message!)).to.include("Could not find key bla under nested.deeper.")
     })
 
     it("should show helpful error when unable to resolve in nested context", async () => {
       class Nested extends ConfigContext {}
+
       class Context extends ConfigContext {
         nested: ConfigContext
 
@@ -200,9 +204,10 @@ describe("ConfigContext", () => {
           this.nested = new Nested(this)
         }
       }
+
       const c = new Context()
       const { message } = resolveKey(c, ["nested", "bla"])
-      expect(stripAnsi(message!)).to.equal("Could not find key bla under nested.")
+      expect(stripAnsi(message!)).to.include("Could not find key bla under nested.")
     })
 
     it("should resolve template strings", async () => {
@@ -261,13 +266,10 @@ describe("ConfigContext", () => {
       })
       const nested: any = new TestContext({ key: "${'${nested.key}'}" }, c)
       c.addValues({ nested })
-      expectError(
-        () => resolveKey(c, ["nested", "key"]),
-        (err) =>
-          expect(err.message).to.equal(
-            "Invalid template string (${'${nested.key}'}): Invalid template string (${nested.key}): Circular reference detected when resolving key nested.key (nested -> nested.key)"
-          )
-      )
+      expectError(() => resolveKey(c, ["nested", "key"]), {
+        contains:
+          "Invalid template string (${'${nested.key}'}): Invalid template string (${nested.key}): Circular reference detected when resolving key nested.key (nested -> nested.key)",
+      })
     })
   })
 

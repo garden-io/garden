@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-conftest-container",
-  "version": "0.12.56",
+  "version": "0.12.51",
   "description": "Auto-generator for the conftest plugin and Garden container modules",
   "main": "index.js",
   "dependencies": {
@@ -12,16 +12,16 @@
     "slash": "^3.0.0"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.12",
+    "@types/chai": "^4.3.4",
     "@types/node": "^18",
-    "chai": "^4.2.0",
-    "mocha": "^8.1.2",
-    "source-map-support": "^0.5.19",
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
+    "source-map-support": "^0.5.21",
     "strip-ansi": "^6.0.0"
   },
   "scripts": {
     "fix-format": "prettier --write \"**/*.ts\"",
-    "lint": "tslint -p .",
+    "lint": "eslint -c ../../.eslintrc  --ext .ts .",
     "test": "mocha"
   },
   "author": "Garden Technologies, Inc. <info@garden.io>",

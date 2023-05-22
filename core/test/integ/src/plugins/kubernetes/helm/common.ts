@@ -6,29 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dataDir, expectError, makeTestGarden, TestGarden } from "../../../../../helpers"
+import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
 import { resolve } from "path"
 import { expect } from "chai"
 import { first, uniq } from "lodash"
 import {
-  containsSource,
   getBaseModule,
   getChartPath,
   getChartResources,
-  getGardenValuesPath,
   getReleaseName,
   getValueArgs,
+  prepareTemplates,
   renderTemplates,
 } from "../../../../../../src/plugins/kubernetes/helm/common"
-import { LogEntry } from "../../../../../../src/logger/log-entry"
+import { Log } from "../../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../../src/tasks/build"
 import { dedent, deline } from "../../../../../../src/util/string"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
 import { safeLoadAll } from "js-yaml"
 import { Garden } from "../../../../../../src"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { getIngressApiVersion } from "../../../../../../src/plugins/kubernetes/container/ingress"
+import { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config"
+import { loadAllYaml, loadYaml } from "@kubernetes/client-node"
+import { readdir, readFile } from "fs-extra"
 
 let helmTestGarden: TestGarden
 
@@ -37,7 +39,7 @@ export async function getHelmTestGarden() {
     return helmTestGarden
   }
 
-  const projectRoot = resolve(dataDir, "test-projects", "helm")
+  const projectRoot = getDataDir("test-projects", "helm")
   const garden = await makeTestGarden(projectRoot)
 
   helmTestGarden = garden
@@ -52,7 +54,7 @@ export async function getHelmLocalModeTestGarden() {
     return helmLocalModeTestGarden
   }
 
-  const projectRoot = resolve(dataDir, "test-projects", "helm-local-mode")
+  const projectRoot = getDataDir("test-projects", "helm-local-mode")
   const garden = await makeTestGarden(projectRoot)
 
   helmLocalModeTestGarden = garden
@@ -61,19 +63,18 @@ export async function getHelmLocalModeTestGarden() {
 }
 
 export async function buildHelmModules(garden: Garden | TestGarden, graph: ConfigGraph) {
-  const modules = graph.getModules()
-  const tasks = modules.map(
-    (module) =>
+  const actions = graph.getBuilds()
+  const tasks = actions.map(
+    (action) =>
       new BuildTask({
         garden,
         graph,
         log: garden.log,
-        module,
+        action,
         force: false,
-        _guard: true,
       })
   )
-  const results = await garden.processTasks(tasks)
+  const results = await garden.processTasks({ tasks, log: garden.log })
 
   const err = first(Object.values(results).map((r) => r && r.error))
 
@@ -88,12 +89,16 @@ describe("Helm common functions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
-  let log: LogEntry
+  let log: Log
 
   before(async () => {
     garden = await getHelmTestGarden()
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = (await garden.getPluginContext(provider)) as KubernetesPluginContext
+    ctx = (await garden.getPluginContext({
+      provider,
+      templateContext: undefined,
+      events: undefined,
+    })) as KubernetesPluginContext
     log = garden.log
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     await buildHelmModules(garden, graph)
@@ -103,30 +108,15 @@ describe("Helm common functions", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
-  describe("containsSource", () => {
-    it("should return true if the specified module contains chart sources", async () => {
-      const module = graph.getModule("api")
-      expect(await containsSource(module)).to.be.true
-    })
-
-    it("should return false if the specified module does not contain chart sources", async () => {
-      const module = graph.getModule("postgres")
-      expect(await containsSource(module)).to.be.false
-    })
-  })
-
   describe("renderTemplates", () => {
     it("should render and return the manifests for a local template", async () => {
-      const module = graph.getModule("api")
-      const imageModule = graph.getModule("api-image")
+      const deployAction = graph.getDeploy("api")
+      const buildImageAction = graph.getBuild("api-image")
       const templates = await renderTemplates({
         ctx,
-        module,
-        devMode: false,
-        hotReload: false,
-        localMode: false,
+        action: await garden.resolveAction<HelmDeployAction>({ action: deployAction, log, graph }),
+
         log,
-        version: module.version.versionString,
       })
 
       const api = await KubeApi.factory(log, ctx, ctx.provider)
@@ -226,9 +216,10 @@ spec:
         app.kubernetes.io/name: api
         app.kubernetes.io/instance: api-release
     spec:
+      shareProcessNamespace: true
       containers:
         - name: api
-          image: "api-image:${imageModule.version.versionString}"
+          image: "api-image:${buildImageAction.versionString()}"
           imagePullPolicy: IfNotPresent
           args: [python, app.py]
           ports:
@@ -239,21 +230,23 @@ spec:
             {}
 ---
 ${expectedIngressOutput}
-      `
-
-      expect(templates.trim()).to.eql(expected.trim())
+`
+      const resultArr = loadAllYaml(templates.trim())
+      const expectedArr = loadAllYaml(expected.trim())
+      expect(resultArr.length).to.eql(expectedArr.length)
+      resultArr.forEach((result, i) => {
+        const message = result.kind
+        expect(result, message).to.eql(expectedArr[i])
+      })
     })
 
     it("should render and return the manifests for a remote template", async () => {
-      const module = graph.getModule("postgres")
+      const action = graph.getDeploy("postgres")
       const templates = await renderTemplates({
         ctx,
-        module,
-        devMode: false,
-        hotReload: false,
-        localMode: false,
+        action: await garden.resolveAction({ action, log, graph }),
+
         log,
-        version: module.version.versionString,
       })
 
       // The exact output will vary by K8s versions so we just validate that we get valid YAML and
@@ -268,15 +261,12 @@ ${expectedIngressOutput}
 
   describe("getChartResources", () => {
     it("should render and return resources for a local template", async () => {
-      const module = graph.getModule("api")
+      const action = graph.getDeploy("api")
       const resources = await getChartResources({
         ctx,
-        module,
-        devMode: false,
-        hotReload: false,
-        localMode: false,
+        action: await garden.resolveAction<HelmDeployAction>({ action, log, graph }),
+
         log,
-        version: module.version.versionString,
       })
 
       const api = await KubeApi.factory(log, ctx, ctx.provider)
@@ -413,6 +403,7 @@ ${expectedIngressOutput}
                 },
               },
               spec: {
+                shareProcessNamespace: true,
                 containers: [
                   {
                     name: "api",
@@ -438,15 +429,12 @@ ${expectedIngressOutput}
     })
 
     it("should render and return resources for a remote template", async () => {
-      const module = graph.getModule("postgres")
+      const action = graph.getDeploy("postgres")
       const resources = await getChartResources({
         ctx,
-        module,
-        devMode: false,
-        hotReload: false,
-        localMode: false,
+        action: await garden.resolveAction({ action, log, graph }),
+
         log,
-        version: module.version.versionString,
       })
 
       // The exact output will vary by K8s versions so we just validate that we get valid YAML and
@@ -458,30 +446,24 @@ ${expectedIngressOutput}
     })
 
     it("should handle duplicate keys in template", async () => {
-      const module = graph.getModule("duplicate-keys-in-template")
+      const action = graph.getDeploy("duplicate-keys-in-template")
       expect(
         await getChartResources({
           ctx,
-          module,
-          devMode: false,
-          hotReload: false,
-          localMode: false,
+          action: await garden.resolveAction({ action, log, graph }),
+
           log,
-          version: module.version.versionString,
         })
       ).to.not.throw
     })
 
     it("should filter out resources with hooks", async () => {
-      const module = graph.getModule("chart-with-test-pod")
+      const action = graph.getDeploy("chart-with-test-pod")
       const resources = await getChartResources({
         ctx,
-        module,
-        devMode: false,
-        hotReload: false,
-        localMode: false,
+        action: await garden.resolveAction({ action, log, graph }),
+
         log,
-        version: module.version.versionString,
       })
 
       expect(resources).to.eql([
@@ -511,13 +493,13 @@ ${expectedIngressOutput}
 
   describe("getBaseModule", () => {
     it("should return undefined if no base module is specified", async () => {
-      const module = graph.getModule("api")
+      const module = graph.getModule("postgres")
 
       expect(await getBaseModule(module)).to.be.undefined
     })
 
     it("should return the resolved base module if specified", async () => {
-      const module = graph.getModule("api")
+      const module = graph.getModule("two-containers")
       const baseModule = graph.getModule("postgres")
 
       module.spec.base = baseModule.name
@@ -527,7 +509,7 @@ ${expectedIngressOutput}
     })
 
     it("should throw if the base module isn't in the build dependency map", async () => {
-      const module = graph.getModule("api")
+      const module = graph.getModule("two-containers")
 
       module.spec.base = "postgres"
 
@@ -535,13 +517,13 @@ ${expectedIngressOutput}
         () => getBaseModule(module),
         (err) =>
           expect(err.message).to.equal(
-            deline`Helm module 'api' references base module 'postgres' but it is missing from the module's build dependencies.`
+            deline`Helm module 'two-containers' references base module 'postgres' but it is missing from the module's build dependencies.`
           )
       )
     })
 
     it("should throw if the base module isn't a Helm module", async () => {
-      const module = graph.getModule("api")
+      const module = graph.getModule("two-containers")
       const baseModule = graph.getModule("postgres")
 
       baseModule.type = "foo"
@@ -553,7 +535,7 @@ ${expectedIngressOutput}
         () => getBaseModule(module),
         (err) =>
           expect(err.message).to.equal(
-            deline`Helm module 'api' references base module 'postgres' which is a 'foo' module,
+            deline`Helm module 'two-containers' references base module 'postgres' which is a 'foo' module,
             but should be a helm module.`
           )
       )
@@ -561,124 +543,195 @@ ${expectedIngressOutput}
   })
 
   describe("getChartPath", () => {
-    context("module has chart sources", () => {
-      it("should return the chart path in the build directory", async () => {
-        const module = graph.getModule("api")
-        expect(await getChartPath(module)).to.equal(resolve(ctx.projectRoot, ".garden", "build", "api"))
+    context("action has chart sources", () => {
+      it("should return the chart path", async () => {
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+        expect(await getChartPath(action)).to.equal(resolve(ctx.projectRoot, "api"))
       })
     })
 
-    context("module references remote chart", () => {
-      it("should construct the chart path based on the chart name", async () => {
-        const module = graph.getModule("postgres")
-        expect(await getChartPath(module)).to.equal(
-          resolve(ctx.projectRoot, ".garden", "build", "postgres", "postgresql")
-        )
+    context("action references remote chart", () => {
+      it("should return undefined", async () => {
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
+        expect(await getChartPath(action)).to.be.undefined
       })
-    })
-  })
-
-  describe("getGardenValuesPath", () => {
-    it("should add garden-values.yml to the specified path", () => {
-      expect(getGardenValuesPath(ctx.projectRoot)).to.equal(resolve(ctx.projectRoot, "garden-values.yml"))
     })
   })
 
   describe("getValueArgs", () => {
+    const gardenValuesPath = "/tmp/foo"
+
     it("should return just garden-values.yml if no valueFiles are configured", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, false, false, false)).to.eql(["--values", gardenValuesPath])
-    })
-
-    it("should add a --set flag if devMode=true", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, true, false, false)).to.eql([
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+      action["_config"].spec.valueFiles = []
+      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
-        "\\.garden.devMode=true",
+        "\\.garden.mode=default",
       ])
     })
 
-    it("should add a --set flag if hotReload=true", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, false, true, false)).to.eql([
+    it("should add a --set flag if in sync mode", async () => {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.api"] } })
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+      action["_config"].spec.valueFiles = []
+      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
-        "\\.garden.hotReload=true",
+        "\\.garden.mode=sync",
       ])
     })
 
-    it("should add a --set flag if localMode=true", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, false, false, true)).to.eql([
+    it("should add a default --set flag if the aciton doesn't support it's mode", async () => {
+      // local mode is not configured for the api deploy
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { local: ["deploy.api"] } })
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+      action["_config"].spec.valueFiles = []
+      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
-        "\\.garden.localMode=true",
-      ])
-    })
-
-    it("localMode should always take precedence over devMode when add a --set flag", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, true, false, true)).to.eql([
-        "--values",
-        gardenValuesPath,
-        "--set",
-        "\\.garden.localMode=true",
+        "\\.garden.mode=default",
       ])
     })
 
     it("should return a --values arg for each valueFile configured", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = ["foo.yaml", "bar.yaml"]
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+      action["_config"].spec.valueFiles = ["foo.yaml", "bar.yaml"]
 
-      expect(await getValueArgs(module, false, false, false)).to.eql([
+      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
-        resolve(module.buildPath, "foo.yaml"),
+        resolve(action.getBuildPath(), "foo.yaml"),
         "--values",
-        resolve(module.buildPath, "bar.yaml"),
+        resolve(action.getBuildPath(), "bar.yaml"),
         "--values",
         gardenValuesPath,
+        "--set",
+        "\\.garden.mode=default",
       ])
     })
 
     it("should allow relative paths for valueFiles", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = ["../relative.yaml"]
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+      action["_config"].spec.valueFiles = ["../relative.yaml"]
 
-      expect(await getValueArgs(module, false, false, false)).to.eql([
+      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
-        resolve(module.buildPath, "../relative.yaml"),
+        resolve(action.getBuildPath(), "../relative.yaml"),
         "--values",
         gardenValuesPath,
+        "--set",
+        "\\.garden.mode=default",
       ])
     })
   })
 
   describe("getReleaseName", () => {
     it("should return the module name if not overridden in config", async () => {
-      const module = graph.getModule("api")
-      delete module.spec.releaseName
-      expect(getReleaseName(module)).to.equal("api")
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+      delete action["_config"].spec.releaseName
+      expect(getReleaseName(action)).to.equal("api")
     })
 
     it("should return the configured release name if any", async () => {
-      const module = graph.getModule("api")
-      expect(getReleaseName(module)).to.equal("api-release")
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+      expect(getReleaseName(action)).to.equal("api-release")
+    })
+  })
+
+  describe("prepareTemplates", () => {
+    const getFileData = async (path: string) => loadYaml((await readFile(path)).toString())
+
+    it("writes values to a temp file and returns path", async () => {
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+
+      const { valuesPath } = await prepareTemplates({ ctx, log, action })
+
+      expect(valuesPath).to.not.be.undefined
+      const data = await getFileData(valuesPath)
+      expect(data).to.ownProperty(".garden")
+      expect(data).to.ownProperty("image")
+    })
+
+    context("chart.path is set", () => {
+      it("sets reference to chart path", async () => {
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+        action._config.spec.chart = { path: "." }
+
+        const { reference } = await prepareTemplates({ ctx, log, action })
+
+        expect(reference.length).to.eql(1)
+        expect(reference[0]).to.include("/api")
+        const pathFiles = await readdir(reference[0])
+        expect(pathFiles).to.include("Chart.yaml")
+      })
+
+      it("updates dependencies for local charts", async () => {
+        const action = await garden.resolveAction<HelmDeployAction>({
+          action: graph.getDeploy("chart-with-dependency"),
+          log,
+          graph,
+        })
+
+        const l = log as any
+        l.entries = []
+
+        await prepareTemplates({ ctx, log, action })
+
+        const helmDependencyUpdateLogLine = log.entries.find(
+          ({ msg }) =>
+            msg?.includes("helm") && msg?.includes("dependency update") && msg.includes("chart-with-dependency")
+        )
+        expect(helmDependencyUpdateLogLine).to.exist
+      })
+    })
+
+    context("chart.url is set", () => {
+      it("sets reference to chart.url", async () => {
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
+        action._config.spec.chart = { url: "https://example.com" }
+
+        const { reference } = await prepareTemplates({ ctx, log, action })
+
+        expect(reference).to.eql(["https://example.com"])
+      })
+
+      it("adds --version flag if chart.version is set", async () => {
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
+        action._config.spec.chart = { url: "https://example.com", version: "1.1.1" }
+
+        const { reference } = await prepareTemplates({ ctx, log, action })
+
+        expect(reference.join(" ")).to.eql("https://example.com --version 1.1.1")
+      })
+    })
+
+    context("chart.name is set", () => {
+      it("sets reference to chart.name", async () => {
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
+
+        const { reference } = await prepareTemplates({ ctx, log, action })
+
+        expect(reference.join(" ")).to.include("postgresql")
+      })
+
+      it("adds --version flag if chart.version is set", async () => {
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
+
+        const { reference } = await prepareTemplates({ ctx, log, action })
+
+        expect(reference.join(" ")).to.include("--version 12.4.2")
+      })
+
+      it("adds --repo flag if chart.repo is set", async () => {
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
+
+        const { reference } = await prepareTemplates({ ctx, log, action })
+
+        expect(reference.join(" ")).to.include("--repo https://charts.bitnami.com/bitnami")
+      })
     })
   })
 })

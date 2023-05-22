@@ -7,7 +7,7 @@
  */
 
 import { configureProvider, configSchema } from "./config"
-import { createGardenPlugin } from "../../../types/plugin/plugin"
+import { createGardenPlugin } from "../../../plugin/plugin"
 import { dedent } from "../../../util/string"
 import { DOCS_BASE_URL } from "../../../constants"
 

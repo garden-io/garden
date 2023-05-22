@@ -40,10 +40,9 @@ describe("util", () => {
           files: [],
         },
       }
-      expectError(
-        () => detectProjectType(module),
-        (err) => expect(err.message).to.equal("Could not detect a gradle or maven project to build module foo")
-      )
+      void expectError(() => detectProjectType(module), {
+        contains: "Could not detect a gradle or maven project to build module foo",
+      })
     })
   })
 
@@ -73,6 +72,7 @@ describe("util", () => {
         "jib",
         "-Djib.to.image=" + imageId,
         "-Djib.container.args=GARDEN_MODULE_VERSION=" + versionString,
+        "-Djib.container.args=GARDEN_ACTION_VERSION=" + versionString,
         "-Dstyle.color=always",
         "-Djansi.passthrough=true",
         "-Djib.console=plain",
@@ -173,7 +173,7 @@ describe("util", () => {
 
       const { args } = getBuildFlags(module, "maven")
 
-      expect(args).to.include("-Djib.container.args=GARDEN_MODULE_VERSION=" + versionString + ",foo=bar")
+      expect(args).to.include("-Djib.container.args=GARDEN_ACTION_VERSION=" + versionString + ",foo=bar")
     })
 
     it("sets OCI tar format if tarOnly and tarFormat=oci are set", () => {
@@ -234,6 +234,7 @@ describe("util", () => {
           "jibBuildTar",
           "-Djib.to.image=" + imageId,
           "-Djib.container.args=GARDEN_MODULE_VERSION=" + versionString,
+          "-Djib.container.args=GARDEN_ACTION_VERSION=" + versionString,
           "-Dstyle.color=always",
           "-Djansi.passthrough=true",
           "-Djib.console=plain",

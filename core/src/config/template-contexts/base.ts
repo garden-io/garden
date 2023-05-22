@@ -15,10 +15,9 @@ import {
   TemplateStringMissingKeyException,
   TemplateStringPassthroughException,
 } from "../../template-string/template-string"
-import { joi } from "../common"
+import { CustomObjectSchema, isPrimitive, joi, joiIdentifier } from "../common"
 import { KeyedSet } from "../../util/keyed-set"
 import { naturalList } from "../../util/string"
-import { isPrimitive } from "util"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -48,6 +47,11 @@ export function schema(joiSchema: Joi.Schema) {
   return (target: any, propName: string) => {
     target.constructor._schemas = { ...(target.constructor._schemas || {}), [propName]: joiSchema }
   }
+}
+
+export interface ConfigContextType {
+  new (...params: any[]): ConfigContext
+  getSchema(): CustomObjectSchema
 }
 
 // Note: we're using classes here to be able to use decorators to describe each context node and key
@@ -183,8 +187,9 @@ export abstract class ConfigContext {
         }
         message += chalk.red(".")
 
-        if (available && available.length) {
-          message += chalk.red(" Available keys: " + naturalList(available.sort().map((k) => chalk.white(k))) + ".")
+        if (available) {
+          const availableStr = available.length ? naturalList(available.sort().map((k) => chalk.white(k))) : "(none)"
+          message += chalk.red(" Available keys: " + availableStr + ".")
         }
         const messageFooter = this.getMissingKeyErrorFooter(nextKey, nestedNodePath.slice(0, -1))
         if (messageFooter) {
@@ -296,6 +301,26 @@ export class ErrorContext extends ConfigContext {
 
   resolve({}): ContextResolveOutput {
     throw new ConfigurationError(this.message, {})
+  }
+}
+
+export class ParentContext extends ConfigContext {
+  @schema(joiIdentifier().description(`The name of the parent config.`))
+  public name: string
+
+  constructor(root: ConfigContext, name: string) {
+    super(root)
+    this.name = name
+  }
+}
+
+export class TemplateContext extends ConfigContext {
+  @schema(joiIdentifier().description(`The name of the template.`))
+  public name: string
+
+  constructor(root: ConfigContext, name: string) {
+    super(root)
+    this.name = name
   }
 }
 

@@ -8,7 +8,7 @@
 
 import { generateDocs } from "@garden-io/core/build/src/docs/generate"
 import { resolve } from "path"
-import { Logger, LogLevel } from "@garden-io/core/build/src/logger/logger"
+import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger"
 import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants"
 import { getBundledPlugins } from "./cli"
 import { getSupportedPlugins } from "@garden-io/core/build/src/plugins/plugins"
@@ -17,25 +17,27 @@ require("source-map-support").install()
 
 // make sure logger is initialized
 try {
-  Logger.initialize({
+  RootLogger.initialize({
     level: LogLevel.info,
-    type: "quiet",
+    displayWriterType: "quiet",
     storeEntries: false,
     // level: LogLevel.debug,
-    // writers: [new BasicTerminalWriter()],
+    // writers: [new TerminalWriter()],
   })
 } catch (_) {}
 
-const plugins = [...getBundledPlugins(), ...getSupportedPlugins()]
+const getPlugins = () => [...getBundledPlugins(), ...getSupportedPlugins()]
 
-generateDocs(resolve(GARDEN_CLI_ROOT, "..", "docs"), plugins)
-  .then(() => {
-    // tslint:disable-next-line: no-console
-    console.log("Done!")
-    process.exit(0)
-  })
-  .catch((err) => {
-    // tslint:disable-next-line: no-console
-    console.error(err)
-    process.exit(1)
-  })
+if (require.main === module) {
+  generateDocs(resolve(GARDEN_CLI_ROOT, "..", "docs"), getPlugins)
+    .then(() => {
+      // eslint-disable-next-line no-console
+      console.log("Done!")
+      process.exit(0)
+    })
+    .catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error(err)
+      process.exit(1)
+    })
+}

@@ -1,0 +1,10 @@
+kind: Deploy
+name: productpage
+description: Product page service container
+type: container
+dependencies: [deploy.istio-gateway]
+spec:
+  image: istio/examples-bookinfo-productpage-v1:1.8.0
+  ports:
+    - name: http
+      containerPort: 9080

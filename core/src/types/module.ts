@@ -9,18 +9,37 @@
 import { flatten, uniq, cloneDeep, some } from "lodash"
 import { getNames, findByName } from "../util/util"
 import { ModuleConfig, moduleConfigSchema } from "../config/module"
-import { ModuleVersion } from "../vcs/vcs"
+import type { ModuleVersion } from "../vcs/vcs"
 import { pathToCacheContext } from "../cache"
-import { Garden } from "../garden"
-import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema, DeepPrimitiveMap } from "../config/common"
-import { getModuleTypeBases } from "../plugins"
-import { ModuleType } from "./plugin/plugin"
-import { moduleOutputsSchema } from "./plugin/module/getModuleOutputs"
-import { LogEntry } from "../logger/log-entry"
+import type { Garden } from "../garden"
+import {
+  joiArray,
+  joiIdentifier,
+  joiIdentifierMap,
+  joi,
+  moduleVersionSchema,
+  DeepPrimitiveMap,
+  createSchema,
+} from "../config/common"
+import { moduleOutputsSchema } from "../plugin/handlers/Module/get-outputs"
+import type { Log } from "../logger/log-entry"
+import type { ModuleTypeDefinition } from "../plugin/module-types"
+import type { GardenPlugin } from "../plugin/plugin"
+import { join } from "path"
+import { RuntimeError } from "../exceptions"
 
 export interface FileCopySpec {
   source: string
   target: string
+}
+
+export interface ModuleType<T extends GardenModule = GardenModule> extends ModuleTypeDefinition<T> {
+  plugin: GardenPlugin
+  needsBuild: boolean
+}
+
+export interface ModuleTypeMap {
+  [name: string]: ModuleType
 }
 
 /**
@@ -34,7 +53,6 @@ export interface GardenModule<
   O extends {} = any
 > extends ModuleConfig<M, S, T, W> {
   buildPath: string
-  buildMetadataPath: string
   needsBuild: boolean
 
   version: ModuleVersion
@@ -54,10 +72,11 @@ export interface GardenModule<
   _config: ModuleConfig<M, S, T, W>
 }
 
-export const moduleSchema = () =>
-  moduleConfigSchema().keys({
+export const moduleSchema = createSchema({
+  name: "resolved-module",
+  extend: moduleConfigSchema,
+  keys: () => ({
     buildPath: joi.string().required().description("The path to the build staging directory for the module."),
-    buildMetadataPath: joi.string().required().description("The path to the build metadata directory for the module."),
     compatibleTypes: joiArray(joiIdentifier())
       .required()
       .description("A list of types that this module is compatible with (i.e. the module type itself + all bases)."),
@@ -83,7 +102,8 @@ export const moduleSchema = () =>
     taskDependencyNames: joiArray(joiIdentifier())
       .required()
       .description("The names of all the tasks and services that the tasks in this module depend on."),
-  })
+  }),
+})
 
 export interface ModuleMap<T extends GardenModule = GardenModule> {
   [key: string]: T
@@ -101,22 +121,27 @@ export async function moduleFromConfig({
   forceVersion = false,
 }: {
   garden: Garden
-  log: LogEntry
+  log: Log
   config: ModuleConfig
   buildDependencies: GardenModule[]
   forceVersion?: boolean
 }): Promise<GardenModule> {
   const version = await garden.resolveModuleVersion(log, config, buildDependencies, forceVersion)
   const actions = await garden.getActionRouter()
-  const { outputs } = await actions.getModuleOutputs({ log, moduleConfig: config, version })
+  const { outputs } = await actions.module.getModuleOutputs({ log, moduleConfig: config, version })
   const moduleTypes = await garden.getModuleTypes()
   const compatibleTypes = [config.type, ...getModuleTypeBases(moduleTypes[config.type], moduleTypes).map((t) => t.name)]
+
+  // Special-casing local exec modules, otherwise setting build path as <build dir>/<module name>
+  const buildPath =
+    config.type === "exec" && config.spec.local ? config.path : join(garden.buildStaging.buildDirPath, config.name)
+
+  await garden.buildStaging.ensureDir(buildPath)
 
   const module: GardenModule = {
     ...cloneDeep(config),
 
-    buildPath: await garden.buildStaging.ensureBuildPath(config),
-    buildMetadataPath: await garden.buildStaging.ensureBuildMetadataPath(config.name),
+    buildPath,
 
     version,
     needsBuild: moduleNeedsBuild(config, moduleTypes[config.type]),
@@ -141,7 +166,7 @@ export async function moduleFromConfig({
   }
 
   for (const d of module.build.dependencies) {
-    const key = getModuleKey(d.name, d.plugin)
+    const key = d.name
     module.buildDependencies[key] = findByName(buildDependencies, key)!
   }
 
@@ -156,7 +181,30 @@ export function getModuleCacheContext<M extends ModuleConfig>(config: M) {
   return pathToCacheContext(config.path)
 }
 
-export function getModuleKey(name: string, plugin?: string) {
-  const hasPrefix = !!name.match(/--/)
-  return plugin && !hasPrefix ? `${plugin}--${name}` : name
+export function moduleTestNameToActionName(moduleName: string, testName: string) {
+  return `${moduleName}-${testName}`
+}
+
+/**
+ * Recursively resolves all the bases for the given module type, ordered from closest base to last.
+ */
+export function getModuleTypeBases(
+  moduleType: ModuleTypeDefinition,
+  moduleTypes: { [name: string]: ModuleTypeDefinition }
+): ModuleTypeDefinition[] {
+  if (!moduleType.base) {
+    return []
+  }
+
+  const base = moduleTypes[moduleType.base]
+
+  if (!base) {
+    const name = moduleType.name
+    throw new RuntimeError(`Unable to find base module type '${moduleType.base}' for module type '${name}'`, {
+      name,
+      moduleTypes,
+    })
+  }
+
+  return [base, ...getModuleTypeBases(base, moduleTypes)]
 }

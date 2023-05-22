@@ -7,47 +7,38 @@
  */
 
 import Bluebird from "bluebird"
-import { flatten, fromPairs } from "lodash"
-import { deepFilter } from "../../util/util"
+import { fromPairs } from "lodash"
+import { deepFilter } from "../../util/objects"
 import { Command, CommandResult, CommandParams } from "../base"
-import { Garden } from "../../garden"
-import { ConfigGraph } from "../../config-graph"
-import { LogEntry } from "../../logger/log-entry"
-import { runStatus, RunStatus } from "../../types/plugin/base"
+import { ResolvedConfigGraph } from "../../graph/config-graph"
+import { createActionLog, Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import { deline } from "../../util/string"
-import { EnvironmentStatusMap } from "../../types/plugin/provider/getEnvironmentStatus"
-import { ServiceStatus, serviceStatusSchema } from "../../types/service"
+import { EnvironmentStatusMap } from "../../plugin/handlers/Provider/getEnvironmentStatus"
 import { joi, joiIdentifierMap, joiStringMap } from "../../config/common"
 import { environmentStatusSchema } from "../../config/status"
 import { printHeader } from "../../logger/util"
-import { testFromConfig } from "../../types/test"
-
-export interface TestStatuses {
-  [testKey: string]: RunStatus
-}
-export interface TaskStatuses {
-  [taskKey: string]: RunStatus
-}
-
-const runStatusSchema = () =>
-  joi.object().keys({
-    state: joi.string().allow("outdated", "succeeded", "failed", "not-implemented").required(),
-    startedAt: joi.date().description("When the last run was started (if applicable)."),
-    completedAt: joi.date().description("When the last run completed (if applicable)."),
-  })
+import { BuildStatusMap, getBuildStatusSchema } from "../../plugin/handlers/Build/get-status"
+import { getTestResultSchema, TestStatusMap } from "../../plugin/handlers/Test/get-result"
+import { getRunResultSchema, RunStatusMap } from "../../plugin/handlers/Run/get-result"
+import { DeployStatusMap, getDeployStatusSchema } from "../../plugin/handlers/Deploy/get-status"
+import { ActionRouter } from "../../router/router"
+import { sanitizeValue } from "../../util/logging"
 
 // Value is "completed" if the test/task has been run for the current version.
 export interface StatusCommandResult {
   providers: EnvironmentStatusMap
-  services: { [name: string]: ServiceStatus }
-  tests: TestStatuses
-  tasks: TaskStatuses
+  actions: {
+    Build: BuildStatusMap
+    Deploy: DeployStatusMap
+    Run: RunStatusMap
+    Test: TestStatusMap
+  }
 }
 
 export class GetStatusCommand extends Command {
   name = "status"
-  help = "Outputs the full status of your environment."
+  help = "Outputs the full status of your project/environment and all actions."
 
   streamEvents = true
 
@@ -56,46 +47,43 @@ export class GetStatusCommand extends Command {
       providers: joiIdentifierMap(environmentStatusSchema()).description(
         "A map of statuses for each configured provider."
       ),
-      services: joiIdentifierMap(serviceStatusSchema()).description("A map of statuses for each configured service."),
-      tasks: joiStringMap(runStatusSchema()).description("A map of statuses for each configured task."),
-      tests: joiStringMap(runStatusSchema()).description("A map of statuses for each configured test."),
+      actions: joi.object().keys({
+        Build: joiIdentifierMap(getBuildStatusSchema()).description("A map of statuses for each configured Build."),
+        Deploy: joiIdentifierMap(getDeployStatusSchema()).description("A map of statuses for each configured Deploy."),
+        Run: joiStringMap(getRunResultSchema()).description("A map of statuses for each configured Run."),
+        Test: joiStringMap(getTestResultSchema()).description("A map of statuses for each configured Test."),
+      }),
     })
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Get status", "pager")
+  printHeader({ log }) {
+    printHeader(log, "Get status", "📟")
   }
 
-  async action({ garden, log, opts }: CommandParams): Promise<CommandResult<StatusCommandResult>> {
-    const actions = await garden.getActionRouter()
-    const graph = await garden.getConfigGraph({ log, emit: true })
+  async action({ garden, log }: CommandParams): Promise<CommandResult<StatusCommandResult>> {
+    const router = await garden.getActionRouter()
+    const graph = await garden.getResolvedConfigGraph({ log, emit: true })
 
     const envStatus = await garden.getEnvironmentStatus(log)
-    const serviceStatuses = await actions.getServiceStatuses({ log, graph })
 
     let result: StatusCommandResult = {
       providers: envStatus,
-      services: serviceStatuses,
-      tests: {},
-      tasks: {},
+      actions: await Bluebird.props({
+        Build: getBuildStatuses(router, graph, log),
+        Deploy: router.getDeployStatuses({ log, graph }),
+        Test: getTestStatuses(router, graph, log),
+        Run: getRunStatuses(router, graph, log),
+      }),
     }
 
-    if (opts.output) {
-      result = {
-        ...result,
-        ...(await Bluebird.props({
-          tests: getTestStatuses(garden, graph, log),
-          tasks: getTaskStatuses(garden, graph, log),
-        })),
-      }
-    }
+    const deployStatuses = result.actions.Deploy
 
-    for (const [name, serviceStatus] of Object.entries(serviceStatuses)) {
-      if (serviceStatus.state === "unknown") {
+    for (const [name, status] of Object.entries(deployStatuses)) {
+      if (status.state === "unknown") {
         log.warn(
           chalk.yellow(
             deline`
-            Unable to resolve status for service ${chalk.white(name)}. It is likely missing or outdated.
-            This can come up if the service has runtime dependencies that are not resolvable, i.e. not deployed or
+            Unable to resolve status for Deploy ${chalk.white(name)}. It is likely missing or outdated.
+            This can come up if the deployment has runtime dependencies that are not resolvable, i.e. not deployed or
             invalid.
             `
           )
@@ -104,44 +92,47 @@ export class GetStatusCommand extends Command {
     }
 
     // TODO: we should change the status format because this will remove services called "detail"
-    const withoutDetail = deepFilter(result, (_, key) => key !== "detail")
+    const sanitized = sanitizeValue(deepFilter(result, (_, key) => key !== "executedAction"))
 
     // TODO: do a nicer print of this by default
-    log.info({ data: withoutDetail })
+    log.info({ data: sanitized })
 
-    return { result }
+    return { result: sanitized }
   }
 }
 
-async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: LogEntry) {
-  const modules = configGraph.getModules()
-  const actions = await garden.getActionRouter()
+async function getBuildStatuses(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
+  const actions = graph.getBuilds()
 
   return fromPairs(
-    flatten(
-      await Bluebird.map(modules, async (module) => {
-        return Bluebird.map(module.testConfigs, async (testConfig) => {
-          const result = await actions.getTestResult({
-            module,
-            log,
-            graph: configGraph,
-            test: testFromConfig(module, testConfig, configGraph),
-          })
-          return [`${module.name}.${testConfig.name}`, runStatus(result)]
-        })
-      })
-    )
+    await Bluebird.map(actions, async (action) => {
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const { result } = await router.build.getStatus({ action, log: actionLog, graph })
+      return [action.name, result]
+    })
   )
 }
 
-async function getTaskStatuses(garden: Garden, configGraph: ConfigGraph, log: LogEntry): Promise<TaskStatuses> {
-  const tasks = configGraph.getTasks()
-  const actions = await garden.getActionRouter()
+async function getTestStatuses(router: ActionRouter, graph: ResolvedConfigGraph, log: Log): Promise<TestStatusMap> {
+  const actions = graph.getTests()
 
   return fromPairs(
-    await Bluebird.map(tasks, async (task) => {
-      const result = await actions.getTaskResult({ task, log, graph: configGraph })
-      return [task.name, runStatus(result)]
+    await Bluebird.map(actions, async (action) => {
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const { result } = await router.test.getResult({ action, log: actionLog, graph })
+      return [action.name, result]
+    })
+  )
+}
+
+async function getRunStatuses(router: ActionRouter, graph: ResolvedConfigGraph, log: Log): Promise<RunStatusMap> {
+  const actions = graph.getRuns()
+
+  return fromPairs(
+    await Bluebird.map(actions, async (action) => {
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const { result } = await router.run.getResult({ action, log: actionLog, graph })
+      return [action.name, result]
     })
   )
 }

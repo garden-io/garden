@@ -6,19 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginMap, createGardenPlugin } from "../../../../src/types/plugin/plugin"
+import { PluginMap, createGardenPlugin } from "../../../../src/plugin/plugin"
 import { getPluginBases } from "../../../../src/plugins"
 import { expect } from "chai"
 import { sortBy } from "lodash"
-import { makeTempDir, TempDirectory, TestGarden, makeTestGarden, stubAction } from "../../../helpers"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import execa from "execa"
+import {
+  makeTempDir,
+  TempDirectory,
+  TestGarden,
+  makeTestGarden,
+  stubProviderAction,
+  createProjectConfig,
+} from "../../../helpers"
 import { ResolveProviderTask } from "../../../../src/tasks/resolve-provider"
 import { pathExists, writeFile, remove } from "fs-extra"
 import { join } from "path"
 import { serialize } from "v8"
 import moment from "moment"
-import { defaultNamespace } from "../../../../src/config/project"
+import { GraphResults } from "../../../../src/graph/results"
 
 describe("ResolveProviderTask", () => {
   let tmpDir: TempDirectory
@@ -26,10 +31,7 @@ describe("ResolveProviderTask", () => {
   let task: ResolveProviderTask
 
   before(async () => {
-    tmpDir = await makeTempDir()
-    const path = tmpDir.path
-
-    await execa("git", ["init", "--initial-branch=main"], { cwd: path })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
   })
 
   after(async () => {
@@ -40,17 +42,10 @@ describe("ResolveProviderTask", () => {
     await remove(join(tmpDir.path, "cache"))
 
     garden = await makeTestGarden(tmpDir.path, {
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
+      config: createProjectConfig({
         path: tmpDir.path,
-        defaultEnvironment: "default",
-        dotIgnoreFiles: [],
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-plugin" }],
-        variables: {},
-      },
+      }),
     })
 
     const plugin = await garden.getPlugin("test-plugin")
@@ -61,35 +56,36 @@ describe("ResolveProviderTask", () => {
       log: garden.log,
       plugin,
       config,
-      version: garden.version,
       forceRefresh: false,
       forceInit: false,
+      allPlugins: await garden.getAllPlugins(),
+      force: false,
     })
   })
 
   it("should resolve status if no cached status exists", async () => {
-    const provider = await task.process({})
+    const provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
     expect(provider.status.cached).to.be.undefined
   })
 
   it("should cache the provider status", async () => {
-    await task.process({})
+    await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
     const cachePath = task["getCachePath"]()
     expect(await pathExists(cachePath)).to.be.true
   })
 
   it("should not cache the provider status if disableCache=true", async () => {
-    await stubAction(garden, "test-plugin", "getEnvironmentStatus", async () => {
+    await stubProviderAction(garden, "test-plugin", "getEnvironmentStatus", async () => {
       return { ready: true, disableCache: true, outputs: {} }
     })
-    await task.process({})
+    await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
     const cachePath = task["getCachePath"]()
     expect(await pathExists(cachePath)).to.be.true
   })
 
   it("should return with cached provider status if the config hash matches and TTL is within range", async () => {
-    await task.process({})
-    const provider = await task.process({})
+    await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
+    const provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
     expect(provider.status.cached).to.be.true
   })
 
@@ -97,24 +93,24 @@ describe("ResolveProviderTask", () => {
     const cachePath = task["getCachePath"]()
     await writeFile(cachePath, serialize({ foo: "bla" }))
 
-    const provider = await task.process({})
+    const provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
     expect(provider.status.cached).to.be.undefined
   })
 
   it("should not use cached status if the config hash doesn't match", async () => {
-    let provider = await task.process({})
+    let provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
 
     const cachedStatus = await task["getCachedStatus"](provider.config)
 
     const cachePath = task["getCachePath"]()
     await writeFile(cachePath, serialize({ ...cachedStatus, configHash: "abcdef", resolvedAt: new Date() }))
 
-    provider = await task.process({})
+    provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
     expect(provider.status.cached).to.be.undefined
   })
 
   it("should use cached status if the cache is just within the TTL", async () => {
-    let provider = await task.process({})
+    let provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
 
     const cachedStatus = await task["getCachedStatus"](provider.config)
 
@@ -126,12 +122,12 @@ describe("ResolveProviderTask", () => {
     const cachePath = task["getCachePath"]()
     await writeFile(cachePath, serialize({ ...cachedStatus, configHash, resolvedAt }))
 
-    provider = await task.process({})
+    provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
     expect(provider.status.cached).to.be.true
   })
 
   it("should not use cached status if the cache is expired", async () => {
-    let provider = await task.process({})
+    let provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
 
     const cachedStatus = await task["getCachedStatus"](provider.config)
 
@@ -143,16 +139,16 @@ describe("ResolveProviderTask", () => {
     const cachePath = task["getCachePath"]()
     await writeFile(cachePath, serialize({ ...cachedStatus, configHash, resolvedAt }))
 
-    provider = await task.process({})
+    provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
     expect(provider.status.cached).to.be.undefined
   })
 
   it("should not use cached status if forceRefresh=true", async () => {
-    await task.process({})
+    await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
 
     task["forceRefresh"] = true
 
-    const provider = await task.process({})
+    const provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
     expect(provider.status.cached).to.be.undefined
   })
 })

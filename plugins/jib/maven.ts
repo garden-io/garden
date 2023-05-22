@@ -7,7 +7,7 @@
  */
 
 import AsyncLock from "async-lock"
-import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { find } from "lodash"
 import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
 import { Writable } from "node:stream"
@@ -77,7 +77,7 @@ async function checkMavenVersion(mvnPath: string) {
   try {
     const res = await execa(mvnPath, ["--version"])
     return res.stdout
-  } catch (err) {
+  } catch (error) {
     const composeErrorMessage = (err: any): string => {
       if (err.code === "EACCES") {
         return `${baseErrorMessage(
@@ -89,7 +89,7 @@ async function checkMavenVersion(mvnPath: string) {
         return baseErrorMessage(mvnPath)
       }
     }
-    throw new RuntimeError(composeErrorMessage(err), { mvnPath })
+    throw new RuntimeError(composeErrorMessage(error), { mvnPath })
   }
 }
 
@@ -126,7 +126,7 @@ export async function mvn({
   ctx: PluginContext
   args: string[]
   cwd: string
-  log: LogEntry
+  log: Log
   openJdkPath: string
   mavenPath?: string
   outputStream?: Writable

@@ -6,17 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Garden } from "./garden"
+import type { Garden } from "./garden"
 import { projectNameSchema, projectSourcesSchema, environmentNameSchema, SourceConfig } from "./config/project"
 import { Provider, providerSchema, GenericProviderConfig } from "./config/provider"
 import { deline } from "./util/string"
-import { joi, joiVariables, joiStringMap, DeepPrimitiveMap } from "./config/common"
-import { PluginTool } from "./util/ext-tools"
-import { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base"
+import { joi, joiVariables, joiStringMap, joiIdentifier, createSchema } from "./config/common"
+import type { PluginTool } from "./util/ext-tools"
+import type { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base"
 import { resolveTemplateStrings } from "./template-string/template-string"
-import { LogEntry } from "./logger/log-entry"
-import { logEntrySchema } from "./types/plugin/base"
+import type { Log } from "./logger/log-entry"
+import { logEntrySchema } from "./plugin/base"
 import { EventEmitter } from "eventemitter3"
+import { CreateEventLogParams, EventLogger, LogLevel, StringLogLevel } from "./logger/logger"
+import { Memoize } from "typescript-memoize"
+import type { ParameterValues } from "./cli/params"
 
 type WrappedFromGarden = Pick<
   Garden,
@@ -27,21 +30,22 @@ type WrappedFromGarden = Pick<
   | "cloudApi"
   // TODO: remove this from the interface
   | "environmentName"
+  | "namespace"
   | "production"
   | "sessionId"
 >
 
 export interface CommandInfo {
   name: string
-  args: DeepPrimitiveMap
-  opts: DeepPrimitiveMap
+  args: ParameterValues<any>
+  opts: ParameterValues<any>
 }
 
 type ResolveTemplateStringsOpts = Omit<ContextResolveOpts, "stack">
 
 export interface PluginContext<C extends GenericProviderConfig = GenericProviderConfig> extends WrappedFromGarden {
   command: CommandInfo
-  log: LogEntry
+  log: Log
   events: PluginEventBroker
   projectSources: SourceConfig[]
   provider: Provider<C>
@@ -51,58 +55,55 @@ export interface PluginContext<C extends GenericProviderConfig = GenericProvider
 
 // NOTE: this is used more for documentation than validation, outside of internal testing
 // TODO: validate the output from createPluginContext against this schema (in tests)
-export const pluginContextSchema = () =>
-  joi
-    .object()
-    .options({ presence: "required" })
-    .keys({
-      command: joi
-        .object()
-        .optional()
-        .keys({
-          name: joi.string().required().description("The command name currently being executed."),
-          args: joiVariables().required().description("The positional arguments passed to the command."),
-          opts: joiVariables().required().description("The optional flags passed to the command."),
-        })
-        .description("Information about the command being executed, if applicable."),
-      environmentName: environmentNameSchema(),
-      events: joi.any().description("An event emitter, used for communication during handler execution."),
-      gardenDirPath: joi.string().description(deline`
-        The absolute path of the project's Garden dir. This is the directory the contains builds, logs and
-        other meta data. A custom path can be set when initialising the Garden class. Defaults to \`.garden\`.
-      `),
-      log: logEntrySchema(),
-      production: joi
-        .boolean()
-        .default(false)
-        .description("Indicate if the current environment is a production environment.")
-        .example(true),
-      projectName: projectNameSchema(),
-      projectRoot: joi.string().description("The absolute path of the project root."),
-      projectSources: projectSourcesSchema(),
-      provider: providerSchema().description("The provider being used for this context.").id("ctxProviderSchema"),
-      resolveTemplateStrings: joi
-        .function()
-        .description(
-          "Helper function to resolve template strings, given the same templating context as was used to render the configuration before calling the handler. Accepts any data type, and returns the same data type back with all template strings resolved."
-        ),
-      sessionId: joi.string().description("The unique ID of the currently active session."),
-      tools: joiStringMap(joi.object()),
-      workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
-      cloudApi: joi.any().optional(),
-    })
+export const pluginContextSchema = createSchema({
+  name: "plugin-context",
+  keys: () => ({
+    command: joi
+      .object()
+      .optional()
+      .keys({
+        name: joi.string().required().description("The command name currently being executed."),
+        args: joiVariables().required().description("The positional arguments passed to the command."),
+        opts: joiVariables().required().description("The optional flags passed to the command."),
+      })
+      .description("Information about the command being executed, if applicable."),
+    environmentName: environmentNameSchema(),
+    namespace: joiIdentifier().description("The active namespace."),
+    events: joi.any().description("An event emitter, used for communication during handler execution."),
+    gardenDirPath: joi.string().description(deline`
+      The absolute path of the project's Garden dir. This is the directory the contains builds, logs and
+      other meta data. A custom path can be set when initialising the Garden class. Defaults to \`.garden\`.
+    `),
+    log: logEntrySchema(),
+    production: joi
+      .boolean()
+      .default(false)
+      .description("Indicate if the current environment is a production environment.")
+      .example(true),
+    projectName: projectNameSchema(),
+    projectRoot: joi.string().description("The absolute path of the project root."),
+    projectSources: projectSourcesSchema(),
+    provider: providerSchema().description("The provider being used for this context.").id("ctxProviderSchema"),
+    resolveTemplateStrings: joi
+      .function()
+      .description(
+        "Helper function to resolve template strings, given the same templating context as was used to render the configuration before calling the handler. Accepts any data type, and returns the same data type back with all template strings resolved."
+      ),
+    sessionId: joi.string().description("The unique ID of the currently active session."),
+    tools: joiStringMap(joi.object()),
+    workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
+    cloudApi: joi.any().optional(),
+  }),
+  options: { presence: "required" },
+})
 
+// TODO: unify with LogEntry type (this is basically a subset)
 export type PluginEventLogContext = {
   /** entity that created the log message, e.g. tool that generated it */
-  origin: string
+  origin?: string
 
-  /**
-   * LogEntry placeholder to be used to stream the logs to the CLI
-   * It's recommended to pass a verbose placeholder created like this: `log.placeholder({ level: LogLevel.verbose })`
-   *
-   * @todo 0.13 consider removing this once we have the append-only logger (#3254)
-   */
-  log: LogEntry
+  /** which level to print the log at */
+  level: StringLogLevel
 }
 
 export type PluginEventLogMessage = PluginEventLogContext & {
@@ -112,31 +113,98 @@ export type PluginEventLogMessage = PluginEventLogContext & {
   timestamp: string
 
   /** log message */
-  data: Buffer
+  msg: string
 }
 
 // Define your emitter's types like that:
 // Key: Event name; Value: Listener function signature
 type PluginEvents = {
   abort: (reason?: string) => void
+  done: () => void
+  failed: (error?: Error) => void
   log: (msg: PluginEventLogMessage) => void
 }
 
 type PluginEventType = keyof PluginEvents
 
-export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventType> {}
+export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventType> {
+  private aborted: boolean
+  private done: boolean
+  private failed: boolean
+  private error: Error | undefined
+  private garden: Garden
+  private abortHandler: () => void
 
-export async function createPluginContext(
-  garden: Garden,
-  provider: Provider,
-  command: CommandInfo,
-  templateContext: ConfigContext,
-  events?: PluginEventBroker
-): Promise<PluginContext> {
+  constructor(garden: Garden) {
+    super()
+
+    this.aborted = false
+    this.done = false
+    this.failed = false
+    this.garden = garden
+    this.abortHandler = () => this.emit("abort")
+
+    // Always respond to exit and restart events
+    this.garden.events.onKey("_exit", this.abortHandler, garden.sessionId)
+    this.garden.events.onKey("_restart", this.abortHandler, garden.sessionId)
+
+    this.on("abort", () => {
+      this.aborted = true
+    })
+    this.on("done", () => {
+      this.done = true
+    })
+    this.on("failed", (error?: Error) => {
+      this.done = true
+      this.failed = true
+      this.error = error
+    })
+  }
+
+  isAborted() {
+    return this.aborted
+  }
+
+  isDone() {
+    return this.done
+  }
+
+  isFailed() {
+    return this.failed
+  }
+
+  getError() {
+    return this.error
+  }
+
+  @Memoize()
+  private getLogger() {
+    return new EventLogger({ events: this, level: LogLevel.info })
+  }
+
+  createLog(params: CreateEventLogParams) {
+    return this.getLogger().createLog(params)
+  }
+}
+
+export async function createPluginContext({
+  garden,
+  provider,
+  command,
+  templateContext,
+  events,
+}: {
+  garden: Garden
+  provider: Provider
+  command: CommandInfo
+  templateContext: ConfigContext
+  events: PluginEventBroker | undefined
+}): Promise<PluginContext> {
   return {
     command,
-    events: events || new PluginEventBroker(),
+    events: events || new PluginEventBroker(garden),
     environmentName: garden.environmentName,
+    namespace: garden.namespace,
     gardenDirPath: garden.gardenDirPath,
     log: garden.log,
     projectName: garden.projectName,

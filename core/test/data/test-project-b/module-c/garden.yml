@@ -4,6 +4,7 @@ type: test
 allowPublish: false
 services:
   - name: service-c
+    timeout: 600
     ingresses:
       - path: /path-c
         port: http
@@ -11,6 +12,7 @@ services:
       - name: http
         containerPort: 8080
   - name: service-d
+    timeout: 600
     ingresses:
       - path: /path-d
         port: http

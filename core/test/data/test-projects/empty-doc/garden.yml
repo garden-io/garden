@@ -1,4 +1,7 @@
 ---
+apiVersion: garden.io/v1
 kind: Project
 name: foo
+environments:
+  - name: local
 ---

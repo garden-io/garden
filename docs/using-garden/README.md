@@ -21,9 +21,18 @@ This guide introduces the very basics of Garden configuration.
 
 The first step to using Garden is to create a project-level `garden.yml` configuration file. You'll learn how in this guide.
 
+## [Actions](./actions.md)
+
+Since Garden `0.13`, actions have become the default **building block** of Garden projects. These represent the steps needed to build, deploy and test your project (and the dependencies between them).
+In this guide you'll learn how to describe your system with actions that Garden can process and execute in dependency order.
+
 ## [Modules](./modules.md)
 
-Modules are the basic unit of _building_ in Garden. In this guide you'll learn how to split your project into modules that Garden can build.
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please, use [action](./actions.md)-based configuration instead.
+{% endhint %}
+
+Prior to Garden `0.13`, modules had been the unit of _building_ in Garden. In this guide you'll learn how to split your project into modules that Garden can build.
 
 ## [Services](./services.md)
 
@@ -37,7 +46,7 @@ This guide shows you how Garden can run your tests for you.
 
 This guide shows you how Garden can run tasks for you, for example database migrations.
 
-## [Module Templates](./module-templates.md)
+## [Module Templates](./config-templates.md)
 
 This guide shows you how to create custom templates and define templated modules.
 

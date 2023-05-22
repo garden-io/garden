@@ -6,16 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry } from "./logger/log-entry"
+import { Log } from "./logger/log-entry"
 
-export async function emitWarning(params: { key: string; log: LogEntry; message: string }) {
-  // Note: lazy-loading for startup performance
-  const { Warning } = require("./db/entities/warning")
-  await Warning.emit(params)
+interface LoggerContext {
+  readonly history: Set<string>
 }
 
-export async function hideWarning(key: string) {
-  // Note: lazy-loading for startup performance
-  const { Warning } = require("./db/entities/warning")
-  await Warning.hide(key)
+const loggerContext: LoggerContext = {
+  history: new Set<string>(),
+}
+
+export function resetNonRepeatableWarningHistory() {
+  loggerContext.history.clear()
+}
+
+export function emitNonRepeatableWarning(log: Log, message: string) {
+  if (loggerContext.history.has(message)) {
+    return
+  }
+
+  log.warn(message)
+  loggerContext.history.add(message)
 }

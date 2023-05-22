@@ -1,4 +1,4 @@
-kind: Module
+kind: Build
 name: shared-config
 type: exec
-description: A simple module that holds shared config that's consumed by other modules.
+description: A simple build action that holds shared config that's consumed by other actions.

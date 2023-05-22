@@ -43,7 +43,7 @@ export class JsonFileWriter extends FileWriter {
     return renderAsJson(this.level, entry)
   }
 
-  onGraphChange(entry: LogEntry): void {
+  write(entry: LogEntry): void {
     const out = this.render(entry)
     if (out) {
       if (!this.fileLogger) {

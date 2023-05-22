@@ -1,5 +1,5 @@
 ---
-order: 2
+order: 3
 title: Module Types
 ---
 
@@ -13,8 +13,6 @@ title: Module Types
 * [`helm`](./helm.md)
 * [`jib-container`](./jib-container.md)
 * [`kubernetes`](./kubernetes.md)
-* [`maven-container`](./maven-container.md)
-* [`openfaas`](./openfaas.md)
 * [`persistentvolumeclaim`](./persistentvolumeclaim.md)
 * [`templated`](./templated.md)
 * [`terraform`](./terraform.md)

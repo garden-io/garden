@@ -27,9 +27,7 @@ Tasks that have _dependents_ (i.e. something that depends on them) are run autom
 
 Garden caches task results and re-runs the task if its dependencies, have changed. It is therefore recommended that you make sure your tasks are idempotent (i.e. can safely be run multiple times).
 
-Garden does **not re-run tasks** on changes when in watch mode. That is, when running Garden with the `--watch|-w` flag or when running `garden dev`.
-
-You can run a task manually with the `garden run task <task-name>` command. This will run the task regardless of whether or not the result is cached.
+You can run a task manually with the `garden run <task-name>` command. This will run the task regardless of whether or not the result is cached.
 
 You can view task results from the dashboard or by running `garden get task-result <task-name>`.
 
@@ -86,7 +84,7 @@ tasks:
       - postgres
 ```
 
-The full example is [available here](https://github.com/garden-io/garden/tree/0.12.56/examples/vote-helm/postgres/garden.yml). There's [also a version](https://github.com/garden-io/garden/tree/0.12.56/examples/vote) that uses the `container` module type instead of Helm charts.
+The full example is [available here](https://github.com/garden-io/garden/tree/0.12.51/examples/vote-helm/postgres/garden.yml). There's [also a version](https://github.com/garden-io/garden/tree/0.12.51/examples/vote) that uses the `container` module type instead of Helm charts.
 
 ## Advanced
 
@@ -147,7 +145,7 @@ tasks:
 You can run this task and override the argument variable like this:
 
 ```sh
-garden run task my-task --var my-task-arg="hello!"
+garden run my-task --var my-task-arg="hello!"
 ```
 
 ### Kubernetes Provider
@@ -169,7 +167,7 @@ source directory instead.
 
 ### Kubernetes and Helm Modules
 
-Because a Kubernetes or Helm module can contain any number of Kubernetes resources, a `serviceResource` needs to be specified to determine the pod spec for the task pod. You can see the whole pod spec used in the reference docs for [kubernetes](https://docs.garden.io/reference/module-types/kubernetes#tasks-.resource) and [helm modules](https://docs.garden.io/reference/module-types/helm#tasks-.resource). Please note that the `startupProbe`, `livenessProbe` and `readinessProbe` are stripped from your pod spec. Health checks for your application might fail when the container is used for testing because the main process usually running in that container is replaced by the task command.
+Because a Kubernetes or Helm module can contain any number of Kubernetes resources, a `serviceResource` needs to be specified to determine the pod spec for the task pod. You can see the whole pod spec used in the reference docs for [kubernetes](../reference/module-types/kubernetes.md#tasks-.resource) and [helm modules](../reference/module-types/helm.md#tasks-.resource). Please note that the `startupProbe`, `livenessProbe` and `readinessProbe` are stripped from your pod spec. Health checks for your application might fail when the container is used for testing because the main process usually running in that container is replaced by the task command.
 
 ## Further Reading
 

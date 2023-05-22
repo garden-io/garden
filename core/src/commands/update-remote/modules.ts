@@ -14,16 +14,20 @@ import { Command, CommandResult, CommandParams } from "../base"
 import { SourceConfig, moduleSourceSchema } from "../../config/project"
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources, updateRemoteSharedOptions } from "./helpers"
-import { hasRemoteSource } from "../../util/ext-source-util"
+import { moduleHasRemoteSource } from "../../util/ext-source-util"
 import { printHeader } from "../../logger/util"
 import { Garden } from "../../garden"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { joiArray, joi } from "../../config/common"
 import { StringsParameter, ParameterValues } from "../../cli/params"
 
 const updateRemoteModulesArguments = {
   modules: new StringsParameter({
-    help: "The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.",
+    help: "The name(s) of the remote module(s) to update. You may specify multiple modules, separated by spaces.",
+    spread: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.moduleConfigs)
+    },
   }),
 }
 
@@ -61,8 +65,8 @@ export class UpdateRemoteModulesCommand extends Command<Args, Opts> {
         garden update-remote modules my-module  # update remote module my-module
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Update remote modules", "hammer_and_wrench")
+  printHeader({ log }) {
+    printHeader(log, "Update remote modules", "🛠️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<Output>> {
@@ -77,7 +81,7 @@ export async function updateRemoteModules({
   opts,
 }: {
   garden: Garden
-  log: LogEntry
+  log: Log
   args: ParameterValues<Args>
   opts: ParameterValues<Opts>
 }) {
@@ -86,7 +90,7 @@ export async function updateRemoteModules({
   const modules = graph.getModules({ names: moduleNames })
 
   const moduleSources = <SourceConfig[]>modules
-    .filter(hasRemoteSource)
+    .filter(moduleHasRemoteSource)
     .filter((src) => (moduleNames ? moduleNames.includes(src.name) : true))
     .map((m) => ({ name: m.name, repositoryUrl: m.repositoryUrl }))
 
@@ -94,7 +98,7 @@ export async function updateRemoteModules({
 
   const diff = difference(moduleNames, names)
   if (diff.length > 0) {
-    const modulesWithRemoteSource = graph.getModules().filter(hasRemoteSource).sort()
+    const modulesWithRemoteSource = graph.getModules().filter(moduleHasRemoteSource).sort()
 
     throw new ParameterError(`Expected module(s) ${chalk.underline(diff.join(","))} to have a remote source.`, {
       modulesWithRemoteSource,

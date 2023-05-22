@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-// No idea why tslint complains over this line
-// tslint:disable-next-line:no-unused
 import { IncomingMessage } from "http"
 import { ReadStream } from "tty"
 import Bluebird from "bluebird"
@@ -24,12 +22,12 @@ import {
   CoreV1Api,
   RbacAuthorizationV1Api,
   AppsV1Api,
-  PolicyV1Api,
+  PolicyV1beta1Api,
   KubernetesObject,
   Exec,
   V1Deployment,
   V1Service,
-  Log,
+  Log as K8sLog,
   NetworkingV1Api,
   ApiextensionsV1Api,
   HttpError,
@@ -41,7 +39,7 @@ import { safeLoad } from "js-yaml"
 import { readFile } from "fs-extra"
 import WebSocket from "isomorphic-ws"
 
-import { Omit, safeDumpYaml, StringCollector, sleep } from "../../util/util"
+import { Omit, StringCollector, sleep } from "../../util/util"
 import { omitBy, isObject, isPlainObject, keyBy, flatten } from "lodash"
 import { GardenBaseError, RuntimeError, ConfigurationError } from "../../exceptions"
 import {
@@ -51,7 +49,7 @@ import {
   KubernetesList,
   KubernetesPod,
 } from "./types"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { kubectl } from "./kubectl"
 import { deline, urlJoin } from "../../util/string"
 import { KubernetesProvider } from "./config"
@@ -60,6 +58,8 @@ import { PluginContext } from "../../plugin-context"
 import { Writable, Readable, PassThrough } from "stream"
 import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
+import { LogLevel } from "../../logger/logger"
+import { safeDumpYaml } from "../../util/serialization"
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -88,7 +88,7 @@ type K8sApi =
   | CoreApi
   | CoreV1Api
   | NetworkingV1Api
-  | PolicyV1Api
+  | PolicyV1beta1Api
   | RbacAuthorizationV1Api
 type K8sApiConstructor<T extends K8sApi> = new (basePath?: string) => T
 
@@ -99,7 +99,7 @@ const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
   coreApi: CoreApi,
   extensions: ApiextensionsV1Api,
   networking: NetworkingV1Api,
-  policy: PolicyV1Api,
+  policy: PolicyV1beta1Api,
   rbac: RbacAuthorizationV1Api,
 }
 
@@ -154,7 +154,7 @@ type WrappedList<T extends List> = T["items"] extends Array<infer V> ? Kubernete
 type WrappedApi<T> = {
   // Wrap each API method
   [P in keyof T]:
-  T[P] extends (...args: infer A) => Promise<{ response: IncomingMessage, body: infer U }>
+  T[P] extends (...args: infer A) => Promise<{ response: IncomingMessage; body: infer U }>
   ? (
     // If so we wrap it and return the `body` part of the output directly and...
     // If it's a list, we cast to a KubernetesServerList, which in turn wraps the array type
@@ -183,10 +183,10 @@ export class KubeApi {
   public coreApi: WrappedApi<CoreApi>
   public extensions: WrappedApi<ApiextensionsV1Api>
   public networking: WrappedApi<NetworkingV1Api>
-  public policy: WrappedApi<PolicyV1Api>
+  public policy: WrappedApi<PolicyV1beta1Api>
   public rbac: WrappedApi<RbacAuthorizationV1Api>
 
-  constructor(public log: LogEntry, public context: string, private config: KubeConfig) {
+  constructor(public log: Log, public context: string, private config: KubeConfig) {
     const cluster = this.config.getCurrentCluster()
 
     if (!cluster) {
@@ -202,7 +202,7 @@ export class KubeApi {
     }
   }
 
-  static async factory(log: LogEntry, ctx: PluginContext, provider: KubernetesProvider) {
+  static async factory(log: Log, ctx: PluginContext, provider: KubernetesProvider) {
     const config = await getContextConfig(log, ctx, provider)
     return new KubeApi(log, provider.config.context, config)
   }
@@ -275,7 +275,7 @@ export class KubeApi {
     return group
   }
 
-  async getApiResourceInfo(log: LogEntry, apiVersion: string, kind: string): Promise<V1APIResource> {
+  async getApiResourceInfo(log: Log, apiVersion: string, kind: string): Promise<V1APIResource> {
     if (!cachedApiResourceInfo[this.context]) {
       cachedApiResourceInfo[this.context] = {}
     }
@@ -318,7 +318,7 @@ export class KubeApi {
     path,
     opts = {},
   }: {
-    log: LogEntry
+    log: Log
     path: string
     opts?: Omit<request.OptionsWithUrl, "url">
   }): Promise<any> {
@@ -357,7 +357,7 @@ export class KubeApi {
     kind,
     name,
   }: {
-    log: LogEntry
+    log: Log
     namespace: string
     apiVersion: string
     kind: string
@@ -381,7 +381,7 @@ export class KubeApi {
   /**
    * Given a manifest, attempt to read the matching resource from the cluster.
    */
-  async readBySpec({ log, namespace, manifest }: { log: LogEntry; namespace: string; manifest: KubernetesResource }) {
+  async readBySpec({ log, namespace, manifest }: { log: Log; namespace: string; manifest: KubernetesResource }) {
     log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
@@ -393,7 +393,7 @@ export class KubeApi {
   /**
    * Same as readBySpec() but returns null if the resource is missing.
    */
-  async readOrNull(params: { log: LogEntry; namespace: string; manifest: KubernetesResource }) {
+  async readOrNull(params: { log: Log; namespace: string; manifest: KubernetesResource }) {
     try {
       const resource = await this.readBySpec(params)
       return resource
@@ -413,7 +413,7 @@ export class KubeApi {
     namespace,
     labelSelector,
   }: {
-    log: LogEntry
+    log: Log
     apiVersion: string
     kind: string
     namespace: string
@@ -447,7 +447,7 @@ export class KubeApi {
     versionedKinds,
     labelSelector,
   }: {
-    log: LogEntry
+    log: Log
     namespace: string
     versionedKinds: { apiVersion: string; kind: string }[]
     labelSelector?: { [label: string]: string }
@@ -473,15 +473,7 @@ export class KubeApi {
     return flatten(resources)
   }
 
-  async replace({
-    log,
-    resource,
-    namespace,
-  }: {
-    log: LogEntry
-    resource: KubernetesServerResource
-    namespace?: string
-  }) {
+  async replace({ log, resource, namespace }: { log: Log; resource: KubernetesServerResource; namespace?: string }) {
     log.silly(`Replacing Kubernetes resource ${resource.apiVersion}/${resource.kind}/${resource.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest: resource, log, namespace })
@@ -499,7 +491,7 @@ export class KubeApi {
     resource,
     annotations,
   }: {
-    log: LogEntry
+    log: Log
     resource: KubernetesServerResource
     annotations: StringMap
   }) {
@@ -509,7 +501,7 @@ export class KubeApi {
     return resource
   }
 
-  async deleteBySpec({ namespace, manifest, log }: { namespace: string; manifest: KubernetesResource; log: LogEntry }) {
+  async deleteBySpec({ namespace, manifest, log }: { namespace: string; manifest: KubernetesResource; log: Log }) {
     log.silly(`Deleting Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
@@ -531,7 +523,7 @@ export class KubeApi {
   }: {
     apiVersion: string
     kind: string
-    log: LogEntry
+    log: Log
     namespace: string
   }) {
     const resourceInfo = await this.getApiResourceInfo(log, apiVersion, kind)
@@ -558,7 +550,7 @@ export class KubeApi {
     namespace,
   }: {
     manifest: KubernetesResource
-    log: LogEntry
+    log: Log
     namespace?: string
   }) {
     const apiVersion = manifest.apiVersion
@@ -598,7 +590,7 @@ export class KubeApi {
     kind: K
     namespace: string
     obj: O
-    log: LogEntry
+    log: Log
   }) {
     const api = this[crudMap[kind].group]
     const name = obj.metadata.name
@@ -618,8 +610,8 @@ export class KubeApi {
 
     try {
       await replace()
-    } catch (err) {
-      if (err.statusCode === 404) {
+    } catch (error) {
+      if (error.statusCode === 404) {
         try {
           await api[crudMap[kind].create](namespace, <any>obj)
           log.debug(`Created ${kind} ${namespace}/${name}`)
@@ -631,7 +623,7 @@ export class KubeApi {
           }
         }
       } else {
-        throw err
+        throw error
       }
     }
   }
@@ -639,7 +631,7 @@ export class KubeApi {
   /**
    * Wrapping the API objects to deal with bugs.
    */
-  private wrapApi<T extends K8sApi>(log: LogEntry, api: T, config: KubeConfig): T {
+  private wrapApi<T extends K8sApi>(log: Log, api: T, config: KubeConfig): T {
     api.setDefaultAuthentication(config)
 
     return new Proxy(api, {
@@ -712,7 +704,7 @@ export class KubeApi {
     tty,
     timeoutSec,
   }: {
-    log: LogEntry
+    log: Log
     buffer: boolean
     namespace: string
     podName: string
@@ -834,11 +826,12 @@ export class KubeApi {
   }
 
   getLogger() {
-    return new Log(this.config)
+    return new K8sLog(this.config)
   }
 
   /**
    * Create an ad-hoc Pod. Use this method to handle race-condition cases when creating Pods.
+   *
    * @throws {KubernetesError}
    */
   async createPod(namespace: string, pod: KubernetesPod) {
@@ -908,7 +901,7 @@ function getGroupBasePath(apiVersion: string) {
   return apiVersion.includes("/") ? `/apis/${apiVersion}` : `/api/${apiVersion}`
 }
 
-export async function getKubeConfig(log: LogEntry, ctx: PluginContext, provider: KubernetesProvider) {
+export async function getKubeConfig(log: Log, ctx: PluginContext, provider: KubernetesProvider) {
   let kubeConfigStr: string
 
   try {
@@ -926,7 +919,7 @@ export async function getKubeConfig(log: LogEntry, ctx: PluginContext, provider:
   }
 }
 
-async function getContextConfig(log: LogEntry, ctx: PluginContext, provider: KubernetesProvider): Promise<KubeConfig> {
+async function getContextConfig(log: Log, ctx: PluginContext, provider: KubernetesProvider): Promise<KubeConfig> {
   const kubeconfigPath = provider.config.kubeconfig
   const context = provider.config.context
   const cacheKey = kubeconfigPath ? `${kubeconfigPath}:${context}` : context
@@ -991,23 +984,23 @@ function handleRequestPromiseError(name: string, err: Error) {
  * and should be retried automatically.
  */
 async function requestWithRetry<R>(
-  log: LogEntry,
+  log: Log,
   description: string,
   req: () => Promise<R>,
   opts?: { maxRetries?: number; minTimeoutMs?: number }
 ): Promise<R> {
   const maxRetries = opts?.maxRetries || 5
   const minTimeoutMs = opts?.minTimeoutMs || 500
-  let retryLog: LogEntry | undefined = undefined
+  let retryLog: Log | undefined = undefined
   const retry = async (usedRetries: number): Promise<R> => {
     try {
       return await req()
     } catch (err) {
       if (shouldRetry(err)) {
-        retryLog = retryLog || log.debug("")
+        retryLog = retryLog || log.createLog({ fixLevel: LogLevel.debug })
         if (usedRetries <= maxRetries) {
           const sleepMsec = minTimeoutMs + usedRetries * minTimeoutMs
-          retryLog.setState(deline`
+          retryLog.info(deline`
             ${description} failed with error '${err.message}', retrying in ${sleepMsec}ms
             (${usedRetries}/${maxRetries})
           `)
@@ -1015,7 +1008,7 @@ async function requestWithRetry<R>(
           return await retry(usedRetries + 1)
         } else {
           if (usedRetries === maxRetries) {
-            retryLog.setState(chalk.red(`Kubernetes API: Maximum retry count exceeded`))
+            retryLog.info(chalk.red(`Kubernetes API: Maximum retry count exceeded`))
           }
           throw err
         }

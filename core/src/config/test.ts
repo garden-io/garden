@@ -6,18 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiUserIdentifier, joi, joiSparseArray } from "./common"
+import { joiUserIdentifier, joi, joiSparseArray, createSchema } from "./common"
 import { deline, dedent } from "../util/string"
+import { DEFAULT_TEST_TIMEOUT_SEC } from "../constants"
 
 export interface BaseTestSpec {
   name: string
   dependencies: string[]
   disabled: boolean
-  timeout: number | null
+  timeout: number
 }
 
-export const baseTestSpecSchema = () =>
-  joi.object().keys({
+export const baseTestSpecSchema = createSchema({
+  name: "base-test-spec",
+  keys: () => ({
     name: joiUserIdentifier().required().description("The name of the test."),
     dependencies: joiSparseArray(joi.string()).description(deline`
         The names of any services that must be running, and the names of any
@@ -34,20 +36,28 @@ export const baseTestSpecSchema = () =>
         specific environments, e.g. only during CI.
       `
       ),
-    timeout: joi.number().allow(null).default(null).description("Maximum duration (in seconds) of the test run."),
-  })
+    timeout: joi
+      .number()
+      .integer()
+      .min(1)
+      .default(DEFAULT_TEST_TIMEOUT_SEC)
+      .description("Maximum duration (in seconds) of the test run."),
+  }),
+})
 
 export interface TestConfig<T extends {} = {}> extends BaseTestSpec {
   // Plugins can add custom fields that are kept here
   spec: T
 }
 
-export const testConfigSchema = () =>
-  baseTestSpecSchema()
-    .keys({
-      spec: joi
-        .object()
-        .meta({ extendable: true })
-        .description("The configuration for the test, as specified by its module's provider."),
-    })
-    .description("Configuration for a module test.")
+export const testConfigSchema = createSchema({
+  name: "test-config",
+  description: "Configuration for a module test.",
+  extend: baseTestSpecSchema,
+  keys: () => ({
+    spec: joi
+      .object()
+      .meta({ extendable: true })
+      .description("The configuration for the test, as specified by its module's provider."),
+  }),
+})

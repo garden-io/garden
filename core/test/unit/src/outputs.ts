@@ -7,16 +7,14 @@
  */
 
 import tmp from "tmp-promise"
-import { TestGarden } from "../../helpers"
+import { createProjectConfig, makeTempDir, TestGarden } from "../../helpers"
 import { resolveProjectOutputs } from "../../../src/outputs"
 import { expect } from "chai"
 import { realpath } from "fs-extra"
-import { createGardenPlugin } from "../../../src/types/plugin/plugin"
-import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../src/constants"
-import { exec } from "../../../src/util/util"
-import { ServiceState } from "../../../src/types/service"
-import { RunTaskResult } from "../../../src/types/plugin/task/runTask"
+import { createGardenPlugin } from "../../../src/plugin/plugin"
+import { ProjectConfig } from "../../../src/config/project"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC } from "../../../src/constants"
+import { joi } from "../../../src/config/common"
 
 describe("resolveProjectOutputs", () => {
   let tmpDir: tmp.DirectoryResult
@@ -24,20 +22,13 @@ describe("resolveProjectOutputs", () => {
   let projectConfig: ProjectConfig
 
   beforeEach(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
     tmpPath = await realpath(tmpDir.path)
-    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
-    projectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
+
+    projectConfig = createProjectConfig({
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFiles: [],
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
-      variables: {},
-    }
+    })
   })
 
   afterEach(async () => {
@@ -85,10 +76,12 @@ describe("resolveProjectOutputs", () => {
         {
           name: "test",
           docs: "test",
+          needsBuild: false,
           handlers: {
             async getModuleOutputs({ moduleConfig }) {
               return { outputs: moduleConfig.spec.outputs }
             },
+            convert: async (_params) => ({}),
           },
         },
       ],
@@ -105,7 +98,7 @@ describe("resolveProjectOutputs", () => {
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         name: "test",
         path: tmpPath,
@@ -126,27 +119,36 @@ describe("resolveProjectOutputs", () => {
   })
 
   it("should resolve service runtime output references", async () => {
-    const status = { state: <ServiceState>"ready", outputs: { test: "test-value" }, detail: {} }
     const plugin = createGardenPlugin({
       name: "test",
       handlers: {},
       createModuleTypes: [
         {
+          docs: "asd",
           name: "test",
-          docs: "test",
+          needsBuild: false,
           handlers: {
-            async getModuleOutputs({ moduleConfig }) {
-              return { outputs: moduleConfig.spec.outputs }
-            },
-            async getServiceStatus() {
-              return status
-            },
-            async deployService() {
-              return status
-            },
+            convert: async (_params) => ({}),
           },
         },
       ],
+      createActionTypes: {
+        Deploy: [
+          {
+            docs: "asd",
+            name: "test",
+            schema: joi.object(),
+            handlers: {
+              getOutputs: async (params) => ({ outputs: params.action.getSpec().outputs }),
+              getStatus: async (params) => ({
+                detail: { outputs: params.action.getSpec().outputs, state: "ready", detail: {} },
+                outputs: params.action.getSpec().outputs,
+                state: "ready",
+              }),
+            },
+          },
+        ],
+      },
     })
 
     projectConfig.outputs = [{ name: "test", value: "${runtime.services.test.outputs.test}" }]
@@ -156,31 +158,19 @@ describe("resolveProjectOutputs", () => {
       config: projectConfig,
     })
 
-    garden.setModuleConfigs([
+    garden.setActionConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
-        allowPublish: false,
-        build: { dependencies: [] },
-        disabled: false,
         name: "test",
-        path: tmpPath,
-        serviceConfigs: [
-          {
-            name: "test",
-            dependencies: [],
-            disabled: false,
-            hotReloadable: false,
-            spec: {},
-          },
-        ],
-        taskConfigs: [],
+        type: "test",
+        internal: {
+          basePath: "asd",
+        },
+        kind: "Deploy",
         spec: {
           outputs: {
             test: "test-value",
           },
         },
-        testConfigs: [],
-        type: "test",
       },
     ])
 
@@ -188,17 +178,16 @@ describe("resolveProjectOutputs", () => {
     expect(outputs).to.eql([{ name: "test", value: "test-value" }])
   })
 
-  it("should resolve task runtime output references", async () => {
-    const result: RunTaskResult = {
-      command: ["whatever"],
-      completedAt: new Date(),
-      log: "hello",
-      moduleName: "test",
+  it("should resolve run runtime output references", async () => {
+    const result = {
+      detail: {
+        success: true,
+        completedAt: new Date(),
+        log: "hello",
+        startedAt: new Date(),
+      },
       outputs: { log: "hello" },
-      startedAt: new Date(),
-      success: true,
-      taskName: "test",
-      version: "abcdef",
+      state: "ready" as "ready",
     }
 
     const plugin = createGardenPlugin({
@@ -206,21 +195,28 @@ describe("resolveProjectOutputs", () => {
       handlers: {},
       createModuleTypes: [
         {
+          docs: "asd",
           name: "test",
-          docs: "test",
+          needsBuild: false,
           handlers: {
-            async getModuleOutputs({ moduleConfig }) {
-              return { outputs: moduleConfig.spec.outputs }
-            },
-            async getTaskResult() {
-              return result
-            },
-            async runTask() {
-              return result
-            },
+            convert: async (_params) => ({}),
           },
         },
       ],
+      createActionTypes: {
+        Run: [
+          {
+            docs: "asd",
+            name: "test",
+            schema: joi.object(),
+            handlers: {
+              getOutputs: async (params) => ({ outputs: params.action.getSpec().outputs }),
+              run: async (_params) => result,
+              getResult: async (_params) => result,
+            },
+          },
+        ],
+      },
     })
 
     projectConfig.outputs = [{ name: "test", value: "${runtime.tasks.test.outputs.log}" }]
@@ -230,32 +226,19 @@ describe("resolveProjectOutputs", () => {
       config: projectConfig,
     })
 
-    garden.setModuleConfigs([
+    garden.setActionConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
-        allowPublish: false,
-        build: { dependencies: [] },
-        disabled: false,
         name: "test",
-        path: tmpPath,
-        serviceConfigs: [],
-        taskConfigs: [
-          {
-            name: "test",
-            cacheResult: true,
-            dependencies: [],
-            disabled: false,
-            spec: {},
-            timeout: null,
-          },
-        ],
+        type: "test",
+        internal: {
+          basePath: "asd",
+        },
+        kind: "Run",
         spec: {
           outputs: {
             test: "test-value",
           },
         },
-        testConfigs: [],
-        type: "test",
       },
     ])
 

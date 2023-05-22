@@ -12,23 +12,23 @@ import { readFile, writeFile } from "fs-extra"
 import { cloneDeep, isEqual } from "lodash"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import { resolve } from "path"
-import { findConfigPathsInPath } from "../util/fs"
+import { defaultDotIgnoreFile, findConfigPathsInPath } from "../util/fs"
 import { GitHandler } from "../vcs/git"
 import { DEFAULT_GARDEN_DIR_NAME } from "../constants"
-import { exec, safeDumpYaml } from "../util/util"
-import { LoggerType } from "../logger/logger"
+import { exec } from "../util/util"
 import Bluebird from "bluebird"
 import { loadAndValidateYaml, findProjectConfig } from "../config/base"
 import { BooleanParameter, StringsParameter } from "../cli/params"
 import { TreeCache } from "../cache"
+import { safeDumpYaml } from "../util/serialization"
 
 const migrateOpts = {
   write: new BooleanParameter({ help: "Update the `garden.yml` in place." }),
 }
 
 const migrateArgs = {
-  configPaths: new StringsParameter({
-    help: "Specify the path to a `garden.yml` file to convert. Use comma as a separator to specify multiple files.",
+  "config-paths": new StringsParameter({
+    help: "Specify the path to a `garden.yml` file to convert. You may specify multiple files by setting this flag multiple times.",
   }),
 }
 
@@ -49,7 +49,7 @@ export class MigrateCommand extends Command<Args, Opts> {
   noProject = true
   arguments = migrateArgs
   options = migrateOpts
-  help = "Migrate `garden.yml` configuration files to version 0.12"
+  help = "Migrate `garden.yml` configuration files from older versions."
 
   description = dedent`
     Scans the project for \`garden.yml\` configuration files and updates those that are not compatible with version 0.12.
@@ -67,15 +67,11 @@ export class MigrateCommand extends Command<Args, Opts> {
 
   `
 
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
-
   printHeader() {}
 
-  async action({ log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<MigrateCommandResult>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<MigrateCommandResult>> {
     // opts.root defaults to current directory
-    const projectConfig = await findProjectConfig(opts.root, true)
+    const projectConfig = await findProjectConfig({ log, path: opts.root, allowInvalid: true })
 
     if (!projectConfig) {
       throw new ConfigurationError(`Not a project directory (or any of the parent directories): ${opts.root}`, {
@@ -88,10 +84,16 @@ export class MigrateCommand extends Command<Args, Opts> {
     const updatedConfigs: { path: string; specs: any[] }[] = []
 
     let configPaths: string[] = []
-    if (args.configPaths && args.configPaths.length > 0) {
-      configPaths = args.configPaths.map((path) => resolve(root, path))
+    if (args["config-paths"] && args["config-paths"].length > 0) {
+      configPaths = args["config-paths"].map((path) => resolve(root, path))
     } else {
-      const vcs = new GitHandler(root, resolve(root, DEFAULT_GARDEN_DIR_NAME), [], new TreeCache())
+      const vcs = new GitHandler({
+        garden,
+        projectRoot: root,
+        gardenDirPath: resolve(root, DEFAULT_GARDEN_DIR_NAME),
+        ignoreFile: defaultDotIgnoreFile,
+        cache: new TreeCache(),
+      })
       configPaths = await findConfigPathsInPath({
         dir: root,
         vcs,
@@ -105,7 +107,6 @@ export class MigrateCommand extends Command<Args, Opts> {
       const updatedSpecs = specs.map((spec) =>
         [spec]
           .map((s) => applyFlatStyle(s))
-          .map((s) => removeLocalOpenFaas(s))
           .map((s) => removeEnvironmentDefaults(s, configPath))
           .pop()
       )
@@ -216,58 +217,6 @@ function applyFlatStyle(spec: any) {
     }
   }
   return cloneDeep(spec)
-}
-
-/**
- * Returns a spec with `local-openfaas` set to `openfaas` at both the provider and module type level.
- * Remove the `local-openfaas` provider if `openfaas` is already configured.
- */
-function removeLocalOpenFaas(spec: any) {
-  const clone = cloneDeep(spec)
-  const isProject = spec.kind === "Project"
-
-  // Remove local-openfaas from modules
-  if (spec.type === "local-openfaas") {
-    clone.type = "openfaas"
-  }
-
-  // Remove local-openfaas from projects
-  if (isProject) {
-    let hasOpenfaas = false
-
-    // Provider nested under environment
-    if ((spec.environments || []).length > 0) {
-      for (const [envIdx, env] of spec.environments.entries()) {
-        if (!env.providers) {
-          continue
-        }
-
-        for (const [providerIdx, provider] of env.providers.entries()) {
-          hasOpenfaas = !!env.providers.find((p) => p.name === "openfaas")
-          if (provider.name === "local-openfaas" && hasOpenfaas) {
-            // openfaas provider is already configured so we remove the local-openfaas provider
-            clone.environments[envIdx].providers.splice(providerIdx, 1)
-          } else if (provider.name === "local-openfaas") {
-            // otherwise we rename it
-            clone.environments[envIdx].providers[providerIdx].name = "openfaas"
-          }
-        }
-      }
-    }
-
-    // Provider nested under environment
-    if (spec.providers) {
-      hasOpenfaas = !!spec.providers.find((p) => p.name === "openfaas")
-      for (const [providerIdx, provider] of spec.providers.entries()) {
-        if (provider.name === "local-openfaas" && hasOpenfaas) {
-          clone.providers.splice(providerIdx, 1)
-        } else if (provider.name === "local-openfaas") {
-          clone.providers[providerIdx].name = "openfaas"
-        }
-      }
-    }
-  }
-  return clone
 }
 
 /**

@@ -1,10 +1,11 @@
+apiVersion: garden.io/v1
 kind: Project
 name: include-exclude
 environments:
   - name: local
 providers:
   - name: test-plugin
-modules:
+scan:
   include:
     - module*/**/*
   exclude:

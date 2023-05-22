@@ -6,15 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
 import { join } from "path"
 import { GARDEN_GLOBAL_PATH } from "../../../constants"
 import { mkdirp } from "fs-extra"
 import { StringMap } from "../../../config/common"
-import { PluginToolSpec } from "../../../types/plugin/tools"
+import { PluginToolSpec } from "../../../plugin/tools"
 import split2 from "split2"
-import { LogLevel } from "../../../logger/logger"
 
 export const helm3Spec: PluginToolSpec = {
   name: "helm",
@@ -77,7 +76,7 @@ export async function helm({
 }: {
   ctx: KubernetesPluginContext
   namespace?: string
-  log: LogEntry
+  log: Log
   args: string[]
   version?: 2 | 3
   env?: { [key: string]: string }
@@ -107,14 +106,14 @@ export async function helm({
 
   const logEventContext = {
     origin: "helm",
-    log: log.placeholder({ level: LogLevel.verbose }),
+    level: "verbose" as const,
   }
 
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
     if (emitLogEvents) {
-      ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
     }
   })
 

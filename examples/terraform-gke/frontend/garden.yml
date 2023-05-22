@@ -1,27 +1,43 @@
-kind: Module
+kind: Build
 name: frontend
+type: container
+
+---
+kind: Deploy
+name: frontend
+build: frontend
 description: Frontend service container
 type: container
-services:
-  - name: frontend
-    ports:
-      - name: http
-        containerPort: 8080
-    healthCheck:
-      httpGet:
-        path: /hello-frontend
-        port: http
-    ingresses:
-      - path: /hello-frontend
-        port: http
-      - path: /call-backend
-        port: http
-    dependencies:
-      - backend
-tests:
-  - name: unit
-    args: [npm, test]
-  - name: integ
-    args: [npm, run, integ]
-    dependencies:
-      - frontend
+spec:
+  ports:
+    - name: http
+      containerPort: 8080
+  healthCheck:
+    httpGet:
+      path: /hello-frontend
+      port: http
+  ingresses:
+    - path: /hello-frontend
+      port: http
+    - path: /call-backend
+      port: http
+dependencies:
+  - deploy.backend
+
+---
+kind: Test
+name: frontend-unit
+build: frontend
+type: container
+spec:
+  args: [npm, test]
+
+---
+kind: Test
+name: frontend-integ
+build: frontend
+type: container
+spec:
+  args: [npm, run, integ]
+dependencies:
+  - deploy.backend

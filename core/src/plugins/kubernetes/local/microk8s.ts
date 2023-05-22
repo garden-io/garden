@@ -8,27 +8,28 @@
 
 import tmp from "tmp-promise"
 import { RuntimeError } from "../../../exceptions"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { exec } from "../../../util/util"
 import { containerHelpers } from "../../container/helpers"
-import { ContainerModule } from "../../container/config"
-import { BuildStatus } from "../../../types/plugin/module/getBuildStatus"
+import { ContainerBuildAction } from "../../container/moduleConfig"
 import chalk from "chalk"
 import { naturalList, deline } from "../../../util/string"
 import { ExecaReturnValue } from "execa"
 import { PluginContext } from "../../../plugin-context"
 import { parse as parsePath } from "path"
 
-export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
+// TODO: Pass the correct log context instead of creating it here.
+export async function configureMicrok8sAddons(log: Log, addons: string[]) {
   let statusCommandResult: ExecaReturnValue | undefined = undefined
   let status = ""
+  const microK8sLog = log.createLog({ name: "microk8s" })
 
   try {
     statusCommandResult = await exec("microk8s", ["status"])
     status = statusCommandResult.stdout
   } catch (err) {
     if (err.all?.includes("permission denied") || err.all?.includes("Insufficient permissions")) {
-      log.warn(
+      microK8sLog.warn(
         chalk.yellow(
           deline`Unable to get microk8s status and manage addons. You may need to add the current user to the microk8s
           group. Alternatively, you can manually ensure that the ${naturalList(addons)} are enabled.`
@@ -50,12 +51,12 @@ export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
   const missingAddons = addons.filter((addon) => !status.includes(`${addon}: enabled`))
 
   if (missingAddons.length > 0) {
-    log.info({ section: "microk8s", msg: `enabling required addons (${missingAddons.join(", ")})` })
+    microK8sLog.info(`enabling required addons (${missingAddons.join(", ")})`)
     await exec("microk8s", ["enable"].concat(missingAddons))
   }
 }
 
-export async function getMicrok8sImageStatus(imageId: string): Promise<BuildStatus> {
+export async function getMicrok8sImageStatus(imageId: string) {
   const parsedId = containerHelpers.parseImageId(imageId)
   const clusterId = containerHelpers.unparseImageId({
     ...parsedId,
@@ -64,7 +65,7 @@ export async function getMicrok8sImageStatus(imageId: string): Promise<BuildStat
   })
 
   const res = await exec("microk8s", ["ctr", "images", "ls", "-q"])
-  return { ready: res.stdout.split("\n").includes(clusterId) }
+  return res.stdout.split("\n").includes(clusterId)
 }
 
 const MULTIPASS_VM_NAME = "microk8s-vm"
@@ -90,21 +91,21 @@ async function isMicrok8sRunningInMultipassVM(): Promise<boolean> {
 }
 
 export async function loadImageToMicrok8s({
-  module,
+  action,
   imageId,
   log,
   ctx,
 }: {
-  module: ContainerModule
+  action: ContainerBuildAction
   imageId: string
-  log: LogEntry
+  log: Log
   ctx: PluginContext
 }): Promise<void> {
   try {
     // See https://microk8s.io/docs/registry-images for reference
     await tmp.withFile(async (file) => {
       await containerHelpers.dockerCli({
-        cwd: module.buildPath,
+        cwd: action.getBuildPath(),
         args: ["save", "-o", file.path, imageId],
         log,
         ctx,

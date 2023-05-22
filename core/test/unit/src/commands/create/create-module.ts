@@ -9,17 +9,17 @@
 import { expect } from "chai"
 import { withDefaultGlobalOpts, TempDirectory, makeTempDir, expectError } from "../../../../helpers"
 import { CreateModuleCommand, getModuleTypeSuggestions } from "../../../../../src/commands/create/create-module"
-import { makeDummyGarden } from "../../../../../src/cli/cli"
-import { Garden } from "../../../../../src/garden"
+import { Garden, makeDummyGarden } from "../../../../../src/garden"
 import { join } from "path"
 import { pathExists, readFile, writeFile, mkdirp } from "fs-extra"
 import { safeLoadAll } from "js-yaml"
-import { exec, safeDumpYaml } from "../../../../../src/util/util"
+import { safeDumpYaml } from "../../../../../src/util/serialization"
 import stripAnsi = require("strip-ansi")
 import { getModuleTypes } from "../../../../../src/plugins"
 import { getSupportedPlugins } from "../../../../../src/plugins/plugins"
 import inquirer = require("inquirer")
 import { defaultConfigFilename } from "../../../../../src/util/fs"
+import { helmChartYamlFilename } from "../../../../../src/plugins/kubernetes/helm/common"
 
 describe("CreateModuleCommand", () => {
   const command = new CreateModuleCommand()
@@ -27,8 +27,7 @@ describe("CreateModuleCommand", () => {
   let garden: Garden
 
   beforeEach(async () => {
-    tmp = await makeTempDir()
-    await exec("git", ["init", "--initial-branch=main"], { cwd: tmp.path })
+    tmp = await makeTempDir({ git: true, initialCommit: false })
     garden = await makeDummyGarden(tmp.path, { commandInfo: { name: "create module", args: {}, opts: {} } })
   })
 
@@ -42,17 +41,14 @@ describe("CreateModuleCommand", () => {
 
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
         dir,
-        "interactive": false,
-        "name": undefined,
-        "type": "exec",
-        "filename": defaultConfigFilename,
-        "skip-comments": false,
+        interactive: false,
+        name: undefined,
+        type: "exec",
+        filename: defaultConfigFilename,
       }),
     })
     const { name, configPath } = result!
@@ -75,17 +71,14 @@ describe("CreateModuleCommand", () => {
   it("should allow overriding the default generated filename", async () => {
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        "dir": tmp.path,
-        "interactive": false,
-        "name": "test",
-        "type": "exec",
-        "filename": "custom.garden.yml",
-        "skip-comments": false,
+        dir: tmp.path,
+        interactive: false,
+        name: "test",
+        type: "exec",
+        filename: "custom.garden.yml",
       }),
     })
     const { configPath } = result!
@@ -97,17 +90,14 @@ describe("CreateModuleCommand", () => {
   it("should optionally set a module name", async () => {
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        "dir": tmp.path,
-        "interactive": false,
-        "name": "test",
-        "type": "exec",
-        "filename": defaultConfigFilename,
-        "skip-comments": false,
+        dir: tmp.path,
+        interactive: false,
+        name: "test",
+        type: "exec",
+        filename: defaultConfigFilename,
       }),
     })
     const { name, configPath } = result!
@@ -133,17 +123,14 @@ describe("CreateModuleCommand", () => {
 
     const { result } = await command.action({
       garden,
-      footerLog: garden.log,
-      headerLog: garden.log,
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        "dir": tmp.path,
-        "interactive": false,
-        "name": "test",
-        "type": "exec",
-        "filename": defaultConfigFilename,
-        "skip-comments": false,
+        dir: tmp.path,
+        interactive: false,
+        name: "test",
+        type: "exec",
+        filename: defaultConfigFilename,
       }),
     })
     const { name, configPath } = result!
@@ -172,20 +159,19 @@ describe("CreateModuleCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
-            "dir": tmp.path,
-            "interactive": false,
-            "name": "test",
-            "type": "exec",
-            "filename": defaultConfigFilename,
-            "skip-comments": false,
+            dir: tmp.path,
+            interactive: false,
+            name: "test",
+            type: "exec",
+            filename: defaultConfigFilename,
           }),
         }),
-      (err) => expect(stripAnsi(err.message)).to.equal("A Garden module named test already exists in " + configPath)
+      {
+        contains: `A Garden module named test already exists in ${configPath}`,
+      }
     )
   })
 
@@ -195,20 +181,17 @@ describe("CreateModuleCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
             dir,
-            "interactive": false,
-            "name": "test",
-            "type": "exec",
-            "filename": defaultConfigFilename,
-            "skip-comments": false,
+            interactive: false,
+            name: "test",
+            type: "exec",
+            filename: defaultConfigFilename,
           }),
         }),
-      (err) => expect(err.message).to.equal(`Path ${dir} does not exist`)
+      { contains: `Path ${dir} does not exist` }
     )
   })
 
@@ -217,20 +200,17 @@ describe("CreateModuleCommand", () => {
       () =>
         command.action({
           garden,
-          footerLog: garden.log,
-          headerLog: garden.log,
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
-            "dir": tmp.path,
-            "interactive": false,
-            "name": undefined,
-            "type": "foo",
-            "filename": defaultConfigFilename,
-            "skip-comments": false,
+            dir: tmp.path,
+            interactive: false,
+            name: undefined,
+            type: "foo",
+            filename: defaultConfigFilename,
           }),
         }),
-      (err) => expect(stripAnsi(err.message)).to.equal("Could not find module type foo")
+      { contains: "Could not find module type foo" }
     )
   })
 
@@ -247,7 +227,7 @@ describe("CreateModuleCommand", () => {
 
     it("should include suggestions from providers if applicable", async () => {
       await writeFile(join(tmp.path, "Dockerfile"), "")
-      await writeFile(join(tmp.path, "Chart.yaml"), "")
+      await writeFile(join(tmp.path, helmChartYamlFilename), "")
       await writeFile(join(tmp.path, "foo.tf"), "")
 
       const result = <any>await getModuleTypeSuggestions(garden.log, moduleTypes, tmp.path, "test")
