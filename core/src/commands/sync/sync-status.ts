@@ -88,6 +88,7 @@ export class SyncStatusCommand extends Command<Args, Opts> {
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<SyncStatusCommandResult> {
     const router = await garden.getActionRouter()
+    // TODO: Use regular graph and resolve only the needed Deploys below
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
     const skipDetail = opts["skip-detail"]
 

@@ -38,6 +38,7 @@ describe("BuildCommand", () => {
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
 
+    const err = command.outputsSchema().validate(result).error
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })

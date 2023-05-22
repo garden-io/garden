@@ -13,7 +13,7 @@ import {
   handleProcessResults,
   ProcessCommandResult,
   processCommandResultSchema,
-  processCommandResultKeys,
+  resultMetadataKeys,
 } from "./base"
 import { PublishTask } from "../tasks/publish"
 import { printHeader } from "../logger/util"
@@ -86,7 +86,7 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
 
   outputsSchema = () =>
     processCommandResultSchema().keys({
-      published: joiIdentifierMap(publishResultSchema().keys(processCommandResultKeys())).description(
+      published: joiIdentifierMap(publishResultSchema().keys(resultMetadataKeys())).description(
         "A map of all builds that were published (or scheduled/attempted for publishing) and the results."
       ),
     })

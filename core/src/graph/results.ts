@@ -194,6 +194,7 @@ function filterResultForExport(result: any) {
 
       // from DeployStatus
       "createdAt",
+      "mode",
       "syncMode",
       "localMode",
       "namespaceStatuses",
