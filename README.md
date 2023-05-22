@@ -1,4 +1,4 @@
-_If you love Garden, please ★ star this repository to show your support :green_heart: Looking for support? Join our [Discord](go.garden.io/garden).
+_If you love Garden, please ★ star this repository to show your support :green_heart: Looking for support? Join our [Discord](go.garden.io/garden)._
 
 <p align="center">
   <img src="https://github.com/garden-io/garden/assets/59834693/f62a04cb-44bc-4dd4-8426-398b6cd846fd" align="center">
