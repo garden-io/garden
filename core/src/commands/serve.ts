@@ -125,6 +125,16 @@ export class ServeCommand<
     try {
       const cloudApi = await manager.getCloudApi({ log, cloudDomain, globalConfigStore: garden.globalConfigStore })
 
+      if (!cloudApi) {
+        await garden.emitWarning({
+          key: "web-app",
+          log,
+          message: chalk.green(
+            `🌿 Explore logs, past commands, and your dependency graph in the Garden web App. Log in with ${chalk.cyan("garden login")}.`
+          ),
+        })
+      }
+
       if (projectConfig && cloudApi && defaultGarden) {
         let projectId = projectConfig?.id
 
