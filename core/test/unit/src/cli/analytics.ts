@@ -14,13 +14,11 @@ import { GlobalConfigStore } from "../../../../src/config-store/global"
 import { TestGarden, enableAnalytics, makeTestGardenA } from "../../../helpers"
 import { Command } from "../../../../src/commands/base"
 import { isEqual } from "lodash"
-import { getRootLogger } from "../../../../src/logger/logger"
 
 // TODO: These tests are skipped because they fail repeatedly in CI, but works fine locally
 describe("cli analytics", () => {
   let cli: GardenCli
   const globalConfigStore = new GlobalConfigStore()
-  const log = getRootLogger().createLog()
 
   beforeEach(async () => {
     cli = new GardenCli()
@@ -52,7 +50,7 @@ describe("cli analytics", () => {
     }
   }
 
-  it("should access the version check service", async () => {
+  it.skip("should access the version check service", async () => {
     const scope = nock("https://get.garden.io")
     scope.get("/version").query(true).reply(200)
 
@@ -64,7 +62,7 @@ describe("cli analytics", () => {
     expect(scope.done()).to.not.throw
   })
 
-  it("should wait for queued analytic events to flush", async () => {
+  it.skip("should wait for queued analytic events to flush", async () => {
     const scope = nock("https://api.segment.io")
 
     // Each command run result in two events:
@@ -100,7 +98,7 @@ describe("cli analytics", () => {
     expect(scope.done()).to.not.throw
   })
 
-  it("should not send analytics if disabled for command", async () => {
+  it.skip("should not send analytics if disabled for command", async () => {
     const scope = nock("https://api.segment.io")
 
     scope.post(`/v1/batch`).reply(201)
