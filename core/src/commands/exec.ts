@@ -81,13 +81,27 @@ export class ExecCommand extends Command<Args, Opts> {
     // Just get the status, don't actually deploy
     const executed = await executeAction({ garden, graph, action, log, statusOnly: true })
     const status: DeployStatus = executed.getStatus()
-
     const deployState = status.detail?.state
+
+    const router = await garden.getActionRouter()
+    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+
+    // check if deployment is in sync mode
+    const syncStatus = (
+      await router.deploy.getSyncStatus({
+        log: actionLog,
+        action: executed,
+        monitor: false,
+        graph,
+      })
+    ).result
+    const deploySync = syncStatus?.syncs?.[0]
+
+
     switch (deployState) {
       // Warn if the deployment is not ready yet or unhealthy, but still proceed.
       case undefined:
       case "deploying":
-      case "outdated":
       case "unhealthy":
       case "unknown":
         log.warn(
@@ -96,6 +110,16 @@ export class ExecCommand extends Command<Args, Opts> {
           )}. If this command fails, you may need to re-deploy it with the ${chalk.whiteBright("deploy")} command.`
         )
         break
+        case "outdated":
+          // if there is an active sync, the state is likely to be outdated so do not display this warning
+          if (!(deploySync?.syncCount && deploySync?.syncCount > 0 && deploySync?.state === "active" )) {
+            log.warn(
+              `The current state of ${action.key()} is ${chalk.whiteBright(
+                deployState
+              )}. If this command fails, you may need to re-deploy it with the ${chalk.whiteBright("deploy")} command.`
+            )
+          }
+          break
       // Only fail if the deployment is missing or stopped.
       case "missing":
       case "stopped":
@@ -108,9 +132,6 @@ export class ExecCommand extends Command<Args, Opts> {
         const _exhaustiveCheck: never = deployState
         return _exhaustiveCheck
     }
-
-    const router = await garden.getActionRouter()
-    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
     const { result } = await router.deploy.exec({
       log: actionLog,
