@@ -259,7 +259,7 @@ variables:
     - some_name
     - AnotherName
     - __YET_ANOTHER_NAME__
-süex:
+spec:
   args:
     $forEach: ${var.values}
     $return: ${kebabCase(item.value)}
