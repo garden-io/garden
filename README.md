@@ -1,4 +1,4 @@
-_If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Join our [Discord](go.garden.io/garden)._
+_If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Join our [Discord](https://go.garden.io/garden)._
 
 <p align="center">
   <img src="https://github.com/garden-io/garden/assets/59834693/f62a04cb-44bc-4dd4-8426-398b6cd846fd" align="center">
@@ -14,7 +14,7 @@ _If you love Garden, please ★ star this repository to show your support :green
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="go.garden.io/discord">Discord</a>
+  <a href="https://go.garden.io/discord">Discord</a>
 </div>
 
 Garden is a tool that combines rapid development, testing, and DevOps automation in one platform. It is designed for teams developing applications that run on Kubernetes and for DevOps Engineers writing infrastructure as code.
@@ -120,7 +120,7 @@ For a deeper dive on how Garden works in general, we recommend:
 
 ## Community
 
-Join our [Discord community](go.garden.io/discord) to ask questions, give feedback or just say hi 🙂
+Join our [Discord community](https://go.garden.io/discord) to ask questions, give feedback or just say hi 🙂
 
 ## Contributing
 
