@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node main.js",
     "test": "echo OK",
-    "integ": "node_modules/mocha/bin/mocha test/integ.js"
+    "integ": "node_modules/mocha/bin/_mocha test/integ.js"
   },
   "author": "garden.io <info@garden.io>",
   "license": "ISC",
@@ -15,10 +15,10 @@
     "knex": "^2.4.0",
     "pg": "^7.12.1",
     "request": "^2.88.0",
-    "request-promise": "^4.2.4"
+    "request-promise": "^4.2.6"
   },
   "devDependencies": {
-    "mocha": "^6.2.0",
+    "mocha": "^10.2.0",
     "supertest": "^4.0.2"
   }
 }
