@@ -294,6 +294,7 @@ describe("AnalyticsHandler", () => {
     afterEach(async () => {
       await analytics.shutdown()
       AnalyticsHandler.clearInstance()
+      nock.cleanAll()
     })
 
     it("should not replace the anonymous user ID with the Cloud user ID", async () => {

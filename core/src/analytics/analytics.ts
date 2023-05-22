@@ -136,15 +136,6 @@ interface CommandEvent extends EventBase {
   }
 }
 
-interface ApiEvent extends EventBase {
-  type: "Call API"
-  properties: PropertiesBase & {
-    path: string
-    command: string
-    name: string
-  }
-}
-
 interface CommandResultEvent extends EventBase {
   type: "Command Result"
   properties: PropertiesBase & {
@@ -153,28 +144,6 @@ interface CommandResultEvent extends EventBase {
     result: AnalyticsCommandResult
     errors: string[] // list of GardenBaseError types
     exitCode?: number
-  }
-}
-
-interface ConfigErrorEvent extends EventBase {
-  type: "Module Configuration Error"
-  properties: PropertiesBase & {
-    moduleName: string
-    moduleType: string
-  }
-}
-
-interface ProjectErrorEvent extends EventBase {
-  type: "Project Configuration Error"
-  properties: PropertiesBase & {
-    fields: Array<string>
-  }
-}
-
-interface ValidationErrorEvent extends EventBase {
-  type: "Validation Error"
-  properties: PropertiesBase & {
-    fields: Array<string>
   }
 }
 
@@ -194,17 +163,7 @@ interface IdentifyEvent {
   }
 }
 
-interface ApiRequestBody {
-  command: string
-}
-
-type AnalyticsEvent =
-  | CommandEvent
-  | CommandResultEvent
-  | ApiEvent
-  | ConfigErrorEvent
-  | ProjectErrorEvent
-  | ValidationErrorEvent
+type AnalyticsEvent = CommandEvent | CommandResultEvent
 
 export interface SegmentEvent {
   userId?: string
@@ -535,7 +494,8 @@ export class AnalyticsHandler {
   }
 
   /**
-   * The actual segment track method.
+   * The actual segment track method. Returns immediately with undefined
+   * when the analytics is not enabled.
    */
   private async track(event: AnalyticsEvent): Promise<AnalyticsEvent | undefined> {
     if (!this.segment || !this.isEnabled) {
@@ -569,6 +529,10 @@ export class AnalyticsHandler {
     )
   }
 
+  /**
+   * Internal method that calls segment identify. Returns immediately with undefined
+   * when the analytics is not enabled.
+   */
   private async identify(event: IdentifyEvent): Promise<IdentifyEvent | undefined> {
     if (!this.segment || !this.isEnabled) {
       return
@@ -587,7 +551,9 @@ export class AnalyticsHandler {
   }
 
   /**
-   * Tracks a Command.
+   * Tracks a command run.
+   *
+   * @param {string} commandName The name of the command, e.g. deploy, test, ...
    */
   async trackCommand(commandName: string) {
     return await this.track({
@@ -601,6 +567,11 @@ export class AnalyticsHandler {
 
   /**
    * Track a command result.
+   *
+   * @param {string} commandName The name of the command, e.g. deploy, test, ...
+   * @param {GardenBaseError} errors List of garden base errors
+   * @param {Date} startTime The time when the command was started, used to calculate duration
+   * @param {number} exitCode Optional value of the exit code resulting from a command error
    */
   async trackCommandResult(commandName: string, errors: GardenBaseError[], startTime: Date, exitCode?: number) {
     const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
@@ -621,100 +592,11 @@ export class AnalyticsHandler {
   }
 
   /**
-   * Tracks an API call sent to the core server.
-   *
-   * NOTE: for privacy issues we only collect the 'command' from the body
-   */
-  trackApi(method: string, path: string, body: ApiRequestBody) {
-    const properties = {
-      name: `${method} request`,
-      path,
-      command: body.command,
-      ...this.getBasicAnalyticsProperties(),
-    }
-
-    return this.track({
-      type: "Call API",
-      properties,
-    })
-  }
-
-  /**
-   * Tracks a Garden action configuration error
-   */
-  trackActionConfigError({
-    kind,
-    type,
-    name,
-    moduleName,
-  }: {
-    kind: string
-    type: string
-    name: string
-    moduleName: string
-  }) {
-    return this.track(<ConfigErrorEvent>{
-      type: "Module Configuration Error",
-      properties: {
-        ...this.getBasicAnalyticsProperties(),
-        kind,
-        moduleType: type,
-        name: hasha(name, { algorithm: "sha256" }),
-        moduleName: hasha(moduleName, { algorithm: "sha256" }),
-      },
-    })
-  }
-
-  /**
-   *  Tracks a Garden Module configuration error
-   *
-   * @param {string} moduleType The type of the module causing the configuration error
-   * @returns
-   * @memberof AnalyticsHandler
-   * Tracks a Garden Module configuration error
-   */
-  trackModuleConfigError(name: string, moduleType: string) {
-    const moduleName = hasha(name, { algorithm: "sha256" })
-    return this.track({
-      type: "Module Configuration Error",
-      properties: {
-        ...this.getBasicAnalyticsProperties(),
-        moduleName,
-        moduleType,
-      },
-    })
-  }
-
-  /**
-   * Tracks a Project configuration error
-   */
-  trackProjectConfigError(fields: Array<string>) {
-    return this.track({
-      type: "Project Configuration Error",
-      properties: {
-        ...this.getBasicAnalyticsProperties(),
-        fields,
-      },
-    })
-  }
-
-  /**
-   * Tracks a generic configuration error
-   */
-  trackConfigValidationError(fields: Array<string>) {
-    return this.track({
-      type: "Validation Error",
-      properties: {
-        ...this.getBasicAnalyticsProperties(),
-        fields,
-      },
-    })
-  }
-
-  /**
    * Flushes the event queue and shuts down the internal segment instance.
    *
-   * This should only be used once and during shutdown.
+   * This should only be used once and during shutdown. After the call, no
+   * more analytic events will be tracked. Re-instantiate the AnalyticsHandler
+   * to accept new events.
    */
   async shutdown() {
     this.log?.silly("Analytics close and flush all remaining events")
