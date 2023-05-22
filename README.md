@@ -29,8 +29,11 @@ With Garden you can:
 ## Table of Contents
 
 - [Installation](#installation)
+- [Demo](#demo)
 - [Usage](#usage)
+- [Plugins](#plugins)
 - [Community](#community)
+- [Contributing](#contributing)
 - [License](#license)
 
 ## Installation
@@ -44,6 +47,11 @@ curl -sL https://get.garden.io/install.sh | bash
 ```
 
 For more installation options, see the [installation guide](https://docs.garden.io/basics/installation).
+
+## Demo
+
+![Garden dev deploy](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/d8095ad1a8615edf49e721b8afcd901f3056e127/dev-mode.gif)
+
 
 ## Usage
 
