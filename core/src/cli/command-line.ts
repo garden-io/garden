@@ -504,7 +504,7 @@ ${renderCommands(getOtherCommands(commandsToRender))}
 
 ${chalk.white.underline("Keys:")}
 
-  ${chalk.gray(`[tab]: auto-complete  [up/down]: command history  [ctrl-d]: quit`)}
+  ${chalk.gray(`[tab]: auto-complete  [up/down]: command history  [ctrl-u]: clear line  [ctrl-d]: quit`)}
 `
     this.printWithDividers(helpText, "help")
   }
