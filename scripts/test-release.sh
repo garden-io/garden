@@ -42,16 +42,6 @@ download_release() {
 }
 
 test_release() {
-  # Mac doesn't have a timeout command so we alias to gtimeout (or exit if gtimeout is not installed).
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    if ! [ -x "$(command -v gtimeout)" ]; then
-      echo "Command gtimeout is missing - You can install it with 'brew install coreutils' on macOS"
-      return 1
-    else
-      alias timeout=gtimeout
-    fi
-  fi
-
   if [ ! "$version" ]; then
     echo "Version is missing"
     return 1
@@ -91,16 +81,11 @@ test_release() {
   echo "→ Running 'garden deploy --sync' in vote project (the test script will continue after 2 minutes)."
   echo "→ Try e.g. to update this file: ${garden_root}/examples/vote/vote/src/views/Home.vue"
   echo ""
-  timeout 1m ${garden_release} deploy --sync
+  ${garden_release} deploy --sync
   echo ""
   echo "→ Stopping sync for vote app"
   ${garden_release} sync stop vote
   revert_git_changes
-
-  # Remove the alias we set above
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    unalias timeout
-  fi
 
   cd $garden_root
   echo "Done!"
