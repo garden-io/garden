@@ -521,7 +521,7 @@ export class AnalyticsHandler {
       this.segment.track(segmentEvent, (err) => {
         if (err) {
           this.log?.debug(`Error sending ${segmentEvent.event} tracking event: ${err}`)
-          reject()
+          reject(err)
         }
 
         resolve(event)
@@ -555,7 +555,7 @@ export class AnalyticsHandler {
    *
    * @param {string} commandName The name of the command, e.g. deploy, test, ...
    */
-  async trackCommand(commandName: string) {
+  async trackCommand(commandName: string): Promise<AnalyticsEvent | undefined> {
     return await this.track({
       type: "Run Command",
       properties: {

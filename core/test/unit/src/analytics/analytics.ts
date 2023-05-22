@@ -107,6 +107,7 @@ describe("AnalyticsHandler", () => {
       // Flush so queued events don't leak between tests
       await analytics.shutdown()
       AnalyticsHandler.clearInstance()
+      nock.cleanAll()
     })
 
     it("should initialize the analytics config if missing", async () => {
@@ -184,7 +185,6 @@ describe("AnalyticsHandler", () => {
     })
     it("should identify the user with an anonymous ID", async () => {
       let payload: any
-      const scope = nock("https://api.segment.io")
       scope
         .post(`/v1/batch`, (body) => {
           const events = body.batch.map((event: any) => event.type)
@@ -294,7 +294,6 @@ describe("AnalyticsHandler", () => {
     afterEach(async () => {
       await analytics.shutdown()
       AnalyticsHandler.clearInstance()
-      nock.cleanAll()
     })
 
     it("should not replace the anonymous user ID with the Cloud user ID", async () => {
@@ -697,6 +696,9 @@ describe("AnalyticsHandler", () => {
     })
 
     it("should wait for pending events on network delays", async () => {
+      // identify call created by the factory call
+      scope.post(`/v1/batch`).reply(201)
+
       scope
         .post(`/v1/batch`, (body) => {
           // Assert that the event batch contains a single "track" event
@@ -709,7 +711,7 @@ describe("AnalyticsHandler", () => {
           ])
         })
         .delay(1500)
-        .reply(200)
+        .reply(201)
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
