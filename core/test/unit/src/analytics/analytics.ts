@@ -54,6 +54,11 @@ class FakeCloudApi extends CloudApi {
   }
 }
 
+const bodyContainsEvent = (eventType: string) => (body: any) => {
+  const events = body.batch.map((event: any) => event.type)
+  return isEqual(events, [eventType])
+}
+
 describe("AnalyticsHandler", () => {
   const remoteOriginUrl = "git@github.com:garden-io/garden.git"
   const host = "https://api.segment.io"
@@ -100,8 +105,9 @@ describe("AnalyticsHandler", () => {
 
     afterEach(async () => {
       // Flush so queued events don't leak between tests
-      await analytics.flush()
+      await analytics.shutdown()
       AnalyticsHandler.clearInstance()
+      nock.cleanAll()
     })
 
     it("should initialize the analytics config if missing", async () => {
@@ -191,10 +197,11 @@ describe("AnalyticsHandler", () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      await analytics.flush()
+      await analytics.shutdown()
 
       expect(analytics.isEnabled).to.equal(true)
-      expect(scope.isDone()).to.equal(true)
+      expect(scope.done()).to.not.throw
+
       // This is the important part
       expect(payload.userId).to.be.undefined
       expect(payload[0].traits.platform).to.be.a("string")
@@ -216,6 +223,7 @@ describe("AnalyticsHandler", () => {
           },
           type: "identify",
           context: payload[0].context,
+          integrations: {},
           _metadata: payload[0]._metadata,
           timestamp: payload[0].timestamp,
           messageId: payload[0].messageId,
@@ -237,7 +245,7 @@ describe("AnalyticsHandler", () => {
         optedOut: true,
       })
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
-      await analytics.flush()
+      await analytics.shutdown()
 
       expect(analytics.isEnabled).to.equal(false)
       expect(scope.isDone()).to.equal(false)
@@ -284,7 +292,7 @@ describe("AnalyticsHandler", () => {
     })
 
     afterEach(async () => {
-      await analytics.flush()
+      await analytics.shutdown()
       AnalyticsHandler.clearInstance()
     })
 
@@ -334,10 +342,10 @@ describe("AnalyticsHandler", () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      await analytics.flush()
+      await analytics.shutdown()
 
       expect(analytics.isEnabled).to.equal(true)
-      expect(scope.isDone()).to.equal(true)
+      expect(scope.done()).to.not.throw
       expect(payload).to.eql([
         {
           userId: "garden_1", // This is the imporant part
@@ -356,6 +364,7 @@ describe("AnalyticsHandler", () => {
           },
           type: "identify",
           context: payload[0].context,
+          integrations: {},
           _metadata: payload[0]._metadata,
           timestamp: payload[0].timestamp,
           messageId: payload[0].messageId,
@@ -377,7 +386,7 @@ describe("AnalyticsHandler", () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       gardenEnv.GARDEN_DISABLE_ANALYTICS = originalEnvVar
-      await analytics.flush()
+      await analytics.shutdown()
 
       expect(analytics.isEnabled).to.equal(false)
       expect(scope.isDone()).to.equal(false)
@@ -394,17 +403,21 @@ describe("AnalyticsHandler", () => {
 
     afterEach(async () => {
       // Flush so queued events don't leak between tests
-      await analytics.flush()
+      await analytics.shutdown()
       AnalyticsHandler.clearInstance()
+      nock.cleanAll()
     })
 
     it("should return the event with the correct project metadata", async () => {
-      scope.post(`/v1/batch`).reply(200)
-
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
+      // initial identify call
+      scope.post(`/v1/batch`, bodyContainsEvent("identify")).reply(201)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
-      const event = analytics.trackCommand("testCommand")
+
+      // the track command request
+      scope.post(`/v1/batch`, bodyContainsEvent("track")).reply(201)
+      const event = await analytics.trackCommand("testCommand")
 
       expect(event).to.eql({
         type: "Run Command",
@@ -443,12 +456,15 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should set the CI info if applicable", async () => {
-      scope.post(`/v1/batch`).reply(200)
-
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
+      // initial identify call
+      scope.post(`/v1/batch`, bodyContainsEvent("identify")).reply(201)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo: { isCi: true, ciName: "foo" } })
-      const event = analytics.trackCommand("testCommand")
+
+      // the track command request
+      scope.post(`/v1/batch`, bodyContainsEvent("track")).reply(201)
+      const event = await analytics.trackCommand("testCommand")
 
       expect(event).to.eql({
         type: "Run Command",
@@ -487,8 +503,6 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should handle projects with no services, tests, or tasks", async () => {
-      scope.post(`/v1/batch`).reply(200)
-
       garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
@@ -507,9 +521,14 @@ describe("AnalyticsHandler", () => {
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
+      // initial identify call
+      scope.post(`/v1/batch`, bodyContainsEvent("identify")).reply(201)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      const event = analytics.trackCommand("testCommand")
+      // the track command request
+      scope.post(`/v1/batch`, bodyContainsEvent("track")).reply(201)
+
+      const event = await analytics.trackCommand("testCommand")
 
       expect(event).to.eql({
         type: "Run Command",
@@ -548,17 +567,20 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should include enterprise metadata", async () => {
-      scope.post(`/v1/batch`).reply(200)
-
       const root = getDataDir("test-projects", "login", "has-domain-and-id")
       garden = await makeTestGarden(root)
       garden.vcsInfo.originUrl = remoteOriginUrl
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
+      // initial identify call
+      scope.post(`/v1/batch`, bodyContainsEvent("identify")).reply(201)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      const event = analytics.trackCommand("testCommand")
+      // the track command request
+      scope.post(`/v1/batch`, bodyContainsEvent("track")).reply(201)
+
+      const event = await analytics.trackCommand("testCommand")
 
       expect(event).to.eql({
         type: "Run Command",
@@ -597,17 +619,20 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should have counts for action kinds", async () => {
-      scope.post(`/v1/batch`).reply(200)
-
       const root = getDataDir("test-projects", "config-templates")
       garden = await makeTestGarden(root)
       garden.vcsInfo.originUrl = remoteOriginUrl
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
+      // initial identify call
+      scope.post(`/v1/batch`, bodyContainsEvent("identify")).reply(201)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      const event = analytics.trackCommand("testCommand")
+      // the track command request
+      scope.post(`/v1/batch`, bodyContainsEvent("track")).reply(201)
+
+      const event = await analytics.trackCommand("testCommand")
 
       expect(event).to.eql({
         type: "Run Command",
@@ -665,11 +690,15 @@ describe("AnalyticsHandler", () => {
 
     afterEach(async () => {
       // Flush so queued events don't leak between tests
-      await analytics.flush()
+      await analytics.shutdown()
       AnalyticsHandler.clearInstance()
+      nock.cleanAll()
     })
 
     it("should wait for pending events on network delays", async () => {
+      // identify call created by the factory call
+      scope.post(`/v1/batch`).reply(201)
+
       scope
         .post(`/v1/batch`, (body) => {
           // Assert that the event batch contains a single "track" event
@@ -682,16 +711,15 @@ describe("AnalyticsHandler", () => {
           ])
         })
         .delay(1500)
-        .reply(200)
+        .reply(201)
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      analytics.trackCommand("test-command-A")
-      await analytics.flush()
+      await analytics.trackCommand("test-command-A")
+      await analytics.shutdown()
 
-      expect(analytics["pendingEvents"].size).to.eql(0)
-      expect(scope.isDone()).to.equal(true)
+      expect(scope.done()).to.not.throw
     })
   })
   describe("getAnonymousUserId", () => {
