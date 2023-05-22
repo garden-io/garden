@@ -24,7 +24,7 @@ With Garden you can:
 - Test and develop with **smart caching** and **live reloading**.
 - Build container images and push them to any number of registries, automatically, as you write.
 - Use remote Kubernetes clusters as your development environment with developer namespaces.
-- Declare your entire stack in a single file, including how it's built, deployed and tested from infrastructure to application code.
+- Declare your entire stack in a single file (or many files), including how it's built, deployed and tested from infrastructure to application code.
 
 ## Table of Contents
 
