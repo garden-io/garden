@@ -19,7 +19,7 @@ WORKDIR /garden-tmp/pkg
 
 # Pre-fetch the node binary for pkg
 RUN yarn add pkg@5.7.0 && \
-  node_modules/.bin/pkg-fetch node18 alpine x64
+  node_modules/.bin/pkg-fetch node20 alpine x64
 
 # Add all the packages
 ADD cli /garden-tmp/cli
@@ -39,5 +39,5 @@ ADD static /garden/static
 
 # Create the binary
 RUN mkdir -p /garden \
-  && node_modules/.bin/pkg --compress Brotli --target node18-alpine-x64 . --output /garden/garden \
+  && node_modules/.bin/pkg --compress Brotli --target node20-alpine-x64 . --output /garden/garden \
   && /garden/garden version

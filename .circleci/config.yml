@@ -761,7 +761,7 @@ jobs:
       - *attach-workspace
       # - run:
       #     name: Configure Node.js
-      #     command: nvm install v18 && nvm alias default v18
+      #     command: nvm install v20 && nvm alias default v20
       - run:
           name: brew install
           command: brew install docker kubectl git
