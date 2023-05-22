@@ -6,7 +6,7 @@ order: 1
 # Quickstart Guide
 
 {% hint style="info" %}
-Garden Bonsai ships with a brand new Dashboard that 
+A visual quickstart is also available by logging in to the Garden Dashboard. The Dashboard can show you the status of your builds, deployments and stream logs from your services in real-time. To get started, click [Dashboard Quickstart](https://app.garden.io).
 {% endhint %}
 
 Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow. In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
