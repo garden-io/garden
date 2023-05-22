@@ -26,7 +26,6 @@ With Garden you can:
 - Use remote Kubernetes clusters as your development environment with developer namespaces.
 - Declare your entire stack in a single file, including how it's built, deployed and tested from infrastructure to application code.
 
-
 ## Table of Contents
 
 - [Installation](#installation)
@@ -34,55 +33,62 @@ With Garden you can:
 - [Credits](#credits)
 - [License](#license)
 
-
-### **Getting started**
+## Installation
 
 The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/basics/quickstart).
 
-### **Who should use Garden?**
+Otherwise:
 
-Garden is most commonly used by teams developing apps that run on Kubernetes. It **leverages your existing infrastructure along with your Kubernetes manifests, Helm charts and Dockerfiles** to simplify and speed up all stages of delivery.
+```sh
+curl -sL https://get.garden.io/install.sh | bash
+```
 
-If you can relate to any of these pains, Garden might be the tool for your team:
+For more installation options, see the [installation guide](https://docs.garden.io/basics/installation).
 
-- Developers can’t run the full set of tests during development and are stuck in an endless loop of git-push-and-wait–for-CI.
-- Development environments look nothing like production, causing bugs when features ship.
-- Just starting a developer environment is a slow and tedious process and onboarding new developers takes days (or weeks?).
-- Your CI pipelines feel like Rube Goldberg machines, taped together with bash scripts.
-- Config is duplicated and drifting.
-- End-to-end tests are missing because writing and debugging them is too complex.
-- Preview environments are missing because spinning them up is too slow and/or complex.
-- Each new component in your stack adds more friction and complexity.
-- The entire software delivery process is complex, brittle and slow, and people are frustrated.
+## Usage
 
-Getting started with Garden requires some knowledge about how your project is run in production. That’s why it’s usually the DevOps engineer on the team (or someone in a similar role) that first sets things up.
+If you have a `garden.yml` file in your project, you can run `garden` commands from the root of your project. If you don't have a `garden.yml` file, clone the quickstart project:
 
-Afterwards, the entire team benefits:
+```sh
+git clone https://github.com/garden-io/garden-quickstart.git
+```
 
-- Developers use Garden for day-to-day development and testing—and the developer experience is bar none!
-- DevOps engineers are back in control of their stack.
-- Pipeline sanity has been restored and CI is orders of magnitude faster thanks to smart caching.
+Now start the dev console with:
 
-### **How does it work?**
+```console
+garden dev
+```
 
-Garden Core is a standalone binary that can run from CI or from a developer’s machine. It allows you to codify a complete description of your stack, including how it's built, deployed and tested, using the [Stack Graph](https://docs.garden.io/basics/stack-graph)—making your workflows **reproducible and portable**.
+Build with:
 
-With the Stack Graph, each part of your stack describes itself using simple, intuitive YAML declarations, without changing any of your existing code. Garden collects all of your declarations—even across multiple repositories—into a full graph of your stack.
+```console
+build
+```
 
-![Stack Graph](docs/stack-graph-drawing.png)
+Deploy with:
 
-Garden then leverages your _existing tools and infrastructure_ to execute this graph, allowing you to go **from zero to a running system in a single command**. And thanks to smart caching, it’s fast!
+```console
+deploy
+```
 
-For example, to create a preview environment on every pull request, simply add the following to your CI pipeline:
+Test with:
+
+```console
+test
+```
+
+Exit with `Ctrl+C` or `exit`.
+
+To create a preview environment on every pull request, simply add the following to your CI pipeline:
 
 ```console
 garden deploy --env preview
 ```
 
-Or, say a developer wants to run an end-to-end test from their laptop as they code. Again, it’s simple:
+A developer wants to run an end-to-end test from their laptop as they code. Simple:
 
 ```console
-garden test --name <name-of-your-e2e-test-suite>
+garden test --name my-e2e-test
 ```
 
 Garden also has a special mode called "sync mode" which live reloads changes to your running services—ensuring **blazing fast feedback while developing**. To enable it, simply run:
@@ -91,11 +97,11 @@ Garden also has a special mode called "sync mode" which live reloads changes to 
 garden deploy --sync
 ```
 
-The Stack Graph is pluggable so how these actions are actually executed depends on the plugins used. Our Kubernetes plugin is currently the most popular, and chances are that’s what you’re here for. To learn more about how Garden works with Kubernetes, check out:
+Garden is *pluggable* so how these actions are actually executed depends on the plugins used. Our Kubernetes plugin is currently the most popular, and chances are that’s what you’re here for. To learn more about how Garden works with Kubernetes, check out:
 
 - [Kubernetes Plugins documentation](https://docs.garden.io/guides/remote-kubernetes).
 
-And for a deeper dive on how Garden works in general, we recommend:
+For a deeper dive on how Garden works in general, we recommend:
 
 - [This guide on how Garden works](https://docs.garden.io/basics/how-garden-works).
 - [This video series on the Stack Graph and getting started with Garden](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8).
