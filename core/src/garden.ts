@@ -1754,7 +1754,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
-    const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), showDuration: true })
+    const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
     cloudLog.verbose(`Connecting to ${distroName}...`)
 
     let cloudProject: CloudProject | undefined
@@ -1792,8 +1792,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       // Only fetch secrets if the projectId exists in the cloud API instance
       try {
         secrets = await getSecrets({ log: cloudLog, projectId: cloudProject.id, environmentName, cloudApi })
-        cloudLog.success(chalk.green("Ready"))
-        cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
+        cloudLog.verbose(chalk.green("Ready"))
+        cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
       } catch (err) {
         cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
       }

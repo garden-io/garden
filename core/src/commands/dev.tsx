@@ -62,9 +62,12 @@ ${renderDivider({ color: chalk.green, title: chalk.green.bold("🌳  garden dev 
 
 ${chalk.bold(`Good ${getGreetingTime()}! Welcome to the Garden interactive development console.`)}
 
-Here, you can ${chalk.white("build")}, ${chalk.white("deploy")}, ${chalk.white("test")} and ${chalk.white("run")} anything in your project, start code syncing, stream live logs and more.
+Here, you can ${chalk.white("build")}, ${chalk.white("deploy")}, ${chalk.white("test")} and ${chalk.white(
+        "run"
+      )} anything in your project, start code syncing, stream live logs and more.
 
-Let's get your development environment wired up.
+Use the command line below to enter Garden commands. Type ${chalk.white("help")} to get a full list of commands.
+Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
     `)
     )
   }
