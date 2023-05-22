@@ -195,7 +195,6 @@ export class GardenServer extends EventEmitter {
       })
     }
 
-    this.log.info("")
     this.statusLog = this.log.createLog()
   }
 
@@ -316,7 +315,7 @@ export class GardenServer extends EventEmitter {
           ...prepareParams,
           garden,
           sessionId: uuidv4(),
-          nested: true,
+          parentSessionId: this.sessionId,
         })
 
         ctx.response.body = sanitizeValue(result)
@@ -589,7 +588,7 @@ export class GardenServer extends EventEmitter {
               ...prepareParams,
               garden,
               sessionId: requestId,
-              nested: true,
+              parentSessionId: this.sessionId,
             })
           })
           // Here we check if the command has active monitors and if so,
