@@ -78,8 +78,11 @@ export class SyncStatusCommand extends Command<Args> {
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
 
+    // We default to getting the sync status for all actions
+    const names = args.names || ["*"]
+
     const deployActions = graph
-      .getDeploys({ includeDisabled: false, names: args.names })
+      .getDeploys({ includeDisabled: false, names })
       .sort((a, b) => (a.name > b.name ? 1 : -1))
     // This is fairly arbitrary
     const concurrency = 5
@@ -90,7 +93,7 @@ export class SyncStatusCommand extends Command<Args> {
     log.info(
       chalk.white(deline`
       Getting sync statuses. For more detailed debug information, run this command with
-      the \`--output json\` or \`--outputyaml\` flags.
+      the \`--output json\` or \`--output yaml\` flags.
     `)
     )
     log.info("")

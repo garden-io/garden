@@ -3455,13 +3455,13 @@ Examples:
     garden sync start api --deploy
 
     # start syncing to every Deploy already deployed in sync mode
-    garden sync start '*'
+    garden sync start
 
     # start syncing to every Deploy that supports it, deploying if needed
     garden sync start '*' --deploy
 
     # start syncing to every Deploy that supports it, deploying if needed including runtime dependencies
-    garden sync start '*' --deploy --include-dependencies
+    garden sync start --deploy --include-dependencies
 
     # start syncing to the 'api' and 'worker' Deploys
     garden sync start api worker
@@ -3471,13 +3471,13 @@ Examples:
 
 #### Usage
 
-    garden sync start <names> [options]
+    garden sync start [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | Yes | The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify &#x27;*&#x27; as an argument.
+  | `names` | No | The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify &#x27;*&#x27; as an argument.
 
 #### Options
 
@@ -3499,17 +3499,17 @@ Examples:
     garden sync stop api
 
     # stop all active syncs
-    garden sync stop '*'
+    garden sync stop
 
 #### Usage
 
-    garden sync stop <names> 
+    garden sync stop [names] 
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | Yes | The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify &#x27;*&#x27; as an argument.
+  | `names` | No | The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, run the command with no arguments.
 
 
 

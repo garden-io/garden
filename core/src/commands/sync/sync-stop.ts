@@ -17,8 +17,8 @@ import { createActionLog } from "../../logger/log-entry"
 
 const syncStopArgs = {
   names: new StringsParameter({
-    help: "The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify '*' as an argument.",
-    required: true,
+    help: "The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, run the command with no arguments.",
+    required: false,
     spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Deploy)
@@ -49,7 +49,7 @@ export class SyncStopCommand extends Command<Args, Opts> {
         garden sync stop api
 
         # stop all active syncs
-        garden sync stop '*'
+        garden sync stop
   `
 
   outputsSchema = () => joi.object()
@@ -61,12 +61,8 @@ export class SyncStopCommand extends Command<Args, Opts> {
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     const { garden, log, args } = params
 
-    const names = args.names || []
-
-    if (names.length === 0) {
-      log.warn({ msg: `No names specified. Aborting. Please specify '*' if you'd like to stop all active syncs.` })
-      return { result: {} }
-    }
+    // We default to stopping all syncs.
+    const names = args.names || ["*"]
 
     const graph = await garden.getConfigGraph({
       log,
