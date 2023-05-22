@@ -24,7 +24,7 @@ import { Garden } from "../.."
 const syncStartArgs = {
   names: new StringsParameter({
     help: "The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify '*' as an argument.",
-    required: true,
+    required: false,
     spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Deploy)
@@ -67,13 +67,13 @@ export class SyncStartCommand extends Command<Args, Opts> {
         garden sync start api --deploy
 
         # start syncing to every Deploy already deployed in sync mode
-        garden sync start '*'
+        garden sync start
 
         # start syncing to every Deploy that supports it, deploying if needed
         garden sync start '*' --deploy
 
         # start syncing to every Deploy that supports it, deploying if needed including runtime dependencies
-        garden sync start '*' --deploy --include-dependencies
+        garden sync start --deploy --include-dependencies
 
         # start syncing to the 'api' and 'worker' Deploys
         garden sync start api worker
@@ -95,12 +95,8 @@ export class SyncStartCommand extends Command<Args, Opts> {
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     const { garden, log, args, opts } = params
 
-    const names = args.names || []
-
-    if (names.length === 0) {
-      log.warn({ msg: `No names specified. Aborting. Please specify '*' if you'd like to start all possible syncs.` })
-      return { result: {} }
-    }
+    // We default to starting syncs for all Deploy actions
+    const names = args.names || ["*"]
 
     // We want to stop any started syncs on exit if we're calling `sync start` from inside the `dev` command.
     const stopOnExit = !!params.commandLine
