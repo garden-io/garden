@@ -3,175 +3,115 @@ order: 60
 title: Tasks
 ---
 
-# Tasks
+# Runs
 
-You add tasks when you want Garden to execute specific commands before deploying a service or running a test. At its most basic, the configuration looks like this:
+You add Runs when you want Garden to execute specific commands before executing an different Action. At its most basic, the configuration looks like this:
 
 ```yaml
 # garden.yml
-kind: Module
-tasks:
-  - name: db-init
-    args: [rake, db:migrate]
-  - name: db-clear
-    args: [rake, db:rollback]
+kind: Run
+name: db-migrate
+type: container
+build: backend
+spec:
+  command: ["rake", "db:migrate"]
 ```
 
-> Note that not all [modules types](../reference/module-types/README.md) support tasks.
+Runs that have _dependents_ (i.e. something that depends on them) are run automatically by Garden. For example, if a Deploy depends on a Run, then Garden will automatically run that Run before executing the Deploy. Other Runs will need to be run manually.
 
-## How it Works
+Garden caches Run results and re-runs the Runs if its dependencies, have changed. It is therefore recommended that you make sure your Runs are idempotent (i.e. can safely be run multiple times). This behaviour can be disabled via the `spec.cacheResult` field on Runs.
 
-Tasks belong to modules and each module can have several tasks. A common use case for a task is a database migration.
+You can run a Run manually with the `garden run <run-name>` command. This will run the Run regardless of whether or not the result is cached.
 
-Tasks that have _dependents_ (i.e. something that depends on them) are run automatically by Garden. For example, if a service depends on a task being run before it is deployed, then Garden will automatically run that task before deploying the service. Other tasks will need to be run manually.
-
-Garden caches task results and re-runs the task if its dependencies, have changed. It is therefore recommended that you make sure your tasks are idempotent (i.e. can safely be run multiple times).
-
-You can run a task manually with the `garden run <task-name>` command. This will run the task regardless of whether or not the result is cached.
-
-You can view task results from the dashboard or by running `garden get task-result <task-name>`.
-
-Task names must currently be unique across your project.
-
-## Tasks in the Stack Graph
-
-Tasks correspond to a **run** action in the Stack Graph.
-
-- **Tasks** implicitly depend on the build step of their **parent module**.
-- **Tasks** can depend on other **tasks** and **services**.
-- **Services** and tests can depend on **tasks**.
+You can view task results by running `garden get run-result <run-name>`.
 
 ## Examples
 
 ### Database Migration
 
-Below is an example of a Helm module that uses the `postgresql` Helm chart. The module has a task for initializing the database and another one for clearing it. In the example we use environment variables to set the password. Notice also that the tasks depend on the `postgres` service being deployed.
+Below is an example of two Runs for a Deploy that uses the `postgresql` Helm chart. The `db-init` Run is for initializing the database and `db-clear` is for clearing it. Notice how the Runs depend on `deploy.db`. These Runs are of type [`kubernetes-exec`](../reference/action-types/Run/kubernetes-exec.md) that's used for running commands directly in a running Deploy.
 
 ```yaml
-kind: Module
-type: helm
-chart: stable/postgresql
-...
-tasks:
-  - name: db-init
-    command: [/bin/sh, -c]
-    args: [
-      psql,
-      -w,
-      -U, postgres,
-      --host, postgres,
-      --port, 5432,
-      -d, postgres,
-      -c "CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)"
+kind: Run
+name: db-init
+type: kubernetes-exec
+dependencies: [deploy.db]
+spec:
+  resource:
+    kind: "StatefulSet"
+    name: "postgres"
+  command: [
+      "/bin/sh",
+      "-c",
+      "sleep 15 && PGPASSWORD=postgres psql -w -U postgres --host=postgres --port=5432 -d postgres -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'",
     ]
-    env:
-      PGPASSWORD: postgres
-    dependencies:
-      - postgres
-  - name: db-clear
-    args: [
-      psql,
-      -w,
-      -U, postgres,
-      --host, postgres,
-      --port=5432,
-      -d, postgres,
-      -c, "TRUNCATE votes"
+
+---
+kind: Run
+name: db-clear
+type: kubernetes-exec
+dependencies: [deploy.db]
+spec:
+  resource:
+    kind: "StatefulSet"
+    name: "postgres"
+  command:
+    [
+      "/bin/sh",
+      "-c",
+      "PGPASSWORD=postgres psql -w -U postgres --host postgres --port=5432 -d postgres -c 'TRUNCATE votes'",
     ]
-    env:
-      PGPASSWORD: postgres
-    dependencies:
-      - postgres
 ```
 
-The full example is [available here](https://github.com/garden-io/garden/tree/0.12.56/examples/vote-helm/postgres/garden.yml). There's [also a version](https://github.com/garden-io/garden/tree/0.12.56/examples/vote) that uses the `container` module type instead of Helm charts.
+The full example is [available here](../../examples/vote-helm/postgres/garden.yml). There's [also a version](../../examples/vote/README.md) that uses the `container` action type instead of Helm charts.
 
 ## Advanced
 
-### Task Artifacts
+### Run Artifacts
 
-Many module types, including `container`, `exec` and `helm`, allow you to extract artifacts after tasks have been run. This can be handy when you'd like to view reports or logs, or if you'd like a script (via a local `exec` module, for instance) to validate the output from a task.
+Many action types, including `container`, `exec` and `helm`, allow you to extract artifacts after Runs have completed. This can be handy when you'd like to view reports or logs, or if you'd like a script (via a local `exec` action, for instance) to validate the output from a Run.
 
-By convention, artifacts you'd like to copy can be specified using the `artifacts` field on task configurations. For example, for the `container` module, you can do something like this:
-
-```yaml
-kind: Module
-type: container
-name: my-container
-...
-tasks:
-  - name: my-task
-    command: [some, command]
-    artifacts:
-      - source: /report/*
-        target: my-task-report
-```
-
-After running `my-task`, you can find the contents of the `report` directory in the task's container, locally under `.garden/artifacts/my-task-report`.
-
-Please look at individual [module type references](../reference/module-types/README.md) to see how to configure each module type's tasks to extract artifacts after running them.
-
-### Disabling Tasks
-
-Module types that allow you to configure tasks generally also allow you to disable tasks by setting `disabled: true` in the task configuration. You can also disable them conditionally using template strings. For example, to disable a `container` module task for a specific environment, you could do something like this:
+Desired artifacts can be specified using the `spec.artifacts` field on Run configurations. For example, for the `container` Run, you can do something like this:
 
 ```yaml
-kind: Module
+kind: Run
 type: container
+name: my-run
 ...
-tasks:
-  - name: database-reset
-    disabled: ${environment.name == "prod"}
-    ...
+spec:
+  command: [some, command]
+  artifacts:
+    - source: /report/*
+      target: my-run-report
 ```
 
-Tasks are also implicitly disabled when the parent module is disabled.
+After running `my-run`, you can find the contents of the `report` directory in the runs's container, locally under `.garden/artifacts/my-run-report`.
 
-### Running tasks with arguments from the CLI
+Please look at individual [action type references](../reference/action-types/README.md) to see how to configure each Run to extract artifacts.
 
-For tasks that are often run ad-hoc from the CLI, you can use variables and the `--var` CLI flag to pass in values to the task.
-Here for example, we have a simple container task that can receive an argument via a variable:
+### Runs with arguments from the CLI
+
+For Runs that are often run ad-hoc from the CLI, you can use variables and the `--var` CLI flag to pass in values to the Run.
+Here for example, we have a simple container Run that can receive an argument via a variable:
 
 ```yaml
-kind: Module
+kind: Run
 type: container
+name: my-run
 ...
-tasks:
-  - name: my-task
-    command: ["echo", "${var.my-task-arg || ''}"]
-    ...
+spec:
+  command: ["echo", "${var.my-run-arg || ''}"]
 ```
 
-You can run this task and override the argument variable like this:
+You can run this Run and override the argument variable like this:
 
 ```sh
-garden run my-task --var my-task-arg="hello!"
+garden run my-run --var my-run-arg="hello!"
 ```
-
-### Kubernetes Provider
-
-The Kubernetes providers execute each task in its own Pod inside the project namespace. The Pod is removed once the task has finished running.
-
-Task results are stored as [ConfigMaps](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/) in the `<project-name--metadata>` namespace with the format `task-result--<hash>`.
-
-To clear cached task results, you currently have to delete the ConfigMaps manually with kubectl. Here's an example of how that's done:
-
-```console
-kubectl delete -n <project-name>--metadata $(kubectl get configmap -n <project-name>--metadata -o name | grep task-result)
-```
-
-### Exec Modules
-
-The `exec` module type runs tasks locally in your shell. By default, the `exec` module type executes tasks in the Garden build directory (under `.garden/build/<module-name>`). By setting `local: true`, the tasks are executed in the module
-source directory instead.
-
-### Kubernetes and Helm Modules
-
-Because a Kubernetes or Helm module can contain any number of Kubernetes resources, a `serviceResource` needs to be specified to determine the pod spec for the task pod. You can see the whole pod spec used in the reference docs for [kubernetes](../reference/module-types/kubernetes.md#tasks-.resource) and [helm modules](../reference/module-types/helm.md#tasks-.resource). Please note that the `startupProbe`, `livenessProbe` and `readinessProbe` are stripped from your pod spec. Health checks for your application might fail when the container is used for testing because the main process usually running in that container is replaced by the task command.
 
 ## Further Reading
 
-For full task configuration by module type, please take a look at our [reference docs](../reference/module-types/README.md).
+For the full configuration possibilities please take a look at our [reference docs](../reference/module-types/README.md).
 
 ## Next Steps
 
