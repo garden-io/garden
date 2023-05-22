@@ -33,6 +33,7 @@ import { DeployState, ForwardablePort, ServiceIngress, deployStates, forwardable
 import { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from "../graph/results"
 import { splitFirst } from "../util/string"
 import { ActionMode } from "../actions/types"
+import { AnalyticsHandler } from "../analytics/analytics"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -108,6 +109,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   isCustom: boolean = false // Used to identify custom commands
   isDevCommand: boolean = false // Set to true for internal commands in interactive command-line commands
   ignoreOptions: boolean = false // Completely ignore all option flags and pass all arguments directly to the command
+  enableAnalytics: boolean = true // Set to false to avoid reporting analytics
 
   subscribers: DataCallback[]
   terminated: boolean
@@ -235,8 +237,13 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
       cloudLog.info(msg)
     }
 
-    const analytics = await garden.getAnalyticsHandler()
-    analytics.trackCommand(this.getFullName())
+    let analytics: AnalyticsHandler | undefined
+
+    if (this.enableAnalytics) {
+      analytics = await garden.getAnalyticsHandler()
+    }
+
+    analytics?.trackCommand(this.getFullName())
 
     const allOpts = <ParameterValues<GlobalOptions & O>>{
       ...mapValues(globalOptions, (opt) => opt.defaultValue),
@@ -303,11 +310,11 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
 
       // Track the result of the command run
       const allErrors = result.errors || []
-      analytics.trackCommandResult(this.getFullName(), allErrors, commandStartTime, result.exitCode)
+      analytics?.trackCommandResult(this.getFullName(), allErrors, commandStartTime, result.exitCode)
 
       cloudEventStream.emit("sessionCompleted", {})
     } catch (err) {
-      analytics.trackCommandResult(this.getFullName(), [err], commandStartTime || new Date(), 1)
+      analytics?.trackCommandResult(this.getFullName(), [err], commandStartTime || new Date(), 1)
       cloudEventStream.emit("sessionFailed", {})
       throw err
     } finally {
