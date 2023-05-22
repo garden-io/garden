@@ -1,3 +1,5 @@
+_If you love Garden, please ★ star this repository to show your support 💖_
+
 <p align="center">
   <img src="docs/logo.png" align="center">
 </p>
@@ -12,25 +14,26 @@
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://discord.gg/FrmhuUjFs6">Discord</a>
+  <a href="go.garden.io/discord">Discord</a>
 </div>
 
-Garden combines rapid development, testing, and DevOps automation in one tool.
-
-It creates realistic cloud-native environments for every stage of software delivery, so you never have to worry about the difference between dev, CI and prod again.
-
-It is DevOps automation with a hyper focus on the inner loop developer experience, built from sound first principles.
+Garden is a tool that combines rapid development, testing, and DevOps automation in one platform. It is designed for teams developing applications that run on Kubernetes and for DevOps Engineers writing infrastructure as code.
 
 With Garden you can:
 
-- **Codify your workflows** across all stages of software delivery—restoring sanity to your process.
-- **Develop faster** in production-like environments with live reloading.
-- **Ship with confidence** because writing end-to-end tests is a breeze when using Garden.
-- **Reduce lead time** thanks to smart caching that dramatically speeds up every step of the process.
+- Test and develop with **smart caching** and **live reloading**.
+- Build container images and push them to any number of registries, automatically, as you write.
+- Use remote Kubernetes clusters as your development environment with developer namespaces.
+- Declare your entire stack in a single file, including how it's built, deployed and tested from infrastructure to application code.
 
-This is the repo for the open source Garden Core. To learn more about Garden Cloud [click here](https://cloud.docs.garden.io/).
 
-_If you’re using Garden or if you like the project, please ★ star this repository to show your support 💖_
+## Table of Contents
+
+- [Installation](#installation)
+- [Usage](#usage)
+- [Credits](#credits)
+- [License](#license)
+
 
 ### **Getting started**
 
