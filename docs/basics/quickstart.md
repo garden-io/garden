@@ -169,4 +169,4 @@ through our [first project tutorial](../tutorials/your-first-project/README.md) 
 If you like to dive right in and configure your own project for Garden, we recommend referencing our [example
 projects on GitHub](https://github.com/garden-io/garden/tree/main/examples) and the section of our docs title [Using Garden](../using-garden/configuration-overview.md), which covers all parts of Garden in detail.
 
-If you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://discord.gg/FrmhuUjFs6)!
+If you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](go.garden.io/discord)!
