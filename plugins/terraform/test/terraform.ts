@@ -23,7 +23,6 @@ import { RunTask } from "@garden-io/core/build/src/tasks/run"
 import { defaultTerraformVersion } from "../cli"
 
 for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
-
   describe(`Terraform provider with terraform ${terraformVersion}`, () => {
     const testRoot = join(__dirname, "test-project")
     let garden: TestGarden
@@ -261,7 +260,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           forceRefresh: true,
           variableOverrides: {
             "workspace": "foo",
-            "tf-version": terraformVersion
+            "tf-version": terraformVersion,
           },
           plugins: [gardenPlugin()],
         })
@@ -293,8 +292,8 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
     })
   })
 
-  describe("Terraform module type", () => {
-    const testRoot = join(__dirname, "test-project-module")
+  describe("Terraform action type", () => {
+    const testRoot = join(__dirname, "test-project-action")
     const tfRoot = join(testRoot, "tf")
     const stateDirPath = join(tfRoot, "terraform.tfstate")
     const testFilePath = join(tfRoot, "test.log")
@@ -325,7 +324,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
     async function deployStack(autoApply: boolean) {
       await garden.scanAndAddConfigs()
-      garden["moduleConfigs"]["tf"].spec.autoApply = autoApply
+      garden["actionConfigs"]["Deploy"]["tf"].spec.autoApply = autoApply
 
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -350,8 +349,8 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
     async function runTestTask(autoApply: boolean, allowDestroy = false) {
       await garden.scanAndAddConfigs()
-      garden["moduleConfigs"]["tf"].spec.allowDestroy = allowDestroy
-      garden["moduleConfigs"]["tf"].spec.autoApply = autoApply
+      garden["actionConfigs"]["Deploy"]["tf"].spec.allowDestroy = allowDestroy
+      garden["actionConfigs"]["Deploy"]["tf"].spec.autoApply = autoApply
 
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -374,13 +373,13 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       return garden.processTasks({ tasks: [taskTask], throwOnError: true })
     }
 
-    describe("apply-deploy command", () => {
+    describe("apply-action command", () => {
       it("calls terraform apply for the action", async () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-        const command = findByName(getTerraformCommands(), "apply-deploy")!
+        const command = findByName(getTerraformCommands(), "apply-action")!
         await command.handler({
           ctx,
           garden,
@@ -405,7 +404,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
         graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
-        const command = findByName(getTerraformCommands(), "apply-deploy")!
+        const command = findByName(getTerraformCommands(), "apply-action")!
         await command.handler({
           ctx,
           garden,
@@ -419,13 +418,13 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
     })
 
-    describe("plan-deploy command", () => {
+    describe("plan-action command", () => {
       it("calls terraform apply for the action root", async () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-        const command = findByName(getTerraformCommands(), "plan-deploy")!
+        const command = findByName(getTerraformCommands(), "plan-action")!
         await command.handler({
           ctx,
           garden,
@@ -450,7 +449,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
         graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
-        const command = findByName(getTerraformCommands(), "plan-deploy")!
+        const command = findByName(getTerraformCommands(), "plan-action")!
         await command.handler({
           ctx,
           garden,
@@ -464,13 +463,13 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
     })
 
-    describe("destroy-deploy command", () => {
+    describe("destroy-action command", () => {
       it("calls terraform destroy for the action root", async () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-        const command = findByName(getTerraformCommands(), "destroy-deploy")!
+        const command = findByName(getTerraformCommands(), "destroy-action")!
         await command.handler({
           ctx,
           garden,
@@ -495,7 +494,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
         graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
-        const command = findByName(getTerraformCommands(), "destroy-deploy")!
+        const command = findByName(getTerraformCommands(), "destroy-action")!
         await command.handler({
           ctx,
           garden,
@@ -521,7 +520,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       it("should expose runtime outputs to template contexts if stack had already been applied", async () => {
         const provider = await garden.resolveProvider(garden.log, "terraform")
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-        const applyCommand = findByName(getTerraformCommands(), "apply-deploy")!
+        const applyCommand = findByName(getTerraformCommands(), "apply-action")!
         await applyCommand.handler({
           ctx,
           garden,
@@ -539,7 +538,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       it("should return outputs with the service status", async () => {
         const provider = await garden.resolveProvider(garden.log, "terraform")
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-        const applyCommand = findByName(getTerraformCommands(), "apply-deploy")!
+        const applyCommand = findByName(getTerraformCommands(), "apply-action")!
         await applyCommand.handler({
           ctx,
           garden,
@@ -581,7 +580,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
         const provider = await _garden.resolveProvider(_garden.log, "terraform")
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-        const applyCommand = findByName(getTerraformCommands(), "apply-deploy")!
+        const applyCommand = findByName(getTerraformCommands(), "apply-action")!
         await applyCommand.handler({
           ctx,
           garden,
@@ -631,7 +630,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
 
         await _garden.scanAndAddConfigs()
-        _garden["moduleConfigs"]["tf"].spec.autoApply = true
+        _garden["actionConfigs"]["Deploy"]["tf"].spec.autoApply = true
 
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
