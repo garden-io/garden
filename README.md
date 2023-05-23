@@ -19,7 +19,7 @@ _If you love Garden, please ★ star this repository to show your support :green
   <a href="https://go.garden.io/discord">Discord</a>
 </div>
 
-Garden is a tool that combines rapid development, testing, and DevOps automation in one platform. It is designed for teams developing applications that run on Kubernetes and for DevOps Engineers writing infrastructure as code.
+Garden is a tool that combines rapid development, testing, and DevOps automation in one platform. It is designed for teams developing applications that run on Kubernetes and for DevOps Engineers writing infrastructure as code. This repository contains the source of Garden core along with its [documentation](./docs) and [examples](./examples).
 
 With Garden you can:
 
@@ -27,16 +27,6 @@ With Garden you can:
 - Build container images and push them to any number of registries, automatically, as you write.
 - Use remote Kubernetes clusters as your development environment with developer namespaces.
 - Declare your entire stack in a single file (or many files), including how it's built, deployed and tested from infrastructure to application code.
-
-## Table of Contents
-
-- [Installation](#installation)
-- [Demo](#demo)
-- [Usage](#usage)
-- [Plugins](#plugins)
-- [Community](#community)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Installation
 
