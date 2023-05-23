@@ -631,7 +631,7 @@ jobs:
   test-microk8s:
     machine:
       <<: *shared-machine-config
-    resource_class: large
+    resource_class: xlarge
     parameters:
       kubernetesVersion:
         description: The Kubernetes version to run
