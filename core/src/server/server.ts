@@ -40,6 +40,7 @@ import { validateSchema } from "../config/validation"
 import { ConfigGraph } from "../graph/config-graph"
 import { getGardenCloudDomain } from "../cloud/api"
 import type { ServeCommand } from "../commands/serve"
+import type { AutocompleteSuggestion } from "../cli/autocomplete"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -711,6 +712,29 @@ export class GardenServer extends EventEmitter {
           })
         )
       }
+    } else if (requestType === "autocomplete") {
+      // Provide a much simpler+faster codepath for autocomplete requests
+      // Note: If "loadConfig" or a Garden command has not been run, a limited set of results will be returned.
+      const input = request.input
+      if (!request.input || typeof input !== "string") {
+        return send("error", { message: "Message should contain an input field of type string" })
+      }
+
+      const projectRoot = request.projectRoot
+      if (projectRoot && typeof projectRoot !== "string") {
+        return send("error", { message: "projectRoot must be a string" })
+      }
+
+      try {
+        const suggestions = this.manager.getAutocompleteSuggestions({
+          log: this.log,
+          projectRoot: projectRoot || this.manager.defaultProjectRoot,
+          input,
+        })
+        return send("autocompleteResult", { requestId, suggestions })
+      } catch (error) {
+        return send("error", { requestId, message: `Failed computing suggestions for input '${input}': ${error}` })
+      }
     } else {
       return send("error", {
         requestId,
@@ -749,6 +773,10 @@ interface ServerWebsocketMessages {
     payload: ValueOf<Events>
   }
   logEntry: LogEntryEventPayload
+  autocompleteResult: {
+    requestId: string
+    suggestions: AutocompleteSuggestion[]
+  }
 }
 
 type ServerWebsocketMessageType = keyof ServerWebsocketMessages
