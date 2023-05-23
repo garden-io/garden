@@ -190,7 +190,9 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
     const _this = this
     const { garden, log, opts } = params
 
-    const manager = this.getManager(log)
+    // override the session for this manager to ensure we inherit from
+    // the initial garden dummy instance
+    const manager = this.getManager(log, garden.sessionId)
 
     const cl = new CommandLine({
       log,
