@@ -216,7 +216,7 @@ interface GetDeployStatusCommandResult {
 
 export class _GetDeployStatusCommand extends ConsoleCommand {
   name = "_get-deploy-status"
-  help = "Outputs the full status of your project/environment and all actions."
+  help = "[Internal] Outputs a map of actions with their corresponding deploy and sync statuses."
   hidden = true
 
   streamEvents = false
