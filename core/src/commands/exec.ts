@@ -86,18 +86,6 @@ export class ExecCommand extends Command<Args, Opts> {
     const router = await garden.getActionRouter()
     const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
-    // check if deployment is in sync mode
-    const syncStatus = (
-      await router.deploy.getSyncStatus({
-        log: actionLog,
-        action: executed,
-        monitor: false,
-        graph,
-      })
-    ).result
-    const deploySync = syncStatus?.syncs?.[0]
-
-
     switch (deployState) {
       // Warn if the deployment is not ready yet or unhealthy, but still proceed.
       case undefined:
@@ -111,6 +99,16 @@ export class ExecCommand extends Command<Args, Opts> {
         )
         break
         case "outdated":
+          // check if deployment is in sync mode
+          const syncStatus = (
+            await router.deploy.getSyncStatus({
+              log: actionLog,
+              action: executed,
+              monitor: false,
+              graph,
+            })
+          ).result
+          const deploySync = syncStatus?.syncs?.[0]
           // if there is an active sync, the state is likely to be outdated so do not display this warning
           if (!(deploySync?.syncCount && deploySync?.syncCount > 0 && deploySync?.state === "active" )) {
             log.warn(
