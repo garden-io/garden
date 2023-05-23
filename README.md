@@ -38,7 +38,7 @@ Otherwise:
 curl -sL https://get.garden.io/install.sh | bash
 ```
 
-For more installation options, see the [installation guide](https://docs.garden.io/v/bonsai-release/basics/quickstart#step-1-install-garden).
+For more installation options, see the [installation guide](https://docs.garden.io/basics/quickstart#step-1-install-garden).
 
 ## Demo
 
