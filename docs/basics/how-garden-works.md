@@ -29,10 +29,10 @@ To make a concrete example, here’s a simplified description of a three tier we
 # You can split it into multiple files and even across repositories!
 kind: Deploy
 name: db
-type: container
+type: helm
 spec:
-  image: postgres:12
-    # ...
+  chart:
+    repo: https://charts.bitnami.com/bitnami
 ---
 kind: Run
 name: db-init
@@ -41,10 +41,21 @@ dependencies: [deploy.db]
 ---
 kind: Deploy
 name: api
-type: helm
+type: kubernetes
 build: api
 dependencies:
   - run.db-init
+spec:
+  files: [api/manifests]
+---
+kind: Deploy
+name: web
+type: kubernetes
+build: api
+dependencies:
+  - deploy.api
+spec:
+  files: [web/manifests]
 ---
 kind: Test
 name: e2e
