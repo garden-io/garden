@@ -96,6 +96,10 @@ Garden also has a special mode called "sync mode" which live reloads changes to 
 garden deploy --sync
 ```
 
+## Docs
+
+For a more thorough introduction to Garden and comprehensive documentation, visit our [docs](https://docs.garden.io).
+
 ## Plugins
 
 Garden is _pluggable_: how actions are executed depends on the plugins used. Our Kubernetes plugin is currently the most popular, followed by our Terraform and Pulumi plugins. For a more thorough introduction to Garden and its plugins, visit our docs:
