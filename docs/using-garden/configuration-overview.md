@@ -22,7 +22,7 @@ Below, you'll also find some general information on how to configure a project.
 
 ## Including/excluding files and directories
 
-By default, all directories under the project root are scanned for Garden actions. Depending on the action kind and type files in the same directory as an action configuration file might be included as source files for that action. Often, you need more granular control over the context, not least if you have multiple actions in the same directory.
+By default, all directories under the project root are scanned for Garden actions. Depending on the action kind and type, files in the same directory as the action configuration file might be included as source files for that action. Often, you need more granular control over the context, not least if you have multiple actions in the same directory.
 
 Garden provides three different ways to achieve this:
 
