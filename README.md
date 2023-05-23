@@ -100,6 +100,21 @@ garden deploy --sync
 
 For a more thorough introduction to Garden and comprehensive documentation, visit our [docs](https://docs.garden.io).
 
+## How Garden Works
+
+The Stack Graph is a key feature of Garden that enables efficient development, testing, and DevOps automation. It allows Garden to efficiently build and deploy projects, run automated tests, manage dependencies, version projects, and automate many aspects of the DevOps process. Without the Stack Graph, many of these functionalities that distinguish Garden from its competitors would not be possible or would be much less efficient.
+
+- **Efficient builds and deploys:** The Stack Graph allows Garden to determine which parts of your project have changed and need to be rebuilt or redeployed, avoiding unnecessary work and speeding up the development process.
+
+- **Automated testing:** Garden can automatically run tests for the parts of your project that have changed, thanks to the Stack Graph. This saves time because all parts of your dependency graph are known and cached.
+
+- **DevOps automation:** The Stack Graph allows Garden to automate many aspects of the DevOps process, including building, testing, and deploying your project.
+
+For more information on the Stack Graph and how Garden works, see:
+
+- [How Garden Works](https://docs.garden.io/basics/how-garden-works)
+- [A video tour of the Stack Graph and guide to getting started](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8)
+
 ## Plugins
 
 Garden is _pluggable_: how actions are executed depends on the plugins used. Our Kubernetes plugin is currently the most popular, followed by our Terraform and Pulumi plugins. For a more thorough introduction to Garden and its plugins, visit our docs:
@@ -107,11 +122,6 @@ Garden is _pluggable_: how actions are executed depends on the plugins used. Our
 - [Kubernetes plugin](https://docs.garden.io/guides/remote-kubernetes)
 - [Terraform plugin](https://docs.garden.io/terraform-plugin/about)
 - [Pulumi plugin](https://docs.garden.io/pulumi-plugin/about)
-
-For a deeper dive on how Garden works in general, we recommend:
-
-- [How Garden Works](https://docs.garden.io/basics/how-garden-works)
-- [A video tour of Garden's directed acyclic graph and getting started](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8)
 
 ## Community
 
