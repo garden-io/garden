@@ -19,7 +19,7 @@ spec:
 
 Runs that have _dependents_ (i.e. something that depends on them) are run automatically by Garden. For example, if a Deploy depends on a Run, then Garden will automatically run that Run before executing the Deploy. Other Runs will need to be run manually.
 
-Garden caches Run results and re-runs the Runs if its dependencies, have changed. It is therefore recommended that you make sure your Runs are idempotent (i.e. can safely be run multiple times). This behaviour can be disabled via the `spec.cacheResult` field on Runs.
+Garden caches Run results and re-runs the Runs if its dependencies have changed. It is therefore recommended that you make sure your Runs are idempotent (i.e. can safely be run multiple times). This behaviour can be disabled via the `spec.cacheResult` field on Runs.
 
 You can run a Run manually with the `garden run <run-name>` command. This will run the Run regardless of whether or not the result is cached.
 
