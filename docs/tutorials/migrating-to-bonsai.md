@@ -332,3 +332,28 @@ Using `apiVersion: garden.io/v0` enables teams to gradually move to Bonsai, one 
 As soon as your project is using [Actions](../using-garden/actions.md), `apiVersion: garden.io/v1` becomes mandatory in the project configuration.. From that point on, team members can no longer use Acorn (`0.12`) as it does not recognize `apiVersion: garden.io/v1`. Therefore team members are forced to update to Bonsai (`0.13`).
 
 When using Garden Cloud, features like triggered workflows or 1-Click Preview Environments, Garden Cloud will use Bonsai (`0.13`) with `apiVersion: garden.io/v1` or Acorn (`0.12`) with `apiVersion: garden.io/v0`. See also the [Garden Cloud workflows documentation](https://cloud.docs.garden.io/features/workflows).
+
+### Where is the documentation for modules?
+
+The reference documentation can be found [here](../reference/module-types/README.md),
+but all other documentation has been rewriten to be action specific. If you need to keep working
+with modules with Bonsai you can reference the 0.12 documentation.
+
+### Detecting module/action mode
+
+In 0.12 often string templating was used to detect sync mode and change behaviour accordingly.
+This can be done much easier with Bonsai via the
+[`${actions.deploy.<name>.mode}`](../reference/action-types/Deploy/container.md#actionsdeploynamemode)
+template string or `${this.mode}` if referenced in the action itself,
+but that would not be backward compatible with 0.12.
+Below is an example config that works with both Bonsai and 0.12.
+In this block the variables `sync-mode` or `dev-mode` are
+set to true if the relative mode is requested for the `api` service/deploy.
+
+```yml
+variables:
+  sync-mode: ${command.params contains 'sync' && (command.params.sync contains 'api' || isEmpty(command.params.sync))} 
+  dev-mode: ${command.name == 'dev' || (command.params contains 'dev-mode' && (command.params.dev-mode contains 'api' || isEmpty(command.params.dev-mode)))}
+```
+
+Sync mode or dev mode have been requested if either `var.sync-mode` or `var.dev-mode` are true. You can use a template expression like `${var.sync-mode || var.dev-mode ? 'yes' : 'no'}` to change the behaviour of your actions or modules.
