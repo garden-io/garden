@@ -1,3 +1,4 @@
+apiVersion: garden.io/v1
 kind: Project
 name: terraform-provider
 environments:
@@ -10,21 +11,21 @@ providers:
 variables:
   workspace: default
 ---
-kind: Module
+kind: Deploy
 type: terraform
 name: tf
 include: ["*"]
-autoApply: true
-root: ./tf
-workspace: ${var.workspace}
-variables:
-  my-variable: foo
+spec:
+  root: ./tf
+  autoApply: true
+  workspace: ${var.workspace}
+  variables:
+    my-variable: foo
 ---
-kind: Module
+kind: Run
 type: exec
-name: test
+name: test-task
 include: ["*"]
-tasks:
-  - name: test-task
-    dependencies: [tf]
-    command: ["echo", "${runtime.services.tf.outputs.my-output}"]
+dependencies: [deploy.tf]
+spec:
+  command: ["echo", "${runtime.services.tf.outputs.my-output}"]
