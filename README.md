@@ -102,7 +102,7 @@ For a more thorough introduction to Garden and comprehensive documentation, visi
 
 ## How Garden Works
 
-The Stack Graph is a key feature of Garden that enables efficient development, testing, and DevOps automation. It allows Garden to efficiently build and deploy projects, run and cache tests, and automate the DevOps process. Without the Stack Graph, many of these functionalities that distinguish Garden from its competitors would not be possible or would be much less efficient.
+The Stack Graph is a key feature of Garden that enables efficient development, testing, and DevOps automation. The Stack Graph allows you to declare the dependency structure of your project and track changes to avoid unnecessary builds, deploys and test runs. It's like CI/CD config that you can additionally use for development. Without the Stack Graph, many of these functionalities that distinguish Garden from its competitors would not be possible or would be much less efficient.
 
 - **Efficient builds and deploys:** The Stack Graph allows Garden to determine which parts of your project have changed and need to be rebuilt or redeployed, avoiding unnecessary work and speeding up the development process.
 
