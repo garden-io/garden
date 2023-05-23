@@ -38,9 +38,9 @@ The four action kinds in Garden are:
 
 * `Build` actions, e.g. to build a Docker image or to run a local build script.
 * `Deploy` actions to _deploy_ a service, e.g. a Kubernetes Deployment, Helm chart or Terraform stack.
-    *  For those of you who have been using Garden for a while: These correspond to [services](./services.md) in 0.12.
+    *  For those of you who have been using Garden for a while: These correspond to services in 0.12.
 * `Run` actions for arbitrary scripts, e.g. to perform stateful operations (load test data into databases), download tools or any other miscellaneous steps.
-  * These correspond to [tasks](./tasks.md) in 0.12.
+  * These correspond to tasks in 0.12.
 * `Test` actions to _test_ components, e.g. run unit tests, end-to-end tests or any other test suite you may have defined.
 
 Below is a sample of the action configurations for the API service in the [`vote-helm` example project](../../examples/demo-project):
