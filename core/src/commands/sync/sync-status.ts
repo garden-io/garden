@@ -14,11 +14,14 @@ import { joi } from "../../config/common"
 import { printHeader } from "../../logger/util"
 import { dedent, deline, naturalList } from "../../util/string"
 import { Command, CommandParams } from "../base"
-import { createActionLog } from "../../logger/log-entry"
+import { createActionLog, Log } from "../../logger/log-entry"
 import { PluginEventBroker } from "../../plugin-context"
 import { resolvedActionToExecuted } from "../../actions/helpers"
 import { GetSyncStatusResult } from "../../plugin/handlers/Deploy/get-sync-status"
 import { isEmpty, omit } from "lodash"
+import { Garden } from "../.."
+import { ResolvedDeployAction } from "../../actions/deploy"
+import { ResolvedConfigGraph } from "../../graph/config-graph"
 
 const syncStatusArgs = {
   names: new StringsParameter({
@@ -87,7 +90,6 @@ export class SyncStatusCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<SyncStatusCommandResult> {
-    const router = await garden.getActionRouter()
     // TODO: Use regular graph and resolve only the needed Deploys below
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
     const skipDetail = opts["skip-detail"]
@@ -95,10 +97,6 @@ export class SyncStatusCommand extends Command<Args, Opts> {
     const deployActions = graph
       .getDeploys({ includeDisabled: false, names: args.names })
       .sort((a, b) => (a.name > b.name ? 1 : -1))
-    // This is fairly arbitrary
-    const concurrency = 5
-
-    const syncStatuses: { [actionName: string]: GetSyncStatusResult } = {}
 
     log.info("")
     log.info(
@@ -109,80 +107,7 @@ export class SyncStatusCommand extends Command<Args, Opts> {
     )
     log.info("")
 
-    await Bluebird.map(
-      deployActions,
-      async (action) => {
-        const events = new PluginEventBroker(garden)
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-        const { result: status } = await router.deploy.getStatus({
-          graph,
-          action,
-          log: actionLog,
-        })
-        const executedAction = resolvedActionToExecuted(action, { status })
-        const syncStatus = omit(
-          (
-            await router.deploy.getSyncStatus({
-              log: actionLog,
-              action: executedAction,
-              monitor: false,
-              graph,
-              events,
-            })
-          ).result,
-          skipDetail ? "detail" : ""
-        )
-
-        const syncs = syncStatus.syncs
-        if (!syncs || syncs.length === 0) {
-          return
-        }
-
-        // Return the syncs sorted
-        const sorted = syncs.sort((a, b) => {
-          const keyA = a.source + a.target + a.mode
-          const keyB = b.source + b.target + b.mode
-          return keyA > keyB ? 1 : -1
-        })
-        syncStatus["syncs"] = sorted
-
-        const styleFn =
-          {
-            "active": chalk.green,
-            "failed": chalk.red,
-            "not-active": chalk.yellow,
-          }[syncStatus.state] || chalk.bold.dim
-
-        const verbMap = {
-          "active": "is",
-          "failed": "has",
-          "not-active": "is",
-        }
-
-        log.info(
-          `The ${chalk.cyan(action.name)} Deploy has ${chalk.cyan(syncStatus.syncs.length)} syncs(s) configured:`
-        )
-        const leftPad = "  →"
-        syncs.forEach((sync, idx) => {
-          const state = sync.state
-          log.info(
-            `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.target)} ${verbMap[state]} ${styleFn(
-              state
-            )}`
-          )
-          sync.mode && log.info(chalk.bold(`${leftPad} Mode: ${sync.mode}`))
-          sync.syncCount && log.info(chalk.bold(`${leftPad} Sync count: ${sync.syncCount}`))
-          if (state === "failed" && sync.message) {
-            log.info(`${chalk.bold(leftPad)} ${chalk.yellow(sync.message)}`)
-          }
-          idx !== syncs.length - 1 && log.info("")
-        })
-        log.info("")
-
-        syncStatuses[action.name] = syncStatus
-      },
-      { concurrency }
-    )
+    const syncStatuses = await getSyncStatuses({ garden, graph, skipDetail, log, deployActions })
 
     if (isEmpty(syncStatuses) && args.names && args.names.length > 0) {
       log.warn(`No syncs have been configured for the requested Deploys (${naturalList(args.names!)}).`)
@@ -198,4 +123,99 @@ export class SyncStatusCommand extends Command<Args, Opts> {
 
     return { result: { actions: syncStatuses } }
   }
+}
+
+export async function getSyncStatuses({
+  deployActions,
+  skipDetail,
+  garden,
+  log,
+  graph
+}: {
+  log: Log
+  deployActions: ResolvedDeployAction[]
+  skipDetail: boolean
+  garden: Garden
+  graph: ResolvedConfigGraph
+}) {
+  const router = await garden.getActionRouter()
+
+  const syncStatuses: { [actionName: string]: GetSyncStatusResult } = {}
+  // This is fairly arbitrary
+  const concurrency = 5
+
+  await Bluebird.map(
+    deployActions,
+    async (action) => {
+      const events = new PluginEventBroker(garden)
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const { result: status } = await router.deploy.getStatus({
+        graph,
+        action,
+        log: actionLog,
+      })
+      const executedAction = resolvedActionToExecuted(action, { status })
+      const syncStatus = omit(
+        (
+          await router.deploy.getSyncStatus({
+            log: actionLog,
+            action: executedAction,
+            monitor: false,
+            graph,
+            events,
+          })
+        ).result,
+        skipDetail ? "detail" : ""
+      )
+
+      const syncs = syncStatus.syncs
+      if (!syncs || syncs.length === 0) {
+        return
+      }
+
+      // Return the syncs sorted
+      const sorted = syncs.sort((a, b) => {
+        const keyA = a.source + a.target + a.mode
+        const keyB = b.source + b.target + b.mode
+        return keyA > keyB ? 1 : -1
+      })
+      syncStatus["syncs"] = sorted
+
+      const styleFn =
+        {
+          "active": chalk.green,
+          "failed": chalk.red,
+          "not-active": chalk.yellow,
+        }[syncStatus.state] || chalk.bold.dim
+
+      const verbMap = {
+        "active": "is",
+        "failed": "has",
+        "not-active": "is",
+      }
+
+      log.info(`The ${chalk.cyan(action.name)} Deploy has ${chalk.cyan(syncStatus.syncs.length)} syncs(s) configured:`)
+      const leftPad = "  →"
+      syncs.forEach((sync, idx) => {
+        const state = sync.state
+        log.info(
+          `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.target)} ${verbMap[state]} ${styleFn(
+            state
+          )}`
+        )
+        sync.mode && log.info(chalk.bold(`${leftPad} Mode: ${sync.mode}`))
+        sync.syncCount && log.info(chalk.bold(`${leftPad} Sync count: ${sync.syncCount}`))
+        if (state === "failed" && sync.message) {
+          log.info(`${chalk.bold(leftPad)} ${chalk.yellow(sync.message)}`)
+        }
+        idx !== syncs.length - 1 && log.info("")
+      })
+      log.info("")
+
+      syncStatuses[action.name] = syncStatus
+    },
+    { concurrency }
+  )
+
+  return syncStatuses
 }
