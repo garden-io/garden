@@ -7,6 +7,7 @@
  */
 
 import { isEmpty } from "lodash"
+import { resolve } from "path"
 import { PrimitiveMap } from "../config/common"
 import { serializeObject } from "../util/serialization"
 
@@ -17,6 +18,8 @@ export interface GardenInstanceKeyParams {
   variableOverrides: PrimitiveMap
 }
 
+const resolvedCwd = resolve(process.cwd())
+
 export function getGardenInstanceKey(params: GardenInstanceKeyParams): string {
   let env = params.environmentName
 
@@ -25,6 +28,12 @@ export function getGardenInstanceKey(params: GardenInstanceKeyParams): string {
   }
 
   const pairs: any = { env }
+
+  const projectRoot = resolve(params.projectRoot)
+
+  if (projectRoot !== resolvedCwd) {
+    pairs.root = projectRoot
+  }
 
   // Hash any variable overrides
   if (!isEmpty(params.variableOverrides)) {
