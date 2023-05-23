@@ -424,6 +424,7 @@ describe("AnalyticsHandler", () => {
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
           sessionId: analytics["sessionId"],
+          parentSessionId: analytics["sessionId"],
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: now,
           isRecurringUser: false,
@@ -468,6 +469,7 @@ describe("AnalyticsHandler", () => {
           isCI: true,
           ciName: "foo",
           sessionId: analytics["sessionId"],
+          parentSessionId: analytics["sessionId"],
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: now,
           isRecurringUser: false,
@@ -529,6 +531,7 @@ describe("AnalyticsHandler", () => {
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
           sessionId: analytics["sessionId"],
+          parentSessionId: analytics["sessionId"],
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: now,
           isRecurringUser: false,
@@ -578,6 +581,57 @@ describe("AnalyticsHandler", () => {
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
           sessionId: analytics["sessionId"],
+          parentSessionId: analytics["sessionId"],
+          firstRunAt: basicConfig.firstRunAt,
+          latestRunAt: now,
+          isRecurringUser: false,
+          projectMetadata: {
+            modulesCount: 0,
+            moduleTypes: [],
+            tasksCount: 0,
+            servicesCount: 0,
+            testsCount: 0,
+            actionsCount: 0,
+            buildActionCount: 0,
+            testActionCount: 0,
+            deployActionCount: 0,
+            runActionCount: 0,
+          },
+        },
+      })
+    })
+    it("should override the parentSessionId", async () => {
+      scope.post(`/v1/batch`).reply(200)
+
+      const root = getDataDir("test-projects", "login", "has-domain-and-id")
+      garden = await makeTestGarden(root)
+      garden.vcsInfo.originUrl = remoteOriginUrl
+
+      await garden.globalConfigStore.set("analytics", basicConfig)
+      const now = freezeTime()
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
+
+      const event = analytics.trackCommand("testCommand", "test-parent-session")
+
+      expect(event).to.eql({
+        type: "Run Command",
+        properties: {
+          name: "testCommand",
+          projectId: AnalyticsHandler.hash(remoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
+          projectName: AnalyticsHandler.hash("has-domain-and-id"),
+          projectNameV2: AnalyticsHandler.hashV2("has-domain-and-id"),
+          enterpriseDomain: AnalyticsHandler.hash("https://example.invalid"),
+          enterpriseDomainV2: AnalyticsHandler.hashV2("https://example.invalid"),
+          enterpriseProjectId: AnalyticsHandler.hash("dummy-id"),
+          enterpriseProjectIdV2: AnalyticsHandler.hashV2("dummy-id"),
+          isLoggedIn: false,
+          customer: undefined,
+          ciName: analytics["ciName"],
+          system: analytics["systemConfig"],
+          isCI: analytics["isCI"],
+          sessionId: analytics["sessionId"],
+          parentSessionId: "test-parent-session",
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: now,
           isRecurringUser: false,
@@ -627,6 +681,7 @@ describe("AnalyticsHandler", () => {
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
           sessionId: analytics["sessionId"],
+          parentSessionId: analytics["sessionId"],
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: now,
           isRecurringUser: false,
