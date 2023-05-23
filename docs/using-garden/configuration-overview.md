@@ -10,7 +10,7 @@ Garden is configured via `garden.yml` (or `*.garden.yml`) configuration files, w
 
 The [project configuration](./projects.md) file should be located in the top-level directory of the project's Git repository. We suggest naming it `project.garden.yml` for clarity, but you can also use `garden.yml` or any filename ending with `.garden.yml`.
 
-In addition, each of the project's [actions](./actions.md)' should be located in that actions's top-level directory. Actions define all the individual components of your project..
+In addition, each of the project's [actions](./actions.md) should be located in that action's top-level directory. Actions define all the individual components of your project.
 
 You can define [config templates](./config-templates.md) to create your own abstractions, both within a project and across multiple projects.
 
