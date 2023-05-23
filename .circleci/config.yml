@@ -1026,10 +1026,9 @@ workflows:
           requires: [build]
           kindNodeImage: kindest/node:v1.26.3@sha256:61b92f38dff6ccc29969e7aa154d34e38b89443af1a2c14e6cfbd2df6419c66f
 
-      # TODO-0.13: fix and re-enable
-      # - test-plugins:
-      #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
+      - test-plugins:
+          requires: [build]
+          kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
 
       # This is only for edge release (Overrides version to edge-bonsai)
       - build-dist:
