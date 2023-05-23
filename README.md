@@ -1,4 +1,6 @@
-_If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Join our [Discord](https://go.garden.io/garden)._
+# Garden
+
+_If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Join our [Discord](https://go.garden.io/discord)._
 
 <p align="center">
   <img src="https://github.com/garden-io/garden/assets/59834693/f62a04cb-44bc-4dd4-8426-398b6cd846fd" align="center">
@@ -51,7 +53,6 @@ For more installation options, see the [installation guide](https://docs.garden.
 ## Demo
 
 ![Garden dev deploy](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/d8095ad1a8615edf49e721b8afcd901f3056e127/dev-mode.gif)
-
 
 ## Usage
 
@@ -107,7 +108,7 @@ garden deploy --sync
 
 ## Plugins
 
-Garden is *pluggable*: how actions are executed depends on the plugins used. Our Kubernetes plugin is currently the most popular, followed by our Terraform and Pulumi plugins. For a more thorough introduction to Garden and its plugins, visit our docs:
+Garden is _pluggable_: how actions are executed depends on the plugins used. Our Kubernetes plugin is currently the most popular, followed by our Terraform and Pulumi plugins. For a more thorough introduction to Garden and its plugins, visit our docs:
 
 - [Kubernetes plugin](https://docs.garden.io/guides/remote-kubernetes)
 - [Terraform plugin](https://docs.garden.io/terraform-plugin/about)
