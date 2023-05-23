@@ -48,6 +48,8 @@ export const defaultWatchServerPort = 9777
 
 const skipLogsForCommands = ["autocomplete"]
 
+const skipAnalyticsForCommands = ["sync status"]
+
 interface WebsocketCloseEvent {
   code: number
   message: string
@@ -558,6 +560,10 @@ export class GardenServer extends EventEmitter {
         const printLogs = !internal && !skipLogsForCommands.includes(command.getFullName())
         const requestLog = this.log.createLog({ name: "garden-server" })
         const cmdNameStr = chalk.bold.white(command.getFullName())
+
+        if (skipAnalyticsForCommands.includes(command.getFullName())) {
+          command.enableAnalytics = false
+        }
 
         // TODO: convert to async/await (this was previously in a sync method)
         command
