@@ -1,5 +1,9 @@
+# Garden
+
+_If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Join our [Discord](https://go.garden.io/discord)._
+
 <p align="center">
-  <img src="docs/logo.png" align="center">
+  <img src="https://github.com/garden-io/garden/assets/59834693/f62a04cb-44bc-4dd4-8426-398b6cd846fd" align="center">
 </p>
 <div align="center">
   <a href="https://docs.garden.io/basics/5-min-quickstart/?utm_source=github">Quickstart</a>
@@ -8,80 +12,82 @@
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://docs.garden.io/?utm_source=github">Docs</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/garden-io/garden/tree/0.12.56/examples">Examples</a>
+  <a href="https://github.com/garden-io/garden/tree/main/examples">Examples</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://discord.gg/FrmhuUjFs6">Discord</a>
+  <a href="https://go.garden.io/discord">Discord</a>
 </div>
 
-### **What is Garden?**
-
-Garden combines rapid development, testing, and DevOps automation in one tool.
-
-It creates realistic cloud-native environments for every stage of software delivery, so you never have to worry about the difference between dev, CI and prod again.
-
-It is DevOps automation with a hyper focus on the inner loop developer experience, built from sound first principles.
+Garden is a tool that combines rapid development, testing, and DevOps automation in one platform. It is designed for teams developing applications that run on Kubernetes and for DevOps Engineers writing infrastructure as code. This repository contains the source of Garden core along with its [documentation](./docs) and [examples](./examples).
 
 With Garden you can:
 
-- **Codify your workflows** across all stages of software delivery—restoring sanity to your process.
-- **Develop faster** in production-like environments with live reloading.
-- **Ship with confidence** because writing end-to-end tests is a breeze when using Garden.
-- **Reduce lead time** thanks to smart caching that dramatically speeds up every step of the process.
+- Test and develop with **smart caching** and **live reloading**.
+- Build container images and push them to any number of registries, automatically, as you write.
+- Use remote Kubernetes clusters as your development environment with developer namespaces.
+- Declare your entire stack in a single file (or many files), including how it's built, deployed and tested from infrastructure to application code.
 
-This is the repo for the open source Garden Core. To learn more about Garden Cloud [click here](https://cloud.docs.garden.io/).
-
-_If you’re using Garden or if you like the project, please ★ star this repository to show your support 💖_
-
-### **Getting started**
+## Installation
 
 The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/basics/quickstart).
 
-### **Who should use Garden?**
+Otherwise:
 
-Garden is most commonly used by teams developing apps that run on Kubernetes. It **leverages your existing infrastructure along with your Kubernetes manifests, Helm charts and Dockerfiles** to simplify and speed up all stages of delivery.
+```sh
+curl -sL https://get.garden.io/install.sh | bash
+```
 
-If you can relate to any of these pains, Garden might be the tool for your team:
+For more installation options, see the [installation guide](https://docs.garden.io/basics/quickstart#step-1-install-garden).
 
-- Developers can’t run the full set of tests during development and are stuck in an endless loop of git-push-and-wait–for-CI.
-- Development environments look nothing like production, causing bugs when features ship.
-- Just starting a developer environment is a slow and tedious process and onboarding new developers takes days (or weeks?).
-- Your CI pipelines feel like Rube Goldberg machines, taped together with bash scripts.
-- Config is duplicated and drifting.
-- End-to-end tests are missing because writing and debugging them is too complex.
-- Preview environments are missing because spinning them up is too slow and/or complex.
-- Each new component in your stack adds more friction and complexity.
-- The entire software delivery process is complex, brittle and slow, and people are frustrated.
+## Demo
 
-Getting started with Garden requires some knowledge about how your project is run in production. That’s why it’s usually the DevOps engineer on the team (or someone in a similar role) that first sets things up.
+![Garden dev deploy](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/d8095ad1a8615edf49e721b8afcd901f3056e127/dev-mode.gif)
 
-Afterwards, the entire team benefits:
+## Usage
 
-- Developers use Garden for day-to-day development and testing—and the developer experience is bar none!
-- DevOps engineers are back in control of their stack.
-- Pipeline sanity has been restored and CI is orders of magnitude faster thanks to smart caching.
+If you have a `garden.yml` file in your project, you can run `garden` commands from the root of your project. If you don't have a `garden.yml` file, clone the quickstart project:
 
-### **How does it work?**
+```sh
+git clone https://github.com/garden-io/garden-quickstart.git
+```
 
-Garden Core is a standalone binary that can run from CI or from a developer’s machine. It allows you to codify a complete description of your stack, including how it's built, deployed and tested, using the [Stack Graph](https://docs.garden.io/basics/stack-graph)—making your workflows **reproducible and portable**.
+Now start the dev console with:
 
-With the Stack Graph, each part of your stack describes itself using simple, intuitive YAML declarations, without changing any of your existing code. Garden collects all of your declarations—even across multiple repositories—into a full graph of your stack.
+```console
+garden dev
+```
 
-![Stack Graph](docs/stack-graph-drawing.png)
+Build with:
 
-Garden then leverages your _existing tools and infrastructure_ to execute this graph, allowing you to go **from zero to a running system in a single command**. And thanks to smart caching, it’s fast!
+```console
+build
+```
 
-For example, to create a preview environment on every pull request, simply add the following to your CI pipeline:
+Deploy with:
+
+```console
+deploy
+```
+
+Test with:
+
+```console
+test
+```
+
+Exit with `exit`.
+
+To create a preview environment on every pull request, simply add the following to your CI pipeline:
 
 ```console
 garden deploy --env preview
 ```
 
-Or, say a developer wants to run an end-to-end test from their laptop as they code. Again, it’s simple:
+A developer wants to run an end-to-end test from their laptop as they code. Simple:
 
 ```console
-garden test --name <name-of-your-e2e-test-suite>
+garden test --name my-e2e-test
 ```
 
 Garden also has a special mode called "sync mode" which live reloads changes to your running services—ensuring **blazing fast feedback while developing**. To enable it, simply run:
@@ -90,54 +96,41 @@ Garden also has a special mode called "sync mode" which live reloads changes to 
 garden deploy --sync
 ```
 
-The Stack Graph is pluggable so how these actions are actually executed depends on the plugins used. Our Kubernetes plugin is currently the most popular, and chances are that’s what you’re here for. To learn more about how Garden works with Kubernetes, check out:
+## Docs
 
-- [Kubernetes Plugins documentation](https://docs.garden.io/guides/remote-kubernetes).
+For a more thorough introduction to Garden and comprehensive documentation, visit our [docs](https://docs.garden.io).
 
-And for a deeper dive on how Garden works in general, we recommend:
+## How Garden Works
 
-- [This guide on how Garden works](https://docs.garden.io/basics/how-garden-works).
-- [This video series on the Stack Graph and getting started with Garden](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8).
+The Stack Graph is a key feature of Garden that enables efficient development, testing, and DevOps automation. The Stack Graph allows you to declare the dependency structure of your project and track changes to avoid unnecessary builds, deploys and test runs. It's like CI/CD config that you can additionally use for development. Without the Stack Graph, many of these functionalities that distinguish Garden from its competitors would not be possible or would be much less efficient.
 
-### **Plugins**
+- **Efficient builds and deploys:** The Stack Graph allows Garden to determine which parts of your project have changed and need to be rebuilt or redeployed, avoiding unnecessary work and speeding up the development process.
 
-Garden is pluggable by design and supports a variety of providers and module types. Currently, our Kubernetes and Terraform plugins are the most used.
+- **Automated testing:** Garden can automatically run tests for the parts of your project that have changed, thanks to the Stack Graph. This saves time because all parts of your dependency graph are known and cached.
 
-We will be adding more over time, as well as releasing a Plugin SDK (exact timeline TBD) which will allow the community to maintain their own Garden plugins.
+- **DevOps automation:** The Stack Graph allows Garden to automate many aspects of the DevOps process, including building, testing, and deploying your project.
 
-The sky’s the limit, but to name some examples:
+For more information on the Stack Graph and how Garden works, see:
 
-- Plugins for serverless runtimes will allow users to mix and match platforms in the same project.
-- Security plugins that benefit from Garden’s caching and only run time-consuming scans when needed.
-- Language-specific plugins for streamlining workflows.
+- [How Garden Works](https://docs.garden.io/basics/how-garden-works)
+- [A video tour of the Stack Graph and guide to getting started](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8)
 
-### **Design principles and philosophy**
+## Plugins
 
-Below are our guiding principles for developing Garden.
+Garden is _pluggable_: how actions are executed depends on the plugins used. Our Kubernetes plugin is currently the most popular, followed by our Terraform and Pulumi plugins. For a more thorough introduction to Garden and its plugins, visit our docs:
 
-- Garden should work with your existing tools.
-- Plugins should automate as much of the standard use cases as possible. Friction is a kill-joy.
-- Actions should execute in production-like environments. There’s generally a trade-off between realism and speed of feedback—Garden aims to provide both.
-- Garden should err on being too informative. (We’ve gotten a lot of great feedback on this topic and are working hard to improve.)
+- [Kubernetes plugin](https://docs.garden.io/guides/remote-kubernetes)
+- [Terraform plugin](https://docs.garden.io/terraform-plugin/about)
+- [Pulumi plugin](https://docs.garden.io/pulumi-plugin/about)
 
-### **Community**
+## Community
 
-Join our [Discord community](https://discord.gg/FrmhuUjFs6) to ask questions, give feedback or just say hi 🙂
+Join our [Discord community](https://go.garden.io/discord) to ask questions, give feedback or just say hi 🙂
 
-### **Security**
+## Contributing
 
-If you find a security issue in Garden, please follow responsible disclosure practices and send information about security issues directly to security@garden.io.
+Garden accepts contributions! Please see our [contributing guide](CONTRIBUTING.md) for more information.
 
-For more details [see here](https://github.com/garden-io/garden/blob/main/SECURITY.md).
-
-### **Telemetry**
-
-We are trying to make Garden the best tool possible, and data on how it’s being used is very useful for us to inform the future development of Garden.
-
-When you use Garden, we collect information about the commands you run, the tasks being executed, the project and operating system. We care about your privacy and we take special care to anonymize all the information. For example, we hash module names, and use randomly generated IDs to identify projects.
-
-If you are curious to see an example of the data we collect or if you would like to update your preference, please visit the [Telemetry](https://docs.garden.io/misc/telemetry) page.
-
-### **License**
+## License
 
 Garden is licensed according to [Mozilla Public License 2.0 (MPL-2.0)](https://github.com/garden-io/garden/blob/main/LICENSE.md).
