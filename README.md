@@ -76,7 +76,7 @@ Test with:
 test
 ```
 
-Exit with `Ctrl+C` or `exit`.
+Exit with `exit`.
 
 To create a preview environment on every pull request, simply add the following to your CI pipeline:
 
