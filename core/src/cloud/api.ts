@@ -21,7 +21,7 @@ import {
   CreateProjectsForRepoResponse,
   ListProjectsResponse,
 } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getCloudLogSectionName } from "../util/util"
+import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
 import { add } from "date-fns"
@@ -29,6 +29,7 @@ import { LogLevel } from "../logger/logger"
 import { makeAuthHeader } from "./auth"
 
 const gardenClientName = "garden-core"
+const gardenClientVersion = getPackageVersion()
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 export class CloudApiTokenRefreshError extends CloudApiError {}
