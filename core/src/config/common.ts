@@ -879,6 +879,7 @@ export const unusedApiVersionSchema = () =>
   joi
     .string()
     .valid(GardenApiVersion.v0)
+    .default(GardenApiVersion.v0)
     .description("The schema version of this config (currently unused).")
     // hide the unused apiVersion field in the reference documentation, as it does not have an effect.
     .meta({ internal: true })
