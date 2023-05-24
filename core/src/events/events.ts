@@ -213,6 +213,8 @@ export interface Events {
   configGraph: { graph: ConfigGraph }
   configsScanned: {}
 
+  autocompleterUpdated: { projectRoot: string }
+
   // Command/project metadata events
   commandInfo: CommandInfoPayload
 
@@ -286,8 +288,9 @@ export interface Events {
 
 export type EventName = keyof Events
 
-type ConfigEventName = PickFromUnion<EventName, "configChanged" | "configsScanned">
 export type ActionStatusEventName = PickFromUnion<EventName, "buildStatus" | "deployStatus" | "testStatus" | "runStatus">
+type GraphEventName = Extract<EventName, "taskCancelled" | "taskComplete" | "taskError" | "taskProcessing">
+type ConfigEventName = Extract<EventName, "configChanged" | "configsScanned" | "autocompleterUpdated">
 
 // These are the events we POST over https via the BufferedEventStream
 const pipedEventNamesSet = new Set<EventName>([
@@ -317,8 +320,8 @@ const pipedEventNamesSet = new Set<EventName>([
 ])
 
 // We send graph and config events over a websocket connection via the Garden server
-const configEventNames = new Set<ConfigEventName>(["configsScanned", "configChanged"])
 const actionStatusEventNames = new Set<ActionStatusEventName>(["buildStatus", "deployStatus", "runStatus", "testStatus"])
+const configEventNames = new Set<ConfigEventName>(["configsScanned", "configChanged", "autocompleterUpdated"])
 
 const isPipedEvent = (name: string, _payload: any): _payload is Events[EventName] => {
   return pipedEventNamesSet.has(<any>name)
@@ -333,12 +336,15 @@ const isActionStatusEvent = (name: string, _payload: any): _payload is Events[Ac
 }
 
 export function shouldStreamWsEvent(name: string, payload: any) {
-  if (isActionStatusEvent(name, payload)) {
+  const gardenKey = payload?.$context?.gardenKey
+
+  if (gardenKey && isActionStatusEvent(name, payload)) {
     return true
   }
   if (isConfigEvent(name, payload)) {
     return true
   }
+
   return false
 }
 

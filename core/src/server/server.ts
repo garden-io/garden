@@ -422,8 +422,7 @@ export class GardenServer extends EventEmitter {
       const subscribedGardenKeys: Set<string> = new Set()
 
       const eventListener: EventPipeListener = (name, payload) => {
-        const gardenKey = payload?.$context?.gardenKey
-        if (shouldStreamWsEvent(name, payload) && gardenKey) {
+        if (shouldStreamWsEvent(name, payload)) {
           send("event", { name, payload })
         }
       }
@@ -734,7 +733,7 @@ export class GardenServer extends EventEmitter {
       try {
         const suggestions = this.manager.getAutocompleteSuggestions({
           log: this.log,
-          projectRoot: projectRoot || this.manager.defaultProjectRoot,
+          projectRoot: projectRoot || this.defaultProjectRoot,
           input,
         })
         return send("autocompleteResult", { requestId, suggestions })

@@ -579,5 +579,156 @@ describe("GardenServer", () => {
         })
       )
     })
+
+    context("requestType=autocomplete", () => {
+      it("returns suggestions", (done) => {
+        const id = uuidv4()
+        const input = "_tes"
+
+        onMessageAfterReady({
+          cb: (msg) => {
+            if (msg.type !== "autocompleteResult") {
+              return
+            }
+            try {
+              expect(msg.requestId).to.equal(id)
+              expect(msg.suggestions).to.eql([
+                {
+                  type: "command",
+                  line: "_test",
+                  command: { name: ["_test"], cliOnly: false, stringArguments: [] },
+                  priority: 1,
+                },
+              ])
+              done()
+            } catch (error) {
+              done(error)
+            }
+          },
+          skipType: "logEntry",
+        })
+        ws.send(
+          JSON.stringify({
+            type: "autocomplete",
+            id,
+            input,
+          })
+        )
+      })
+
+      it("returns project-specific suggestions", (done) => {
+        const id = uuidv4()
+        const input = "deploy service-"
+        let updated = false
+
+        onMessageAfterReady({
+          cb: (msg) => {
+            if (!updated && msg.type === "event" && msg.name === "autocompleterUpdated") {
+              // Ask for suggestions after command is done
+              updated = true
+              ws.send(
+                JSON.stringify({
+                  type: "autocomplete",
+                  id,
+                  input,
+                })
+              )
+              return
+            }
+            if (msg.type !== "autocompleteResult") {
+              return
+            }
+            try {
+              expect(msg.requestId).to.equal(id)
+              const suggestions = msg.suggestions.map((s) => s.line)
+              expect(suggestions).to.eql(["deploy service-a", "deploy service-b", "deploy service-c"])
+              done()
+            } catch (error) {
+              done(error)
+            }
+          },
+          skipType: "logEntry",
+        })
+        // Make sure the graph is resolved
+        ws.send(
+          JSON.stringify({
+            type: "loadConfig",
+            id,
+          })
+        )
+      })
+
+      it("works with projectRoot set", (done) => {
+        const id = uuidv4()
+        const input = "_tes"
+
+        onMessageAfterReady({
+          cb: (msg) => {
+            if (msg.type !== "autocompleteResult") {
+              return
+            }
+            try {
+              expect(msg.requestId).to.equal(id)
+              expect(msg.suggestions).to.eql([
+                {
+                  type: "command",
+                  line: "_test",
+                  command: { name: ["_test"], cliOnly: false, stringArguments: [] },
+                  priority: 1,
+                },
+              ])
+              done()
+            } catch (error) {
+              done(error)
+            }
+          },
+          skipType: "logEntry",
+        })
+        ws.send(
+          JSON.stringify({
+            type: "autocomplete",
+            id,
+            input,
+            projectRoot: garden.projectRoot,
+          })
+        )
+      })
+
+      it("works with projectRoot set to a an empty directory", (done) => {
+        const id = uuidv4()
+        const input = "_tes"
+
+        onMessageAfterReady({
+          cb: (msg) => {
+            if (msg.type !== "autocompleteResult") {
+              return
+            }
+            try {
+              expect(msg.requestId).to.equal(id)
+              expect(msg.suggestions).to.eql([
+                {
+                  type: "command",
+                  line: "_test",
+                  command: { name: ["_test"], cliOnly: false, stringArguments: [] },
+                  priority: 1,
+                },
+              ])
+              done()
+            } catch (error) {
+              done(error)
+            }
+          },
+          skipType: "logEntry",
+        })
+        ws.send(
+          JSON.stringify({
+            type: "autocomplete",
+            id,
+            input,
+            projectRoot: "/tmp/foo",
+          })
+        )
+      })
+    })
   })
 })
