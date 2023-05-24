@@ -129,7 +129,7 @@ export class ServeCommand<
       log,
       manager,
       port: opts.port,
-      defaultProjectRoot: process.cwd(),
+      defaultProjectRoot: manager.defaultProjectRoot || process.cwd(),
       serveCommand: this,
     })
 

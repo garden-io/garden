@@ -295,7 +295,7 @@ export class GardenInstanceManager {
     return this.projectRoots.get(projectRoot) || this.updateProjectRootContext(log, projectRoot)
   }
 
-  private getProjectRootContext(log: Log, projectRoot?: string) {
+  private getProjectRootContext(_log: Log, projectRoot?: string) {
     if (!projectRoot || !this.projectRoots.get(projectRoot)) {
       return this.defaultProjectRootContext
     }
@@ -312,6 +312,7 @@ export class GardenInstanceManager {
       configDump,
     }
     this.projectRoots.set(projectRoot, context)
+    this.events.emit("autocompleterUpdated", { projectRoot })
     return context
   }
 
