@@ -33,11 +33,8 @@ export const DEFAULT_TEST_TIMEOUT_SEC = 600
 export const DEFAULT_RUN_TIMEOUT_SEC = 600
 export const DEFAULT_DEPLOY_TIMEOUT_SEC = 300
 
-export type SupportedPlatform = "linux" | "darwin" | "win32"
-export const SUPPORTED_PLATFORMS: SupportedPlatform[] = ["linux", "darwin", "win32"]
-
-export type SupportedArchitecture = "x64" | "arm64"
-export const SUPPORTED_ARCHITECTURES: SupportedArchitecture[] = ["x64", "arm64"]
+export const SUPPORTED_PLATFORMS: NodeJS.Platform[] = ["linux", "darwin", "win32"]
+export const SUPPORTED_ARCHITECTURES: NodeJS.Architecture[] = ["x64", "arm64"]
 
 // These keys aren't sensitive, so we ask GitGuardian to ignore them.
 export const SEGMENT_DEV_API_KEY = "D3DUZ3lBSDO3krnuIO7eYDdtlDAjooKW" // ggignore
