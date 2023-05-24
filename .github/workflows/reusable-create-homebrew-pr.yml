@@ -37,7 +37,7 @@ jobs:
         with:
           tag-name: ${{ inputs.release-version }}
           formula-name: garden-cli
-          formula-path: Formula/garden-cli.rb
+          formula-path: "Formula/garden-cli@0.12.rb"
           homebrew-tap: garden-io/homebrew-garden
           base-branch: main
           create-pullrequest: true
