@@ -65,10 +65,8 @@ import { createPluginContext, CommandInfo, PluginEventBroker } from "./plugin-co
 import { ModuleActionHandlers, RegisterPluginParam } from "./plugin/plugin"
 import {
   SUPPORTED_PLATFORMS,
-  SupportedPlatform,
   DEFAULT_GARDEN_DIR_NAME,
   gardenEnv,
-  SupportedArchitecture,
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
 } from "./constants"
@@ -355,13 +353,13 @@ export class Garden {
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
-    const currentArch = arch()
+    const currentArch = arch() as NodeJS.Architecture
 
-    if (!SUPPORTED_PLATFORMS.includes(<SupportedPlatform>currentPlatform)) {
+    if (!SUPPORTED_PLATFORMS.includes(currentPlatform)) {
       throw new RuntimeError(`Unsupported platform: ${currentPlatform}`, { platform: currentPlatform })
     }
 
-    if (!SUPPORTED_ARCHITECTURES.includes(<SupportedArchitecture>currentArch)) {
+    if (!SUPPORTED_ARCHITECTURES.includes(currentArch)) {
       throw new RuntimeError(`Unsupported CPU architecture: ${currentArch}`, { arch: currentArch })
     }
 
@@ -1315,7 +1313,7 @@ export class Garden {
         }
 
         for (const config of actionConfigs) {
-          this.addActionConfig(config as unknown as BaseActionConfig)
+          this.addActionConfig((config as unknown) as BaseActionConfig)
           actionsCount++
         }
       }

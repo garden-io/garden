@@ -19,7 +19,7 @@ import {
 } from "../../../../../src/constants"
 import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
 import { defaultContainerLimits } from "../../../../../src/plugins/container/moduleConfig"
-import {ModuleConfig} from "../../../../../src/config/module";
+import { ModuleConfig } from "../../../../../src/config/module"
 
 describe("GetConfigCommand", () => {
   const command = new GetConfigCommand()
