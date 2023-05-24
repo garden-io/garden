@@ -23,13 +23,9 @@ export const ERROR_LOG_FILENAME = "error.log"
 export const GARDEN_VERSIONFILE_NAME = ".garden-version"
 export const DEFAULT_PORT_PROTOCOL = "TCP"
 
-export type GardenApiVersionType = {
-  v0: "garden.io/v0"
-  v1: "garden.io/v1"
-}
-export const GardenApiVersion: GardenApiVersionType = {
-  v0: "garden.io/v0",
-  v1: "garden.io/v1",
+export enum GardenApiVersion {
+  v0 = "garden.io/v0",
+  v1 = "garden.io/v1",
 }
 
 export const DEFAULT_BUILD_TIMEOUT_SEC = 600
