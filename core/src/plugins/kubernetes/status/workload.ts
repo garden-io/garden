@@ -196,7 +196,7 @@ async function getRolloutStatus(workload: Workload) {
     const status = <V1StatefulSetStatus>workload.status
     const workloadSpec = <Required<V1StatefulSetSpec>>workload.spec
 
-    const replicas = status.replicas || 0
+    const replicas = (workload.spec as V1StatefulSetSpec).replicas || 0
     const updated = status.updatedReplicas || 0
     const ready = status.readyReplicas || 0
 
@@ -221,7 +221,7 @@ async function getRolloutStatus(workload: Workload) {
 
     const desired = deploymentSpec.replicas === undefined ? 1 : deploymentSpec.replicas
     const updated = status.updatedReplicas || 0
-    const replicas = status.replicas || 0
+    const replicas = (workload.spec as any).replicas || 0
     const available = status.availableReplicas || 0
 
     if (updated < desired) {
