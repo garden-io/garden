@@ -389,7 +389,7 @@ describe("writeTreeVersionFile", () => {
 })
 
 describe("hashModuleVersion", () => {
-  function baseConfig() {
+  function baseConfig(): ModuleConfig {
     return {
       apiVersion: GardenApiVersion.v0,
       type: "test",

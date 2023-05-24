@@ -25,7 +25,7 @@ import { TestConfig, testConfigSchema } from "./test"
 import { TaskConfig, taskConfigSchema } from "./task"
 import { dedent, stableStringify } from "../util/string"
 import { configTemplateKind, varfileDescription } from "./base"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersionType } from "../constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants"
 
 interface BuildCopySpec {
   source: string
@@ -109,7 +109,7 @@ export interface BaseModuleSpec extends ModuleSpecCommon {
   /**
    * the apiVersion field is unused in all Modules at the moment and hidden in the reference docs.
    */
-  apiVersion: GardenApiVersionType["v0"]
+  apiVersion: GardenApiVersion.v0
   kind?: "Module"
   allowPublish: boolean
   build: BaseBuildSpec

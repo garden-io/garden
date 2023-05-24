@@ -30,7 +30,7 @@ import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
 import { cloneDeep, memoize } from "lodash"
 import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
-import { DOCS_BASE_URL, GardenApiVersion, GardenApiVersionType } from "../constants"
+import { DOCS_BASE_URL, GardenApiVersion } from "../constants"
 import { defaultDotIgnoreFile } from "../util/fs"
 import type { CommandInfo } from "../plugin-context"
 import type { VcsInfo } from "../vcs/vcs"
@@ -192,7 +192,7 @@ export interface ProxyConfig {
 }
 
 export interface ProjectConfig {
-  apiVersion: GardenApiVersionType["v0"] | GardenApiVersionType["v1"]
+  apiVersion: GardenApiVersion
   kind: "Project"
   name: string
   path: string

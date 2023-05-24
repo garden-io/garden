@@ -19,6 +19,7 @@ import {
 } from "../../../../../src/constants"
 import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
 import { defaultContainerLimits } from "../../../../../src/plugins/container/moduleConfig"
+import {ModuleConfig} from "../../../../../src/config/module";
 
 describe("GetConfigCommand", () => {
   const command = new GetConfigCommand()
@@ -648,7 +649,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      const rawConfigs = [
+      const rawConfigs: ModuleConfig[] = [
         {
           apiVersion: GardenApiVersion.v0,
           allowPublish: false,
