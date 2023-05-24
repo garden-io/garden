@@ -185,7 +185,19 @@ steps:
 
 ### Step outputs
 
-Workflow steps can reference outputs from previous steps, using template strings.
+Workflow steps can reference outputs from previous steps, using template strings. This is particularly useful when feeding command outputs to custom scripts, e.g. for custom publishing flows, handling artifacts and whatever else you can think of.
+
+For example, to retrieve a module version after a build:
+
+```yaml
+kind: Workflow
+name: my-workflow
+steps:
+  - command: [build]
+  - script: |
+      echo "Built version ${steps.step-1.outputs.build.my-build-action.version}"
+```
+
 You can also set a `name` on a step, to make it easier to reference:
 
 ```yaml
