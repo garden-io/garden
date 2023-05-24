@@ -1,7 +1,7 @@
 name: Test homebrew release
 on:
   pull_request:
-    branches: [main]
+    branches: ["0.12"]
     paths:
       - ".github/workflows/*create-homebrew-pr.yml"
 
