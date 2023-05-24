@@ -47,7 +47,7 @@ import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph, ResolvedConfigGraph } from "./graph/config-graph"
 import { getRootLogger } from "./logger/logger"
-import { ProviderHandlers, GardenPlugin } from "./plugin/plugin"
+import { GardenPlugin } from "./plugin/plugin"
 import {
   loadConfigResources,
   findProjectConfig,
@@ -62,7 +62,7 @@ import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { ModuleConfig } from "./config/module"
 import { convertModules, ModuleResolver } from "./resolve-module"
 import { createPluginContext, CommandInfo, PluginEventBroker } from "./plugin-context"
-import { ModuleActionHandlers, RegisterPluginParam } from "./plugin/plugin"
+import { RegisterPluginParam } from "./plugin/plugin"
 import {
   SUPPORTED_PLATFORMS,
   DEFAULT_GARDEN_DIR_NAME,
@@ -150,20 +150,6 @@ import { AnalyticsHandler } from "./analytics/analytics"
 import { getGardenInstanceKey } from "./server/helpers"
 
 const defaultLocalAddress = "localhost"
-
-export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
-  [actionName: string]: ProviderHandlers[T]
-}
-
-export interface ModuleActionHandlerMap<T extends keyof ModuleActionHandlers> {
-  [actionName: string]: ModuleActionHandlers[T]
-}
-
-export type PluginActionMap = {
-  [A in keyof ProviderHandlers]: {
-    [pluginName: string]: ProviderHandlers[A]
-  }
-}
 
 export interface GardenOpts {
   commandInfo: CommandInfo
