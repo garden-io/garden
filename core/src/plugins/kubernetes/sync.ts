@@ -69,7 +69,7 @@ import { ConfigurationError } from "../../exceptions"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
-export const syncGuideLink = "https://docs.garden.io/guides/code-synchronization-dev-mode"
+export const syncGuideLink = "https://docs.garden.io/guides/code-synchronization"
 
 export interface KubernetesModuleDevModeSpec extends ContainerSyncSpec {
   containerName?: string

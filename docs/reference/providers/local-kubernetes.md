@@ -306,8 +306,7 @@ providers:
       #
       # Sync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.
       #
-      # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
-      # information.
+      # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
       defaults:
         # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
         #
@@ -1186,7 +1185,7 @@ These are overridden/extended by the settings of any individual sync specs.
 
 Sync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
 
 | Type     | Required |
 | -------- | -------- |
