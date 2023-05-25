@@ -2,7 +2,7 @@
 # Defaults to root.
 ARG VARIANT=root
 
-FROM node:18-buster@sha256:9b982ad25de81f86da9c47fd057e15f980036343ad45e602ead9926eea0d64ff as buster-base-root
+FROM node:18-buster-slim@sha256:29a6b6266f26c7e9bedc0e51a124218c2f9dda9752073840747f425a1f081fc0 as buster-base-root
 
 # system dependencies
 RUN set -ex; \
