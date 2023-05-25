@@ -656,5 +656,51 @@ function commonSyncTests(legacyBuildSync: boolean) {
 
       expect(await listFiles(targetRoot)).to.eql(["subdir/a"])
     })
+
+    it("correctly handles special characters in the file name, withDelete true", async () => {
+      const specialFilenames = ["[id].vue", "*foo", "bla?"]
+      const a = join(tmpPath, "a")
+      const b = join(tmpPath, "b")
+      await ensureDir(a)
+      for (const filename of specialFilenames) {
+        await writeFile(join(a, filename), "foo")
+      }
+      await ensureDir(b)
+      await sync({
+        log,
+        sourceRoot: tmpPath,
+        sourceRelPath: "a/",
+        files: specialFilenames,
+        targetRoot: b,
+        withDelete: true,
+      })
+      for (const filename of specialFilenames) {
+        const data = (await readFile(join(b, filename))).toString()
+        expect(data).to.equal("foo")
+      }
+    })
+
+    it("correctly handles special characters in the file name, withDelete false", async () => {
+      const specialFilenames = ["[id].vue", "*foo", "bla?"]
+      const a = join(tmpPath, "a")
+      const b = join(tmpPath, "b")
+      await ensureDir(a)
+      for (const filename of specialFilenames) {
+        await writeFile(join(a, filename), "foo")
+      }
+      await ensureDir(b)
+      await sync({
+        log,
+        sourceRoot: tmpPath,
+        sourceRelPath: "a/",
+        files: specialFilenames,
+        targetRoot: b,
+        withDelete: false,
+      })
+      for (const filename of specialFilenames) {
+        const data = (await readFile(join(b, filename))).toString()
+        expect(data).to.equal("foo")
+      }
+    })
   })
 }
