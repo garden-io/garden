@@ -13,7 +13,7 @@ updates:
       interval: "weekly"
   # Automatically update Dockerfile FROM images
   - package-ecosystem: "docker"
-    directory: "/"
+    directory: "/support/"
     open-pull-requests-limit: 5
     schedule:
       interval: "daily"
