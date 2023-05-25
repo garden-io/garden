@@ -740,7 +740,7 @@ export const configSchema = () =>
     `
       ),
       ingressClass: joi.string().description(dedent`
-        The ingress class to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation)
+        The ingress class or ingressClassName to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation or \`spec.ingressClassName\` field depending on the kubernetes version)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.
       `),
       ingressHttpPort: joi
