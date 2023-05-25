@@ -355,8 +355,7 @@ services:
     #
     # Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
     #
-    # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
-    # information.
+    # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
     sync:
       # Override the default container arguments when in sync mode.
       args:
@@ -379,7 +378,7 @@ services:
           exclude:
 
           # The sync mode to use for the given paths. See the [Code Synchronization
-          # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
+          # guide](https://docs.garden.io/guides/code-synchronization) for details.
           mode: one-way-safe
 
           # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600
@@ -1538,7 +1537,7 @@ Specifies which files or directories to sync to which paths inside the running c
 
 Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1642,7 +1641,7 @@ services:
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > mode
 
-The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
+The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for details.
 
 | Type     | Allowed Values                                                                                                                            | Default          | Required |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |

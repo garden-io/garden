@@ -118,7 +118,7 @@ export class SyncStatusCommand extends Command<Args, Opts> {
         Follow the link below to learn how to enable live code syncing with Garden:
       `)
       log.info("")
-      log.info(chalk.cyan.underline("https://docs.garden.io/guides/code-synchronization-dev-mode"))
+      log.info(chalk.cyan.underline("https://docs.garden.io/guides/code-synchronization"))
     }
 
     return { result: { actions: syncStatuses } }

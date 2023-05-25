@@ -331,7 +331,7 @@ spec:
         exclude:
 
         # The sync mode to use for the given paths. See the [Code Synchronization
-        # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
+        # guide](https://docs.garden.io/guides/code-synchronization) for details.
         mode: one-way-safe
 
         # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600
@@ -1126,7 +1126,7 @@ spec:
 
 [spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > mode
 
-The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
+The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for details.
 
 | Type     | Allowed Values                                                                                                                            | Default          | Required |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
