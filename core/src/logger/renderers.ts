@@ -9,11 +9,9 @@
 import logSymbols from "log-symbols"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
-import { isArray, repeat } from "lodash"
+import { isArray, repeat, trim } from "lodash"
 import stringWidth = require("string-width")
-import hasAnsi = require("has-ansi")
 import format from "date-fns/format"
-
 import { LogEntry } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, safeDumpYaml } from "../util/serialization"
@@ -45,15 +43,17 @@ export function combineRenders(entry: LogEntry, logger: Logger, renderers: Rende
 }
 
 export function renderError(entry: LogEntry): string {
-  const { msg, error } = entry
+  const { error, msg } = entry
 
   let out = ""
 
   if (error) {
-    if (msg) {
-      out += "\n\n"
+    const noAnsiErr = stripAnsi(error.message || "")
+    const noAnsiMsg = stripAnsi(msg || "")
+    // render error only if message doesn't laready contain it
+    if (!noAnsiMsg?.includes(trim(noAnsiErr, "\n"))) {
+      out = "\n\n" + chalk.red(error.message)
     }
-    out += formatGardenErrorWithDetail(toGardenError(error))
   }
 
   return out
@@ -158,8 +158,8 @@ export function renderSection(entry: LogEntry): string {
  * Formats entries for the terminal writer.
  */
 export function formatForTerminal(entry: LogEntry, logger: Logger): string {
-  const { msg: msg, symbol, data } = entry
-  const empty = [msg, symbol, data].every((val) => val === undefined)
+  const { msg: msg, symbol, data, error } = entry
+  const empty = [msg, symbol, data, error].every((val) => val === undefined)
 
   if (empty) {
     return ""
@@ -170,6 +170,7 @@ export function formatForTerminal(entry: LogEntry, logger: Logger): string {
     renderSymbol,
     renderSection,
     renderMsg,
+    renderError,
     renderData,
     () => "\n",
   ])

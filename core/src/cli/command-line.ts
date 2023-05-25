@@ -94,7 +94,7 @@ export function logCommandSuccess({ commandName, log, width }: { commandName: st
 }
 
 export function logCommandOutputErrors({ errors, log, width }: { errors: Error[]; log: Log; width: number }) {
-  renderCommandErrors(getRootLogger(), errors, log)
+  renderCommandErrors(log.root, errors, log)
   log.error({ msg: renderDivider({ width, color: chalk.red }) })
 }
 
