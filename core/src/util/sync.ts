@@ -52,8 +52,13 @@ export async function syncWithOptions({
       // Workaround for this issue: https://stackoverflow.com/questions/1813907
       opts.push("--include-from=-", "--exclude=*", "--delete-excluded")
 
-      // -> Make sure the file list is anchored (otherwise filenames are matched as patterns)
-      files = files.map((f) => "/" + f)
+      files = files.map((f) => {
+        // -> Make sure the file list is anchored (otherwise filenames are matched as patterns)
+        let filename = "/" + f
+        // -> Escape rsync include/exclude wildcard characters https://linux.die.net/man/1/rsync
+        filename = filename.replaceAll(/(\[|\?|\*)/g, "\\$1")
+        return filename
+      })
 
       input = "/**/\n" + files.join("\n")
     }
