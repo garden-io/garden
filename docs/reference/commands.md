@@ -3575,6 +3575,37 @@ Note that this may include sensitive data, depending on the provider and your co
 
 
 
+### garden get actions
+
+**Outputs all or specified actions.**
+
+Outputs all or specified actions. Use with --output=json and jq to extract specific fields.
+
+Examples:
+garden get actions                                                # list all actions in the project
+garden get actions --detail                                       # list all actions in project with detailed info
+garden get actions --kind deploy                                  # only list the actions of kind 'Deploy'
+garden get actions A B --kind build --sort type                   # list  actions A and B of kind 'Build' sorted by type
+
+#### Usage
+
+    garden get actions [actions] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `actions` | No | Specify action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all actions.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each action, including state, path, dependencies, dependents, associated module and if action is disabled.
+  | `--sort` |  | `name` `kind` `type`  | Sort the actions result by action name, kind or type. By default action results are sorted by name.
+  | `--kind` |  | `build` `deploy` `run` `test`  | Choose actions of specific kind only. By default all actions are shown.
+
+
 ### garden link source
 
 **Link a remote source to a local directory.**

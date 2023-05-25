@@ -21,6 +21,7 @@ import { GetDoddiCommand } from "./get-doddi"
 import { GetModulesCommand } from "./get-modules"
 import { GetTestsCommand } from "./get-tests"
 import { GetWorkflowsCommand } from "./get-workflows"
+import { GetActionsCommand } from "./get-actions"
 
 export class GetCommand extends CommandGroup {
   name = "get"
@@ -41,5 +42,6 @@ export class GetCommand extends CommandGroup {
     GetTestResultCommand,
     GetDebugInfoCommand,
     GetWorkflowsCommand,
+    GetActionsCommand,
   ]
 }
