@@ -99,7 +99,7 @@ const getNumberOfCharsPerWidth = (char: string, width: number) => width / string
 
 // Adapted from https://github.com/JureSotosek/ink-divider
 export function renderDivider({
-  width = 80,
+  width = undefined,
   char = "─",
   titlePadding = 1,
   color,
@@ -107,6 +107,9 @@ export function renderDivider({
   padding = 0,
 }: DividerOpts = {}) {
   const pad = " "
+  if (!width) {
+    width = getTermWidth()
+  }
 
   if (!color) {
     color = chalk.white
@@ -122,6 +125,11 @@ export function renderDivider({
   const paddingString = pad.repeat(padding)
 
   return paddingString + dividerSideString + titleString + dividerSideString + paddingString
+}
+
+export const getTermWidth = () => {
+  // TODO: accept stdout as param
+  return process.stdout?.columns || 100
 }
 
 export function renderDuration(duration: number): string {

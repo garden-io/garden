@@ -20,8 +20,7 @@ import { findProjectConfig } from "../config/base"
 import { toGardenError } from "../exceptions"
 import { Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
-import { getRootLogger } from "../logger/logger"
-import { renderDivider } from "../logger/util"
+import { getTermWidth, renderDivider } from "../logger/util"
 import { getGardenForRequest } from "../server/commands"
 import type { GardenInstanceManager } from "../server/instance-manager"
 import { TypedEventEmitter } from "../util/events"
@@ -457,15 +456,10 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.renderCommandLine()
   }
 
-  getTermWidth() {
-    // TODO: accept stdout in constructor
-    return process.stdout?.columns || 100
-  }
-
   private printWithDividers(text: string, title: string) {
     let width = max(text.split("\n").map((l) => stringWidth(l.trimEnd()))) || 0
     width += 2
-    const termWidth = this.getTermWidth()
+    const termWidth = getTermWidth()
     const minWidth = stringWidth(title) + 10
 
     if (width > termWidth) {
@@ -668,7 +662,7 @@ ${chalk.white.underline("Keys:")}
     opts: ParameterValues<any>
   }) {
     const id = uuidv4()
-    const width = this.getTermWidth() - 2
+    const width = getTermWidth() - 2
 
     const prepareParams = {
       log: this.log,
