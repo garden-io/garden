@@ -471,7 +471,8 @@ providers:
       # Set to true to allow insecure connections to the registry (without SSL).
       insecure: false
 
-    # The ingress class to use on configured Ingresses (via the `kubernetes.io/ingress.class` annotation)
+    # The ingress class or ingressClassName to use on configured Ingresses (via the `kubernetes.io/ingress.class`
+    # annotation or `spec.ingressClassName` field depending on the kubernetes version)
     # when deploying `container` services. Use this if you have multiple ingress controllers in your cluster.
     ingressClass:
 
@@ -2173,7 +2174,7 @@ Set to true to allow insecure connections to the registry (without SSL).
 
 [providers](#providers) > ingressClass
 
-The ingress class to use on configured Ingresses (via the `kubernetes.io/ingress.class` annotation)
+The ingress class or ingressClassName to use on configured Ingresses (via the `kubernetes.io/ingress.class` annotation or `spec.ingressClassName` field depending on the kubernetes version)
 when deploying `container` services. Use this if you have multiple ingress controllers in your cluster.
 
 | Type     | Required |
