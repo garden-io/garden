@@ -699,8 +699,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         expect(await pathExists(testFilePath)).to.be.false
       })
 
-      // TODO: understand this test and fix it
-      it.skip("sets the workspace before destroying", async () => {
+      it("sets the workspace before destroying", async () => {
         await runTestTask(true, true)
 
         const _garden = await makeTestGarden(testRoot, {
@@ -714,17 +713,16 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         const actions = await _garden.getActionRouter()
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
-
-        const action = await resolveAction({
-          garden,
-          graph,
-          action: graph.getDeploy("tf"),
-          log: garden.log,
+        const _action = await resolveAction({
+          garden: _garden,
+          graph: _graph,
+          action: _graph.getDeploy("tf"),
+          log: _garden.log,
         })
 
         await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
-        await actions.deploy.delete({ action, log: action.createLog(garden.log), graph: _graph })
+        await actions.deploy.delete({ action: _action, log: _action.createLog(_garden.log), graph: _graph })
 
         const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: _garden.log })
         expect(selected).to.equal("foo")
