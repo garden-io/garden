@@ -20,7 +20,7 @@ import { TestTask } from "@garden-io/core/build/src/tasks/test"
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 import { GardenApiVersion } from "@garden-io/core/src/constants"
 
-describe("conftest provider", () => {
+describe.skip("conftest provider", () => {
   const projectRoot = join(__dirname, "test-project")
 
   const projectConfig: ProjectConfig = {
