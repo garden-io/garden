@@ -385,8 +385,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
       })
 
-      // TODO: this times out as `GraphSolver: Starting batch` hangs, potential concurrency issue with the two gardens here?
-      it.skip("sets the workspace before running the command", async () => {
+      it("sets the workspace before running the command", async () => {
         const _garden = await makeTestGarden(testRoot, {
           environmentString: "local",
           forceRefresh: true,
@@ -399,15 +398,15 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
         await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
-        graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
+        const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
         const command = findByName(getTerraformCommands(), "apply-action")!
         await command.handler({
           ctx,
-          garden,
+          garden: _garden,
           args: ["tf", "-auto-approve", "-input=false"],
-          log: garden.log,
-          graph,
+          log: _garden.log,
+          graph: _graph,
         })
 
         const testFileContent = await readFile(testFilePath)
@@ -431,8 +430,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
       })
 
-      // TODO: this times out as `GraphSolver: Starting batch` hangs, potential concurrency issue with the two gardens here?
-      it.skip("sets the workspace before running the command", async () => {
+      it("sets the workspace before running the command", async () => {
         const _garden = await makeTestGarden(testRoot, {
           environmentString: "local",
           forceRefresh: true,
@@ -441,22 +439,22 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
 
         const provider = (await _garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
-        const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+        const _ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await setWorkspace({ ctx: _ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
-        graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
+        const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
         const command = findByName(getTerraformCommands(), "plan-action")!
         await command.handler({
-          ctx,
-          garden,
+          ctx: _ctx,
+          garden: _garden,
           args: ["tf", "-input=false"],
           log: _garden.log,
-          graph,
+          graph: _graph,
         })
 
-        const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: _garden.log })
+        const { selected } = await getWorkspaces({ ctx: _ctx, provider, root: tfRoot, log: _garden.log })
         expect(selected).to.equal("foo")
       })
     })
@@ -477,8 +475,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
       })
 
-      // TODO: this times out as `GraphSolver: Starting batch` hangs, potential concurrency issue with the two gardens here?
-      it.skip("sets the workspace before running the command", async () => {
+      it("sets the workspace before running the command", async () => {
         const _garden = await makeTestGarden(testRoot, {
           environmentString: "local",
           forceRefresh: true,
@@ -486,7 +483,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           plugins: [gardenPlugin()],
         })
 
-        const provider = (await _garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+        const provider = (await _garden.resolveProvider(_garden.log, "terraform")) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
@@ -496,9 +493,9 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const command = findByName(getTerraformCommands(), "destroy-action")!
         await command.handler({
           ctx,
-          garden,
+          garden: _garden,
           args: ["tf", "-input=false", "-auto-approve"],
-          log: garden.log,
+          log: _garden.log,
           graph,
         })
 
@@ -572,8 +569,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
       })
 
-      // TODO: this times out as `GraphSolver: Starting batch` hangs, potential concurrency issue with the two gardens here?
-      it.skip("sets the workspace before getting the status and returning outputs", async () => {
+      it("sets the workspace before getting the status and returning outputs", async () => {
         const _garden = await makeTestGarden(testRoot, {
           environmentString: "local",
           forceRefresh: true,
@@ -583,20 +579,20 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
         const provider = await _garden.resolveProvider(_garden.log, "terraform")
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-        graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+        const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
         const applyCommand = findByName(getTerraformCommands(), "apply-action")!
         await applyCommand.handler({
           ctx,
-          garden,
+          garden: _garden,
           args: ["tf", "-auto-approve", "-input=false"],
           log: _garden.log,
-          graph,
+          graph: _graph,
         })
 
         const resolvedAction = await resolveAction({
           garden: _garden,
-          graph,
-          action: graph.getDeploy("tf"),
+          graph: _graph,
+          action: _graph.getDeploy("tf"),
           log: _garden.log,
         })
 
@@ -604,10 +600,10 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const status = await actions.deploy.getStatus({
           action: resolvedAction,
           log: resolvedAction.createLog(_garden.log),
-          graph,
+          graph: _graph,
         })
 
-        expect(status.result.outputs?.["my-output"]).to.equal("workspace: default, input: foo")
+        expect(status.result.outputs?.["my-output"]).to.equal("workspace: foo, input: foo")
       })
     })
 
