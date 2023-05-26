@@ -56,6 +56,17 @@ export function getLogMessages(log: Log, filter?: (log: LogEntry) => boolean) {
     .map((entry) => stripAnsi(entry.msg || ""))
 }
 
+/**
+ * Retrieves all the entries from the root log and returns a list of all the messages,
+ * stripped of ANSI characters. Useful to check if a particular message was logged.
+ */
+export function getRootLogMessages(log: Log, filter?: (log: LogEntry) => boolean) {
+  return log
+    .getAllLogEntries()
+    .filter((entry) => (filter ? filter(entry) : true))
+    .map((entry) => stripAnsi(entry.msg || ""))
+}
+
 type PartialActionConfig = Partial<ActionConfig> & { kind: ActionKind; type: string; name: string }
 type PartialModuleConfig = Partial<ModuleConfig> & { name: string; path: string }
 

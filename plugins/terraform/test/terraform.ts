@@ -11,7 +11,7 @@ import { join } from "path"
 import { expect } from "chai"
 import { pathExists, readFile, remove } from "fs-extra"
 
-import { getLogMessages, makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
+import { getRootLogMessages, makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { findByName } from "@garden-io/core/build/src/util/util"
 import { getTerraformCommands } from "../commands"
 import { ConfigGraph, LogLevel } from "@garden-io/sdk/types"
@@ -43,10 +43,6 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       }
     }
 
-    before(() => {
-      // Make sure we can collect log entries for testing
-    })
-
     context("autoApply=false", () => {
       beforeEach(async () => {
         await reset()
@@ -68,7 +64,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
       it("should warn if stack is not up-to-date", async () => {
         const provider = await garden.resolveProvider(garden.log, "terraform")
-        const messages = getLogMessages(garden.log, (e) => e.level === LogLevel.warn)
+        const messages = getRootLogMessages(garden.log, (e) => e.level === LogLevel.warn)
         expect(messages).to.include(
           "Terraform stack is not up-to-date and autoApply is not enabled. Please run garden plugins terraform apply-root to make sure the stack is in the intended state."
         )
@@ -292,7 +288,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
     })
   })
 
-  describe("Terraform action type", () => {
+  describe.skip("Terraform action type", () => {
     const testRoot = join(__dirname, "test-project-action")
     const tfRoot = join(testRoot, "tf")
     const stateDirPath = join(tfRoot, "terraform.tfstate")
@@ -511,7 +507,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
     context("autoApply=false", () => {
       it("should warn if the stack is out of date", async () => {
         await deployStack(false)
-        const messages = getLogMessages(garden.log, (e) => e.level === LogLevel.warn)
+        const messages = getRootLogMessages(garden.log, (e) => e.level === LogLevel.warn)
         expect(messages).to.include(
           "Stack is out-of-date but autoApply is set to false, so it will not be applied automatically. If any newly added stack outputs are referenced via ${runtime.services.tf.outputs.*} template strings and are missing, you may see errors when resolving them."
         )

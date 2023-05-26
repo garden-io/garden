@@ -10,7 +10,7 @@ import { TestGarden, TestGardenOpts } from "@garden-io/core/build/src/util/testi
 import { uuidv4 } from "@garden-io/core/build/src/util/random"
 import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger"
 
-export { TestGarden, getLogMessages } from "@garden-io/core/build/src/util/testing"
+export { TestGarden, getLogMessages, getRootLogMessages } from "@garden-io/core/build/src/util/testing"
 export { expectError } from "@garden-io/core/build/src/util/testing"
 export { makeTempDir } from "@garden-io/core/build/src/util/fs"
 

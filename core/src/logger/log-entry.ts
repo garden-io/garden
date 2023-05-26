@@ -291,9 +291,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
   private getMsgWithDuration(params: CreateLogEntryParams) {
     // If params.showDuration is set, it takes precedence over this.duration (since it's set at the call site for the
     // log line in question).
-    const showDuration = params.showDuration !== undefined
-      ? params.showDuration
-      : this.showDuration
+    const showDuration = params.showDuration !== undefined ? params.showDuration : this.showDuration
     if (showDuration && params.msg) {
       const msg = hasAnsi(params.msg) ? params.msg : chalk.green(params.msg)
       return msg + " " + chalk.white(renderDuration(this.getDuration(1)))
