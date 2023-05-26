@@ -153,7 +153,6 @@ const helmChartSpecSchema = () =>
       url: joi.string().uri().description("An absolute URL to a packaged URL."),
       version: helmChartVersionSchema(),
     })
-    .with("name", ["version"])
     .without("path", ["name", "repo", "version", "url"])
     .without("url", ["name", "repo", "version", "path"])
     .xor("name", "path", "url")
@@ -163,7 +162,7 @@ const helmChartSpecSchema = () =>
 
   If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set \`chart.path\` to the directory path, relative to the action directory.
 
-  If the chart is remote, you must specify \`chart.name\` and \`chart.version\, and optionally \`chart.repo\` (if the chart is not in the default "stable" repo).
+  If the chart is remote, you can specify \`chart.name\` and \`chart.version\, and optionally \`chart.repo\` (if the chart is not in the default "stable" repo).
 
   You may also specify an absolute URL to a packaged chart via \`chart.url\`.
 
