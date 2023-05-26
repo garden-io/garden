@@ -144,7 +144,7 @@ export class GetActionsCommand extends Command {
     log,
     args,
     opts,
-  }: CommandParams<Args, Partial<Opts>>): Promise<CommandResult<GetActionsCommandResult>> {
+  }: CommandParams<Args, Opts>): Promise<CommandResult<GetActionsCommandResult>> {
     const { actions: keys } = args
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
