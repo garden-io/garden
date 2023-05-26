@@ -1,5 +1,5 @@
 # Note: This is used by build-pkg.ts, and is not usable as a Garden container
-FROM node:18-alpine@sha256:44aaf1ccc80eaed6572a0f2ef7d6b5a2982d54481e4255480041ac92221e2f11 as builder
+FROM node:19-alpine@sha256:013a0703e961e02b8be69a548f2356ae5b17bc5b8570f1cdd4b97650200b6860 as builder
 
 RUN apk add --no-cache \
   ca-certificates \
