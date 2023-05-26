@@ -14,7 +14,7 @@ import { ResolvedBuildAction } from "../../actions/build"
 import { ResolvedDeployAction } from "../../actions/deploy"
 import { ResolvedRunAction } from "../../actions/run"
 import { ResolvedTestAction } from "../../actions/test"
-import { Action, ActionState, ResolvedAction } from "../../actions/types"
+import { Action, ActionKind, ActionState, ResolvedAction, actionKinds, actionStateTypes } from "../../actions/types"
 import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params"
 import { ResolvedConfigGraph } from "../../graph/config-graph"
 import { Log, createActionLog } from "../../logger/log-entry"
@@ -24,6 +24,56 @@ import { sanitizeValue } from "../../util/logging"
 import { deepFilter } from "../../util/objects"
 import { dedent, deline, renderTable } from "../../util/string"
 import { Command, CommandParams, CommandResult } from "../base"
+import { createSchema, joi, joiArray } from "../../config/common"
+import { actionConfigSchema } from "../../actions/helpers"
+
+interface GetActionsCommandResultActionObject {
+  name: string
+  kind: ActionKind
+  type: string
+  state: ActionState
+  path: string
+  disabled: boolean
+  moduleName?: string
+  dependencies: Action[]
+  dependents: Action[]
+}
+
+interface GetActionsCommandResult {
+  actions: GetActionsCommandResultActionObject[]
+}
+
+type ResolvedActionWithState = ResolvedAction & {
+  state?: ActionState
+}
+
+export const getActionsCmdOutputSchema = createSchema({
+  name: "get-actions-output",
+  keys: () => ({
+    name: joi.string().required(),
+    kind: joi
+      .string()
+      .required()
+      .allow(...actionKinds)
+      .description(`The kind of action.`),
+    type: joi.string().required().description(`The Type of the action.`),
+    state: joi
+      .string()
+      .allow(...actionStateTypes)
+      .only()
+      .required()
+      .description("The state of the action."),
+    path: joi.string().required().description("The relative path of the action config file."),
+    disabled: joi.boolean().required().description("Flag to identify if action is disabled."),
+    moduleName: joi
+      .string()
+      .description(
+        "The name of corresponding module name of an action. Only available if action is derived from module."
+      ),
+    dependencies: joiArray(actionConfigSchema()).description("Dependencies of the action."),
+    dependents: joiArray(actionConfigSchema()).description("Dependents of the action."),
+  }),
+})
 
 const getActionsArgs = {
   actions: new StringsParameter({
@@ -69,27 +119,38 @@ export class GetActionsCommand extends Command {
     Outputs all or specified actions. Use with --output=json and jq to extract specific fields.
 
     Examples:
-    garden get actions                                                # list all actions in the project
-    garden get actions --detail                                       # list all actions in project with detailed info
-    garden get actions --kind deploy                                  # only list the actions of kind 'Deploy'
-    garden get actions A B --kind build --sort type                   # list  actions A and B of kind 'Build' sorted by type
 
-  `
+      garden get actions                                                        # list all actions in the project
+      garden get actions --detail                                               # list all actions in project with detailed info
+      garden get actions --kind deploy                                          # only list the actions of kind 'Deploy'
+      garden get actions A B --kind build --sort type                           # list  actions A and B of kind 'Build' sorted by type
+      garden get actions -o=json | jq -r '.result.actions[] | {name, state}'    # get name and state of each action
+`
 
   arguments = getActionsArgs
   options = getActionsOpts
+
+  outputsSchema = () =>
+    joi.object().keys({
+      actions: joiArray(getActionsCmdOutputSchema()).description("A list of the actions."),
+    })
 
   printHeader({ log }) {
     printHeader(log, "Get Actions", "📖")
   }
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<any>> {
+  async action({
+    garden,
+    log,
+    args,
+    opts,
+  }: CommandParams<Args, Partial<Opts>>): Promise<CommandResult<GetActionsCommandResult>> {
     const { actions: keys } = args
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
 
     const kindOpt = opts["kind"]
-    let actions: ResolvedAction[] = []
+    let actions: ResolvedActionWithState[] = []
 
     switch (kindOpt) {
       case "build":
@@ -117,6 +178,26 @@ export class GetActionsCommand extends Command {
       actions.sort((a, b) => (a.name > b.name ? 1 : -1))
     }
 
+    // get state of each action
+    const actionsWithState = await Bluebird.map(actions, async (a) => {
+      a.state = await getActionState(a, router, graph, log)
+      return a
+    })
+
+    const getActionsOutput: GetActionsCommandResultActionObject[] = actionsWithState.map((a) => {
+      return {
+        name: a.name,
+        kind: a.kind,
+        type: a.type,
+        state: a.state ?? "unknown",
+        path: getRelativeActionPath(garden.projectRoot, a.configPath() ?? ""),
+        dependencies: a.getDependencies(),
+        dependents: getActionDependents(a, graph),
+        disabled: a.isDisabled(),
+        moduleName: a.moduleName() ?? undefined,
+      }
+    })
+
     let rows: string[][] = []
     let cols = ["Name", "Kind", "Type"]
 
@@ -125,19 +206,19 @@ export class GetActionsCommand extends Command {
       // only needed if action is derived from module
       let showModuleCol = false
 
-      rows = await Bluebird.map(actions, async (a) => {
+      rows = getActionsOutput.map((a) => {
         const r = [
           chalk.cyan.bold(a.name),
           a.kind,
           a.type,
-          await getActionState(a, router, graph, log),
-          getRelativeActionPath(garden.projectRoot, a.configPath() ?? ""),
-          actionDependenciesToString(a.getDependencies()),
-          actionDependentsToString(a, graph),
-          a.isDisabled(),
+          a.state,
+          a.path,
+          formatActionsReferenceToString(a.dependencies),
+          formatActionsReferenceToString(a.dependents),
+          a.disabled ? "true" : "false",
         ]
-        if (a.moduleName()) {
-          r.push(a.moduleName())
+        if (a.moduleName) {
+          r.push(a.moduleName)
           showModuleCol = true
         }
         return r
@@ -151,7 +232,7 @@ export class GetActionsCommand extends Command {
         ...(showModuleCol ? ["Module"] : []),
       ])
     } else {
-      rows = actions.map((a) => {
+      rows = getActionsOutput.map((a) => {
         return [chalk.cyan.bold(a.name), a.kind, a.type]
       })
     }
@@ -161,22 +242,18 @@ export class GetActionsCommand extends Command {
     log.info("")
     log.info(renderTable([heading].concat(rows)))
 
-    const sanitized = sanitizeValue(deepFilter(actions, (_, key) => key !== "executedAction"))
+    const sanitized = sanitizeValue(deepFilter(getActionsOutput, (_, key) => key !== "executedAction"))
 
-    // todo add state in machine output
     return { result: { actions: sanitized } }
   }
 }
 
-function actionDependenciesToString(actionDependencies: Action[]): string {
-  return actionDependencies.map(actionReferenceToString).join("\n")
+function formatActionsReferenceToString(actions: Action[]): string {
+  return actions.map(actionReferenceToString).join("\n")
 }
 
-function actionDependentsToString(action: Action, graph: ResolvedConfigGraph): string {
-  return graph
-    .getDependants({ kind: action.kind, name: action.name, recursive: false })
-    .map(actionReferenceToString)
-    .join("\n")
+function getActionDependents(action: Action, graph: ResolvedConfigGraph): Action[] {
+  return graph.getDependants({ kind: action.kind, name: action.name, recursive: false })
 }
 
 function getRelativeActionPath(projectRoot: string, actionConfigPath: string): string {
