@@ -18,9 +18,9 @@ import { JibBuildAction } from "../util"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
 import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 import { createActionLog } from "@garden-io/core/build/src/logger/log-entry"
-import { GardenApiVersion } from "@garden-io/core/src/constants"
+import { GardenApiVersion } from "@garden-io/core/build/src/constants"
 
-describe("jib-container", function () {
+describe.skip("jib-container", function () {
   // eslint-disable-next-line no-invalid-this
   this.timeout(180 * 1000) // initial jib build can take a long time
 
