@@ -1,0 +1,16 @@
+kind: Project
+apiVersion: garden.io/v0
+name: repro
+environments:
+  - name: default
+providers:
+  - name: local-kubernetes
+
+---
+kind: Module
+description: mailhog service
+type: helm
+name: mailhog
+# version is not specified
+repo: https://codecentric.github.io/helm-charts
+chart: mailhog
