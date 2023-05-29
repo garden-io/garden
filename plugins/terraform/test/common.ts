@@ -73,6 +73,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("returns all workspaces and which is selected", async () => {
+        await terraform(ctx, provider).exec({ args: ["init"], cwd: root, log })
         await terraform(ctx, provider).exec({ args: ["workspace", "new", "foo"], cwd: root, log })
         await terraform(ctx, provider).exec({ args: ["workspace", "new", "bar"], cwd: root, log })
 
@@ -84,6 +85,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
     describe("setWorkspace", () => {
       it("does nothing if no workspace is set", async () => {
+        await terraform(ctx, provider).exec({ args: ["init"], cwd: root, log })
         await terraform(ctx, provider).exec({ args: ["workspace", "new", "foo"], cwd: root, log })
 
         await setWorkspace({ ctx, provider, log, root, workspace: null })
@@ -102,6 +104,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("selects the given workspace if it already exists", async () => {
+        await terraform(ctx, provider).exec({ args: ["init"], cwd: root, log })
         await terraform(ctx, provider).exec({ args: ["workspace", "new", "foo"], cwd: root, log })
         await terraform(ctx, provider).exec({ args: ["workspace", "select", "default"], cwd: root, log })
 
