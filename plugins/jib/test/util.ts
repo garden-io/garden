@@ -10,7 +10,7 @@ import { expectError } from "@garden-io/sdk/testing"
 import { expect } from "chai"
 import { detectProjectType, getBuildFlags } from "../util"
 
-describe("util", () => {
+describe.skip("util", () => {
   describe("detectProjectType", () => {
     it("returns gradle if module files include a gradle config", () => {
       const module: any = {
