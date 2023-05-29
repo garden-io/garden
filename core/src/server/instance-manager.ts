@@ -20,7 +20,7 @@ import { ConfigDump, Garden, GardenOpts } from "../garden"
 import type { Log } from "../logger/log-entry"
 import { MonitorManager } from "../monitors/manager"
 import { environmentToString } from "../types/namespace"
-import { AutocompleteCommand, ReloadCommand, LogLevelCommand, HideCommand } from "./commands"
+import { AutocompleteCommand, ReloadCommand, LogLevelCommand, HideCommand, _GetDeployStatusCommand } from "./commands"
 import { getGardenInstanceKey, GardenInstanceKeyParams } from "./helpers"
 
 interface InstanceContext {
@@ -88,6 +88,7 @@ export class GardenInstanceManager {
         new ReloadCommand(serveCommand),
         new LogLevelCommand(),
         new HideCommand(),
+        new _GetDeployStatusCommand(),
       ]),
       ...(extraCommands || []),
     ]

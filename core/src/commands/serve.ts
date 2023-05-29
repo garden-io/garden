@@ -88,6 +88,7 @@ export class ServeCommand<
     let defaultGarden: Garden | undefined
 
     const manager = this.getManager(log)
+
     manager.defaultProjectRoot = projectConfig?.path || process.cwd()
     manager.defaultEnv = opts.env
 
@@ -130,7 +131,9 @@ export class ServeCommand<
           key: "web-app",
           log,
           message: chalk.green(
-            `🌿 Explore logs, past commands, and your dependency graph in the Garden web App. Log in with ${chalk.cyan("garden login")}.`
+            `🌿 Explore logs, past commands, and your dependency graph in the Garden web App. Log in with ${chalk.cyan(
+              "garden login"
+            )}.`
           ),
         })
       }
@@ -211,14 +214,15 @@ export class ServeCommand<
     })
   }
 
-  getManager(log: Log): GardenInstanceManager {
+  getManager(log: Log, initialSessionId: string | undefined = undefined): GardenInstanceManager {
     if (!this._manager) {
       this._manager = GardenInstanceManager.getInstance({
         log,
-        sessionId: this.sessionId || uuidv4(),
+        sessionId: this.sessionId || initialSessionId || uuidv4(),
         serveCommand: this,
       })
     }
+
     return this._manager
   }
 

@@ -284,7 +284,7 @@ spec:
 <div style="columns: 2">
 
 ```yaml
-ind: Module
+kind: Module
 description: The worker that collects votes and stores results in a postgres table
 type: container
 name: worker

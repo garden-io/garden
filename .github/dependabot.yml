@@ -13,10 +13,10 @@ updates:
       interval: "weekly"
   # Automatically update Dockerfile FROM images
   - package-ecosystem: "docker"
-    directory: "/"
+    directory: "/support/"
     open-pull-requests-limit: 5
     schedule:
-      interval: "daily"
+      interval: "weekly"
   # TODO: Consider enabling the NPM package ecosystem once we have fixed our build process to support pure ESM build dependencies, see also https://github.com/garden-io/garden/issues/3841
   # Automatically update NPM packages
   # - package-ecosystem: "npm"

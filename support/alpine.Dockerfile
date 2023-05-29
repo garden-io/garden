@@ -5,7 +5,7 @@ ARG VARIANT=root
 #
 # garden-base
 #
-FROM node:18-alpine@sha256:44aaf1ccc80eaed6572a0f2ef7d6b5a2982d54481e4255480041ac92221e2f11 as garden-alpine-base-root
+FROM node:18-alpine@sha256:1ccc70acda680aa4ba47f53e7c40b2d4d6892de74817128e0662d32647dd7f4d as garden-alpine-base-root
 
 RUN apk add --no-cache \
   bash \
@@ -52,7 +52,7 @@ RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util 
 
 WORKDIR /project
 
-FROM python:3.8-alpine@sha256:4912e629ee15ae93787756afb2e02b040448a86eadcb00bb542a7e81cbb2d8f8 AS aws-builder
+FROM python:3.11-alpine@sha256:4e8e9a59bf1b3ca8e030244bc5f801f23e41e37971907371da21191312087a07 AS aws-builder
 
 ENV AWSCLI_VERSION=2.11.18
 
@@ -85,7 +85,7 @@ COPY --chown=$USER:root --from=aws-builder /usr/bin/aws-iam-authenticator /usr/b
 #
 # gcloud base
 #
-FROM google/cloud-sdk:430.0.0-alpine@sha256:10bbf2db2828f7ce67ce49e4704b6225634319b9efef02d9a90185e107aef662 as gcloud-base
+FROM google/cloud-sdk:432.0.0-alpine@sha256:9933949834f3b63fa3856257a7958377adc8d0b2a38b38eb38366015a2173e93 as gcloud-base
 
 RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet
 

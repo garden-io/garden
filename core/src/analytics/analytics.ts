@@ -117,6 +117,7 @@ interface PropertiesBase {
   system: SystemInfo
   isCI: boolean
   sessionId: string
+  parentSessionId: string | undefined
   projectMetadata: ProjectMetadata
   firstRunAt?: Date
   latestRunAt?: Date
@@ -368,13 +369,15 @@ export class AnalyticsHandler {
   }
 
   static async init(garden: Garden, log: Log) {
-    if (!AnalyticsHandler.instance) {
+    // Ensure that we re-initialize the analytics metadata when switching projects
+    if (!AnalyticsHandler.instance || AnalyticsHandler.instance.garden?.projectName !== garden.projectName) {
       // We're passing this explictliy to that it's easier to overwrite and test
       // in actual CI.
       const ciInfo = {
         isCi: ci.isCI,
         ciName: ci.name,
       }
+
       AnalyticsHandler.instance = await AnalyticsHandler.factory({ garden, log, ciInfo })
     } else {
       /**
@@ -502,7 +505,7 @@ export class AnalyticsHandler {
   /**
    * Returns some common metadata to be used on each event.
    */
-  private getBasicAnalyticsProperties(): PropertiesBase {
+  private getBasicAnalyticsProperties(parentSessionId: string | undefined = undefined): PropertiesBase {
     return {
       projectId: this.projectId,
       projectIdV2: this.projectIdV2,
@@ -518,6 +521,8 @@ export class AnalyticsHandler {
       system: this.systemConfig,
       isCI: this.isCI,
       sessionId: this.sessionId,
+      // default to the sessionId since if not set we are the parent
+      parentSessionId: parentSessionId || this.sessionId,
       projectMetadata: this.projectMetadata,
       firstRunAt: this.analyticsConfig.firstRunAt,
       latestRunAt: this.analyticsConfig.latestRunAt,
@@ -537,7 +542,7 @@ export class AnalyticsHandler {
   /**
    * The actual segment track method.
    */
-  private track(event: AnalyticsEvent) {
+  private track(event: AnalyticsEvent, parentSessionId: string | undefined = undefined) {
     if (!this.segment || !this.isEnabled) {
       return false
     }
@@ -547,7 +552,7 @@ export class AnalyticsHandler {
       anonymousId: this.analyticsConfig.anonymousUserId,
       event: event.type,
       properties: {
-        ...this.getBasicAnalyticsProperties(),
+        ...this.getBasicAnalyticsProperties(parentSessionId),
         ...event.properties,
       },
     }
@@ -578,12 +583,12 @@ export class AnalyticsHandler {
   /**
    * Tracks a Command.
    */
-  trackCommand(commandName: string) {
+  trackCommand(commandName: string, parentSessionId?: string) {
     return this.track({
       type: "Run Command",
       properties: {
         name: commandName,
-        ...this.getBasicAnalyticsProperties(),
+        ...this.getBasicAnalyticsProperties(parentSessionId),
       },
     })
   }
@@ -591,7 +596,13 @@ export class AnalyticsHandler {
   /**
    * Track a command result.
    */
-  trackCommandResult(commandName: string, errors: GardenBaseError[], startTime: Date, exitCode?: number) {
+  trackCommandResult(
+    commandName: string,
+    errors: GardenBaseError[],
+    startTime: Date,
+    exitCode?: number,
+    parentSessionId?: string
+  ) {
     const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
 
     const durationMsec = getDurationMsec(startTime, new Date())
@@ -604,7 +615,7 @@ export class AnalyticsHandler {
         result,
         errors: errors.map((e) => e.type),
         exitCode,
-        ...this.getBasicAnalyticsProperties(),
+        ...this.getBasicAnalyticsProperties(parentSessionId),
       },
     })
   }
