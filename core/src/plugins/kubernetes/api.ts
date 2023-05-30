@@ -34,7 +34,7 @@ import {
   ApiextensionsV1Api,
   HttpError,
 } from "@kubernetes/client-node"
-import AsyncLock = require("async-lock")
+import AsyncLock from "async-lock"
 import request = require("request-promise")
 import requestErrors = require("request-promise/errors")
 import { safeLoad } from "js-yaml"
@@ -1004,7 +1004,7 @@ async function requestWithRetry<R>(
       return await req()
     } catch (err) {
       if (shouldRetry(err)) {
-        retryLog = retryLog || log.debug("")
+        retryLog = retryLog || log.info("")
         if (usedRetries <= maxRetries) {
           const sleepMsec = minTimeoutMs + usedRetries * minTimeoutMs
           retryLog.setState(deline`
@@ -1045,7 +1045,11 @@ function shouldRetry(err: any): boolean {
     code = err.statusCode
   }
 
-  return (code && statusCodesForRetry.includes(code)) || !!errorMessageRegexesForRetry.find((regex) => msg.match(regex))
+  return (
+    (code && statusCodesForRetry.includes(code)) ||
+    err.code === "ECONNRESET" || // <- socket hang up
+    !!errorMessageRegexesForRetry.find((regex) => msg.match(regex))
+  )
 }
 
 const statusCodesForRetry: number[] = [
@@ -1067,6 +1071,8 @@ const errorMessageRegexesForRetry = [
   /ETIMEDOUT/,
   /ENOTFOUND/,
   /EAI_AGAIN/,
+  /ECONNRESET/,
+  /socket hang up/,
   // This usually isn't retryable
   // However on github actions there seems to be flakiness
   // And connections get refused temporarily only
