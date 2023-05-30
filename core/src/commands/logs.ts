@@ -82,8 +82,8 @@ export class LogsCommand extends Command<Args, Opts> {
   help = "Retrieves the most recent logs for the specified Deploy(s)."
 
   description = dedent`
-    Outputs logs for all or specified Deploys, and optionally waits for news logs to come in. Defaults to getting logs
-    from the last minute when in \`--follow\` mode. You can change this with the \`--since\` or \`--tail\` options.
+    Outputs logs for all or specified Deploys, and optionally waits for new logs to come in.
+    Defaults to getting logs from the last minute when in \`--follow\` mode. You can change this with the \`--since\` or \`--tail\` options.
 
     Examples:
 
