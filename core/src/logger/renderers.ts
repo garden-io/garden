@@ -50,7 +50,7 @@ export function renderError(entry: LogEntry): string {
   if (error) {
     const noAnsiErr = stripAnsi(error.message || "")
     const noAnsiMsg = stripAnsi(msg || "")
-    // render error only if message doesn't laready contain it
+    // render error only if message doesn't already contain it
     if (!noAnsiMsg?.includes(trim(noAnsiErr, "\n"))) {
       out = "\n\n" + chalk.red(error.message)
     }
