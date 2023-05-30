@@ -27,7 +27,7 @@ import { Command, CommandParams, CommandResult } from "../base"
 import { createSchema, joi, joiArray } from "../../config/common"
 import { actionConfigSchema } from "../../actions/helpers"
 
-interface GetActionsCommandResultActionObject {
+interface GetActionsCommandResultItem {
   name: string
   kind: ActionKind
   type: string
@@ -55,8 +55,8 @@ export const getActionsCmdOutputSchema = createSchema({
       .string()
       .required()
       .allow(...actionKinds)
-      .description(`The kind of action.`),
-    type: joi.string().required().description(`The Type of the action.`),
+      .description(`Action kind (e.g. Build).`),
+    type: joi.string().required().description(`Action Type (e.g. 'container').`),
     state: joi
       .string()
       .allow(...actionStateTypes)
@@ -68,7 +68,7 @@ export const getActionsCmdOutputSchema = createSchema({
     moduleName: joi
       .string()
       .description(
-        "The name of corresponding module name of an action. Only available if action is derived from module."
+        "The name of the module the action is derived from. Only available for converted actions."
       ),
     dependencies: joiArray(actionConfigSchema()).description("Dependencies of the action."),
     dependents: joiArray(actionConfigSchema()).description("Dependents of the action."),
@@ -92,7 +92,7 @@ const getActionsArgs = {
 const getActionsOpts = {
   detail: new BooleanParameter({
     help: deline`
-      Show the detailed info for each action, including state, path, dependencies, dependents, associated module and if action is disabled.
+      Show the detailed info for each action, including state, path, dependencies, dependents, associated module and if the action is disabled.
     `,
   }),
   sort: new ChoicesParameter({
