@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
+import type Joi from "@hapi/joi"
 import { getLogLevelChoices, LoggerBase, LogLevel, ServerLogger, VoidLogger } from "../logger/logger"
 import stringArgv from "string-argv"
 import { Command, CommandParams, CommandResult, ConsoleCommand } from "../commands/base"
@@ -27,12 +27,12 @@ import type { GlobalConfigStore } from "../config-store/global"
 import type { ParsedArgs } from "minimist"
 import type { ServeCommand } from "../commands/serve"
 import { uuidv4 } from "../util/random"
-import { StatusCommandResult } from "../commands/get/get-status"
+import type { StatusCommandResult } from "../commands/get/get-status"
 import { omit } from "lodash"
 import { sanitizeValue } from "../util/logging"
 import { getSyncStatuses } from "../commands/sync/sync-status"
-import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
-import { GetSyncStatusResult } from "../plugin/handlers/Deploy/get-sync-status"
+import type { DeployStatus } from "../plugin/handlers/Deploy/get-status"
+import type { GetSyncStatusResult } from "../plugin/handlers/Deploy/get-sync-status"
 
 export interface CommandMap {
   [key: string]: {
