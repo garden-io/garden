@@ -335,11 +335,15 @@ export class GardenInstanceManager {
     environmentString?: string
     sessionId: string
   }) {
-    const cloudApi = await this.getCloudApi({
-      log,
-      cloudDomain: getGardenCloudDomain(projectConfig.domain),
-      globalConfigStore,
-    })
+    let cloudApi: CloudApi | undefined
+
+    if (!command?.noProject) {
+      cloudApi = await this.getCloudApi({
+        log,
+        cloudDomain: getGardenCloudDomain(projectConfig.domain),
+        globalConfigStore,
+      })
+    }
 
     const gardenOpts: GardenOpts = {
       cloudApi,
