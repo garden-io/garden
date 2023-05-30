@@ -57,7 +57,7 @@ import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
 import { LogLevel } from "../../logger/logger"
 import { safeDumpYaml } from "../../util/serialization"
-import AsyncLock = require("async-lock")
+import AsyncLock from "async-lock"
 import request = require("request-promise")
 import requestErrors = require("request-promise/errors")
 
@@ -1032,7 +1032,11 @@ function shouldRetry(err: any): boolean {
     code = err.statusCode
   }
 
-  return (code && statusCodesForRetry.includes(code)) || !!errorMessageRegexesForRetry.find((regex) => msg.match(regex))
+  return (
+    (code && statusCodesForRetry.includes(code)) ||
+    err.code === "ECONNRESET" || // <- socket hang up
+    !!errorMessageRegexesForRetry.find((regex) => msg.match(regex))
+  )
 }
 
 const statusCodesForRetry: number[] = [
@@ -1054,6 +1058,8 @@ const errorMessageRegexesForRetry = [
   /ETIMEDOUT/,
   /ENOTFOUND/,
   /EAI_AGAIN/,
+  /ECONNRESET/,
+  /socket hang up/,
   // This usually isn't retryable
   // However on github actions there seems to be flakiness
   // And connections get refused temporarily only
