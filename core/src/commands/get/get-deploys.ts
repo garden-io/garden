@@ -17,7 +17,7 @@ import { joi, joiArray } from "../../config/common"
 const getDeploysArgs = {
   actions: new StringsParameter({
     help: deline`
-      Specify deploy action(s) to list. You may specify multiple actions, separated by spaces.
+      Specify name(s) of the deploy action(s) to list. You may specify multiple actions, separated by spaces.
       Skip to return all deploy actions.
     `,
     spread: true,
@@ -31,7 +31,7 @@ const getDeploysArgs = {
 const getDeploysOpts = {
   "detail": new BooleanParameter({
     help: deline`
-      Show the detailed info for each deploy action, including state, path, dependencies, dependents, associated module and if the deploy action is disabled.
+      Show the detailed info for each deploy action, including path, dependencies, dependents, associated module and if the deploy action is disabled.
     `,
   }),
   "include-state": new BooleanParameter({
@@ -58,6 +58,7 @@ export class GetDeploysCommand extends Command {
   Examples:
 
     garden get deploys                      # list all deploys in the project
+    garden get deploys --include-state      # list all deploys actions in the project including action state in output
     garden get deploys --detail             # list all deploys in project with detailed info
     garden get deploys A B --sort type      # list only deploys A and B sorted by type
 `
