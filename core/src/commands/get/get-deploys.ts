@@ -29,12 +29,15 @@ const getDeploysArgs = {
 }
 
 const getDeploysOpts = {
-  detail: new BooleanParameter({
+  "detail": new BooleanParameter({
     help: deline`
       Show the detailed info for each deploy action, including state, path, dependencies, dependents, associated module and if the deploy action is disabled.
     `,
   }),
-  sort: new ChoicesParameter({
+  "include-state": new BooleanParameter({
+    help: "Include state of deploy(s) in output.",
+  }),
+  "sort": new ChoicesParameter({
     help: deline`Sort the deploy actions result by action name or type.
     By default deploy action results are sorted by name.
     `,
