@@ -3754,40 +3754,6 @@ Examples:
   | `--hide-name` |  | boolean | Hide the action name and render the logs directly.
 
 
-### garden migrate
-
-**Migrate `garden.yml` configuration files from older versions.**
-
-Scans the project for `garden.yml` configuration files and updates those that are not compatible with version 0.12.
-By default the command prints the updated versions to the terminal. You can optionally update the files in place with the `write` flag.
-
-Note: This command does not validate the configs per se. It will simply try to convert a given configuration file so that
-it is compatible with version 0.12 or greater, regardless of whether that file was ever a valid Garden config. It is therefore
-recommended that this is used on existing `garden.yml` files that were valid in version v0.10.x.
-
-Examples:
-
-    garden migrate              # scans all garden.yml files and prints the updated versions along with the paths to them.
-    garden migrate --write      # scans all garden.yml files and overwrites them with the updated versions.
-    garden migrate ./garden.yml # scans the provided garden.yml file and prints the updated version.
-
-#### Usage
-
-    garden migrate [config-paths] [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `config-paths` | No | Specify the path to a &#x60;garden.yml&#x60; file to convert. You may specify multiple files by setting this flag multiple times.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--write` |  | boolean | Update the &#x60;garden.yml&#x60; in place.
-
-
 ### garden options
 
 **Print global options.**

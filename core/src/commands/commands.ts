@@ -22,7 +22,6 @@ import { LoginCommand } from "./login"
 import { LogOutCommand } from "./logout"
 import { LogsCommand } from "./logs"
 import { memoize } from "lodash"
-import { MigrateCommand } from "./migrate"
 import { OptionsCommand } from "./options"
 import { PluginsCommand } from "./plugins"
 import { PublishCommand } from "./publish"
@@ -55,7 +54,6 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new LoginCommand(),
   new LogOutCommand(),
   new LogsCommand(),
-  new MigrateCommand(),
   new OptionsCommand(),
   new PluginsCommand(),
   new PublishCommand(),
