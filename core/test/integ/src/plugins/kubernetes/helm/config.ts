@@ -10,7 +10,7 @@ import { resolve } from "path"
 import { expect } from "chai"
 import { cloneDeep, omit } from "lodash"
 
-import { expectError, TestGarden } from "../../../../../helpers"
+import { expectError, getDataDir, makeTestGarden, TestGarden, withDefaultGlobalOpts } from "../../../../../helpers"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { dedent } from "../../../../../../src/util/string"
 import { ModuleConfig } from "../../../../../../src/config/module"
@@ -18,7 +18,12 @@ import { apply } from "json-merge-patch"
 import { getHelmTestGarden } from "./common"
 import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/module-config"
 import stripAnsi = require("strip-ansi")
-import { DEFAULT_BUILD_TIMEOUT_SEC, DEFAULT_DEPLOY_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_DEPLOY_TIMEOUT_SEC,
+  GardenApiVersion,
+} from "../../../../../../src/constants"
+import { ValidateCommand } from "../../../../../../src/commands/validate"
 
 describe("configureHelmModule", () => {
   let garden: TestGarden
@@ -219,5 +224,17 @@ describe("configureHelmModule", () => {
         api: Helm module 'api' both contains sources and specifies a base module. Since Helm charts cannot currently be merged, please either remove the sources or the \`base\` reference in your module config.
       `)
     )
+  })
+
+  it("should pass validation with a chart name but no version specified", async () => {
+    const projectRoot = getDataDir("test-projects", "helm-name-version-regression")
+    const g = await makeTestGarden(projectRoot)
+    const command = new ValidateCommand()
+    await command.action({
+      garden: g,
+      log: g.log,
+      args: {},
+      opts: withDefaultGlobalOpts({}),
+    })
   })
 })
