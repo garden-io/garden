@@ -11,7 +11,7 @@ import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/
 import { printHeader } from "../../logger/util"
 import { deline } from "../../util/string"
 import { Command, CommandParams, CommandResult } from "../base"
-import { GetActionsCommand, getActionsCmdOutputSchema } from "./get-actions"
+import { GetActionsCommand, GetActionsCommandResult, getActionsCmdOutputSchema } from "./get-actions"
 import { joi, joiArray } from "../../config/common"
 
 const getDeploysArgs = {
@@ -75,7 +75,7 @@ export class GetDeploysCommand extends Command {
     printHeader(log, "Get Deploys", "📖")
   }
 
-  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<any>> {
+  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<GetActionsCommandResult>> {
     // get deploys is same as get actions command with --kind deploy
     // so we call GetActionsCommand with kind: deploy
     const getActionCmdParams = {

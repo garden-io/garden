@@ -8,11 +8,11 @@
 
 import dedent from "dedent"
 import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params"
+import { joi, joiArray } from "../../config/common"
 import { printHeader } from "../../logger/util"
 import { deline } from "../../util/string"
 import { Command, CommandParams, CommandResult } from "../base"
-import { GetActionsCommand, getActionsCmdOutputSchema } from "./get-actions"
-import { joi, joiArray } from "../../config/common"
+import { GetActionsCommand, GetActionsCommandResult, getActionsCmdOutputSchema } from "./get-actions"
 
 const getBuildsArgs = {
   actions: new StringsParameter({
@@ -74,7 +74,7 @@ export class GetBuildsCommand extends Command {
     printHeader(log, "Get Builds", "📖")
   }
 
-  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<any>> {
+  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<GetActionsCommandResult>> {
     // get builds is same as get actions command with --kind build
     // so we call GetActionsCommand with kind: build
     const getActionCmdParams = {

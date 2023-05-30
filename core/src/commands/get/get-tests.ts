@@ -8,11 +8,11 @@
 
 import dedent from "dedent"
 import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params"
+import { joi, joiArray } from "../../config/common"
 import { printHeader } from "../../logger/util"
 import { deline } from "../../util/string"
 import { Command, CommandParams, CommandResult } from "../base"
 import { GetActionsCommand, GetActionsCommandResult, getActionsCmdOutputSchema } from "./get-actions"
-import { joi, joiArray } from "../../config/common"
 
 const getTestsArgs = {
   names: new StringsParameter({
