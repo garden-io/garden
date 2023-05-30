@@ -21,7 +21,7 @@ describe("GetRunsCommand", () => {
       garden,
       log,
       args: { names: undefined },
-      opts: withDefaultGlobalOpts({}),
+      opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false }),
     })
   })
 
@@ -34,7 +34,7 @@ describe("GetRunsCommand", () => {
       garden,
       log,
       args: { names: ["task-a"] },
-      opts: withDefaultGlobalOpts({}),
+      opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false }),
     })
   })
 })

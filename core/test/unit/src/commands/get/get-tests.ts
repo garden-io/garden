@@ -22,7 +22,7 @@ describe("GetTestsCommand", () => {
       garden,
       log,
       args: { names: undefined },
-      opts: withDefaultGlobalOpts({}),
+      opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false }),
     })
 
     const graph = await garden.getConfigGraph({ log, emit: false })
@@ -45,7 +45,7 @@ describe("GetTestsCommand", () => {
       garden,
       log,
       args: { names: ["module-a-integration"] },
-      opts: withDefaultGlobalOpts({}),
+      opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false }),
     })
 
     const graph = await garden.getConfigGraph({ log, emit: false })
