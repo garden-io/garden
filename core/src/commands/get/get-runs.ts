@@ -80,10 +80,6 @@ export class GetRunsCommand extends Command {
     // so we call GetActionsCommand with kind: run
     const getActionCmdParams = {
       ...params,
-      args: {
-        ...params.args,
-        actions: params.args.names,
-      },
       opts: {
         ...params.opts,
         kind: "run",

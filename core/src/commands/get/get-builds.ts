@@ -15,7 +15,7 @@ import { Command, CommandParams, CommandResult } from "../base"
 import { GetActionsCommand, GetActionsCommandResult, getActionsCmdOutputSchema } from "./get-actions"
 
 const getBuildsArgs = {
-  actions: new StringsParameter({
+  names: new StringsParameter({
     help: deline`
       Specify name(s) of the build action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all build actions.
     `,
@@ -50,9 +50,9 @@ type Opts = typeof getBuildsOpts
 
 export class GetBuildsCommand extends Command {
   name = "builds"
-  help = "Outputs all or specified build actions."
+  help = "Lists the build actions defined in your project."
   description = dedent`
-  Outputs all or specified build action(s). Use with --output=json and jq to extract specific fields.
+  Lists all or specified build action(s). Use with --output=json and jq to extract specific fields.
 
   Examples:
 
@@ -71,7 +71,7 @@ export class GetBuildsCommand extends Command {
     })
 
   printHeader({ log }) {
-    printHeader(log, "Get Builds", "📖")
+    printHeader(log, "Builds", "📖")
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<GetActionsCommandResult>> {

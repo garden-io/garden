@@ -3397,13 +3397,13 @@ Examples:
 
 #### Usage
 
-    garden get actions [actions] [options]
+    garden get actions [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `actions` | No | Specify name(s) of the action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all actions.
+  | `names` | No | Specify name(s) of the action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all actions.
 
 #### Options
 
@@ -3782,9 +3782,9 @@ actions:
 
 ### garden get deploys
 
-**Outputs all or specified deploy actions.**
+**Lists the deploy actions defined in your project.**
 
-Outputs all or specified deploy actions. Use with --output=json and jq to extract specific fields.
+Lists all or specified deploy actions. Use with --output=json and jq to extract specific fields.
 
 Examples:
 
@@ -3795,13 +3795,13 @@ Examples:
 
 #### Usage
 
-    garden get deploys [actions] [options]
+    garden get deploys [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `actions` | No | Specify name(s) of the deploy action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all deploy actions.
+  | `names` | No | Specify name(s) of the deploy action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all deploy actions.
 
 #### Options
 
@@ -4179,9 +4179,9 @@ actions:
 
 ### garden get builds
 
-**Outputs all or specified build actions.**
+**Lists the build actions defined in your project.**
 
-Outputs all or specified build action(s). Use with --output=json and jq to extract specific fields.
+Lists all or specified build action(s). Use with --output=json and jq to extract specific fields.
 
 Examples:
 
@@ -4192,13 +4192,13 @@ Examples:
 
 #### Usage
 
-    garden get builds [actions] [options]
+    garden get builds [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `actions` | No | Specify name(s) of the build action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all build actions.
+  | `names` | No | Specify name(s) of the build action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all build actions.
 
 #### Options
 

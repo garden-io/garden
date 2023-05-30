@@ -73,7 +73,7 @@ export const getActionsCmdOutputSchema = createSchema({
 })
 
 const getActionsArgs = {
-  actions: new StringsParameter({
+  names: new StringsParameter({
     help: deline`
     Specify name(s) of the action(s) to list. You may specify multiple actions, separated by spaces.
       Skip to return all actions.
@@ -146,7 +146,7 @@ export class GetActionsCommand extends Command {
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<GetActionsCommandResult>> {
-    const { actions: keys } = args
+    const { names: keys } = args
     const includeStateInOutput = opts["include-state"]
     const isOutputDetailed = opts["detail"]
     const router = await garden.getActionRouter()

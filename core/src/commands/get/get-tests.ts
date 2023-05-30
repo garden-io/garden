@@ -82,10 +82,6 @@ export class GetTestsCommand extends Command {
     // so we call GetActionsCommand with kind: test
     const getActionCmdParams = {
       ...params,
-      args: {
-        ...params.args,
-        actions: params.args.names,
-      },
       opts: {
         ...params.opts,
         kind: "test",

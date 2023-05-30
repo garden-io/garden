@@ -15,7 +15,7 @@ import { GetActionsCommand, GetActionsCommandResult, getActionsCmdOutputSchema }
 import { joi, joiArray } from "../../config/common"
 
 const getDeploysArgs = {
-  actions: new StringsParameter({
+  names: new StringsParameter({
     help: deline`
       Specify name(s) of the deploy action(s) to list. You may specify multiple actions, separated by spaces.
       Skip to return all deploy actions.
@@ -51,9 +51,9 @@ type Opts = typeof getDeploysOpts
 
 export class GetDeploysCommand extends Command {
   name = "deploys"
-  help = "Outputs all or specified deploy actions."
+  help = "Lists the deploy actions defined in your project."
   description = dedent`
-  Outputs all or specified deploy actions. Use with --output=json and jq to extract specific fields.
+  Lists all or specified deploy actions. Use with --output=json and jq to extract specific fields.
 
   Examples:
 
@@ -72,7 +72,7 @@ export class GetDeploysCommand extends Command {
     })
 
   printHeader({ log }) {
-    printHeader(log, "Get Deploys", "📖")
+    printHeader(log, "Deploys", "📖")
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<GetActionsCommandResult>> {
