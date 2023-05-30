@@ -39,7 +39,7 @@ interface GetActionsCommandResultItem {
   dependents?: Action[]
 }
 
-interface GetActionsCommandResult {
+export interface GetActionsCommandResult {
   actions: GetActionsCommandResultItem[]
 }
 
