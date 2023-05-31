@@ -637,8 +637,8 @@ export class Garden {
     return this.actionTypeBases[kind][type] || []
   }
 
-  getRawProviderConfigs(names?: string[]) {
-    return names ? findByNames(names, this.providerConfigs, "provider") : this.providerConfigs
+  getRawProviderConfigs({ names, allowMissing = false }: { names?: string[]; allowMissing?: boolean } = {}) {
+    return names ? findByNames({ names, entries: this.providerConfigs, description: "provider", allowMissing }) : this.providerConfigs
   }
 
   async resolveProvider(log: Log, name: string) {
@@ -675,7 +675,7 @@ export class Garden {
     let providers: Provider[] = []
 
     await this.asyncLock.acquire("resolve-providers", async () => {
-      const rawConfigs = this.getRawProviderConfigs(names)
+      const rawConfigs = this.getRawProviderConfigs({ names })
 
       if (!names) {
         names = getNames(rawConfigs)

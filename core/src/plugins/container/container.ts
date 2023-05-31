@@ -521,6 +521,7 @@ export const gardenPlugin = () =>
     tools: [
       {
         name: "docker",
+        version: "20.10.9",
         description: "The official Docker CLI.",
         type: "binary",
         _includeInGardenImage: true,

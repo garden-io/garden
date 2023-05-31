@@ -966,6 +966,7 @@ describe("Garden", () => {
           tools: [
             {
               name: "base-tool",
+              version: "foo",
               type: "binary",
               _includeInGardenImage: false,
               description: "Test",
@@ -973,6 +974,7 @@ describe("Garden", () => {
             },
             {
               name: "common-tool",
+              version: "foo",
               type: "binary",
               _includeInGardenImage: false,
               description: "Base description",
@@ -986,6 +988,7 @@ describe("Garden", () => {
           tools: [
             {
               name: "common-tool",
+              version: "foo",
               type: "library",
               _includeInGardenImage: false,
               description: "Different description",
@@ -993,6 +996,7 @@ describe("Garden", () => {
             },
             {
               name: "different-tool",
+              version: "foo",
               type: "binary",
               _includeInGardenImage: false,
               description: "Test",

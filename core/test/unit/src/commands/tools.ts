@@ -36,6 +36,7 @@ describe("ToolsCommand", () => {
     tools: [
       {
         name: "tool",
+        version: "foo",
         description: "foo",
         type: "binary",
         _includeInGardenImage: false,
@@ -50,6 +51,7 @@ describe("ToolsCommand", () => {
       },
       {
         name: "lib",
+        version: "foo",
         description: "foo",
         type: "library",
         _includeInGardenImage: false,
@@ -71,6 +73,7 @@ describe("ToolsCommand", () => {
     tools: [
       {
         name: "tool",
+        version: "foo",
         description: "foo",
         type: "binary",
         _includeInGardenImage: false,

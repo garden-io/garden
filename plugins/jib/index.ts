@@ -176,7 +176,7 @@ export const gardenPlugin = () =>
               } else {
                 log.verbose(`The JDK path hasn't been specified explicitly. JDK ${jdkVersion} will be used by default.`)
                 const openJdk = ctx.tools["jib.openjdk-" + jdkVersion]
-                openJdkPath = await openJdk.getPath(log)
+                openJdkPath = await openJdk.ensurePath(log)
               }
 
               const statusLine = log.createLog({ fixLevel: LogLevel.verbose })

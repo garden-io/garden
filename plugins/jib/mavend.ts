@@ -43,6 +43,7 @@ const mvndSpec = {
 
 export const mavendSpec: PluginToolSpec = {
   name: "mavend",
+  version: mvndVersion,
   description: "The Maven Daemon CLI.",
   type: "binary",
   builds: [
@@ -121,7 +122,7 @@ export async function mvnd({
   log.verbose(`The Maven Daemon binary hasn't been specified explicitly. Maven ${mvndVersion} will be used by default.`)
 
   const tool = getMvndTool(ctx)
-  mvndPath = await tool.getPath(log)
+  mvndPath = await tool.ensurePath(log)
 
   return buildLock.acquire("mvnd", async () => {
     log.debug(`Execing ${mvndPath} ${args.join(" ")}`)

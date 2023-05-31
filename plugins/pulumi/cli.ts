@@ -58,8 +58,9 @@ export class GlobalPulumi extends CliWrapper {
   }
 }
 
-export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
-  "3.64.0": {
+export const pulumiCliSPecs: PluginToolSpec[] = [
+  {
+    version: "3.64.0",
     name: "pulumi-3-64-0",
     description: "The pulumi CLI, v3.64.0",
     type: "binary",
@@ -107,7 +108,8 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "3.48.0": {
+  {
+    version: "3.48.0",
     name: "pulumi-3-48-0",
     description: "The pulumi CLI, v3.48.0",
     type: "binary",
@@ -155,7 +157,8 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "3.40.0": {
+  {
+    version: "3.40.0",
     name: "pulumi-3-40-0",
     description: "The pulumi CLI, v3.40.0",
     type: "binary",
@@ -203,7 +206,8 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "3.39.4": {
+  {
+    version: "3.39.4",
     name: "pulumi-3-39-4",
     description: "The pulumi CLI, v3.39.4",
     type: "binary",
@@ -251,7 +255,8 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "3.25.1": {
+  {
+    version: "3.25.1",
     name: "pulumi-3-25-1",
     description: "The pulumi CLI, v3.24.1",
     type: "binary",
@@ -299,9 +304,9 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-}
+]
 
-export const supportedVersions = Object.keys(pulumiCliSPecs)
+export const supportedVersions = pulumiCliSPecs.map(s => s.version)
 
 // Default to latest pulumi version
 export const defaultPulumiVersion = "3.64.0"

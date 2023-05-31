@@ -59,12 +59,12 @@ export class CliWrapper {
     this.toolPath = path
   }
 
-  async getPath(_: Log) {
+  async ensurePath(_: Log) {
     return this.toolPath
   }
 
   async exec({ args, cwd, env, log, timeoutSec, input, ignoreError, stdout, stderr }: ExecParams) {
-    const path = await this.getPath(log)
+    const path = await this.ensurePath(log)
 
     if (!args) {
       args = []
@@ -105,7 +105,7 @@ export class CliWrapper {
   }
 
   async spawn({ args, cwd, env, log }: SpawnParams) {
-    const path = await this.getPath(log)
+    const path = await this.ensurePath(log)
 
     if (!args) {
       args = []
@@ -183,7 +183,7 @@ export class CliWrapper {
   }
 
   async spawnAndWait({ args, cwd, env, log, ignoreError, rawMode, stdout, stderr, timeoutSec, tty }: SpawnParams) {
-    const path = await this.getPath(log)
+    const path = await this.ensurePath(log)
 
     if (!args) {
       args = []
@@ -273,7 +273,7 @@ export class PluginTool extends CliWrapper {
     this.chmodDone = false
   }
 
-  async getPath(log: Log) {
+  async ensurePath(log: Log) {
     await this.download(log)
     const path = join(this.versionPath, ...this.targetSubpath.split(posix.sep))
 

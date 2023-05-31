@@ -521,11 +521,21 @@ export function pickKeys<T extends object, U extends keyof T>(obj: T, keys: U[],
   return picked
 }
 
-export function findByNames<T extends ObjectWithName>(names: string[], entries: T[], description: string) {
+export function findByNames<T extends ObjectWithName>({
+  names,
+  entries,
+  description,
+  allowMissing = false,
+}: {
+  names: string[]
+  entries: T[]
+  description: string
+  allowMissing?: boolean
+}) {
   const available = getNames(entries)
   const missing = difference(names, available)
 
-  if (missing.length) {
+  if (missing.length && !allowMissing) {
     throw new ParameterError(`Could not find ${description}(s): ${missing.join(", ")}`, { available, missing })
   }
 

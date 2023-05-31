@@ -153,7 +153,7 @@ export class ToolsCommand extends Command<Args, Opts> {
     }
 
     const toolCls = new PluginTool(matchedTools[0].tool)
-    const path = await toolCls.getPath(log)
+    const path = await toolCls.ensurePath(log)
 
     // We just output the path if --get-path is set, or if the tool is a library
     if (opts["get-path"] || toolCls.type === "library") {

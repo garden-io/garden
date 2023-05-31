@@ -118,7 +118,7 @@ export async function getPortForward({
     log.silly(`Running 'kubectl ${portForwardArgs.join(" ")}'`)
 
     // Need to use execa directly to use its cleanup mechanism, otherwise processes can linger on Windows
-    const kubectlPath = await kubectl(k8sCtx, k8sCtx.provider).getPath(log)
+    const kubectlPath = await kubectl(k8sCtx, k8sCtx.provider).ensurePath(log)
     const proc = execa(kubectlPath, portForwardArgs, { cleanup: true, buffer: false })
 
     let output = ""

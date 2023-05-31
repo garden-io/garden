@@ -612,7 +612,7 @@ async function getKubectlPortForwardCommand(
     log,
   })
 
-  const kubectlPath = await kubectl(k8sCtx, k8sCtx.provider).getPath(log)
+  const kubectlPath = await kubectl(k8sCtx, k8sCtx.provider).ensurePath(log)
   return { command: kubectlPath, args: portForwardArgs, description: `Kubectl SSH port-forward ${portMapping}` }
 }
 

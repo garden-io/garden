@@ -361,6 +361,7 @@ export const gardenPlugin = () =>
     tools: [
       {
         name: "hadolint",
+        version: "2.12.0",
         description: "A Dockerfile linter.",
         type: "binary",
         _includeInGardenImage: false,
