@@ -56,20 +56,20 @@ const gradlePaths = [
 const mavenPaths = ["pom.xml", ".mvn"]
 
 export function detectProjectType(action: BuildAction): JibPluginType {
-  const moduleFiles = action.getFullVersion().files
+  const actionFiles = action.getFullVersion().files
 
   // TODO: support the Jib CLI
 
   for (const filename of gradlePaths) {
-    const path = resolve(module.path, filename)
-    if (moduleFiles.includes(path)) {
+    const path = resolve(action.basePath(), filename)
+    if (actionFiles.includes(path)) {
       return "gradle"
     }
   }
 
   for (const filename of mavenPaths) {
-    const path = resolve(module.path, filename)
-    if (moduleFiles.includes(path)) {
+    const path = resolve(action.basePath(), filename)
+    if (actionFiles.includes(path)) {
       return "maven"
     }
   }
