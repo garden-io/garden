@@ -546,7 +546,6 @@ export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) 
 
   for (const error of gardenErrors) {
     errorLog.error({
-      msg: error.message,
       error,
     })
     // Output error details to console when log level is silly

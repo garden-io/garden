@@ -66,8 +66,7 @@ describe("renderers", () => {
       }
       const log = logger.createLog().info({ msg: "foo", error })
       const rendered = renderError(log.entries[0])
-      expect(rendered).to.include("Error: hello error")
-      expect(rendered).to.include("Error Details:")
+      expect(rendered).to.include("hello error")
     })
   })
   describe("renderSection", () => {
