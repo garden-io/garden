@@ -63,6 +63,7 @@ const toolBuildSchema = createSchema({
 
 export interface PluginToolSpec {
   name: string
+  version: string
   description: string
   type: "library" | "binary"
   builds: ToolBuildSpec[]
@@ -77,6 +78,7 @@ export const toolSchema = createSchema({
   name: "plugin-tool",
   keys: () => ({
     name: joiIdentifier().description("The name of the tool. This must be unique within the provider."),
+    version: joi.string().description("Version of the tool").example("1.2.3"),
     description: joi.string().required().description("A short description of the tool, used for help texts."),
     type: joi
       .string()

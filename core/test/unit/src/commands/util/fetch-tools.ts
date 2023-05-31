@@ -30,6 +30,7 @@ describe("FetchToolsCommand", () => {
     tools: [
       {
         name: "tool-a",
+        version: "0.11.14",
         description: "foo",
         type: "binary",
         _includeInGardenImage: true,
@@ -44,6 +45,7 @@ describe("FetchToolsCommand", () => {
       },
       {
         name: "tool-b",
+        version: "0.12.3",
         description: "foo",
         type: "binary",
         _includeInGardenImage: false,

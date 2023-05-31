@@ -134,6 +134,7 @@ function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
 
   return {
     name: jdkVersion.lookupName,
+    version: jdkVersion.versionName,
     description: jdkVersion.description,
     type: "library",
     builds: [

@@ -71,7 +71,11 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
       }
 
       if (garden instanceof DummyGarden) {
-        garden = await Garden.factory(garden.projectRoot, { ...omit(garden.opts, "config"), log })
+        garden = await Garden.factory(garden.projectRoot, {
+          ...omit(garden.opts, "config", "environmentString"),
+          log,
+          environmentString: opts.env,
+        })
       }
 
       plugins = await garden.getConfiguredPlugins()
@@ -90,10 +94,24 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
     // No need to fetch the same tools multiple times, if they're used in multiple providers
     const deduplicated = uniqBy(tools, ({ tool }) => tool["versionPath"])
 
+    const versionedConfigs = garden.getRawProviderConfigs({ names: ["pulumi", "terraform"], allowMissing: true })
+
+    // If the version of the tool is configured on the provider,
+    // download only that version of the tool.
+    const toolsNeeded = deduplicated.filter(tool => {
+      const pluginToolVersion = versionedConfigs.find(p => p.name === tool.plugin.name)?.version
+      const pluginHasVersionConfigured = !!pluginToolVersion
+      if (!pluginHasVersionConfigured) {
+        return true
+      } else {
+        return pluginToolVersion === tool.tool.spec.version
+      }
+    })
+
     const paths = fromPairs(
-      await Bluebird.map(deduplicated, async ({ plugin, tool }) => {
+      await Bluebird.map(toolsNeeded, async ({ plugin, tool }) => {
         const fullName = `${plugin.name}.${tool.name}`
-        const path = await tool.getPath(log)
+        const path = await tool.ensurePath(log)
         return [fullName, { type: tool.type, path }]
       })
     )

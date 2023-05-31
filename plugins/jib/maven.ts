@@ -28,6 +28,7 @@ const spec = {
 
 export const mavenSpec: PluginToolSpec = {
   name: "maven",
+  version: mvnVersion,
   description: "The Maven CLI.",
   type: "binary",
   builds: [
@@ -139,7 +140,7 @@ export async function mvn({
   } else {
     log.verbose(`The Maven binary hasn't been specified explicitly. Maven ${mvnVersion} will be used by default.`)
     const tool = getMvnTool(ctx)
-    mvnPath = await tool.getPath(log)
+    mvnPath = await tool.ensurePath(log)
   }
 
   // Maven has issues when running concurrent processes, so we're working around that with a lock.

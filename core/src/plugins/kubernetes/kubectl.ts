@@ -210,7 +210,7 @@ class Kubectl extends PluginTool {
     super(spec)
   }
 
-  async getPath(log: Log) {
+  async ensurePath(log: Log) {
     const override = this.provider.config.kubectlPath
 
     if (override) {
@@ -223,7 +223,7 @@ class Kubectl extends PluginTool {
       return override
     }
 
-    return super.getPath(log)
+    return super.ensurePath(log)
   }
 
   async stdout(params: KubectlParams) {
@@ -296,6 +296,7 @@ export function prepareConnectionOpts({
 
 export const kubectlSpec: PluginToolSpec = {
   name: "kubectl",
+  version: "1.23.3",
   description: "The official Kubernetes CLI.",
   type: "binary",
   _includeInGardenImage: true,

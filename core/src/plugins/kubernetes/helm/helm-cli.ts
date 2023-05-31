@@ -18,6 +18,7 @@ export const HELM_VERSION = "3.12.0"
 export const helm3Spec: PluginToolSpec = {
   name: "helm",
   description: `The Helm CLI (version ${HELM_VERSION}).`,
+  version: HELM_VERSION,
   type: "binary",
   _includeInGardenImage: true,
   builds: [

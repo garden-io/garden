@@ -195,7 +195,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
       const log = this.log.createLog({ name: mutagenLogSection })
 
-      const mutagenPath = await mutagenCli.getPath(log)
+      const mutagenPath = await mutagenCli.ensurePath(log)
       const dataDir = this.dataDir
 
       await ensureDataDir(dataDir)
@@ -783,6 +783,7 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
 
 export const mutagenCliSpec: PluginToolSpec = {
   name: "mutagen",
+  version: "0.15.0",
   description: "The mutagen synchronization tool.",
   type: "binary",
   _includeInGardenImage: false,

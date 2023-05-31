@@ -48,7 +48,7 @@ export class MutagenCommand extends Command<{}, {}> {
     }
 
     const mutagenDir = join(projectRoot.path, DEFAULT_GARDEN_DIR_NAME, MUTAGEN_DIR_NAME)
-    const mutagenPath = await mutagenCli.getPath(log)
+    const mutagenPath = await mutagenCli.ensurePath(log)
 
     await mkdirp(mutagenDir)
 

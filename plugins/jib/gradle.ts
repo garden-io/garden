@@ -27,6 +27,7 @@ const spec = {
 
 export const gradleSpec: PluginToolSpec = {
   name: "gradle",
+  version: gradleVersion,
   description: "The gradle CLI.",
   type: "binary",
   builds: [
@@ -150,7 +151,7 @@ export async function gradle({
         `The Gradle binary hasn't been specified explicitly. Gradle ${gradleVersion} will be used by default.`
       )
       const tool = getGradleTool(ctx)
-      effectiveGradlePath = await tool.getPath(log)
+      effectiveGradlePath = await tool.ensurePath(log)
     }
   }
 
