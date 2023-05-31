@@ -83,7 +83,7 @@ async function makeGarden({ tmpDir, plugin }: { tmpDir: tmp.DirectoryResult; plu
 // Returns all entries that match the logMsg as string, sorted by service name.
 function getLogOutput(garden: TestGarden, msg: string, extraFilter: (e: LogEntry) => boolean = () => true) {
   const entries = garden.log
-    .getChildLogEntries()
+    .getLogEntries()
     .filter(extraFilter)
     .filter((e) => e.msg?.includes(msg))!
   return entries.map((e) => formatForTerminal(e, garden.log.root).trim())
@@ -267,9 +267,7 @@ describe("LogsCommand", () => {
 
       const out = getLogOutput(garden, logMsg)
 
-      expect(stripAnsi(out[0])).to.eql(
-        `test-service-a → ${timestamp.toISOString()} → Yes, this is log`
-      )
+      expect(stripAnsi(out[0])).to.eql(`test-service-a → ${timestamp.toISOString()} → Yes, this is log`)
     })
     it("should set the '--tail' and since flag", async () => {
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
@@ -375,9 +373,7 @@ describe("LogsCommand", () => {
         expect(stripAnsi(out[0])).to.eql(`a-short → [container=short] ${logMsg}`)
         expect(stripAnsi(out[1])).to.eql(`b-not-short → [container=not-short] ${logMsg}`)
         expect(stripAnsi(out[2])).to.eql(`a-short     → [container=short] ${logMsg}`)
-        expect(stripAnsi(out[3])).to.eql(
-          `d-very-very-long → [container=very-very-long] ${logMsg}`
-        )
+        expect(stripAnsi(out[3])).to.eql(`d-very-very-long → [container=very-very-long] ${logMsg}`)
         expect(stripAnsi(out[4])).to.eql(`a-short          → [container=short] ${logMsg}`)
       })
     })
