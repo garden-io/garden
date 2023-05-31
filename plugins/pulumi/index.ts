@@ -13,7 +13,13 @@ import { getPulumiCommands } from "./commands"
 
 import { joiVariables } from "@garden-io/core/build/src/config/common"
 import { pulumiCliSPecs } from "./cli"
-import { PulumiDeployConfig, pulumiDeploySpecSchema, PulumiModule, pulumiProviderConfigSchema } from "./config"
+import {
+  PulumiDeployConfig,
+  pulumiDeploySchema,
+  PulumiModule,
+  pulumiModuleSchema,
+  pulumiProviderConfigSchema,
+} from "./config"
 import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/config"
 import { join } from "path"
 import { pathExists } from "fs-extra"
@@ -52,7 +58,7 @@ export const gardenPlugin = () =>
 
           Stack outputs are made available as action outputs. These can then be referenced by other actions under \`${actionOutputsTemplateString}\`. You can template in those values as e.g. command arguments or environment variables for other services.
           `,
-          schema: pulumiDeploySpecSchema(),
+          schema: pulumiDeploySchema(),
           runtimeOutputsSchema: outputsSchema(),
           handlers: {
             validate: async ({ action }) => {
@@ -88,7 +94,7 @@ export const gardenPlugin = () =>
 
         Stack outputs are made available as service outputs. These can then be referenced by other actions under \`${moduleOutputsTemplateString}\`. You can template in those values as e.g. command arguments or environment variables for other services.
         `,
-        schema: pulumiDeploySpecSchema(),
+        schema: pulumiModuleSchema(),
         needsBuild: false,
         handlers: {
           configure: configurePulumiModule,
@@ -101,20 +107,29 @@ export const gardenPlugin = () =>
               actions.push(dummyBuild)
             }
 
-            actions.push({
+            const deployAction: PulumiDeployConfig = {
               kind: "Deploy",
               type: "pulumi",
               name: module.name,
               ...params.baseFields,
-
-              build: dummyBuild?.name,
               dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
               timeout: defaultPulumiTimeoutSec,
               spec: {
-                ...omit(module.spec, ["dependencies"]),
+                allowDestroy: module.spec.allowDestroy || true,
+                autoApply: module.spec.autoApply || true,
+                createStack: module.spec.createStack || false,
+                pulumiVariables: module.spec.pulumiVariables || {},
+                pulumiVarfiles: module.spec.pulumiVarfiles || [],
+                cacheStatus: module.spec.cacheStatus || false,
+                stackReferences: module.spec.stackReferences || [],
+                deployFromPreview: module.spec.deployFromPreview || false,
+                root: module.spec.root || ".",
+                ...omit(module.spec, ["build", "dependencies"]),
               },
-            })
+            }
+
+            actions.push(deployAction)
 
             return {
               group: {

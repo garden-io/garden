@@ -156,6 +156,10 @@ variables:
 # varfiles exist).
 varfile:
 
+# The names of any services that this service depends on at runtime, and the names of any tasks that should be
+# executed before this service is deployed.
+dependencies: []
+
 # If set to true, Garden will destroy the stack when calling `garden cleanup namespace` or `garden cleanup deploy
 # <deploy action name>`.
 # This is useful to prevent unintentional destroys in production or shared environments.
@@ -523,6 +527,14 @@ Example:
 ```yaml
 varfile: "my-module.env"
 ```
+
+### `dependencies[]`
+
+The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
 
 ### `allowDestroy`
 
