@@ -14,7 +14,7 @@ import split2 from "split2"
 import { LogLevel } from "../../../logger/logger"
 import { Dictionary, pickBy } from "lodash"
 
-export const HELM_VERSION = "3.7.2"
+export const HELM_VERSION = "3.12.0"
 
 export const helm3Spec: PluginToolSpec = {
   name: "helm",
@@ -26,7 +26,7 @@ export const helm3Spec: PluginToolSpec = {
       platform: "darwin",
       architecture: "amd64",
       url: `https://get.helm.sh/helm-v${HELM_VERSION}-darwin-amd64.tar.gz`,
-      sha256: "5a0738afb1e194853aab00258453be8624e0a1d34fcc3c779989ac8dbcd59436",
+      sha256: "8223beb796ff19b59e615387d29be8c2025c5d3aea08485a262583de7ba7d708",
       extract: {
         format: "tar",
         targetPath: "darwin-amd64/helm",
@@ -36,7 +36,7 @@ export const helm3Spec: PluginToolSpec = {
       platform: "darwin",
       architecture: "arm64",
       url: `https://get.helm.sh/helm-v${HELM_VERSION}-darwin-arm64.tar.gz`,
-      sha256: "260d4b8bffcebc6562ea344dfe88efe252cf9511dd6da3cccebf783773d42aec",
+      sha256: "879f61d2ad245cb3f5018ab8b66a87619f195904a4df3b077c98ec0780e36c37",
       extract: {
         format: "tar",
         targetPath: "darwin-arm64/helm",
@@ -46,7 +46,7 @@ export const helm3Spec: PluginToolSpec = {
       platform: "linux",
       architecture: "amd64",
       url: `https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz`,
-      sha256: "4ae30e48966aba5f807a4e140dad6736ee1a392940101e4d79ffb4ee86200a9e",
+      sha256: "da36e117d6dbc57c8ec5bab2283222fbd108db86c83389eebe045ad1ef3e2c3b",
       extract: {
         format: "tar",
         targetPath: "linux-amd64/helm",
@@ -56,7 +56,7 @@ export const helm3Spec: PluginToolSpec = {
       platform: "windows",
       architecture: "amd64",
       url: `https://get.helm.sh/helm-v${HELM_VERSION}-windows-amd64.zip`,
-      sha256: "299165f0af46bece9a61b41305cca8e8d5ec5319a4b694589cd71e6b75aca77e",
+      sha256: "52138ba8caec50c358c7aee41aac28d6a8a037878ada3cf5ce6c1049fc772547",
       extract: {
         format: "zip",
         targetPath: "windows-amd64/helm.exe",
