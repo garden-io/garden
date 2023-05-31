@@ -3450,14 +3450,14 @@ actions:
 
 **Lists the deploy actions defined in your project.**
 
-Lists all or specified deploy actions. Use with --output=json and jq to extract specific fields.
+Lists all or specified deploy action(s). Use with --output=json and jq to extract specific fields.
 
 Examples:
 
-  garden get deploys                      # list all deploys in the project
-  garden get deploys --include-state      # list all deploys actions in the project including action state in output
-  garden get deploys --detail             # list all deploys in project with detailed info
-  garden get deploys A B --sort type      # list only deploys A and B sorted by type
+  garden get deploys                      # list all deploy actions in the project
+  garden get deploys --include-state      # list all deploy actions in the project including action state in output
+  garden get deploys --detail             # list all deploy actions in project with detailed info
+  garden get deploys A B --sort type      # list only deploy actions A and B sorted by type
 
 #### Usage
 
@@ -3574,7 +3574,7 @@ actions:
 
 ### garden get runs
 
-**Lists the Runs (or tasks, if using modules) defined in your project.**
+**Lists the run actions defined in your project.**
 
 Lists all or specified run action(s). Use with --output=json and jq to extract specific fields.
 
@@ -3593,7 +3593,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify run(s)/task(s) to list. You may specify multiple names, separated by spaces.
+  | `names` | No | Specify name(s) of the run action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all run actions.
 
 #### Options
 
@@ -3637,7 +3637,7 @@ actions:
 
 ### garden get tests
 
-**Lists the tests defined in your project.**
+**Lists the test actions defined in your project.**
 
 Lists all or specified test action(s). Use with --output=json and jq to extract specific fields.
 

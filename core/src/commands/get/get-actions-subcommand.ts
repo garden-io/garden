@@ -36,6 +36,7 @@ export abstract class GetActionsSubCommand extends GetActionsCommand {
     this.name = `${this.kindLowercaseString}s`
     this.aliases = [this.kindLowercaseString, this.kind]
     this.description = this.generateDescription()
+    this.help = `Lists the ${this.kindLowercaseString} actions defined in your project.`
 
     this.arguments = {
       names: new StringsParameter({
