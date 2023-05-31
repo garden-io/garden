@@ -12,35 +12,35 @@ import { detectProjectType, getBuildFlags } from "../util"
 
 describe.skip("util", () => {
   describe("detectProjectType", () => {
-    it("returns gradle if module files include a gradle config", () => {
-      const module: any = {
+    it("returns gradle if action files include a gradle config", () => {
+      const buildAction: any = {
         path: "/foo",
         version: {
           files: ["/foo/build.gradle"],
         },
       }
-      expect(detectProjectType(module)).to.equal("gradle")
+      expect(detectProjectType(buildAction)).to.equal("gradle")
     })
 
-    it("returns maven if module files include a maven config", () => {
-      const module: any = {
+    it("returns maven if action files include a maven config", () => {
+      const buildAction: any = {
         path: "/foo",
         version: {
           files: ["/foo/pom.xml"],
         },
       }
-      expect(detectProjectType(module)).to.equal("maven")
+      expect(detectProjectType(buildAction)).to.equal("maven")
     })
 
-    it("throws if no maven or gradle config is in the module file list", () => {
-      const module: any = {
+    it("throws if no maven or gradle config is in the action file list", () => {
+      const buildAction: any = {
         name: "foo",
         path: "/foo",
         version: {
           files: [],
         },
       }
-      void expectError(() => detectProjectType(module), {
+      void expectError(() => detectProjectType(buildAction), {
         contains: "Could not detect a gradle or maven project to build module foo",
       })
     })
@@ -51,7 +51,7 @@ describe.skip("util", () => {
       const imageId = "foo:abcdef"
       const versionString = "abcdef"
 
-      const module: any = {
+      const buildAction: any = {
         name: "foo",
         path: "/foo",
         build: {},
@@ -66,7 +66,7 @@ describe.skip("util", () => {
           buildArgs: {},
         },
       }
-      const { args } = getBuildFlags(module, "gradle")
+      const { args } = getBuildFlags(buildAction, "gradle")
 
       expect(args).to.eql([
         "jib",
@@ -83,7 +83,7 @@ describe.skip("util", () => {
       const imageId = "foo:abcdef"
       const versionString = "abcdef"
 
-      const module: any = {
+      const buildAction: any = {
         name: "foo",
         path: "/foo",
         build: {},
@@ -98,7 +98,7 @@ describe.skip("util", () => {
           buildArgs: {},
         },
       }
-      const { args } = getBuildFlags(module, "maven")
+      const { args } = getBuildFlags(buildAction, "maven")
 
       expect(args[0]).to.equal("jib:build")
     })
@@ -107,7 +107,7 @@ describe.skip("util", () => {
       const imageId = "foo:abcdef"
       const versionString = "abcdef"
 
-      const module: any = {
+      const buildAction: any = {
         name: "foo",
         path: "/foo",
         build: {},
@@ -124,16 +124,16 @@ describe.skip("util", () => {
           buildArgs: {},
         },
       }
-      const { args, tarPath } = getBuildFlags(module, "maven")
+      const { args, tarPath } = getBuildFlags(buildAction, "maven")
 
-      expect(args).to.include(`-Djib.outputPaths.tar=target/jib-image-foo-${module.version.versionString}.tar`)
-      expect(tarPath).to.equal(`/foo/target/jib-image-foo-${module.version.versionString}.tar`)
+      expect(args).to.include(`-Djib.outputPaths.tar=target/jib-image-foo-${buildAction.version.versionString}.tar`)
+      expect(tarPath).to.equal(`/foo/target/jib-image-foo-${buildAction.version.versionString}.tar`)
     })
 
-    it("adds extraFlags if set in module spec", () => {
+    it("adds extraFlags if set in action spec", () => {
       const versionString = "abcdef"
 
-      const module: any = {
+      const buildAction: any = {
         name: "foo",
         path: "/foo",
         build: {},
@@ -148,14 +148,14 @@ describe.skip("util", () => {
         },
       }
 
-      const { args } = getBuildFlags(module, "maven")
+      const { args } = getBuildFlags(buildAction, "maven")
       expect(args).to.include("bloop")
     })
 
-    it("adds docker build args if set in module spec", () => {
+    it("adds docker build args if set in buildAction spec", () => {
       const versionString = "abcdef"
 
-      const module: any = {
+      const buildAction: any = {
         name: "foo",
         path: "/foo",
         build: {},
@@ -171,7 +171,7 @@ describe.skip("util", () => {
         },
       }
 
-      const { args } = getBuildFlags(module, "maven")
+      const { args } = getBuildFlags(buildAction, "maven")
 
       expect(args).to.include("-Djib.container.args=GARDEN_ACTION_VERSION=" + versionString + ",foo=bar")
     })
@@ -179,7 +179,7 @@ describe.skip("util", () => {
     it("sets OCI tar format if tarOnly and tarFormat=oci are set", () => {
       const versionString = "abcdef"
 
-      const module: any = {
+      const buildAction: any = {
         name: "foo",
         path: "/foo",
         build: {},
@@ -198,7 +198,7 @@ describe.skip("util", () => {
         },
       }
 
-      const { args } = getBuildFlags(module, "maven")
+      const { args } = getBuildFlags(buildAction, "maven")
 
       expect(args).to.include("-Djib.container.format=OCI")
     })
@@ -208,7 +208,7 @@ describe.skip("util", () => {
         const imageId = "foo:abcdef"
         const versionString = "abcdef"
 
-        const module: any = {
+        const buildAction: any = {
           name: "foo",
           path: "/foo",
           build: {},
@@ -225,10 +225,10 @@ describe.skip("util", () => {
             buildArgs: {},
           },
         }
-        const { args } = getBuildFlags(module, "gradle")
+        const { args } = getBuildFlags(buildAction, "gradle")
 
         const targetDir = "build"
-        const basenameSuffix = "-foo-" + module.version.versionString
+        const basenameSuffix = "-foo-" + buildAction.version.versionString
 
         expect(args).to.eql([
           "jibBuildTar",
@@ -249,7 +249,7 @@ describe.skip("util", () => {
         const imageId = "foo:abcdef"
         const versionString = "abcdef"
 
-        const module: any = {
+        const buildAction: any = {
           name: "foo",
           path: "/foo",
           build: {},
@@ -266,7 +266,7 @@ describe.skip("util", () => {
             buildArgs: {},
           },
         }
-        const { args } = getBuildFlags(module, "maven")
+        const { args } = getBuildFlags(buildAction, "maven")
 
         expect(args[0]).to.equal("jib:buildTar")
       })
@@ -277,7 +277,7 @@ describe.skip("util", () => {
         const imageId = "foo:abcdef"
         const versionString = "abcdef"
 
-        const module: any = {
+        const buildAction: any = {
           name: "foo",
           path: "/foo",
           build: {},
@@ -294,7 +294,7 @@ describe.skip("util", () => {
             buildArgs: {},
           },
         }
-        const { args } = getBuildFlags(module, "gradle")
+        const { args } = getBuildFlags(buildAction, "gradle")
 
         expect(args[0]).to.equal("jibDockerBuild")
       })
@@ -303,7 +303,8 @@ describe.skip("util", () => {
         const imageId = "foo:abcdef"
         const versionString = "abcdef"
 
-        const module: any = {
+        const buildAction: any = {
+          kind: "Build",
           name: "foo",
           path: "/foo",
           build: {},
@@ -320,7 +321,7 @@ describe.skip("util", () => {
             buildArgs: {},
           },
         }
-        const { args } = getBuildFlags(module, "maven")
+        const { args } = getBuildFlags(buildAction, "maven")
 
         expect(args[0]).to.equal("jib:dockerBuild")
       })
