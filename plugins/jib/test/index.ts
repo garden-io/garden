@@ -96,7 +96,9 @@ describe.skip("jib-container", function () {
 
         const tarPath = res.detail?.details.tarPath as string
 
-        expect(tarPath).to.equal(join(module.path, "target", `jib-image-module-${module.version.versionString}.tar`))
+        expect(tarPath).to.equal(
+          join(action.basePath(), "target", `jib-image-module-${module.version.versionString}.tar`)
+        )
       })
 
       it("builds a gradle project", async () => {
@@ -114,7 +116,9 @@ describe.skip("jib-container", function () {
 
         const tarPath = res.detail?.details.tarPath as string
 
-        expect(tarPath).to.equal(join(module.path, "build", `jib-image-module-${module.version.versionString}.tar`))
+        expect(tarPath).to.equal(
+          join(action.basePath(), "build", `jib-image-module-${module.version.versionString}.tar`)
+        )
       })
     })
 
