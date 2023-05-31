@@ -8,13 +8,11 @@
 
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
-import { join } from "path"
-import { GARDEN_GLOBAL_PATH } from "../../../constants"
-import { mkdirp } from "fs-extra"
 import { StringMap } from "../../../config/common"
 import { PluginToolSpec } from "../../../types/plugin/tools"
 import split2 from "split2"
 import { LogLevel } from "../../../logger/logger"
+import { Dictionary, pickBy } from "lodash"
 
 export const helm3Spec: PluginToolSpec = {
   name: "helm",
@@ -70,7 +68,6 @@ export async function helm({
   namespace,
   log,
   args,
-  version = 3,
   env = {},
   cwd,
   emitLogEvents,
@@ -79,7 +76,6 @@ export async function helm({
   namespace?: string
   log: LogEntry
   args: string[]
-  version?: 2 | 3
   env?: { [key: string]: string }
   cwd?: string
   emitLogEvents: boolean
@@ -90,15 +86,12 @@ export async function helm({
     opts.push("--kubeconfig", ctx.provider.config.kubeconfig)
   }
 
-  const helmHome = join(GARDEN_GLOBAL_PATH, `.helm${version}`)
-  await mkdirp(helmHome)
-
   const cmd = ctx.tools["kubernetes.helm"]
 
+  const processEnv = pickBy(process.env, (v) => v !== undefined) as Dictionary<string>
   const envVars: StringMap = {
-    ...process.env,
+    ...processEnv,
     ...env,
-    HELM_HOME: helmHome,
   }
 
   if (namespace) {
