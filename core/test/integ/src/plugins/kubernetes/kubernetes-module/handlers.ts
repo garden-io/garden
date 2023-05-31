@@ -332,6 +332,16 @@ describe("kubernetes-module handlers", () => {
 
       expect(ns1ResourceRefreshed, "originalNamespaceRefreshed").to.exist
     })
+
+    it("should successfully deploy List manifest kinds", async () => {
+      const configMapList = await getTestData("config-map-list", {})
+
+      // this should be 3, and not 1, as we transform *List objects to separate manifests
+      expect(configMapList.manifests.length).to.be.equal(3)
+
+      // test successful deploy
+      await kubernetesDeploy(configMapList.deployParams)
+    })
   })
 
   describe("deleteService", () => {

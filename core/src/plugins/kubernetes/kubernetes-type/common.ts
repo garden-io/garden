@@ -47,13 +47,22 @@ export async function getManifests({
   defaultNamespace: string
   readFromSrcDir?: boolean
 }): Promise<KubernetesResource[]> {
-  const manifests = await readManifests(ctx, action, log, readFromSrcDir)
+  const rawManifests = await readManifests(ctx, action, log, readFromSrcDir) as KubernetesResource[]
+
+  // remove *List objects
+  const manifests = rawManifests.flatMap((manifest) => {
+    if (manifest.kind.endsWith("List")) {
+      return manifest.items as KubernetesResource[]
+    }
+    return manifest
+  })
 
   return Bluebird.map(manifests, async (manifest) => {
     // Ensure a namespace is set, if not already set, and if required by the resource type
     if (!manifest.metadata?.namespace) {
       if (!manifest.metadata) {
-        manifest.metadata = {}
+        // TODO: Type system complains that name is missing
+        (manifest as any).metadata = {}
       }
 
       const info = await api.getApiResourceInfo(log, manifest.apiVersion, manifest.kind)
