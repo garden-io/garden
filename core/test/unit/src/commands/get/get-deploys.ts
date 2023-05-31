@@ -6,43 +6,43 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { GetDeploysCommand } from "../../../../../src/commands/get/get-deploys"
 import { makeTestGarden, withDefaultGlobalOpts, getDataDir } from "../../../../helpers"
-import { GetRunsCommand } from "../../../../../src/commands/get/get-runs"
 import { expect } from "chai"
 
-describe("GetRunsCommand", () => {
+describe("GetDeploysCommand", () => {
   const projectRoot = getDataDir("test-project-b")
 
   it("should run without errors when called without arguments", async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const command = new GetRunsCommand()
+    const command = new GetDeploysCommand()
 
     await command.action({
       garden,
       log,
       args: { names: undefined },
-      opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false }),
+      opts: withDefaultGlobalOpts({ "detail": false, "sort": "kind", "include-state": false }),
     })
   })
 
-  it("should run without errors when called with a list of task names", async () => {
+  it("should run without errors when called with a list of deploy action names", async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const command = new GetRunsCommand()
+    const command = new GetDeploysCommand()
 
     await command.action({
       garden,
       log,
-      args: { names: ["task-a"] },
+      args: { names: ["service-a"] },
       opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false }),
     })
   })
 
-  it("should return all run actions in a project", async () => {
+  it("should return all deploy actions in a project", async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const command = new GetRunsCommand()
+    const command = new GetDeploysCommand()
 
     const { result } = await command.action({
       garden,
@@ -52,7 +52,7 @@ describe("GetRunsCommand", () => {
     })
 
     const graph = await garden.getConfigGraph({ log, emit: false })
-    const expected = graph.getRuns().map((d) => {
+    const expected = graph.getDeploys().map((d) => {
       return { name: d.name, kind: d.kind, type: d.type }
     })
 

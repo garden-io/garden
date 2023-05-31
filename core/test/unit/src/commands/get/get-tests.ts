@@ -18,22 +18,13 @@ describe("GetTestsCommand", () => {
     const log = garden.log
     const command = new GetTestsCommand()
 
-    const res = await command.action({
+    const { result } = await command.action({
       garden,
       log,
       args: { names: undefined },
       opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false }),
     })
-
-    const graph = await garden.getConfigGraph({ log, emit: false })
-    const action = graph.getTest("module-a-integration")
-
-    expect(res.errors).to.be.undefined
-
-    const result = res.result!
-
-    expect(Object.keys(result).length).to.equal(5)
-    expect(result["test.module-a-integration"]).to.eql(action.describe())
+    expect(result?.actions.length).to.equal(5)
   })
 
   it("should return only the applicable tests when called with a list of test names", async () => {
@@ -41,20 +32,16 @@ describe("GetTestsCommand", () => {
     const log = garden.log
     const command = new GetTestsCommand()
 
-    const res = await command.action({
+    const { result } = await command.action({
       garden,
       log,
       args: { names: ["module-a-integration"] },
       opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false }),
     })
-
     const graph = await garden.getConfigGraph({ log, emit: false })
     const action = graph.getTest("module-a-integration")
 
-    const result = res.result!
-
-    expect(result).to.eql({
-      "test.module-a-integration": action.describe(),
-    })
+    expect(result?.actions.length).to.equal(1)
+    expect(result?.actions[0].name).to.equal(action.name)
   })
 })

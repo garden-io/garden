@@ -8,24 +8,13 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { relative, sep } from "path"
-import { actionReferenceToString } from "../../actions/base"
-import { ResolvedBuildAction } from "../../actions/build"
-import { ResolvedDeployAction } from "../../actions/deploy"
-import { ResolvedRunAction } from "../../actions/run"
-import { ResolvedTestAction } from "../../actions/test"
-import { Action, ActionKind, ActionState, ResolvedAction, actionKinds, actionStateTypes } from "../../actions/types"
+import { getActionState, getRelativeActionConfigPath } from "../../actions/helpers"
+import { ActionKind, ActionState, ResolvedAction, actionKinds, actionStateTypes } from "../../actions/types"
 import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params"
-import { ResolvedConfigGraph } from "../../graph/config-graph"
-import { Log, createActionLog } from "../../logger/log-entry"
+import { createSchema, joi, joiArray } from "../../config/common"
 import { printHeader } from "../../logger/util"
-import { ActionRouter } from "../../router/router"
-import { sanitizeValue } from "../../util/logging"
-import { deepFilter } from "../../util/objects"
 import { dedent, deline, renderTable } from "../../util/string"
 import { Command, CommandParams, CommandResult } from "../base"
-import { createSchema, joi, joiArray } from "../../config/common"
-import { actionConfigSchema } from "../../actions/helpers"
 
 interface GetActionsCommandResultItem {
   name: string
@@ -35,15 +24,15 @@ interface GetActionsCommandResultItem {
   path?: string
   disabled?: boolean
   moduleName?: string
-  dependencies?: Action[]
-  dependents?: Action[]
+  dependencies?: string[]
+  dependents?: string[]
 }
 
 export interface GetActionsCommandResult {
   actions: GetActionsCommandResultItem[]
 }
 
-type ResolvedActionWithState = ResolvedAction & {
+export type ResolvedActionWithState = ResolvedAction & {
   state?: ActionState
 }
 
@@ -67,8 +56,8 @@ export const getActionsCmdOutputSchema = createSchema({
     moduleName: joi
       .string()
       .description("The name of the module the action is derived from. Only available for converted actions."),
-    dependencies: joiArray(actionConfigSchema()).description("Dependencies of the action."),
-    dependents: joiArray(actionConfigSchema()).description("Dependents of the action."),
+    dependencies: joiArray(joi.string()).description("List of references of all dependencies of the action."),
+    dependents: joiArray(joi.string()).description("List of references of all the dependents of the action."),
   }),
 })
 
@@ -203,9 +192,9 @@ export class GetActionsCommand extends Command {
       if (isOutputDetailed) {
         tmp = {
           ...tmp,
-          path: getRelativeActionPath(garden.projectRoot, a.configPath() ?? ""),
-          dependencies: a.getDependencies(),
-          dependents: getActionDependents(a, graph),
+          path: getRelativeActionConfigPath(garden.projectRoot, a),
+          dependencies: a.getDependencies().map((d) => d.key()),
+          dependents: graph.getDependants({ kind: a.kind, name: a.name, recursive: false }).map((d) => d.key()),
           disabled: a.isDisabled(),
           moduleName: a.moduleName() ?? undefined,
         }
@@ -231,8 +220,8 @@ export class GetActionsCommand extends Command {
       if (isOutputDetailed) {
         r = r.concat([
           a.path ?? "",
-          formatActionsReferenceToString(a.dependencies) ?? "",
-          formatActionsReferenceToString(a.dependents) ?? "",
+          a.dependencies?.join("\n") ?? "",
+          a.dependents?.join("\n") ?? "",
           a.disabled ? "true" : "false",
         ])
       }
@@ -248,54 +237,13 @@ export class GetActionsCommand extends Command {
 
     const heading = cols.map((s) => chalk.bold(s))
 
-    log.info("")
-    log.info(renderTable([heading].concat(rows)))
+    if (getActionsOutput.length > 0) {
+      log.info("")
+      log.info(renderTable([heading].concat(rows)))
+    } else {
+      log.info(`No${opts["kind"] ? " " + opts["kind"] : ""} actions defined for project ${garden.projectName}`)
+    }
 
-    const sanitized = sanitizeValue(deepFilter(getActionsOutput, (_, key) => key !== "executedAction"))
-
-    return { result: { actions: sanitized } }
+    return { result: { actions: getActionsOutput } }
   }
-}
-
-function formatActionsReferenceToString(actions: Action[] | undefined): string | undefined {
-  return actions?.map(actionReferenceToString).join("\n")
-}
-
-function getActionDependents(action: Action, graph: ResolvedConfigGraph): Action[] {
-  return graph.getDependants({ kind: action.kind, name: action.name, recursive: false })
-}
-
-function getRelativeActionPath(projectRoot: string, actionConfigPath: string): string {
-  const relPath = relative(projectRoot, actionConfigPath)
-  return relPath.startsWith("..") ? relPath : "." + sep + relPath
-}
-
-async function getActionState(
-  action: Action,
-  router: ActionRouter,
-  graph: ResolvedConfigGraph,
-  log: Log
-): Promise<ActionState> {
-  const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-  let state: ActionState
-  switch (action.kind) {
-    case "Build":
-      state = (await router.build.getStatus({ action: action as ResolvedBuildAction, log: actionLog, graph }))?.result
-        ?.state
-      break
-    case "Deploy":
-      state = (await router.deploy.getStatus({ action: action as ResolvedDeployAction, log: actionLog, graph }))?.result
-        ?.state
-      break
-    case "Run":
-      state = (await router.run.getResult({ action: action as ResolvedRunAction, log: actionLog, graph }))?.result
-        ?.state
-      break
-    case "Test":
-      state = (await router.test.getResult({ action: action as ResolvedTestAction, log: actionLog, graph }))?.result
-        ?.state
-      break
-  }
-
-  return state
 }

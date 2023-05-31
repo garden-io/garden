@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { memoize } from "lodash"
 import { joi } from "../config/common"
 import { Garden } from "../garden"
-import { Log } from "../logger/log-entry"
+import { createActionLog, Log } from "../logger/log-entry"
 import { renderDivider } from "../logger/util"
 import { getLinkedSources } from "../util/ext-source-util"
 import { buildActionConfigSchema, ExecutedBuildAction, isBuildAction, ResolvedBuildAction } from "./build"
@@ -18,6 +18,9 @@ import { deployActionConfigSchema, ExecutedDeployAction, isDeployAction, Resolve
 import { ExecutedRunAction, isRunAction, ResolvedRunAction, runActionConfigSchema } from "./run"
 import { ExecutedTestAction, isTestAction, ResolvedTestAction, testActionConfigSchema } from "./test"
 import type { Action, ActionState, ExecuteActionParams, Executed, ResolveActionParams, ResolvedAction } from "./types"
+import { ActionRouter } from "../router/router"
+import { ResolvedConfigGraph } from "../graph/config-graph"
+import { relative, sep } from "path"
 
 /**
  * Creates a corresponding Resolved version of the given Action, given the additional parameters needed.
@@ -97,4 +100,45 @@ const displayStates = {
  */
 export function displayState(state: ActionState) {
   return displayStates[state] || state.replace("-", " ")
+}
+
+/**
+ * Get the state of an Action
+ */
+export async function getActionState(
+  action: Action,
+  router: ActionRouter,
+  graph: ResolvedConfigGraph,
+  log: Log
+): Promise<ActionState> {
+  const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+  let state: ActionState
+  switch (action.kind) {
+    case "Build":
+      state = (await router.build.getStatus({ action: action as ResolvedBuildAction, log: actionLog, graph }))?.result
+        ?.state
+      break
+    case "Deploy":
+      state = (await router.deploy.getStatus({ action: action as ResolvedDeployAction, log: actionLog, graph }))?.result
+        ?.state
+      break
+    case "Run":
+      state = (await router.run.getResult({ action: action as ResolvedRunAction, log: actionLog, graph }))?.result
+        ?.state
+      break
+    case "Test":
+      state = (await router.test.getResult({ action: action as ResolvedTestAction, log: actionLog, graph }))?.result
+        ?.state
+      break
+  }
+
+  return state
+}
+
+/**
+ * Get action's config file path relative to garden project
+ */
+export function getRelativeActionConfigPath(projectRoot: string, action: Action): string {
+  const relPath = relative(projectRoot, action.configPath() ?? "")
+  return relPath.startsWith("..") ? relPath : "." + sep + relPath
 }

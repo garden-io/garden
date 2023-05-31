@@ -49,7 +49,7 @@ const getDeploysOpts = {
 type Args = typeof getDeploysArgs
 type Opts = typeof getDeploysOpts
 
-export class GetDeploysCommand extends Command {
+export class GetDeploysCommand extends Command<Args, Opts> {
   name = "deploys"
   help = "Lists the deploy actions defined in your project."
   description = dedent`
