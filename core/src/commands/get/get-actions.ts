@@ -15,6 +15,7 @@ import { createSchema, joi, joiArray } from "../../config/common"
 import { printHeader } from "../../logger/util"
 import { dedent, deline, renderTable } from "../../util/string"
 import { Command, CommandParams, CommandResult } from "../base"
+import { sortBy } from "lodash"
 
 interface GetActionsCommandResultItem {
   name: string
@@ -162,10 +163,9 @@ export class GetActionsCommand extends Command {
         break
     }
 
-    if (opts["sort"] === "kind") {
-      actions.sort((a, b) => (a.kind > b.kind ? 1 : -1))
-    } else if (opts["sort"] === "type") {
-      actions.sort((a, b) => (a.type > b.type ? 1 : -1))
+    if (opts["sort"] === "kind" || opts["sort"] === "type") {
+      // secondary sort by name in case of sort by kind/type
+      actions = sortBy(actions, [opts["sort"], "name"])
     } else {
       actions.sort((a, b) => (a.name > b.name ? 1 : -1))
     }
