@@ -10,7 +10,66 @@ import Bluebird from "bluebird"
 import { expect } from "chai"
 import { getActionState, getRelativeActionConfigPath } from "../../../../../src/actions/helpers"
 import { GetActionsCommand } from "../../../../../src/commands/get/get-actions"
-import { getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../helpers"
+import { TestGarden, getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../helpers"
+import { Action } from "../../../../../src/actions/types"
+import { ActionRouter } from "../../../../../src/router/router"
+import { ResolvedConfigGraph } from "../../../../../src/graph/config-graph"
+import { Log } from "../../../../../src/logger/log-entry"
+
+export const getActionsToSimpleOutput = (d) => {
+  return { name: d.name, kind: d.kind, type: d.type }
+}
+
+export const getActionsToSimpleWithStateOutput = async (
+  a: Action,
+  router: ActionRouter,
+  graph: ResolvedConfigGraph,
+  log: Log
+) => {
+  {
+    return {
+      name: a.name,
+      kind: a.kind,
+      type: a.type,
+      state: await getActionState(a, router, graph, log),
+    }
+  }
+}
+
+export const getActionsToDetailedOutput = (a: Action, garden: TestGarden, graph: ResolvedConfigGraph) => {
+  return {
+    name: a.name,
+    kind: a.kind,
+    type: a.type,
+    path: getRelativeActionConfigPath(garden.projectRoot, a),
+    dependencies: a.getDependencies().map((d) => d.key()),
+    dependents: graph.getDependants({ kind: a.kind, name: a.name, recursive: false }).map((d) => d.key()),
+    disabled: a.isDisabled(),
+    moduleName: a.moduleName() ?? undefined,
+  }
+}
+
+const getActionsToDetailedWithStateOutput = async (
+  a: Action,
+  garden: TestGarden,
+  router: ActionRouter,
+  graph: ResolvedConfigGraph,
+  log: Log
+) => {
+  {
+    return {
+      name: a.name,
+      kind: a.kind,
+      type: a.type,
+      path: getRelativeActionConfigPath(garden.projectRoot, a),
+      state: await getActionState(a, router, graph, log),
+      dependencies: a.getDependencies().map((d) => d.key()),
+      dependents: graph.getDependants({ kind: a.kind, name: a.name, recursive: false }).map((d) => d.key()),
+      disabled: a.isDisabled(),
+      moduleName: a.moduleName() ?? undefined,
+    }
+  }
+}
 
 describe("GetActionsCommand", () => {
   const projectRoot = getDataDir("test-project-b")
@@ -53,10 +112,8 @@ describe("GetActionsCommand", () => {
       opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false, "kind": "" }),
     })
 
-    const graph = await garden.getConfigGraph({ log, emit: false })
-    const expected = graph.getActions().map((d) => {
-      return { name: d.name, kind: d.kind, type: d.type }
-    })
+    const graph = await garden.getResolvedConfigGraph({ log, emit: false })
+    const expected = graph.getActions().map(getActionsToSimpleOutput)
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result?.actions).to.eql(expected)
@@ -73,19 +130,8 @@ describe("GetActionsCommand", () => {
       args: { names: undefined },
       opts: withDefaultGlobalOpts({ "detail": true, "sort": "name", "include-state": false, "kind": "" }),
     })
-    const graph = await garden.getConfigGraph({ log, emit: false })
-    const expected = graph.getActions().map((a) => {
-      return {
-        name: a.name,
-        kind: a.kind,
-        type: a.type,
-        path: getRelativeActionConfigPath(garden.projectRoot, a),
-        dependencies: a.getDependencies().map((d) => d.key()),
-        dependents: graph.getDependants({ kind: a.kind, name: a.name, recursive: false }).map((d) => d.key()),
-        disabled: a.isDisabled(),
-        moduleName: a.moduleName() ?? undefined,
-      }
-    })
+    const graph = await garden.getResolvedConfigGraph({ log, emit: false })
+    const expected = graph.getActions().map((a) => getActionsToDetailedOutput(a, garden, graph))
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
   })
@@ -103,14 +149,9 @@ describe("GetActionsCommand", () => {
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
-    const expected = await Bluebird.map(graph.getActions(), async (a) => {
-      return {
-        name: a.name,
-        kind: a.kind,
-        type: a.type,
-        state: await getActionState(a, router, graph, log),
-      }
-    })
+    const expected = await Bluebird.map(graph.getActions(), async (a) =>
+      getActionsToSimpleWithStateOutput(a, router, graph, log)
+    )
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
   })
@@ -130,14 +171,9 @@ describe("GetActionsCommand", () => {
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
-    const expected = await Bluebird.map(graph.getActions({ refs: args.names }), async (a) => {
-      return {
-        name: a.name,
-        kind: a.kind,
-        type: a.type,
-        state: await getActionState(a, router, graph, log),
-      }
-    })
+    const expected = await Bluebird.map(graph.getActions({ refs: args.names }), async (a) =>
+      getActionsToSimpleWithStateOutput(a, router, graph, log)
+    )
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
   })
@@ -155,19 +191,9 @@ describe("GetActionsCommand", () => {
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
-    const expected = await Bluebird.map(graph.getActions(), async (a) => {
-      return {
-        name: a.name,
-        kind: a.kind,
-        type: a.type,
-        path: getRelativeActionConfigPath(garden.projectRoot, a),
-        state: await getActionState(a, router, graph, log),
-        dependencies: a.getDependencies().map((d) => d.key()),
-        dependents: graph.getDependants({ kind: a.kind, name: a.name, recursive: false }).map((d) => d.key()),
-        disabled: a.isDisabled(),
-        moduleName: a.moduleName() ?? undefined,
-      }
-    })
+    const expected = await Bluebird.map(graph.getActions(), async (a) =>
+      getActionsToDetailedWithStateOutput(a, garden, router, graph, log)
+    )
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
   })
@@ -185,9 +211,7 @@ describe("GetActionsCommand", () => {
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
-    const expected = graph.getDeploys().map((d) => {
-      return { name: d.name, kind: d.kind, type: d.type }
-    })
+    const expected = graph.getDeploys().map(getActionsToSimpleOutput)
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
   })

@@ -98,8 +98,8 @@ const getActionsOpts = {
   }),
 }
 
-type Args = typeof getActionsArgs
-type Opts = typeof getActionsOpts
+export type Args = typeof getActionsArgs
+export type Opts = typeof getActionsOpts
 
 export class GetActionsCommand extends Command {
   name = "actions"
@@ -141,7 +141,7 @@ export class GetActionsCommand extends Command {
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
 
-    const kindOpt = opts["kind"]
+    const kindOpt = opts["kind"]?.toLowerCase()
     let actions: ResolvedActionWithState[] = []
 
     switch (kindOpt) {

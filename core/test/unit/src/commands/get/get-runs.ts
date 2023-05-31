@@ -9,6 +9,7 @@
 import { makeTestGarden, withDefaultGlobalOpts, getDataDir } from "../../../../helpers"
 import { GetRunsCommand } from "../../../../../src/commands/get/get-runs"
 import { expect } from "chai"
+import { getActionsToSimpleOutput } from "./get-actions"
 
 describe("GetRunsCommand", () => {
   const projectRoot = getDataDir("test-project-b")
@@ -52,9 +53,7 @@ describe("GetRunsCommand", () => {
     })
 
     const graph = await garden.getConfigGraph({ log, emit: false })
-    const expected = graph.getRuns().map((d) => {
-      return { name: d.name, kind: d.kind, type: d.type }
-    })
+    const expected = graph.getRuns().map(getActionsToSimpleOutput)
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result?.actions).to.eql(expected)
