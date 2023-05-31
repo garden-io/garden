@@ -52,7 +52,17 @@ export async function getManifests({
   // remove *List objects
   const manifests = rawManifests.flatMap((manifest) => {
     if (manifest.kind.endsWith("List")) {
-      return manifest.items as KubernetesResource[]
+      if (!manifest.items || manifest.items.length === 0) {
+        // empty list
+        return []
+      } else if (manifest.items.length > 0 && manifest.items[0].kind) {
+        // at least the first manifest has a kind: seems to be a valid List
+        return manifest.items as KubernetesResource[]
+      } else {
+        throw new PluginError("Failed to read Kubernetes manifest: Encountered an invalid List manifest", {
+          manifest
+        })
+      }
     }
     return manifest
   })
