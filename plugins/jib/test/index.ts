@@ -82,8 +82,8 @@ describe.skip("jib-container", function () {
   describe("build", () => {
     context("tarOnly=true", () => {
       it("builds a maven project", async () => {
-        action["spec"].projectType = "maven"
-        action["spec"].tarOnly = true
+        action.getSpec().projectType = "maven"
+        action.getSpec().tarOnly = true
 
         const router = await garden.getActionRouter()
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
@@ -94,14 +94,14 @@ describe.skip("jib-container", function () {
           graph,
         })
 
-        const { tarPath } = <any>res.detail
+        const tarPath = res.detail?.details.tarPath as string
 
         expect(tarPath).to.equal(join(module.path, "target", `jib-image-module-${module.version.versionString}.tar`))
       })
 
       it("builds a gradle project", async () => {
-        action["spec"].projectType = "gradle"
-        action["spec"].tarOnly = true
+        action.getSpec().projectType = "gradle"
+        action.getSpec().tarOnly = true
 
         const router = await garden.getActionRouter()
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
@@ -112,7 +112,7 @@ describe.skip("jib-container", function () {
           graph,
         })
 
-        const { tarPath } = <any>res.detail
+        const tarPath = res.detail?.details.tarPath as string
 
         expect(tarPath).to.equal(join(module.path, "build", `jib-image-module-${module.version.versionString}.tar`))
       })
@@ -122,8 +122,8 @@ describe.skip("jib-container", function () {
     // This however is covered by the jib-container e2e test project
     context("tarOnly=false", () => {
       it.skip("builds a maven project and pushed to a registry", async () => {
-        action["spec"].projectType = "maven"
-        action["spec"].tarOnly = false
+        action.getSpec().projectType = "maven"
+        action.getSpec().tarOnly = false
 
         const router = await garden.getActionRouter()
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
@@ -136,8 +136,8 @@ describe.skip("jib-container", function () {
       })
 
       it.skip("builds a gradle project and pushes to a registry", async () => {
-        action["spec"].projectType = "gradle"
-        action["spec"].tarOnly = false
+        action.getSpec().projectType = "gradle"
+        action.getSpec().tarOnly = false
 
         const router = await garden.getActionRouter()
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
@@ -152,9 +152,9 @@ describe.skip("jib-container", function () {
 
     context("dockerBuild=true", () => {
       it("builds a maven project", async () => {
-        action["spec"].projectType = "maven"
-        action["spec"].tarOnly = false
-        action["spec"].dockerBuild = true
+        action.getSpec().projectType = "maven"
+        action.getSpec().tarOnly = false
+        action.getSpec().dockerBuild = true
 
         const router = await garden.getActionRouter()
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
@@ -167,9 +167,9 @@ describe.skip("jib-container", function () {
       })
 
       it("builds a gradle project", async () => {
-        action["spec"].projectType = "gradle"
-        action["spec"].tarOnly = false
-        action["spec"].dockerBuild = true
+        action.getSpec().projectType = "gradle"
+        action.getSpec().tarOnly = false
+        action.getSpec().dockerBuild = true
 
         const router = await garden.getActionRouter()
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
