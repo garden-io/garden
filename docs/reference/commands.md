@@ -4607,16 +4607,16 @@ Examples:
 
 Updates your Garden CLI in-place.
 
-Defaults to the latest release version, but you can also request a specific release version as an argument.
+Defaults to the latest minor release version, but you can also request a specific release version as an argument.
 
 Examples:
 
-   garden self-update          # update to the latest Garden CLI version
-   garden self-update edge     # switch to the latest edge build (which is created anytime a PR is merged)
-   garden self-update 0.12.24  # switch to the 0.12.24 stable version of the CLI
-   garden self-update 0.13.0-0 # switch to the 0.13.0-0 pre-release version of the CLI
-   garden self-update --major  # install the latest major version (if it exists) greater than the current one
-   garden self-update --force  # re-install even if the same version is detected
+   garden self-update               # update to the latest minor Garden CLI version
+   garden self-update edge          # switch to the latest edge build of garden 0.12 (which is created anytime a PR is merged to the 0.12 branch)
+   garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13) (which is created anytime a PR is merged to main)
+   garden self-update 0.12.24       # switch to the exact version 0.12.24 of the CLI
+   garden self-update --major       # install the latest version, even if it's a major bump
+   garden self-update --force       # re-install even if the same version is detected
    garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
 
 #### Usage
@@ -4636,7 +4636,7 @@ Examples:
   | `--force` |  | boolean | Install the Garden CLI even if the specified or detected latest version is the same as the current version.
   | `--install-dir` |  | string | Specify an installation directory, instead of using the directory of the Garden CLI being used. Implies --force.
   | `--platform` |  | `macos` `linux` `windows`  | Override the platform, instead of detecting it automatically.
-  | `--major` |  | boolean | Install the latest major version greater than the current one. Falls back to the current version if the greater major version does not exist.
+  | `--major` |  | boolean | Install the latest major version of Garden. Falls back to the current version if the greater major version does not exist.
 
 Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.
 
