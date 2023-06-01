@@ -990,8 +990,8 @@ Examples:
     garden deploy --env stage          # deploy your Deploys to an environment called stage
     garden deploy --skip deploy-b      # deploy everything except deploy-b
     garden deploy --forward            # deploy everything and start port forwards without sync or local mode
-    garden deploy my-deploy --logs     # deploy my-deploy and follow log output from deploy
-    garden deploy my-deploy -l 3       # deploy with verbose log level to see logs of the creation of the deploy
+    garden deploy my-deploy --logs     # deploy my-deploy and follow the log output from the deployed service
+    garden deploy my-deploy -l 3       # deploy with verbose log level to see logs of the creation of the deployment
 
 #### Usage
 
