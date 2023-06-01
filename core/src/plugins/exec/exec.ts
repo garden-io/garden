@@ -23,6 +23,7 @@ import {
   ExecRun,
   ExecTest,
   execTestActionSchema,
+  execOutputsSchema,
 } from "./config"
 import { configureExecModule, execModuleSpecSchema } from "./moduleConfig"
 import { BuildActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/action-types"
@@ -55,12 +56,14 @@ export const buildExecAction: BuildActionHandler<"build", ExecBuild> = async ({ 
     output.outputs.log = output.detail?.buildLog
 
     const prefix = `Finished building ${chalk.white(action.name)}. Here is the full output:`
-    log.verbose(renderMessageWithDivider({
-      prefix,
-      msg: output.detail?.buildLog,
-      isError: false,
-      color: chalk.gray
-    }))
+    log.verbose(
+      renderMessageWithDivider({
+        prefix,
+        msg: output.detail?.buildLog,
+        isError: false,
+        color: chalk.gray,
+      })
+    )
   }
 
   return output
@@ -78,12 +81,14 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
   const outputLog = result.all?.trim() || ""
   if (outputLog) {
     const prefix = `Finished executing ${chalk.white(action.key())}. Here is the full output:`
-    log.verbose(renderMessageWithDivider({
-      prefix,
-      msg: outputLog,
-      isError: false,
-      color: chalk.gray
-    }))
+    log.verbose(
+      renderMessageWithDivider({
+        prefix,
+        msg: outputLog,
+        isError: false,
+        color: chalk.gray,
+      })
+    )
   }
 
   const detail = {
@@ -127,12 +132,14 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
 
   if (outputLog) {
     const prefix = `Finished running task ${chalk.white(action.name)}. Here is the full output:`
-    log.verbose(renderMessageWithDivider({
-      prefix,
-      msg: outputLog,
-      isError: false,
-      color: chalk.gray
-    }))
+    log.verbose(
+      renderMessageWithDivider({
+        prefix,
+        msg: outputLog,
+        isError: false,
+        color: chalk.gray,
+      })
+    )
   }
 
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
@@ -177,6 +184,9 @@ export const execPlugin = () =>
         this script runs before resolving that provider.
       `),
     }),
+    outputsSchema: joi.object().keys({
+      initScript: execOutputsSchema(),
+    }),
     createActionTypes: {
       Build: [
         {
@@ -185,6 +195,7 @@ export const execPlugin = () =>
             A simple Build action which runs a build locally with a shell command.
           `,
           schema: execBuildActionSchema(),
+          runtimeOutputsSchema: execOutputsSchema(),
           handlers: {
             build: buildExecAction,
           },
@@ -197,6 +208,7 @@ export const execPlugin = () =>
             Run and manage a persistent process or service with shell commands.
           `,
           schema: execDeployActionSchema(),
+          runtimeOutputsSchema: execOutputsSchema(),
           handlers: {
             async configure({ config }) {
               return { config, supportedModes: { sync: !!config.spec.persistent } }
@@ -216,6 +228,7 @@ export const execPlugin = () =>
             A simple Run action which runs a command locally with a shell command.
           `,
           schema: execRunActionSchema(),
+          runtimeOutputsSchema: execOutputsSchema(),
           handlers: {
             run: execRunAction,
           },
@@ -228,6 +241,7 @@ export const execPlugin = () =>
             A simple Test action which runs a command locally with a shell command.
           `,
           schema: execTestActionSchema(),
+          runtimeOutputsSchema: execOutputsSchema(),
           handlers: {
             run: execTestAction,
           },
@@ -267,7 +281,12 @@ export const execPlugin = () =>
         if (ctx.provider.config.initScript) {
           try {
             execLog.info("Running init script")
-            await runScript({ log: execLog, cwd: ctx.projectRoot, script: ctx.provider.config.initScript })
+            const result = await runScript({
+              log: execLog,
+              cwd: ctx.projectRoot,
+              script: ctx.provider.config.initScript,
+            })
+            return { status: { ready: true, outputs: { initScript: { log: result.stdout.trim() } } } }
           } catch (_err) {
             const error = _err as ExecaError
 
