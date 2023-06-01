@@ -2,10 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "include": [
     "*.ts",
-    "test/*.ts"
+    "test/*.ts",
+    "test/test-project-k8s/k8s-deployment/*.ts",
+    "test/test-project-k8s/k8s-namespace/*.ts"
   ],
   "compilerOptions": {
-    "composite": true,
+    "composite": true
   },
   "references": [
     {
