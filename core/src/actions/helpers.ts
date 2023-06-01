@@ -112,27 +112,25 @@ export async function getActionState(
   log: Log
 ): Promise<ActionState> {
   const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-  let state: ActionState
   switch (action.kind) {
     case "Build":
-      state = (await router.build.getStatus({ action: action as ResolvedBuildAction, log: actionLog, graph }))?.result
+      return (await router.build.getStatus({ action: action as ResolvedBuildAction, log: actionLog, graph }))?.result
         ?.state
-      break
-    case "Deploy":
-      state = (await router.deploy.getStatus({ action: action as ResolvedDeployAction, log: actionLog, graph }))?.result
-        ?.state
-      break
-    case "Run":
-      state = (await router.run.getResult({ action: action as ResolvedRunAction, log: actionLog, graph }))?.result
-        ?.state
-      break
-    case "Test":
-      state = (await router.test.getResult({ action: action as ResolvedTestAction, log: actionLog, graph }))?.result
-        ?.state
-      break
-  }
 
-  return state
+    case "Deploy":
+      return (await router.deploy.getStatus({ action: action as ResolvedDeployAction, log: actionLog, graph }))?.result
+        ?.state
+
+    case "Run":
+      return (await router.run.getResult({ action: action as ResolvedRunAction, log: actionLog, graph }))?.result?.state
+
+    case "Test":
+      return (await router.test.getResult({ action: action as ResolvedTestAction, log: actionLog, graph }))?.result
+        ?.state
+    default:
+      const _exhaustiveCheck: never = action
+      return _exhaustiveCheck
+  }
 }
 
 /**

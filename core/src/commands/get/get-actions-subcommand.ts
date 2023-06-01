@@ -31,8 +31,8 @@ type Opts = {
  * These commands are same as calling get actions command with option kind
  */
 export abstract class GetActionsSubCommand extends GetActionsCommand {
-  protected kind: ActionKind
-  protected kindLowercaseString: string
+  private readonly kind: ActionKind
+  private readonly kindLowercaseString: string
 
   constructor(kind: ActionKind) {
     super()
@@ -51,19 +51,7 @@ export abstract class GetActionsSubCommand extends GetActionsCommand {
         spread: true,
         required: false,
         getSuggestions: ({ configDump }) => {
-          switch (this.kind) {
-            case "Build":
-              return Object.keys(configDump.actionConfigs.Build)
-            case "Test":
-              return Object.keys(configDump.actionConfigs.Test)
-            case "Run":
-              return Object.keys(configDump.actionConfigs.Run)
-            case "Deploy":
-              return Object.keys(configDump.actionConfigs.Deploy)
-            default:
-              const _exhaustiveCheck: never = this.kind
-              return _exhaustiveCheck
-          }
+          return Object.keys(configDump.actionConfigs[this.kind])
         },
       }),
     }
