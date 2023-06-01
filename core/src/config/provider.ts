@@ -14,7 +14,6 @@ import {
   joi,
   joiIdentifierMap,
   joiSparseArray,
-  PrimitiveMap,
   createSchema,
 } from "./common"
 import { collectTemplateReferences } from "../template-string/template-string"
@@ -73,7 +72,7 @@ export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> ext
   state: ActionState
   status: EnvironmentStatus
   dashboardPages: DashboardPage[]
-  outputs: PrimitiveMap
+  outputs: any
 }
 
 export const providerSchema = createSchema({
