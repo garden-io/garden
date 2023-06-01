@@ -102,6 +102,7 @@ export class RunCommand extends Command<Args, Opts> {
     Examples:
 
         garden run my-db-migration   # run my-db-migration
+        garden run my-run -l 3       # run with verbose log level to see the live log output
   `
 
   arguments = runArgs

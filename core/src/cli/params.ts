@@ -407,7 +407,8 @@ export const globalDisplayOptions = {
     choices: getLogLevelChoices(),
     help: deline`
       Set logger level. Values can be either string or numeric and are prioritized from 0 to 5
-      (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.`,
+      (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
+      From the verbose log level onward action execution logs are also printed (e.g. test or run live log outputs).`,
     hints: "[choice] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
     defaultValue: LogLevel[LogLevel.info],
   }),

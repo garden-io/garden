@@ -118,6 +118,7 @@ export class TestCommand extends Command<Args, Opts> {
         garden test *integ*             # run all Tests with a name containing 'integ'
         garden test *unit,*lint         # run all Tests ending with either 'unit' or 'lint' in the project
         garden test --force             # force Tests to be re-run, even if they've already run successfully
+        garden test -l 3                # run with verbose log level to see the live log output
   `
 
   arguments = testArgs

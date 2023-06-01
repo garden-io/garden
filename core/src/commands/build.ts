@@ -67,7 +67,8 @@ export class BuildCommand extends Command<Args, Opts> {
         garden build                   # build everything in the project
         garden build my-image          # only build my-image
         garden build image-a image-b   # build image-a and image-b
-        garden build --force    # force re-builds, even if builds had already been performed at current version
+        garden build --force           # force re-builds, even if builds had already been performed at current version
+        garden build -l 3              # build with verbose log level to see the live log output
   `
 
   arguments = buildArgs

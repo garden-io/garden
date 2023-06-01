@@ -27,7 +27,7 @@ The following option flags can be used with any of the CLI commands:
   | `--yes` |  | boolean | Automatically approve any yes/no prompts during execution, and allow running protected commands against production environments.
   | `--silent` |  | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--logger-type` |  | `quiet` `default` `basic` `json` `ink`  | Set logger type. default The default Garden logger, basic [DEPRECATED] Sames as the default Garden logger. This option will be removed in a future release, json same as default, but renders log lines as JSON, quiet suppresses all log output, same as --silent.
-  | `--log-level` |  | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
+  | `--log-level` |  | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5. From the verbose log level onward action execution logs are also printed (e.g. test or run live log outputs).
   | `--output` |  | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
   | `--show-timestamps` |  | boolean | Show timestamps with log output. When enabled, Garden will use the basic logger. I.e., log status changes are rendered as new lines instead of being updated in-place.
@@ -46,7 +46,8 @@ Examples:
     garden build                   # build everything in the project
     garden build my-image          # only build my-image
     garden build image-a image-b   # build image-a and image-b
-    garden build --force    # force re-builds, even if builds had already been performed at current version
+    garden build --force           # force re-builds, even if builds had already been performed at current version
+    garden build -l 3              # build with verbose log level to see the live log output
 
 #### Usage
 
@@ -989,6 +990,8 @@ Examples:
     garden deploy --env stage          # deploy your Deploys to an environment called stage
     garden deploy --skip deploy-b      # deploy everything except deploy-b
     garden deploy --forward            # deploy everything and start port forwards without sync or local mode
+    garden deploy my-deploy --logs     # deploy my-deploy and follow the log output from the deployed service
+    garden deploy my-deploy -l 3       # deploy with verbose log level to see logs of the creation of the deployment
 
 #### Usage
 
@@ -4223,6 +4226,7 @@ This is useful for any ad-hoc Runs, for example database migrations, or when dev
 Examples:
 
     garden run my-db-migration   # run my-db-migration
+    garden run my-run -l 3       # run with verbose log level to see the live log output
 
 #### Usage
 
@@ -4813,6 +4817,7 @@ Examples:
     garden test *integ*             # run all Tests with a name containing 'integ'
     garden test *unit,*lint         # run all Tests ending with either 'unit' or 'lint' in the project
     garden test --force             # force Tests to be re-run, even if they've already run successfully
+    garden test -l 3                # run with verbose log level to see the live log output
 
 #### Usage
 
