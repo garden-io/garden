@@ -39,7 +39,7 @@ name: my-project
 
 providers:
   - name: exec
-    initScript: [ "sh", "-c", "./scripts/auth.sh" ]
+    initScript: "sh -c ./scripts/auth.sh"
   - name: kubernetes
     dependencies: [ exec ] # <--- This ensures the init script runs before the K8s plugin is initialized.
     # ...

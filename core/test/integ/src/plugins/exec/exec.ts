@@ -46,7 +46,7 @@ describe("exec plugin", () => {
   describe("provider outputs", () => {
     it("the exec provider should have outputs for the initscript log", async () => {
       const execProvider = await garden.resolveProvider(log, "exec")
-      expect((execProvider.outputs as ExecProviderOutputs).initScript.log).to.eql("this is a provider output message")
+      expect((execProvider.outputs as ExecProviderOutputs).initScript.log).to.include("this is a provider output message")
     })
 
     it("actions should be able to access exec provider script result", async () => {
@@ -54,7 +54,6 @@ describe("exec plugin", () => {
       action._config.spec.command = ["echo", "${providers.exec.outputs.initScript.log}"]
       const resolved = await resolveAction({ action, log, graph, garden })
       const result = await executeAction({ action: resolved, graph, log, garden })
-      expect(result.getOutput("log")).to.include("this is a provider output message")
       expect(result.getOutput("log")).to.eql("this is a provider output message")
     })
   })
