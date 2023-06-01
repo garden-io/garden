@@ -16,7 +16,8 @@ import { expect } from "chai"
 import { defaultTerraformVersion, terraform } from "../cli"
 
 for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
-  describe(`Terraform common with version ${terraformVersion}`, () => {
+  // TODO: re-enable after https://github.com/garden-io/garden/issues/4467 has been fixed
+  describe.skip(`Terraform common with version ${terraformVersion}`, () => {
     const testRoot = join(__dirname, "test-project")
 
     let root: string

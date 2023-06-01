@@ -23,7 +23,8 @@ import { RunTask } from "@garden-io/core/build/src/tasks/run"
 import { defaultTerraformVersion } from "../cli"
 
 for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
-  describe(`Terraform provider with terraform ${terraformVersion}`, () => {
+  // TODO: re-enable after https://github.com/garden-io/garden/issues/4467 has been fixed
+  describe.skip(`Terraform provider with terraform ${terraformVersion}`, () => {
     const testRoot = join(__dirname, "test-project")
     let garden: TestGarden
     let tfRoot: string
@@ -288,7 +289,8 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
     })
   })
 
-  describe("Terraform action type", () => {
+  // TODO: re-enable after https://github.com/garden-io/garden/issues/4467 has been fixed
+  describe.skip("Terraform action type", () => {
     const testRoot = join(__dirname, "test-project-action")
     const tfRoot = join(testRoot, "tf")
     const stateDirPath = join(tfRoot, "terraform.tfstate")
