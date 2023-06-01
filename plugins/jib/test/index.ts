@@ -26,18 +26,6 @@ describe.skip("jib-container", function () {
 
   const projectRoot = join(__dirname, "test-project")
 
-  const projectConfig: ProjectConfig = {
-    apiVersion: GardenApiVersion.v1,
-    kind: "Project",
-    name: "test",
-    path: projectRoot,
-    defaultEnvironment: "default",
-    dotIgnoreFile: defaultDotIgnoreFile,
-    environments: [{ name: "default", defaultNamespace, variables: {} }],
-    providers: [{ name: "jib" }],
-    variables: {},
-  }
-
   let garden: TestGarden
   let graph: ResolvedConfigGraph
   let module: GardenModule
@@ -46,7 +34,6 @@ describe.skip("jib-container", function () {
   before(async () => {
     garden = await makeTestGarden(projectRoot, {
       plugins: [gardenPlugin()],
-      config: projectConfig,
     })
     graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
   })
