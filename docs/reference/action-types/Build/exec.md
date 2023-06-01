@@ -619,3 +619,11 @@ The variables configured on the action.
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
+
+### `${actions.build.<name>.outputs.log}`
+
+The full log output from the executed command. (Pro-tip: Make it machine readable so it can be parsed by dependants)
+
+| Type     | Default |
+| -------- | ------- |
+| `string` | `""`    |

@@ -200,13 +200,6 @@ export class RunCommand extends Command<Args, Opts> {
         })
     )
 
-    // if (opts.interactive && initialTasks.length !== 1) {
-    //   throw new ParameterError(`The --interactive/-i option can only be used if a single Run is selected.`, {
-    //     args,
-    //     opts,
-    //   })
-    // }
-
     const results = await garden.processTasks({ tasks, log })
 
     return handleProcessResults(garden, log, "test", results)

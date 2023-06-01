@@ -32,6 +32,19 @@ interface ExecOutputs {
   log: string
 }
 
+export const execOutputsSchema = createSchema({
+  name: "exec-output",
+  keys: () => ({
+    log: joi
+      .string()
+      .allow("")
+      .default("")
+      .description(
+        "The full log output from the executed command. (Pro-tip: Make it machine readable so it can be parsed by dependants)"
+      ),
+  }),
+})
+
 interface CommonKeys {
   shell?: boolean
 }

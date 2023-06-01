@@ -113,3 +113,15 @@ this script runs before resolving that provider.
 | -------- | -------- |
 | `string` | No       |
 
+
+## Outputs
+
+The following keys are available via the `${providers.<provider-name>}` template string key for `exec` providers.
+
+### `${providers.<provider-name>.outputs.initScript.log}`
+
+The full log output from the executed command. (Pro-tip: Make it machine readable so it can be parsed by dependants)
+
+| Type     | Default |
+| -------- | ------- |
+| `string` | `""`    |
