@@ -39,8 +39,8 @@ describe.skip("jib-container", function () {
 
   beforeEach(async () => {
     graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
-    module = graph.getModule("module")
-    action = graph.getBuild("module")
+    module = graph.getModule("foo")
+    action = graph.getBuild("foo")
   })
 
   describe("configure", () => {
@@ -83,7 +83,7 @@ describe.skip("jib-container", function () {
         const tarPath = res.detail?.details.tarPath as string
 
         expect(tarPath).to.equal(
-          join(action.basePath(), "target", `jib-image-module-${module.version.versionString}.tar`)
+          join(action.basePath(), "target", `jib-image-foo-${module.version.versionString}.tar`)
         )
       })
 
@@ -103,7 +103,7 @@ describe.skip("jib-container", function () {
         const tarPath = res.detail?.details.tarPath as string
 
         expect(tarPath).to.equal(
-          join(action.basePath(), "build", `jib-image-module-${module.version.versionString}.tar`)
+          join(action.basePath(), "build", `jib-image-foo-${module.version.versionString}.tar`)
         )
       })
     })
