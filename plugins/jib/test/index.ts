@@ -35,7 +35,6 @@ describe.skip("jib-container", function () {
     garden = await makeTestGarden(projectRoot, {
       plugins: [gardenPlugin()],
     })
-    graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
   })
 
   beforeEach(async () => {
