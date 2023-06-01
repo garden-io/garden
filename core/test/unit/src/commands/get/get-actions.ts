@@ -15,6 +15,7 @@ import { Action } from "../../../../../src/actions/types"
 import { ActionRouter } from "../../../../../src/router/router"
 import { ResolvedConfigGraph } from "../../../../../src/graph/config-graph"
 import { Log } from "../../../../../src/logger/log-entry"
+import { sortBy } from "lodash"
 
 export const getActionsToSimpleOutput = (d) => {
   return { name: d.name, kind: d.kind, type: d.type }
@@ -49,7 +50,7 @@ export const getActionsToDetailedOutput = (a: Action, garden: TestGarden, graph:
   }
 }
 
-const getActionsToDetailedWithStateOutput = async (
+export const getActionsToDetailedWithStateOutput = async (
   a: Action,
   garden: TestGarden,
   router: ActionRouter,
@@ -113,7 +114,7 @@ describe("GetActionsCommand", () => {
     })
 
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
-    const expected = graph.getActions().map(getActionsToSimpleOutput)
+    const expected = sortBy(graph.getActions().map(getActionsToSimpleOutput), "name")
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result?.actions).to.eql(expected)
@@ -131,7 +132,10 @@ describe("GetActionsCommand", () => {
       opts: withDefaultGlobalOpts({ "detail": true, "sort": "name", "include-state": false, "kind": "" }),
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
-    const expected = graph.getActions().map((a) => getActionsToDetailedOutput(a, garden, graph))
+    const expected = sortBy(
+      graph.getActions().map((a) => getActionsToDetailedOutput(a, garden, graph)),
+      "name"
+    )
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
   })
@@ -149,8 +153,9 @@ describe("GetActionsCommand", () => {
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
-    const expected = await Bluebird.map(graph.getActions(), async (a) =>
-      getActionsToSimpleWithStateOutput(a, router, graph, log)
+    const expected = sortBy(
+      await Bluebird.map(graph.getActions(), async (a) => getActionsToSimpleWithStateOutput(a, router, graph, log)),
+      "name"
     )
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
@@ -171,8 +176,11 @@ describe("GetActionsCommand", () => {
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
-    const expected = await Bluebird.map(graph.getActions({ refs: args.names }), async (a) =>
-      getActionsToSimpleWithStateOutput(a, router, graph, log)
+    const expected = sortBy(
+      await Bluebird.map(graph.getActions({ refs: args.names }), async (a) =>
+        getActionsToSimpleWithStateOutput(a, router, graph, log)
+      ),
+      "name"
     )
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
@@ -191,8 +199,11 @@ describe("GetActionsCommand", () => {
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
-    const expected = await Bluebird.map(graph.getActions(), async (a) =>
-      getActionsToDetailedWithStateOutput(a, garden, router, graph, log)
+    const expected = sortBy(
+      await Bluebird.map(graph.getActions(), async (a) =>
+        getActionsToDetailedWithStateOutput(a, garden, router, graph, log)
+      ),
+      "name"
     )
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
@@ -211,7 +222,43 @@ describe("GetActionsCommand", () => {
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
-    const expected = graph.getDeploys().map(getActionsToSimpleOutput)
+    const expected = sortBy(graph.getDeploys().map(getActionsToSimpleOutput), "name")
+    expect(command.outputsSchema().validate(result).error).to.be.undefined
+    expect(result).to.eql({ actions: expected })
+  })
+
+  it("should return all actions sorted by kind and name when --sort=kind is set", async () => {
+    const garden = await makeTestGarden(projectRoot)
+    const log = garden.log
+    const command = new GetActionsCommand()
+
+    const { result } = await command.action({
+      garden,
+      log,
+      args: { names: undefined },
+      opts: withDefaultGlobalOpts({ "detail": false, "sort": "kind", "include-state": false, "kind": "" }),
+    })
+    const graph = await garden.getResolvedConfigGraph({ log, emit: false })
+    const router = await garden.getActionRouter()
+    const expected = sortBy(graph.getActions().map(getActionsToSimpleOutput), ["kind", "name"])
+    expect(command.outputsSchema().validate(result).error).to.be.undefined
+    expect(result).to.eql({ actions: expected })
+  })
+
+  it("should return all actions sorted by type and name when --sort=type is set", async () => {
+    const garden = await makeTestGarden(projectRoot)
+    const log = garden.log
+    const command = new GetActionsCommand()
+
+    const { result } = await command.action({
+      garden,
+      log,
+      args: { names: undefined },
+      opts: withDefaultGlobalOpts({ "detail": false, "sort": "type", "include-state": false, "kind": "" }),
+    })
+    const graph = await garden.getResolvedConfigGraph({ log, emit: false })
+    const router = await garden.getActionRouter()
+    const expected = sortBy(graph.getActions().map(getActionsToSimpleOutput), ["type", "name"])
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
   })

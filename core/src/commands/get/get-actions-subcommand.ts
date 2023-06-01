@@ -25,6 +25,11 @@ type Opts = {
   "sort": ChoicesParameter
 }
 
+/**
+ * An abstract base class for get actions subcommands
+ * e.g. get builds, deploys, runs, tests.
+ * These commands are same as calling get actions command with option kind
+ */
 export abstract class GetActionsSubCommand extends GetActionsCommand {
   protected kind: ActionKind
   protected kindLowercaseString: string
