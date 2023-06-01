@@ -1,1 +1,1 @@
-test-project/**/*.lock.hcl
+**/.terraform.lock.hcl

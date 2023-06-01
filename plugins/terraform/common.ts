@@ -25,7 +25,6 @@ export const variablesSchema = () => joiStringMap(joi.any())
 export interface TerraformBaseSpec {
   allowDestroy: boolean
   autoApply: boolean
-  dependencies: string[]
   variables: PrimitiveMap
   version: string | null
   workspace?: string

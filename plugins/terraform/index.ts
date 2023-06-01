@@ -7,6 +7,7 @@
  */
 
 import { join } from "path"
+import { omit } from "lodash"
 import { pathExists } from "fs-extra"
 import { createGardenPlugin } from "@garden-io/sdk"
 import { cleanupEnvironment, getEnvironmentStatus, prepareEnvironment } from "./init"
@@ -191,7 +192,7 @@ export const gardenPlugin = () =>
               actions.push(dummyBuild)
             }
 
-            actions.push({
+            const deployAction: TerraformDeployConfig = {
               kind: "Deploy",
               type: "terraform",
               name: module.name,
@@ -202,9 +203,16 @@ export const gardenPlugin = () =>
 
               timeout: defaultTerraformTimeoutSec,
               spec: {
-                ...module.spec,
+                allowDestroy: module.spec.allowDestroy || true,
+                autoApply: module.spec.autoApply || true,
+                root: module.spec.root || ".",
+                variables: module.spec.variables || {},
+                version: module.spec.version || defaultTerraformVersion,
+                ...omit(module.spec, ["build", "dependencies"]),
               },
-            })
+            }
+
+            actions.push(deployAction)
 
             return {
               group: {
