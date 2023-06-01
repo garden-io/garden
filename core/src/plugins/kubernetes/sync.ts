@@ -52,7 +52,14 @@ import {
 } from "./config"
 import { isConfiguredForSyncMode } from "./status/status"
 import { PluginContext } from "../../plugin-context"
-import { mutagenAgentPath, Mutagen, SyncConfig, SyncSession, haltedStatuses, mutagenStatusDescriptions } from "../../mutagen"
+import {
+  mutagenAgentPath,
+  Mutagen,
+  SyncConfig,
+  SyncSession,
+  haltedStatuses,
+  mutagenStatusDescriptions,
+} from "../../mutagen"
 import { k8sSyncUtilImageName } from "./constants"
 import { templateStringLiteral } from "../../docs/common"
 import { resolve } from "path"
@@ -538,13 +545,12 @@ export async function startSyncs(params: StartSyncsParams) {
       query: resourceSpec,
     })
 
-    const { key, description, sourceDescription, targetDescription, resourceName, containerName } =
-      await prepareSync({
-        ...params,
-        resourceSpec,
-        target,
-        spec: s,
-      })
+    const { key, description, sourceDescription, targetDescription, resourceName, containerName } = await prepareSync({
+      ...params,
+      resourceSpec,
+      target,
+      spec: s,
+    })
 
     // Validate the target
     if (!isConfiguredForSyncMode(target)) {
@@ -631,7 +637,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
   const allSyncs = await mutagen.getActiveSyncSessions(log)
   const syncsByName = keyBy(allSyncs, "name")
   let session: SyncSession | null = null
-  const syncStatuses: SyncStatus[]= []
+  const syncStatuses: SyncStatus[] = []
 
   const provider = ctx.provider
   const providerDefaults = provider.config.sync?.defaults || {}
@@ -678,7 +684,15 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
       return
     }
 
-    const { key, source, target, sourceDescription, targetDescription, resourceName, containerName } = await prepareSync({
+    const {
+      key,
+      source,
+      target,
+      sourceDescription,
+      targetDescription,
+      resourceName,
+      containerName,
+    } = await prepareSync({
       ...params,
       resourceSpec,
       target: targetResource,
@@ -691,11 +705,10 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
         target,
         state: "not-active",
         mode: s.mode,
-        syncCount: session?.successfulCycles
+        syncCount: session?.successfulCycles,
       })
       return
     }
-
 
     const namespace = targetResource.metadata.namespace || defaultNamespace
 
@@ -731,7 +744,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
       target,
       state: syncState,
       mode: s.mode,
-      syncCount: session?.successfulCycles
+      syncCount: session?.successfulCycles,
     }
 
     if (session?.status) {
@@ -817,8 +830,9 @@ function sanitizeForSyncKey(value: string): string {
 function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableResource): string {
   const sourcePath = sanitizeForSyncKey(spec.sourcePath)
   const containerPath = sanitizeForSyncKey(spec.containerPath)
-  return `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name
-    }-from-${sourcePath}-to-${containerPath}`
+  return `${getSyncKeyPrefix(ctx, action)}${target.kind}--${
+    target.metadata.name
+  }-from-${sourcePath}-to-${containerPath}`
 }
 
 async function prepareSync(params: PrepareSyncParams) {
@@ -836,7 +850,7 @@ async function prepareSync(params: PrepareSyncParams) {
     source: orientedSource,
     sourceDescription: orientedSourceDescription,
     target: orientedTarget,
-    targetDescription: orientedTargetDescription
+    targetDescription: orientedTargetDescription,
   } = orientEndpoints({
     mode: spec.mode,
     localPath: spec.sourcePath,
@@ -866,7 +880,7 @@ function orientEndpoints({
   localPath,
   localPathDescription,
   remoteDestination,
-  remoteDestinationDescription
+  remoteDestinationDescription,
 }: {
   mode: SyncMode | undefined
   localPath: string

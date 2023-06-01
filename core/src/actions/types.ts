@@ -44,7 +44,8 @@ export interface ActionSourceSpec {
  *
  * See inline comments below for information on what templating is allowed on different fields.
  */
-export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec = any> extends BaseGardenResource {
+export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec = any>
+  extends BaseGardenResource {
   // Basics
   // -> No templating is allowed on these.
   apiVersion?: string
@@ -104,7 +105,7 @@ export interface ActionConfigTypes {
  * See https://melvingeorge.me/blog/convert-array-into-string-literal-union-type-typescript
  */
 export const actionStateTypes = ["ready", "not-ready", "processing", "failed", "unknown"] as const
-export type ActionState = (typeof actionStateTypes)[number]
+export type ActionState = typeof actionStateTypes[number]
 
 /**
  * These are the states emitted in status events. Here, we include additional states to help distinguish status event
@@ -154,7 +155,7 @@ export const actionStateTypesForEvent = [...actionStateTypes, "getting-status", 
  * - `"failed"`: The action was executed, but a failure or error occurred, so no up-to-date result was created for
  *   the action.
  */
-export type ActionStateForEvent = (typeof actionStateTypesForEvent)[number]
+export type ActionStateForEvent = typeof actionStateTypesForEvent[number]
 
 export const stateForCacheStatusEvent = (state: ActionState): ActionStateForEvent => {
   return state === "ready" ? "cached" : state
