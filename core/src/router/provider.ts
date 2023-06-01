@@ -90,7 +90,7 @@ export class ProviderRouter extends BaseRouter {
       base: this.wrapBase(handler!.base),
     }
 
-    const result = (<Function>handler)(handlerParams)
+    const result = await (<Function>handler)(handlerParams)
 
     this.garden.log.silly(`Called 'configureProvider' handler on '${pluginName}'`)
 
