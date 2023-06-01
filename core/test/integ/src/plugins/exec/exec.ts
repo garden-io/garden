@@ -55,6 +55,7 @@ describe("exec plugin", () => {
       const resolved = await resolveAction({ action, log, graph, garden })
       const result = await executeAction({ action: resolved, graph, log, garden })
       expect(result.getOutput("log")).to.include("this is a provider output message")
+      expect(result.getOutput("log")).to.eql("this is a provider output message")
     })
   })
 })
