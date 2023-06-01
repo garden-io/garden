@@ -8,17 +8,14 @@
 
 import { join } from "path"
 
-import { GardenModule, ProjectConfig } from "@garden-io/sdk/types"
+import { GardenModule } from "@garden-io/sdk/types"
 import { expect } from "chai"
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
-import { defaultNamespace } from "@garden-io/sdk/constants"
 import { gardenPlugin } from ".."
-import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 import { JibBuildAction } from "../util"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
 import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 import { createActionLog } from "@garden-io/core/build/src/logger/log-entry"
-import { GardenApiVersion } from "@garden-io/core/build/src/constants"
 
 describe.skip("jib-container", function () {
   // eslint-disable-next-line no-invalid-this
@@ -82,9 +79,7 @@ describe.skip("jib-container", function () {
 
         const tarPath = res.detail?.details.tarPath as string
 
-        expect(tarPath).to.equal(
-          join(action.basePath(), "target", `jib-image-foo-${module.version.versionString}.tar`)
-        )
+        expect(tarPath).to.equal(join(action.basePath(), "target", `jib-image-foo-${module.version.versionString}.tar`))
       })
 
       it("builds a gradle project", async () => {
@@ -102,9 +97,7 @@ describe.skip("jib-container", function () {
 
         const tarPath = res.detail?.details.tarPath as string
 
-        expect(tarPath).to.equal(
-          join(action.basePath(), "build", `jib-image-foo-${module.version.versionString}.tar`)
-        )
+        expect(tarPath).to.equal(join(action.basePath(), "build", `jib-image-foo-${module.version.versionString}.tar`))
       })
     })
 
