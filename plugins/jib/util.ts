@@ -56,20 +56,20 @@ const gradlePaths = [
 const mavenPaths = ["pom.xml", ".mvn"]
 
 export function detectProjectType(action: BuildAction): JibPluginType {
-  const moduleFiles = action.getFullVersion().files
+  const actionFiles = action.getFullVersion().files
 
   // TODO: support the Jib CLI
 
   for (const filename of gradlePaths) {
-    const path = resolve(module.path, filename)
-    if (moduleFiles.includes(path)) {
+    const path = resolve(action.basePath(), filename)
+    if (actionFiles.includes(path)) {
       return "gradle"
     }
   }
 
   for (const filename of mavenPaths) {
-    const path = resolve(module.path, filename)
-    if (moduleFiles.includes(path)) {
+    const path = resolve(action.basePath(), filename)
+    if (actionFiles.includes(path)) {
       return "maven"
     }
   }
@@ -107,8 +107,10 @@ export function getBuildFlags(action: Resolved<JibBuildAction>, projectType: Jib
   const basenameSuffix = `-${action.name}-${action.versionString()}`
   const tarFilename = `jib-image${basenameSuffix}.tar`
 
-  // TODO: don't assume module path is the project root
-  const tarPath = resolve(module.path, targetDir, tarFilename)
+  // TODO: don't assume action path is the project root
+  // Unlike many other types,
+  // jib-container builds are done from the source directory instead of the build staging directory.
+  const tarPath = resolve(action.basePath(), targetDir, tarFilename)
 
   const dockerBuildArgs = getDockerBuildArgs(action.versionString(), buildArgs)
   const outputs = action.getOutputs()

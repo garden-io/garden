@@ -8,35 +8,20 @@
 
 import { join } from "path"
 
-import { GardenModule, ProjectConfig } from "@garden-io/sdk/types"
+import { GardenModule } from "@garden-io/sdk/types"
 import { expect } from "chai"
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
-import { defaultNamespace } from "@garden-io/sdk/constants"
 import { gardenPlugin } from ".."
-import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 import { JibBuildAction } from "../util"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
 import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 import { createActionLog } from "@garden-io/core/build/src/logger/log-entry"
-import { GardenApiVersion } from "@garden-io/core/build/src/constants"
 
-describe.skip("jib-container", function () {
+describe("jib-container", function () {
   // eslint-disable-next-line no-invalid-this
   this.timeout(180 * 1000) // initial jib build can take a long time
 
   const projectRoot = join(__dirname, "test-project")
-
-  const projectConfig: ProjectConfig = {
-    apiVersion: GardenApiVersion.v1,
-    kind: "Project",
-    name: "test",
-    path: projectRoot,
-    defaultEnvironment: "default",
-    dotIgnoreFile: defaultDotIgnoreFile,
-    environments: [{ name: "default", defaultNamespace, variables: {} }],
-    providers: [{ name: "jib" }],
-    variables: {},
-  }
 
   let garden: TestGarden
   let graph: ResolvedConfigGraph
@@ -46,15 +31,13 @@ describe.skip("jib-container", function () {
   before(async () => {
     garden = await makeTestGarden(projectRoot, {
       plugins: [gardenPlugin()],
-      config: projectConfig,
     })
-    graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
   })
 
   beforeEach(async () => {
     graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
-    module = graph.getModule("module")
-    action = graph.getBuild("module")
+    module = graph.getModule("foo")
+    action = graph.getBuild("foo")
   })
 
   describe("configure", () => {
@@ -82,8 +65,8 @@ describe.skip("jib-container", function () {
   describe("build", () => {
     context("tarOnly=true", () => {
       it("builds a maven project", async () => {
-        action["spec"].projectType = "maven"
-        action["spec"].tarOnly = true
+        action.getSpec().projectType = "maven"
+        action.getSpec().tarOnly = true
 
         const router = await garden.getActionRouter()
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
@@ -94,14 +77,14 @@ describe.skip("jib-container", function () {
           graph,
         })
 
-        const { tarPath } = <any>res.detail
+        const tarPath = res.detail?.details.tarPath as string
 
-        expect(tarPath).to.equal(join(module.path, "target", `jib-image-module-${module.version.versionString}.tar`))
+        expect(tarPath).to.equal(join(action.basePath(), "target", `jib-image-foo-${module.version.versionString}.tar`))
       })
 
       it("builds a gradle project", async () => {
-        action["spec"].projectType = "gradle"
-        action["spec"].tarOnly = true
+        action.getSpec().projectType = "gradle"
+        action.getSpec().tarOnly = true
 
         const router = await garden.getActionRouter()
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
@@ -112,9 +95,9 @@ describe.skip("jib-container", function () {
           graph,
         })
 
-        const { tarPath } = <any>res.detail
+        const tarPath = res.detail?.details.tarPath as string
 
-        expect(tarPath).to.equal(join(module.path, "build", `jib-image-module-${module.version.versionString}.tar`))
+        expect(tarPath).to.equal(join(action.basePath(), "build", `jib-image-foo-${module.version.versionString}.tar`))
       })
     })
 
@@ -122,8 +105,8 @@ describe.skip("jib-container", function () {
     // This however is covered by the jib-container e2e test project
     context("tarOnly=false", () => {
       it.skip("builds a maven project and pushed to a registry", async () => {
-        action["spec"].projectType = "maven"
-        action["spec"].tarOnly = false
+        action.getSpec().projectType = "maven"
+        action.getSpec().tarOnly = false
 
         const router = await garden.getActionRouter()
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
@@ -136,8 +119,8 @@ describe.skip("jib-container", function () {
       })
 
       it.skip("builds a gradle project and pushes to a registry", async () => {
-        action["spec"].projectType = "gradle"
-        action["spec"].tarOnly = false
+        action.getSpec().projectType = "gradle"
+        action.getSpec().tarOnly = false
 
         const router = await garden.getActionRouter()
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
@@ -152,9 +135,9 @@ describe.skip("jib-container", function () {
 
     context("dockerBuild=true", () => {
       it("builds a maven project", async () => {
-        action["spec"].projectType = "maven"
-        action["spec"].tarOnly = false
-        action["spec"].dockerBuild = true
+        action.getSpec().projectType = "maven"
+        action.getSpec().tarOnly = false
+        action.getSpec().dockerBuild = true
 
         const router = await garden.getActionRouter()
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
@@ -167,9 +150,9 @@ describe.skip("jib-container", function () {
       })
 
       it("builds a gradle project", async () => {
-        action["spec"].projectType = "gradle"
-        action["spec"].tarOnly = false
-        action["spec"].dockerBuild = true
+        action.getSpec().projectType = "gradle"
+        action.getSpec().tarOnly = false
+        action.getSpec().dockerBuild = true
 
         const router = await garden.getActionRouter()
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })

@@ -7,5 +7,5 @@ providers:
 ---
 kind: Module
 type: jib-container
-name: module
+name: foo
 image: eu.gcr.io/garden-ci/jib-test-project
