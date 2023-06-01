@@ -6,73 +6,73 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError } from "@garden-io/sdk/testing"
+import { expectError, makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { expect } from "chai"
-import { detectProjectType, getBuildFlags } from "../util"
+import { detectProjectType, getBuildFlags, JibBuildAction } from "../util"
+import { join } from "path"
+import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
+import { Resolved } from "@garden-io/core/build/src/actions/types"
+import { gardenPlugin } from "../index"
 
-describe.skip("util", () => {
+describe.skip("util", function () {
+  // eslint-disable-next-line no-invalid-this
+  this.timeout(180 * 1000) // initial jib build can take a long time
+
+  const projectRoot = join(__dirname, "test-project")
+
+  let garden: TestGarden
+  let graph: ResolvedConfigGraph
+  let action: Resolved<JibBuildAction>
+
+  before(async () => {
+    garden = await makeTestGarden(projectRoot, {
+      plugins: [gardenPlugin()],
+    })
+  })
+
+  beforeEach(async () => {
+    graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
+    action = graph.getBuild("foo")
+  })
+
   describe("detectProjectType", () => {
     it("returns gradle if action files include a gradle config", () => {
-      const buildAction: any = {
-        path: "/foo",
-        version: {
-          files: ["/foo/build.gradle"],
-        },
-      }
-      expect(detectProjectType(buildAction)).to.equal("gradle")
+      action._config.internal.basePath = "/foo"
+      action["_treeVersion"].files = ["/foo/build.gradle"]
+
+      expect(detectProjectType(action)).to.equal("gradle")
     })
 
     it("returns maven if action files include a maven config", () => {
-      const buildAction: any = {
-        path: "/foo",
-        version: {
-          files: ["/foo/pom.xml"],
-        },
-      }
-      expect(detectProjectType(buildAction)).to.equal("maven")
+      action._config.internal.basePath = "/foo"
+      action["_treeVersion"].files = ["/foo/pom.xml"]
+
+      expect(detectProjectType(action)).to.equal("maven")
     })
 
     it("throws if no maven or gradle config is in the action file list", () => {
-      const buildAction: any = {
-        name: "foo",
-        path: "/foo",
-        version: {
-          files: [],
-        },
-      }
-      void expectError(() => detectProjectType(buildAction), {
-        contains: "Could not detect a gradle or maven project to build module foo",
+      action._config.internal.basePath = "/foo"
+      action["_treeVersion"].files = []
+
+      void expectError(() => detectProjectType(action), {
+        contains: "Could not detect a gradle or maven project to build foo",
       })
     })
   })
 
+  const imageId = "foo:abcdef"
+
   describe("getBuildFlags", () => {
     it("correctly sets default build flags", () => {
-      const imageId = "foo:abcdef"
-      const versionString = "abcdef"
+      action["_staticOutputs"].deploymentImageId = imageId
 
-      const buildAction: any = {
-        name: "foo",
-        path: "/foo",
-        build: {},
-        outputs: {
-          "deployment-image-id": imageId,
-        },
-        version: {
-          versionString,
-        },
-        spec: {
-          build: {},
-          buildArgs: {},
-        },
-      }
-      const { args } = getBuildFlags(buildAction, "gradle")
+      const versionString = action.getFullVersion().versionString
+      const { args } = getBuildFlags(action, "gradle")
 
       expect(args).to.eql([
         "jib",
-        "-Djib.to.image=" + imageId,
-        "-Djib.container.args=GARDEN_MODULE_VERSION=" + versionString,
-        "-Djib.container.args=GARDEN_ACTION_VERSION=" + versionString,
+        `-Djib.to.image=${imageId}`,
+        `-Djib.container.args=GARDEN_MODULE_VERSION=${versionString},GARDEN_ACTION_VERSION=${versionString}`,
         "-Dstyle.color=always",
         "-Djansi.passthrough=true",
         "-Djib.console=plain",
@@ -80,161 +80,71 @@ describe.skip("util", () => {
     })
 
     it("correctly sets the target for maven", () => {
-      const imageId = "foo:abcdef"
-      const versionString = "abcdef"
+      action["_staticOutputs"].deploymentImageId = imageId
 
-      const buildAction: any = {
-        name: "foo",
-        path: "/foo",
-        build: {},
-        outputs: {
-          "deployment-image-id": imageId,
-        },
-        version: {
-          versionString,
-        },
-        spec: {
-          build: {},
-          buildArgs: {},
-        },
-      }
-      const { args } = getBuildFlags(buildAction, "maven")
+      const versionString = action.getFullVersion().versionString
+      const { args } = getBuildFlags(action, "maven")
 
-      expect(args[0]).to.equal("jib:build")
+      expect(args).to.include("jib:build")
     })
 
     it("sets target dir to target/ for maven projects", () => {
-      const imageId = "foo:abcdef"
-      const versionString = "abcdef"
+      action["_staticOutputs"].deploymentImageId = imageId
+      action.getSpec().tarOnly = true
 
-      const buildAction: any = {
-        name: "foo",
-        path: "/foo",
-        build: {},
-        outputs: {
-          "deployment-image-id": imageId,
-        },
-        version: {
-          versionString,
-        },
-        spec: {
-          build: {
-            tarOnly: true,
-          },
-          buildArgs: {},
-        },
-      }
-      const { args, tarPath } = getBuildFlags(buildAction, "maven")
+      const versionString = action.getFullVersion().versionString
+      const { args, tarPath } = getBuildFlags(action, "maven")
 
-      expect(args).to.include(`-Djib.outputPaths.tar=target/jib-image-foo-${buildAction.version.versionString}.tar`)
-      expect(tarPath).to.equal(`/foo/target/jib-image-foo-${buildAction.version.versionString}.tar`)
+      expect(args).to.include(`-Djib.outputPaths.tar=target/jib-image-foo-${versionString}.tar`)
+      expect(tarPath).to.include(`/target/jib-image-foo-${versionString}.tar`)
     })
 
     it("adds extraFlags if set in action spec", () => {
-      const versionString = "abcdef"
+      action["_staticOutputs"].deploymentImageId = imageId
+      action.getSpec().extraFlags = ["bloop"]
 
-      const buildAction: any = {
-        name: "foo",
-        path: "/foo",
-        build: {},
-        outputs: {},
-        version: {
-          versionString,
-        },
-        spec: {
-          build: {},
-          buildArgs: {},
-          extraFlags: ["bloop"],
-        },
-      }
-
-      const { args } = getBuildFlags(buildAction, "maven")
+      const { args } = getBuildFlags(action, "maven")
       expect(args).to.include("bloop")
     })
 
     it("adds docker build args if set in buildAction spec", () => {
-      const versionString = "abcdef"
+      action["_staticOutputs"].deploymentImageId = imageId
+      action.getSpec().buildArgs = { foo: "bar" }
 
-      const buildAction: any = {
-        name: "foo",
-        path: "/foo",
-        build: {},
-        outputs: {},
-        version: {
-          versionString,
-        },
-        spec: {
-          build: {},
-          buildArgs: {
-            foo: "bar",
-          },
-        },
-      }
+      const versionString = action.getFullVersion().versionString
+      const { args } = getBuildFlags(action, "maven")
 
-      const { args } = getBuildFlags(buildAction, "maven")
-
-      expect(args).to.include("-Djib.container.args=GARDEN_ACTION_VERSION=" + versionString + ",foo=bar")
+      expect(args).to.include(
+        `-Djib.container.args=GARDEN_MODULE_VERSION=${versionString},GARDEN_ACTION_VERSION=${versionString},foo=bar`
+      )
     })
 
     it("sets OCI tar format if tarOnly and tarFormat=oci are set", () => {
-      const versionString = "abcdef"
+      action["_staticOutputs"].deploymentImageId = imageId
+      action.getSpec().buildArgs = { foo: "bar" }
+      action.getSpec().tarOnly = true
+      action.getSpec().tarFormat = "oci"
 
-      const buildAction: any = {
-        name: "foo",
-        path: "/foo",
-        build: {},
-        outputs: {},
-        version: {
-          versionString,
-        },
-        spec: {
-          build: {
-            tarOnly: true,
-            tarFormat: "oci",
-          },
-          buildArgs: {
-            foo: "bar",
-          },
-        },
-      }
-
-      const { args } = getBuildFlags(buildAction, "maven")
+      const { args } = getBuildFlags(action, "maven")
 
       expect(args).to.include("-Djib.container.format=OCI")
     })
 
     context("tarOnly=true", () => {
       it("sets correct target and output paths", () => {
-        const imageId = "foo:abcdef"
-        const versionString = "abcdef"
+        action["_staticOutputs"].deploymentImageId = imageId
+        action.getSpec().tarOnly = true
 
-        const buildAction: any = {
-          name: "foo",
-          path: "/foo",
-          build: {},
-          outputs: {
-            "deployment-image-id": imageId,
-          },
-          version: {
-            versionString,
-          },
-          spec: {
-            build: {
-              tarOnly: true,
-            },
-            buildArgs: {},
-          },
-        }
-        const { args } = getBuildFlags(buildAction, "gradle")
+        const { args } = getBuildFlags(action, "gradle")
+        const versionString = action.getFullVersion().versionString
 
         const targetDir = "build"
-        const basenameSuffix = "-foo-" + buildAction.version.versionString
+        const basenameSuffix = `-foo-${versionString}`
 
         expect(args).to.eql([
           "jibBuildTar",
-          "-Djib.to.image=" + imageId,
-          "-Djib.container.args=GARDEN_MODULE_VERSION=" + versionString,
-          "-Djib.container.args=GARDEN_ACTION_VERSION=" + versionString,
+          `-Djib.to.image=${imageId}`,
+          `-Djib.container.args=GARDEN_MODULE_VERSION=${versionString},GARDEN_ACTION_VERSION=${versionString}`,
           "-Dstyle.color=always",
           "-Djansi.passthrough=true",
           "-Djib.console=plain",
@@ -246,84 +156,32 @@ describe.skip("util", () => {
       })
 
       it("correctly sets the target for maven", () => {
-        const imageId = "foo:abcdef"
-        const versionString = "abcdef"
+        action["_staticOutputs"].deploymentImageId = imageId
+        action.getSpec().tarOnly = true
 
-        const buildAction: any = {
-          name: "foo",
-          path: "/foo",
-          build: {},
-          outputs: {
-            "deployment-image-id": imageId,
-          },
-          version: {
-            versionString,
-          },
-          spec: {
-            build: {
-              tarOnly: true,
-            },
-            buildArgs: {},
-          },
-        }
-        const { args } = getBuildFlags(buildAction, "maven")
+        const { args } = getBuildFlags(action, "maven")
 
-        expect(args[0]).to.equal("jib:buildTar")
+        expect(args).to.include("jib:buildTar")
       })
     })
 
     context("dockerBuild=true", () => {
       it("correctly sets the target for gradel", () => {
-        const imageId = "foo:abcdef"
-        const versionString = "abcdef"
+        action["_staticOutputs"].deploymentImageId = imageId
+        action.getSpec().dockerBuild = true
 
-        const buildAction: any = {
-          name: "foo",
-          path: "/foo",
-          build: {},
-          outputs: {
-            "deployment-image-id": imageId,
-          },
-          version: {
-            versionString,
-          },
-          spec: {
-            build: {
-              dockerBuild: true,
-            },
-            buildArgs: {},
-          },
-        }
-        const { args } = getBuildFlags(buildAction, "gradle")
+        const { args } = getBuildFlags(action, "gradle")
 
-        expect(args[0]).to.equal("jibDockerBuild")
+        expect(args).to.include("jibDockerBuild")
       })
 
       it("correctly sets the target for maven", () => {
-        const imageId = "foo:abcdef"
-        const versionString = "abcdef"
+        action["_staticOutputs"].deploymentImageId = imageId
+        action.getSpec().dockerBuild = true
 
-        const buildAction: any = {
-          kind: "Build",
-          name: "foo",
-          path: "/foo",
-          build: {},
-          outputs: {
-            "deployment-image-id": imageId,
-          },
-          version: {
-            versionString,
-          },
-          spec: {
-            build: {
-              dockerBuild: true,
-            },
-            buildArgs: {},
-          },
-        }
-        const { args } = getBuildFlags(buildAction, "maven")
+        const { args } = getBuildFlags(action, "maven")
 
-        expect(args[0]).to.equal("jib:dockerBuild")
+        expect(args).to.include("jib:dockerBuild")
       })
     })
   })
