@@ -14,7 +14,7 @@ import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-grap
 import { Resolved } from "@garden-io/core/build/src/actions/types"
 import { gardenPlugin } from "../index"
 
-describe.skip("util", function () {
+describe("util", function () {
   // eslint-disable-next-line no-invalid-this
   this.timeout(180 * 1000) // initial jib build can take a long time
 
