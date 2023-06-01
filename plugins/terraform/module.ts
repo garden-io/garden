@@ -19,6 +19,7 @@ import { terraformDeploySchemaKeys } from "./action"
 
 export interface TerraformModuleSpec extends TerraformBaseSpec {
   root: string
+  dependencies: string[]
 }
 
 export interface TerraformModule extends GardenModule<TerraformModuleSpec> {}
