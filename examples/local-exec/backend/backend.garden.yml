@@ -45,3 +45,11 @@ spec:
   ingresses:
     - path: /hello-backend
       port: http
+
+---
+# An action that uses exec provider initScript result
+kind: Run
+type: exec
+name: echo-provider-init-result
+spec:
+  command: [ echo, 'The provider output log is: "${providers.exec.outputs.initScript.log}"']
