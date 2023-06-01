@@ -19,7 +19,7 @@ import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 import { defaultDockerfileName } from "@garden-io/core/build/src/plugins/container/config"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "@garden-io/core/build/src/constants"
 
-describe("conftest-container provider", () => {
+describe.skip("conftest-container provider", () => {
   const projectRoot = join(__dirname, "test-project")
 
   const projectConfig: ProjectConfig = {

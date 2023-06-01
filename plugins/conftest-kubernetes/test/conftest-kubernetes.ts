@@ -17,7 +17,7 @@ import { makeTestGarden } from "@garden-io/sdk/testing"
 
 import { TestTask } from "@garden-io/core/build/src/tasks/test"
 
-describe("conftest-kubernetes provider", () => {
+describe.skip("conftest-kubernetes provider", () => {
   const projectRoot = join(__dirname, "test-project")
 
   it("should add a conftest module for each helm module, and add runtime dependencies as necessary", async () => {

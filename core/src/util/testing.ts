@@ -46,12 +46,23 @@ export interface EventLogEntry<N extends EventName = any> {
 }
 
 /**
- * Retrieves all the child log entries from the given LogEntry and returns a list of all the messages,
+ * Retrieves the log entries from the given log context and returns a list of all the messages,
  * stripped of ANSI characters. Useful to check if a particular message was logged.
  */
 export function getLogMessages(log: Log, filter?: (log: LogEntry) => boolean) {
   return log
-    .getChildLogEntries()
+    .getLogEntries()
+    .filter((entry) => (filter ? filter(entry) : true))
+    .map((entry) => stripAnsi(entry.msg || ""))
+}
+
+/**
+ * Retrieves all the entries from the root log and returns a list of all the messages,
+ * stripped of ANSI characters. Useful to check if a particular message was logged.
+ */
+export function getRootLogMessages(log: Log, filter?: (log: LogEntry) => boolean) {
+  return log
+    .getAllLogEntries()
     .filter((entry) => (filter ? filter(entry) : true))
     .map((entry) => stripAnsi(entry.msg || ""))
 }

@@ -291,9 +291,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
   private getMsgWithDuration(params: CreateLogEntryParams) {
     // If params.showDuration is set, it takes precedence over this.duration (since it's set at the call site for the
     // log line in question).
-    const showDuration = params.showDuration !== undefined
-      ? params.showDuration
-      : this.showDuration
+    const showDuration = params.showDuration !== undefined ? params.showDuration : this.showDuration
     if (showDuration && params.msg) {
       const msg = hasAnsi(params.msg) ? params.msg : chalk.green(params.msg)
       return msg + " " + chalk.white(renderDuration(this.getDuration(1)))
@@ -401,7 +399,10 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
     return this.entries.slice(-1)[0]
   }
 
-  getChildLogEntries() {
+  /**
+   * Get the log entries for this particular log context.
+   */
+  getLogEntries() {
     return this.entries
   }
 
@@ -413,13 +414,13 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
   }
 
   /**
-   * Dumps child entries as a string, optionally filtering the entries with `filter`.
+   * Dumps log entries for this particular log context as a string, optionally filtering the entries with `filter`.
    * For example, to dump all the logs of level info or higher:
    *
    *   log.toString((entry) => entry.level <= LogLevel.info)
    */
   toString(filter?: (log: LogEntry) => boolean) {
-    return this.getChildLogEntries()
+    return this.getLogEntries()
       .filter((entry) => (filter ? filter(entry) : true))
       .map((entry) => entry.msg)
       .join("\n")
