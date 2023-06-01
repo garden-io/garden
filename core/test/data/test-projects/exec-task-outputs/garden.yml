@@ -1,5 +1,8 @@
 apiVersion: garden.io/v1
 kind: Project
 name: exec-task-outputs
+providers:
+  - name: exec
+    initScript: "echo this is a provider output message"
 environments:
   - name: local

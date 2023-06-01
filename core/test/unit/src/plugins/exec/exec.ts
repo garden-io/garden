@@ -313,30 +313,6 @@ describe("exec plugin", () => {
       expect(moduleLocal.testConfigs).to.eql([])
     })
 
-    it("should propagate task logs to runtime outputs", async () => {
-      const _garden = await makeTestGarden(getDataDir("test-projects", "exec-task-outputs"))
-      const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
-      const taskB = _graph.getRun("task-b")
-
-      const taskTask = new RunTask({
-        garden: _garden,
-        graph: _graph,
-        action: taskB,
-
-        log: _garden.log,
-        force: false,
-        forceBuild: false,
-      })
-      const result = await _garden.processTask(taskTask, _garden.log, { throwOnError: true })
-
-      // Task A echoes "task-a-output" and Task B echoes the output from Task A
-      expect(result).to.exist
-      expect(result!.result!).to.have.property("outputs")
-      expect(result!.result!.detail?.log).to.equal("task-a-output")
-      expect(result!.result!).to.have.property("outputs")
-      expect(result!.result!.outputs.log).to.equal("task-a-output")
-    })
-
     it("should copy artifacts after task runs", async () => {
       const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
       const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })

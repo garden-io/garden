@@ -36,6 +36,11 @@ import { deployExec, deleteExecDeploy, getExecDeployLogs, getExecDeployStatus } 
 export interface ExecProviderConfig extends GenericProviderConfig {}
 
 export type ExecProvider = Provider<ExecProviderConfig>
+export interface ExecProviderOutputs {
+  initScript: {
+    log: string
+  }
+}
 
 export const buildExecAction: BuildActionHandler<"build", ExecBuild> = async ({ action, log, ctx }) => {
   const output: BuildStatus = { state: "ready", outputs: {}, detail: {} }
