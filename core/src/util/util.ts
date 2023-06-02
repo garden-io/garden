@@ -525,12 +525,12 @@ export function findByNames<T extends ObjectWithName>({
   names,
   entries,
   description,
-  allowMissing = false,
+  allowMissing,
 }: {
   names: string[]
   entries: T[]
   description: string
-  allowMissing?: boolean
+  allowMissing: boolean
 }) {
   const available = getNames(entries)
   const missing = difference(names, available)
