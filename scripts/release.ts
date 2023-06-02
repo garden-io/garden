@@ -342,8 +342,8 @@ async function stripPrereleaseTags(tags: string[], version: string) {
     }
   }
 
-  // We also need to remove the "edge-acorn" tag
-  await execa("git", ["tag", "-d", "edge-acorn"])
+  // We also need to remove the old edge tags
+  await removeTags("edge-acorn", "edge")
 }
 
 (async () => {
