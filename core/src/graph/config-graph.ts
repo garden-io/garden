@@ -161,7 +161,7 @@ export abstract class BaseConfigGraph<
     const all = Object.values(this.actions).flatMap((a) => <A[]>Object.values(a))
     if (refs) {
       const stringRefs = refs.map(actionReferenceToString)
-      return all.filter((a) => stringRefs.includes(a.key()))
+      return all.filter((a) => stringRefs.includes(a.key()) || stringRefs.includes(a.name))
     } else {
       return all
     }

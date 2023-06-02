@@ -3383,39 +3383,323 @@ actions:
           state:
 ```
 
-### garden get runs
+### garden get actions
 
-**Lists the Runs (or tasks, if using modules) defined in your project.**
+**Outputs all or specified actions.**
 
+Outputs all or specified actions. Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get actions                                         # list all actions in the project
+  garden get actions --include-state                         # list all actions in the project with state in output
+  garden get actions --detail                                # list all actions in project with detailed info
+  garden get actions --kind deploy                           # only list the actions of kind 'Deploy'
+  garden get actions A B --kind build --sort type            # list  actions A and B of kind 'Build' sorted by type
+  garden get actions --include-state -o=json                 # get json output
 
 #### Usage
 
-    garden get runs [names] 
+    garden get actions [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify run(s)/task(s) to list. You may specify multiple names, separated by spaces.
+  | `names` | No | Specify name(s) of the action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all actions.
 
+#### Options
 
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each action, including path, dependencies, dependents, associated module and if the action is disabled.
+  | `--include-state` |  | boolean | Include state of action(s) in output.
+  | `--sort` |  | `name` `kind` `type`  | Sort the actions result by action name, kind or type. By default action results are sorted by name.
+  | `--kind` |  | `build` `deploy` `run` `test`  | Choose actions of specific kind only. By default all actions are shown.
+
+#### Outputs
+
+```yaml
+# A list of the actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
+
+### garden get deploys
+
+**Lists the deploy actions defined in your project.**
+
+Lists all or specified deploy action(s). Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get deploys                      # list all deploy actions in the project
+  garden get deploys --include-state      # list all deploy actions in the project including action state in output
+  garden get deploys --detail             # list all deploy actions in project with detailed info
+  garden get deploys A B --sort type      # list only deploy actions A and B sorted by type
+
+#### Usage
+
+    garden get deploys [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | Specify name(s) of the deploy action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all deploy actions.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each deploy action, including path, dependencies, dependents, associated module and if the deploy action is disabled.
+  | `--include-state` |  | boolean | Include state of deploy(s) in output.
+  | `--sort` |  | `name` `type`  | Sort the deploy actions result by action name or type. By default deploy action results are sorted by name.
+
+#### Outputs
+
+```yaml
+# A list of the deploy actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
+
+### garden get builds
+
+**Lists the build actions defined in your project.**
+
+Lists all or specified build action(s). Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get builds                      # list all build actions in the project
+  garden get builds --include-state      # list all build actions in the project including action state in output
+  garden get builds --detail             # list all build actions in project with detailed info
+  garden get builds A B --sort type      # list only build actions A and B sorted by type
+
+#### Usage
+
+    garden get builds [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | Specify name(s) of the build action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all build actions.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each build action, including path, dependencies, dependents, associated module and if the build action is disabled.
+  | `--include-state` |  | boolean | Include state of build(s) in output.
+  | `--sort` |  | `name` `type`  | Sort the build actions result by action name or type. By default build action results are sorted by name.
+
+#### Outputs
+
+```yaml
+# A list of the build actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
+
+### garden get runs
+
+**Lists the run actions defined in your project.**
+
+Lists all or specified run action(s). Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get runs                      # list all run actions in the project
+  garden get runs --include-state      # list all run actions in the project including action state in output
+  garden get runs --detail             # list all run actions in project with detailed info
+  garden get runs A B --sort type      # list only run actions A and B sorted by type
+
+#### Usage
+
+    garden get runs [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | Specify name(s) of the run action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all run actions.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each run action, including path, dependencies, dependents, associated module and if the run action is disabled.
+  | `--include-state` |  | boolean | Include state of run(s) in output.
+  | `--sort` |  | `name` `type`  | Sort the run actions result by action name or type. By default run action results are sorted by name.
+
+#### Outputs
+
+```yaml
+# A list of the run actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
 
 ### garden get tests
 
-**Lists the tests defined in your project.**
+**Lists the test actions defined in your project.**
 
+Lists all or specified test action(s). Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get tests                      # list all test actions in the project
+  garden get tests --include-state      # list all test actions in the project including action state in output
+  garden get tests --detail             # list all test actions in project with detailed info
+  garden get tests A B --sort type      # list only test actions A and B sorted by type
 
 #### Usage
 
-    garden get tests [names] 
+    garden get tests [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify tests(s) to list. You may specify multiple test names, separated by spaces.
+  | `names` | No | Specify name(s) of the test action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all test actions.
 
+#### Options
 
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each test action, including path, dependencies, dependents, associated module and if the test action is disabled.
+  | `--include-state` |  | boolean | Include state of test(s) in output.
+  | `--sort` |  | `name` `type`  | Sort the test actions result by action name or type. By default test action results are sorted by name.
+
+#### Outputs
+
+```yaml
+# A list of the test actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
 
 ### garden get run-result
 

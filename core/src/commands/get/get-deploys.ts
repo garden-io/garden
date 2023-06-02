@@ -8,8 +8,8 @@
 
 import { GetActionsSubCommand } from "./get-actions-subcommand"
 
-export class GetTestsCommand extends GetActionsSubCommand {
+export class GetDeploysCommand extends GetActionsSubCommand {
   constructor() {
-    super("Test")
+    super("Deploy")
   }
 }
