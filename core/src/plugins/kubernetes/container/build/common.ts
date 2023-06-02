@@ -230,7 +230,7 @@ export async function skopeoBuildStatus({
     if (res.exitCode !== 0 && !skopeoManifestUnknown(res.stderr)) {
       const output = res.allLogs || err.message
 
-      throw new RuntimeError(`Unable to query registry for image status: ${output}`, {
+      throw new RuntimeError(`Unable to query registry for image status: ${JSON.stringify(output)}`, {
         command: skopeoCommand,
         output,
       })
