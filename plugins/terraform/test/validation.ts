@@ -14,7 +14,7 @@ import { ValidateCommand } from "@garden-io/core/build/src/commands/validate"
 import { withDefaultGlobalOpts } from "@garden-io/core/build/test/helpers"
 
 // TODO: re-enable after https://github.com/garden-io/garden/issues/4467 has been fixed
-describe.skip("terraform validation", () => {
+describe("terraform validation", () => {
   for (const project of ["test-project", "test-project-action", "test-project-module"]) {
     it(`should pass validation for ${project}`, async () => {
       const testRoot = join(__dirname, project)
