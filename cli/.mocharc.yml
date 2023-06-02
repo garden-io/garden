@@ -1,6 +1,6 @@
 reporter: xunit
 reporter-option:
-  - "output=~/test-results/cli/results.xml"
+  - output=../test-results/cli/results.xml
 spec:
   - build/test/setup.js
   - build/test/**/*.js

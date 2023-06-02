@@ -373,7 +373,7 @@ jobs:
             CHOKIDAR_USEPOLLING: "1"
             NODE_OPTIONS: --max_old_space_size=4096
       - store_test_results:
-          path: ~/test-results
+          path: ~/project/test-results
 
   e2e-project:
     <<: *node-config
@@ -590,7 +590,7 @@ jobs:
           name: Plugin tests
           command: yarn run test:plugins
       - store_test_results:
-          path: ~/test-results
+          path: ~/project/test-results
       # Persist Maven cache
       - save_cache:
           key: m2-v1
@@ -630,7 +630,7 @@ jobs:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project --logger-type basic
       - store_test_results:
-          path: ~/test-results
+          path: ~/project/test-results
 
   test-microk8s:
     machine:
@@ -759,7 +759,7 @@ jobs:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project
       - store_test_results:
-          path: ~/test-results
+          path: ~/project/test-results
 
   test-macos:
     macos:
