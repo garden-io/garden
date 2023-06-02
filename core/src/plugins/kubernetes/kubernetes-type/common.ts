@@ -28,6 +28,7 @@ import { getTargetResource, getResourcePodSpec, getResourceContainer, makePodNam
 import { ActionMode, Resolved } from "../../../actions/types"
 import { KubernetesPodRunAction, KubernetesPodTestAction } from "./kubernetes-pod"
 import { V1ConfigMap } from "@kubernetes/client-node"
+import { glob } from "glob"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
@@ -183,10 +184,12 @@ export async function readManifests(
 
   const spec = action.getSpec()
 
+  const files = await glob(spec.files, { cwd: manifestPath })
+
   const fileManifests = flatten(
-    await Bluebird.map(spec.files, async (path) => {
+    await Bluebird.map(files, async (path) => {
       const absPath = resolve(manifestPath, path)
-      log.debug(`Reading manifest for module ${action.name} from path ${absPath}`)
+      log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
       const str = (await readFile(absPath)).toString()
       const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
       return safeLoadAll(resolved)
