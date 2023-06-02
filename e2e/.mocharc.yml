@@ -1,9 +1,7 @@
 require: ts-node/register
 ignore:
   - .garden
-reporter: xunit
-reporter-option:
-  - "output=test-results/mocha/results.xml"
+reporter: spec
 timeout: 0
 exit: true
 spec:

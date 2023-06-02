@@ -7,7 +7,7 @@ ignore:
   - test/,src/,.garden
 reporter: xunit
 reporter-option:
-  - "output=test-results/mocha/results.xml"
+  - "output=~/test-results/core-integ/results.xml"
 timeout: 50000
 exit: true
 spec:

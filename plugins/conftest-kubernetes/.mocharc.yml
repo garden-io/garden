@@ -1,6 +1,6 @@
 reporter: xunit
 reporter-option:
-  - "output=test-results/mocha/results.xml"
+  - "output=~/test-results/conftest-kubernetes/results.xml"
 spec: test/**/*.js
 timeout: 100000
 watch-files:
