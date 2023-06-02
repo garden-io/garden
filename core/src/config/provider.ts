@@ -65,7 +65,7 @@ export const providerConfigBaseSchema = memoize(() =>
 
 export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> extends ValidResultType {
   name: string
-  uid: string // This is generated at creatinon time, and is intended for use by plugins e.g. for caching purposes.
+  uid: string // This is generated at creation time, and is intended for use by plugins e.g. for caching purposes.
   dependencies: { [name: string]: Provider }
   environments?: string[]
   moduleConfigs: ModuleConfig[]
