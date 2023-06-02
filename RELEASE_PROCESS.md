@@ -4,7 +4,7 @@ We have a dedicated release branch, `latest-release`, off of which we create our
 
 This procedure allows us to continue merging features into `main` without them being included in the release.
 
-On every merge to `main` we also publish an **unstable** release with the version `edge` that is always flagged as a pre-release.
+On every merge to `main` we also publish an **unstable** release with the version `edge-bonsai` that is always flagged as a pre-release.
 
 ## Release script
 
