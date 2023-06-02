@@ -306,6 +306,22 @@ async function updateChangelog(version: string) {
   });
 }
 
+async function removeTags(...tags: string[]) {
+  for (const tag of tags) {
+    try {
+      console.log(`Removing tag '${tag}'`)
+      await execa("git", ["tag", "-d", tag])
+    } catch (e) {
+      const msg = String(e.message)
+      if (msg.includes(`tag '${tag}' not found`)) {
+        console.log(`Tag '${tag}' not found, skipping`)
+      } else {
+        throw e
+      }
+    }
+  }
+}
+
 /**
  * We don't include pre-release tags in the changelog except for the current release cycle.
  * So if we're releasing, say, v0.9.1-3, we include the v0.9.1-0, v0.9.1-1, and v0.9.1-2 tags.
