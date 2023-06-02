@@ -512,7 +512,7 @@ jobs:
     steps:
       - *attach-workspace
       - run:
-          name: Publish a pre-release on GitHub with the tag 'edge'
+          name: Publish a pre-release on GitHub with the valid edge tag
           command: |
             # We assume that the tag already exists. We update the existing tag
             # using the gh cli, and then we upload the artifacts using ghr.
