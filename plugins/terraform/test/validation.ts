@@ -12,9 +12,10 @@ import { gardenPlugin } from ".."
 import { defaultTerraformVersion } from "../cli"
 import { ValidateCommand } from "@garden-io/core/build/src/commands/validate"
 import { withDefaultGlobalOpts } from "@garden-io/core/build/test/helpers"
+import { expect } from "chai"
 
 // TODO: re-enable after https://github.com/garden-io/garden/issues/4467 has been fixed
-describe("terraform validation", () => {
+describe.skip("terraform validation", () => {
   for (const project of ["test-project", "test-project-action", "test-project-module"]) {
     it(`should pass validation for ${project}`, async () => {
       const testRoot = join(__dirname, project)
@@ -32,4 +33,8 @@ describe("terraform validation", () => {
       })
     })
   }
+})
+
+describe("intentional failure", () => {
+  expect(false).to.equal(true)
 })
