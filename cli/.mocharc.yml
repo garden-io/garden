@@ -1,4 +1,6 @@
-reporter: spec
+reporter: xunit
+reporter-option:
+  - "output=test-results/mocha/results.xml"
 spec:
   - build/test/setup.js
   - build/test/**/*.js

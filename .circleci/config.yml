@@ -53,7 +53,6 @@ orbs:
       tags:
         ignore: /.*/
 
-
   # Only run jobs on main branch
   only-main: &only-main
     filters:
@@ -373,6 +372,8 @@ jobs:
           environment:
             CHOKIDAR_USEPOLLING: "1"
             NODE_OPTIONS: --max_old_space_size=4096
+      - store_test_results:
+          path: test-results
 
   e2e-project:
     <<: *node-config
@@ -397,6 +398,8 @@ jobs:
             git checkout .
             cd ~/project
             yarn e2e-project --project=<<parameters.project>> --env=<<parameters.environment>> --showlog -b
+      - store_test_results:
+          path: test-results
       - cleanup_remote_cluster:
           filter: <<parameters.project>>-testing-ci-$CIRCLE_BUILD_NUM-e2e
 
@@ -458,7 +461,6 @@ jobs:
 
             # Build and publish
             docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
-
 
   test-docker-gcloud:
     docker:
@@ -589,6 +591,8 @@ jobs:
       - run:
           name: Plugin tests
           command: yarn run test:plugins
+      - store_test_results:
+          path: test-results
       # Persist Maven cache
       - save_cache:
           key: m2-v1
@@ -627,6 +631,8 @@ jobs:
       - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project --logger-type basic
+      - store_test_results:
+          path: test-results
 
   test-microk8s:
     machine:
@@ -754,6 +760,8 @@ jobs:
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project
+      - store_test_results:
+          path: test-results
 
   test-macos:
     macos:

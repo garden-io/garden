@@ -1,4 +1,6 @@
-reporter: spec
+reporter: xunit
+reporter-option:
+  - "output=test-results/mocha/results.xml"
 spec: test/**/*.js
 timeout: 10000
 require:

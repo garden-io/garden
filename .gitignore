@@ -51,3 +51,6 @@ static/**/.garden-version
 
 #debug files
 debug-info-*
+
+# mocha test results
+test-results/
