@@ -1,0 +1,6 @@
+kind: Build
+type: exec
+name: exec-build
+include: ["*.yaml"]
+spec:
+  command: [echo, ok] # files are just included, no need to actually build them
