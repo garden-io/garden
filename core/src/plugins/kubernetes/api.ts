@@ -12,42 +12,39 @@ import Bluebird from "bluebird"
 import chalk from "chalk"
 import httpStatusCodes from "http-status-codes"
 import {
-  KubeConfig,
-  V1Secret,
-  CoreApi,
+  ApiextensionsV1Api,
   ApisApi,
-  V1APIGroup,
-  V1APIVersions,
-  V1APIResource,
-  CoreV1Api,
-  RbacAuthorizationV1Api,
   AppsV1Api,
-  PolicyV1beta1Api,
-  KubernetesObject,
+  CoreApi,
+  CoreV1Api,
   Exec,
-  V1Deployment,
-  V1Service,
+  HttpError,
+  KubeConfig,
+  KubernetesObject,
   Log as K8sLog,
   NetworkingV1Api,
-  ApiextensionsV1Api,
-  HttpError,
+  PolicyV1beta1Api,
+  RbacAuthorizationV1Api,
+  V1APIGroup,
+  V1APIResource,
+  V1APIVersions,
+  V1Deployment,
+  V1Secret,
+  V1Service,
 } from "@kubernetes/client-node"
-import AsyncLock = require("async-lock")
-import request = require("request-promise")
-import requestErrors = require("request-promise/errors")
 import { safeLoad } from "js-yaml"
 import { readFile } from "fs-extra"
 import WebSocket from "isomorphic-ws"
 
-import { Omit, StringCollector, sleep } from "../../util/util"
-import { omitBy, isObject, isPlainObject, keyBy, flatten } from "lodash"
-import { GardenBaseError, RuntimeError, ConfigurationError } from "../../exceptions"
+import { Omit, sleep, StringCollector } from "../../util/util"
+import { flatten, isObject, isPlainObject, keyBy, omitBy } from "lodash"
+import { ConfigurationError, GardenBaseError, RuntimeError } from "../../exceptions"
 import {
-  KubernetesResource,
-  KubernetesServerResource,
-  KubernetesServerList,
   KubernetesList,
   KubernetesPod,
+  KubernetesResource,
+  KubernetesServerList,
+  KubernetesServerResource,
 } from "./types"
 import { Log } from "../../logger/log-entry"
 import { kubectl } from "./kubectl"
@@ -55,11 +52,14 @@ import { deline, urlJoin } from "../../util/string"
 import { KubernetesProvider } from "./config"
 import { StringMap } from "../../config/common"
 import { PluginContext } from "../../plugin-context"
-import { Writable, Readable, PassThrough } from "stream"
+import { PassThrough, Readable, Writable } from "stream"
 import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
 import { LogLevel } from "../../logger/logger"
 import { safeDumpYaml } from "../../util/serialization"
+import AsyncLock = require("async-lock")
+import request = require("request-promise")
+import requestErrors = require("request-promise/errors")
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -155,17 +155,17 @@ type WrappedApi<T> = {
   // Wrap each API method
   [P in keyof T]:
   T[P] extends (...args: infer A) => Promise<{ response: IncomingMessage; body: infer U }>
-  ? (
-    // If so we wrap it and return the `body` part of the output directly and...
-    // If it's a list, we cast to a KubernetesServerList, which in turn wraps the array type
-    U extends List ? (...args: A) => Promise<WrappedList<U>> :
-    // If it's a resource, we wrap it as a KubernetesResource which makes some attributes required
-    // (as they should be)
-    U extends KubernetesObject ? (...args: A) => Promise<KubernetesServerResource<U>> :
-    // Otherwise we keep the body output type as-is
-    (...args: A) => Promise<U>
-  ) :
-  T[P]
+    ? (
+      // If so we wrap it and return the `body` part of the output directly and...
+      // If it's a list, we cast to a KubernetesServerList, which in turn wraps the array type
+      U extends List ? (...args: A) => Promise<WrappedList<U>> :
+        // If it's a resource, we wrap it as a KubernetesResource which makes some attributes required
+        // (as they should be)
+        U extends KubernetesObject ? (...args: A) => Promise<KubernetesServerResource<U>> :
+          // Otherwise we keep the body output type as-is
+          (...args: A) => Promise<U>
+      ) :
+    T[P]
 }
 
 export interface ExecInPodResult {
@@ -247,13 +247,7 @@ export class KubeApi {
           }
         }
 
-        const info = {
-          coreApi,
-          groups,
-          groupMap,
-        }
-
-        cachedApiInfo[this.context] = info
+        cachedApiInfo[this.context] = { coreApi, groups, groupMap }
       }
 
       return cachedApiInfo[this.context]
