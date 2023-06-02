@@ -1,6 +1,6 @@
-reporter: xunit
+reporter: mocha-junit-reporter
 reporter-option:
-  - output=../../test-results/conftest/results.xml
+  - mochaFile=../../test-results/conftest/test-results.xml
 spec: test/**/*.js
 timeout: 100000
 watch-files:

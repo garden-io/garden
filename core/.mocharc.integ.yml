@@ -5,9 +5,9 @@ ignore:
   - build/test/unit/**/*
   - build/test/e2e/**/*
   - test/,src/,.garden
-reporter: xunit
+reporter: mocha-junit-reporter
 reporter-option:
-  - output=../test-results/core-integ/results.xml
+  - mochaFile=../test-results/core-integ/test-results.xml
 timeout: 50000
 exit: true
 spec:

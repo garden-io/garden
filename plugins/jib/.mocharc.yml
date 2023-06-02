@@ -1,6 +1,6 @@
-reporter: xunit
+reporter: mocha-junit-reporter
 reporter-option:
-  - output=../../test-results/jib/results.xml
+  - mochaFile=../../test-results/jib/test-results.xml
 spec: test/**/*.js
 timeout: 50000
 require:

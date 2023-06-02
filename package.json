@@ -50,6 +50,7 @@
     "markdown-link-check": "^3.9.3",
     "minimatch": "^3.0.4",
     "minimist": "^1.2.6",
+    "mocha-junit-reporter": "^2.2.0",
     "node-jsonl": "^0.1.0",
     "npm-license-crawler": "^0.2.1",
     "prettier": "^2.1.1",

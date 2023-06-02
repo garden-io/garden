@@ -1,6 +1,6 @@
-reporter: xunit
+reporter: mocha-junit-reporter
 reporter-option:
-  - output=../test-results/cli/results.xml
+  - mochaFile=../test-results/cli/test-results.xml
 spec:
   - build/test/setup.js
   - build/test/**/*.js
