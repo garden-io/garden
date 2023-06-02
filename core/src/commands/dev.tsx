@@ -156,7 +156,7 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
   async reload(log: Log) {
     this.commandLine?.disable("🌸  Loading Garden project...")
 
-    const manager = this.getManager(log)
+    const manager = this.getManager(log, undefined)
 
     try {
       await manager.reload(log)

@@ -31,7 +31,13 @@ import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 import { buildExecAction } from "../src/plugins/exec/exec"
 import { convertExecModule } from "../src/plugins/exec/convert"
 import { createSchema, joi, joiArray } from "../src/config/common"
-import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
+import {
+  createGardenPlugin,
+  GardenPluginReference,
+  GardenPluginSpec,
+  ProviderHandlers,
+  RegisterPluginParam,
+} from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { ModuleVersion } from "../src/vcs/vcs"
@@ -470,7 +476,12 @@ export function makeModuleConfig<M extends ModuleConfig = ModuleConfig>(path: st
   }
 }
 
-export const testPlugins = () => [testPlugin(), testPluginB(), testPluginC()]
+export const testPluginReferences: () => GardenPluginReference[] = () =>
+  [testPlugin, testPluginB, testPluginC].map((p) => {
+    const plugin = p()
+    return { name: plugin.name, callback: p }
+  })
+export const testPlugins = () => testPluginReferences().map((p) => p.callback())
 
 export const testProjectTempDirs: { [root: string]: DirectoryResult } = {}
 

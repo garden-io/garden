@@ -10,16 +10,22 @@ import AsyncLock from "async-lock"
 import Bluebird from "bluebird"
 import chalk from "chalk"
 import { Autocompleter, AutocompleteSuggestion } from "../cli/autocomplete"
-import { CloudApi, CloudApiFactoryParams } from "../cloud/api"
+import { parseCliVarFlags } from "../cli/helpers"
+import { ParameterValues } from "../cli/params"
+import { CloudApi, CloudApiFactoryParams, getGardenCloudDomain } from "../cloud/api"
 import type { Command } from "../commands/base"
 import { getBuiltinCommands, flattenCommands } from "../commands/commands"
 import { getCustomCommands } from "../commands/custom"
-import { ServeCommand } from "../commands/serve"
+import type { ServeCommand } from "../commands/serve"
+import { GlobalConfigStore } from "../config-store/global"
+import { ProjectConfig } from "../config/project"
 import { EventBus, GardenEventAnyListener } from "../events"
-import { ConfigDump, Garden, GardenOpts } from "../garden"
+import { ConfigDump, Garden, GardenOpts, makeDummyGarden, resolveGardenParamsPartial } from "../garden"
 import type { Log } from "../logger/log-entry"
 import { MonitorManager } from "../monitors/manager"
+import type { GardenPluginReference } from "../plugin/plugin"
 import { environmentToString } from "../types/namespace"
+import { omitUndefined } from "../util/objects"
 import { AutocompleteCommand, ReloadCommand, LogLevelCommand, HideCommand, _GetDeployStatusCommand } from "./commands"
 import { getGardenInstanceKey, GardenInstanceKeyParams } from "./helpers"
 
@@ -37,6 +43,7 @@ interface ProjectRootContext {
 interface GardenInstanceManagerParams {
   log: Log
   sessionId: string
+  plugins: GardenPluginReference[]
   serveCommand?: ServeCommand
   extraCommands?: Command[]
   defaultOpts?: Partial<GardenOpts>
@@ -49,6 +56,7 @@ let _manager: GardenInstanceManager | undefined
 export class GardenInstanceManager {
   public readonly sessionId: string
 
+  private plugins: GardenPluginReference[]
   private instances: Map<string, InstanceContext>
   private projectRoots: Map<string, ProjectRootContext>
   private cloudApis: Map<string, CloudApi>
@@ -69,13 +77,21 @@ export class GardenInstanceManager {
   public defaultProjectRoot?: string
   public defaultEnv?: string
 
-  private constructor({ log, sessionId, serveCommand, extraCommands, defaultOpts }: GardenInstanceManagerParams) {
+  private constructor({
+    log,
+    sessionId,
+    serveCommand,
+    extraCommands,
+    defaultOpts,
+    plugins,
+  }: GardenInstanceManagerParams) {
     this.sessionId = sessionId
     this.instances = new Map()
     this.projectRoots = new Map()
     this.cloudApis = new Map()
     this.lastRequested = new Map()
     this.defaultOpts = defaultOpts || {}
+    this.plugins = plugins
 
     this.events = new EventBus()
     this.monitors = new MonitorManager(log, this.events)
@@ -136,6 +152,7 @@ export class GardenInstanceManager {
           // and the command-specific Garden (cloned in `Command.run()`) gets its own sessionId.
           sessionId: this.sessionId,
           monitors: this.monitors,
+          plugins: this.plugins,
           ...this.defaultOpts,
           ...garden?.opts,
           ...opts,
@@ -296,5 +313,62 @@ export class GardenInstanceManager {
     }
     this.projectRoots.set(projectRoot, context)
     return context
+  }
+
+  async getGardenForRequest({
+    command,
+    projectConfig,
+    globalConfigStore,
+    log,
+    args,
+    opts,
+    environmentString,
+    sessionId,
+  }: {
+    command?: Command
+    projectConfig: ProjectConfig
+    globalConfigStore: GlobalConfigStore
+    log: Log
+    args: ParameterValues<any>
+    opts: ParameterValues<any>
+    environmentString?: string
+    sessionId: string
+  }) {
+    const cloudApi = await this.getCloudApi({
+      log,
+      cloudDomain: getGardenCloudDomain(projectConfig.domain),
+      globalConfigStore,
+    })
+
+    const gardenOpts: GardenOpts = {
+      cloudApi,
+      commandInfo: { name: command ? command.getFullName() : "serve", args, opts: omitUndefined(opts) },
+      config: projectConfig,
+      environmentString: opts.env || environmentString || this.defaultEnv,
+      globalConfigStore,
+      log,
+      plugins: this.plugins,
+      variableOverrides: parseCliVarFlags(opts.var),
+      sessionId,
+    }
+
+    const projectRoot = projectConfig.path
+
+    if (command && command.noProject) {
+      return makeDummyGarden(projectRoot, gardenOpts)
+    }
+
+    const gardenParams = await resolveGardenParamsPartial(projectRoot, gardenOpts)
+
+    return this.ensureInstance(
+      log,
+      {
+        projectRoot,
+        environmentName: gardenParams.environmentName,
+        namespace: gardenParams.namespace,
+        variableOverrides: gardenOpts.variableOverrides || {},
+      },
+      gardenOpts
+    )
   }
 }

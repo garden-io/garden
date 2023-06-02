@@ -13,19 +13,17 @@ import { Command, CommandParams, CommandResult, ConsoleCommand } from "../comman
 import { createSchema, joi } from "../config/common"
 import type { Log } from "../logger/log-entry"
 import { ParameterValues, ChoicesParameter, StringParameter, StringsParameter, GlobalOptions } from "../cli/params"
-import { parseCliArgs, parseCliVarFlags, pickCommand, processCliArgs } from "../cli/helpers"
+import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
 import type { AutocompleteSuggestion } from "../cli/autocomplete"
 import { naturalList } from "../util/string"
 import { isMatch } from "micromatch"
 import type { GardenInstanceManager } from "./instance-manager"
-import { deepFilter, omitUndefined } from "../util/objects"
-import { GardenOpts, makeDummyGarden, resolveGardenParamsPartial } from "../garden"
+import { deepFilter } from "../util/objects"
 import { isDirectory } from "../util/fs"
 import { pathExists } from "fs-extra"
-import type { ProjectConfig, ProjectResource } from "../config/project"
+import type { ProjectResource } from "../config/project"
 import { findProjectConfig } from "../config/base"
 import type { GlobalConfigStore } from "../config-store/global"
-import { getGardenCloudDomain } from "../cloud/api"
 import type { ParsedArgs } from "minimist"
 import type { ServeCommand } from "../commands/serve"
 import { uuidv4 } from "../util/random"
@@ -410,10 +408,9 @@ export async function resolveRequest({
 
   const sessionId = request.id || uuidv4()
 
-  const garden = await getGardenForRequest({
+  const garden = await manager.getGardenForRequest({
     command,
     log: cmdLog,
-    manager,
     projectConfig,
     globalConfigStore,
     args: cmdArgs,
@@ -436,62 +433,4 @@ export async function resolveRequest({
     rest,
     error: null,
   }
-}
-
-export async function getGardenForRequest({
-  command,
-  manager,
-  projectConfig,
-  globalConfigStore,
-  log,
-  args,
-  opts,
-  environmentString,
-  sessionId,
-}: {
-  command?: Command
-  manager: GardenInstanceManager
-  projectConfig: ProjectConfig
-  globalConfigStore: GlobalConfigStore
-  log: Log
-  args: ParameterValues<any>
-  opts: ParameterValues<any>
-  environmentString?: string
-  sessionId: string
-}) {
-  const cloudApi = await manager.getCloudApi({
-    log,
-    cloudDomain: getGardenCloudDomain(projectConfig.domain),
-    globalConfigStore,
-  })
-
-  const gardenOpts: GardenOpts = {
-    cloudApi,
-    commandInfo: { name: command ? command.getFullName() : "serve", args, opts: omitUndefined(opts) },
-    config: projectConfig,
-    environmentString: opts.env || environmentString || manager.defaultEnv,
-    globalConfigStore,
-    log,
-    variableOverrides: parseCliVarFlags(opts.var),
-    sessionId,
-  }
-
-  const projectRoot = projectConfig.path
-
-  if (command && command.noProject) {
-    return makeDummyGarden(projectRoot, gardenOpts)
-  }
-
-  const gardenParams = await resolveGardenParamsPartial(projectRoot, gardenOpts)
-
-  return manager.ensureInstance(
-    log,
-    {
-      projectRoot,
-      environmentName: gardenParams.environmentName,
-      namespace: gardenParams.namespace,
-      variableOverrides: gardenOpts.variableOverrides || {},
-    },
-    gardenOpts
-  )
 }

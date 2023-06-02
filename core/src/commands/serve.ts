@@ -20,7 +20,7 @@ import { findProjectConfig } from "../config/base"
 import { CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
 import { uuidv4 } from "../util/random"
 import { Garden } from "../garden"
-import { getGardenForRequest } from "../server/commands"
+import { GardenPluginReference } from "../plugin/plugin"
 
 export const defaultServerPort = 9700
 
@@ -52,6 +52,7 @@ export class ServeCommand<
   protected _manager?: GardenInstanceManager
   protected commandLine?: CommandLine
   protected sessionId?: string
+  protected plugins?: GardenPluginReference[]
 
   description = dedent`
     Starts the Garden Core API server for the current project, and your selected environment+namespace.
@@ -79,15 +80,21 @@ export class ServeCommand<
     return false
   }
 
-  async action({ garden, log, opts }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<R>> {
+  async action({
+    garden,
+    log,
+    opts,
+    cli,
+  }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<R>> {
     const sessionId = garden.sessionId
     this.sessionId = sessionId
+    this.plugins = cli?.plugins || []
 
     const projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
 
     let defaultGarden: Garden | undefined
 
-    const manager = this.getManager(log)
+    const manager = this.getManager(log, undefined)
 
     manager.defaultProjectRoot = projectConfig?.path || process.cwd()
     manager.defaultEnv = opts.env
@@ -95,8 +102,7 @@ export class ServeCommand<
     if (projectConfig) {
       // Try loading the default Garden instance based on found project config, to populate autocompleter etc.
       try {
-        defaultGarden = await getGardenForRequest({
-          manager,
+        defaultGarden = await manager.getGardenForRequest({
           projectConfig,
           globalConfigStore: garden.globalConfigStore,
           log,
@@ -214,12 +220,13 @@ export class ServeCommand<
     })
   }
 
-  getManager(log: Log, initialSessionId: string | undefined = undefined): GardenInstanceManager {
+  getManager(log: Log, initialSessionId: string | undefined): GardenInstanceManager {
     if (!this._manager) {
       this._manager = GardenInstanceManager.getInstance({
         log,
         sessionId: this.sessionId || initialSessionId || uuidv4(),
         serveCommand: this,
+        plugins: this.plugins || [],
       })
     }
 
@@ -227,6 +234,6 @@ export class ServeCommand<
   }
 
   async reload(log: Log) {
-    await this.getManager(log).reload(log)
+    await this.getManager(log, undefined).reload(log)
   }
 }
