@@ -59,7 +59,7 @@ describe("ConfigContext", () => {
     context("allowPartial=true", () => {
       it("should throw on missing key when allowPartial=true", async () => {
         const c = new TestContext({})
-        expectError(() => resolveKey(c, ["basic"], { allowPartial: true }), {
+        await expectError(() => resolveKey(c, ["basic"], { allowPartial: true }), {
           contains: "Could not find key basic.",
         })
       })
@@ -68,7 +68,7 @@ describe("ConfigContext", () => {
         const c = new TestContext({
           nested: new TestContext({ key: "value" }),
         })
-        expectError(() => resolveKey(c, ["nested", "bla"], { allowPartial: true }), {
+        await expectError(() => resolveKey(c, ["nested", "bla"], { allowPartial: true }), {
           contains: "Could not find key bla under nested. Available keys: key.",
         })
       })
@@ -76,7 +76,7 @@ describe("ConfigContext", () => {
 
     it("should throw when looking for nested value on primitive", async () => {
       const c = new TestContext({ basic: "value" })
-      expectError(() => resolveKey(c, ["basic", "nested"]), "configuration")
+      await expectError(() => resolveKey(c, ["basic", "nested"]), "configuration")
     })
 
     it("should resolve nested keys", async () => {
@@ -130,7 +130,7 @@ describe("ConfigContext", () => {
       })
       const key = ["nested", "key"]
       const stack = [key.join(".")]
-      expectError(() => c.resolve({ key, nodePath: [], opts: { stack } }), "configuration")
+      await expectError(() => c.resolve({ key, nodePath: [], opts: { stack } }), "configuration")
     })
 
     it("should detect a circular reference from a nested context", async () => {
@@ -145,7 +145,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         nested: new NestedContext(),
       })
-      expectError(() => resolveKey(c, ["nested", "bla"]), "configuration")
+      await expectError(() => resolveKey(c, ["nested", "bla"]), "configuration")
     })
 
     it("should return helpful message when unable to resolve nested key in map", async () => {
@@ -230,7 +230,7 @@ describe("ConfigContext", () => {
 
     it("should detect a self-reference when resolving a template string", async () => {
       const c = new TestContext({ key: "${key}" })
-      expectError(() => resolveKey(c, ["key"]), "template-string")
+      await expectError(() => resolveKey(c, ["key"]), "template-string")
     })
 
     it("should detect a nested self-reference when resolving a template string", async () => {
@@ -239,7 +239,7 @@ describe("ConfigContext", () => {
       })
       const nested = new TestContext({ key: "${nested.key}" }, c)
       c.addValues({ nested })
-      expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
+      await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
 
     it("should detect a circular reference when resolving a template string", async () => {
@@ -248,7 +248,7 @@ describe("ConfigContext", () => {
       })
       const nested: any = new TestContext({ key: "${nested.foo}", foo: "${nested.key}" }, c)
       c.addValues({ nested })
-      expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
+      await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
 
     it("should detect a circular reference when resolving a nested template string", async () => {
@@ -257,7 +257,7 @@ describe("ConfigContext", () => {
       })
       const nested: any = new TestContext({ key: "${nested.foo}", foo: "${'${nested.key}'}" }, c)
       c.addValues({ nested })
-      expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
+      await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
 
     it("should detect a circular reference when nested template string resolves to self", async () => {
@@ -266,7 +266,7 @@ describe("ConfigContext", () => {
       })
       const nested: any = new TestContext({ key: "${'${nested.key}'}" }, c)
       c.addValues({ nested })
-      expectError(() => resolveKey(c, ["nested", "key"]), {
+      await expectError(() => resolveKey(c, ["nested", "key"]), {
         contains:
           "Invalid template string (${'${nested.key}'}): Invalid template string (${nested.key}): Circular reference detected when resolving key nested.key (nested -> nested.key)",
       })

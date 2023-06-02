@@ -10,13 +10,11 @@ import { getContainerTestGarden } from "../container"
 import {
   ClusterBuildkitCacheConfig,
   KubernetesPluginContext,
-  KubernetesProvider
+  KubernetesProvider,
 } from "../../../../../../../src/plugins/kubernetes/config"
 import { Garden } from "../../../../../../../src"
 import { PluginContext } from "../../../../../../../src/plugin-context"
-import {
-  ensureBuildkit,
-} from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
+import { ensureBuildkit } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api"
 import { getNamespaceStatus } from "../../../../../../../src/plugins/kubernetes/namespace"
 import { expect } from "chai"
@@ -49,7 +47,13 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     api = await KubeApi.factory(garden.log, ctx, provider)
-    namespace = (await getNamespaceStatus({ log: garden.log, ctx: ctx as KubernetesPluginContext, provider })).namespaceName
+    namespace = (
+      await getNamespaceStatus({
+        log: garden.log,
+        ctx: ctx as KubernetesPluginContext,
+        provider,
+      })
+    ).namespaceName
   })
 
   after(async () => {

@@ -109,9 +109,9 @@ describe("Log", () => {
         expect(log4.metadata).to.eql(metadata)
       })
       it("should not set empty metadata objects on child entries", () => {
-        const log = logger.createLog()
-        const childLog = log.createLog()
-        expect(log.metadata).to.eql(undefined)
+        const parentLog = logger.createLog()
+        const childLog = parentLog.createLog()
+        expect(parentLog.metadata).to.eql(undefined)
         expect(childLog.metadata).to.eql(undefined)
       })
     })
