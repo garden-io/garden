@@ -21,7 +21,6 @@ import { toGardenError } from "../exceptions"
 import { Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
 import { getTermWidth, renderDivider } from "../logger/util"
-import { getGardenForRequest } from "../server/commands"
 import type { GardenInstanceManager } from "../server/instance-manager"
 import { TypedEventEmitter } from "../util/events"
 import { uuidv4 } from "../util/random"
@@ -724,9 +723,8 @@ ${chalk.white.underline("Keys:")}
         return
       }
 
-      garden = await getGardenForRequest({
+      garden = await this.manager.getGardenForRequest({
         command,
-        manager: this.manager,
         projectConfig,
         globalConfigStore: this.globalConfigStore,
         log: this.log,

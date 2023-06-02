@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { makeTestGardenA, taskResultOutputs, testPlugins } from "../../../helpers"
+import { makeTestGardenA, taskResultOutputs, testPluginReferences } from "../../../helpers"
 import { Server } from "http"
 import { startServer, GardenServer } from "../../../../src/server/server"
 import { Garden } from "../../../../src/garden"
@@ -57,8 +57,8 @@ describe("GardenServer", () => {
       sessionId: garden.sessionId,
       serveCommand,
       extraCommands: [new TestCommand()],
-      defaultOpts: { plugins: [...testPlugins()] },
       force: true,
+      plugins: testPluginReferences(),
     })
     manager.set(garden.log, garden)
     gardenEnv.GARDEN_SERVER_HOSTNAME = hostname

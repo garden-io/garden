@@ -64,7 +64,7 @@ export interface RunOutput {
 export class GardenCli {
   private commands: { [key: string]: Command } = {}
   private fileWritersInitialized: boolean = false
-  private plugins: GardenPluginReference[]
+  public plugins: GardenPluginReference[]
   private initLogger: boolean
   public processRecord: GardenProcess
 
