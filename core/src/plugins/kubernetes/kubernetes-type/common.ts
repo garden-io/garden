@@ -9,13 +9,13 @@
 import { resolve } from "path"
 import { readFile } from "fs-extra"
 import Bluebird from "bluebird"
-import { flatten, set } from "lodash"
+import { flatten, keyBy, set } from "lodash"
 import { safeLoadAll } from "js-yaml"
 
 import { KubernetesModule } from "./module-config"
 import { KubernetesResource } from "../types"
 import { KubeApi } from "../api"
-import { gardenAnnotationKey } from "../../../util/string"
+import { gardenAnnotationKey, stableStringify } from "../../../util/string"
 import { Log } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
 import { ConfigurationError, PluginError } from "../../../exceptions"
@@ -24,9 +24,10 @@ import { HelmModule } from "../helm/module-config"
 import { KubernetesDeployAction } from "./config"
 import { CommonRunParams } from "../../../plugin/handlers/Run/run"
 import { runAndCopy } from "../run"
-import { getTargetResource, getResourcePodSpec, getResourceContainer, makePodName } from "../util"
-import { Resolved } from "../../../actions/types"
+import { getTargetResource, getResourcePodSpec, getResourceContainer, makePodName, getResourceKey } from "../util"
+import { ActionMode, Resolved } from "../../../actions/types"
 import { KubernetesPodRunAction, KubernetesPodTestAction } from "./kubernetes-pod"
+import { V1ConfigMap } from "@kubernetes/client-node"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
@@ -38,16 +39,14 @@ export async function getManifests({
   log,
   action,
   defaultNamespace,
-  readFromSrcDir = false,
 }: {
   ctx: PluginContext
   api: KubeApi
   log: Log
   action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>
   defaultNamespace: string
-  readFromSrcDir?: boolean
 }): Promise<KubernetesResource[]> {
-  const rawManifests = await readManifests(ctx, action, log, readFromSrcDir) as KubernetesResource[]
+  const rawManifests = (await readManifests(ctx, action, log)) as KubernetesResource[]
 
   // remove *List objects
   const manifests = rawManifests.flatMap((manifest) => {
@@ -60,19 +59,24 @@ export async function getManifests({
         return manifest.items as KubernetesResource[]
       } else {
         throw new PluginError("Failed to read Kubernetes manifest: Encountered an invalid List manifest", {
-          manifest
+          manifest,
         })
       }
     }
     return manifest
   })
 
+  if (action.kind === "Deploy") {
+    // Add metadata ConfigMap to aid quick status check
+    manifests.push(getMetadataManifest(action, defaultNamespace, manifests))
+  }
+
   return Bluebird.map(manifests, async (manifest) => {
     // Ensure a namespace is set, if not already set, and if required by the resource type
     if (!manifest.metadata?.namespace) {
       if (!manifest.metadata) {
         // TODO: Type system complains that name is missing
-        (manifest as any).metadata = {}
+        ;(manifest as any).metadata = {}
       }
 
       const info = await api.getApiResourceInfo(log, manifest.apiVersion, manifest.kind)
@@ -102,26 +106,80 @@ export async function getManifests({
   })
 }
 
+export interface ManifestMetadata {
+  key: string
+  apiVersion: string
+  kind: string
+  name: string
+  namespace: string
+}
+
+export interface ParsedMetadataManifestData {
+  resolvedVersion: string
+  mode: ActionMode
+  manifestMetadata: { [key: string]: ManifestMetadata }
+}
+
+export function getMetadataManifest(
+  action: Resolved<KubernetesDeployAction>,
+  defaultNamespace: string,
+  manifests: KubernetesResource[]
+): KubernetesResource<V1ConfigMap> {
+  const manifestMetadata: ManifestMetadata[] = manifests.map((m) => ({
+    key: getResourceKey(m),
+    apiVersion: m.apiVersion,
+    kind: m.kind,
+    name: m.metadata.name,
+    namespace: m.metadata.namespace || defaultNamespace,
+  }))
+
+  return {
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    metadata: {
+      name: `garden-meta-${action.kind.toLowerCase()}-${action.name}`,
+    },
+    data: {
+      resolvedVersion: action.versionString(),
+      mode: action.mode(),
+      manifestMetadata: stableStringify(keyBy(manifestMetadata, "key")),
+    },
+  }
+}
+
+export function parseMetadataResource(log: Log, resource: KubernetesResource<V1ConfigMap>): ParsedMetadataManifestData {
+  // TODO: validate schema here
+  const output: ParsedMetadataManifestData = {
+    resolvedVersion: resource.data?.resolvedVersion || "",
+    mode: (resource.data?.mode || "default") as ActionMode,
+    manifestMetadata: {},
+  }
+
+  const manifestMetadata = resource.data?.manifestMetadata
+
+  if (manifestMetadata) {
+    try {
+      // TODO: validate by schema
+      output.manifestMetadata = JSON.parse(manifestMetadata)
+    } catch (error) {
+      log.debug({ msg: `Failed querying for remote resources: ${error.message}`, error })
+    }
+  }
+
+  return output
+}
+
 const disallowedKustomizeArgs = ["-o", "--output", "-h", "--help"]
 
 /**
  * Read the manifests from the module config, as well as any referenced files in the config.
- *
- * @param module The kubernetes module to read manifests for.
- * @param readFromSrcDir Whether or not to read the manifests from the module build dir or from the module source dir.
- * In general we want to read from the build dir to ensure that manifests added via the `build.dependencies[].copy`
- * field will be included. However, in some cases, e.g. when getting the service status, we can't be certain that
- * the build has been staged and we therefore read the manifests from the source.
- *
- * TODO: Remove this once we're checking for kubernetes module service statuses with version hashes.
  */
 export async function readManifests(
   ctx: PluginContext,
   action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
-  log: Log,
-  readFromSrcDir = false
+  log: Log
 ) {
-  const manifestPath = readFromSrcDir ? action.basePath() : action.getBuildPath()
+  const manifestPath = action.getBuildPath()
 
   const spec = action.getSpec()
 

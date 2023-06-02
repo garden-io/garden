@@ -48,13 +48,12 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     action,
     imageId,
   })
-  let { state, remoteResources, mode: deployedMode, selectorChangedResourceKeys } = await compareDeployedResources(
-    k8sCtx,
-    api,
-    namespace,
-    manifests,
-    log
-  )
+  let {
+    state,
+    remoteResources,
+    mode: deployedMode,
+    selectorChangedResourceKeys,
+  } = await compareDeployedResources({ ctx: k8sCtx, api, namespace, manifests, log })
   const ingresses = await getIngresses(action, api, provider)
 
   return prepareContainerDeployStatus({

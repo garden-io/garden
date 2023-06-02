@@ -22,7 +22,7 @@ export async function getKubernetesTestGarden() {
     return kubernetesTestGarden
   }
 
-  const projectRoot = getDataDir("test-projects", "kubernetes-module")
+  const projectRoot = getDataDir("test-projects", "kubernetes-type")
   const garden = await makeTestGarden(projectRoot)
 
   kubernetesTestGarden = garden
@@ -60,7 +60,7 @@ describe("readManifests", () => {
       action["_config"].spec.kustomize!.extraArgs = ["--output", "foo"]
 
       await expectError(
-        () => readManifests(ctx, action, garden.log, false),
+        () => readManifests(ctx, action, garden.log),
         (err) => expect(err.message).to.equal(expectedErr)
       )
     })
@@ -69,7 +69,7 @@ describe("readManifests", () => {
       action["_config"].spec.kustomize!.extraArgs = ["-o", "foo"]
 
       await expectError(
-        () => readManifests(ctx, action, garden.log, false),
+        () => readManifests(ctx, action, garden.log),
         (err) => expect(err.message).to.equal(expectedErr)
       )
     })
@@ -78,7 +78,7 @@ describe("readManifests", () => {
       action["_config"].spec.kustomize!.extraArgs = ["-h"]
 
       await expectError(
-        () => readManifests(ctx, action, garden.log, false),
+        () => readManifests(ctx, action, garden.log),
         (err) => expect(err.message).to.equal(expectedErr)
       )
     })
@@ -87,20 +87,20 @@ describe("readManifests", () => {
       action["_config"].spec.kustomize!.extraArgs = ["--help"]
 
       await expectError(
-        () => readManifests(ctx, action, garden.log, false),
+        () => readManifests(ctx, action, garden.log),
         (err) => expect(err.message).to.equal(expectedErr)
       )
     })
 
     it("runs kustomize build in the given path", async () => {
-      const result = await readManifests(ctx, action, garden.log, true)
+      const result = await readManifests(ctx, action, garden.log)
       const kinds = result.map((r) => r.kind)
       expect(kinds).to.have.members(["ConfigMap", "Service", "Deployment"])
     })
 
     it("adds extraArgs if specified to the build command", async () => {
       action["_config"].spec.kustomize!.extraArgs = ["--reorder", "none"]
-      const result = await readManifests(ctx, action, garden.log, true)
+      const result = await readManifests(ctx, action, garden.log)
       const kinds = result.map((r) => r.kind)
       expect(kinds).to.eql(["Deployment", "Service", "ConfigMap"])
     })

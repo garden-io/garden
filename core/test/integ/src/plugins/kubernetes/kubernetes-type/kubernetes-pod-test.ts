@@ -48,7 +48,7 @@ describe("kubernetes-type pod Test", () => {
     expect(result!.outputs).to.exist
     expect(result!.result!.outputs).to.exist
     expect(result!.result!.detail?.log.trim()).to.equal("ok")
-    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.equal("kubernetes-module-test-default")
+    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.equal("kubernetes-type-test-default")
   })
 
   it("should run a test in different namespace, if configured", async () => {

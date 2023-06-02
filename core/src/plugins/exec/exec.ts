@@ -78,12 +78,14 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
   const outputLog = result.all?.trim() || ""
   if (outputLog) {
     const prefix = `Finished executing ${chalk.white(action.key())}. Here is the full output:`
-    log.verbose(renderMessageWithDivider({
-      prefix,
-      msg: outputLog,
-      isError: false,
-      color: chalk.gray
-    }))
+    log.verbose(
+      renderMessageWithDivider({
+        prefix,
+        msg: outputLog,
+        isError: false,
+        color: chalk.gray,
+      })
+    )
   }
 
   const detail = {
@@ -127,12 +129,14 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
 
   if (outputLog) {
     const prefix = `Finished running task ${chalk.white(action.name)}. Here is the full output:`
-    log.verbose(renderMessageWithDivider({
-      prefix,
-      msg: outputLog,
-      isError: false,
-      color: chalk.gray
-    }))
+    log.verbose(
+      renderMessageWithDivider({
+        prefix,
+        msg: outputLog,
+        isError: false,
+        color: chalk.gray,
+      })
+    )
   }
 
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
