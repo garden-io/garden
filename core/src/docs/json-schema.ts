@@ -12,19 +12,21 @@ import { ValidationError } from "../exceptions"
 import { safeDumpYaml } from "../util/serialization"
 
 export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
-  private schema: any
-  private allowedValues?: string[]
+  schema: any
+  allowedValues?: string[]
 
   constructor({
     schema,
     name,
     level,
     parent,
+    required = false,
   }: {
     schema: any
     name: string | undefined
     level: number
     parent?: BaseKeyDescription
+    required?: boolean
   }) {
     super(name, level, parent)
 
@@ -44,7 +46,7 @@ export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
     this.description = schema.description
     this.experimental = !!schema["x-garden-experimental"]
     this.internal = !!schema["x-garden-internal"]
-    this.required = false
+    this.required = required
 
     if (schema.enum) {
       this.allowedValuesOnly = true

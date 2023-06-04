@@ -9,6 +9,7 @@
 import { projectActionParamsSchema, PluginActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
+import { BaseProviderConfig } from "../../../config/provider"
 
 export interface DebugInfo {
   info: any
@@ -18,7 +19,7 @@ export interface DebugInfoMap {
   [key: string]: DebugInfo
 }
 
-export interface GetDebugInfoParams extends PluginActionParamsBase {
+export interface GetDebugInfoParams<C extends BaseProviderConfig = any> extends PluginActionParamsBase<C> {
   includeProject: boolean
 }
 

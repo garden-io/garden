@@ -10,7 +10,7 @@
 export const getSupportedPlugins = () => [
   { name: "container", callback: () => require("./container/container").gardenPlugin() },
   { name: "exec", callback: () => require("./exec/exec").gardenPlugin() },
-  { name: "hadolint", callback: () => require("./hadolint/hadolint").gardenPlugin() },
+  { name: "hadolint", callback: () => require("./hadolint/hadolint").gardenPlugin.getSpec() },
   { name: "kubernetes", callback: () => require("./kubernetes/kubernetes").gardenPlugin() },
   { name: "local-kubernetes", callback: () => require("./kubernetes/local/local").gardenPlugin() },
   { name: "openshift", callback: () => require("./openshift/openshift").gardenPlugin() },

@@ -144,7 +144,7 @@ export function makeActionCompletePayload<
   A extends Action,
   R extends ValidExecutionActionResultType = {
     state: ActionState
-    outputs: A["_outputs"]
+    outputs: A["_runtimeOutputs"]
     detail: any
     version: string
   }

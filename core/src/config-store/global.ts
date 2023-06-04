@@ -75,7 +75,7 @@ const globalConfigSchema = z.object({
     passed: z.boolean().optional().describe("Whether the last check passed the requirements."),
   }),
 })
-
+type conf = typeof globalConfigSchema
 export type GlobalConfig = z.infer<typeof globalConfigSchema>
 export type AnalyticsGlobalConfig = GlobalConfig["analytics"]
 export type ClientAuthToken = z.infer<typeof clientAuthTokenSchema>

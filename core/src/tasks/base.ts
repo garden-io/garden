@@ -392,7 +392,7 @@ export function emitGetStatusEvents<
   A extends Action,
   R extends ValidExecutionActionResultType = {
     state: ActionState
-    outputs: A["_outputs"]
+    outputs: A["_runtimeOutputs"]
     detail: any
     version: string
   }
@@ -421,7 +421,10 @@ export function emitGetStatusEvents<
     const startedAt = new Date().toISOString()
 
     // First we emit the "getting-status" event
-    this.garden.events.emit(eventName, makeActionGetStatusPayload({ action: this.action, force: this.force, startedAt }))
+    this.garden.events.emit(
+      eventName,
+      makeActionGetStatusPayload({ action: this.action, force: this.force, startedAt })
+    )
 
     try {
       const result = (await method.apply(this, args)) as R & ExecuteActionOutputs<A>
@@ -462,7 +465,7 @@ export function emitProcessingEvents<
   A extends Action,
   R extends ValidExecutionActionResultType = {
     state: ActionState
-    outputs: A["_outputs"]
+    outputs: A["_runtimeOutputs"]
     detail: any
     version: string
   }
@@ -523,7 +526,7 @@ export abstract class ExecuteActionTask<
   T extends Action,
   O extends ValidExecutionActionResultType = {
     state: ActionState
-    outputs: T["_outputs"]
+    outputs: T["_runtimeOutputs"]
     detail: any
     version: string
   }

@@ -53,8 +53,8 @@ const pluginDependencySchema = createSchema({
 
 export interface GardenPluginSpec {
   name: string
-  base?: string
-  docs?: string
+  base?: string | null
+  docs?: string | null
 
   configSchema?: Joi.ObjectSchema
   outputsSchema?: Joi.ObjectSchema
@@ -105,7 +105,7 @@ export const pluginSchema = createSchema({
   description: "The schema for Garden plugins.",
   keys: () => ({
     name: joiIdentifier().required().description("The name of the plugin."),
-    base: joiIdentifier().description(dedent`
+    base: joiIdentifier().allow(null).description(dedent`
       Name of a plugin to use as a base for this plugin. If you specify this, your provider will inherit all of the
       schema and functionality from the base plugin. Please review other fields for information on how individual
       fields can be overridden or extended.
@@ -123,7 +123,7 @@ export const pluginSchema = createSchema({
       dependency may result in a match with multiple other plugins, if they share a matching base plugin.
     `),
 
-    docs: joi.string().description(dedent`
+    docs: joi.string().allow(null).description(dedent`
       A description of the provider, in markdown format. Please provide a useful introduction, and link to any
       other relevant documentation, such as guides, examples and module types.
     `),

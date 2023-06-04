@@ -75,7 +75,7 @@ export interface ExecBuildActionSpec extends CommonKeys {
 }
 
 export type ExecBuildConfig = BuildActionConfig<"exec", ExecBuildActionSpec>
-export type ExecBuild = BuildAction<ExecBuildConfig, ExecOutputs>
+export type ExecBuild = BuildAction<ExecBuildConfig, ExecOutputs, {}>
 
 export const execBuildActionSchema = createSchema({
   name: "exec:Build",
