@@ -118,7 +118,7 @@ interface Annotations {
 }
 
 const deploymentStrategies = ["RollingUpdate", "Recreate"] as const
-export type DeploymentStrategy = typeof deploymentStrategies[number]
+export type DeploymentStrategy = (typeof deploymentStrategies)[number]
 export const defaultDeploymentStrategy: DeploymentStrategy = "RollingUpdate"
 
 export const commandExample = ["/bin/sh", "-c"]
@@ -1059,4 +1059,8 @@ export type ContainerActionConfig =
   | ContainerBuildActionConfig
 
 export type ContainerRuntimeAction = ContainerDeployAction | ContainerRunAction | ContainerTestAction
+export type ContainerRuntimeActionConfig =
+  | ContainerDeployActionConfig
+  | ContainerRunActionConfig
+  | ContainerTestActionConfig
 export type ContainerAction = ContainerRuntimeAction | ContainerBuildAction
