@@ -5,7 +5,7 @@ local: true
 services:
   - name: sync-mode
     syncMode:
-      command: [/bin/sh -c "while true; do sleep 10000; done"]
+      command: [/bin/sh -c "while true; do sleep 1000; done"]
     deployCommand: []
   - name: sync-mode-with-logs
     syncMode:
@@ -18,7 +18,7 @@ services:
   - name: sync-mode-timeout
     persistent: true
     devMode:
-      command: [/bin/sh -c "while true; do sleep 10000; done"]
+      command: [/bin/sh -c "while true; do sleep 1000; done"]
       statusCommand: [/bin/sh -c "echo Status command output; exit 1"]
       timeout: 3
     deployCommand: []

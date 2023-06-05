@@ -287,8 +287,8 @@ async function killProcess(log: Log, pidFilePath: string, deployName: string) {
       const oldPid = parseInt(pidString, 10)
       if (isRunning(oldPid)) {
         try {
-          await killRecursive("INT", oldPid)
-          log.debug(`Sent SIGINT to existing ${deployName} process (PID ${oldPid})`)
+          await killRecursive("SIGTERM", oldPid)
+          log.debug(`Sent SIGTERM to existing ${deployName} process (PID ${oldPid})`)
         } catch (err) {
           // This most likely means that the process had already been terminated, which is fine for our purposes here.
           log.debug(`An error occurred while deleting existing ${deployName} process (PID ${oldPid}): ${err.message}`)
@@ -311,6 +311,7 @@ async function resetLogFile(logFilePath: string) {
 
 function runPersistent({
   action,
+  log,
   env,
   deployName,
   logFilePath,
@@ -344,6 +345,8 @@ function runPersistent({
 
   const shell = !!action.getSpec().shell
   const { cmd, args } = convertCommandSpec(action.getSpec("deployCommand"), shell)
+
+  log.debug(`Starting command '${cmd} ${args.join(" ")}'`)
 
   const proc = execa(cmd, args, {
     cwd: action.getBuildPath(),
