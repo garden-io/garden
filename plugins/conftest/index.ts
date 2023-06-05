@@ -352,7 +352,7 @@ export const gardenPlugin = () =>
                   name: module.name + "-conftest",
                   ...params.baseFields,
 
-                  build: module.spec.sourceModule ? convertBuildDependency(module.spec.sourceModule) : undefined,
+                  build: module.spec.sourceModule ? convertBuildDependency(module.spec.sourceModule).name : undefined,
                   timeout: 10,
                   include: module.spec.files,
 
