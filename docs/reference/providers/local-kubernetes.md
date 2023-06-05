@@ -9,9 +9,9 @@ tocTitle: "`local-kubernetes`"
 
 The `local-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that automates and simplifies working with local Kubernetes clusters.
 
-For general Kubernetes usage information, please refer to the [Kubernetes guides](https://docs.garden.io/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](https://docs.garden.io/kubernetes-plugins/local-k8s) guide. The [Quickstart Guide](https://docs.garden.io/basics/quickstart) guide is also helpful as an introduction.
+For general Kubernetes usage information, please refer to the [Kubernetes guides](https://docs.garden.io/v/acorn-0.12/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](https://docs.garden.io/v/acorn-0.12/kubernetes-plugins/local-k8s) guide. The [Quickstart Guide](https://docs.garden.io/v/acorn-0.12/basics/quickstart) guide is also helpful as an introduction.
 
-If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/kubernetes-plugins/remote-k8s) guide.
+If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/v/acorn-0.12/kubernetes-plugins/remote-k8s) guide.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
@@ -36,7 +36,8 @@ providers:
     # between multiple developers, as well as between your development and CI workflows.
     #
     # For more details on all the different options and what makes sense to use for your setup, please check out the
-    # [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
+    # [in-cluster building
+    # guide](https://docs.garden.io/v/acorn-0.12/kubernetes-plugins/advanced/in-cluster-building).
     #
     # **Note:** The `cluster-docker` mode has been deprecated and will be removed in a future release!
     buildMode: local-docker
@@ -323,8 +324,8 @@ providers:
       # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden
       # deploy` command.
       #
-      # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
-      # information.
+      # See the [Code Synchronization guide](https://docs.garden.io/v/acorn-0.12/guides/code-synchronization-dev-mode)
+      # for more information.
       defaults:
         # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
         #
@@ -614,7 +615,7 @@ providers:
 
 Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
+For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/v/acorn-0.12/kubernetes-plugins/advanced/in-cluster-building).
 
 **Note:** The `cluster-docker` mode has been deprecated and will be removed in a future release!
 
@@ -1311,7 +1312,7 @@ These are overridden/extended by the settings of any individual dev mode sync sp
 
 Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/v/acorn-0.12/guides/code-synchronization-dev-mode) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -2470,7 +2471,7 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
 certificate. See our
-[cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
+[cert-manager integration guide](https://docs.garden.io/v/acorn-0.12/advanced/cert-manager-integration) for details.
 
 | Type     | Required |
 | -------- | -------- |
@@ -2493,7 +2494,7 @@ providers:
 {% endhint %}
 
 cert-manager configuration, for creating and managing TLS certificates. See the
-[cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
+[cert-manager guide](https://docs.garden.io/v/acorn-0.12/advanced/cert-manager-integration) for details.
 
 | Type     | Required |
 | -------- | -------- |
@@ -2508,7 +2509,7 @@ cert-manager configuration, for creating and managing TLS certificates. See the
 {% endhint %}
 
 Automatically install `cert-manager` on initialization. See the
-[cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
+[cert-manager integration guide](https://docs.garden.io/v/acorn-0.12/advanced/cert-manager-integration) for details.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

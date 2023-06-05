@@ -42,4 +42,4 @@ garden call hello
 Hello from Node! Usernames: John, Paul, George, Ringo
 ```
 
-For more complex use-cases and additional configuration options please refer to the [docs](https://docs.garden.io/using-garden/tasks).
+For more complex use-cases and additional configuration options please refer to the [docs](https://docs.garden.io/v/acorn-0.12/using-garden/tasks).

@@ -40,7 +40,7 @@ import { LogEntry } from "../logger/log-entry"
 import { PrimitiveMap } from "../config/common"
 import { isAbsolute, relative } from "path"
 import { getDefaultProfiler } from "./profiling"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants"
 import split2 = require("split2")
 import Bluebird = require("bluebird")
 import execa = require("execa")
@@ -236,7 +236,7 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
         dedent`
         Received EMFILE (Too many open files) error when running ${cmd}.
 
-        This may mean there are too many files in the project, and that you need to exclude large dependency directories. Please see https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories for information on how to do that.
+        This may mean there are too many files in the project, and that you need to exclude large dependency directories. Please see ${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories for information on how to do that.
 
         This can also be due to limits on open file descriptors being too low. Here is one guide on how to configure those limits for different platforms: https://docs.riak.com/riak/kv/latest/using/performance/open-files-limit/index.html
         `,
@@ -559,6 +559,7 @@ export async function loadYamlFile(path: string): Promise<any> {
 
 export interface ObjectWithName {
   name: string
+
   [key: string]: any
 }
 

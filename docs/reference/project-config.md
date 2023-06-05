@@ -106,8 +106,8 @@ defaultEnvironment: ''
 # Note that these take precedence over the project `module.include` field, and module `include` fields, so any paths
 # matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
 # See the [Configuration Files
-# guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-# details.
+# guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories)
+# for details.
 dotIgnoreFiles:
 
 proxy:
@@ -122,8 +122,8 @@ modules:
   #
   # Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source
   # tree, which use the same format as `.gitignore` files. See the [Configuration Files
-  # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-  # details.
+  # guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories)
+  # for details.
   #
   # Unlike the `exclude` field, the paths/globs specified here have _no effect_ on which files and directories Garden
   # watches for changes. Use the `exclude` field to affect those, if you have large directories that should not be
@@ -146,8 +146,8 @@ modules:
   # The `include` field does _not_ affect which files are watched.
   #
   # See the [Configuration Files
-  # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-  # details.
+  # guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories)
+  # for details.
   exclude:
 
 # A list of output values that the project should export. These are exported by the `garden get outputs` command, as
@@ -483,7 +483,7 @@ defaultEnvironment: "dev"
 
 Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for modules and module sources (Note: prior to version 0.12.0, `.gitignore` files were also used by default).
 Note that these take precedence over the project `module.include` field, and module `include` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
-See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+See the [Configuration Files guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 | Type               | Default             | Required |
 | ------------------ | ------------------- | -------- |
@@ -537,7 +537,7 @@ Control where to scan for modules in the project.
 
 Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
 
-Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Unlike the `exclude` field, the paths/globs specified here have _no effect_ on which files and directories Garden watches for changes. Use the `exclude` field to affect those, if you have large directories that should not be watched for changes.
 
@@ -570,7 +570,7 @@ Note that you can also explicitly _include_ files using the `include` field. If 
 
 The `include` field does _not_ affect which files are watched.
 
-See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+See the [Configuration Files guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 | Type               | Required |
 | ------------------ | -------- |

@@ -21,12 +21,13 @@ import { wordWrap } from "../../util/string"
 import { LoggerType } from "../../logger/logger"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
 import { userPrompt } from "../../util/util"
+import { DOCS_BASE_URL } from "../../constants"
 
 const ignorefileName = ".gardenignore"
 const defaultIgnorefile = dedent`
 # Add paths here that you would like Garden to ignore when building modules and computing versions,
 # using the same syntax as .gitignore files.
-# For more info, see https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories
+# For more info, see ${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories
 `
 
 export const defaultProjectConfigFilename = "project.garden.yml"
@@ -190,8 +191,8 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
     // This is to avoid `prettier` messing with the string formatting...
     const formattedIgnoreName = chalk.bold.white(".gardenignore")
-    const configFilesUrl = chalk.cyan.underline("https://docs.garden.io/using-garden/configuration-overview")
-    const referenceUrl = chalk.cyan.underline("https://docs.garden.io/reference/config")
+    const configFilesUrl = chalk.cyan.underline(`${DOCS_BASE_URL}/using-garden/configuration-overview`)
+    const referenceUrl = chalk.cyan.underline(`${DOCS_BASE_URL}/reference/config`)
 
     log.info({
       symbol: "info",

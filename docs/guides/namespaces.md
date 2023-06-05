@@ -1,13 +1,13 @@
 # Environments and namespaces
 
-Every Garden project has one or more environments that are defined in the project level Garden configuration. Teams often define environments such as `dev`, `ci`, and `prod`. 
+Every Garden project has one or more environments that are defined in the project level Garden configuration. Teams often define environments such as `dev`, `ci`, and `prod`.
 
 Each environment can be broken down into several "namespaces", and each Garden run operates in a specific namespace. (This is not to be confused with a Kubernetes Namespace resource, although you will often use the same name for your Garden namespace and your Kubernetes Namespace.)
 
 To specify which Garden namespace to use, you can use either of the following:
 
 - Set a specific namespace using the CLI with the `--env` flag and prepending the namespace to the environment name using the following format `--env <namespace>.<environment>`
-- Specify the default namespace in your Garden configuration file, using the [`defaultNamespace`](https://docs.garden.io/reference/project-config#environments-.defaultnamespace) field under the `environments` specification.
+- Specify the default namespace in your Garden configuration file, using the [`defaultNamespace`](https://docs.garden.io/v/acorn-0.12/reference/project-config#environments-.defaultnamespace) field under the `environments` specification.
 
 ## Using namespaces
 
@@ -24,7 +24,7 @@ Below is an opinionated guide on configuring environments and namespaces and the
 
 1. Add any of ``dev``, `ci`, `preview` and `prod` environments to your project.
 2. For namespaces in the `dev` environment, template in the user’s name.
-3. For namespaces in the `ci` environment, template in the build number from your CI runner. 
+3. For namespaces in the `ci` environment, template in the build number from your CI runner.
 4. For namespaces in the `preview` environment, template in the PR number.
 5. Use a deterministic namespace for your `prod` environment.
 6. In the `kubernetes` provider config, set `namespace: ${environment.namespace}`. This ensures the Kubernetes namespace corresponds to the Garden namespace.
@@ -72,7 +72,7 @@ providers:
 This allows each developer to get a unique namespace and a unique hostname for each service. Some further notes:
 
 * The `dev-env-name` namespace will be something like `my-project-janedoe` so each developer has a unique namespace per project.
-* The hostname variable can be re-used in the module configuration. When using the container module type, you can e.g. set hostname: `my-service.${var.hostname}` under the [`services.ingress`](https://docs.garden.io/reference/module-types/container#services-.ingresses) field. A similar approach can be used for other module types.
+* The hostname variable can be re-used in the module configuration. When using the container module type, you can e.g. set hostname: `my-service.${var.hostname}` under the [`services.ingress`](https://docs.garden.io/v/acorn-0.12/reference/module-types/container#services-.ingresses) field. A similar approach can be used for other module types.
 
 This serves as a good base for naming your hostnames and namespaces, but you can tweak it further to meet your specific needs. For example, at Garden we use a similar scheme for our CI and preview environments, but we use the PR or build number as a further unique identifier.
 

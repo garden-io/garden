@@ -22,10 +22,11 @@ import { isConfiguredForDevMode } from "./status/status"
 import { k8sSyncUtilImageName } from "./constants"
 import { isAbsolute } from "path"
 import { enumerate } from "../../util/enumerate"
+import { DOCS_BASE_URL } from "../../constants"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
-export const devModeGuideLink = "https://docs.garden.io/guides/code-synchronization-dev-mode"
+export const devModeGuideLink = `${DOCS_BASE_URL}/guides/code-synchronization-dev-mode`
 
 interface ConfigureDevModeParams {
   target: SyncableResource

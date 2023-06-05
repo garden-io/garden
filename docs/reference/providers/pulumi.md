@@ -9,7 +9,7 @@ tocTitle: "`pulumi`"
 
 **EXPERIMENTAL**
 
-This provider allows you to integrate [Pulumi](https://pulumi.com) stacks into your Garden project, via [`pulumi` modules](https://docs.garden.io/reference/module-types/pulumi).
+This provider allows you to integrate [Pulumi](https://pulumi.com) stacks into your Garden project, via [`pulumi` modules](https://docs.garden.io/v/acorn-0.12/reference/module-types/pulumi).
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 

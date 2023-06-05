@@ -16,7 +16,7 @@ import {
   PrimitiveMap,
   joiSparseArray,
 } from "./common"
-import { DEFAULT_API_VERSION } from "../constants"
+import { DEFAULT_API_VERSION, DOCS_BASE_URL } from "../constants"
 import { deline, dedent } from "../util/string"
 import { ServiceLimitSpec } from "../plugins/container/config"
 import { Garden } from "../garden"
@@ -261,7 +261,7 @@ export const workflowStepSchema = () => {
 
         \`never\`: This step will always be ignored.
 
-        See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
+        See the [workflows guide](${DOCS_BASE_URL}/using-garden/workflows#the-skip-and-when-options) for details
         and examples.
         `),
     })
