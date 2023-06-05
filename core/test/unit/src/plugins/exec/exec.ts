@@ -757,7 +757,7 @@ describe("exec plugin", () => {
         afterEach(async () => {
           if (pid > 1) {
             try {
-              await killRecursive("KILL", pid)
+              await killRecursive("SIGKILL", pid)
             } catch (_err) {}
           }
         })
