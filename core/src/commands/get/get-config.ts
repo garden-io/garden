@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams } from "../base"
+import { Command, CommandResult, CommandParams, suggestedCommandSchema } from "../base"
 import { ConfigDump } from "../../garden"
 import { environmentNameSchema, projectSourceSchema } from "../../config/project"
 import { joiIdentifier, joiVariables, joiArray, joi, joiStringMap } from "../../config/common"
@@ -65,6 +65,9 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
       projectId: joi.string().optional().description("The project ID (Garden Cloud only)."),
       domain: joi.string().optional().description("The Garden Cloud domain (Garden Cloud only)."),
       sources: joi.array().items(projectSourceSchema()).description("All configured external project sources."),
+      suggestedCommands: joiArray(suggestedCommandSchema()).description(
+        "A list of suggested commands to run in the project."
+      ),
     })
 
   options = getConfigOptions

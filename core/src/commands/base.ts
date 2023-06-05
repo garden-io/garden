@@ -84,6 +84,48 @@ export interface RunCommandParams<A extends Parameters = {}, O extends Parameter
   parentSessionId: string | null
 }
 
+export interface SuggestedCommand {
+  description: string
+  source?: string
+  gardenCommand?: string
+  shellCommand?: {
+    command: string
+    args: string[]
+    cwd: string
+  }
+  openUrl?: string
+  icon?: {
+    name: string
+    src?: string
+  }
+}
+
+export const suggestedCommandSchema = createSchema({
+  name: "suggested-command",
+  keys: () => ({
+    description: joi.string().required().description("Short description of what the command does."),
+    source: joi.string().description("The source of the suggestion, e.g. a plugin name."),
+    gardenCommand: joi.string().description("A Garden command to run (including arguments)."),
+    shellCommand: joi
+      .object()
+      .keys({
+        command: joi.string().required().description("The shell command to run (without arguments)."),
+        args: joi.array().items(joi.string()).required().description("Arguments to pass to the command."),
+        cwd: joi.string().required().description("Absolute path to run the shell command in."),
+      })
+      .description("A shell command to run."),
+    openUrl: joi.string().description("A URL to open in a browser window."),
+    icon: joi
+      .object()
+      .keys({
+        name: joi.string().required().description("A string reference (and alt text) for the icon."),
+        src: joi.string().description("A URI for the image. May be a data URI."),
+      })
+      .description("The icon to display next to the command, where applicable (e.g. in dashboard or Garden Desktop)."),
+  }),
+  xor: [["gardenCommand", "shellCommand", "openUrl"]],
+})
+
 type DataCallback = (data: string) => void
 
 export abstract class Command<A extends Parameters = {}, O extends Parameters = {}, R = any> {
