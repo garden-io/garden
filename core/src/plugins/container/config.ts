@@ -21,7 +21,7 @@ import {
 } from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { GardenService, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
-import { DEFAULT_PORT_PROTOCOL } from "../../constants"
+import { DEFAULT_PORT_PROTOCOL, DOCS_BASE_URL } from "../../constants"
 import { BaseBuildSpec, baseBuildSpecSchema, ModuleConfig, ModuleSpec } from "../../config/module"
 import { baseServiceSpecSchema, CommonServiceSpec, ServiceConfig } from "../../config/service"
 import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
@@ -283,7 +283,7 @@ const devModeSyncSchema = () =>
       .only()
       .default("one-way-safe")
       .description(
-        "The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details."
+        `The sync mode to use for the given paths. See the [Dev Mode guide](${DOCS_BASE_URL}/guides/code-synchronization-dev-mode) for details.`
       ),
     defaultFileMode: syncDefaultFileModeSchema(),
     defaultDirectoryMode: syncDefaultDirectoryModeSchema(),

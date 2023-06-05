@@ -10,4 +10,4 @@ To see the generated modules in detail, you can run `garden get modules --output
 
 To test the example with a local Kubernetes cluster, simply run `garden deploy`.
 
-For more complex use-cases and additional configuration options please refer to the [docs](https://docs.garden.io/using-garden/module-templates).
+For more complex use-cases and additional configuration options please refer to the [docs](https://docs.garden.io/v/acorn-0.12/using-garden/module-templates).

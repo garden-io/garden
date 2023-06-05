@@ -6,6 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { DOCS_BASE_URL } from "../../../../src/constants"
+
 const nodetree = require("nodetree")
 import readdir from "@jsdevtools/readdir-enhanced"
 import { join, basename } from "path"
@@ -243,7 +245,7 @@ describe("BuildStagingRsync", () => {
       `Please make sure rsync (version ${minRsyncVersion} or later) is installed and on your PATH.`
     )
     expect(err.message).to.include(
-      "More about garden installation and requirements can be found in our documentation at https://docs.garden.io/guides/installation"
+      `More about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/guides/installation`
     )
   }
 

@@ -10,6 +10,7 @@ import semver from "semver"
 import { RuntimeError } from "../exceptions"
 import { deline } from "./string"
 import { exec } from "./util"
+import { DOCS_BASE_URL } from "../constants"
 
 type BinaryVersionCheckParams = {
   name: string
@@ -23,7 +24,7 @@ function versionCheckError(params: BinaryVersionCheckParams, msg: string, detail
     deline`
       ${msg}
       Please make sure ${params.name} (version ${params.minVersion} or later) is installed and on your PATH.
-      More about garden installation and requirements can be found in our documentation at https://docs.garden.io/guides/installation
+      More about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/guides/installation
       `,
     detail
   )

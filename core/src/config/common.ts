@@ -12,7 +12,7 @@ import { splitLast } from "../util/util"
 import { deline, dedent } from "../util/string"
 import { cloneDeep, isArray } from "lodash"
 import { joiPathPlaceholder } from "./validation"
-import { DEFAULT_API_VERSION } from "../constants"
+import { DEFAULT_API_VERSION, DOCS_BASE_URL } from "../constants"
 
 export const objectSpreadKey = "$merge"
 export const arrayConcatKey = "$concat"
@@ -27,9 +27,11 @@ export type Primitive = string | number | boolean | null
 export interface StringMap {
   [key: string]: string
 }
+
 export interface PrimitiveMap {
   [key: string]: Primitive
 }
+
 export interface DeepPrimitiveMap {
   [key: string]: Primitive | DeepPrimitiveMap | Primitive[] | DeepPrimitiveMap[]
 }
@@ -38,8 +40,7 @@ export interface DeepPrimitiveMap {
 //   spec: Omit<T, keyof S> & Partial<S>
 // }
 
-export const includeGuideLink =
-  "https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories"
+export const includeGuideLink = `${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories`
 
 export const enumToArray = (Enum) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
 
@@ -115,6 +116,7 @@ declare module "@hapi/joi" {
 
 export interface CustomObjectSchema extends Joi.ObjectSchema {
   concat(schema: object): this
+
   jsonSchema(schema: object): this
 }
 
@@ -124,9 +126,13 @@ export interface GitUrlSchema extends Joi.StringSchema {
 
 export interface PosixPathSchema extends Joi.StringSchema {
   absoluteOnly(): this
+
   allowGlobs(): this
+
   filenameOnly(): this
+
   relativeOnly(): this
+
   subPathOnly(): this
 }
 

@@ -44,7 +44,7 @@ or `set -g default-terminal "tmux-256color"` to your `~/.tmux.conf` file.
 
 ### Garden hangs after resolving providers.
 
-This could be because Garden is scanning the project files. Make sure you exclude things like `node_modules` or other large vendor directories. See this [section of our docs](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories).
+This could be because Garden is scanning the project files. Make sure you exclude things like `node_modules` or other large vendor directories. See this [section of our docs](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories).
 
 ### Ingress not working for `helm` and `kubernetes` modules.
 
@@ -86,7 +86,7 @@ On EKS, you can use `efs` instead, which may be more stable and scalable than th
 
 On AKS, you can use `azurefile`.
 
-You'll need to install the provisioners yourself and override the [`storage.sync.storageClass`](https://docs.garden.io/reference/providers/kubernetes#providers-storage-sync) field in the `kubernetes` provider config.
+You'll need to install the provisioners yourself and override the [`storage.sync.storageClass`](https://docs.garden.io/v/acorn-0.12/reference/providers/kubernetes#providers-storage-sync) field in the `kubernetes` provider config.
 
 ### Release `garden-nginx` times out when using the `local-kubernetes` provider.
 
@@ -112,7 +112,7 @@ This is a bug in Docker CE (i.e. Docker for Desktop), version `2.4.x.y`. See thi
 
 In some container repositories, you may need to create the cache repo manually.
 
-See [this section](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building#kaniko) of our docs and this [GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) for more details.
+See [this section](https://docs.garden.io/v/acorn-0.12/kubernetes-plugins/advanced/in-cluster-building#kaniko) of our docs and this [GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) for more details.
 
 ### Can't reach my services on existing ingress URLs after re-installing Garden system services.
 

@@ -10,14 +10,14 @@ You can skip this step and use Garden's built-in in-cluster registry.
 
 The in-cluster registry is a simple way to get started with Garden that requires no configuration but is not a particularly good approach for clusters with many users or lots of builds.
 
-You can learn more in our [advanced in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
+You can learn more in our [advanced in-cluster building guide](https://docs.garden.io/v/acorn-0.12/kubernetes-plugins/advanced/in-cluster-building).
 {% endhint %}
 
 You'll need a container registry to be able to push and pull your container images. We typically refer to this as a **deployment registry**.
 
 Garden needs access to the registry so that it can _push_ the images that it builds and your Kubernetes cluster needs access so that it can pull the images. This access is provided via an "image pull secret". It can be a single secret used by both or two (or more) secrets.
 
-At the end of this step you should have a container registry set up, created an image pull secret (or secrets), and have the following values at hand: 
+At the end of this step you should have a container registry set up, created an image pull secret (or secrets), and have the following values at hand:
 
 * The name of the image pull secret (or secrets).
 * The name of the namespace were you created the image pull secret (or secrets).

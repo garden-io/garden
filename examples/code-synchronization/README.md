@@ -69,4 +69,4 @@ And you can verify the change by running `garden call node-service` again:
 }
 ```
 
-Check out the [docs](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information on dev mode and code synchronization.
+Check out the [docs](https://docs.garden.io/v/acorn-0.12/guides/code-synchronization-dev-mode) for more information on dev mode and code synchronization.

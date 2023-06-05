@@ -100,8 +100,7 @@ export async function configureProvider({
       await emitWarning({
         key: "cluster-docker-deprecated",
         log,
-        message:
-          "The cluster-docker build mode has been deprecated. Please see the docs for details: https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building",
+        message: `The cluster-docker build mode has been deprecated. Please see the docs for details: ${DOCS_BASE_URL}/kubernetes-plugins/advanced/in-cluster-building`,
       })
 
       config._systemServices.push("build-sync", "util", "docker-daemon")

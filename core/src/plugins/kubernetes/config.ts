@@ -47,6 +47,7 @@ import { runPodSpecIncludeFields } from "./run"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { devModeGuideLink } from "./dev-mode"
 import { localModeGuideLink } from "./local-mode"
+import { DOCS_BASE_URL } from "../../constants"
 
 export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.8.1-debug"
 
@@ -466,7 +467,7 @@ const tlsCertificateSchema = () =>
         dedent`
       Set to \`cert-manager\` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
       certificate. See our
-      [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
+      [cert-manager integration guide](${DOCS_BASE_URL}/advanced/cert-manager-integration) for details.
     `
       )
       .allow("cert-manager")
@@ -545,7 +546,7 @@ export const kubernetesConfigBase = () =>
         dedent`
         Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-        For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
+        For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](${DOCS_BASE_URL}/kubernetes-plugins/advanced/in-cluster-building).
 
         **Note:** The \`cluster-docker\` mode has been deprecated and will be removed in a future release!
         `
@@ -901,7 +902,7 @@ export const kubernetesConfigBase = () =>
           .description(
             dedent`
           Automatically install \`cert-manager\` on initialization. See the
-          [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
+          [cert-manager integration guide](${DOCS_BASE_URL}/advanced/cert-manager-integration) for details.
         `
           )
           .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
@@ -941,7 +942,7 @@ export const kubernetesConfigBase = () =>
       })
       .description(
         dedent`cert-manager configuration, for creating and managing TLS certificates. See the
-        [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.`
+        [cert-manager guide](${DOCS_BASE_URL}/advanced/cert-manager-integration) for details.`
       )
       .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
     _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),

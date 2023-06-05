@@ -1296,7 +1296,7 @@ providers:
         #
         # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
         # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-        # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+        # guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
         # Also note that specifying an empty list here means _no sources_ should be included.
@@ -1309,7 +1309,7 @@ providers:
         # Note that you can also explicitly _include_ files using the `include` field. If you also specify the
         # `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
         # [Configuration Files
-        # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+        # guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
         # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files
@@ -1594,8 +1594,8 @@ moduleConfigs:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-    # details.
+    # guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # for details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
     include:
@@ -1607,8 +1607,8 @@ moduleConfigs:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-    # details.
+    # guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # for details.
     #
     # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
     # directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
@@ -1908,8 +1908,8 @@ workflowConfigs:
         #
         # `never`: This step will always be ignored.
         #
-        # See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for
-        # details
+        # See the [workflows
+        # guide](https://docs.garden.io/v/acorn-0.12/using-garden/workflows#the-skip-and-when-options) for details
         # and examples.
         when:
 
@@ -2094,8 +2094,8 @@ modules:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-    # details.
+    # guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # for details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
     include:
@@ -2107,8 +2107,8 @@ modules:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-    # details.
+    # guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # for details.
     #
     # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
     # directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large

@@ -8,7 +8,7 @@ tocTitle: "`helm`"
 ## Description
 
 Specify a Helm chart (either in your repository or remote from a registry) to deploy.
-Refer to the [Helm guide](https://docs.garden.io/kubernetes-plugins/module-types/helm) for usage instructions.
+Refer to the [Helm guide](https://docs.garden.io/v/acorn-0.12/kubernetes-plugins/module-types/helm) for usage instructions.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
@@ -75,8 +75,8 @@ disabled: false
 #
 # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source
 # tree, which use the same format as `.gitignore` files. See the [Configuration Files
-# guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-# details.
+# guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories)
+# for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
 #
@@ -93,7 +93,8 @@ include:
 #
 # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
 # field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration
-# Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+# Files
+# guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
 # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -188,8 +189,8 @@ dependencies: []
 # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy`
 # command.
 #
-# See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
-# information.
+# See the [Code Synchronization guide](https://docs.garden.io/v/acorn-0.12/guides/code-synchronization-dev-mode) for
+# more information.
 devMode:
   # Override the default container arguments when in dev mode.
   args:
@@ -213,7 +214,7 @@ devMode:
       source: .
 
       # The sync mode to use for the given paths. See the [Dev Mode
-      # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
+      # guide](https://docs.garden.io/v/acorn-0.12/guides/code-synchronization-dev-mode) for details.
       mode: one-way-safe
 
       # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user
@@ -260,7 +261,8 @@ devMode:
 #
 # Health checks are disabled for services running in local mode.
 #
-# See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+# See the [Local Mode guide](https://docs.garden.io/v/acorn-0.12/guides/running-service-in-local-mode) for more
+# information.
 localMode:
   # The reverse port-forwards configuration for the local application.
   ports:
@@ -760,7 +762,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
@@ -786,7 +788,7 @@ include:
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/v/acorn-0.12/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
@@ -974,7 +976,7 @@ Note that `serviceResource` must also be specified to enable dev mode.
 
 Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/v/acorn-0.12/guides/code-synchronization-dev-mode) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1075,7 +1077,7 @@ devMode:
 
 [devMode](#devmode) > [sync](#devmodesync) > mode
 
-The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
+The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/v/acorn-0.12/guides/code-synchronization-dev-mode) for details.
 
 | Type     | Allowed Values                                                                                                                            | Default          | Required |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
@@ -1148,7 +1150,7 @@ Local mode always takes the precedence over dev mode if there are any conflictin
 
 Health checks are disabled for services running in local mode.
 
-See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+See the [Local Mode guide](https://docs.garden.io/v/acorn-0.12/guides/running-service-in-local-mode) for more information.
 
 | Type     | Required |
 | -------- | -------- |

@@ -63,7 +63,7 @@ With that in mind, we recommend using `cacheStatus = true` in your pulumi module
 
 The pulumi plugin also comes with plugin-specific commands, which are designed to run pulumi commands in dependency order (and with access to Garden's full config/templating capabilities).
 
-The currently available plugin commands are: 
+The currently available plugin commands are:
 * `preview`
 * `cancel`
 * `refresh`
@@ -84,6 +84,6 @@ garden plugins pulumi preview -- my-pulumi-module my-other-pulumi-module
 
 Check out the [`pulumi` example](https://github.com/garden-io/garden/tree/0.12.56/examples/pulumi) project.
 
-Also take a look at the [pulumi provider reference](https://docs.garden.io/reference/providers/pulumi) and the [pulumi module type reference](https://docs.garden.io/reference/module-types/pulumi) for details on all the configuration parameters.
+Also take a look at the [pulumi provider reference](https://docs.garden.io/v/acorn-0.12/reference/providers/pulumi) and the [pulumi module type reference](https://docs.garden.io/v/acorn-0.12/reference/module-types/pulumi) for details on all the configuration parameters.
 
 If you're having issues with pulumi itself, please refer to the [official docs](https://www.pulumi.com/docs/).

@@ -36,8 +36,9 @@ import { KubernetesService } from "./kubernetes-module/config"
 import { HelmService } from "./helm/config"
 import getPort = require("get-port")
 import touch = require("touch")
+import { DOCS_BASE_URL } from "../../constants"
 
-export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode"
+export const localModeGuideLink = `${DOCS_BASE_URL}/guides/running-service-in-local-mode`
 
 const localhost = "127.0.0.1"
 
