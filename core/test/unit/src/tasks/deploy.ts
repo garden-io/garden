@@ -101,7 +101,10 @@ describe("DeployTask", () => {
         internal: {
           basePath: "foo",
         },
-        dependencies: ["deploy.dep-deploy", "run.test-run"],
+        dependencies: [
+          { kind: "Deploy", name: "dep-deploy" },
+          { kind: "Run", name: "test-run" },
+        ],
         disabled: false,
 
         spec: {

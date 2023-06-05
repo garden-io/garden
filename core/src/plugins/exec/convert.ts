@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { StringMap } from "../../config/common"
+import { ActionReference, StringMap } from "../../config/common"
 import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
 import { ExecActionConfig, ExecBuildConfig, defaultStatusTimeout } from "./config"
 import { ExecModule } from "./moduleConfig"
@@ -53,7 +53,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
   const buildAction = prepareExecBuildAction(params)
   buildAction && actions.push(buildAction)
 
-  function prepRuntimeDeps(deps: string[]): string[] {
+  function prepRuntimeDeps(deps: string[]): ActionReference[] {
     if (buildAction) {
       return convertRuntimeDependencies(deps)
     } else {

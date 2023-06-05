@@ -338,7 +338,7 @@ export const gardenPlugin = () =>
                 if (!action.dependencies) {
                   action.dependencies = []
                 }
-                action.dependencies.push("build." + buildAction.name)
+                action.dependencies.push({ kind: "Build", name: buildAction.name })
               }
             }
 

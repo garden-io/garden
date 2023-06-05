@@ -84,7 +84,7 @@ export const gardenPlugin = () =>
                   files,
                   helmDeploy: action.name,
                 },
-                dependencies: [`deploy.${action.name}`],
+                dependencies: [{ kind: "Deploy", name: action.name }],
               }
             } else {
               return {
