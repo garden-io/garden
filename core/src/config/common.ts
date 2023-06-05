@@ -42,8 +42,6 @@ export interface DeepPrimitiveMap {
 
 export const includeGuideLink = `${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories`
 
-export const enumToArray = (Enum) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
-
 // Extend the Joi module with our custom rules
 interface MetadataKeys {
   internal?: boolean
