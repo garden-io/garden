@@ -24,6 +24,7 @@ import {
   ContainerBuildActionSpec,
   ContainerModule,
   ContainerModuleConfig,
+  ContainerRuntimeActionConfig,
   defaultContainerResources,
   defaultDeploymentStrategy,
   defaultDockerfileName,
@@ -36,6 +37,11 @@ import {
   GardenApiVersion,
 } from "../../../../../src/constants"
 import { resolve } from "path"
+import { ConvertModuleParams } from "../../../../../src/plugin/handlers/Module/convert"
+import { omit } from "lodash"
+import { GardenTask, taskFromConfig } from "../../../../../src/types/task"
+import { GardenService, serviceFromConfig } from "../../../../../src/types/service"
+import { GardenTest, testFromConfig } from "../../../../../src/types/test"
 
 describe("plugins.container", () => {
   const projectRoot = getDataDir("test-project-container")
@@ -85,7 +91,19 @@ describe("plugins.container", () => {
   })
 
   describe("convertContainerModule", () => {
-    const getModuleConvertBaseParams = (module: GardenModule) => ({
+    const getModuleConvertBaseParams = ({
+      module,
+      services = [],
+      tasks = [],
+      tests = [],
+      prepareRuntimeDependencies = true,
+    }: {
+      module: GardenModule
+      services?: GardenService[]
+      tasks?: GardenTask[]
+      tests?: GardenTest[]
+      prepareRuntimeDependencies?: boolean
+    }): ConvertModuleParams<ContainerModule> => ({
       baseFields: {
         copyFrom: [],
         disabled: false,
@@ -100,14 +118,14 @@ describe("plugins.container", () => {
       dummyBuild: undefined,
       log,
       module,
-      prepareRuntimeDependencies: () => ["preopRuntimeDep"],
-      services: [],
-      tasks: [],
-      tests: [],
+      prepareRuntimeDependencies: prepareRuntimeDependencies ? () => ["preopRuntimeDep"] : () => [],
+      services,
+      tasks,
+      tests,
     })
     it("creates a Build action if there is a Dockerfile detected", async () => {
       const module = graph.getModule("module-a")
-      const result = await convertContainerModule(getModuleConvertBaseParams(module))
+      const result = await convertContainerModule(getModuleConvertBaseParams({ module }))
       const build = result.group.actions.find((a) => a.kind === "Build")!
       expect(build).to.exist
       expect(build.type).to.be.eql("container")
@@ -116,7 +134,7 @@ describe("plugins.container", () => {
     it("creates a Build action if there is a Dockerfile explicitly configured", async () => {
       const module = graph.getModule("module-a") as ContainerModule
       module._config.spec.dockerfile = "Dockerfile"
-      const result = await convertContainerModule(getModuleConvertBaseParams(module))
+      const result = await convertContainerModule(getModuleConvertBaseParams({ module }))
       const build = result.group.actions.find((a) => a.kind === "Build")!
       expect(build).to.exist
       expect(build.type).to.be.eql("container")
@@ -138,7 +156,7 @@ describe("plugins.container", () => {
           env: {},
         },
       }
-      const result = await convertContainerModule({ ...getModuleConvertBaseParams(module), dummyBuild })
+      const result = await convertContainerModule({ ...getModuleConvertBaseParams({ module }), dummyBuild })
       const build = result.group.actions.find((a) => a.kind === "Build")!
       expect(build).to.exist
       expect(build.type).to.be.eql("exec")
@@ -148,11 +166,71 @@ describe("plugins.container", () => {
     it("sets spec.localId from module image field", async () => {
       const module = graph.getModule("module-a") as ContainerModule
       module.spec.image = "customImage"
-      const result = await convertContainerModule(getModuleConvertBaseParams(module))
+      const result = await convertContainerModule(getModuleConvertBaseParams({ module }))
       const build = result.group.actions.find((a) => a.kind === "Build")!
       expect(build).to.exist
       expect(build.type).to.be.eql("container")
       expect((<ContainerBuildActionSpec>build.spec).localId).to.be.eql("customImage")
+    })
+
+    it("corrently converts a module with volume usage", async () => {
+      const module = graph.getModule("module-a") as ContainerModule
+      const volumesSpec = [
+        {
+          containerPath: ".",
+          name: "test-volume",
+          module: "test-pvc",
+        },
+        // a volume with no Module but a hostPath instead
+        {
+          containerPath: ".",
+          name: "test-volume",
+          hostPath: "testPath",
+        },
+      ]
+      module.spec.services[0].volumes = volumesSpec
+      module.spec.tasks[0].volumes = volumesSpec
+      const moduleGraph = graph.moduleGraph
+      const result = await convertContainerModule(
+        getModuleConvertBaseParams({
+          module,
+          services: module.serviceConfigs.map((c) => serviceFromConfig(moduleGraph, module, c)),
+          tasks: module.taskConfigs.map((c) => taskFromConfig(module, c)),
+          tests: [
+            testFromConfig(
+              module,
+              {
+                dependencies: [],
+                disabled: false,
+                name: "test",
+                spec: {
+                  volumes: [...volumesSpec],
+                },
+                timeout: 1,
+              },
+              moduleGraph
+            ),
+          ],
+          prepareRuntimeDependencies: false,
+        })
+      )
+      const build = result.group.actions.find((a) => a.kind === "Build")!
+      const run = result.group.actions.find((a) => a.kind === "Run")!
+      const test = result.group.actions.find((a) => a.kind === "Test")!
+      const deploy = result.group.actions.find((a) => a.kind === "Deploy")!
+
+      expect(build.dependencies?.length, "builds don't get the pvc dependency").to.eql(0)
+
+      for (const runtimeAction of [run, test, deploy] as ContainerRuntimeActionConfig[]) {
+        expect(runtimeAction.dependencies?.length, "dependency is created only for actoin referenced modules").to.eql(1)
+        expect(runtimeAction.dependencies![0]).to.eql({ name: "test-pvc", kind: "Deploy" })
+        expect(runtimeAction.spec.volumes.length).to.eql(2)
+        expect(runtimeAction.spec.volumes[0]).to.eql({
+          ...omit(volumesSpec[0], "module"),
+          action: { name: "test-pvc", kind: "Deploy" },
+        })
+        expect(runtimeAction.spec.volumes[1]).to.eql({ ...volumesSpec[1], action: undefined })
+      }
     })
   })
 
@@ -219,13 +297,6 @@ describe("plugins.container", () => {
       expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
     })
   })
-
-  //   describe("convert", () => {
-  //     // TODO-G2: adapt from exec convert tests
-  //     it("TODO", () => {
-  //       throw "TODO"
-  //     })
-  //   })
 
   describe("configureContainerModule", () => {
     const containerModuleConfig: ContainerModuleConfig = {
