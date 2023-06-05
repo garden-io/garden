@@ -200,12 +200,16 @@ export async function getStackVersionTag({ log, ctx, provider, action }: PulumiP
 
 // TODO: Use REST API instead of calling the CLI here.
 export async function clearStackVersionTag({ log, ctx, provider, action }: PulumiParams): Promise<void> {
-  await pulumi(ctx, provider).stdout({
-    log,
-    args: ["stack", "tag", "rm", stackVersionKey],
-    env: ensureEnv({ log, ctx, provider, action }),
-    cwd: getActionStackRoot(action),
-  })
+  try {
+    await pulumi(ctx, provider).stdout({
+      log,
+      args: ["stack", "tag", "rm", stackVersionKey],
+      env: ensureEnv({ log, ctx, provider, action }),
+      cwd: getActionStackRoot(action),
+    })
+  } catch (err) {
+    log.debug(err.message)
+  }
 }
 
 export function getStackName(action: Resolved<PulumiDeploy>): string {
