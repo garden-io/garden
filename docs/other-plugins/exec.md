@@ -45,7 +45,7 @@ providers:
     # ...
 ```
 
-The log output of the `initScript` can be accessed via `"${providers.exec.outputs.initScript.log}"` template sstring.
+The log output of the `initScript` can be accessed via `"${providers.exec.outputs.initScript.log}"` template string.
 
 ## Action Configuration
 
