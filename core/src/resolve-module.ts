@@ -30,7 +30,7 @@ import {
 import { BuildDependencyConfig, ModuleConfig, moduleConfigSchema } from "./config/module"
 import { Profile, profileAsync } from "./util/profiling"
 import { getLinkedSources } from "./util/ext-source-util"
-import { allowUnknown, DeepPrimitiveMap } from "./config/common"
+import { ActionReference, allowUnknown, DeepPrimitiveMap } from "./config/common"
 import type { ProviderMap } from "./config/provider"
 import chalk from "chalk"
 import { DependencyGraph } from "./graph/common"
@@ -677,22 +677,22 @@ export const convertModules = profileAsync(async function convertModules(
       }
     }
 
-    const convertBuildDependency = (d: string | BuildDependencyConfig) => {
+    const convertBuildDependency = (d: string | BuildDependencyConfig): ActionReference => {
       if (typeof d === "string") {
-        return "build." + d
+        return { kind: "Build", name: d }
       } else {
-        return "build." + d.name
+        return { kind: "Build", name: d.name }
       }
     }
 
-    const convertRuntimeDependencies = (deps: string[]): string[] => {
-      const resolved: string[] = []
+    const convertRuntimeDependencies = (deps: string[]): ActionReference[] => {
+      const resolved: ActionReference[] = []
 
       for (const d of deps || []) {
         if (allServices[d]) {
-          resolved.push("deploy." + d)
+          resolved.push({ kind: "Deploy", name: d })
         } else if (allTasks[d]) {
-          resolved.push("run." + d)
+          resolved.push({ kind: "Run", name: d })
         }
       }
 
@@ -735,9 +735,9 @@ export const convertModules = profileAsync(async function convertModules(
 
       convertRuntimeDependencies,
       prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig<string, any>) {
-        const resolved: string[] = convertRuntimeDependencies(deps)
+        const resolved: ActionReference[] = convertRuntimeDependencies(deps)
         if (build) {
-          resolved.push("build." + build.name)
+          resolved.push({ kind: "Build", name: build.name })
         }
         return resolved
       },
@@ -782,7 +782,7 @@ export function makeDummyBuild({
   // To make it clear at the call site that we're not inferring `copyFrom` or `dependencies` from `module`, we  ask the
   // caller to explicitly provide `undefined` instead of making the param optional.
   copyFrom: BuildCopyFrom[] | undefined
-  dependencies: string[] | undefined
+  dependencies: ActionReference[] | undefined
 }): ExecBuildConfig {
   return {
     kind: "Build",

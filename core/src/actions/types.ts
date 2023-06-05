@@ -72,7 +72,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
 
   // Flow/execution control
   // -> Templating with ActionConfigContext allowed
-  dependencies?: (string | ActionReference)[]
+  dependencies?: ActionReference[]
   disabled?: boolean
 
   // Version/file handling

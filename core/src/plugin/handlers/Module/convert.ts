@@ -10,7 +10,7 @@ import { dedent } from "../../../util/string"
 import { PluginContext, pluginContextSchema } from "../../../plugin-context"
 import { logEntrySchema, PluginActionContextParams } from "../../base"
 import { BuildDependencyConfig } from "../../../config/module"
-import { joi, joiArray } from "../../../config/common"
+import { ActionReference, joi, joiArray } from "../../../config/common"
 import { Log } from "../../../logger/log-entry"
 import { GroupConfig, groupConfig } from "../../../config/group"
 import { GardenModule, moduleSchema } from "../../../types/module"
@@ -43,9 +43,9 @@ export interface ConvertModuleParams<T extends GardenModule = GardenModule> exte
     }
   }
   convertTestName: (d: string) => string
-  convertBuildDependency: (d: string | BuildDependencyConfig) => string
-  convertRuntimeDependencies: (d: string[]) => string[]
-  prepareRuntimeDependencies: (deps: string[], build: BuildActionConfig<string, any> | undefined) => string[]
+  convertBuildDependency: (d: string | BuildDependencyConfig) => ActionReference
+  convertRuntimeDependencies: (d: string[]) => ActionReference[]
+  prepareRuntimeDependencies: (deps: string[], build: BuildActionConfig<string, any> | undefined) => ActionReference[]
 }
 
 export interface ConvertModuleResult {
