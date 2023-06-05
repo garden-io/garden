@@ -148,6 +148,7 @@ import { convertTemplatedModuleToRender, RenderTemplateConfig, renderConfigTempl
 import { MonitorManager } from "./monitors/manager"
 import { AnalyticsHandler } from "./analytics/analytics"
 import { getGardenInstanceKey } from "./server/helpers"
+import { SuggestedCommand } from "./commands/base"
 
 const defaultLocalAddress = "localhost"
 
@@ -638,7 +639,9 @@ export class Garden {
   }
 
   getRawProviderConfigs({ names, allowMissing = false }: { names?: string[]; allowMissing?: boolean } = {}) {
-    return names ? findByNames({ names, entries: this.providerConfigs, description: "provider", allowMissing }) : this.providerConfigs
+    return names
+      ? findByNames({ names, entries: this.providerConfigs, description: "provider", allowMissing })
+      : this.providerConfigs
   }
 
   async resolveProvider(log: Log, name: string) {
@@ -1299,7 +1302,7 @@ export class Garden {
         }
 
         for (const config of actionConfigs) {
-          this.addActionConfig((config as unknown) as BaseActionConfig)
+          this.addActionConfig(config as unknown as BaseActionConfig)
           actionsCount++
         }
       }
@@ -1595,7 +1598,21 @@ export class Garden {
       projectId: this.projectId,
       domain: this.cloudDomain,
       sources: this.projectSources,
+      suggestedCommands: await this.getSuggestedCommands(),
     }
+  }
+
+  public async getSuggestedCommands(): Promise<SuggestedCommand[]> {
+    const suggestions: SuggestedCommand[] = [
+      {
+        description: "Deploy the whole project",
+        gardenCommand: "deploy",
+      }
+    ]
+
+    // TODO: call plugin handlers to get plugin-specific suggestions
+
+    return suggestions
   }
 
   /** Returns whether the user is logged in to the Garden Cloud */
@@ -1951,6 +1968,7 @@ export interface ConfigDump {
   projectId?: string
   domain?: string
   sources: SourceConfig[]
+  suggestedCommands: SuggestedCommand[]
 }
 
 export interface GetConfigGraphParams {

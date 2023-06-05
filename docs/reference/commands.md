@@ -2781,6 +2781,39 @@ sources:
     # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
     # branch or tag, with the format: <git remote url>#<branch|tag>
     repositoryUrl:
+
+# A list of suggested commands to run in the project.
+suggestedCommands:
+  - # Short description of what the command does.
+    description:
+
+    # The source of the suggestion, e.g. a plugin name.
+    source:
+
+    # A Garden command to run (including arguments).
+    gardenCommand:
+
+    # A shell command to run.
+    shellCommand:
+      # The shell command to run (without arguments).
+      command:
+
+      # Arguments to pass to the command.
+      args:
+
+      # Absolute path to run the shell command in.
+      cwd:
+
+    # A URL to open in a browser window.
+    openUrl:
+
+    # The icon to display next to the command, where applicable (e.g. in dashboard or Garden Desktop).
+    icon:
+      # A string reference (and alt text) for the icon.
+      name:
+
+      # A URI for the image. May be a data URI.
+      src:
 ```
 
 ### garden get linked-repos
