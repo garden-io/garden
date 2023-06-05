@@ -184,29 +184,6 @@ commands:
 
             kubectl config set-context kind-kind
 
-  update_nodejs:
-    description: Update Node.js
-    steps:
-      - run:
-          name: Update Node.js
-          command: |
-            # NVM is already installed, we just need to load it...
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            # ...export for subsequent runs...
-            echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
-            echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-            nvm install v18
-            nvm alias default v18
-            nvm use default
-            # ...and finally symlink for when calling Garden with sudo below
-            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
-            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
-            sudo npm install -g yarn
-      - run:
-          name: "Enforce nvm use default"
-          command: |
-            echo "nvm use default" >> $BASH_ENV
-
   configure_remote_cluster:
     description: Configure the kubectl context via gcloud so that we can access our remote cluster. Used for e2e testing.
     steps:
@@ -576,7 +553,6 @@ jobs:
       - install_kubectl
       - install_kind:
           kindNodeImage: <<parameters.kindNodeImage>>
-      - update_nodejs
       - configure_git
       - npm_install:
           context: vm
@@ -611,7 +587,6 @@ jobs:
       - docker_login
       - install_kind:
           kindNodeImage: <<parameters.kindNodeImage>>
-      - update_nodejs
       - configure_git
       - npm_install:
           context: vm
@@ -673,7 +648,6 @@ jobs:
             sudo chown -R circleci:circleci /home/circleci/.kube
             echo 'export PATH=/snap/bin:$PATH' >> $BASH_ENV
             echo "********* env prepped! *********"
-      - update_nodejs
       - configure_git
       - npm_install:
           context: vm
@@ -720,7 +694,6 @@ jobs:
             sudo apt-get update
             sudo apt install nfs-common conntrack
       - docker_login
-      - update_nodejs
       - configure_git
       - npm_install:
           context: vm
@@ -753,7 +726,7 @@ jobs:
             GARDEN_SKIP_TESTS="<<parameters.skipTests>>" yarn _integ
       - run:
           name: Deploy demo-project
-          command: sudo -E ./bin/garden deploy --root examples/demo-project
+          command: ./bin/garden deploy --root examples/demo-project
 
   test-macos:
     macos:
@@ -761,9 +734,6 @@ jobs:
     steps:
       - checkout
       - *attach-workspace
-      # - run:
-      #     name: Configure Node.js
-      #     command: nvm install v18 && nvm alias default v18
       - run:
           name: brew install
           command: brew install docker kubectl git
