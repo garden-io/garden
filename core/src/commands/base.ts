@@ -11,14 +11,28 @@ import chalk from "chalk"
 import dedent from "dedent"
 import stripAnsi from "strip-ansi"
 import { fromPairs, mapValues, pickBy, size } from "lodash"
-import { PrimitiveMap, createSchema, joi, joiArray, joiIdentifierMap, joiStringMap, joiVariables } from "../config/common"
+import {
+  PrimitiveMap,
+  createSchema,
+  joi,
+  joiArray,
+  joiIdentifierMap,
+  joiStringMap,
+  joiVariables,
+} from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { capitalize } from "lodash"
-import { getCloudDistributionName, getCloudLogSectionName, getDurationMsec, getPackageVersion, userPrompt } from "../util/util"
+import {
+  getCloudDistributionName,
+  getCloudLogSectionName,
+  getDurationMsec,
+  getPackageVersion,
+  userPrompt,
+} from "../util/util"
 import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, Parameters, globalOptions } from "../cli/params"
 import { GardenCli } from "../cli/cli"
@@ -29,7 +43,14 @@ import { BufferedEventStream } from "../cloud/buffered-event-stream"
 import { CommandInfo } from "../plugin-context"
 import type { GardenServer } from "../server/server"
 import { CloudSession } from "../cloud/api"
-import { DeployState, ForwardablePort, ServiceIngress, deployStates, forwardablePortSchema, serviceIngressSchema } from "../types/service"
+import {
+  DeployState,
+  ForwardablePort,
+  ServiceIngress,
+  deployStates,
+  forwardablePortSchema,
+  serviceIngressSchema,
+} from "../types/service"
 import { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from "../graph/results"
 import { splitFirst } from "../util/string"
 import { ActionMode } from "../actions/types"
@@ -269,13 +290,14 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
       const distroName = getCloudDistributionName(cloudSession.api.domain)
       const userId = (await cloudSession.api.getProfile()).id
       const commandResultUrl = cloudSession.api.getCommandResultUrl({
+        shortId: cloudSession.shortId,
         sessionId: garden.sessionId,
         projectId: cloudSession.projectId,
         userId,
       }).href
       const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
-      const msg = dedent`🌸  Connected to ${distroName}. View logs and command results at: \n\n${chalk.cyan(
+      const msg = dedent`🌸  Connected to ${distroName}. View logs and command results at: ${chalk.cyan(
         commandResultUrl
       )}\n`
       cloudLog.info(msg)
@@ -670,7 +692,7 @@ const buildResultForExportSchema = createSchema({
   }),
 })
 
-interface DeployResultForExport extends ProcessResultMetadata  {
+interface DeployResultForExport extends ProcessResultMetadata {
   createdAt?: string
   updatedAt?: string
   mode?: ActionMode
@@ -713,7 +735,7 @@ const deployResultForExportSchema = createSchema({
       .default("unknown")
       .description("The current deployment status of the service."),
     version: joi.string().description("The Garden module version of the deployed service."),
-  })
+  }),
 })
 
 interface RunResultForExport extends TestResultForExport {}
@@ -730,7 +752,7 @@ const runResultForExportSchema = createSchema({
   allowUnknown: true,
 })
 
-interface TestResultForExport extends ProcessResultMetadata  {
+interface TestResultForExport extends ProcessResultMetadata {
   success: boolean
   exitCode?: number
   // FIXME: we should avoid native Date objects
@@ -772,8 +794,16 @@ export const resultMetadataKeys = () => ({
   durationMsec: joi.number().integer().description("The duration of the action's execution in msec, if applicable."),
   success: joi.boolean().required().description("Whether the action was succeessfully executed."),
   error: joi.string().description("An error message, if the action's execution failed."),
-  inputVersion: joi.string().description("The version of the task's inputs, before any resolution or execution happens. For action tasks, this will generally be the unresolved version."),
-  version: joi.string().description("Alias for \`inputVersion\`. The version of the task's inputs, before any resolution or execution happens. For action tasks, this will generally be the unresolved version."),
+  inputVersion: joi
+    .string()
+    .description(
+      "The version of the task's inputs, before any resolution or execution happens. For action tasks, this will generally be the unresolved version."
+    ),
+  version: joi
+    .string()
+    .description(
+      "Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For action tasks, this will generally be the unresolved version."
+    ),
   outputs: joiVariables().description("A map of values output from the action's execution."),
 })
 
@@ -785,43 +815,47 @@ export const processCommandResultSchema = createSchema({
     // Hide this field from the docs, since we're planning to remove it.
     graphResults: joi.any().meta({ internal: true }),
     build: joiIdentifierMap(buildResultForExportSchema().keys(resultMetadataKeys()))
-      .description(
-        "A map of all executed Builds (or Builds scheduled/attempted) and information about the them."
-      )
+      .description("A map of all executed Builds (or Builds scheduled/attempted) and information about the them.")
       .meta({ keyPlaceholder: "<Build name>" }),
     builds: joiIdentifierMap(buildResultForExportSchema().keys(resultMetadataKeys()))
-      .description("Alias for \`build\`. A map of all executed Builds (or Builds scheduled/attempted) and information about the them.")
+      .description(
+        "Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about the them."
+      )
       .meta({ keyPlaceholder: "<Build name>", deprecated: true }),
     deploy: joiIdentifierMap(deployResultForExportSchema().keys(resultMetadataKeys()))
-      .description(
-        "A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status."
-      )
+      .description("A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.")
       .meta({ keyPlaceholder: "<Deploy name>" }),
     deployments: joiIdentifierMap(deployResultForExportSchema().keys(resultMetadataKeys()))
       .description(
-        "Alias for \`deploys\`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status."
+        "Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status."
       )
       .meta({ keyPlaceholder: "<Deploy name>", deprecated: true }),
     test: joiStringMap(testResultForExportSchema())
       .description("A map of all Tests that were executed (or scheduled/attempted) and the Test results.")
       .meta({ keyPlaceholder: "<Test name>" }),
     tests: joiStringMap(testResultForExportSchema())
-      .description("Alias for \`test\`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.")
+      .description(
+        "Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results."
+      )
       .meta({ keyPlaceholder: "<Test name>", deprecated: true }),
     run: joiStringMap(runResultForExportSchema())
       .description("A map of all Runs that were executed (or scheduled/attempted) and the Run results.")
       .meta({ keyPlaceholder: "<Run name>" }),
     tasks: joiStringMap(runResultForExportSchema())
-      .description("Alias for \`runs\`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.")
+      .description(
+        "Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results."
+      )
       .meta({ keyPlaceholder: "<Run name>", deprecated: true }),
-  })
+  }),
 })
 
 /**
  * Extracts structured results for builds, deploys or tests from TaskGraph results, suitable for command output.
  */
 function prepareProcessResults(taskType: string, graphResults: GraphResults) {
-  const resultsForType = Object.entries(graphResults.filterForGraphResult()).filter(([name, _]) => name.split(".")[0] === taskType)
+  const resultsForType = Object.entries(graphResults.filterForGraphResult()).filter(
+    ([name, _]) => name.split(".")[0] === taskType
+  )
 
   return fromPairs(
     resultsForType.map(([name, graphResult]) => {
@@ -852,13 +886,10 @@ function prepareProcessResult(taskType: string, res: GraphResultWithoutTask | nu
   return {
     ...(res?.outputs || {}),
     aborted: !res,
-    durationMsec:
-      res?.startedAt &&
-      res?.completedAt &&
-      getDurationMsec(res?.startedAt, res?.completedAt),
+    durationMsec: res?.startedAt && res?.completedAt && getDurationMsec(res?.startedAt, res?.completedAt),
     error: res?.error?.message,
     success: !!res && !res.error,
-    inputVersion: res?.inputVersion
+    inputVersion: res?.inputVersion,
   }
 }
 
@@ -962,9 +993,9 @@ function commonResultFields(graphResult: GraphResultWithoutTask) {
 }
 
 function durationMsecForGraphResult(graphResult: GraphResultWithoutTask) {
-  return graphResult.startedAt &&
-    graphResult.completedAt &&
-    getDurationMsec(graphResult.startedAt, graphResult.completedAt)
+  return (
+    graphResult.startedAt && graphResult.completedAt && getDurationMsec(graphResult.startedAt, graphResult.completedAt)
+  )
 }
 
 /**
@@ -1028,7 +1059,7 @@ export const emptyActionResults = {
   tests: {},
   run: {},
   tasks: {},
-  graphResults: {}
+  graphResults: {},
 }
 
 export function describeParameters(args?: Parameters) {
