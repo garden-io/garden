@@ -5,7 +5,7 @@ ARG VARIANT=root
 #
 # garden-base
 #
-FROM node:18-alpine@sha256:1ccc70acda680aa4ba47f53e7c40b2d4d6892de74817128e0662d32647dd7f4d as garden-alpine-base-root
+FROM node:18-alpine@sha256:f41850f74ff16a33daff988e2ea06ef8f5daeb6fb84913c7df09552a98caba09 as garden-alpine-base-root
 
 RUN apk add --no-cache \
   bash \
