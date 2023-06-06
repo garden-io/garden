@@ -14,6 +14,7 @@ import pluralize from "pluralize"
 import { BuildStatus } from "../plugin/handlers/Build/get-status"
 import { resolvedActionToExecuted } from "../actions/helpers"
 import { renderDuration } from "../logger/util"
+import { OtelTraced } from "../util/tracing"
 
 @Profile()
 export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
@@ -25,7 +26,15 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     return this.action.longDescription()
   }
 
-
+  @OtelTraced({
+    name: "getBuildStatus",
+    getContext(this: BuildTask, params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind
+      }
+    },
+  })
   @emitGetStatusEvents<BuildAction>
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
