@@ -50,6 +50,10 @@ import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
 
+import { ConsoleSpanExporter } from "@opentelemetry/sdk-trace-base"
+import * as opentelemetry from "@opentelemetry/sdk-node"
+import { HttpInstrumentation } from "@opentelemetry/instrumentation-http"
+
 export interface RunOutput {
   argv: any
   code: number
@@ -67,6 +71,7 @@ export class GardenCli {
   public plugins: GardenPluginReference[]
   private initLogger: boolean
   public processRecord: GardenProcess
+  private otelSDK: opentelemetry.NodeSDK
 
   constructor({ plugins, initLogger = false }: { plugins?: GardenPluginReference[]; initLogger?: boolean } = {}) {
     this.plugins = plugins || []
@@ -74,6 +79,19 @@ export class GardenCli {
 
     const commands = sortBy(getBuiltinCommands(), (c) => c.name)
     commands.forEach((command) => this.addCommand(command))
+
+    this.otelSDK = new opentelemetry.NodeSDK({
+      traceExporter: new ConsoleSpanExporter(),
+      instrumentations: [new HttpInstrumentation({
+        ignoreOutgoingRequestHook: (request) => {
+          // Trace only requests to the Garden API (probably don't actually want this, but for testing it's nice)
+          return !request.hostname?.includes("garden.io")
+        }
+      })],
+      autoDetectResources: false,
+    })
+
+    this.otelSDK.start()
   }
 
   async renderHelp(log: Log, workingDir: string) {
@@ -393,8 +411,10 @@ ${renderCommands(commands)}
     let argv = parseCliArgs({ stringArgs: args, cli: true })
 
     const errors: (GardenBaseError | Error)[] = []
+    const _this = this
 
     async function done(abortCode: number, consoleOutput: string, result: any = {}) {
+      console.log("Done")
       if (exitOnError) {
         // eslint-disable-next-line no-console
         console.log(consoleOutput)
@@ -514,7 +534,41 @@ ${renderCommands(commands)}
     this.processRecord = processRecord!
 
     try {
-      const runResults = await this.runCommand({ command, parsedArgs, parsedOpts, processRecord, workingDir, log })
+      const tracer = opentelemetry.api.trace.getTracer("garden")
+      const runResults = await tracer.startActiveSpan("outer", async (span) => {
+        span.setAttribute("gardenVersion", "0.13.0")
+
+        const ctx = opentelemetry.api.trace.setSpan(opentelemetry.api.context.active(), span)
+        const childSpan = tracer.startSpan("child span", undefined, ctx)
+
+
+        childSpan.setAttribute("child", 1)
+
+        const results = await tracer.startActiveSpan("inner",async (innerSpan) => {
+          innerSpan.setAttribute("inner", true)
+          const ret = await tracer.startActiveSpan("innerInner",async (innerInnerSpan) => {
+            innerInnerSpan.setAttribute("innerInnerSpan", true)
+            const ret2 = await this.runCommand({
+              command: command!,
+              parsedArgs,
+              parsedOpts,
+              processRecord,
+              workingDir,
+              log,
+            })
+
+            innerInnerSpan.end()
+            return ret2
+          })
+
+          innerSpan.end()
+          return ret
+        })
+        childSpan.end()
+
+        span.end()
+        return results
+      })
       commandResult = runResults.result
       analytics = runResults.analytics
     } catch (err) {
@@ -549,6 +603,11 @@ ${renderCommands(commands)}
       await waitForOutputFlush()
       code = commandResult.exitCode || 1
     }
+
+    await _this.otelSDK
+      .shutdown()
+      .then(() => console.log("Provider shut down"))
+      .catch((err) => console.log(err))
 
     return { argv, code, errors, result: commandResult?.result }
   }
