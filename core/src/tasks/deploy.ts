@@ -24,6 +24,7 @@ import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import { displayState, resolvedActionToExecuted } from "../actions/helpers"
 import { PluginEventBroker } from "../plugin-context"
 import { ActionLog } from "../logger/log-entry"
+import { OtelTraced } from "../util/tracing"
 
 export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {
   events?: PluginEventBroker
@@ -61,6 +62,15 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     return this.action.longDescription()
   }
 
+  @OtelTraced({
+    name: "getDeployStatus",
+    getContext(this: DeployTask, params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   @emitGetStatusEvents<DeployAction>
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<DeployAction>) {
     const log = this.log.createLog()
@@ -98,6 +108,15 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     return { ...status, version: action.versionString(), executedAction }
   }
 
+  @OtelTraced({
+    name: "deploy",
+    getContext(this: DeployTask, params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   @emitProcessingEvents<DeployAction>
   async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
     const action = this.getResolvedAction(this.action, dependencyResults)

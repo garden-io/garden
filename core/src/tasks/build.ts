@@ -31,7 +31,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     getContext(this: BuildTask, params) {
       return {
         key: this.action.key(),
-        kind: this.action.kind
+        kind: this.action.kind,
       }
     },
   })
@@ -51,6 +51,15 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 
+  @OtelTraced({
+    name: "build",
+    getContext(this: BuildTask, params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   @emitProcessingEvents<BuildAction>
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, BuildStatus>) {
     const router = await this.garden.getActionRouter()
