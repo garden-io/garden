@@ -17,6 +17,8 @@ import { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/Test/get-result"
 import { TestConfig } from "../config/test"
 import { moduleTestNameToActionName } from "../types/module"
+import { stateForCacheStatusEvent } from "../actions/types"
+import { runStatusForEventPayload } from "../plugin/plugin"
 
 class TestError extends Error {
   toString() {
@@ -31,7 +33,8 @@ export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
 
 @Profile()
 export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
-  type = "test"
+  type = "test" as const
+  eventName = "testStatus" as const
 
   silent: boolean
 
@@ -52,16 +55,22 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     return this.action.longDescription()
   }
 
-  async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
+  async getStatus({ dependencyResults, statusOnly }: ActionTaskStatusParams<TestAction>) {
     this.log.verbose("Checking status...")
     const action = this.getResolvedAction(this.action, dependencyResults)
     const router = await this.garden.getActionRouter()
+
+    if (statusOnly) {
+      this.emitStatus({ state: "getting-status"})
+    }
 
     const { result: status } = await router.test.getResult({
       log: this.log,
       graph: this.graph,
       action,
     })
+
+    this.emitStatus({ state: stateForCacheStatusEvent(status.state), status: runStatusForEventPayload(status.detail) })
 
     this.log.verbose("Status check complete")
 
@@ -88,6 +97,8 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
 
     const router = await this.garden.getActionRouter()
 
+    this.emitStatus({ state: "processing" })
+
     let status: GetTestResult<TestAction>
     try {
       const output = await router.test.run({
@@ -98,8 +109,13 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
         interactive: this.interactive,
       })
       status = output.result
+
+      this.emitStatus({ state: status.state, status: runStatusForEventPayload(status.detail) })
     } catch (err) {
       this.log.error(`Failed running test`)
+      this.emitStatus({ state: "failed" })
+      // this.emitStatus("failed", { state: "unknown" })
+
       throw err
     }
     if (status.detail?.success) {

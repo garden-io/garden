@@ -11,7 +11,7 @@ import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
 import { ActionLog, createActionLog, Log } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
-import type { Action, ActionState, Executed, Resolved } from "../actions/types"
+import type { Action, ActionState, ActionStateForEvent, Executed, Resolved } from "../actions/types"
 import { ConfigGraph, GraphError } from "../graph/config-graph"
 import type { ActionReference } from "../config/common"
 import { InternalError } from "../exceptions"
@@ -27,6 +27,8 @@ import type { TestTask } from "./test"
 import { Memoize } from "typescript-memoize"
 import { getExecuteTaskForAction, getResolveTaskForAction } from "./helpers"
 import { TypedEventEmitter } from "../util/events"
+import { Events, StatusEventName } from "../events"
+import { makeActionStatusEventPayloadBase } from "./util"
 
 export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
@@ -362,13 +364,72 @@ export interface ExecuteActionOutputs<T extends Action> extends BaseActionTaskOu
   executedAction: Executed<T>
 }
 
+type ExecuteActionTaskType = "build" | "deploy" | "run" | "test"
+
+const statusEventNameMap: { [key in ExecuteActionTaskType]: StatusEventName } = {
+  build: "buildStatus",
+  deploy: "deployStatus",
+  test: "testStatus",
+  run: "runStatus",
+}
+
+interface EmitActionStatusParams {
+  state: "getting-status" | "processing" | "failed" | "unknown"
+}
+
+interface EmitActionStatusParamsWithResults<T extends StatusEventName> {
+  state: Exclude<ActionStateForEvent, "getting-status" | "processing" | "failed">
+  status: Events[T]["status"]
+}
+
+type MapActionKindToStatusEventName<T extends Action["kind"]> = `${Lowercase<T>}Status`
+
 export abstract class ExecuteActionTask<
   T extends Action,
   O extends ValidResultType = { state: ActionState; outputs: T["_outputs"]; detail: any; version: string }
 > extends BaseActionTask<T, O & ExecuteActionOutputs<T>> {
   executeTask = true
+  abstract type: Lowercase<T["kind"]>
 
   abstract getStatus(params: ActionTaskStatusParams<T>): Promise<(O & ExecuteActionOutputs<T>) | null>
 
   abstract process(params: ActionTaskProcessParams<T, O>): Promise<O & ExecuteActionOutputs<T>>
+
+  protected emitStatus(
+    params: EmitActionStatusParams | EmitActionStatusParamsWithResults<MapActionKindToStatusEventName<T["kind"]>>
+  ) {
+    const eventName = statusEventNameMap[this.type.toLowerCase() as Lowercase<T["kind"]>]
+    const payloadAttrs = makeActionStatusEventPayloadBase(this.action)
+
+    let payload: Events[typeof eventName]
+    const completedAt = new Date().toISOString()
+
+    if (params.state === "processing" || params.state === "getting-status") {
+      payload = {
+        ...payloadAttrs,
+        state: params.state,
+        status: { state: "unknown" },
+      } as Events[typeof eventName]
+    } else if (params.state === "failed") {
+      payload = {
+        ...payloadAttrs,
+        completedAt,
+        state: params.state,
+        status: { state: "unknown" },
+      } as Events[typeof eventName]
+    } else if (params.state === "ready") {
+      const completedAt = new Date().toISOString()
+      payload = {
+        ...payloadAttrs,
+        completedAt,
+        state: params.state,
+        status: params.status,
+      } as Events[typeof eventName]
+
+    } else {
+      return
+    }
+    this.garden.events.emit(eventName, payload)
+  }
+
 }

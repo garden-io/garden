@@ -373,6 +373,7 @@ export class Garden {
     this.registeredPlugins = [...getBuiltinPlugins(), ...params.plugins]
     this.resolvedProviders = {}
 
+    console.log("Creating event bus for Garden class with key", this.getInstanceKey())
     this.events = new EventBus({ gardenKey: this.getInstanceKey() })
     // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies
     this.version = getPackageVersion()
@@ -1499,7 +1500,7 @@ export class Garden {
   }
 
   public getInstanceKey() {
-    return getGardenInstanceKey(this.getInstanceKeyParams())
+    return getGardenInstanceKey(this.getInstanceKeyParams(), this.sessionId)
   }
 
   public getInstanceKeyParams() {
@@ -1845,7 +1846,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   variables = { ...variables, ...variableOverrides }
 
   // Update the log context
-  log.context.gardenKey = getGardenInstanceKey({ environmentName, namespace, projectRoot, variableOverrides })
+  log.context.gardenKey = getGardenInstanceKey({ environmentName, namespace, projectRoot, variableOverrides }, sessionId)
   log.context.sessionId = sessionId
 
   // Setting this after resolving the gardenKey above because we don't want the default namespace resolved there

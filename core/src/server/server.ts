@@ -184,7 +184,7 @@ export class GardenServer extends EventEmitter {
         try {
           this.port = await getPort({ port: defaultWatchServerPort })
           await _start()
-        } catch {}
+        } catch { }
       } while (!this.server)
     }
 
@@ -423,7 +423,8 @@ export class GardenServer extends EventEmitter {
 
       const eventListener: EventPipeListener = (name, payload) => {
         const gardenKey = payload?.$context?.gardenKey
-        if (shouldStreamWsEvent(name, payload) && gardenKey) {
+        // console.log("Streaming event", name)
+        if (shouldStreamWsEvent(name, payload)) {
           send("event", { name, payload })
         }
       }
@@ -456,7 +457,7 @@ export class GardenServer extends EventEmitter {
         }
 
         isAlive = false
-        websocket.ping(() => {})
+        websocket.ping(() => { })
       }, 1000)
 
       websocket.on("pong", () => {

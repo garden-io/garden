@@ -20,7 +20,7 @@ export interface GardenInstanceKeyParams {
 
 const resolvedCwd = resolve(process.cwd())
 
-export function getGardenInstanceKey(params: GardenInstanceKeyParams): string {
+export function getGardenInstanceKey(params: GardenInstanceKeyParams, sessionId: string): string {
   let env = params.environmentName
 
   if (params.namespace) {
@@ -42,5 +42,5 @@ export function getGardenInstanceKey(params: GardenInstanceKeyParams): string {
 
   return Object.entries(pairs)
     .map(([k, v]) => k + "=" + v)
-    .join("|")
+    .join("|") + "-" + sessionId
 }

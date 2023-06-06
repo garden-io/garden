@@ -14,11 +14,13 @@ import pluralize from "pluralize"
 import { BuildStatus } from "../plugin/handlers/Build/get-status"
 import { resolvedActionToExecuted } from "../actions/helpers"
 import { renderDuration } from "../logger/util"
+import { stateForCacheStatusEvent } from "../actions/types"
 
 @Profile()
 export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
-  type = "build"
+  type = "build" as const
   concurrencyLimit = 5
+  eventName = "buildStatus" as const
 
   getDescription() {
     return this.action.longDescription()
@@ -27,8 +29,22 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
+
+    if (!statusOnly) {
+      // NOTE: Previously we set the state to "fetching", now we're setting it to "unknown" which is consistent
+      // with other actions.
+      this.emitStatus({ state: "getting-status" })
+    }
+
     const output = await router.build.getStatus({ log: this.log, graph: this.graph, action })
     const status = output.result
+
+    if (!statusOnly) {
+      this.emitStatus({
+        state: stateForCacheStatusEvent(status.state),
+        status: { state: status.state === "ready" ? "fetched" : "outdated" },
+      })
+    }
 
     if (status.state === "ready" && !statusOnly && !this.force) {
       this.log.info(`Already built`)
@@ -63,6 +79,8 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
 
     await this.garden.buildStaging.syncDependencyProducts(action, log)
 
+    this.emitStatus({ state: "processing" })
+
     try {
       const { result } = await router.build.build({
         graph: this.graph,
@@ -70,6 +88,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
         log,
       })
       log.success(`Done`)
+      this.emitStatus({ state: "ready", status: { state: "built" } })
 
       return {
         ...result,
@@ -78,6 +97,9 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       }
     } catch (err) {
       log.error(`Build failed`)
+      this.emitStatus({ state: "failed" })
+      // this.emitStatus("failed", { state: "failed" })
+
       throw err
     }
   }

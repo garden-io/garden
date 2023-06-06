@@ -11,6 +11,10 @@ import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
 import { GetRunResult } from "../plugin/handlers/Run/get-result"
 import { resolvedActionToExecuted } from "../actions/helpers"
+import { makeActionStatusEventPayloadBase } from "./util"
+import { ActionStateForEvent, stateForCacheStatusEvent } from "../actions/types"
+import { runStatusForEventPayload } from "../plugin/plugin"
+import { Events } from "../events"
 
 class RunTaskError extends Error {
   toString() {
@@ -20,7 +24,8 @@ class RunTaskError extends Error {
 
 @Profile()
 export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
-  type = "run"
+  type = "run" as const
+  eventName = "runStatus" as const
 
   getDescription() {
     return this.action.longDescription()
@@ -30,6 +35,13 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
     this.log.verbose("Checking status...")
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
+
+    const payloadAttrs = makeActionStatusEventPayloadBase(action)
+
+    // TODO @eysi: Should this be status only?
+    if (!statusOnly) {
+      this.emitStatus({ state: "getting-status" })
+    }
 
     // The default handler (for plugins that don't implement getTaskResult) returns undefined.
     try {
@@ -50,6 +62,14 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
         this.log.success("Already complete")
       }
 
+      if (!statusOnly) {
+        // TODO @eysi: Validate payload function
+        this.emitStatus({
+          state: stateForCacheStatusEvent(status.state),
+          status: runStatusForEventPayload(status.detail),
+        })
+      }
+
       return {
         ...status,
         version: action.versionString(),
@@ -57,6 +77,12 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       }
     } catch (err) {
       this.log.error(`Failed getting status`)
+
+      if (!statusOnly) {
+        this.emitStatus({ state: "failed" })
+        // this.emitStatus("failed", { state: "unknown" })
+      }
+
       throw err
     }
   }
@@ -65,6 +91,8 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
     const action = this.getResolvedAction(this.action, dependencyResults)
 
     const taskLog = this.log.createLog().info("Running...")
+
+    this.emitStatus({ state: "processing" })
 
     const actions = await this.garden.getActionRouter()
 
@@ -78,8 +106,13 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
         interactive: false,
       })
       status = output.result
+
+      this.emitStatus({ state: status.state, status: runStatusForEventPayload(status.detail) })
     } catch (err) {
       taskLog.error(`Failed running ${action.name}`)
+      this.emitStatus({ state: "failed" })
+      // this.emitStatus("failed", { state: "unknown" })
+
       throw err
     }
     if (status.state === "ready") {

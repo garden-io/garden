@@ -7,6 +7,7 @@
  */
 
 import chalk from "chalk"
+
 import {
   BaseActionTaskParams,
   ActionTaskProcessParams,
@@ -21,6 +22,8 @@ import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import { displayState, resolvedActionToExecuted } from "../actions/helpers"
 import { PluginEventBroker } from "../plugin-context"
 import { ActionLog } from "../logger/log-entry"
+import { makeDeployStatusEventPayload } from "./util"
+import { stateForCacheStatusEvent } from "../actions/types"
 
 export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {
   events?: PluginEventBroker
@@ -35,7 +38,7 @@ function printIngresses(status: DeployStatus, log: ActionLog) {
 
 @Profile()
 export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
-  type = "deploy"
+  type = "deploy" as const
   concurrencyLimit = 10
 
   events?: PluginEventBroker
@@ -64,11 +67,19 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     const router = await this.garden.getActionRouter()
 
+    if (!statusOnly) {
+      this.emitStatus({ state: "getting-status"})
+    }
+
     const { result: status } = await router.deploy.getStatus({
       graph: this.graph,
       action,
       log,
     })
+
+    if (!statusOnly) {
+      this.emitStatus({ state: stateForCacheStatusEvent(status.state), status: makeDeployStatusEventPayload(status) })
+    }
 
     if (status.state === "ready" && status.detail?.mode !== action.mode()) {
       status.state = "not-ready"
@@ -103,6 +114,8 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     const log = this.log.createLog()
     log.info(`Deploying version ${version}...`)
 
+    this.emitStatus({ state: "processing" })
+
     try {
       const output = await router.deploy.deploy({
         graph: this.graph,
@@ -112,8 +125,12 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
         events: this.events,
       })
       status = output.result
+
+      this.emitStatus({ state: "ready", status: makeDeployStatusEventPayload(status)})
     } catch (err) {
       log.error(`Failed`)
+      this.emitStatus({ state: "failed"})
+      // this.emitStatus("failed", { state: "unknown" })
       throw err
     }
 

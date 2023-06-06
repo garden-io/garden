@@ -144,6 +144,7 @@ export const actionStateTypesForEvent = [...actionStateTypes, "getting-status", 
  * - `"ready"`: The action was executed successfully, and an up-to-date result exists for the action.
  *   - This state can be reached by successfully processing the action after getting a `"not-ready"` state from the
  *     status check.
+ *   - Think of this as "succeeded".
  *
  * - `"not-ready"`: No result (or no healthy result) for the action exists with the requested version.
  *   - This state is reached by a status check that doesn't find an up-to-date result (e.g. no up-to-date container

@@ -11,7 +11,7 @@ import { EventEmitter2 } from "eventemitter2"
 import type { LogEntryEventPayload } from "./cloud/buffered-event-stream"
 import type { DeployState, DeployStatusForEventPayload } from "./types/service"
 import type { RunState, RunStatusForEventPayload } from "./plugin/base"
-import type { Omit } from "./util/util"
+import type { Omit, PickFromUnion } from "./util/util"
 import type { AuthTokenResponse } from "./cloud/api"
 import type { ConfigGraph, RenderedActionGraph } from "./graph/config-graph"
 import type { CommandInfo } from "./plugin-context"
@@ -176,16 +176,48 @@ export function toGraphResultEventPayload(result: GraphResult): GraphResultEvent
 
 export type ActionStatusDetailedState = DeployState | BuildState | RunState
 
-export interface ActionStatusPayload<S = { state: ActionStatusDetailedState }> {
+
+interface ActionStatusPayloadBase {
   actionName: string
+  // TODO @eysi: I don't know why this wasn't named "actionKind".
+  actionType: string
   actionVersion: string
   actionUid: string
   moduleName: string | null // DEPRECATED: Remove in 0.14
+  /**
+   * ISO format date string
+   */
   startedAt: string
-  completedAt?: string
   state: ActionStateForEvent
+}
+
+type ActionIncompleteState = PickFromUnion<ActionStateForEvent, "getting-status" | "processing" | "unknown">
+type ActionFailedState = PickFromUnion<ActionStateForEvent, "failed">
+type ActionCompleteState = Exclude<ActionStateForEvent, ActionIncompleteState | ActionFailedState>
+
+interface ActionIncompleteStatusPayload extends ActionStatusPayloadBase {
+  state: ActionIncompleteState
+  status: { state: "unknown" }
+}
+
+interface ActionCompleteStatusPayloadBase extends ActionStatusPayloadBase {
+  /**
+   * ISO format date string
+   */
+  completedAt: string
+}
+
+interface ActionFailedStatusPayload extends ActionCompleteStatusPayloadBase {
+  state: ActionFailedState
+  status: { state: "unknown" }
+}
+
+interface ActionCompleteStatusPayload<S = { state: ActionStatusDetailedState }> extends ActionCompleteStatusPayloadBase {
+  state: ActionCompleteState
   status: S
 }
+
+export type ActionStatusPayload<S = { state: ActionStatusDetailedState }> = ActionIncompleteStatusPayload | ActionFailedStatusPayload | ActionCompleteStatusPayload<S>
 
 /**
  * Supported Garden events and their interfaces.
@@ -245,6 +277,7 @@ export interface Events {
     name: string
     inputVersion: string
   }
+  // TODO @eysi: Remove.
   taskComplete: GraphResultEventPayload
   taskReady: GraphResult
   taskError: GraphResultEventPayload
@@ -337,8 +370,8 @@ export interface Events {
 
 export type EventName = keyof Events
 
-type GraphEventName = Extract<EventName, "taskCancelled" | "taskComplete" | "taskError" | "taskProcessing">
-type ConfigEventName = Extract<EventName, "configChanged" | "configsScanned">
+type ConfigEventName = PickFromUnion<EventName, "configChanged" | "configsScanned">
+export type StatusEventName = PickFromUnion<EventName, "buildStatus" | "deployStatus" | "testStatus" | "runStatus">
 
 // These are the events we POST over https via the BufferedEventStream
 const pipedEventNamesSet = new Set<EventName>([
@@ -374,11 +407,8 @@ const pipedEventNamesSet = new Set<EventName>([
 ])
 
 // We send graph and config events over a websocket connection via the Garden server
-const taskGraphEventNames = new Set<GraphEventName>(["taskCancelled", "taskComplete", "taskError", "taskProcessing"])
 const configEventNames = new Set<ConfigEventName>(["configsScanned", "configChanged"])
-
-// We do not emit these task graph events because they're simply not needed, and there's a lot of them.
-const skipTaskGraphEventTypes = ["resolve-action", "resolve-provider"]
+const statusEventNames = new Set<StatusEventName>(["buildStatus", "deployStatus", "runStatus", "testStatus"])
 
 const isPipedEvent = (name: string, _payload: any): _payload is Events[EventName] => {
   return pipedEventNamesSet.has(<any>name)
@@ -388,25 +418,23 @@ const isConfigEvent = (name: string, _payload: any): _payload is Events[ConfigEv
   return configEventNames.has(<any>name)
 }
 
-const isTaskGraphEvent = (name: string, _payload: any): _payload is Events[GraphEventName] => {
-  return taskGraphEventNames.has(<any>name)
+const isStatusEvent = (name: string, _payload: any): _payload is Events[StatusEventName] => {
+  return statusEventNames.has(<any>name)
 }
 
 export function shouldStreamWsEvent(name: string, payload: any) {
-  if (isTaskGraphEvent(name, payload) && !skipTaskGraphEventTypes.includes(payload.type)) {
+  if (isStatusEvent(name, payload)) {
     return true
-  } else if (isConfigEvent(name, payload)) {
+  }
+  if (isConfigEvent(name, payload)) {
     return true
   }
   return false
 }
 
 export function shouldStreamEvent(name: string, payload: any) {
-  if (isTaskGraphEvent(name, payload) && skipTaskGraphEventTypes.includes(payload.type)) {
-    return false
-  } else if (!isPipedEvent(name, payload)) {
-    return false
+  if (isPipedEvent(name, payload)) {
+    return true
   }
-  return true
+  return false
 }
-

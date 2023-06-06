@@ -123,7 +123,7 @@ export class GardenInstanceManager {
   }
 
   getKey(params: GardenInstanceKeyParams): string {
-    return getGardenInstanceKey(params)
+    return getGardenInstanceKey(params, this.sessionId)
   }
 
   async ensureInstance(log: Log, params: GardenInstanceKeyParams, opts: GardenOpts) {

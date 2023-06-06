@@ -33,6 +33,7 @@ import { sanitizeValue } from "../util/logging"
 import { getSyncStatuses } from "../commands/sync/sync-status"
 import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import { GetSyncStatusResult } from "../plugin/handlers/Deploy/get-sync-status"
+import { EventBus } from "../events"
 
 export interface CommandMap {
   [key: string]: {
@@ -202,12 +203,10 @@ export class HideCommand extends ConsoleCommand<HideArgs> {
 }
 
 interface GetDeployStatusCommandResult {
-  result: {
-    actions: {
-      [actionName: string]: {
-        deployStatus: DeployStatus
-        syncStatus: GetSyncStatusResult
-      }
+  actions: {
+    [actionName: string]: {
+      deployStatus: DeployStatus
+      syncStatus: GetSyncStatusResult
     }
   }
 }
@@ -251,7 +250,7 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
 
     const sanitized = sanitizeValue(deepFilter(result, (_, key) => key !== "executedAction"))
 
-    return { result: sanitized }
+    return { result: sanitized  }
   }
 }
 
