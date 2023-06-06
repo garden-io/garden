@@ -33,6 +33,7 @@
     "@opentelemetry/resources": "latest",
     "@opentelemetry/semantic-conventions": "latest",
     "@opentelemetry/instrumentation-http": "latest",
+    "@opentelemetry/instrumentation-grpc": "latest",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "analytics-node": "3.5.0",

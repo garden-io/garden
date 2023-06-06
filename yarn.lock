@@ -764,6 +764,14 @@
     "@opentelemetry/sdk-trace-base" "1.14.0"
     "@opentelemetry/semantic-conventions" "1.14.0"
 
+"@opentelemetry/instrumentation-grpc@latest":
+  version "0.40.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-grpc/-/instrumentation-grpc-0.40.0.tgz#726d1222111319f2a6e0dd6489e5873ac952738e"
+  integrity sha512-WDVX9AHdZmg/RArT55d8AN4QWy66osbyGJSKqmuLggF/AwLcMTOoKDdYiRLcAeG5jX5TaeBfsrPyDe1M+FaWFg==
+  dependencies:
+    "@opentelemetry/instrumentation" "0.40.0"
+    "@opentelemetry/semantic-conventions" "1.14.0"
+
 "@opentelemetry/instrumentation-http@latest":
   version "0.40.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-http/-/instrumentation-http-0.40.0.tgz#ed4206ea96d64b5fd83b796f027642e42dca0cd1"
