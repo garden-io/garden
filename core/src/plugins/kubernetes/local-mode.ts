@@ -427,7 +427,6 @@ function patchSyncableManifest(
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
 export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<ConfiguredLocalMode> {
-  // TODO-0.13.0: allow multiple manifests configuration
   const { ctx, spec, defaultTarget, action, log } = configParams
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
