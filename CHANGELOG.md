@@ -1,4 +1,16 @@
 
+<a name="0.12.57"></a>
+## [0.12.57](https://github.com/garden-io/garden/compare/0.13.0...0.12.57) (2023-06-06)
+
+### Bug Fixes
+
+* escape rsync special characters in filenames on windows ([#4434](https://github.com/garden-io/garden/issues/4434)) ([#4438](https://github.com/garden-io/garden/issues/4438)) ([8247044a6](https://github.com/garden-io/garden/commit/8247044a6))
+* **pulumi:** fix pulumi stack tag rm error ([59a054036](https://github.com/garden-io/garden/commit/59a054036))
+
+### Features
+
+* update helm to `3.12.0` ([64de8054f](https://github.com/garden-io/garden/commit/64de8054f))
+
 <a name="0.12.56"></a>
 ## [0.12.56](https://github.com/garden-io/garden/compare/0.12.55...0.12.56) (2023-05-19)
 
