@@ -43,7 +43,6 @@
     "execa": "^4.0.2",
     "fs-extra": "^9.0.0",
     "gulp": "^4.0.2",
-    "gulp-license-check": "^1.2.1",
     "handlebars": "^4.7.6",
     "husky": "^4.2.5",
     "lodash": "^4.17.21",
@@ -61,6 +60,7 @@
     "ts-node": "^10.8.2",
     "typescript": "^4.7.4",
     "typescript-formatter": "^7.2.2",
+    "vinyl": "^3.0.0",
     "wrap-ansi": "^7.0.0"
   },
   "scripts": {
