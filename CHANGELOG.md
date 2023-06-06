@@ -1,4 +1,35 @@
 
+<a name="0.13.1"></a>
+## [0.13.1](https://github.com/garden-io/garden/compare/0.13.0...0.13.1) (2023-06-06)
+
+### Bug Fixes
+
+* pulumi module validation ([#4497](https://github.com/garden-io/garden/issues/4497)) ([a0d79f70d](https://github.com/garden-io/garden/commit/a0d79f70d))
+* conftest properly convert module ([c8ac68792](https://github.com/garden-io/garden/commit/c8ac68792))
+* add defaultEnv to example ([1f3e1d109](https://github.com/garden-io/garden/commit/1f3e1d109))
+* terraform module validation ([#4509](https://github.com/garden-io/garden/issues/4509)) ([15483b25d](https://github.com/garden-io/garden/commit/15483b25d))
+* properly wait for k8s deploys to complete ([fdb4b6ffe](https://github.com/garden-io/garden/commit/fdb4b6ffe))
+* await configure provider handler call ([2de39a015](https://github.com/garden-io/garden/commit/2de39a015))
+* escape rsync special characters in filenames on windows ([#4434](https://github.com/garden-io/garden/issues/4434)) ([4fbc5de89](https://github.com/garden-io/garden/commit/4fbc5de89))
+* fetch-tools ([3e8df6568](https://github.com/garden-io/garden/commit/3e8df6568))
+* helm module to action conversion: do not require version with name ([#4463](https://github.com/garden-io/garden/issues/4463)) ([947b91156](https://github.com/garden-io/garden/commit/947b91156))
+* typo in test description ([9f89acd2d](https://github.com/garden-io/garden/commit/9f89acd2d))
+* pvc modules/actions ([c1b153113](https://github.com/garden-io/garden/commit/c1b153113))
+* render (log) errors ([#4439](https://github.com/garden-io/garden/issues/4439)) ([4fe827fc1](https://github.com/garden-io/garden/commit/4fe827fc1))
+* typo in test description ([0077a7870](https://github.com/garden-io/garden/commit/0077a7870))
+* **dev:** plugins outside of core package weren't available in dev+server ([adbd58ba6](https://github.com/garden-io/garden/commit/adbd58ba6))
+* **exec:** cleaning up persistent processes didn't work in some cases ([a892b0f81](https://github.com/garden-io/garden/commit/a892b0f81))
+* **jib:** `tarPath` resolution and project type detection ([#4498](https://github.com/garden-io/garden/issues/4498)) ([08d87f31a](https://github.com/garden-io/garden/commit/08d87f31a))
+* **kubernetes:** do not fail to deploy List kinds (e.g. ConfigMapList) ([#4501](https://github.com/garden-io/garden/issues/4501)) ([25e1637b9](https://github.com/garden-io/garden/commit/25e1637b9))
+* **serve:** fix help message of internal command ([39db05d55](https://github.com/garden-io/garden/commit/39db05d55))
+
+### Features
+
+* add outputs to exec provider ([7bd2a35da](https://github.com/garden-io/garden/commit/7bd2a35da))
+* log exec stdout ([f1a86aa2e](https://github.com/garden-io/garden/commit/f1a86aa2e))
+* add get actions, builds, deploy cmd and update get runs, tests cmd ([#4449](https://github.com/garden-io/garden/issues/4449)) ([9b539a290](https://github.com/garden-io/garden/commit/9b539a290))
+* update helm to `3.12.0` ([8e8bc8093](https://github.com/garden-io/garden/commit/8e8bc8093))
+
 <a name="0.13.0"></a>
 ## [0.13.0](https://github.com/garden-io/garden/compare/0.12.56...0.13.0) (2023-05-23)
 
