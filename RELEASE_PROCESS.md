@@ -32,7 +32,7 @@ First, you need to prepare the release binaries and run some manual tests:
 1. **Checkout to the `latest-release` branch**.
 2. Reset `latest-release` to `main` with `git reset --hard origin/main`
 3. Run `git log` to make sure that the latest commit is the expected one and there are no unwanted changes from `main` included in the release.
-4. Run `./scripts/release.ts minor | patch`. This way, the version bump commits and changelog entries created by the pre-releases are omitted from the final history.
+4. Run `./scripts/release.ts patch`. This way, the version bump commits and changelog entries created by the pre-releases are omitted from the final history.
 5. Wait for the CI build job to get the binaries from the [GitHub Releases page](https://github.com/garden-io/garden/releases).
 
 ### 2. Publish and announce
