@@ -175,7 +175,7 @@ describe("plugins.container", () => {
       expect((<ContainerBuildActionSpec>build.spec).localId).to.be.eql("customImage")
     })
 
-    it("corrently converts a module with volume usage", async () => {
+    it("correctly converts a module with volume usage", async () => {
       const module = graph.getModule("module-a") as ContainerModule
       const volumesSpec = [
         {
