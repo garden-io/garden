@@ -447,6 +447,7 @@ interface EventLoggerParams extends LoggerConfigBase {
 interface ServerLoggerParams extends LoggerConfigBase {
   defaultOrigin?: string
   rootLogger: Logger
+  terminalLevel?: LogLevel
 }
 
 export interface CreateEventLogParams extends CreateLogParams {
@@ -462,14 +463,19 @@ export interface CreateEventLogParams extends CreateLogParams {
  */
 export class ServerLogger extends LoggerBase {
   private rootLogger: Logger
+  /**
+   * The log level to use for terminal output. Defaults to silly.
+   */
+  private terminalLevel: LogLevel
 
   constructor(config: ServerLoggerParams) {
     super(config)
     this.rootLogger = config.rootLogger
+    this.terminalLevel = config.terminalLevel || LogLevel.silly
   }
 
   override log(entry: LogEntry) {
-    this.rootLogger.log({ ...entry, level: LogLevel.silly })
+    this.rootLogger.log({ ...entry, level: this.terminalLevel })
 
     if (entry.level <= eventLogLevel && !entry.skipEmit) {
       this.rootLogger.events.emit("logEntry", formatLogEntryForEventStream(entry))
