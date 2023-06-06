@@ -17,6 +17,7 @@ import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
 import { GetRunResult } from "../plugin/handlers/Run/get-result"
 import { resolvedActionToExecuted } from "../actions/helpers"
+import { OtelTraced } from "../util/tracing/decorators"
 
 class RunTaskError extends Error {
   toString() {
@@ -32,6 +33,17 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
     return this.action.longDescription()
   }
 
+  @OtelTraced({
+    name(_params) {
+      return `${this.action.key()}.getRunStatus`
+    },
+    getAttributes(_params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   @(emitGetStatusEvents<RunAction>)
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<RunAction>) {
     this.log.verbose("Checking status...")
@@ -73,6 +85,17 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
     }
   }
 
+  @OtelTraced({
+    name(_params) {
+      return `${this.action.key()}.run`
+    },
+    getAttributes(_params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   @(emitProcessingEvents<RunAction>)
   async process({ dependencyResults }: ActionTaskProcessParams<RunAction, GetRunResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)

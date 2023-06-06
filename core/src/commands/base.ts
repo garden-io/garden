@@ -55,6 +55,8 @@ import { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from 
 import { splitFirst } from "../util/string"
 import { ActionMode } from "../actions/types"
 import { AnalyticsHandler } from "../analytics/analytics"
+import { withSessionContext } from "../util/tracing/context"
+import { wrapActiveSpan } from "../util/tracing/spans"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -270,162 +272,167 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
       parentSessionId,
       overrideLogLevel,
     } = params
-    const commandStartTime = new Date()
-    const server = this.server
 
-    let garden = parentGarden
+    return withSessionContext({ sessionId, parentSessionId }, () =>
+      wrapActiveSpan(this.getFullName(), async () => {
+        const commandStartTime = new Date()
+        const server = this.server
 
-    if (parentSessionId) {
-      // Make an instance clone to override anything that needs to be scoped to a specific command run
-      // TODO: this could be made more elegant
-      garden = parentGarden.cloneForCommand(sessionId)
-    }
+        let garden = parentGarden
 
-    const log = overrideLogLevel ? garden.log.createLog({ fixLevel: overrideLogLevel }) : garden.log
+        if (parentSessionId) {
+          // Make an instance clone to override anything that needs to be scoped to a specific command run
+          // TODO: this could be made more elegant
+          garden = parentGarden.cloneForCommand(sessionId)
+        }
 
-    let cloudSession: CloudSession | undefined
+        const log = overrideLogLevel ? garden.log.createLog({ fixLevel: overrideLogLevel }) : garden.log
 
-    // Session registration for the `dev` and `serve` commands is handled in the `serve` command's `action` method,
-    // so we skip registering here to avoid duplication.
-    //
-    // Persistent commands other than `dev` and `serve` (i.e. commands that delegate to the `dev` command, like
-    // `deploy --sync`) are also not registered here, since the `dev` command will have been registered already,
-    // and the `deploy --sync` command which is subsequently run interactively in the `dev` session will register
-    // itself (it will have a parent command, so the last condition in this expression will not match).
-    const skipRegistration = !["dev", "serve"].includes(this.name) && this.maybePersistent(params) && !params.parentCommand
+        let cloudSession: CloudSession | undefined
 
-    if (!skipRegistration && garden.cloudApi && garden.projectId && this.streamEvents) {
-      cloudSession = await garden.cloudApi.registerSession({
-        parentSessionId: parentSessionId || undefined,
-        sessionId: garden.sessionId,
-        projectId: garden.projectId,
-        commandInfo: garden.commandInfo,
-        localServerPort: server?.port,
-        environment: garden.environmentName,
-        namespace: garden.namespace,
-        isDevCommand: garden.commandInfo.name === "dev",
-      })
-    }
+        // Session registration for the `dev` and `serve` commands is handled in the `serve` command's `action` method,
+        // so we skip registering here to avoid duplication.
+        //
+        // Persistent commands other than `dev` and `serve` (i.e. commands that delegate to the `dev` command, like
+        // `deploy --sync`) are also not registered here, since the `dev` command will have been registered already,
+        // and the `deploy --sync` command which is subsequently run interactively in the `dev` session will register
+        // itself (it will have a parent command, so the last condition in this expression will not match).
+        const skipRegistration = !["dev", "serve"].includes(this.name) && this.maybePersistent(params) && !params.parentCommand
 
-    if (cloudSession) {
-      const distroName = getCloudDistributionName(cloudSession.api.domain)
-      const userId = (await cloudSession.api.getProfile()).id
-      const commandResultUrl = cloudSession.api.getCommandResultUrl({
-        sessionId: garden.sessionId,
-        projectId: cloudSession.projectId,
-        userId,
-      }).href
-      const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
+        if (!skipRegistration && garden.cloudApi && garden.projectId && this.streamEvents) {
+          cloudSession = await garden.cloudApi.registerSession({
+            parentSessionId: parentSessionId || undefined,
+            sessionId: garden.sessionId,
+            projectId: garden.projectId,
+            commandInfo: garden.commandInfo,
+            localServerPort: server?.port,
+            environment: garden.environmentName,
+            namespace: garden.namespace,
+            isDevCommand: garden.commandInfo.name === "dev",
+          })
+        }
 
-      // FIXME: We need a shortened URL for this
-      cloudLog.info(`View command results at:\n${chalk.cyan(commandResultUrl)}\n`)
-    }
+        if (cloudSession) {
+          const distroName = getCloudDistributionName(cloudSession.api.domain)
+          const userId = (await cloudSession.api.getProfile()).id
+          const commandResultUrl = cloudSession.api.getCommandResultUrl({
+            sessionId: garden.sessionId,
+            projectId: cloudSession.projectId,
+            userId,
+          }).href
+          const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
-    let analytics: AnalyticsHandler | undefined
+          // FIXME: We need a shortened URL for this
+          cloudLog.info(`View command results at:\n${chalk.cyan(commandResultUrl)}\n`)
+        }
 
-    if (this.enableAnalytics) {
-      analytics = await garden.getAnalyticsHandler()
-    }
+        let analytics: AnalyticsHandler | undefined
 
-    analytics?.trackCommand(this.getFullName(), parentSessionId || undefined)
+        if (this.enableAnalytics) {
+          analytics = await garden.getAnalyticsHandler()
+        }
 
-    const allOpts = <ParameterValues<GlobalOptions & O>>{
-      ...mapValues(globalOptions, (opt) => opt.defaultValue),
-      ...opts,
-    }
+        analytics?.trackCommand(this.getFullName(), parentSessionId || undefined)
 
-    const commandInfo: CommandInfo = {
-      name: this.getFullName(),
-      args,
-      opts: optionsWithAliasValues(this, allOpts),
-    }
+        const allOpts = <ParameterValues<GlobalOptions & O>>{
+          ...mapValues(globalOptions, (opt) => opt.defaultValue),
+          ...opts,
+        }
 
-    const cloudEventStream = new BufferedEventStream({
-      log,
-      cloudSession,
-      maxLogLevel: eventLogLevel,
-      garden,
-      streamEvents: this.streamEvents,
-      streamLogEntries: this.streamLogEntries,
-    })
-
-    let result: CommandResult<R>
-
-    try {
-      if (cloudSession && this.streamEvents) {
-        log.silly(`Connecting Garden instance events to Cloud API`)
-        cloudEventStream.emit("commandInfo", {
-          ...commandInfo,
-          environmentName: garden.environmentName,
-          environmentId: cloudSession.environmentId,
-          projectName: garden.projectName,
-          projectId: cloudSession.projectId,
-          namespaceName: garden.namespace,
-          namespaceId: cloudSession.namespaceId,
-          coreVersion: getPackageVersion(),
-          vcsBranch: garden.vcsInfo.branch,
-          vcsCommitHash: garden.vcsInfo.commitHash,
-          vcsOriginUrl: garden.vcsInfo.originUrl,
-        })
-      }
-
-      // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
-      if (await this.isAllowedToRun(garden, log, allOpts)) {
-        // Clear the VCS handler's tree cache to make sure we pick up any changed sources.
-        // FIXME: use file watching to be more surgical here, this is suboptimal
-        garden.treeCache.invalidateDown(log, ["path"])
-
-        log.silly(`Starting command '${this.getFullName()}' action`)
-        result = await this.action({
-          garden,
-          cli,
-          log,
+        const commandInfo: CommandInfo = {
+          name: this.getFullName(),
           args,
-          opts: allOpts,
-          commandLine,
-          parentCommand,
+          opts: optionsWithAliasValues(this, allOpts),
+        }
+
+        const cloudEventStream = new BufferedEventStream({
+          log,
+          cloudSession,
+          maxLogLevel: eventLogLevel,
+          garden,
+          streamEvents: this.streamEvents,
+          streamLogEntries: this.streamLogEntries,
         })
-        log.silly(`Completed command '${this.getFullName()}' action successfully`)
-      } else {
-        // The command is protected and the user decided to not continue with the exectution.
-        log.info("\nCommand aborted.")
-        return {}
-      }
 
-      // Track the result of the command run
-      const allErrors = result.errors || []
-      analytics?.trackCommandResult(
-        this.getFullName(),
-        allErrors,
-        commandStartTime,
-        result.exitCode,
-        parentSessionId || undefined
-      )
+        let result: CommandResult<R>
 
-      cloudEventStream.emit("sessionCompleted", {})
-    } catch (err) {
-      analytics?.trackCommandResult(
-        this.getFullName(),
-        [err],
-        commandStartTime || new Date(),
-        1,
-        parentSessionId || undefined
-      )
-      cloudEventStream.emit("sessionFailed", {})
-      throw err
-    } finally {
-      if (parentSessionId) {
-        garden.close()
-        parentGarden.nestedSessions.delete(sessionId)
-      }
-      await cloudEventStream.close()
-    }
+        try {
+          if (cloudSession && this.streamEvents) {
+            log.silly(`Connecting Garden instance events to Cloud API`)
+            cloudEventStream.emit("commandInfo", {
+              ...commandInfo,
+              environmentName: garden.environmentName,
+              environmentId: cloudSession.environmentId,
+              projectName: garden.projectName,
+              projectId: cloudSession.projectId,
+              namespaceName: garden.namespace,
+              namespaceId: cloudSession.namespaceId,
+              coreVersion: getPackageVersion(),
+              vcsBranch: garden.vcsInfo.branch,
+              vcsCommitHash: garden.vcsInfo.commitHash,
+              vcsOriginUrl: garden.vcsInfo.originUrl,
+            })
+          }
 
-    // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to
-    // fire, which may be needed to e.g. capture monitors added in event handlers
-    await waitForOutputFlush()
+          // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
+          if (await this.isAllowedToRun(garden, log, allOpts)) {
+            // Clear the VCS handler's tree cache to make sure we pick up any changed sources.
+            // FIXME: use file watching to be more surgical here, this is suboptimal
+            garden.treeCache.invalidateDown(log, ["path"])
 
-    return result
+            log.silly(`Starting command '${this.getFullName()}' action`)
+            result = await this.action({
+              garden,
+              cli,
+              log,
+              args,
+              opts: allOpts,
+              commandLine,
+              parentCommand,
+            })
+            log.silly(`Completed command '${this.getFullName()}' action successfully`)
+          } else {
+            // The command is protected and the user decided to not continue with the exectution.
+            log.info("\nCommand aborted.")
+            return {}
+          }
+
+          // Track the result of the command run
+          const allErrors = result.errors || []
+          analytics?.trackCommandResult(
+            this.getFullName(),
+            allErrors,
+            commandStartTime,
+            result.exitCode,
+            parentSessionId || undefined
+          )
+
+          cloudEventStream.emit("sessionCompleted", {})
+        } catch (err) {
+          analytics?.trackCommandResult(
+            this.getFullName(),
+            [err],
+            commandStartTime || new Date(),
+            1,
+            parentSessionId || undefined
+          )
+          cloudEventStream.emit("sessionFailed", {})
+          throw err
+        } finally {
+          if (parentSessionId) {
+            garden.close()
+            parentGarden.nestedSessions.delete(sessionId)
+          }
+          await cloudEventStream.close()
+        }
+
+        // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to
+        // fire, which may be needed to e.g. capture monitors added in event handlers
+        await waitForOutputFlush()
+
+        return result
+      })
+    )
   }
 
   getFullName(): string {

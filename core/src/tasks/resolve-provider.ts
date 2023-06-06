@@ -32,6 +32,7 @@ import { environmentStatusSchema } from "../config/status"
 import { hashString, isNotNull } from "../util/util"
 import { gardenEnv } from "../constants"
 import { stableStringify } from "../util/string"
+import { OtelTraced } from "../util/tracing/decorators"
 
 interface Params extends CommonTaskParams {
   plugin: GardenPluginSpec
@@ -149,6 +150,16 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     return null
   }
 
+  @OtelTraced({
+    name(_params) {
+      return this.config.name + ".resolveProvider"
+    },
+    getAttributes(_spec) {
+      return {
+        name: this.config.name,
+      }
+    },
+  })
   async process({ dependencyResults }: TaskProcessParams) {
     const providerResults = dependencyResults.getResultsByType(this).filter(isNotNull)
     const resolvedProviders: ProviderMap = keyBy(providerResults.map((r) => r.result).filter(isNotNull), "name")
