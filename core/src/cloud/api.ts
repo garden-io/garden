@@ -94,6 +94,7 @@ export type ApiFetchResponse<T> = T & {
 export interface CloudSessionResponse {
   environmentId: number
   namespaceId: number
+  shortId: string
 }
 
 export interface CloudSession extends CloudSessionResponse {
@@ -693,8 +694,21 @@ export class CloudApi {
     return new URL(`/projects/${projectId}`, this.domain)
   }
 
-  getCommandResultUrl({ projectId, sessionId, userId }: { projectId: string; sessionId: string; userId: string }) {
-    const path = `/projects/${projectId}?sessionId=${sessionId}&userId=${userId}`
+  getCommandResultUrl({
+    projectId,
+    sessionId,
+    userId,
+    shortId,
+  }: {
+    projectId: string
+    sessionId: string
+    userId: string
+    shortId?: string
+  }) {
+    let path = `/projects/${projectId}?sessionId=${sessionId}&userId=${userId}`
+    if (shortId) {
+      path = `/go/${shortId}`
+    }
     return new URL(path, this.domain)
   }
 
