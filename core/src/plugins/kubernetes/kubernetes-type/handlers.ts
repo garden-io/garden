@@ -300,7 +300,6 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       await startServiceInLocalMode({
         ctx,
         spec: spec.localMode,
-        // TODO-0.13.0: Support multiple processes+targets.
         targetResource: modifiedResources[0],
         manifests: preparedManifests,
         action,
