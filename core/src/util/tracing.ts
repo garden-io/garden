@@ -79,15 +79,17 @@ export function OtelTraced<T extends any[], C>({
             ...getAttributes.apply(this, args)
           }))
         }
+
         let result
         try {
           result = await method.apply(this, args)
         } catch (err) {
           span.recordException(err)
-          span.end()
           throw err
+        } finally {
+          span.end()
         }
-        span.end()
+
         return result
       })
     }
@@ -104,4 +106,18 @@ export function startActiveSpan<T>(name: string, fn: (span: opentelemetry.api.Sp
 
     return fn(span)
   })
+}
+
+export function startSpan(name: string): opentelemetry.api.Span {
+  const span = tracer.startSpan(name)
+
+  const sessionContext = getSessionContext()
+
+  span.setAttributes(
+    prefixWithGardenNamespace({
+      ...sessionContext,
+    })
+  )
+
+  return span
 }

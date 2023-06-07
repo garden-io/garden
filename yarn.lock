@@ -709,7 +709,7 @@
   dependencies:
     "@opentelemetry/semantic-conventions" "1.14.0"
 
-"@opentelemetry/exporter-jaeger@1.14.0":
+"@opentelemetry/exporter-jaeger@1.14.0", "@opentelemetry/exporter-jaeger@latest":
   version "1.14.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/exporter-jaeger/-/exporter-jaeger-1.14.0.tgz#9f839fd18263323a3f5b724127836f8f56ea5fe7"
   integrity sha512-cXO9tsUS76Z23EhJoiby3kvbddECsmLv7h73fsZeSLv1l/ElDHC8Wr8CTB5JiWh12YgLYmlE9yGGItiszf6ksw==
@@ -731,7 +731,7 @@
     "@opentelemetry/resources" "1.14.0"
     "@opentelemetry/sdk-trace-base" "1.14.0"
 
-"@opentelemetry/exporter-trace-otlp-http@0.40.0":
+"@opentelemetry/exporter-trace-otlp-http@0.40.0", "@opentelemetry/exporter-trace-otlp-http@latest":
   version "0.40.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/exporter-trace-otlp-http/-/exporter-trace-otlp-http-0.40.0.tgz#23d10d51d79f4da5613f7a39876f100442882020"
   integrity sha512-H6NcL/he8Eqc4W3ZrtM9xuQTKK2G971y3VfJI5qgKeJg3UowhBAvgE2Nv4Ul/3e5N0ByREnW/WeVWmkXeBtlmA==

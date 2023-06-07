@@ -51,10 +51,10 @@ import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
 import { getSessionContext, prefixWithGardenNamespace, startActiveSpan, withSessionContext } from "../util/tracing"
 
-import { ConsoleSpanExporter } from "@opentelemetry/sdk-trace-base"
 import * as opentelemetry from "@opentelemetry/sdk-node"
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http"
 import { GrpcInstrumentation } from "@opentelemetry/instrumentation-grpc"
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
 
 export interface RunOutput {
   argv: any
@@ -82,8 +82,11 @@ export class GardenCli {
     const commands = sortBy(getBuiltinCommands(), (c) => c.name)
     commands.forEach((command) => this.addCommand(command))
 
+    const exporter = new OTLPTraceExporter()
+
     this.otelSDK = new opentelemetry.NodeSDK({
-      traceExporter: new ConsoleSpanExporter(),
+      serviceName: "garden",
+      traceExporter: exporter,
       instrumentations: [
         new HttpInstrumentation({
           applyCustomAttributesOnSpan: () => {
@@ -91,7 +94,14 @@ export class GardenCli {
           },
           ignoreOutgoingRequestHook: (request) => {
             // Trace only requests to the Garden API (probably don't actually want this, but for testing it's nice)
-            return !request.hostname?.includes("garden.io") || (request.path?.includes("/events") ?? false)
+            // return !request.hostname?.includes("garden.io") || (request.path?.includes("/events") ?? false)
+            return Boolean(
+              request.hostname?.includes("segment.io") ||
+              (request.hostname?.includes("garden.io") &&
+                (request.path?.includes("/events") ||
+                 request.path?.includes("/version"))
+              )
+            )
           },
         }),
         new GrpcInstrumentation(),
@@ -592,10 +602,7 @@ ${renderCommands(commands)}
       code = commandResult.exitCode || 1
     }
 
-    await _this.otelSDK
-      .shutdown()
-      .then(() => console.log("Provider shut down"))
-      .catch((err) => console.log(err))
+    await _this.otelSDK.shutdown()
 
     return { argv, code, errors, result: commandResult?.result }
   }
