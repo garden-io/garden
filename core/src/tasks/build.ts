@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import { ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "../tasks/base"
 import { Profile } from "../util/profiling"
-import { BuildAction } from "../actions/build"
+import { BuildAction, BuildActionConfig, ResolvedBuildAction } from "../actions/build"
 import pluralize from "pluralize"
 import { BuildStatus } from "../plugin/handlers/Build/get-status"
 import { resolvedActionToExecuted } from "../actions/helpers"
@@ -32,6 +32,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
 
     if (status.state === "ready" && !statusOnly && !this.force) {
       this.log.info(`Already built`)
+      await this.ensureBuildContext(action)
     }
 
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
@@ -48,20 +49,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     }
 
     const log = this.log
-    const files = action.getFullVersion().files
-
-    if (files.length > 0) {
-      log.verbose(`Syncing sources (${pluralize("file", files.length, true)})...`)
-    }
-
-    await this.garden.buildStaging.syncFromSrc({
-      action,
-      log: log || this.log,
-    })
-
-    log.verbose(chalk.green(`Done syncing sources ${renderDuration(log.getDuration(1))}`))
-
-    await this.garden.buildStaging.syncDependencyProducts(action, log)
+    await this.buildStaging(action)
 
     try {
       const { result } = await router.build.build({
@@ -80,5 +68,30 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       log.error(`Build failed`)
       throw err
     }
+  }
+
+  private async ensureBuildContext(action: ResolvedBuildAction<BuildActionConfig>) {
+    const buildContextExists = await this.garden.buildStaging.actionBuildPathExists({ action })
+    if (!buildContextExists) {
+      await this.buildStaging(action)
+    }
+  }
+
+  private async buildStaging(action: ResolvedBuildAction<BuildActionConfig>) {
+    const log = this.log
+    const files = action.getFullVersion().files
+
+    if (files.length > 0) {
+      log.verbose(`Syncing sources (${pluralize("file", files.length, true)})...`)
+    }
+
+    await this.garden.buildStaging.syncFromSrc({
+      action,
+      log: log || this.log,
+    })
+
+    log.verbose(chalk.green(`Done syncing sources ${renderDuration(log.getDuration(1))}`))
+
+    await this.garden.buildStaging.syncDependencyProducts(action, log)
   }
 }
