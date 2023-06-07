@@ -49,7 +49,7 @@ import { dedent } from "../util/string"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
-import { tracer } from "../util/tracing"
+import { tracer, withSessionContext } from "../util/tracing"
 
 import { ConsoleSpanExporter } from "@opentelemetry/sdk-trace-base"
 import * as opentelemetry from "@opentelemetry/sdk-node"
@@ -360,7 +360,7 @@ ${renderCommands(commands)}
 
       await checkForStaticDir()
 
-      result = await command.run({
+      result = await withSessionContext({ sessionId }, () => command.run({
         cli: this,
         garden,
         log: garden.log,
@@ -368,7 +368,7 @@ ${renderCommands(commands)}
         opts: parsedOpts,
         sessionId,
         parentSessionId: null,
-      })
+      }))
 
       if (garden.monitors.anyMonitorsActive()) {
         // Wait for monitors to exit
@@ -538,7 +538,7 @@ ${renderCommands(commands)}
     this.processRecord = processRecord!
 
     try {
-      const runResults = await tracer.startActiveSpan("outer", async (span) => {
+      const runResults = await tracer.startActiveSpan("garden", async (span) => {
         span.setAttribute("gardenVersion", getPackageVersion())
 
         const results = await this.runCommand({

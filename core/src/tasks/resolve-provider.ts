@@ -152,7 +152,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
   @OtelTraced({
     name: "resolveProvider",
-    getContext(_spec) {
+    getAttributes(_spec) {
       return {
         name: this.config.name,
       }

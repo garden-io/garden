@@ -72,7 +72,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
   @OtelTraced({
     name: "resolveAction",
-    getContext(_params) {
+    getAttributes(_params) {
       return {
         key: this.action.key(),
         kind: this.action.kind,
@@ -226,7 +226,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
   @OtelTraced({
     name: "validateAction",
-    getContext(_spec) {
+    getAttributes(_spec) {
       return {
         key: this.action.key(),
         kind: this.action.kind,

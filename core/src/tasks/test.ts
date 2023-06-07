@@ -55,7 +55,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
 
   @OtelTraced({
     name: "getTestStatus",
-    getContext(_params) {
+    getAttributes(_params) {
       return {
         key: this.action.key(),
         kind: this.action.kind,
@@ -102,7 +102,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
 
   @OtelTraced({
     name: "test",
-    getContext(_params) {
+    getAttributes(_params) {
       return {
         key: this.action.key(),
         kind: this.action.kind,
