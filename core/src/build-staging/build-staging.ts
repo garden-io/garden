@@ -73,6 +73,11 @@ export class BuildStaging {
     })
   }
 
+  async actionBuildPathExists(action: BuildAction ) {
+    const buildPath = action.getBuildPath()
+    return this.createdPaths.has(buildPath) || pathExists(buildPath)
+  }
+
   async syncDependencyProducts(action: BuildAction, log: Log) {
     const buildPath = action.getBuildPath()
 
