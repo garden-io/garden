@@ -211,11 +211,19 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
 /**
  * Recursively parses and resolves all templated strings in the given object.
  */
-export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T>(
-  value: T,
+
+// `extends any` here isn't pretty but this function is hard to type correctly
+export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T extends any>(
+  value: T ,
   context: ConfigContext,
   opts: ContextResolveOpts = {}
 ): T {
+  if (value === null) {
+    return null as T
+  }
+  if (value === undefined) {
+    return undefined as T
+  }
   if (typeof value === "string") {
     return <T>resolveTemplateString(value, context, opts)
   } else if (Array.isArray(value)) {

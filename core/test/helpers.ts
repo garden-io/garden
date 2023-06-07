@@ -856,7 +856,7 @@ export function makeCommandParams<T extends Parameters = {}, U extends Parameter
 type NameOfProperty = string
 // https://stackoverflow.com/a/66836940
 // useful for typesafe stubbing
-export function getPropertyName<T>(
+export function getPropertyName<T extends {}>(
   obj: T,
   expression: (x: { [Property in keyof T]: () => string }) => () => NameOfProperty
 ): string {

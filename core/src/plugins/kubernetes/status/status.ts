@@ -37,7 +37,7 @@ import { deepMap } from "../../../util/objects"
 import { DeployState, combineStates } from "../../../types/service"
 import { sleep } from "../../../util/util"
 
-export interface ResourceStatus<T = BaseResource> {
+export interface ResourceStatus<T extends BaseResource | KubernetesObject = BaseResource> {
   state: DeployState
   resource: KubernetesServerResource<T>
   lastMessage?: string
@@ -45,7 +45,7 @@ export interface ResourceStatus<T = BaseResource> {
   logs?: string
 }
 
-export interface StatusHandlerParams<T = BaseResource> {
+export interface StatusHandlerParams<T extends BaseResource | KubernetesObject = BaseResource> {
   api: KubeApi
   namespace: string
   resource: KubernetesServerResource<T>
@@ -53,7 +53,7 @@ export interface StatusHandlerParams<T = BaseResource> {
   resourceVersion?: number
 }
 
-interface StatusHandler<T = BaseResource> {
+interface StatusHandler<T extends BaseResource | KubernetesObject = BaseResource> {
   (params: StatusHandlerParams<T>): Promise<ResourceStatus<T>>
 }
 

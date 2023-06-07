@@ -331,7 +331,7 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
 
     if (!spec) {
       if (command.allowUndefinedArguments && value !== undefined) {
-        processedOpts[key] = value
+        processedOpts[key as keyof typeof optSpec] = value
       } else {
         errors.push(`Unrecognized option flag ${flagStr}`)
         continue
@@ -356,7 +356,7 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
     if (value !== undefined) {
       try {
         value = spec.validate(spec.coerce(value))
-        processedOpts[key] = value
+        processedOpts[key as keyof typeof optSpec] = value
       } catch (err) {
         errors.push(`Invalid value for option ${flagStr}: ${err.message}`)
       }
