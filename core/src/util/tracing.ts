@@ -4,12 +4,13 @@ export const tracer = opentelemetry.api.trace.getTracer("garden")
 export const getActiveContext = () => opentelemetry.api.context.active()
 
 type GetContextCallback<T extends any[], C> = (this: C, ...args: T) => opentelemetry.api.Attributes
+type GetNameCallback<T extends any[], C> = (this: C, ...args: T) => string
 
 export function OtelTraced<T extends any[], C>({
   getContext,
   name,
 }: {
-  name: string
+  name: string | GetNameCallback<T, C>
   getContext?: GetContextCallback<T, C>
 }) {
   return function tracedWrapper(
@@ -24,7 +25,8 @@ export function OtelTraced<T extends any[], C>({
     }
 
     descriptor.value = async function (this: C, ...args: T) {
-      return tracer.startActiveSpan(name, async (span) => {
+      const resolvedName = typeof name === "string" ? name : name.apply(this, args)
+      return tracer.startActiveSpan(resolvedName, async (span) => {
         if (getContext) {
           span.setAttributes(getContext.apply(this, args))
         }

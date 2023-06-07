@@ -17,6 +17,7 @@ import { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/Test/get-result"
 import { TestConfig } from "../config/test"
 import { moduleTestNameToActionName } from "../types/module"
+import { OtelTraced } from "../util/tracing"
 
 class TestError extends Error {
   toString() {
@@ -52,6 +53,15 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     return this.action.longDescription()
   }
 
+  @OtelTraced({
+    name: "getTestStatus",
+    getContext(_params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   @emitGetStatusEvents<TestAction>
   async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
     this.log.verbose("Checking status...")
@@ -90,6 +100,15 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     }
   }
 
+  @OtelTraced({
+    name: "test",
+    getContext(_params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   @emitProcessingEvents<TestAction>
   async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)

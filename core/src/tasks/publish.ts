@@ -15,6 +15,7 @@ import { ConfigContext, schema } from "../config/template-contexts/base"
 import { PublishActionResult } from "../plugin/handlers/Build/publish"
 import { BuildAction } from "../actions/build"
 import { ActionSpecContext, ActionSpecContextParams } from "../config/template-contexts/actions"
+import { OtelTraced } from "../util/tracing"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
   tagTemplate?: string
@@ -61,6 +62,15 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     return null
   }
 
+  @OtelTraced({
+    name: "publish",
+    getContext(_params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, PublishActionResult>) {
     if (this.action.getConfig("allowPublish") === false) {
       this.log.info("Publishing disabled (allowPublish=false set on build)")
