@@ -71,7 +71,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
   }
 
   private async ensureBuildContext(action: ResolvedBuildAction<BuildActionConfig>) {
-    const buildContextExists = await this.garden.buildStaging.actionBuildPathExists({ action })
+    const buildContextExists = await this.garden.buildStaging.actionBuildPathExists(action)
     if (!buildContextExists) {
       await this.buildStaging(action)
     }
