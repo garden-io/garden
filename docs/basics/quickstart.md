@@ -11,13 +11,28 @@ A visual quickstart is also available by logging in to the Garden Dashboard. The
 
 Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow. In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
 
+We have two different options to go through this quickstart guide:
+
+- Using our brand new [Interactive Environments](###Interactive-environments) that can help you deploy our quickstart project in an interactive cloud environment.
+- Running the project in our own local machine 💻 by following the [Local Installation](###Local-installation) section.
+
+### Interactive environments
+
+Simply click any of the two buttons below ⬇️
+
+<a href="https://go.garden.io/killercoda"><img src="https://raw.githubusercontent.com/garden-io/garden-interactive-environments/main/resources/img/killercoda-logo.png" alt="Killercoda logo in black and white." height="55px"/></a> [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://go.garden.io/cloudshell)
+
+If you find any bugs 🐛 or have suggestions to improve our labs please don't hesitate in reaching out through an issue towards this [repository](https://github.com/garden-io/garden-interactive-environments/blob/main/resources/img/killercoda-logo.png) or ask through our [Discord Community](https://go.garden.io/discord)🌸
+
+### Local installation
+
 In just 3 steps, we'll:
 
 * Install Garden
 * Run a local, [supported flavor](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes
 * Deploy an example application
 
-## Step 1 — Install Garden
+#### Step 1 — Install Garden
 
 Install the Garden CLI for your platform:
 
@@ -64,7 +79,7 @@ This will significantly speed up the first Garden build of large projects on Win
 
 For more detailed installation instructions, please see our [Installation guide](../guides/installation.md).
 
-## Step 2 — Install Kubernetes locally
+#### Step 2 — Install Kubernetes locally
 
 {% hint style="info" %}
 If you already have [a supported version](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes installed locally you can skip this section.
@@ -83,7 +98,7 @@ Then enable Kubernetes in Docker Desktop:
 
 See the [official Docker docs](https://docs.docker.com/desktop/kubernetes/) for more.
 
-## Step 3 — Deploy the example application
+#### Step 3 — Deploy the example application
 
 Now that we have Garden installed and Kubernetes running locally, we can deploy our example application.
 
@@ -119,7 +134,7 @@ If the page doesn't load, you'll need to go to step 4 and update your hostfile. 
 
 The project itself doubles as an interactive guide that walks you through some common Garden commands and workflows. We encourage you to give it a spin!
 
-## Step 4 — Update hostfile (only if needed)
+### Step 4 — Update hostfile (only if needed)
 
 {% hint style="info" %}
 The `*.local.demo.garden` domain resolves to 127.0.0.1 via our DNS provider. This means that when you go to [http://vote.local.demo.garden](http://vote.local.demo.garden), you _should_ be redirected to the app that you have running locally. However, some routers will prevent redirects to 127.0.0.1 and you'll need to update your hostfile instead.
