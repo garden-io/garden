@@ -55,7 +55,7 @@ import { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from 
 import { splitFirst } from "../util/string"
 import { ActionMode } from "../actions/types"
 import { AnalyticsHandler } from "../analytics/analytics"
-import { tracer, withSessionContext } from "../util/tracing"
+import { startActiveSpan, withSessionContext } from "../util/tracing"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -270,11 +270,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     parentSessionId,
     overrideLogLevel,
   }: RunCommandParams<A, O>): Promise<CommandResult<R>> {
-    return withSessionContext({ sessionId, parentSessionId }, () => tracer.startActiveSpan(this.getFullName(), async (span) => {
-      span.setAttributes({
-        sessionId,
-        parentSessionId: parentSessionId ?? undefined,
-      })
+    return withSessionContext({ sessionId, parentSessionId }, () => startActiveSpan(this.getFullName(), async (span) => {
       const commandStartTime = new Date()
       const server = this.server
 

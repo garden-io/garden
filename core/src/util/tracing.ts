@@ -24,6 +24,8 @@ export function withSessionContext<T>(
   let newContext = activeContext.setValue(SESSION_ID_CONTEXT_KEY, sessionId)
   if (parentSessionId) {
     newContext = newContext.setValue(PARENT_SESSION_ID_CONTEXT_KEY, parentSessionId)
+  } else {
+    newContext = newContext.deleteValue(PARENT_SESSION_ID_CONTEXT_KEY)
   }
 
   return opentelemetry.api.context.with(newContext, fn)
@@ -37,6 +39,13 @@ export function getSessionContext(): SessionContext {
   return { sessionId, parentSessionId }
 }
 
+export function prefixWithGardenNamespace(data: opentelemetry.api.Attributes): opentelemetry.api.Attributes {
+  const unprefixed = Object.entries(data)
+
+  return Object.fromEntries(unprefixed.map(([key, value]) => {
+    return [`garden.${key}`, value]
+  }))
+}
 
 type GetAttributesCallback<T extends any[], C> = (this: C, ...args: T) => opentelemetry.api.Attributes
 type GetNameCallback<T extends any[], C> = (this: C, ...args: T) => string
@@ -65,10 +74,10 @@ export function OtelTraced<T extends any[], C>({
         const sessionContext = getSessionContext()
 
         if (getAttributes) {
-          span.setAttributes({
+          span.setAttributes(prefixWithGardenNamespace({
             ...sessionContext,
             ...getAttributes.apply(this, args)
-          })
+          }))
         }
         let result
         try {
@@ -83,4 +92,16 @@ export function OtelTraced<T extends any[], C>({
       })
     }
   }
+}
+
+export function startActiveSpan<T>(name: string, fn: (span: opentelemetry.api.Span) => Promise<T>): Promise<T> {
+  return tracer.startActiveSpan(name, async (span) => {
+    const sessionContext = getSessionContext()
+
+    span.setAttributes(prefixWithGardenNamespace({
+      ...sessionContext,
+    }))
+
+    return fn(span)
+  })
 }

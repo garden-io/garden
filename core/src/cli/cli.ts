@@ -49,7 +49,7 @@ import { dedent } from "../util/string"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
-import { getSessionContext, tracer, withSessionContext } from "../util/tracing"
+import { getSessionContext, prefixWithGardenNamespace, startActiveSpan, withSessionContext } from "../util/tracing"
 
 import { ConsoleSpanExporter } from "@opentelemetry/sdk-trace-base"
 import * as opentelemetry from "@opentelemetry/sdk-node"
@@ -87,7 +87,7 @@ export class GardenCli {
       instrumentations: [
         new HttpInstrumentation({
           applyCustomAttributesOnSpan: () => {
-            return getSessionContext()
+            return prefixWithGardenNamespace(getSessionContext())
           },
           ignoreOutgoingRequestHook: (request) => {
             // Trace only requests to the Garden API (probably don't actually want this, but for testing it's nice)
@@ -541,8 +541,8 @@ ${renderCommands(commands)}
     this.processRecord = processRecord!
 
     try {
-      const runResults = await tracer.startActiveSpan("garden", async (span) => {
-        span.setAttribute("gardenVersion", getPackageVersion())
+      const runResults = await startActiveSpan("garden", async (span) => {
+        span.setAttribute("garden.version", getPackageVersion())
 
         const results = await this.runCommand({
           command: command!,
