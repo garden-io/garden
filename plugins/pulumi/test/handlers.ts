@@ -92,7 +92,8 @@ describe("pulumi plugin handlers", () => {
         log: action.createLog(log),
         action,
       })
-      expect(status.state).to.eql("outdated")
+      expect(status.state).to.eql("not-ready")
+      expect(status.detail?.state).to.eql("outdated")
     })
 
     it("should return a 'ready' state when the stack has already been deployed", async () => {
