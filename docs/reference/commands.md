@@ -2784,7 +2784,10 @@ sources:
 
 # A list of suggested commands to run in the project.
 suggestedCommands:
-  - # Short description of what the command does.
+  - # Name of the command
+    name:
+
+    # Short description of what the command does.
     description:
 
     # The source of the suggestion, e.g. a plugin name.

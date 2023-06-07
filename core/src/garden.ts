@@ -1605,9 +1605,10 @@ export class Garden {
   public async getSuggestedCommands(): Promise<SuggestedCommand[]> {
     const suggestions: SuggestedCommand[] = [
       {
+        name: "deploy",
         description: "Deploy the whole project",
         gardenCommand: "deploy",
-      }
+      },
     ]
 
     // TODO: call plugin handlers to get plugin-specific suggestions

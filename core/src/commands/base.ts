@@ -85,6 +85,7 @@ export interface RunCommandParams<A extends Parameters = {}, O extends Parameter
 }
 
 export interface SuggestedCommand {
+  name: string
   description: string
   source?: string
   gardenCommand?: string
@@ -103,6 +104,7 @@ export interface SuggestedCommand {
 export const suggestedCommandSchema = createSchema({
   name: "suggested-command",
   keys: () => ({
+    name: joi.string().required().description("Name of the command"),
     description: joi.string().required().description("Short description of what the command does."),
     source: joi.string().description("The source of the suggestion, e.g. a plugin name."),
     gardenCommand: joi.string().description("A Garden command to run (including arguments)."),
