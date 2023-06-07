@@ -48,7 +48,7 @@ export const buildResultSchema = createSchema({
   }),
 })
 
-export interface BuildStatus<T extends BuildAction = BuildAction, D = BuildResult> extends ActionStatus<T, D> {}
+export interface BuildStatus<T extends BuildAction = BuildAction, D extends {} = BuildResult> extends ActionStatus<T, D> {}
 
 export interface BuildStatusMap extends ActionStatusMap<BuildAction> {
   [key: string]: BuildStatus

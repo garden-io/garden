@@ -398,11 +398,13 @@ export async function deepResolve<T>(
   }
 }
 
+type DeepMappable = any | ArrayLike<DeepMappable> | { [k: string]: DeepMappable }
+
 /**
  * Recursively maps over all keys in the input and resolves the resulting promises,
  * walking through all object keys and array items.
  */
-export async function asyncDeepMap<T>(
+export async function asyncDeepMap<T extends DeepMappable>(
   obj: T,
   mapper: (value) => Promise<any>,
   options?: Bluebird.ConcurrencyOption
@@ -413,7 +415,7 @@ export async function asyncDeepMap<T>(
     return <T>(
       fromPairs(
         await Bluebird.map(
-          Object.entries(obj),
+          Object.entries(obj as { [k: string]: DeepMappable }),
           async ([key, value]) => [key, await asyncDeepMap(value, mapper, options)],
           options
         )
