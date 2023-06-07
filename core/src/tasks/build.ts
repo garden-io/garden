@@ -28,7 +28,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
 
   @OtelTraced({
     name: "getBuildStatus",
-    getContext(this: BuildTask, params) {
+    getContext(_params) {
       return {
         key: this.action.key(),
         kind: this.action.kind,
@@ -53,7 +53,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
 
   @OtelTraced({
     name: "build",
-    getContext(this: BuildTask, params) {
+    getContext(_params) {
       return {
         key: this.action.key(),
         kind: this.action.kind,
