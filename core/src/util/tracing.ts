@@ -13,7 +13,7 @@ export type SessionContext = {
 
 export type SessionContextOptions = {
   sessionId: string
-  parentSessionId?: string
+  parentSessionId?: string | null
 }
 export function withSessionContext<T>(
   { sessionId, parentSessionId }: SessionContextOptions,

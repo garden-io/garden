@@ -49,7 +49,7 @@ import { dedent } from "../util/string"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
-import { tracer, withSessionContext } from "../util/tracing"
+import { getSessionContext, tracer, withSessionContext } from "../util/tracing"
 
 import { ConsoleSpanExporter } from "@opentelemetry/sdk-trace-base"
 import * as opentelemetry from "@opentelemetry/sdk-node"
@@ -86,6 +86,9 @@ export class GardenCli {
       traceExporter: new ConsoleSpanExporter(),
       instrumentations: [
         new HttpInstrumentation({
+          applyCustomAttributesOnSpan: () => {
+            return getSessionContext()
+          },
           ignoreOutgoingRequestHook: (request) => {
             // Trace only requests to the Garden API (probably don't actually want this, but for testing it's nice)
             return !request.hostname?.includes("garden.io") || (request.path?.includes("/events") ?? false)
