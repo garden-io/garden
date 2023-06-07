@@ -2,7 +2,10 @@ kind: Project
 name: pulumi-test
 variables:
   orgName: gordon-garden-bot # <-- replace with your own org name if running the tests locally
+environments:
+  - name: local
 providers:
   - name: local-kubernetes
   - name: pulumi
+    environments: [local]
     orgName: ${var.orgName}

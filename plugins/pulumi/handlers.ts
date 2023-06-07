@@ -119,8 +119,7 @@ export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatu
 export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async ({ ctx, log, action }) => {
   const provider = ctx.provider as PulumiProvider
   const pulumiParams = { log, ctx, provider, action }
-  const { autoApply, deployFromPreview } = action.getSpec()
-  const { cacheStatus } = action.getSpec()
+  const { autoApply, deployFromPreview, cacheStatus } = action.getSpec()
 
   if (!autoApply && !deployFromPreview) {
     log.info(`${action.longDescription()} has autoApply = false, but no planPath was provided. Skipping deploy.`)

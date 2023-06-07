@@ -4,6 +4,7 @@ name: k8s-namespace
 description: Creates a Namespace
 pulumiVarfiles: [varfile1.yaml, varfile2.yaml]
 createStack: true
+cacheStatus: true
 allowDestroy: true
 pulumiVariables:
   pulumi-k8s-test:orgName: gordon-garden-bot # <--- replace with your own org
