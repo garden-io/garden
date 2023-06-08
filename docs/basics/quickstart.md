@@ -13,7 +13,7 @@ Garden is an all-in-one DevOps platform that enables you to build, test, deploy 
 
 ## Interactive environments
 
-If you want to try Garden in an interactive cloud-based environment with a playground-like experience, use our new Killercoda and CloudShell environments ✨.
+Preview Garden with our new interactive and install-free cloud-based playgrounds ✨.
 
 Click on either of the two buttons below ⬇️.
 
