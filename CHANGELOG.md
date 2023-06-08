@@ -1,4 +1,15 @@
 
+<a name="0.13.2"></a>
+## [0.13.2](https://github.com/garden-io/garden/compare/0.13.1...0.13.2) (2023-06-08)
+
+### Bug Fixes
+
+* show short url for cloud ([c76dfd103](https://github.com/garden-io/garden/commit/c76dfd103))
+* ensure build context on ´ready´ status builds ([3b7ee5330](https://github.com/garden-io/garden/commit/3b7ee5330))
+* **k8s:** handle intermittent socket hang up errors ([634424766](https://github.com/garden-io/garden/commit/634424766))
+* **self-update:** fix target release finding machinery ([81945b3d4](https://github.com/garden-io/garden/commit/81945b3d4))
+* **self-update:** fix list of the latest available versions ([5a7f465e6](https://github.com/garden-io/garden/commit/5a7f465e6))
+
 <a name="0.13.1"></a>
 ## [0.13.1](https://github.com/garden-io/garden/compare/0.13.0...0.13.1) (2023-06-06)
 
