@@ -21,7 +21,7 @@ Click a button to start your Killercoda or Google Cloud Shell environment 👇�
 
 If you find any bugs 🐛 or have suggestions to improve our labs please don't hesitate to reach out by creating an [issue here](https://github.com/garden-io/garden-interactive-environments) or by asking in our [Discord Community](https://go.garden.io/discord)🌸
 
-## Usage
+## Quickstart
 
 In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
 
