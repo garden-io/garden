@@ -55,7 +55,7 @@ import { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from 
 import { splitFirst } from "../util/string"
 import { ActionMode } from "../actions/types"
 import { AnalyticsHandler } from "../analytics/analytics"
-import { startSpan, withSessionContext, wrapActiveSpan } from "../util/tracing"
+import { withSessionContext, wrapActiveSpan } from "../util/tracing"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -277,13 +277,11 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
 
         let garden = parentGarden
 
-        const span = startSpan("cloneForCommand")
         if (parentSessionId) {
           // Make an instance clone to override anything that needs to be scoped to a specific command run
           // TODO: this could be made more elegant
           garden = parentGarden.cloneForCommand(sessionId)
         }
-        span.end()
 
         const log = overrideLogLevel ? garden.log.createLog({ fixLevel: overrideLogLevel }) : garden.log
 
