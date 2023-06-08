@@ -44,20 +44,17 @@ For more installation options, see the [installation guide](https://docs.garden.
 
 ![Garden dev deploy](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/d8095ad1a8615edf49e721b8afcd901f3056e127/dev-mode.gif)
 
-Start using Garden right away by using any of the following two options:
+## Interactive environments
 
-- Make use of our brand new interactive environments that can help you deploy the project through interactive labs. ✅
-- You can also install the prerequisites in your computer and then follow the steps below. 💻
+If you want to try Garden in an interactive cloud-based environment with a playground-like experience, use our new Killercoda and CloudShell environments ✨.
 
-### Interactive environments
-
-Simply click any of the two buttons below ⬇️
+Click on either of the two buttons below ⬇️.
 
 <a href="https://go.garden.io/killercoda"><img src="https://raw.githubusercontent.com/garden-io/garden-interactive-environments/main/resources/img/killercoda-logo.png" alt="Killercoda logo in black and white." height="55px"/></a> [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://go.garden.io/cloudshell)
 
-If you find any bugs 🐛 or have suggestions to improve our labs please don't hesitate in reaching out through an issue towards this [repository](https://github.com/garden-io/garden-interactive-environments/blob/main/resources/img/killercoda-logo.png) or ask through our [Discord Community](https://go.garden.io/discord)🌸
+If you find any bugs 🐛 or have suggestions to improve our labs please don't hesitate to reach out by creating an [issue here](https://github.com/garden-io/garden-interactive-environments) or by asking in our [Discord Community](https://go.garden.io/discord)🌸
 
-### Local Installation
+## Usage
 
 > Make sure you have Garden installed and Kubernetes running locally (e.g. with Minikube or Docker for Desktop) before deploying the project.
 
