@@ -3431,7 +3431,7 @@ Defaults to the latest minor release version, but you can also request a specifi
 Examples:
 
    garden self-update               # update to the latest minor Garden CLI version
-   garden self-update edge          # switch to the latest edge build of garden 0.12 (which is created anytime a PR is merged to the 0.12 branch)
+   garden self-update edge-acorn    # switch to the latest edge build of garden 0.12 (which is created anytime a PR is merged to the 0.12 branch)
    garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13) (which is created anytime a PR is merged to main)
    garden self-update 0.12.24       # switch to the exact version 0.12.24 of the CLI
    garden self-update --major       # install the latest version, even if it's a major bump
