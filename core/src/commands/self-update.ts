@@ -135,7 +135,8 @@ namespace GitHubReleaseApi {
     const res: any = await got("https://api.github.com/repos/garden-io/garden/releases?per_page=100").json()
 
     return [
-      chalk.cyan("edge"),
+      chalk.cyan("edge-acorn"),
+      chalk.cyan("edge-bonsai"),
       ...res
         .filter((r: any) => !r.prerelease && !r.draft)
         .map((r: any) => chalk.cyan(r.name))
