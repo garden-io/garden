@@ -90,22 +90,34 @@ interface SelfUpdateResult {
 /**
  * Utilities and wrappers on top of GitHub REST API.
  */
-namespace GitHubReleaseApi {
+export namespace GitHubReleaseApi {
+  export type Pagination = { pageNumber: number; pageSize: number }
+
+  export async function fetchReleases({ pageNumber, pageSize }: Pagination) {
+    const results: any[] = await got(
+      `https://api.github.com/repos/garden-io/garden/releases?page=${pageNumber}&per_page=${[pageSize]}`
+    ).json()
+    return results
+  }
+
   /**
    * Traverse the Garden releases on GitHub and get the first one matching the given predicate.
    *
    * @param primaryPredicate the primary predicate to identify the wanted release
    * @param fallbackPredicates the list of fallback predicates to be used if the primary one returns no result
+   * @param fetcher the optional function to override the default release fetching machinery
    */
   export async function findRelease({
     primaryPredicate,
     fallbackPredicates = [],
+    fetcher = fetchReleases,
   }: {
     primaryPredicate: (any: any) => boolean
     fallbackPredicates?: ((any: any) => boolean)[]
+    fetcher?: (pagination: Pagination) => Promise<any[]>
   }) {
-    const releasesPerPage = 100
-    let page = 1
+    const pageSize = 100
+    let pageNumber = 1
     let fetchedReleases: any[]
     /*
     Stores already fetched releases. This will be used with the fallback predicates.
@@ -119,16 +131,14 @@ namespace GitHubReleaseApi {
       It means that there are 2 ordered subsequences of 0.12.x and 0.13.x releases in the result list,
       but the list itself is not properly ordered.
       */
-      fetchedReleases = await got(
-        `https://api.github.com/repos/garden-io/garden/releases?page=${page}&per_page=${releasesPerPage}`
-      ).json()
+      fetchedReleases = await fetcher({ pageNumber, pageSize })
       for (const release of fetchedReleases) {
         if (primaryPredicate(release)) {
           return release
         }
       }
       allReleases.push(...fetchedReleases)
-      page++
+      pageNumber++
     } while (fetchedReleases.length > 0)
 
     for (const fallbackPredicate of fallbackPredicates) {
