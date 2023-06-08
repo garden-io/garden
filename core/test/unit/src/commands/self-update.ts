@@ -14,6 +14,7 @@ import getPort from "get-port"
 import { dirname } from "path"
 import { ParameterValues } from "../../../../src/cli/params"
 import {
+  GitHubReleaseApi,
   isEdgeVersion,
   isPreReleaseVersion,
   SelfUpdateArgs,
@@ -371,8 +372,8 @@ describe("SelfUpdateCommand", () => {
         expectAccepted({ tag_name: "0.13.0", draft: false, prerelease: false }, semver.parse("0.12.50")!, "major")
       })
 
-      it("should accept the same stable major version", () => {
-        expectAccepted({ tag_name: "0.13.0", draft: false, prerelease: false }, semver.parse("0.13.0")!, "major")
+      it("should skip the same stable major version", () => {
+        expectSkipped({ tag_name: "0.13.0", draft: false, prerelease: false }, semver.parse("0.13.0")!, "major")
       })
 
       it("should skip an older stable major version", () => {
@@ -418,6 +419,51 @@ describe("SelfUpdateCommand", () => {
 
       it("should skip edge-* versions", () => {
         expectSkipped({ tag_name: "edge-bonsai", draft: false, prerelease: false }, semver.parse("0.13.0")!, "patch")
+      })
+    })
+  })
+
+  describe("GitHubReleaseApi", () => {
+    describe("findRelease", () => {
+      const currentSemVer = semver.parse("0.12.57")!
+
+      it("should find the latest minor release if there are multiple minor versions", async () => {
+        // Mock the data fetcher to return only one page
+        const fetcher = async (pagination: GitHubReleaseApi.Pagination) => {
+          if (pagination.pageNumber > 1) {
+            return []
+          }
+          return [
+            { tag_name: "0.12.58", prerelease: false, draft: false },
+            { tag_name: "0.13.1", prerelease: false, draft: false },
+            { tag_name: "0.13.0", prerelease: false, draft: false },
+            { tag_name: "0.12.57", prerelease: false, draft: false },
+          ]
+        }
+        const primaryPredicate = command.getTargetVersionPredicate(currentSemVer, "minor")
+        const release = await GitHubReleaseApi.findRelease({ primaryPredicate, fetcher })
+        expect(release.tag_name).to.eql("0.13.1")
+      })
+
+      it("should fallback to the latest patch release if no minor version found", async () => {
+        // Mock the data fetcher to return only one page
+        const fetcher = async (pagination: GitHubReleaseApi.Pagination) => {
+          if (pagination.pageNumber > 1) {
+            return []
+          }
+          return [
+            { tag_name: "0.12.58", prerelease: false, draft: false },
+            { tag_name: "0.12.57", prerelease: false, draft: false },
+          ]
+        }
+        const primaryPredicate = command.getTargetVersionPredicate(currentSemVer, "minor")
+        const fallbackPredicate = command.getTargetVersionPredicate(currentSemVer, "patch")
+        const release = await GitHubReleaseApi.findRelease({
+          primaryPredicate,
+          fallbackPredicates: [fallbackPredicate],
+          fetcher,
+        })
+        expect(release.tag_name).to.eql("0.12.58")
       })
     })
   })
