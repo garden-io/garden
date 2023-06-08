@@ -15,7 +15,7 @@ Garden is an all-in-one DevOps platform that enables you to build, test, deploy 
 
 Preview Garden with our new interactive and install-free cloud-based playgrounds ✨.
 
-Click on either of the two buttons below ⬇️.
+Click a button to start your Killercoda or Google Cloud Shell environment 👇🏼.
 
 <a href="https://go.garden.io/killercoda"><img src="https://raw.githubusercontent.com/garden-io/garden-interactive-environments/main/resources/img/killercoda-logo.png" alt="Killercoda logo in black and white." height="55px"/></a> [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://go.garden.io/cloudshell)
 
