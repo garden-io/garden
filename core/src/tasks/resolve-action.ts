@@ -71,7 +71,9 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
   }
 
   @OtelTraced({
-    name: "resolveAction",
+    name(_params) {
+      return this.action.key() + ".resolveAction"
+    },
     getAttributes(_params) {
       return {
         key: this.action.key(),

@@ -63,7 +63,9 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
   }
 
   @OtelTraced({
-    name: "getDeployStatus",
+    name(_params) {
+      return this.action.key() + ".getDeployStatus"
+    },
     getAttributes(_params) {
       return {
         key: this.action.key(),

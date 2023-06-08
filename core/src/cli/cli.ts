@@ -49,7 +49,13 @@ import { dedent } from "../util/string"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
-import { getSessionContext, prefixWithGardenNamespace, startActiveSpan, withSessionContext } from "../util/tracing"
+import {
+  OtelTraced,
+  getSessionContext,
+  prefixWithGardenNamespace,
+  startActiveSpan,
+  withSessionContext,
+} from "../util/tracing"
 
 import * as opentelemetry from "@opentelemetry/sdk-node"
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http"
@@ -85,23 +91,12 @@ export class GardenCli {
     const exporter = new OTLPTraceExporter()
 
     this.otelSDK = new opentelemetry.NodeSDK({
-      serviceName: "garden",
+      serviceName: "garden-cli",
       traceExporter: exporter,
       instrumentations: [
         new HttpInstrumentation({
           applyCustomAttributesOnSpan: () => {
             return prefixWithGardenNamespace(getSessionContext())
-          },
-          ignoreOutgoingRequestHook: (request) => {
-            // Trace only requests to the Garden API (probably don't actually want this, but for testing it's nice)
-            // return !request.hostname?.includes("garden.io") || (request.path?.includes("/events") ?? false)
-            return Boolean(
-              request.hostname?.includes("segment.io") ||
-              (request.hostname?.includes("garden.io") &&
-                (request.path?.includes("/events") ||
-                 request.path?.includes("/version"))
-              )
-            )
           },
         }),
         new GrpcInstrumentation(),
@@ -373,15 +368,17 @@ ${renderCommands(commands)}
 
       await checkForStaticDir()
 
-      result = await withSessionContext({ sessionId }, () => command.run({
-        cli: this,
-        garden,
-        log: garden.log,
-        args: parsedArgs,
-        opts: parsedOpts,
-        sessionId,
-        parentSessionId: null,
-      }))
+      result = await withSessionContext({ sessionId }, () =>
+        command.run({
+          cli: this,
+          garden,
+          log: garden.log,
+          args: parsedArgs,
+          opts: parsedOpts,
+          sessionId,
+          parentSessionId: null,
+        })
+      )
 
       if (garden.monitors.anyMonitorsActive()) {
         // Wait for monitors to exit
@@ -602,7 +599,11 @@ ${renderCommands(commands)}
       code = commandResult.exitCode || 1
     }
 
-    await _this.otelSDK.shutdown()
+    try {
+      await _this.otelSDK.shutdown()
+    } catch (err) {
+      log.debug(`OTEL shutdown failed with error ${err.toString}`)
+    }
 
     return { argv, code, errors, result: commandResult?.result }
   }
