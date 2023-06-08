@@ -55,7 +55,7 @@ import { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from 
 import { splitFirst } from "../util/string"
 import { ActionMode } from "../actions/types"
 import { AnalyticsHandler } from "../analytics/analytics"
-import { startActiveSpan, withSessionContext } from "../util/tracing"
+import { startSpan, withSessionContext, wrapActiveSpan } from "../util/tracing"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -271,17 +271,19 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     overrideLogLevel,
   }: RunCommandParams<A, O>): Promise<CommandResult<R>> {
     return withSessionContext({ sessionId, parentSessionId }, () =>
-      startActiveSpan(this.getFullName(), async (span) => {
+      wrapActiveSpan(this.getFullName(), async () => {
         const commandStartTime = new Date()
         const server = this.server
 
         let garden = parentGarden
 
+        const span = startSpan("cloneForCommand")
         if (parentSessionId) {
           // Make an instance clone to override anything that needs to be scoped to a specific command run
           // TODO: this could be made more elegant
           garden = parentGarden.cloneForCommand(sessionId)
         }
+        span.end()
 
         const log = overrideLogLevel ? garden.log.createLog({ fixLevel: overrideLogLevel }) : garden.log
 
@@ -414,7 +416,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
             parentGarden.nestedSessions.delete(sessionId)
           }
           await cloudEventStream.close()
-          span.end()
         }
 
         // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to

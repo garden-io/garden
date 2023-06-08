@@ -49,11 +49,15 @@ import { dedent } from "../util/string"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
-import { getSessionContext, prefixWithGardenNamespace, startActiveSpan, withSessionContext } from "../util/tracing"
+import {
+  getSessionContext,
+  prefixWithGardenNamespace,
+  withSessionContext,
+  wrapActiveSpan,
+} from "../util/tracing"
 
 import * as opentelemetry from "@opentelemetry/sdk-node"
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http"
-import { GrpcInstrumentation } from "@opentelemetry/instrumentation-grpc"
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
 
 export interface RunOutput {
@@ -313,7 +317,7 @@ ${renderCommands(commands)}
         if (command.noProject) {
           garden = await makeDummyGarden(workingDir, contextOpts)
         } else {
-          garden = await this.getGarden(workingDir, contextOpts)
+          garden = await wrapActiveSpan("initializeGarden", () => this.getGarden(workingDir, contextOpts))
 
           if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
             await garden.emitWarning({
@@ -548,7 +552,7 @@ ${renderCommands(commands)}
     this.processRecord = processRecord!
 
     try {
-      const runResults = await startActiveSpan("garden", async (span) => {
+      const runResults = await wrapActiveSpan("garden", async (span) => {
         span.setAttribute("garden.version", getPackageVersion())
 
         const results = await this.runCommand({
@@ -560,7 +564,6 @@ ${renderCommands(commands)}
           log,
         })
 
-        span.end()
         return results
       })
 
