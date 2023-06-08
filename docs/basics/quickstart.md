@@ -9,22 +9,21 @@ order: 1
 A visual quickstart is also available by logging in to the Garden Dashboard. The Dashboard can show you the status of your builds, deployments and stream logs from your services in real-time. To get started, click [Dashboard Quickstart](https://app.garden.io).
 {% endhint %}
 
-Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow. In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
+Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow.
 
-We have two different options to go through this quickstart guide:
+## Interactive environments
 
-- Using our brand new [Interactive Environments](###Interactive-environments) that can help you deploy our quickstart project in an interactive cloud environment.
-- Running the project in our own local machine 💻 by following the [Local Installation](###Local-installation) section.
+If you want to try Garden in an interactive cloud-based environment with a playground-like experience, use our new Killercoda and CloudShell environments ✨.
 
-### Interactive environments
-
-Simply click any of the two buttons below ⬇️
+Click on either of the two buttons below ⬇️.
 
 <a href="https://go.garden.io/killercoda"><img src="https://raw.githubusercontent.com/garden-io/garden-interactive-environments/main/resources/img/killercoda-logo.png" alt="Killercoda logo in black and white." height="55px"/></a> [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://go.garden.io/cloudshell)
 
-If you find any bugs 🐛 or have suggestions to improve our labs please don't hesitate in reaching out through an issue towards this [repository](https://github.com/garden-io/garden-interactive-environments/blob/main/resources/img/killercoda-logo.png) or ask through our [Discord Community](https://go.garden.io/discord)🌸
+If you find any bugs 🐛 or have suggestions to improve our labs please don't hesitate to reach out by creating an [issue here](https://github.com/garden-io/garden-interactive-environments) or by asking in our [Discord Community](https://go.garden.io/discord)🌸
 
-### Local installation
+## Usage
+
+In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
 
 In just 3 steps, we'll:
 
@@ -32,7 +31,7 @@ In just 3 steps, we'll:
 * Run a local, [supported flavor](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes
 * Deploy an example application
 
-#### Step 1 — Install Garden
+### Step 1 — Install Garden
 
 Install the Garden CLI for your platform:
 
@@ -79,7 +78,7 @@ This will significantly speed up the first Garden build of large projects on Win
 
 For more detailed installation instructions, please see our [Installation guide](../guides/installation.md).
 
-#### Step 2 — Install Kubernetes locally
+### Step 2 — Install Kubernetes locally
 
 {% hint style="info" %}
 If you already have [a supported version](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes installed locally you can skip this section.
@@ -98,7 +97,7 @@ Then enable Kubernetes in Docker Desktop:
 
 See the [official Docker docs](https://docs.docker.com/desktop/kubernetes/) for more.
 
-#### Step 3 — Deploy the example application
+### Step 3 — Deploy the example application
 
 Now that we have Garden installed and Kubernetes running locally, we can deploy our example application.
 
