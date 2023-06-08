@@ -197,12 +197,12 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     let platform = opts.platform
 
     if (!installationDirectory) {
+      installationDirectory = dirname(process.execPath)
       log.info(
         chalk.white(
           "No installation directory specified via --install-dir option. Garden will be re-installed to the current installation directory: "
         ) + chalk.cyan(installationDirectory)
       )
-      installationDirectory = dirname(process.execPath)
     } else {
       log.info(chalk.white("Installation directory: ") + chalk.cyan(installationDirectory))
     }
