@@ -94,23 +94,50 @@ namespace GitHubReleaseApi {
   /**
    * Traverse the Garden releases on GitHub and get the first one matching the given predicate.
    *
-   * @param predicate the predicate to identify the wanted release
+   * @param primaryPredicate the primary predicate to identify the wanted release
+   * @param fallbackPredicates the list of fallback predicates to be used if the primary one returns no result
    */
-  export async function findRelease(predicate: (any: any) => boolean) {
+  export async function findRelease({
+    primaryPredicate,
+    fallbackPredicates = [],
+  }: {
+    primaryPredicate: (any: any) => boolean
+    fallbackPredicates?: ((any: any) => boolean)[]
+  }) {
     const releasesPerPage = 100
     let page = 1
     let fetchedReleases: any[]
+    /*
+    Stores already fetched releases. This will be used with the fallback predicates.
+    It is a memory consumer, but also a trade-off to avoid GitHub API rate limit errors.
+    This will not eat gigs of RAM.
+    */
+    let allReleases: any[] = []
     do {
+      /*
+      This returns the releases ordered by 'published_at' field.
+      It means that there are 2 ordered subsequences of 0.12.x and 0.13.x releases in the result list,
+      but the list itself is not properly ordered.
+      */
       fetchedReleases = await got(
         `https://api.github.com/repos/garden-io/garden/releases?page=${page}&per_page=${releasesPerPage}`
       ).json()
       for (const release of fetchedReleases) {
-        if (predicate(release)) {
+        if (primaryPredicate(release)) {
           return release
         }
       }
+      allReleases.push(...fetchedReleases)
       page++
     } while (fetchedReleases.length > 0)
+
+    for (const fallbackPredicate of fallbackPredicates) {
+      for (const release of allReleases) {
+        if (fallbackPredicate(release)) {
+          return release
+        }
+      }
+    }
 
     return undefined
   }
@@ -424,7 +451,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     }
 
     const targetVersionPredicate = this.getTargetVersionPredicate(currentSemVer, versionScope)
-    const targetRelease = await GitHubReleaseApi.findRelease(targetVersionPredicate)
+    const targetRelease = await GitHubReleaseApi.findRelease({ primaryPredicate: targetVersionPredicate })
 
     if (!targetRelease) {
       throw new RuntimeError(
