@@ -374,8 +374,8 @@ describe("SelfUpdateCommand", () => {
         expectAccepted({ tag_name: "0.13.0", draft: false, prerelease: false }, semver.parse("0.12.50")!, "major")
       })
 
-      it("should accept the same stable major version", () => {
-        expectAccepted({ tag_name: "0.13.0", draft: false, prerelease: false }, semver.parse("0.13.0")!, "major")
+      it("should skip the same stable major version", () => {
+        expectSkipped({ tag_name: "0.13.0", draft: false, prerelease: false }, semver.parse("0.13.0")!, "major")
       })
 
       it("should skip an older stable major version", () => {

@@ -451,7 +451,13 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     }
 
     const targetVersionPredicate = this.getTargetVersionPredicate(currentSemVer, versionScope)
-    const targetRelease = await GitHubReleaseApi.findRelease({ primaryPredicate: targetVersionPredicate })
+    const fallbackVersionPredicate = this.getTargetVersionPredicate(currentSemVer, "patch")
+    // Currently we support only semver minor and patch versions, so we use patch as a fallback predicate.
+    // TODO Core 1.0 implement proper fallback predicates for all semver version parts.
+    const targetRelease = await GitHubReleaseApi.findRelease({
+      primaryPredicate: targetVersionPredicate,
+      fallbackPredicates: [fallbackVersionPredicate],
+    })
 
     if (!targetRelease) {
       throw new RuntimeError(
@@ -477,19 +483,23 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       }
 
       switch (versionScope) {
+        // TODO Core 1.0: review these semantics and make tjhe necessary corrections
         case "major": {
-          // TODO Core 1.0 major release: remove this check
           if (tagSemVer.major === currentSemVer.major) {
-            return tagSemVer.minor >= currentSemVer.minor
+            return tagSemVer.minor > currentSemVer.minor
           }
           return tagSemVer.major >= currentSemVer.major
         }
         case "minor":
-          return tagSemVer.major === currentSemVer.major && tagSemVer.minor >= currentSemVer.minor
+          return tagSemVer.major === currentSemVer.major && tagSemVer.minor > currentSemVer.minor
         case "patch":
           return (
             tagSemVer.major === currentSemVer.major &&
             tagSemVer.minor === currentSemVer.minor &&
+            /*
+            On the patch level of the same major.minor version the version history is linear and properly sorted.
+            So, we can use the >= condition here.
+            */
             tagSemVer.patch >= currentSemVer.patch
           )
         default: {
