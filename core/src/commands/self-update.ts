@@ -199,6 +199,13 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     if (!installationDirectory) {
       installationDirectory = dirname(process.execPath)
+      log.info(
+        chalk.white(
+          "No installation directory specified via --install-dir option. Garden will be re-installed to the current installation directory: "
+        ) + chalk.cyan(installationDirectory)
+      )
+    } else {
+      log.info(chalk.white("Installation directory: ") + chalk.cyan(installationDirectory))
     }
 
     installationDirectory = resolve(installationDirectory)
@@ -211,7 +218,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       desiredVersion = await this.findTargetVersion(currentVersion, versionScope)
     }
 
-    log.info(chalk.white("Installation directory: ") + chalk.cyan(installationDirectory))
     log.info(chalk.white("Current Garden version: ") + chalk.cyan(currentVersion))
     log.info(chalk.white("Target Garden version to be installed: ") + chalk.cyan(desiredVersion))
     log.info(chalk.white("Latest release version: ") + chalk.cyan(latestVersion))
