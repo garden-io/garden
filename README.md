@@ -46,7 +46,7 @@ For more installation options, see the [installation guide](https://docs.garden.
 
 ## Interactive environments
 
-If you want to try Garden in an interactive cloud-based environment with a playground-like experience, use our new Killercoda and CloudShell environments ✨.
+Preview Garden with our new interactive and install-free cloud-based playgrounds ✨.
 
 Click on either of the two buttons below ⬇️.
 
