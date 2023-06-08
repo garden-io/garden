@@ -63,7 +63,9 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
   }
 
   @OtelTraced({
-    name: "publish",
+    name(_params) {
+      return `${this.action.key()}.publish`
+    },
     getAttributes(_params) {
       return {
         key: this.action.key(),

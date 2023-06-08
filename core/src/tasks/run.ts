@@ -34,7 +34,9 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
   }
 
   @OtelTraced({
-    name: "getRunStatus",
+    name(_params) {
+      return `${this.action.key()}.getRunStatus`
+    },
     getAttributes(_params) {
       return {
         key: this.action.key(),
@@ -84,7 +86,9 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
   }
 
   @OtelTraced({
-    name: "run",
+    name(_params) {
+      return `${this.action.key()}.run`
+    },
     getAttributes(_params) {
       return {
         key: this.action.key(),
