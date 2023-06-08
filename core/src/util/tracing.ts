@@ -108,6 +108,17 @@ export function startActiveSpan<T>(name: string, fn: (span: opentelemetry.api.Sp
   })
 }
 
+export function wrapActiveSpan<T>(name: string, fn: (span: opentelemetry.api.Span) => Promise<T>): Promise<T> {
+  return startActiveSpan(name, async (span) => {
+    const result = await fn(span)
+
+    span.end()
+
+    return result
+  })
+}
+
+
 export function startSpan(name: string): opentelemetry.api.Span {
   const span = tracer.startSpan(name)
 
