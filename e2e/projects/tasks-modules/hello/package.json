@@ -14,8 +14,7 @@
     "express": "^4.17.3",
     "knex": "^2.4.0",
     "pg": "^7.12.1",
-    "request": "^2.88.0",
-    "request-promise": "^4.2.4"
+
   },
   "devDependencies": {
     "mocha": "^6.2.3",
