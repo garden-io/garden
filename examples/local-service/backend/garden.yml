@@ -33,6 +33,7 @@ spec:
 kind: Run
 name: backend
 type: container
+build: backend
 
 spec:
-  command: [ "sh", "-c", "echo task output" ]
+  command: ["sh", "-c", "echo task output"]

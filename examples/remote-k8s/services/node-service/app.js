@@ -1,5 +1,4 @@
 const express = require("express")
-const request = require("request-promise")
 const app = express()
 
 // Unless configured otherwise, the hostname is simply the service name
@@ -9,8 +8,8 @@ app.get("/hello", (req, res) => res.send("Hello from Node service!"))
 
 app.get("/call-go-service", (req, res) => {
   // Query the go-service and return the response
-  request
-    .get(goServiceEndpoint)
+  fetch(goServiceEndpoint)
+    .then((response) => response.text())
     .then((message) => {
       message = `Go says: '${message}'`
       res.json({
