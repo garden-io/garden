@@ -28,6 +28,7 @@ import split2 from "split2"
 import { TypedEventEmitter } from "./util/events"
 import pMemoize from "./lib/p-memoize"
 import { deline } from "./util/string"
+import { emitNonRepeatableWarning } from "./warnings"
 
 const maxRestarts = 10
 const mutagenLogSection = "<mutagen>"
@@ -628,7 +629,7 @@ export class Mutagen {
           cwd: this.dataDir,
           args,
           log: this.log,
-          env: getMutagenEnv(this.dataDir),
+          env: getMutagenEnv({ dataDir: this.dataDir, log: this.log }),
         })
       } catch (err) {
         const unableToConnect = err.message.match(/unable to connect to daemon/)
@@ -638,6 +639,9 @@ export class Mutagen {
           await this.ensureDaemon()
           await sleep(2000 + loops * 500)
         } else {
+          this.log.warn(
+            `Consider making your Garden project path shorter. The mutagen could fail because of the Unix socket path length limitation. The Garden project length is recommened to be no longer than ${MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT} characters. The actual value depends on the platform and the mutagen version.`
+          )
           throw err
         }
       }
@@ -764,7 +768,22 @@ export interface SyncSession {
   excludedConflicts?: number
 }
 
-export function getMutagenEnv(dataDir: string) {
+/**
+ * Exceeding this limit may cause mutagen daemon failures because of the Unix socket path length limitations.
+ * See
+ * https://github.com/garden-io/garden/issues/4527#issuecomment-1584286590
+ * https://github.com/mutagen-io/mutagen/issues/433#issuecomment-1440352501
+ * https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars/367012#367012
+ */
+const MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT = 70
+
+export function getMutagenEnv({ dataDir, log }: { dataDir: string; log: Log }) {
+  if (dataDir.length > MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT) {
+    emitNonRepeatableWarning(
+      log,
+      `Your Garden project path looks too long, that might cause errors while starting the syncs. Consider using a shorter path (no longer than 70 characters).`
+    )
+  }
   return {
     MUTAGEN_DATA_DIRECTORY: dataDir,
   }
