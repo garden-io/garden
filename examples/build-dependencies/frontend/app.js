@@ -1,5 +1,4 @@
 const express = require('express');
-const request = require('request-promise')
 const fs = require('fs');
 const app = express();
 
@@ -12,9 +11,10 @@ app.get('/hello-frontend', (req, res) => res.send(`Config says: ${config.sharedC
 
 app.get('/call-backend', (req, res) => {
   // Query the backend and return the response
-  request.get(backendServiceEndpoint)
-    .then(message => {
-      message = `Backend says: '${message}'`
+  fetch(backendServiceEndpoint)
+    .then(response => response.text())
+    .then(response => {
+      message = `Backend says: '${response}'`
       res.json({
         message,
       })
