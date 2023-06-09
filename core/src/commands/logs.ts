@@ -161,7 +161,7 @@ export class LogsCommand extends Command<Args, Opts> {
       let msg: string
       if (args.names) {
         msg = `Deploy(s) ${naturalList(args.names.map((s) => `"${s}"`))} not found. Available Deploys: ${naturalList(
-          allDeploys.map((s) => `"${s}"`)
+          allDeploys.map((s) => `"${s.name}"`)
         )}.`
       } else {
         msg = "No Deploys found in project."
