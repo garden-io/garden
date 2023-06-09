@@ -639,7 +639,8 @@ export class Mutagen {
           await this.ensureDaemon()
           await sleep(2000 + loops * 500)
         } else {
-          this.log.warn(
+          emitNonRepeatableWarning(
+            this.log,
             `Consider making your Garden project path shorter. Syncing could fail because of Unix socket path length limitations. It's recommended that the Garden project path does not exceed ${MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT} characters. The actual value depends on the platform and the mutagen version.`
           )
           throw err
