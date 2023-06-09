@@ -55,11 +55,60 @@ export class GlobalPulumi extends CliWrapper {
 
 export const pulumiCliSPecs: PluginToolSpec[] = [
   {
+    version: "3.70.0",
+    name: "pulumi-3-70-0",
+    description: "The pulumi CLI, v3.70.0",
+    type: "binary",
+    _includeInGardenImage: true,
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "amd64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.70.0/pulumi-v3.70.0-darwin-x64.tar.gz",
+        sha256: "03833c283e24e395a1946c2412a46cb21dbbe72d595a992deebc2aa01a2c8513",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "darwin",
+        architecture: "arm64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.70.0/pulumi-v3.70.0-darwin-arm64.tar.gz",
+        sha256: "3e0f3471d7b9184fa0cb87b0716f7b2470a6d25318433bf7f9019442d35fe7f4",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.70.0/pulumi-v3.70.0-linux-x64.tar.gz",
+        sha256: "3585a5d2ae64ba7869e287ed2ac14e86a7c99732cc0e74bf1c0ebb6982af2251",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.70.0/pulumi-v3.70.0-windows-x64.zip",
+        sha256: "bd31daf17fb3066907d67b479c11910461bea046fa9018df8765753f3ddd570b",
+        extract: {
+          format: "zip",
+          targetPath: "pulumi/bin/pulumi.exe",
+        },
+      },
+    ],
+  },
+  {
     version: "3.64.0",
     name: "pulumi-3-64-0",
     description: "The pulumi CLI, v3.64.0",
     type: "binary",
-    _includeInGardenImage: true,
+    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",
@@ -103,205 +152,9 @@ export const pulumiCliSPecs: PluginToolSpec[] = [
       },
     ],
   },
-  {
-    version: "3.48.0",
-    name: "pulumi-3-48-0",
-    description: "The pulumi CLI, v3.48.0",
-    type: "binary",
-    _includeInGardenImage: false,
-    builds: [
-      {
-        platform: "darwin",
-        architecture: "amd64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.48.0/pulumi-v3.48.0-darwin-x64.tar.gz",
-        sha256: "77c9580af73f8f0e0e4e04e3c791acb43cca8c0eab28ddb54c6d865beab20eff",
-        extract: {
-          format: "tar",
-          targetPath: "pulumi/pulumi",
-        },
-      },
-      {
-        platform: "darwin",
-        architecture: "arm64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.48.0/pulumi-v3.48.0-darwin-arm64.tar.gz",
-        sha256: "4963b9a2dbe09eaba2e30f7823dfacbe878023767550ea312668f579a61473fd",
-        extract: {
-          format: "tar",
-          targetPath: "pulumi/pulumi",
-        },
-      },
-      {
-        platform: "linux",
-        architecture: "amd64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.48.0/pulumi-v3.48.0-linux-x64.tar.gz",
-        sha256: "4ef798dff47dce7a45d7799e389cafc199b8eaf7d817b65e49e96aa058e20206",
-        extract: {
-          format: "tar",
-          targetPath: "pulumi/pulumi",
-        },
-      },
-      {
-        platform: "windows",
-        architecture: "amd64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.48.0/pulumi-v3.48.0-windows-x64.zip",
-        sha256: "d68ff65973094a160f58143dfc2bb682f9a50c73a9cc840397816708fcf51419",
-        extract: {
-          format: "zip",
-          targetPath: "pulumi/bin/pulumi.exe",
-        },
-      },
-    ],
-  },
-  {
-    version: "3.40.0",
-    name: "pulumi-3-40-0",
-    description: "The pulumi CLI, v3.40.0",
-    type: "binary",
-    _includeInGardenImage: false,
-    builds: [
-      {
-        platform: "darwin",
-        architecture: "amd64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.40.0/pulumi-v3.40.0-darwin-x64.tar.gz",
-        sha256: "3d48d917b64fb3a1380d47a5733726edb99c3a0f5565fe04cfa26ccb67cb415a",
-        extract: {
-          format: "tar",
-          targetPath: "pulumi/pulumi",
-        },
-      },
-      {
-        platform: "darwin",
-        architecture: "arm64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.40.0/pulumi-v3.40.0-darwin-arm64.tar.gz",
-        sha256: "f093cc460aa4a4773e6910db2b9a3ba71f6443b99194d8ad2752be66c4822861",
-        extract: {
-          format: "tar",
-          targetPath: "pulumi/pulumi",
-        },
-      },
-      {
-        platform: "linux",
-        architecture: "amd64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.40.0/pulumi-v3.40.0-linux-x64.tar.gz",
-        sha256: "7abc0ccb17e6b0b1ed89be0897bd6a73cb3c6784d7fb5c2e20ad2a8d976c42fe",
-        extract: {
-          format: "tar",
-          targetPath: "pulumi/pulumi",
-        },
-      },
-      {
-        platform: "windows",
-        architecture: "amd64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.40.0/pulumi-v3.40.0-windows-x64.zip",
-        sha256: "f0ca025d7a47175852ed5a6e7f7c4e97f1d1326c448bd172e81e7130bd447b74",
-        extract: {
-          format: "zip",
-          targetPath: "pulumi/bin/pulumi.exe",
-        },
-      },
-    ],
-  },
-  {
-    version: "3.39.4",
-    name: "pulumi-3-39-4",
-    description: "The pulumi CLI, v3.39.4",
-    type: "binary",
-    _includeInGardenImage: false,
-    builds: [
-      {
-        platform: "darwin",
-        architecture: "amd64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.39.4/pulumi-v3.39.4-darwin-x64.tar.gz",
-        sha256: "a563f7d7f3dbda84fae61316ef335e204606ac4e79f8e43ffb6103972b9c26ff",
-        extract: {
-          format: "tar",
-          targetPath: "pulumi/pulumi",
-        },
-      },
-      {
-        platform: "darwin",
-        architecture: "arm64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.39.4/pulumi-v3.39.4-darwin-arm64.tar.gz",
-        sha256: "20493f365df1d73417c8159b0259624f06afe7fa5bcb15305e47edbfb7c20eca",
-        extract: {
-          format: "tar",
-          targetPath: "pulumi/pulumi",
-        },
-      },
-      {
-        platform: "linux",
-        architecture: "amd64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.39.4/pulumi-v3.39.4-linux-x64.tar.gz",
-        sha256: "dd3ad77debfb664bc9a79cc88789a091f1f4f420780a2feb622d31cda028ade9",
-        extract: {
-          format: "tar",
-          targetPath: "pulumi/pulumi",
-        },
-      },
-      {
-        platform: "windows",
-        architecture: "amd64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.39.4/pulumi-v3.39.4-windows-x64.zip",
-        sha256: "fdea4e4caca4be39801f7e63bb36c9826a9965a36cac37cfa1244f5110d66864",
-        extract: {
-          format: "zip",
-          targetPath: "pulumi/bin/pulumi.exe",
-        },
-      },
-    ],
-  },
-  {
-    version: "3.25.1",
-    name: "pulumi-3-25-1",
-    description: "The pulumi CLI, v3.24.1",
-    type: "binary",
-    _includeInGardenImage: false,
-    builds: [
-      {
-        platform: "darwin",
-        architecture: "amd64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.25.1/pulumi-v3.25.1-darwin-x64.tar.gz",
-        sha256: "c91ef64aedcd10a925858a21fc4b52f9a566b4f14bc0d175c0c51c7745cdd175",
-        extract: {
-          format: "tar",
-          targetPath: "pulumi/pulumi",
-        },
-      },
-      {
-        platform: "darwin",
-        architecture: "arm64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.25.1/pulumi-v3.25.1-darwin-arm64.tar.gz",
-        sha256: "a5ab29db86733b5f730a0f352b407aed64b82337a222a0c7cd1492b55189e6c1",
-        extract: {
-          format: "tar",
-          targetPath: "pulumi/pulumi",
-        },
-      },
-      {
-        platform: "linux",
-        architecture: "amd64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.25.1/pulumi-v3.25.1-linux-x64.tar.gz",
-        sha256: "71e94634492b54e09810649f3753a5b414f4a1895b012ee445c275f1a0f94c5c",
-        extract: {
-          format: "tar",
-          targetPath: "pulumi/pulumi",
-        },
-      },
-      {
-        platform: "windows",
-        architecture: "amd64",
-        url: "https://github.com/pulumi/pulumi/releases/download/v3.25.1/pulumi-v3.25.1-windows-x64.zip",
-        sha256: "7ccaace585dfd9b44659c876ac87c33ea892cd91c34cb7ad00081cec8032a329",
-        extract: {
-          format: "zip",
-          targetPath: "pulumi/bin/pulumi.exe",
-        },
-      },
-    ],
-  },
 ]
 
 export const supportedVersions = pulumiCliSPecs.map((s) => s.version)
 
 // Default to latest pulumi version
-export const defaultPulumiVersion = "3.64.0"
+export const defaultPulumiVersion = "3.70.0"
