@@ -80,6 +80,11 @@ export class ServeCommand<
     return false
   }
 
+  protected setProps(sessionId: string, plugins: GardenPluginReference[]) {
+    this.sessionId = sessionId
+    this.plugins = plugins
+  }
+
   async action({
     garden,
     log,
@@ -87,8 +92,7 @@ export class ServeCommand<
     cli,
   }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<R>> {
     const sessionId = garden.sessionId
-    this.sessionId = sessionId
-    this.plugins = cli?.plugins || []
+    this.setProps(sessionId, cli?.plugins || [])
 
     const projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
 
