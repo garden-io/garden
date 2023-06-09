@@ -22,6 +22,7 @@ import { isEmpty, omit } from "lodash"
 import { Garden } from "../.."
 import { ResolvedDeployAction } from "../../actions/deploy"
 import { ResolvedConfigGraph } from "../../graph/config-graph"
+import { DOCS_BASE_URL } from "../../constants"
 
 const syncStatusArgs = {
   names: new StringsParameter({
@@ -118,7 +119,7 @@ export class SyncStatusCommand extends Command<Args, Opts> {
         Follow the link below to learn how to enable live code syncing with Garden:
       `)
       log.info("")
-      log.info(chalk.cyan.underline("https://docs.garden.io/guides/code-synchronization"))
+      log.info(chalk.cyan.underline(`${DOCS_BASE_URL}/guides/code-synchronization`))
     }
 
     return { result: { actions: syncStatuses } }
@@ -130,7 +131,7 @@ export async function getSyncStatuses({
   skipDetail,
   garden,
   log,
-  graph
+  graph,
 }: {
   log: Log
   deployActions: ResolvedDeployAction[]

@@ -73,10 +73,11 @@ import { convertServiceResource } from "./kubernetes-type/common"
 import { prepareConnectionOpts } from "./kubectl"
 import { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/handlers/Deploy/get-sync-status"
 import { ConfigurationError } from "../../exceptions"
+import { DOCS_BASE_URL } from "../../constants"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
-export const syncGuideLink = "https://docs.garden.io/guides/code-synchronization"
+export const syncGuideLink = `${DOCS_BASE_URL}/guides/code-synchronization`
 
 export interface KubernetesModuleDevModeSpec extends ContainerSyncSpec {
   containerName?: string

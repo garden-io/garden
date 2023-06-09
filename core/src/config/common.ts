@@ -12,7 +12,7 @@ import addFormats from "ajv-formats"
 import { splitLast, deline, dedent, naturalList, titleize } from "../util/string"
 import { cloneDeep, isArray, isPlainObject, isString, mapValues, memoize } from "lodash"
 import { joiPathPlaceholder } from "./validation"
-import { GardenApiVersion } from "../constants"
+import { DOCS_BASE_URL, GardenApiVersion } from "../constants"
 import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
 import { ConfigurationError, InternalError } from "../exceptions"
 import type { ConfigContextType } from "./template-contexts/base"
@@ -34,9 +34,11 @@ export type Primitive = string | number | boolean | null
 export interface StringMap {
   [key: string]: string
 }
+
 export interface PrimitiveMap {
   [key: string]: Primitive
 }
+
 export interface DeepPrimitiveMap {
   [key: string]: Primitive | DeepPrimitiveMap | Primitive[] | DeepPrimitiveMap[]
 }
@@ -45,8 +47,7 @@ export interface DeepPrimitiveMap {
 //   spec: Omit<T, keyof S> & Partial<S>
 // }
 
-export const includeGuideLink =
-  "https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories"
+export const includeGuideLink = `${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories`
 
 export const enumToArray = (Enum: any) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
 
@@ -140,6 +141,7 @@ declare module "@hapi/joi" {
 
 export interface CustomObjectSchema extends Joi.ObjectSchema {
   concat(schema: object): this
+
   jsonSchema(schema: object): this
 }
 
@@ -149,14 +151,19 @@ export interface GitUrlSchema extends Joi.StringSchema {
 
 export interface PosixPathSchema extends Joi.StringSchema {
   absoluteOnly(): this
+
   allowGlobs(): this
+
   filenameOnly(): this
+
   relativeOnly(): this
+
   subPathOnly(): this
 }
 
 interface ActionReferenceSchema extends Joi.AnySchema {
   kind(kind: ActionKind): this
+
   name(type: string): this
 }
 
@@ -476,6 +483,7 @@ const actionRefParseError = (reference: any) => {
 interface SchemaKeys {
   [key: string]: SchemaLike | SchemaLike[] | SchemaCallback
 }
+
 type SchemaCallback = () => Joi.Schema
 
 export interface CreateSchemaParams {
@@ -760,7 +768,8 @@ export const joiModuleIncludeDirective = (extraDescription?: string) =>
   joi.array().items(joi.posixPath().allowGlobs().subPathOnly()).description(moduleIncludeDescription(extraDescription))
 
 export const joiProviderName = memoize((name: string) =>
-  joiIdentifier().required().description("The name of the provider plugin to use.").default(name).example(name))
+  joiIdentifier().required().description("The name of the provider plugin to use.").default(name).example(name)
+)
 
 export const joiStringMap = memoize((valueSchema: Joi.Schema) => joi.object().pattern(/.+/, valueSchema))
 
@@ -772,14 +781,16 @@ export const joiUserIdentifier = memoize(() =>
       deline`
         Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with \`garden\`, or be longer than 63 characters.
       `
-    ))
+    )
+)
 
 export const joiIdentifierMap = memoize((valueSchema: Joi.Schema) =>
   joi
     .object()
     .pattern(identifierRegex, valueSchema)
     .default(() => ({}))
-    .description("Key/value map. Keys must be valid identifiers."))
+    .description("Key/value map. Keys must be valid identifiers.")
+)
 
 export const joiVariablesDescription =
   "Keys may contain letters and numbers. Any values are permitted, including arrays and objects of any nesting."
@@ -792,7 +803,8 @@ export const joiVariables = memoize(() =>
     .pattern(variableNameRegex, joi.alternatives(joiPrimitive(), joi.link("..."), joi.array().items(joi.link("..."))))
     .default(() => ({}))
     .unknown(true)
-    .description("Key/value map. " + joiVariablesDescription))
+    .description("Key/value map. " + joiVariablesDescription)
+)
 
 export const joiEnvVars = memoize(() =>
   joi
@@ -803,7 +815,8 @@ export const joiEnvVars = memoize(() =>
     .description(
       "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
         "(must not start with `GARDEN`) and values must be primitives."
-    ))
+    )
+)
 
 export const joiArray = memoize((schema: Joi.Schema) => joi.array().items(schema).default([]))
 

@@ -28,6 +28,7 @@ import { ConfigurationError } from "../exceptions"
 import { EnvironmentConfig, getNamespace } from "./project"
 import { omitUndefined } from "../util/objects"
 import { BaseGardenResource, GardenResource } from "./base"
+import { DOCS_BASE_URL } from "../constants"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu
@@ -259,7 +260,7 @@ export const workflowStepSchema = createSchema({
 
       \`never\`: This step will always be ignored.
 
-      See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
+      See the [workflows guide](${DOCS_BASE_URL}/using-garden/workflows#the-skip-and-when-options) for details
       and examples.
       `),
   }),

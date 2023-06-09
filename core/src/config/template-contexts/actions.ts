@@ -25,6 +25,7 @@ import { ProviderMap } from "../provider"
 import { ConfigContext, ErrorContext, schema, ParentContext, TemplateContext } from "./base"
 import { exampleVersion, OutputConfigContext } from "./module"
 import { TemplatableConfigContext } from "./project"
+import { DOCS_BASE_URL } from "../../constants"
 
 /**
  * This is available to built-in fields on action configs. See ActionSpecContext below for the context available
@@ -104,14 +105,13 @@ class ActionResultContext extends ActionReferenceContext {
     joiIdentifierMap(
       joiPrimitive().description(
         deline`
-        The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+        The action output value. Refer to individual [action/module type references](${DOCS_BASE_URL}/reference) for details.
         `
       )
     )
       .required()
       .description(
-        "The outputs defined by the action (see individual action/module type " +
-          "[references](https://docs.garden.io/reference) for details)."
+        `The outputs defined by the action (see individual action/module type [references](${DOCS_BASE_URL}/reference) for details).`
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )

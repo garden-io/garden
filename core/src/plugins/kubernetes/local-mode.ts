@@ -35,8 +35,9 @@ import { exec, registerCleanupFunction, shutdown } from "../../util/util"
 import getPort = require("get-port")
 import touch = require("touch")
 import { Resolved } from "../../actions/types"
+import { DOCS_BASE_URL } from "../../constants"
 
-export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode"
+export const localModeGuideLink = `${DOCS_BASE_URL}/guides/running-service-in-local-mode`
 
 const localhost = "127.0.0.1"
 
