@@ -127,7 +127,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
       log,
       key,
       logSection: action.key(),
-      sourceDescription: `Module ${action.name} build path`,
+      sourceDescription: `${action.kind} ${action.name} build path`,
       targetDescription: "Build sync Pod",
       config: {
         alpha: sourcePath,
