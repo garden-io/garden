@@ -12,6 +12,7 @@ build: backend
 variables:
   httpPort:
     name: http
+    servicePort: 80
     containerPort: 8080
   debugPort:
     name: debug
