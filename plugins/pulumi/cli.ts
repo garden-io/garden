@@ -13,12 +13,7 @@ import { ConfigurationError, RuntimeError } from "@garden-io/sdk/exceptions"
 import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { PulumiProvider } from "./config"
 
-/**
- * We're using functionality in the pulumi CLI that's experimental as of February 2022, which is enabled by
- * setting the `PULUMI_EXPERIMENTAL` env var to `true` when calling the command.
- */
 export const defaultPulumiEnv = {
-  PULUMI_EXPERIMENTAL: "true",
   // This suppresses the "warning: A new version of Pulumi is available" output when running pulumi commands.
   PULUMI_SKIP_UPDATE_CHECK: "true",
   // TODO: Make user explicitly pick which (or all) env vars to merge in here?
@@ -306,7 +301,7 @@ export const pulumiCliSPecs: PluginToolSpec[] = [
   },
 ]
 
-export const supportedVersions = pulumiCliSPecs.map(s => s.version)
+export const supportedVersions = pulumiCliSPecs.map((s) => s.version)
 
 // Default to latest pulumi version
 export const defaultPulumiVersion = "3.64.0"
