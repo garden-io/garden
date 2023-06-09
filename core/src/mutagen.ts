@@ -782,7 +782,7 @@ export function getMutagenEnv({ dataDir, log }: { dataDir: string; log: Log }) {
   if (dataDir.length > MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT) {
     emitNonRepeatableWarning(
       log,
-      `Your Garden project path looks too long, that might cause errors while starting the syncs. Consider using a shorter path (no longer than 70 characters).`
+      `Your Garden project path looks too long, that might cause errors while starting the syncs. Consider using a shorter path (no longer than ${MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT} characters).`
     )
   }
   return {
