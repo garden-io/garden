@@ -12,7 +12,7 @@ import { sortBy, pick } from "lodash"
 import { createHash } from "crypto"
 import { validateSchema } from "../config/validation"
 import { join, relative, isAbsolute } from "path"
-import { GARDEN_VERSIONFILE_NAME as GARDEN_TREEVERSION_FILENAME } from "../constants"
+import { DOCS_BASE_URL, GARDEN_VERSIONFILE_NAME as GARDEN_TREEVERSION_FILENAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
 import { ExternalSourceType, getRemoteSourceLocalPath, getRemoteSourcesPath } from "../util/ext-source-util"
@@ -144,10 +144,15 @@ export abstract class VcsHandler {
   }
 
   abstract name: string
+
   abstract getRepoRoot(log: Log, path: string): Promise<string>
+
   abstract getFiles(params: GetFilesParams): Promise<VcsFile[]>
+
   abstract ensureRemoteSource(params: RemoteSourceParams): Promise<string>
+
   abstract updateRemoteSource(params: RemoteSourceParams): Promise<void>
+
   abstract getPathInfo(log: Log, path: string): Promise<VcsInfo>
 
   clearTreeCache() {
@@ -211,7 +216,7 @@ export abstract class VcsHandler {
             log,
             message: chalk.yellow(dedent`
               Large number of files (${files.length}) found in ${description}. You may need to configure file exclusions.
-              See https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories for details.
+              See ${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories for details.
             `),
           })
         }

@@ -39,7 +39,7 @@ import { SyncDefaults, syncDefaultsSchema } from "./sync"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { readFileSync } from "fs-extra"
 import { join } from "path"
-import { STATIC_DIR } from "../../constants"
+import { DOCS_BASE_URL, STATIC_DIR } from "../../constants"
 import { defaultKanikoImageName } from "./constants"
 
 export interface ProviderSecretRef {
@@ -412,7 +412,7 @@ export const kubernetesConfigBase = () =>
           dedent`
         Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-        For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
+        For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](${DOCS_BASE_URL}/kubernetes-plugins/advanced/in-cluster-building).
         `
         ),
       clusterBuildkit: joi

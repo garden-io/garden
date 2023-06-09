@@ -19,6 +19,7 @@ import { ProviderConfigContext } from "./provider"
 import { GraphResultFromTask, GraphResults } from "../../graph/results"
 import { DeployTask } from "../../tasks/deploy"
 import { RunTask } from "../../tasks/run"
+import { DOCS_BASE_URL } from "../../constants"
 
 export const exampleVersion = "v-17ad4cb3fd"
 
@@ -70,8 +71,7 @@ export class ModuleReferenceContext extends ModuleThisContext {
     )
       .required()
       .description(
-        "The outputs defined by the module (see individual module type " +
-          "[references](https://docs.garden.io/reference/module-types) for details)."
+        `The outputs defined by the module (see individual module type [references](${DOCS_BASE_URL}/reference/module-types) for details).`
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )
@@ -106,8 +106,7 @@ export class ServiceRuntimeContext extends ConfigContext {
     )
       .required()
       .description(
-        "The runtime outputs defined by the service (see individual module type " +
-          "[references](https://docs.garden.io/reference/module-types) for details)."
+        `The runtime outputs defined by the service (see individual module type [references](${DOCS_BASE_URL}/reference/module-types) for details).`
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )
@@ -134,8 +133,7 @@ export class TaskRuntimeContext extends ServiceRuntimeContext {
     )
       .required()
       .description(
-        "The runtime outputs defined by the task (see individual module type " +
-          "[references](https://docs.garden.io/reference/module-types) for details)."
+        `The runtime outputs defined by the task (see individual module type [references](${DOCS_BASE_URL}/reference/module-types) for details).`
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )
