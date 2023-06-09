@@ -18,7 +18,7 @@ gulp.task("check-licenses", () =>
     gulpLicenseCheck({
       path: licenseHeaderPath,
       blocking: true,
-      logInfo: true,
+      logInfo: false,
       logError: true,
     })
   )
