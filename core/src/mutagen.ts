@@ -60,9 +60,15 @@ const restartInstructions = (description: string) => deline`
 
 export const mutagenStatusDescriptions = {
   "disconnected": "Sync disconnected",
-  "halted-on-root-emptied": `Sync halted because either the source or target directory was emptied. ${restartInstructions("made sure they're not empty")}`,
-  "halted-on-root-deletion": `Sync halted because either the source or target was deleted. ${restartInstructions("made sure they exist")}`,
-  "halted-on-root-type-change": `Sync halted because either the source or target changed type (e.g. from a directory to a file or vice versa). ${restartInstructions("made sure their type is what it should be")}`,
+  "halted-on-root-emptied": `Sync halted because either the source or target directory was emptied. ${restartInstructions(
+    "made sure they're not empty"
+  )}`,
+  "halted-on-root-deletion": `Sync halted because either the source or target was deleted. ${restartInstructions(
+    "made sure they exist"
+  )}`,
+  "halted-on-root-type-change": `Sync halted because either the source or target changed type (e.g. from a directory to a file or vice versa). ${restartInstructions(
+    "made sure their type is what it should be"
+  )}`,
   "connecting-alpha": "Sync connected to source",
   "connecting-beta": "Sync connected to target",
   "watching": "Watching for changes",
@@ -89,7 +95,7 @@ type MutagenStatus = keyof typeof mutagenStatusDescriptions
 export const haltedStatuses: MutagenStatus[] = [
   "halted-on-root-emptied",
   "halted-on-root-deletion",
-  "halted-on-root-type-change"
+  "halted-on-root-type-change",
 ]
 
 export interface SyncConfig {
@@ -791,7 +797,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "amd64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_amd64_v0.15.0.tar.gz",
+      url:
+        "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_amd64_v0.15.0.tar.gz",
       sha256: "370bf71e28f94002453921fda83282280162df7192bd07042bf622bf54507e3f",
       extract: {
         format: "tar",
@@ -801,7 +808,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "arm64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_arm64_v0.15.0.tar.gz",
+      url:
+        "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_arm64_v0.15.0.tar.gz",
       sha256: "a0a7be8bb37266ea184cb580004e1741a17c8165b2032ce4b191f23fead821a0",
       extract: {
         format: "tar",
