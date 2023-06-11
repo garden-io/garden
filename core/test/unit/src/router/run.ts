@@ -72,31 +72,6 @@ describe("run actions", () => {
       expect(result).to.eql(taskResult)
     })
 
-    it("should emit a runStatus event", async () => {
-      garden.events.eventLog = []
-      await actionRouter.run.getResult({
-        log,
-        action: resolvedRunAction,
-        graph,
-      })
-      const event1 = garden.events.eventLog[0]
-      const event2 = garden.events.eventLog[1]
-
-      expect(event1).to.exist
-      expect(event1.name).to.eql("runStatus")
-      expect(event1.payload.moduleName).to.eql("module-a")
-      expect(event1.payload.actionUid).to.be.ok
-      expect(event1.payload.state).to.eql("getting-status")
-      expect(event1.payload.status.state).to.eql("unknown")
-
-      expect(event2).to.exist
-      expect(event2.name).to.eql("runStatus")
-      expect(event2.payload.moduleName).to.eql("module-a")
-      expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
-      expect(event2.payload.state).to.eql("cached")
-      expect(event2.payload.status.state).to.eql("succeeded")
-    })
-
     it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
       resolvedRunAction._config[returnWrongOutputsCfgKey] = true
       await expectError(() => actionRouter.run.getResult({ log, action: resolvedRunAction, graph }), {
@@ -114,32 +89,6 @@ describe("run actions", () => {
         graph,
       })
       expect(result).to.eql(taskResult)
-    })
-
-    it("should emit runStatus events", async () => {
-      garden.events.eventLog = []
-      await actionRouter.run.run({
-        log,
-        action: resolvedRunAction,
-        interactive: true,
-        graph,
-      })
-      const event1 = garden.events.eventLog[0]
-      const event2 = garden.events.eventLog[1]
-
-      expect(event1).to.exist
-      expect(event1.name).to.eql("runStatus")
-      expect(event1.payload.moduleName).to.eql("module-a")
-      expect(event1.payload.actionUid).to.be.ok
-      expect(event1.payload.state).to.eql("processing")
-      expect(event1.payload.status.state).to.eql("running")
-
-      expect(event2).to.exist
-      expect(event2.name).to.eql("runStatus")
-      expect(event2.payload.moduleName).to.eql("module-a")
-      expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
-      expect(event2.payload.state).to.eql("ready")
-      expect(event2.payload.status.state).to.eql("succeeded")
     })
 
     it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {

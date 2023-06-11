@@ -9,7 +9,7 @@
 import { BaseTask, Task, ValidResultType } from "../tasks/base"
 import { InternalError } from "../exceptions"
 import { fromPairs, omit, pick } from "lodash"
-import { toGraphResultEventPayload } from "../events"
+import { toGraphResultEventPayload } from "../events/events"
 import CircularJSON from "circular-json"
 
 export interface TaskEventBase {

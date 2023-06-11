@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "../tasks/base"
+import { ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask, emitGetStatusEvents, emitProcessingEvents } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { BuildAction, BuildActionConfig, ResolvedBuildAction } from "../actions/build"
 import pluralize from "pluralize"
@@ -17,16 +17,20 @@ import { renderDuration } from "../logger/util"
 
 @Profile()
 export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
-  type = "build"
+  type = "build" as const
   concurrencyLimit = 5
+  eventName = "buildStatus" as const
 
   getDescription() {
     return this.action.longDescription()
   }
 
+
+  @emitGetStatusEvents<BuildAction>
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
+
     const output = await router.build.getStatus({ log: this.log, graph: this.graph, action })
     const status = output.result
 
@@ -38,6 +42,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 
+  @emitProcessingEvents<BuildAction>
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, BuildStatus>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
@@ -66,6 +71,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       }
     } catch (err) {
       log.error(`Build failed`)
+
       throw err
     }
   }

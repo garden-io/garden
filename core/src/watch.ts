@@ -10,7 +10,7 @@ import { watch, FSWatcher } from "chokidar"
 import { Log } from "./logger/log-entry"
 import { InternalError } from "./exceptions"
 import EventEmitter2 from "eventemitter2"
-import { EventBus } from "./events"
+import { EventBus } from "./events/events"
 import { Stats } from "fs"
 import { join } from "path"
 

@@ -72,7 +72,7 @@ import {
   DOCS_BASE_URL,
 } from "./constants"
 import { Log } from "./logger/log-entry"
-import { EventBus } from "./events"
+import { EventBus } from "./events/events"
 import { Watcher } from "./watch"
 import {
   findConfigPathsInPath,
