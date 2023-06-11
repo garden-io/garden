@@ -15,7 +15,6 @@ import { ConfigContext, schema } from "../config/template-contexts/base"
 import { PublishActionResult } from "../plugin/handlers/Build/publish"
 import { BuildAction } from "../actions/build"
 import { ActionSpecContext, ActionSpecContextParams } from "../config/template-contexts/actions"
-import { ActionState } from "../actions/types"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
   tagTemplate?: string
@@ -66,7 +65,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     if (this.action.getConfig("allowPublish") === false) {
       this.log.info("Publishing disabled (allowPublish=false set on build)")
       return {
-        state: <ActionState>"ready",
+        state: "ready" as const,
         detail: { published: false },
         outputs: {},
         version: this.getResolvedAction(this.action, dependencyResults).versionString(),

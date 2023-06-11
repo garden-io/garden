@@ -7,7 +7,7 @@
  */
 
 import { range } from "lodash"
-import { EventBus } from "../../../src/events"
+import { EventBus } from "../../../src/events/events"
 import { expect } from "chai"
 
 describe("EventBus", () => {

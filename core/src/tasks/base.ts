@@ -11,10 +11,10 @@ import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
 import { ActionLog, createActionLog, Log } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
-import type { Action, ActionState, Executed, Resolved } from "../actions/types"
+import { type Action, type ActionState, type Executed, type Resolved } from "../actions/types"
 import { ConfigGraph, GraphError } from "../graph/config-graph"
 import type { ActionReference } from "../config/common"
-import { InternalError } from "../exceptions"
+import { InternalError, RuntimeError } from "../exceptions"
 import type { DeleteDeployTask } from "./delete-deploy"
 import type { BuildTask } from "./build"
 import type { DeployTask } from "./deploy"
@@ -27,6 +27,13 @@ import type { TestTask } from "./test"
 import { Memoize } from "typescript-memoize"
 import { getExecuteTaskForAction, getResolveTaskForAction } from "./helpers"
 import { TypedEventEmitter } from "../util/events"
+import { Events, ActionStatusEventName } from "../events/events"
+import {
+  makeActionFailedPayload,
+  makeActionCompletePayload,
+  makeActionProcessingPayload,
+  makeActionGetStatusPayload,
+} from "../events/util"
 
 export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
@@ -57,6 +64,10 @@ export interface ValidResultType {
   state: ActionState
   outputs: {}
   attached?: boolean
+}
+
+export interface ValidExecutionActionResultType extends ValidResultType {
+  detail: any | null
 }
 
 export type Task =
@@ -362,13 +373,165 @@ export interface ExecuteActionOutputs<T extends Action> extends BaseActionTaskOu
   executedAction: Executed<T>
 }
 
+type ExecuteActionTaskType = "build" | "deploy" | "run" | "test"
+
+const actionKindToEventNameMap = {
+  build: "buildStatus",
+  deploy: "deployStatus",
+  test: "testStatus",
+  run: "runStatus",
+} satisfies { [key in ExecuteActionTaskType]: ActionStatusEventName }
+
+/**
+ * Decorator function for emitting status events to Cloud when calling the
+ * getStatus method on ExecutionAction tasks.
+ *
+ * The wrapper emits the appropriate events before and after the inner function execution.
+ */
+export function emitGetStatusEvents<
+  A extends Action,
+  R extends ValidExecutionActionResultType = {
+    state: ActionState
+    outputs: A["_outputs"]
+    detail: any
+    version: string
+  }
+>(
+  _target: ExecuteActionTask<A>,
+  methodName: "getStatus",
+  descriptor: TypedPropertyDescriptor<(...args: [ActionTaskStatusParams<A>]) => Promise<R & ExecuteActionOutputs<A>>>
+) {
+  const method = descriptor.value
+
+  if (!method) {
+    throw new RuntimeError("No method to decorate", {})
+  }
+
+  descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskStatusParams<A>]) {
+    const statusOnly = args[0].statusOnly
+
+    // We don't emit events when just checking the status
+    if (statusOnly) {
+      const result = (await method.apply(this, args)) as R & ExecuteActionOutputs<A>
+      return result
+    }
+
+    const actionKind = this.action.kind.toLowerCase() as Lowercase<A["kind"]>
+    const eventName = actionKindToEventNameMap[actionKind]
+    const startedAt = new Date().toISOString()
+
+    // First we emit the "getting-status" event
+    this.garden.events.emit(eventName, makeActionGetStatusPayload({ action: this.action, force: this.force, startedAt }))
+
+    try {
+      const result = (await method.apply(this, args)) as R & ExecuteActionOutputs<A>
+
+      // Then an event with the results if the status was successfully retrieved...
+      const donePayload = makeActionCompletePayload({
+        result,
+        startedAt,
+        action: this.action,
+        operation: methodName,
+        force: this.force,
+      }) as Events[typeof eventName]
+
+      this.garden.events.emit(eventName, donePayload)
+
+      return result
+    } catch (err) {
+      // ...otherwise we emit a "failed" event
+      this.garden.events.emit(
+        eventName,
+        makeActionFailedPayload({ startedAt, action: this.action, force: this.force, operation: methodName })
+      )
+
+      throw err
+    }
+  }
+
+  return descriptor
+}
+
+/**
+ * Decorator function for emitting status events to Cloud when calling the
+ * process method on ExecutionAction tasks.
+ *
+ * The wrapper emits the appropriate events before and after the inner function execution.
+ */
+export function emitProcessingEvents<
+  A extends Action,
+  R extends ValidExecutionActionResultType = {
+    state: ActionState
+    outputs: A["_outputs"]
+    detail: any
+    version: string
+  }
+>(
+  _target: ExecuteActionTask<A>,
+  methodName: "process",
+  descriptor: TypedPropertyDescriptor<
+    (...args: [ActionTaskProcessParams<A, R>]) => Promise<R & ExecuteActionOutputs<A>>
+  >
+) {
+  const method = descriptor.value
+
+  if (!method) {
+    throw new RuntimeError("No method to decorate", {})
+  }
+
+  descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskStatusParams<A>]) {
+    const actionKind = this.action.kind.toLowerCase() as Lowercase<A["kind"]>
+    const eventName = actionKindToEventNameMap[actionKind]
+    const startedAt = new Date().toISOString()
+
+    // First we emit the "processing" event
+    this.garden.events.emit(
+      eventName,
+      makeActionProcessingPayload({ startedAt, action: this.action, force: this.force })
+    )
+
+    try {
+      const result = (await method.apply(this, args)) as R & ExecuteActionOutputs<A>
+
+      // Then an event with the results if the action was successfully executed...
+      const donePayload = makeActionCompletePayload({
+        startedAt,
+        result,
+        action: this.action,
+        force: this.force,
+        operation: methodName,
+      }) as Events[typeof eventName]
+
+      this.garden.events.emit(eventName, donePayload)
+
+      return result
+    } catch (err) {
+      // ...otherwise we emit a "failed" event
+      this.garden.events.emit(
+        eventName,
+        makeActionFailedPayload({ startedAt, action: this.action, force: this.force, operation: methodName })
+      )
+
+      throw err
+    }
+  }
+
+  return descriptor
+}
+
 export abstract class ExecuteActionTask<
   T extends Action,
-  O extends ValidResultType = { state: ActionState; outputs: T["_outputs"]; detail: any; version: string }
+  O extends ValidExecutionActionResultType = {
+    state: ActionState
+    outputs: T["_outputs"]
+    detail: any
+    version: string
+  }
 > extends BaseActionTask<T, O & ExecuteActionOutputs<T>> {
   executeTask = true
+  abstract type: Lowercase<T["kind"]>
 
-  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<(O & ExecuteActionOutputs<T>) | null>
+  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<O & ExecuteActionOutputs<T>>
 
   abstract process(params: ActionTaskProcessParams<T, O>): Promise<O & ExecuteActionOutputs<T>>
 }

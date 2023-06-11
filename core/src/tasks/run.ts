@@ -6,7 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "./base"
+import {
+  ActionTaskProcessParams,
+  ActionTaskStatusParams,
+  ExecuteActionTask,
+  emitGetStatusEvents,
+  emitProcessingEvents,
+} from "./base"
 import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
 import { GetRunResult } from "../plugin/handlers/Run/get-result"
@@ -20,12 +26,13 @@ class RunTaskError extends Error {
 
 @Profile()
 export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
-  type = "run"
+  type = "run" as const
 
   getDescription() {
     return this.action.longDescription()
   }
 
+  @(emitGetStatusEvents<RunAction>)
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<RunAction>) {
     this.log.verbose("Checking status...")
     const router = await this.garden.getActionRouter()
@@ -41,9 +48,13 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
 
       this.log.verbose(`Status check complete`)
 
-      // Should return a null value here if there is no result
       if (status.detail === null) {
-        return null
+        return {
+          ...status,
+          state: "not-ready" as const,
+          version: action.versionString(),
+          executedAction: resolvedActionToExecuted(action, { status }),
+        }
       }
 
       if (status.state === "ready" && !statusOnly && !this.force) {
@@ -57,10 +68,12 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       }
     } catch (err) {
       this.log.error(`Failed getting status`)
+
       throw err
     }
   }
 
+  @(emitProcessingEvents<RunAction>)
   async process({ dependencyResults }: ActionTaskProcessParams<RunAction, GetRunResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
 
@@ -80,6 +93,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       status = output.result
     } catch (err) {
       taskLog.error(`Failed running ${action.name}`)
+
       throw err
     }
     if (status.state === "ready") {

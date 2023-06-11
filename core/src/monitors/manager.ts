@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import type { Command } from "../commands/base"
-import { EventBus } from "../events"
+import { EventBus } from "../events/events"
 import type { Log } from "../logger/log-entry"
 import { LogLevel } from "../logger/logger"
 import { TypedEventEmitter } from "../util/events"

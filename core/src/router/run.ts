@@ -9,9 +9,7 @@
 import { realpath } from "fs-extra"
 import normalizePath from "normalize-path"
 import tmp from "tmp-promise"
-import { ActionState, stateForCacheStatusEvent } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
-import { runStatusForEventPayload } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"
 import { BaseRouterParams, createActionRouter } from "./base"
 
@@ -40,12 +38,6 @@ export const runRouter = (baseParams: BaseRouterParams) =>
         startedAt: new Date().toISOString(),
       }
 
-      garden.events.emit("runStatus", {
-        ...payloadAttrs,
-        state: "processing",
-        status: { state: "running" },
-      })
-
       params.events = params.events || new PluginEventBroker(garden)
 
       try {
@@ -73,13 +65,6 @@ export const runRouter = (baseParams: BaseRouterParams) =>
 
         await router.validateActionOutputs(action, "runtime", result.outputs)
 
-        // Emit status
-        garden.events.emit("runStatus", {
-          ...payloadAttrs,
-          state: result.state,
-          completedAt: new Date().toISOString(),
-          status: runStatusForEventPayload(result.detail),
-        })
         // TODO: get this out of the core framework and shift it to the provider
         router.emitNamespaceEvent(result.detail?.namespaceStatus)
 
@@ -100,42 +85,14 @@ export const runRouter = (baseParams: BaseRouterParams) =>
     },
 
     getResult: async (params) => {
-      const { garden, router, action } = params
-
-      const actionName = action.name
-      const actionVersion = action.versionString()
-      const actionType = API_ACTION_TYPE
-
-      const moduleName = action.moduleName()
-
-      const payloadAttrs = {
-        actionName,
-        actionVersion,
-        actionType,
-        moduleName,
-        actionUid: action.getUid(),
-        startedAt: new Date().toISOString(),
-      }
-
-      garden.events.emit("runStatus", {
-        ...payloadAttrs,
-        state: "getting-status",
-        status: { state: "unknown" },
-      })
+      const { router, action } = params
 
       const output = await router.callHandler({
         params,
         handlerType: "getResult",
-        defaultHandler: async () => ({ state: <ActionState>"unknown", detail: null, outputs: {} }),
+        defaultHandler: async () => ({ state: "unknown" as const, detail: null, outputs: {} }),
       })
       const { result } = output
-
-      garden.events.emit("runStatus", {
-        ...payloadAttrs,
-        state: stateForCacheStatusEvent(result.state),
-        completedAt: new Date().toISOString(),
-        status: runStatusForEventPayload(result.detail),
-      })
 
       if (result) {
         await router.validateActionOutputs(action, "runtime", result.outputs)

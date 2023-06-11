@@ -9,7 +9,7 @@
 import { find } from "lodash"
 import minimatch from "minimatch"
 
-import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams } from "../tasks/base"
+import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams, emitGetStatusEvents, emitProcessingEvents } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { resolvedActionToExecuted } from "../actions/helpers"
@@ -31,7 +31,7 @@ export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
 
 @Profile()
 export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
-  type = "test"
+  type = "test" as const
 
   silent: boolean
 
@@ -52,6 +52,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     return this.action.longDescription()
   }
 
+  @emitGetStatusEvents<TestAction>
   async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
     this.log.verbose("Checking status...")
     const action = this.getResolvedAction(this.action, dependencyResults)
@@ -67,20 +68,29 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
 
     const testResult = status?.detail
 
+    const version = action.versionString()
+    const executedAction = resolvedActionToExecuted(action, { status })
+
     if (testResult && testResult.success) {
       if (!this.force) {
         this.log.success("Already passed")
       }
       return {
         ...status,
-        version: action.versionString(),
-        executedAction: resolvedActionToExecuted(action, { status }),
+        version,
+        executedAction,
+      }
+    } else {
+      return {
+        ...status,
+        state: "not-ready" as const,
+        version,
+        executedAction,
       }
     }
-
-    return null
   }
 
+  @emitProcessingEvents<TestAction>
   async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
 
@@ -100,6 +110,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       status = output.result
     } catch (err) {
       this.log.error(`Failed running test`)
+
       throw err
     }
     if (status.detail?.success) {

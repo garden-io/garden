@@ -7,12 +7,15 @@
  */
 
 import chalk from "chalk"
+
 import {
   BaseActionTaskParams,
   ActionTaskProcessParams,
   ExecuteActionTask,
   ActionTaskStatusParams,
   BaseTask,
+  emitGetStatusEvents,
+  emitProcessingEvents,
 } from "./base"
 import { getLinkUrl } from "../types/service"
 import { Profile } from "../util/profiling"
@@ -35,7 +38,7 @@ function printIngresses(status: DeployStatus, log: ActionLog) {
 
 @Profile()
 export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
-  type = "deploy"
+  type = "deploy" as const
   concurrencyLimit = 10
 
   events?: PluginEventBroker
@@ -58,6 +61,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     return this.action.longDescription()
   }
 
+  @emitGetStatusEvents<DeployAction>
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<DeployAction>) {
     const log = this.log.createLog()
     const action = this.getResolvedAction(this.action, dependencyResults)
@@ -94,6 +98,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     return { ...status, version: action.versionString(), executedAction }
   }
 
+  @emitProcessingEvents<DeployAction>
   async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const version = action.versionString()

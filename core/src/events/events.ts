@@ -8,17 +8,17 @@
 
 import { omit } from "lodash"
 import { EventEmitter2 } from "eventemitter2"
-import type { LogEntryEventPayload } from "./cloud/buffered-event-stream"
-import type { DeployState, DeployStatusForEventPayload } from "./types/service"
-import type { RunState, RunStatusForEventPayload } from "./plugin/base"
-import type { Omit } from "./util/util"
-import type { AuthTokenResponse } from "./cloud/api"
-import type { ConfigGraph, RenderedActionGraph } from "./graph/config-graph"
-import type { CommandInfo } from "./plugin-context"
-import type { GraphResult } from "./graph/results"
-import { NamespaceStatus } from "./types/namespace"
-import { BuildState, BuildStatusForEventPayload } from "./plugin/handlers/Build/get-status"
-import { ActionStateForEvent } from "./actions/types"
+import type { LogEntryEventPayload } from "../cloud/buffered-event-stream"
+import type { DeployStatusForEventPayload } from "../types/service"
+import type { RunStatusForEventPayload } from "../plugin/base"
+import type { Omit, PickFromUnion } from "../util/util"
+import type { AuthTokenResponse } from "../cloud/api"
+import type { ConfigGraph, RenderedActionGraph } from "../graph/config-graph"
+import type { CommandInfo } from "../plugin-context"
+import type { GraphResult } from "../graph/results"
+import { NamespaceStatus } from "../types/namespace"
+import { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status"
+import { ActionStatusPayload } from "./action-status-events"
 
 interface EventContext {
   gardenKey?: string
@@ -174,19 +174,6 @@ export function toGraphResultEventPayload(result: GraphResult): GraphResultEvent
   }
 }
 
-export type ActionStatusDetailedState = DeployState | BuildState | RunState
-
-export interface ActionStatusPayload<S = { state: ActionStatusDetailedState }> {
-  actionName: string
-  actionVersion: string
-  actionUid: string
-  moduleName: string | null // DEPRECATED: Remove in 0.14
-  startedAt: string
-  completedAt?: string
-  state: ActionStateForEvent
-  status: S
-}
-
 /**
  * Supported Garden events and their interfaces.
  */
@@ -231,44 +218,6 @@ export interface Events {
 
   // Stack Graph events
   stackGraph: RenderedActionGraph
-
-  // TODO: Remove these once the Cloud UI no longer uses them.
-
-  // TaskGraph events
-  taskProcessing: {
-    /**
-     * ISO format date string
-     */
-    startedAt: string
-    key: string
-    type: string
-    name: string
-    inputVersion: string
-  }
-  taskComplete: GraphResultEventPayload
-  taskReady: GraphResult
-  taskError: GraphResultEventPayload
-  taskCancelled: {
-    /**
-     * ISO format date string
-     */
-    cancelledAt: string
-    type: string
-    key: string
-    name: string
-  }
-  taskGraphProcessing: {
-    /**
-     * ISO format date string
-     */
-    startedAt: string
-  }
-  taskGraphComplete: {
-    /**
-     * ISO format date string
-     */
-    completedAt: string
-  }
 
   /**
    * Line-by-line action log events. These are emitted by the `PluginEventBroker` instance passed to action handlers.
@@ -337,8 +286,8 @@ export interface Events {
 
 export type EventName = keyof Events
 
-type GraphEventName = Extract<EventName, "taskCancelled" | "taskComplete" | "taskError" | "taskProcessing">
-type ConfigEventName = Extract<EventName, "configChanged" | "configsScanned">
+type ConfigEventName = PickFromUnion<EventName, "configChanged" | "configsScanned">
+export type ActionStatusEventName = PickFromUnion<EventName, "buildStatus" | "deployStatus" | "testStatus" | "runStatus">
 
 // These are the events we POST over https via the BufferedEventStream
 const pipedEventNamesSet = new Set<EventName>([
@@ -355,12 +304,6 @@ const pipedEventNamesSet = new Set<EventName>([
   "namespaceStatus",
   "deployStatus",
   "stackGraph",
-  "taskCancelled",
-  "taskComplete",
-  "taskError",
-  "taskGraphComplete",
-  "taskGraphProcessing",
-  "taskProcessing",
   "buildStatus",
   "runStatus",
   "testStatus",
@@ -374,11 +317,8 @@ const pipedEventNamesSet = new Set<EventName>([
 ])
 
 // We send graph and config events over a websocket connection via the Garden server
-const taskGraphEventNames = new Set<GraphEventName>(["taskCancelled", "taskComplete", "taskError", "taskProcessing"])
 const configEventNames = new Set<ConfigEventName>(["configsScanned", "configChanged"])
-
-// We do not emit these task graph events because they're simply not needed, and there's a lot of them.
-const skipTaskGraphEventTypes = ["resolve-action", "resolve-provider"]
+const actionStatusEventNames = new Set<ActionStatusEventName>(["buildStatus", "deployStatus", "runStatus", "testStatus"])
 
 const isPipedEvent = (name: string, _payload: any): _payload is Events[EventName] => {
   return pipedEventNamesSet.has(<any>name)
@@ -388,25 +328,23 @@ const isConfigEvent = (name: string, _payload: any): _payload is Events[ConfigEv
   return configEventNames.has(<any>name)
 }
 
-const isTaskGraphEvent = (name: string, _payload: any): _payload is Events[GraphEventName] => {
-  return taskGraphEventNames.has(<any>name)
+const isActionStatusEvent = (name: string, _payload: any): _payload is Events[ActionStatusEventName] => {
+  return actionStatusEventNames.has(<any>name)
 }
 
 export function shouldStreamWsEvent(name: string, payload: any) {
-  if (isTaskGraphEvent(name, payload) && !skipTaskGraphEventTypes.includes(payload.type)) {
+  if (isActionStatusEvent(name, payload)) {
     return true
-  } else if (isConfigEvent(name, payload)) {
+  }
+  if (isConfigEvent(name, payload)) {
     return true
   }
   return false
 }
 
 export function shouldStreamEvent(name: string, payload: any) {
-  if (isTaskGraphEvent(name, payload) && skipTaskGraphEventTypes.includes(payload.type)) {
-    return false
-  } else if (!isPipedEvent(name, payload)) {
-    return false
+  if (isPipedEvent(name, payload)) {
+    return true
   }
-  return true
+  return false
 }
-

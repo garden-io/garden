@@ -105,7 +105,7 @@ export class TestTask extends BaseTask<TestTaskResult> {
     }
 
     return {
-      state: <ActionState>"ready",
+      state: "ready" as const,
       outputs: {
         id: this.getId(),
         processed: true,

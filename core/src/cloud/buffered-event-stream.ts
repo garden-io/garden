@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 
-import { Events, EventName, GardenEventAnyListener, shouldStreamEvent } from "../events"
+import { Events, EventName, GardenEventAnyListener, shouldStreamEvent } from "../events/events"
 import { LogMetadata, Log, LogEntry, LogContext } from "../logger/log-entry"
 import { got } from "../util/http"
 

@@ -202,12 +202,10 @@ export class HideCommand extends ConsoleCommand<HideArgs> {
 }
 
 interface GetDeployStatusCommandResult {
-  result: {
-    actions: {
-      [actionName: string]: {
-        deployStatus: DeployStatus
-        syncStatus: GetSyncStatusResult
-      }
+  actions: {
+    [actionName: string]: {
+      deployStatus: DeployStatus
+      syncStatus: GetSyncStatusResult
     }
   }
 }
@@ -251,7 +249,7 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
 
     const sanitized = sanitizeValue(deepFilter(result, (_, key) => key !== "executedAction"))
 
-    return { result: sanitized }
+    return { result: sanitized }
   }
 }
 
