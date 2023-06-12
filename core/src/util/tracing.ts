@@ -158,7 +158,7 @@ export function initTracing(): opentelemetry.NodeSDK {
     return otelSDK
   }
 
-  const sdk = new opentelemetry.NodeSDK({
+  otelSDK = new opentelemetry.NodeSDK({
     serviceName: "garden-cli",
     instrumentations: [
       new HttpInstrumentation({
@@ -177,9 +177,7 @@ export function initTracing(): opentelemetry.NodeSDK {
     autoDetectResources: false,
   })
 
-  sdk.start()
+  otelSDK.start()
 
-  otelSDK = sdk
-
-  return sdk
+  return otelSDK
 }
