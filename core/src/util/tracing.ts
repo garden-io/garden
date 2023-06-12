@@ -1,6 +1,5 @@
 import * as opentelemetry from "@opentelemetry/sdk-node"
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http"
-import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
 
 const SESSION_ID_CONTEXT_KEY = opentelemetry.api.createContextKey("sessionIdContext")
 const PARENT_SESSION_ID_CONTEXT_KEY = opentelemetry.api.createContextKey("parentSessionIdContext")
@@ -140,10 +139,26 @@ export function startSpan(name: string): opentelemetry.api.Span {
   return span
 }
 
-export const otelSDK: opentelemetry.NodeSDK = initTracing()
+// Singleton we initialize either when we get the SDK the first time
+// or when we call `initTracing` explicitly
+// We do this to ensure that the SDK can be initialized as the first thing in the application
+// so that it can integrate its instrumentation before any other imports happened
+let otelSDK: opentelemetry.NodeSDK | undefined
+
+export const getOtelSDK: () => opentelemetry.NodeSDK = () => {
+  if (!otelSDK) {
+    return initTracing()
+  } else {
+    return otelSDK
+  }
+}
 
 export function initTracing(): opentelemetry.NodeSDK {
-  const otelSDK = new opentelemetry.NodeSDK({
+  if (otelSDK) {
+    return otelSDK
+  }
+
+  const sdk = new opentelemetry.NodeSDK({
     serviceName: "garden-cli",
     instrumentations: [
       new HttpInstrumentation({
@@ -162,7 +177,9 @@ export function initTracing(): opentelemetry.NodeSDK {
     autoDetectResources: false,
   })
 
-  otelSDK.start()
+  sdk.start()
 
-  return otelSDK
+  otelSDK = sdk
+
+  return sdk
 }

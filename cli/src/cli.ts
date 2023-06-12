@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { otelSDK, wrapActiveSpan } from "@garden-io/core/build/src/util/tracing"
+import { getOtelSDK, wrapActiveSpan } from "@garden-io/core/build/src/util/tracing"
 import { shutdown } from "@garden-io/core/build/src/util/util"
 import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
 import { GardenPluginReference } from "@garden-io/core/build/src/plugin/plugin"
@@ -59,7 +59,7 @@ export async function runCli({
     }
 
     try {
-      await otelSDK.shutdown()
+      await getOtelSDK().shutdown()
     } catch (err) {
       console.log(`Debug: OTEL shutdown failed with error ${err.toString()}`)
     }

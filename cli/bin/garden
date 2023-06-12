@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+
 if (process.env.GARDEN_ENABLE_PROFILING === "1" || process.env.GARDEN_ENABLE_PROFILING === "true") {
   // Patch require to profile module loading
   const Mod = require("module")
@@ -33,6 +34,9 @@ if (process.env.GARDEN_ENABLE_PROFILING === "1" || process.env.GARDEN_ENABLE_PRO
     return mod
   }
 }
+
+const { initTracing } = require("@garden-io/core/build/src/util/tracing")
+initTracing()
 
 require("source-map-support").install()
 const cli = require("../build/src/cli")
