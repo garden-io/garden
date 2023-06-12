@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { otelSDK, wrapActiveSpan } from "@garden-io/core/build/src/util/tracing"
 import { shutdown } from "@garden-io/core/build/src/util/util"
 import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
 import { GardenPluginReference } from "@garden-io/core/build/src/plugin/plugin"
@@ -35,11 +36,17 @@ export async function runCli({
   }
 
   try {
-    if (!cli) {
-      cli = new GardenCli({ plugins: getBundledPlugins(), initLogger })
-    }
-    // Note: We slice off the binary/script name from argv.
-    result = await cli.run({ args, exitOnError })
+    // initialize the tracing to capture the full cli execution
+    result = await wrapActiveSpan("garden", async (span) => {
+      if (!cli) {
+        cli = new GardenCli({ plugins: getBundledPlugins(), initLogger })
+      }
+
+      // Note: We slice off the binary/script name from argv.
+      const results = await cli!.run({ args: args || [], exitOnError })
+
+      return results
+    })
     code = result.code
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -50,6 +57,13 @@ export async function runCli({
       const globalConfigStore = new GlobalConfigStore()
       await globalConfigStore.delete("activeProcesses", String(cli.processRecord.pid))
     }
+
+    try {
+      await otelSDK.shutdown()
+    } catch (err) {
+      console.log(`Debug: OTEL shutdown failed with error ${err.toString()}`)
+    }
+
     await shutdown(code)
   }
 

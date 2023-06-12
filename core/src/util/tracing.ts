@@ -1,4 +1,6 @@
 import * as opentelemetry from "@opentelemetry/sdk-node"
+import { HttpInstrumentation } from "@opentelemetry/instrumentation-http"
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
 
 const SESSION_ID_CONTEXT_KEY = opentelemetry.api.createContextKey("sessionIdContext")
 const PARENT_SESSION_ID_CONTEXT_KEY = opentelemetry.api.createContextKey("parentSessionIdContext")
@@ -42,9 +44,11 @@ export function getSessionContext(): SessionContext {
 export function prefixWithGardenNamespace(data: opentelemetry.api.Attributes): opentelemetry.api.Attributes {
   const unprefixed = Object.entries(data)
 
-  return Object.fromEntries(unprefixed.map(([key, value]) => {
-    return [`garden.${key}`, value]
-  }))
+  return Object.fromEntries(
+    unprefixed.map(([key, value]) => {
+      return [`garden.${key}`, value]
+    })
+  )
 }
 
 type GetAttributesCallback<T extends any[], C> = (this: C, ...args: T) => opentelemetry.api.Attributes
@@ -74,10 +78,12 @@ export function OtelTraced<T extends any[], C>({
         const sessionContext = getSessionContext()
 
         if (getAttributes) {
-          span.setAttributes(prefixWithGardenNamespace({
-            ...sessionContext,
-            ...getAttributes.apply(this, args)
-          }))
+          span.setAttributes(
+            prefixWithGardenNamespace({
+              ...sessionContext,
+              ...getAttributes.apply(this, args),
+            })
+          )
         }
 
         let result
@@ -100,9 +106,11 @@ export function startActiveSpan<T>(name: string, fn: (span: opentelemetry.api.Sp
   return tracer.startActiveSpan(name, async (span) => {
     const sessionContext = getSessionContext()
 
-    span.setAttributes(prefixWithGardenNamespace({
-      ...sessionContext,
-    }))
+    span.setAttributes(
+      prefixWithGardenNamespace({
+        ...sessionContext,
+      })
+    )
 
     return fn(span)
   })
@@ -118,7 +126,6 @@ export function wrapActiveSpan<T>(name: string, fn: (span: opentelemetry.api.Spa
   })
 }
 
-
 export function startSpan(name: string): opentelemetry.api.Span {
   const span = tracer.startSpan(name)
 
@@ -131,4 +138,31 @@ export function startSpan(name: string): opentelemetry.api.Span {
   )
 
   return span
+}
+
+export const otelSDK: opentelemetry.NodeSDK = initTracing()
+
+export function initTracing(): opentelemetry.NodeSDK {
+  const otelSDK = new opentelemetry.NodeSDK({
+    serviceName: "garden-cli",
+    instrumentations: [
+      new HttpInstrumentation({
+        applyCustomAttributesOnSpan: () => {
+          return prefixWithGardenNamespace(getSessionContext())
+        },
+        ignoreOutgoingRequestHook: (request) => {
+          return Boolean(
+            request.hostname?.includes("segment.io") ||
+              (request.hostname?.includes("garden.io") &&
+                (request.path?.includes("/events") || request.path?.includes("/version")))
+          )
+        },
+      }),
+    ],
+    autoDetectResources: false,
+  })
+
+  otelSDK.start()
+
+  return otelSDK
 }

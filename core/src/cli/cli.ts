@@ -49,16 +49,9 @@ import { dedent } from "../util/string"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
-import {
-  getSessionContext,
-  prefixWithGardenNamespace,
-  withSessionContext,
-  wrapActiveSpan,
-} from "../util/tracing"
+import { withSessionContext, wrapActiveSpan } from "../util/tracing"
 
 import * as opentelemetry from "@opentelemetry/sdk-node"
-import { HttpInstrumentation } from "@opentelemetry/instrumentation-http"
-import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
 
 export interface RunOutput {
   argv: any
@@ -78,6 +71,7 @@ export class GardenCli {
   private initLogger: boolean
   public processRecord: GardenProcess
   private otelSDK: opentelemetry.NodeSDK
+  private cliSpan: opentelemetry.api.Span
 
   constructor({ plugins, initLogger = false }: { plugins?: GardenPluginReference[]; initLogger?: boolean } = {}) {
     this.plugins = plugins || []
@@ -85,30 +79,6 @@ export class GardenCli {
 
     const commands = sortBy(getBuiltinCommands(), (c) => c.name)
     commands.forEach((command) => this.addCommand(command))
-
-    const exporter = new OTLPTraceExporter()
-
-    this.otelSDK = new opentelemetry.NodeSDK({
-      serviceName: "garden-cli",
-      traceExporter: exporter,
-      instrumentations: [
-        new HttpInstrumentation({
-          applyCustomAttributesOnSpan: () => {
-            return prefixWithGardenNamespace(getSessionContext())
-          },
-          ignoreOutgoingRequestHook: (request) => {
-            return Boolean(
-              request.hostname?.includes("segment.io") ||
-                (request.hostname?.includes("garden.io") &&
-                  (request.path?.includes("/events") || request.path?.includes("/version")))
-            )
-          },
-        }),
-      ],
-      autoDetectResources: false,
-    })
-
-    this.otelSDK.start()
   }
 
   async renderHelp(log: Log, workingDir: string) {
@@ -600,12 +570,6 @@ ${renderCommands(commands)}
       renderCommandErrors(logger, gardenErrors)
       await waitForOutputFlush()
       code = commandResult.exitCode || 1
-    }
-
-    try {
-      await _this.otelSDK.shutdown()
-    } catch (err) {
-      log.debug(`OTEL shutdown failed with error ${err.toString()}`)
     }
 
     return { argv, code, errors, result: commandResult?.result }
