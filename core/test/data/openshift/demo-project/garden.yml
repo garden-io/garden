@@ -1,0 +1,8 @@
+apiVersion: garden.io/v1
+kind: Project
+name: demo-project
+environments:
+  - name: local
+providers:
+  - name: local-openshift
+    environments: [local]
