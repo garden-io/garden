@@ -16,7 +16,6 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   log,
   tag,
 }) => {
-  const outputs = action.getOutputs()
   const localId = action.getOutput("localImageId")
   const remoteId = containerHelpers.getPublicImageId(action, tag)
 
