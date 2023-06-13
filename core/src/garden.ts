@@ -1506,11 +1506,7 @@ export class Garden {
   public getInstanceKeyParams() {
     let namespace: string | undefined
 
-    let defaultNs = this.getEnvironmentConfig().defaultNamespace
-
-    if (defaultNs === undefined) {
-      defaultNs = defaultNamespace
-    }
+    const defaultNs = this.getEnvironmentConfig().defaultNamespace || defaultNamespace
 
     if (this.namespace !== defaultNs) {
       namespace = this.namespace
