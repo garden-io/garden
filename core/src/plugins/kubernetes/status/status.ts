@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Bluebird from "bluebird"
 import { diffString } from "json-diff"
 import { DeploymentError } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
-import Bluebird from "bluebird"
 import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
 import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
@@ -25,6 +25,7 @@ import {
   V1Service,
   V1Container,
   KubernetesObject,
+  V1Job,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
 import { getPods, getResourceKey, hashManifest } from "../util"
@@ -110,6 +111,30 @@ const objHandlers: { [kind: string]: StatusHandler } = {
     }
 
     return { state: "ready", resource }
+  },
+
+  Job: async ({ resource }: StatusHandlerParams<V1Job>) => {
+    if (
+      resource.status?.failed &&
+      resource.spec?.backoffLimit &&
+      resource.status?.failed >= resource.spec?.backoffLimit
+    ) {
+      // job is failed
+      return { state: "unhealthy", resource }
+    }
+    if (
+      resource.spec?.completions &&
+      resource.status?.succeeded &&
+      resource.status?.succeeded < resource.spec.completions
+    ) {
+      // job is not completed
+      return { state: "deploying", resource }
+    }
+    // if job is succeeded
+    if (resource.status.succeeded) {
+      return { state: "stopped", resource }
+    }
+    return { state: "deploying", resource }
   },
 }
 
