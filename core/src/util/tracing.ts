@@ -1,5 +1,6 @@
 import * as opentelemetry from "@opentelemetry/sdk-node"
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http"
+import { gardenEnv } from "../constants"
 
 const SESSION_ID_CONTEXT_KEY = opentelemetry.api.createContextKey("sessionIdContext")
 const PARENT_SESSION_ID_CONTEXT_KEY = opentelemetry.api.createContextKey("parentSessionIdContext")
@@ -156,6 +157,10 @@ export const getOtelSDK: () => opentelemetry.NodeSDK = () => {
 export function initTracing(): opentelemetry.NodeSDK {
   if (otelSDK) {
     return otelSDK
+  }
+
+  if (!gardenEnv.GARDEN_ENABLE_TRACING) {
+    process.env.OTEL_SDK_DISABLED = "true"
   }
 
   otelSDK = new opentelemetry.NodeSDK({
