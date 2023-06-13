@@ -83,7 +83,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     }
 
     for (const task of tasks) {
-      const resource = convertServiceResource(module, task.spec.resource, task.name)
+      const resource = convertServiceResource(module, task.spec.resource)
 
       if (!resource) {
         continue
@@ -112,7 +112,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
 
     for (const test of tests) {
       const testName = module.name + "-" + test.name
-      const resource = convertServiceResource(module, test.spec.resource, testName)
+      const resource = convertServiceResource(module, test.spec.resource)
 
       if (!resource) {
         continue
