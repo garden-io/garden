@@ -73,7 +73,8 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
       actions.push(deployAction)
     }
 
-    const { namespace, releaseName, timeout, values, valueFiles } = module.spec
+    const { namespace, values, valueFiles } = module.spec
+    const releaseName = module.spec.releaseName || module.name
     const chart = {
       name: module.spec.chart,
       path: module.spec.chart ? undefined : module.spec.chartPath,
