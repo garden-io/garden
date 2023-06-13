@@ -183,7 +183,6 @@ export function gardenNamespaceAnnotationValue(namespaceName: string) {
 export function convertServiceResource(
   module: KubernetesModule | HelmModule,
   serviceResourceSpec?: ServiceResourceSpec,
-  defaultName?: string
 ): KubernetesTargetResourceSpec | null {
   const s = serviceResourceSpec || module.spec.serviceResource
 
@@ -193,7 +192,7 @@ export function convertServiceResource(
 
   return {
     kind: s.kind,
-    name: s.name || defaultName || module.name,
+    name: s.name || module.name,
     podSelector: s.podSelector,
     containerName: s.containerName,
   }
