@@ -49,7 +49,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     }
 
     // There's one service on helm modules expect when skipDeploy = true
-    const service: typeof services[0] | undefined = services[0]
+    const service: (typeof services)[0] | undefined = services[0]
 
     // The helm Deploy type does not support the `base` field. We handle the field here during conversion,
     // for compatibility.
@@ -212,7 +212,7 @@ function prepareDeployAction({
       atomic: module.spec.atomicInstall,
       portForwards: module.spec.portForwards,
       namespace: module.spec.namespace,
-      releaseName: module.spec.releaseName,
+      releaseName: module.spec.releaseName || module.name,
       values: module.spec.values,
       valueFiles: module.spec.valueFiles,
 
@@ -232,13 +232,16 @@ function prepareDeployAction({
     deployAction.spec.chart!.path = baseModule.spec.chartPath
   }
 
-  if (serviceResource) {
-    if (serviceResource.containerModule) {
-      const build = convertBuildDependency(serviceResource.containerModule)
-      deployAction.dependencies?.push(build)
+  const containerModules = module.build.dependencies.map(convertBuildDependency) || []
+  if (serviceResource?.containerModule) {
+    const containerModuleSpecDep = convertBuildDependency(serviceResource.containerModule)
+    if (!containerModules.find((m) => m.name === containerModuleSpecDep.name)) {
+      containerModules.push(containerModuleSpecDep)
     }
-    deployAction.spec.defaultTarget = convertServiceResource(module, serviceResource) || undefined
   }
+
+  deployAction.dependencies?.push(...containerModules)
+  deployAction.spec.defaultTarget = convertServiceResource(module, serviceResource) || undefined
 
   return deployAction
 }
