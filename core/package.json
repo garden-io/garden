@@ -146,8 +146,8 @@
     "zod": "^3.20.6"
   },
   "devDependencies": {
-    "@commitlint/cli": "^17.4.4",
-    "@commitlint/config-conventional": "^17.4.4",
+    "@commitlint/cli": "^17.6.5",
+    "@commitlint/config-conventional": "^17.6.5",
     "@garden-io/platform-api-types": "1.455.0",
     "@google-cloud/kms": "^2.11.1",
     "@types/analytics-node": "^3.1.10",

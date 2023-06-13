@@ -15,8 +15,8 @@
   },
   "private": true,
   "devDependencies": {
-    "@commitlint/cli": "^8.3.5",
-    "@commitlint/config-conventional": "^8.3.4",
+    "@commitlint/cli": "^17.6.5",
+    "@commitlint/config-conventional": "^17.6.5",
     "@google-cloud/kms": "^1.6.3",
     "@types/bluebird": "^3.5.32",
     "@types/fs-extra": "^9.0.1",
