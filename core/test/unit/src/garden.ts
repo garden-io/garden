@@ -1713,7 +1713,7 @@ describe("Garden", () => {
     })
 
     it("should add plugin modules if returned by the provider", async () => {
-      const pluginModule: ModuleConfig = makeModuleConfig(`${projectRootA}/tmp`, {
+      const pluginModule: ModuleConfig = makeModuleConfig(projectRootA, {
         name: "foo",
         type: "exec",
       })

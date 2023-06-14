@@ -13,8 +13,8 @@ import { resolve } from "path"
 import { runCli, getBundledPlugins } from "../../../src/cli"
 import { testRoot } from "../../helpers"
 
-import { GardenCli } from "@garden-io/core/build/src/cli/cli"
 import { projectRootA } from "@garden-io/core/build/test/helpers"
+import { TestGardenCli } from "@garden-io/core/build/test/helpers/cli"
 import { Command, CommandParams } from "@garden-io/core/build/src/commands/base"
 import { randomString } from "@garden-io/core/build/src/util/string"
 import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global"
@@ -59,7 +59,7 @@ describe("runCli", () => {
       }
     }
 
-    const cli = new GardenCli()
+    const cli = new TestGardenCli()
     const cmd = new TestCommand()
     cli.addCommand(cmd)
 
@@ -84,7 +84,7 @@ describe("runCli", () => {
       }
     }
 
-    const cli = new GardenCli()
+    const cli = new TestGardenCli()
     const cmd = new TestCommand()
     cli.addCommand(cmd)
 

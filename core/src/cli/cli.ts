@@ -37,7 +37,7 @@ import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME, gardenEnv }
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { GardenPluginReference } from "../plugin/plugin"
-import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
+import { CloudApi, CloudApiFactory, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
 import { findProjectConfig } from "../config/base"
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import { getCustomCommands } from "../commands/custom"
@@ -61,6 +61,12 @@ export interface RunOutput {
   consoleOutput?: string
 }
 
+export interface GardenCliParams {
+  plugins?: GardenPluginReference[]
+  initLogger?: boolean
+  cloudApiFactory?: CloudApiFactory
+}
+
 // TODO: this is used in more contexts now, should rename to GardenCommandRunner or something like that
 @Profile()
 export class GardenCli {
@@ -69,10 +75,12 @@ export class GardenCli {
   public plugins: GardenPluginReference[]
   private initLogger: boolean
   public processRecord: GardenProcess
+  protected cloudApiFactory: CloudApiFactory
 
-  constructor({ plugins, initLogger = false }: { plugins?: GardenPluginReference[]; initLogger?: boolean } = {}) {
+  constructor({ plugins, initLogger = false, cloudApiFactory = CloudApi.factory }: GardenCliParams = {}) {
     this.plugins = plugins || []
     this.initLogger = initLogger
+    this.cloudApiFactory = cloudApiFactory
 
     const commands = sortBy(getBuiltinCommands(), (c) => c.name)
     commands.forEach((command) => this.addCommand(command))
@@ -223,7 +231,7 @@ ${renderCommands(commands)}
         const distroName = getCloudDistributionName(cloudDomain)
 
         try {
-          cloudApi = await CloudApi.factory({ log, cloudDomain, globalConfigStore })
+          cloudApi = await this.cloudApiFactory({ log, cloudDomain, globalConfigStore })
         } catch (err) {
           if (err instanceof CloudApiTokenRefreshError) {
             log.warn(dedent`

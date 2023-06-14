@@ -12,7 +12,6 @@ import {
   makeTestGardenA,
   withDefaultGlobalOpts,
   expectError,
-  TestGardenCli,
   makeTestGarden,
   customizedTestPlugin,
   expectFuzzyMatch,
@@ -30,6 +29,7 @@ import { remove, readFile, pathExists } from "fs-extra"
 import { dedent } from "../../../../src/util/string"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { defaultWorkflowResources, WorkflowStepSpec } from "../../../../src/config/workflow"
+import { TestGardenCli } from "../../../helpers/cli"
 
 describe("RunWorkflowCommand", () => {
   const cmd = new WorkflowCommand()

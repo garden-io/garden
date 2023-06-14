@@ -32,6 +32,7 @@ import { GardenInstanceManager } from "../../../../src/server/instance-manager"
 import { mkdirp } from "fs-extra"
 import { uuidv4 } from "../../../../src/util/random"
 import { makeDummyGarden } from "../../../../src/garden"
+import { TestGardenCli } from "../../../helpers/cli"
 
 describe("cli", () => {
   let cli: GardenCli
@@ -40,7 +41,7 @@ describe("cli", () => {
   const sessionId = uuidv4()
 
   beforeEach(() => {
-    cli = new GardenCli()
+    cli = new TestGardenCli()
   })
 
   afterEach(async () => {

@@ -27,7 +27,7 @@ import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
 import { joi } from "../src/config/common"
 import { GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
-import { Garden, GardenOpts } from "../src/garden"
+import { Garden } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion, gardenEnv } from "../src/constants"
 import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../src/cli/params"
@@ -141,12 +141,6 @@ export const defaultModuleConfig: ModuleConfig = {
   ],
   testConfigs: [],
   taskConfigs: [],
-}
-
-export class TestGardenCli extends GardenCli {
-  async getGarden(workingDir: string, opts: GardenOpts) {
-    return makeTestGarden(workingDir, opts)
-  }
 }
 
 export const makeTestModule = (params: Partial<ModuleConfig> = {}): ModuleConfig => {

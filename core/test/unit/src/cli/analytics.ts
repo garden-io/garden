@@ -14,6 +14,7 @@ import { GlobalConfigStore } from "../../../../src/config-store/global"
 import { TestGarden, enableAnalytics, makeTestGardenA } from "../../../helpers"
 import { Command } from "../../../../src/commands/base"
 import { isEqual } from "lodash"
+import { TestGardenCli } from "../../../helpers/cli"
 
 // TODO: These tests are skipped because they fail repeatedly in CI, but works fine locally
 describe("cli analytics", () => {
@@ -21,7 +22,7 @@ describe("cli analytics", () => {
   const globalConfigStore = new GlobalConfigStore()
 
   beforeEach(async () => {
-    cli = new GardenCli()
+    cli = new TestGardenCli()
     garden = await makeTestGardenA()
     resetAnalyticsConfig = await enableAnalytics(garden)
   })

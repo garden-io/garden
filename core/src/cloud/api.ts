@@ -20,6 +20,7 @@ import {
   GetProfileResponse,
   CreateProjectsForRepoResponse,
   ListProjectsResponse,
+  BaseResponse,
 } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
@@ -27,6 +28,7 @@ import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
 import { add } from "date-fns"
 import { LogLevel } from "../logger/logger"
 import { makeAuthHeader } from "./auth"
+import { StringMap } from "../config/common"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -117,6 +119,12 @@ export interface CloudProject {
   environments: CloudEnvironment[]
 }
 
+export interface GetSecretsParams {
+  log: Log
+  projectId: string
+  environmentName: string
+}
+
 function toCloudProject(
   project: GetProjectResponse["data"] | ListProjectsResponse["data"][0] | CreateProjectsForRepoResponse["data"][0]
 ): CloudProject {
@@ -156,6 +164,8 @@ export interface CloudApiFactoryParams {
   globalConfigStore: GlobalConfigStore
   skipLogging?: boolean
 }
+
+export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<CloudApi | undefined>
 
 /**
  * The Enterprise API client.
@@ -723,5 +733,41 @@ export class CloudApi {
 
   getRegisteredSession(sessionId: string) {
     return this.registeredSessions.get(sessionId)
+  }
+
+  async getSecrets({ log, projectId, environmentName }: GetSecretsParams): Promise<StringMap> {
+    let secrets: StringMap = {}
+    const distroName = getCloudDistributionName(this.domain)
+
+    try {
+      const res = await this.get<BaseResponse>(`/secrets/projectUid/${projectId}/env/${environmentName}`)
+      secrets = res.data
+    } catch (err) {
+      if (isGotError(err, 404)) {
+        log.debug(`No secrets were received from ${distroName}.`)
+        log.debug("")
+        log.debug(deline`
+          Either the environment ${environmentName} does not exist in ${distroName}, or no project
+          with the id in your project configuration exists in ${distroName}.
+        `)
+        log.debug("")
+        log.debug(deline`
+          Please visit ${this.domain} to review the environments and projects currently
+          in the system.
+        `)
+      } else {
+        throw err
+      }
+    }
+
+    const emptyKeys = Object.keys(secrets).filter((key) => !secrets[key])
+    if (emptyKeys.length > 0) {
+      const prefix =
+        emptyKeys.length === 1
+          ? "The following secret key has an empty value"
+          : "The following secret keys have empty values"
+      log.error(`${prefix}: ${emptyKeys.sort().join(", ")}`)
+    }
+    return secrets
   }
 }

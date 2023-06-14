@@ -12,7 +12,7 @@ import chalk from "chalk"
 import { Autocompleter, AutocompleteSuggestion } from "../cli/autocomplete"
 import { parseCliVarFlags } from "../cli/helpers"
 import { ParameterValues } from "../cli/params"
-import { CloudApi, CloudApiFactoryParams, getGardenCloudDomain } from "../cloud/api"
+import { CloudApi, CloudApiFactory, CloudApiFactoryParams, getGardenCloudDomain } from "../cloud/api"
 import type { Command } from "../commands/base"
 import { getBuiltinCommands, flattenCommands } from "../commands/commands"
 import { getCustomCommands } from "../commands/custom"
@@ -47,6 +47,7 @@ interface GardenInstanceManagerParams {
   serveCommand?: ServeCommand
   extraCommands?: Command[]
   defaultOpts?: Partial<GardenOpts>
+  cloudApiFactory?: CloudApiFactory
 }
 
 // TODO: clean up unused instances after some timeout since last request and when no monitors are active
@@ -59,6 +60,7 @@ export class GardenInstanceManager {
   private plugins: GardenPluginReference[]
   private instances: Map<string, InstanceContext>
   private projectRoots: Map<string, ProjectRootContext>
+  private cloudApiFactory: CloudApiFactory
   private cloudApis: Map<string, CloudApi>
   private lastRequested: Map<string, Date>
   private lock: AsyncLock
@@ -84,6 +86,7 @@ export class GardenInstanceManager {
     extraCommands,
     defaultOpts,
     plugins,
+    cloudApiFactory,
   }: GardenInstanceManagerParams) {
     this.sessionId = sessionId
     this.instances = new Map()
@@ -92,6 +95,7 @@ export class GardenInstanceManager {
     this.lastRequested = new Map()
     this.defaultOpts = defaultOpts || {}
     this.plugins = plugins
+    this.cloudApiFactory = cloudApiFactory || CloudApi.factory
 
     this.events = new EventBus()
     this.monitors = new MonitorManager(log, this.events)
@@ -183,7 +187,7 @@ export class GardenInstanceManager {
     let api = this.cloudApis.get(cloudDomain)
 
     if (!api) {
-      api = await CloudApi.factory(params)
+      api = await this.cloudApiFactory(params)
       api && this.cloudApis.set(cloudDomain, api)
     }
 
