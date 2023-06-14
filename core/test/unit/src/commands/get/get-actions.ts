@@ -43,8 +43,14 @@ export const getActionsToDetailedOutput = (a: Action, garden: TestGarden, graph:
     kind: a.kind,
     type: a.type,
     path: getRelativeActionConfigPath(garden.projectRoot, a),
-    dependencies: a.getDependencies().map((d) => d.key()),
-    dependents: graph.getDependants({ kind: a.kind, name: a.name, recursive: false }).map((d) => d.key()),
+    dependencies: a
+      .getDependencies()
+      .map((d) => d.key())
+      .sort(),
+    dependents: graph
+      .getDependants({ kind: a.kind, name: a.name, recursive: false })
+      .map((d) => d.key())
+      .sort(),
     disabled: a.isDisabled(),
     moduleName: a.moduleName() ?? undefined,
   }
@@ -64,8 +70,14 @@ export const getActionsToDetailedWithStateOutput = async (
       type: a.type,
       path: getRelativeActionConfigPath(garden.projectRoot, a),
       state: await getActionState(a, router, graph, log),
-      dependencies: a.getDependencies().map((d) => d.key()),
-      dependents: graph.getDependants({ kind: a.kind, name: a.name, recursive: false }).map((d) => d.key()),
+      dependencies: a
+        .getDependencies()
+        .map((d) => d.key())
+        .sort(),
+      dependents: graph
+        .getDependants({ kind: a.kind, name: a.name, recursive: false })
+        .map((d) => d.key())
+        .sort(),
       disabled: a.isDisabled(),
       moduleName: a.moduleName() ?? undefined,
     }

@@ -4549,7 +4549,11 @@ describe("Garden", () => {
         gardenA.vcs = handlerA
         const result = await gardenA.resolveModuleVersion(gardenA.log, module, [])
 
-        const treeVersion = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, module)
+        const treeVersion = await handlerA.getTreeVersion({
+          log: gardenA.log,
+          projectName: gardenA.projectName,
+          config: module,
+        })
 
         expect(result.versionString).to.equal(getModuleVersionString(module, { ...treeVersion, name: "module-a" }, []))
       })

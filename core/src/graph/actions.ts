@@ -264,7 +264,8 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   }
 
   const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
-  const treeVersion = config.internal.treeVersion || (await garden.vcs.getTreeVersion(log, garden.projectName, config))
+  const treeVersion =
+    config.internal.treeVersion || (await garden.vcs.getTreeVersion({ log, projectName: garden.projectName, config }))
 
   const variables = await resolveVariables({
     basePath: config.internal.basePath,
@@ -555,6 +556,15 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
         `Configure handler for ${description} attempted to modify the ${field} field, which is not allowed. Please report this as a bug.`,
         { config, field, original: config[field], modified: updatedConfig[field] }
       )
+    }
+  }
+
+  // for an Deploy/Test/Run action, when build is specified
+  // we set the include field to [] unless either of include or exclude
+  // is explicitly set on the config.
+  if (config.kind !== "Build" && config.build) {
+    if (!updatedConfig.include && !updatedConfig.exclude) {
+      updatedConfig.include = []
     }
   }
 

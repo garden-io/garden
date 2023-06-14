@@ -159,12 +159,17 @@ export abstract class VcsHandler {
     this.cache.clear()
   }
 
-  async getTreeVersion(
-    log: Log,
-    projectName: string,
-    config: ModuleConfig | BaseActionConfig,
-    force = false
-  ): Promise<TreeVersion> {
+  async getTreeVersion({
+    log,
+    projectName,
+    config,
+    force = false,
+  }: {
+    log: Log
+    projectName: string
+    config: ModuleConfig | BaseActionConfig
+    force?: boolean
+  }): Promise<TreeVersion> {
     const cacheKey = getResourceTreeCacheKey(config)
     const description = describeConfig(config)
 
@@ -239,7 +244,7 @@ export abstract class VcsHandler {
     // the version file is used internally to specify versions outside of source control
     const versionFilePath = join(moduleConfig.path, GARDEN_TREEVERSION_FILENAME)
     const fileVersion = await readTreeVersionFile(versionFilePath)
-    return fileVersion || (await this.getTreeVersion(log, projectName, moduleConfig))
+    return fileVersion || (await this.getTreeVersion({ log, projectName, config: moduleConfig }))
   }
 
   /**
