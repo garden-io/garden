@@ -20,7 +20,7 @@ import { StringParameter } from "../../../../src/cli/params"
 import stripAnsi from "strip-ansi"
 import { ToolsCommand } from "../../../../src/commands/tools"
 import { getRootLogger, RootLogger } from "../../../../src/logger/logger"
-import { safeLoad } from "js-yaml"
+import { load } from "js-yaml"
 import { startServer } from "../../../../src/server/server"
 import { envSupportsEmoji } from "../../../../src/logger/util"
 import { expectError } from "../../../../src/util/testing"
@@ -883,7 +883,7 @@ describe("cli", () => {
       cli.addCommand(command)
 
       const { consoleOutput } = await cli.run({ args: ["test-command", "--output=yaml"], exitOnError: false })
-      expect(safeLoad(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
+      expect(load(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
     })
 
     it(`should configure a dummy environment when command has noProject=true and --env is specified`, async () => {

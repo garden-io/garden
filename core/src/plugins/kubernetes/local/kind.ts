@@ -8,7 +8,7 @@
 
 import { exec } from "../../../util/util"
 import { Log } from "../../../logger/log-entry"
-import { safeLoad } from "js-yaml"
+import { load } from "js-yaml"
 import { KubernetesConfig, KubernetesProvider } from "../config"
 import { RuntimeError } from "../../../exceptions"
 import { KubeApi } from "../api"
@@ -135,7 +135,7 @@ async function getClusterForContext(context: string) {
 async function isContextAMatch(cluster: string, context: string): Promise<Boolean> {
   try {
     const kubeConfigString = (await exec("kind", ["get", "kubeconfig", `--name=${cluster}`])).stdout
-    const kubeConfig = safeLoad(kubeConfigString)!
+    const kubeConfig = load(kubeConfigString)!
     return kubeConfig["current-context"] === context
   } catch (err) {}
   return false

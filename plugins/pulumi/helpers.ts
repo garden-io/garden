@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import { countBy, flatten, isEmpty, uniq } from "lodash"
-import { safeLoad } from "js-yaml"
+import { load } from "js-yaml"
 import stripAnsi from "strip-ansi"
 import chalk from "chalk"
 import { merge } from "json-merge-patch"
@@ -514,7 +514,7 @@ async function loadPulumiVarfile({
   try {
     const str = (await readFile(resolvedPath)).toString()
     const resolved = ctx.resolveTemplateStrings(str)
-    const parsed = safeLoad(resolved)
+    const parsed = load(resolved)
     return parsed as DeepPrimitiveMap
   } catch (error) {
     const errMsg = `Unable to load varfile at '${resolvedPath}': ${error}`

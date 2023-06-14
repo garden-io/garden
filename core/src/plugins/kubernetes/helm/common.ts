@@ -382,6 +382,7 @@ export async function renderHelmTemplateString({
 export function loadTemplate(template: string): KubernetesResource[] {
   return loadAll(template || "", undefined, { json: true })
     .filter((obj) => obj !== null)
+    .map((obj) => obj as any)
     .map((obj) => {
       if (isPlainObject(obj)) {
         if (!obj.metadata) {
