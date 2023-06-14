@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getOtelSDK, wrapActiveSpan } from "@garden-io/core/build/src/util/tracing"
+import { getOtelSDK, wrapActiveSpan, withContextFromEnv } from "@garden-io/core/build/src/util/tracing"
 import { shutdown } from "@garden-io/core/build/src/util/util"
 import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
 import { GardenPluginReference } from "@garden-io/core/build/src/plugin/plugin"
@@ -37,7 +37,7 @@ export async function runCli({
 
   try {
     // initialize the tracing to capture the full cli execution
-    result = await wrapActiveSpan("garden", async (span) => {
+    result = await withContextFromEnv(() => wrapActiveSpan("garden", async (span) => {
       if (!cli) {
         cli = new GardenCli({ plugins: getBundledPlugins(), initLogger })
       }
@@ -46,7 +46,7 @@ export async function runCli({
       const results = await cli!.run({ args: args || [], exitOnError })
 
       return results
-    })
+    }))
     code = result.code
   } catch (err) {
     // eslint-disable-next-line no-console

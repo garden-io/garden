@@ -33,6 +33,7 @@ import { removeSlice } from "../util/util"
 import { join } from "path"
 import { getBuiltinCommands } from "./commands"
 import { Log } from "../logger/log-entry"
+import { getTracePropagationEnvVars } from "../util/tracing"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
@@ -141,6 +142,7 @@ export class CustomCommandWrapper extends Command {
           // Workaround for https://github.com/vercel/pkg/issues/897
           PKG_EXECPATH: "",
           ...(exec.env || {}),
+          ...getTracePropagationEnvVars(),
         },
         cwd: garden.projectRoot,
         reject: false,

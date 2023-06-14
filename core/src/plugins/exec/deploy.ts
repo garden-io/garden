@@ -29,6 +29,7 @@ import { deployStateToActionState, DeployStatus } from "../../plugin/handlers/De
 import { Resolved } from "../../actions/types"
 import { convertCommandSpec, execRun, getDefaultEnvVars } from "./common"
 import { isRunning, killRecursive } from "../../process"
+import { getTracePropagationEnvVars } from "../../util/tracing"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -353,6 +354,7 @@ function runPersistent({
     env: {
       ...getDefaultEnvVars(action),
       ...(env ? mapValues(env, (v) => v + "") : {}),
+      ...getTracePropagationEnvVars(),
     },
     shell,
     cleanup: true,
