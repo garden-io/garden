@@ -32,7 +32,7 @@ import {
   V1Secret,
   V1Service,
 } from "@kubernetes/client-node"
-import { safeLoad } from "js-yaml"
+import { load } from "js-yaml"
 import { readFile } from "fs-extra"
 import WebSocket from "isomorphic-ws"
 
@@ -916,7 +916,7 @@ export async function getKubeConfig(log: Log, ctx: PluginContext, provider: Kube
       // We use kubectl for this, to support merging multiple paths in the KUBECONFIG env var
       kubeConfigStr = await kubectl(ctx, provider).stdout({ log, args: ["config", "view", "--raw"] })
     }
-    return safeLoad(kubeConfigStr)!
+    return load(kubeConfigStr)!
   } catch (error) {
     throw new RuntimeError(`Unable to load kubeconfig: ${error}`, {
       error,

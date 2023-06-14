@@ -1569,7 +1569,7 @@ Example:
 tasks:
   - args:
       - rake
-      - 'db:migrate'
+      - db:migrate
 ```
 
 ### `tasks[].env`

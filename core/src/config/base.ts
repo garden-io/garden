@@ -8,7 +8,7 @@
 
 import dotenv = require("dotenv")
 import { sep, resolve, relative, basename, dirname, join } from "path"
-import { safeLoad, safeLoadAll } from "js-yaml"
+import { load, loadAll } from "js-yaml"
 import yamlLint from "yaml-lint"
 import { pathExists, readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
@@ -89,7 +89,7 @@ export const allConfigKinds = ["Module", "Workflow", "Project", configTemplateKi
  */
 export async function loadAndValidateYaml(content: string, path: string): Promise<any[]> {
   try {
-    return safeLoadAll(content) || []
+    return loadAll(content) || []
   } catch (err) {
     // We try to find the error using a YAML linter
     try {
@@ -510,7 +510,7 @@ export async function loadVarfile({
       }
       return parsed
     } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
-      const parsed = safeLoad(data.toString())
+      const parsed = load(data.toString())
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError(`Configured variable file ${relPath} must be a single plain YAML mapping`, {
           parsed,
