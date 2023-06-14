@@ -28,6 +28,7 @@ import { renderTemplateConfigSchema } from "../config/render-template"
 import { pMemoizeClearAll } from "../lib/p-memoize"
 import { makeDocsLinkOpts } from "./common"
 import { GardenApiVersion } from "../constants"
+import { actionKinds } from "../actions/types"
 
 /* eslint-disable no-console */
 
@@ -122,7 +123,7 @@ export async function writeConfigReferenceDocs(
   const actionTypeDefinitions = await (await getFreshGarden()).getActionTypes()
 
   for (const [kind, types] of Object.entries(actionTypeDefinitions)) {
-    actionsReadme.push(`* ${kind}`)
+    actionsReadme.push(`* [${kind}](./${kind}/README.md)`)
     for (const [type, definition] of Object.entries(types)) {
       const dir = resolve(actionTypeDir, kind)
       await mkdirp(dir)
@@ -136,6 +137,17 @@ export async function writeConfigReferenceDocs(
       actionsReadme.push(`  * [\`${type}\`](./${kind}/${type}.md)`)
     }
   }
+
+  // Render action-kind readmes
+  actionKinds.forEach(async (kind, i) => {
+    const dir = resolve(actionTypeDir, kind)
+    const actionTypeReadme = ["---", `order: ${i + 1}`, `title: ${kind}`, "---", "", `# ${kind} Actions`, ""]
+    for (const [type] of Object.entries(actionTypeDefinitions[kind])) {
+      actionTypeReadme.push(`  * [\`${type}\`](./${type}.md)`)
+    }
+    actionTypeReadme.push("")
+    await writeFile(resolve(dir, `README.md`), actionTypeReadme.join("\n"))
+  })
 
   await writeFile(resolve(actionTypeDir, `README.md`), actionsReadme.join("\n"))
   pMemoizeClearAll()
