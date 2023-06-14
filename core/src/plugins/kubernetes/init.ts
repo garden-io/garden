@@ -187,8 +187,8 @@ export async function prepareEnvironment(
 
   // Prepare system services
   await prepareSystem({ ...params, clusterInit: false })
-  // This call is only to emit a `namespaceStatus` event.
-  await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const nsStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  ctx.events.emit("namespaceStatus", nsStatus)
   return { status: { ready: true, outputs: status.outputs } }
 }
 
