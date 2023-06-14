@@ -35,7 +35,7 @@ import type { ProviderMap } from "./config/provider"
 import chalk from "chalk"
 import { DependencyGraph } from "./graph/common"
 import Bluebird from "bluebird"
-import { readFile, mkdirp, writeFile } from "fs-extra"
+import { readFile, mkdirp } from "fs-extra"
 import type { Log } from "./logger/log-entry"
 import { ModuleConfigContext, ModuleConfigContextParams } from "./config/template-contexts/module"
 import { pathToCacheContext } from "./cache"
@@ -100,14 +100,17 @@ export class ModuleResolver {
     // remove nodes from as we complete the processing.
     const fullGraph = new DependencyGraph()
     const processingGraph = new DependencyGraph()
+    const allPaths: string[] = []
 
     for (const key of Object.keys(this.rawConfigsByKey)) {
       for (const graph of [fullGraph, processingGraph]) {
         graph.addNode(key)
       }
     }
+
     for (const [key, rawConfig] of Object.entries(this.rawConfigsByKey)) {
       const buildPath = this.garden.buildStaging.getBuildPath(rawConfig)
+      allPaths.push(rawConfig.path)
       const deps = this.getModuleDependenciesFromConfig(rawConfig, buildPath)
       for (const graph of [fullGraph, processingGraph]) {
         for (const dep of deps) {
@@ -117,6 +120,8 @@ export class ModuleResolver {
         }
       }
     }
+
+    const minimalRoots = await this.garden.vcs.getMinimalRoots(this.log, allPaths)
 
     const resolvedConfigs: ModuleConfigMap = {}
     const resolvedModules: ModuleMap = {}
@@ -175,7 +180,12 @@ export class ModuleResolver {
         // dependencies.
         if (!foundNewDependency) {
           const buildPath = this.garden.buildStaging.getBuildPath(resolvedConfig)
-          resolvedModules[moduleKey] = await this.resolveModule(resolvedConfig, buildPath, resolvedDependencies)
+          resolvedModules[moduleKey] = await this.resolveModule({
+            resolvedConfig,
+            buildPath,
+            dependencies: resolvedDependencies,
+            repoRoot: minimalRoots[resolvedConfig.path],
+          })
           this.log.silly(`ModuleResolver: Module ${moduleKey} resolved`)
           processingGraph.removeNode(moduleKey)
         }
@@ -478,7 +488,17 @@ export class ModuleResolver {
     return this.bases[type]
   }
 
-  private async resolveModule(resolvedConfig: ModuleConfig, buildPath: string, dependencies: GardenModule[]) {
+  private async resolveModule({
+    resolvedConfig,
+    buildPath,
+    dependencies,
+    repoRoot,
+  }: {
+    resolvedConfig: ModuleConfig
+    buildPath: string
+    dependencies: GardenModule[]
+    repoRoot: string
+  }) {
     this.log.silly(`Resolving module ${resolvedConfig.name}`)
 
     // Write module files
@@ -542,7 +562,8 @@ export class ModuleResolver {
 
       try {
         await mkdirp(targetDir)
-        await writeFile(targetPath, resolvedContents)
+        // Use VcsHandler.writeFile() to make sure version is re-computed after writing new/updated files
+        await this.garden.vcs.writeFile(this.log, targetPath, resolvedContents)
       } catch (error) {
         throw new FilesystemError({
           message: `Unable to write templated file ${fileSpec.targetPath} from ${resolvedConfig.name}: ${error.message}`,
@@ -565,6 +586,7 @@ export class ModuleResolver {
       log: this.log,
       config: resolvedConfig,
       buildDependencies: dependencies,
+      scanRoot: repoRoot,
     })
 
     const moduleTypeDefinitions = await this.garden.getModuleTypes()
@@ -745,7 +767,7 @@ export const convertModules = profileAsync(async function convertModules(
 
     const totalReturned = (result.actions?.length || 0) + (result.group?.actions.length || 0)
 
-    log.debug(`Module ${module.name} converted to ${totalReturned} actions`)
+    log.debug(`Module ${module.name} converted to ${totalReturned} action(s)`)
 
     if (result.group) {
       for (const action of result.group.actions) {

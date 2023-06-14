@@ -176,15 +176,14 @@ export async function findConfigPathsInPath({
     exclude = []
   }
 
-  exclude.push(".garden/**/*")
-
   const paths = await vcs.getFiles({
     path: dir,
     pathDescription: "project root",
     include,
-    exclude: exclude || [],
+    exclude,
     log,
     filter: (f) => isConfigFilename(basename(f)),
+    scanRoot: dir,
   })
 
   return paths.map((f) => f.path)
@@ -260,13 +259,14 @@ export function matchGlobs(paths: string[], patterns: string[]): string[] {
 /**
  * Check if a path passes through given include/exclude filters.
  *
- * @param path A POSIX-style path
+ * @param path A filesystem path
  * @param include List of globs to match for inclusion, or undefined
  * @param exclude List of globs to match for exclusion, or undefined
  */
 export function matchPath(path: string, include?: string[], exclude?: string[]) {
   return (
-    (!include || matchGlobs([path], include).length === 1) && (!exclude || matchGlobs([path], exclude).length === 0)
+    (!include || matchGlobs([path], include).length === 1) &&
+    (!exclude?.length || matchGlobs([path], exclude).length === 0)
   )
 }
 

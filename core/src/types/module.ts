@@ -119,14 +119,22 @@ export async function moduleFromConfig({
   config,
   buildDependencies,
   forceVersion = false,
+  scanRoot,
 }: {
   garden: Garden
   log: Log
   config: ModuleConfig
   buildDependencies: GardenModule[]
   forceVersion?: boolean
+  scanRoot?: string
 }): Promise<GardenModule> {
-  const version = await garden.resolveModuleVersion(log, config, buildDependencies, forceVersion)
+  const version = await garden.resolveModuleVersion({
+    log,
+    moduleConfig: config,
+    moduleDependencies: buildDependencies,
+    force: forceVersion,
+    scanRoot,
+  })
   const actions = await garden.getActionRouter()
   const { outputs } = await actions.module.getModuleOutputs({ log, moduleConfig: config, version })
   const moduleTypes = await garden.getModuleTypes()

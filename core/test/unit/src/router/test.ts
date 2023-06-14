@@ -29,15 +29,16 @@ describe("test actions", () => {
     const action = (await actionFromConfig({
       garden,
       // rebuild config graph because the module config has been changed
-      graph: await garden.getConfigGraph({ emit: false, log: garden.log }),
+      graph,
       config: testConfig,
       log: garden.log,
       configsByKey: {},
       router: await garden.getActionRouter(),
       mode: "default",
       linkedSources: {},
+      scanRoot: garden.projectRoot,
     })) as TestAction
-    return await garden.resolveAction<TestAction>({ action, log: garden.log })
+    return await garden.resolveAction<TestAction>({ action, log: garden.log, graph })
   }
 
   before(async () => {

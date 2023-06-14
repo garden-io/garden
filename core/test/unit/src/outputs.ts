@@ -163,7 +163,7 @@ describe("resolveProjectOutputs", () => {
         name: "test",
         type: "test",
         internal: {
-          basePath: "asd",
+          basePath: garden.projectRoot,
         },
         kind: "Deploy",
         spec: {
@@ -231,7 +231,7 @@ describe("resolveProjectOutputs", () => {
         name: "test",
         type: "test",
         internal: {
-          basePath: "asd",
+          basePath: garden.projectRoot,
         },
         kind: "Run",
         spec: {

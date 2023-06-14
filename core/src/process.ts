@@ -112,5 +112,5 @@ export function isRunning(pid: number) {
 // Note: Circumvents an issue where the process exits before the output is fully flushed.
 // Needed for output renderers and Winston (see: https://github.com/winstonjs/winston/issues/228)
 export async function waitForOutputFlush() {
-  await sleep(100)
+  return sleep(50)
 }

@@ -127,7 +127,7 @@ describe("RunCommand", () => {
       name: "task-disabled",
       disabled: true,
       internal: {
-        basePath: "/foo",
+        basePath: garden.projectRoot,
       },
       timeout: DEFAULT_RUN_TIMEOUT_SEC,
       spec: {
@@ -160,7 +160,7 @@ describe("RunCommand", () => {
       name: "task-disabled",
       disabled: true,
       internal: {
-        basePath: "/foo",
+        basePath: garden.projectRoot,
       },
       timeout: DEFAULT_RUN_TIMEOUT_SEC,
       spec: {

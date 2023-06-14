@@ -99,7 +99,7 @@ describe("DeployTask", () => {
         type: "test",
         kind: "Deploy",
         internal: {
-          basePath: "foo",
+          basePath: garden.projectRoot,
         },
         dependencies: [
           { kind: "Deploy", name: "dep-deploy" },
@@ -116,7 +116,7 @@ describe("DeployTask", () => {
         type: "test",
         kind: "Deploy",
         internal: {
-          basePath: "foo",
+          basePath: garden.projectRoot,
         },
         dependencies: [],
         disabled: false,
@@ -132,7 +132,7 @@ describe("DeployTask", () => {
         disabled: false,
         timeout: 10,
         internal: {
-          basePath: "./",
+          basePath: garden.projectRoot,
         },
         spec: {
           log: "test output",

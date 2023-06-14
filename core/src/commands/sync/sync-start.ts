@@ -241,8 +241,8 @@ export async function startSyncWithoutDeploy({
         someSyncStarted = true
 
         if (monitor) {
-          const monitor = new SyncMonitor({ garden, log, action: executedAction, graph, stopOnExit })
-          garden.monitors.addAndSubscribe(monitor, command)
+          const m = new SyncMonitor({ garden, log, action: executedAction, graph, stopOnExit })
+          garden.monitors.addAndSubscribe(m, command)
         }
       } catch (error) {
         actionLog.warn(

@@ -119,7 +119,7 @@ proxy:
   # Note that the `GARDEN_PROXY_DEFAULT_ADDRESS` environment variable takes precedence over this value.
   hostname: localhost
 
-# Control where to scan for configuration files in the project.
+# Control where and how to scan for configuration files in the project.
 scan:
   # Specify a list of POSIX-style paths or globs that should be scanned for Garden configuration files.
   #
@@ -153,6 +153,13 @@ scan:
   # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
   # details.
   exclude:
+
+  git:
+    # Choose how to perform scans of git repositories. The default (`subtree`) runs individual git scans on each
+    # action/module path. The `repo` mode scans entire repositories and then filters down to files matching the paths,
+    # includes and excludes for each action/module. This can be considerably more efficient for large projects with
+    # many actions/modules.
+    mode: subtree
 
 # A list of output values that the project should export. These are exported by the `garden get outputs` command, as
 # well as when referencing a project as a sub-project within another project.
@@ -496,7 +503,7 @@ proxy:
 
 ### `scan`
 
-Control where to scan for configuration files in the project.
+Control where and how to scan for configuration files in the project.
 
 | Type     | Required |
 | -------- | -------- |
@@ -556,6 +563,24 @@ scan:
     - public/**/*
     - tmp/**/*
 ```
+
+### `scan.git`
+
+[scan](#scan) > git
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `scan.git.mode`
+
+[scan](#scan) > [git](#scangit) > mode
+
+Choose how to perform scans of git repositories. The default (`subtree`) runs individual git scans on each action/module path. The `repo` mode scans entire repositories and then filters down to files matching the paths, includes and excludes for each action/module. This can be considerably more efficient for large projects with many actions/modules.
+
+| Type     | Allowed Values    | Default     | Required |
+| -------- | ----------------- | ----------- | -------- |
+| `string` | "repo", "subtree" | `"subtree"` | Yes      |
 
 ### `outputs[]`
 
