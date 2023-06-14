@@ -124,7 +124,6 @@ import {
 import { CloudApi, CloudProject, CloudApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
-import { getSecrets } from "./cloud/get-secrets"
 import type { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
@@ -1873,7 +1872,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         try {
           secrets = await wrapActiveSpan(
             "getSecrets",
-            async () => await getSecrets({ log: cloudLog, projectId: cloudProject!.id, environmentName, cloudApi })
+            async () => await cloudApi.getSecrets({ log: cloudLog, projectId: cloudProject!.id, environmentName })
           )
           cloudLog.verbose(chalk.green("Ready"))
           cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
