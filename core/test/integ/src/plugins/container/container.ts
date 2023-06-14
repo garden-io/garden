@@ -215,7 +215,11 @@ describe("plugins.container", () => {
       config.spec.extraFlags = ["--cache-from", "some-image:latest"]
 
       const buildAction = await getTestBuild(config)
-      const resolvedBuild = await garden.resolveAction({ action: buildAction, log })
+      const resolvedBuild = await garden.resolveAction({
+        action: buildAction,
+        log,
+        graph: await garden.getConfigGraph({ log, emit: false }),
+      })
 
       const args = getDockerBuildFlags(resolvedBuild)
 
@@ -227,7 +231,11 @@ describe("plugins.container", () => {
 
       const buildAction = await getTestBuild(config)
 
-      const resolvedBuild = await garden.resolveAction({ action: buildAction, log })
+      const resolvedBuild = await garden.resolveAction({
+        action: buildAction,
+        log,
+        graph: await garden.getConfigGraph({ log, emit: false }),
+      })
 
       const args = getDockerBuildFlags(resolvedBuild)
 

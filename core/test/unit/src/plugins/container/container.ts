@@ -238,7 +238,14 @@ describe("plugins.container", () => {
 
   describe("version calculations", () => {
     async function getTestModule(moduleConfig: ContainerModuleConfig) {
-      return moduleFromConfig({ garden, log, config: moduleConfig, buildDependencies: [], forceVersion: true })
+      return moduleFromConfig({
+        garden,
+        log,
+        config: moduleConfig,
+        buildDependencies: [],
+        forceVersion: true,
+        scanRoot: garden.projectRoot,
+      })
     }
 
     it("has same build version if nothing is changed", async () => {

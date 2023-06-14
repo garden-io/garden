@@ -232,8 +232,12 @@ describe("util", () => {
   describe("getTargetResource", () => {
     it("should return the resource specified by the query", async () => {
       const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
-      await helmGarden.executeAction<DeployAction>({ action: rawAction, log: helmGarden.log })
+      const action = await helmGarden.resolveAction<HelmDeployAction>({
+        action: rawAction,
+        log: helmGarden.log,
+        graph: helmGraph,
+      })
+      await helmGarden.executeAction<DeployAction>({ action: rawAction, log: helmGarden.log, graph: helmGraph })
       const manifests = await getChartResources({
         ctx,
         action,
@@ -257,7 +261,11 @@ describe("util", () => {
 
     it("should throw if no query is specified", async () => {
       const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<DeployAction>({ action: rawAction, log: helmGarden.log })
+      const action = await helmGarden.resolveAction<DeployAction>({
+        action: rawAction,
+        log: helmGarden.log,
+        graph: helmGraph,
+      })
       const manifests = await getChartResources({
         ctx,
         action,
@@ -281,7 +289,11 @@ describe("util", () => {
 
     it("should throw if no resource of the specified kind is in the chart", async () => {
       const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
+      const action = await helmGarden.resolveAction<HelmDeployAction>({
+        action: rawAction,
+        log: helmGarden.log,
+        graph: helmGraph,
+      })
       const manifests = await getChartResources({
         ctx,
         action,
@@ -307,7 +319,11 @@ describe("util", () => {
 
     it("should throw if matching resource is not found by name", async () => {
       const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
+      const action = await helmGarden.resolveAction<HelmDeployAction>({
+        action: rawAction,
+        log: helmGarden.log,
+        graph: helmGraph,
+      })
       const manifests = await getChartResources({
         ctx,
         action,
@@ -333,7 +349,11 @@ describe("util", () => {
 
     it("should throw if no name is specified and multiple resources are matched", async () => {
       const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
+      const action = await helmGarden.resolveAction<HelmDeployAction>({
+        action: rawAction,
+        log: helmGarden.log,
+        graph: helmGraph,
+      })
       const manifests = await getChartResources({
         ctx,
         action,
@@ -364,7 +384,11 @@ describe("util", () => {
 
     it("should resolve template string for resource name", async () => {
       const rawAction = helmGraph.getDeploy("postgres")
-      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
+      const action = await helmGarden.resolveAction<HelmDeployAction>({
+        action: rawAction,
+        log: helmGarden.log,
+        graph: helmGraph,
+      })
       const manifests = await getChartResources({
         ctx,
         action,
@@ -389,7 +413,11 @@ describe("util", () => {
     context("podSelector", () => {
       before(async () => {
         const rawAction = helmGraph.getDeploy("api")
-        const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
+        const action = await helmGarden.resolveAction<HelmDeployAction>({
+          action: rawAction,
+          log: helmGarden.log,
+          graph: helmGraph,
+        })
         const deployTask = new DeployTask({
           force: false,
           forceBuild: false,
@@ -404,7 +432,11 @@ describe("util", () => {
 
       it("returns running Pod if one is found matching podSelector", async () => {
         const rawAction = helmGraph.getDeploy("api")
-        const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
+        const action = await helmGarden.resolveAction<HelmDeployAction>({
+          action: rawAction,
+          log: helmGarden.log,
+          graph: helmGraph,
+        })
         const resourceSpec: ServiceResourceSpec = {
           podSelector: {
             "app.kubernetes.io/name": "api",
@@ -429,7 +461,11 @@ describe("util", () => {
 
       it("throws if podSelector is set and no Pod is found matching the selector", async () => {
         const rawAction = helmGraph.getDeploy("api")
-        const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
+        const action = await helmGarden.resolveAction<HelmDeployAction>({
+          action: rawAction,
+          log: helmGarden.log,
+          graph: helmGraph,
+        })
         const resourceSpec: ServiceResourceSpec = {
           podSelector: {
             "app.kubernetes.io/name": "boo",
@@ -502,7 +538,11 @@ describe("util", () => {
   describe("getResourceContainer", () => {
     async function getK8sDeployment() {
       const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
+      const action = await helmGarden.resolveAction<HelmDeployAction>({
+        action: rawAction,
+        log: helmGarden.log,
+        graph: helmGraph,
+      })
       const manifests = await getChartResources({
         ctx,
         action,

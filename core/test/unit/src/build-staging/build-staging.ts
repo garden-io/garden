@@ -358,8 +358,8 @@ function commonSyncTests(legacyBuildSync: boolean) {
 
     await garden.processTasks({ tasks: buildTasks })
 
-    const buildActionD = await graph.getBuild("module-d")
-    const buildActionF = await graph.getBuild("module-f")
+    const buildActionD = graph.getBuild("module-d")
+    const buildActionF = graph.getBuild("module-f")
     const buildDirD = buildStaging.getBuildPath(buildActionD.getConfig())
     const buildDirF = buildStaging.getBuildPath(buildActionF.getConfig())
 
@@ -426,7 +426,7 @@ function commonSyncTests(legacyBuildSync: boolean) {
 
   it("should ensure that a module's build subdir exists before returning from buildPath", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const buildActionA = await graph.getBuild("module-a")
+    const buildActionA = graph.getBuild("module-a")
     const buildPath = await buildStaging.ensureBuildPath(buildActionA.getConfig())
     expect(await pathExists(buildPath)).to.eql(true)
   })

@@ -22,6 +22,7 @@ import {
   describeConfig,
   getConfigBasePath,
   getConfigFilePath,
+  GetTreeVersionParams,
 } from "../../../../src/vcs/vcs"
 import { makeTestGardenA, makeTestGarden, getDataDir, TestGarden, defaultModuleConfig } from "../../../helpers"
 import { expect } from "chai"
@@ -34,7 +35,7 @@ import tmp from "tmp-promise"
 import { realpath, readFile, writeFile, rm, rename } from "fs-extra"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_VERSIONFILE_NAME, GardenApiVersion } from "../../../../src/constants"
 import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs"
-import { Log, createActionLog } from "../../../../src/logger/log-entry"
+import { createActionLog } from "../../../../src/logger/log-entry"
 import { BaseActionConfig } from "../../../../src/actions/types"
 import { TreeCache } from "../../../../src/cache"
 
@@ -58,8 +59,8 @@ export class TestVcsHandler extends VcsHandler {
     }
   }
 
-  async getTreeVersion({ log, projectName, config }: { log: Log; projectName: string; config: ModuleConfig }) {
-    return this.testTreeVersions[config.path] || super.getTreeVersion({ log, projectName, config })
+  async getTreeVersion(params: GetTreeVersionParams) {
+    return this.testTreeVersions[getConfigBasePath(params.config)] || super.getTreeVersion(params)
   }
 
   setTestTreeVersion(path: string, version: TreeVersion) {

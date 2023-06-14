@@ -142,7 +142,7 @@ export class TestEventBus extends EventBus {
 }
 
 const defaultCommandinfo = { name: "test", args: {}, opts: {} }
-const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
+export const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
 
 const paramCache: { [key: string]: GardenParams } = {}
 // const configGraphCache: { [key: string]: ConfigGraph } = {}

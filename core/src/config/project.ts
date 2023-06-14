@@ -30,7 +30,7 @@ import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
 import { cloneDeep, memoize } from "lodash"
 import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
-import { DOCS_BASE_URL, GardenApiVersion } from "../constants"
+import { DOCS_BASE_URL, GardenApiVersion, GitScanMode, gitScanModes } from "../constants"
 import { defaultDotIgnoreFile } from "../util/fs"
 import type { CommandInfo } from "../plugin-context"
 import type { VcsInfo } from "../vcs/vcs"
@@ -191,6 +191,10 @@ export interface ProxyConfig {
   hostname: string
 }
 
+interface GitConfig {
+  mode: GitScanMode
+}
+
 export interface ProjectConfig {
   apiVersion: GardenApiVersion
   kind: "Project"
@@ -207,6 +211,7 @@ export interface ProjectConfig {
   scan?: {
     include?: string[]
     exclude?: string[]
+    git?: GitConfig
   }
   outputs?: OutputSpec[]
   providers: GenericProviderConfig[]
@@ -261,6 +266,16 @@ const projectScanSchema = createSchema({
       `
       )
       .example(["public/**/*", "tmp/**/*"]),
+    git: joi.object().keys({
+      mode: joi
+        .string()
+        .allow(...gitScanModes)
+        .only()
+        .default("subtree")
+        .description(
+          "Choose how to perform scans of git repositories. The default (`subtree`) runs individual git scans on each action/module path. The `repo` mode scans entire repositories and then filters down to files matching the paths, includes and excludes for each action/module. This can be considerably more efficient for large projects with many actions/modules."
+        ),
+    }),
   }),
 })
 
@@ -376,7 +391,7 @@ export const projectSchema = createSchema({
         )
         .example(["127.0.0.1"]),
     }),
-    scan: projectScanSchema().description("Control where to scan for configuration files in the project."),
+    scan: projectScanSchema().description("Control where and how to scan for configuration files in the project."),
     outputs: joiSparseArray(projectOutputSchema())
       .unique("name")
       .description(

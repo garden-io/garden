@@ -16,11 +16,10 @@ import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
 import { dedent, deline, splitLast } from "../util/string"
-import { exec } from "../util/util"
+import { exec, sleep } from "../util/util"
 import { Log } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
 import { getDefaultProfiler, Profile, Profiler } from "../util/profiling"
-import { mapLimit } from "async"
 import { STATIC_DIR } from "../constants"
 import split2 = require("split2")
 import execa = require("execa")
@@ -33,7 +32,6 @@ import AsyncLock from "async-lock"
 const gitConfigAsyncLock = new AsyncLock()
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
-const hashConcurrencyLimit = 50
 const currentPlatformName = process.platform
 
 const gitSafeDirs = new Set<string>()
@@ -62,7 +60,7 @@ export function parseGitUrl(url: string) {
   return parsed
 }
 
-interface GitCli {
+export interface GitCli {
   (...args: (string | undefined)[]): Promise<string[]>
 }
 
@@ -82,7 +80,7 @@ export class GitHandler extends VcsHandler {
   name = "git"
   repoRoots = new Map()
   profiler: Profiler
-  private lock: AsyncLock
+  protected lock: AsyncLock
 
   constructor(params: VcsHandlerParams) {
     super(params)
@@ -237,7 +235,7 @@ export class GitHandler extends VcsHandler {
           })
         } else if (err.exitCode === 128) {
           // Throw nice error when we detect that we're not in a repo root
-          throw new RuntimeError({ message: notInRepoRootErrorMessage(path), detail: { path } })
+          throw new RuntimeError({ message: notInRepoRootErrorMessage(path), detail: { path, exitCode: err.exitCode } })
         } else {
           throw err
         }
@@ -245,11 +243,7 @@ export class GitHandler extends VcsHandler {
     })
   }
 
-  /**
-   * Returns a list of files, along with file hashes, under the given path, taking into account the configured
-   * .ignore files, and the specified include/exclude filters.
-   */
-  async getFiles({
+  async streamPaths({
     log,
     path,
     pathDescription = "directory",
@@ -257,16 +251,24 @@ export class GitHandler extends VcsHandler {
     exclude,
     filter,
     failOnPrompt = false,
-  }: GetFilesParams): Promise<VcsFile[]> {
+    callback,
+  }: GetFilesParams & { callback: (err: Error | null, entry?: VcsFile) => void }): Promise<void> {
     if (include && include.length === 0) {
       // No need to proceed, nothing should be included
-      return []
+      return callback(null)
     }
+
+    if (!exclude) {
+      exclude = []
+    }
+    exclude.push("**/.garden/**/*")
 
     const gitLog = log
       .createLog({})
       .debug(
-        `Scanning ${pathDescription} at ${path}\n→ Includes: ${include || "(none)"}\n→ Excludes: ${exclude || "(none)"}`
+        `Scanning ${pathDescription} at ${path}\n  → Includes: ${include || "(none)"}\n  → Excludes: ${
+          exclude || "(none)"
+        }`
       )
 
     try {
@@ -274,13 +276,13 @@ export class GitHandler extends VcsHandler {
 
       if (!pathStats.isDirectory()) {
         gitLog.warn(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`)
-        return []
+        return callback(null)
       }
     } catch (err) {
       // 128 = File no longer exists
       if (err.exitCode === 128 || err.code === "ENOENT") {
         gitLog.warn(`Attempted to scan directory at ${path}, but it does not exist.`)
-        return []
+        return callback(null)
       } else {
         throw err
       }
@@ -296,7 +298,7 @@ export class GitHandler extends VcsHandler {
         .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
     )
 
-    const absExcludes = exclude ? exclude.map((p) => resolve(path, p)) : undefined
+    const absExcludes = exclude.map((p) => resolve(path, p))
 
     // Apply the include patterns to the ls-files queries. We use the 'glob' "magic word" (in git parlance)
     // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
@@ -318,33 +320,32 @@ export class GitHandler extends VcsHandler {
       gitLog.silly(`Submodules listed at ${submodules.map((s) => `${s.path} (${s.url})`).join(", ")}`)
     }
 
-    const files: VcsFile[] = []
+    // Make sure we have a fresh hash for each file
+    let count = 0
 
-    const parseLine = (data: Buffer): VcsFile | undefined => {
-      const line = data.toString().trim()
-      if (!line) {
-        return undefined
+    const ensureHash = (entry: FileEntry, stats: Stats, reject: (err: Error) => void) => {
+      if (entry.hash === "" || modified.has(entry.path)) {
+        // Don't attempt to hash directories. Directories will by extension be filtered out of the list.
+        if (!stats.isDirectory()) {
+          return this.hashObject(stats, entry.path, (err, hash) => {
+            if (err) {
+              return reject(err)
+            }
+            if (hash !== "") {
+              entry.hash = hash
+              count++
+              return callback(null, entry)
+            }
+          })
+        }
       }
-
-      let filePath: string
-      let hash = ""
-
-      const split = line.trim().split("\t")
-
-      if (split.length === 1) {
-        // File is untracked
-        filePath = split[0]
-      } else {
-        filePath = split[1]
-        hash = split[0].split(" ")[1]
-      }
-
-      return { path: filePath, hash }
+      count++
+      callback(null, entry)
     }
 
     // This function is called for each line output from the ls-files commands that we run, and populates the
     // `files` array.
-    const handleEntry = (entry: VcsFile | undefined) => {
+    const handleEntry = (entry: VcsFile | undefined, reject: (err: Error) => void) => {
       if (!entry) {
         return
       }
@@ -355,7 +356,6 @@ export class GitHandler extends VcsHandler {
       if (filter && !filter(filePath)) {
         return
       }
-
       // Ignore files that are tracked but still specified in ignore files
       if (trackedButIgnored.has(filePath)) {
         return
@@ -363,36 +363,91 @@ export class GitHandler extends VcsHandler {
 
       const resolvedPath = resolve(path, filePath)
 
-      // We push to the output array if it passes through the exclude filters.
-      if (matchPath(filePath, undefined, exclude) && !submodulePaths.includes(resolvedPath)) {
-        files.push({ path: resolvedPath, hash })
+      // Filter on excludes
+      if (!matchPath(filePath, undefined, exclude) || submodulePaths.includes(resolvedPath)) {
+        return
       }
+
+      // We push to the output array if it passes through the exclude filters.
+      const output = { path: resolvedPath, hash: hash || "" }
+
+      return lstat(resolvedPath, (err, stats) => {
+        if (err) {
+          if (err.code === "ENOENT") {
+            return
+          }
+          return reject(err)
+        }
+
+        // We need to special-case handling of symlinks. We disallow any "unsafe" symlinks, i.e. any ones that may
+        // link outside of `gitRoot`.
+        if (stats.isSymbolicLink()) {
+          return readlink(resolvedPath, (readlinkErr, target) => {
+            if (readlinkErr) {
+              return reject(readlinkErr)
+            }
+
+            // Make sure symlink is relative and points within `path`
+            if (isAbsolute(target)) {
+              gitLog.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
+            } else if (target.startsWith("..")) {
+              return realpath(resolvedPath, (realpathErr, realTarget) => {
+                if (realpathErr) {
+                  if (realpathErr.code === "ENOENT") {
+                    gitLog.verbose(`Ignoring dead symlink at ${resolvedPath}`)
+                    return
+                  }
+                  return reject(realpathErr)
+                }
+
+                const relPath = relative(path, realTarget)
+
+                if (relPath.startsWith("..")) {
+                  gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
+                  return
+                }
+                return ensureHash(output, stats, reject)
+              })
+            } else {
+              return ensureHash(output, stats, reject)
+            }
+          })
+        }
+        return ensureHash(output, stats, reject)
+      })
     }
 
-    const lsFiles = (ignoreFile?: string) => {
+    await new Promise<void>((_resolve, _reject) => {
+      // Prepare args
       const args = ["ls-files", "-s", "--others", ...lsFilesCommonArgs]
-
-      if (ignoreFile) {
-        args.push("--exclude-per-directory", ignoreFile)
+      if (this.ignoreFile) {
+        args.push("--exclude-per-directory", this.ignoreFile)
       }
       args.push(...patterns)
 
+      // Start git process
       gitLog.silly(`Calling git with args '${args.join(" ")}' in ${path}`)
-      return execa("git", args, { cwd: path, buffer: false })
-    }
+      const proc = execa("git", args, { cwd: path, buffer: false })
 
-    const splitStream = split2()
-    splitStream.on("data", (line) => handleEntry(parseLine(line)))
+      // Stream
+      const fail = (err: Error) => {
+        _reject(err)
+        proc.kill()
+        splitStream.end()
+      }
+      const splitStream = split2()
+      splitStream.on("data", (line) => {
+        handleEntry(parseLine(line), fail)
+      })
 
-    await new Promise<void>((_resolve, _reject) => {
-      const proc = lsFiles(this.ignoreFile)
       void proc.on("error", (err: execa.ExecaError) => {
         if (err.exitCode !== 128) {
-          _reject(err)
+          fail(err)
         }
       })
       proc.stdout?.pipe(splitStream)
-      splitStream.on("end", () => _resolve())
+      // The sleep here is necessary to wrap up callbacks
+      splitStream.on("end", () => sleep(30).then(() => _resolve()))
     })
 
     if (submodulePaths.length > 0) {
@@ -403,120 +458,68 @@ export class GitHandler extends VcsHandler {
       // Resolve submodules
       // TODO: see about optimizing this, avoiding scans when we're sure they'll not match includes/excludes etc.
       await Bluebird.map(submodulePaths, async (submodulePath) => {
-        if (submodulePath.startsWith(path) && !absExcludes?.includes(submodulePath)) {
-          // Note: We apply include/exclude filters after listing files from submodule
-          const submoduleRelPath = relative(path, submodulePath)
-
-          // Catch and show helpful message in case the submodule path isn't a valid directory
-          try {
-            const pathStats = await stat(path)
-
-            if (!pathStats.isDirectory()) {
-              const pathType = getStatsType(pathStats)
-              gitLog.warn(`Expected submodule directory at ${path}, but found ${pathType}. ${submoduleErrorSuggestion}`)
-              return
-            }
-          } catch (err) {
-            // 128 = File no longer exists
-            if (err.exitCode === 128 || err.code === "ENOENT") {
-              gitLog.warn(
-                `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
-              )
-              return
-            } else {
-              throw err
-            }
-          }
-
-          files.push(
-            ...(await this.getFiles({
-              log: gitLog,
-              path: submodulePath,
-              pathDescription: "submodule",
-              exclude: [],
-              filter: (p) => matchPath(join(submoduleRelPath, p), augmentedIncludes, augmentedExcludes),
-            }))
-          )
+        if (!submodulePath.startsWith(path) || absExcludes?.includes(submodulePath)) {
+          return
         }
-      })
-    }
 
-    // Make sure we have a fresh hash for each file
-    const _this = this
+        // Note: We apply include/exclude filters after listing files from submodule
+        const submoduleRelPath = relative(path, submodulePath)
 
-    function ensureHash(entry: FileEntry, stats: Stats, cb: (err: Error | null, entry?: FileEntry) => void) {
-      if (entry.hash === "" || modified.has(entry.path)) {
-        // Don't attempt to hash directories. Directories will by extension be filtered out of the list.
-        if (!stats.isDirectory()) {
-          return _this.hashObject(stats, entry.path, (err, hash) => {
-            if (err) {
-              return cb(err)
-            }
-            entry.hash = hash || ""
-            cb(null, entry)
-          })
-        }
-      }
+        // Catch and show helpful message in case the submodule path isn't a valid directory
+        try {
+          const pathStats = await stat(path)
 
-      cb(null, entry)
-    }
-
-    const result = (
-      await mapLimit<VcsFile, FileEntry>(files, hashConcurrencyLimit, (f, cb) => {
-        const resolvedPath = resolve(path, f.path)
-        const output = { path: resolvedPath, hash: f.hash || "" }
-
-        lstat(resolvedPath, (err, stats) => {
-          if (err) {
-            if (err.code === "ENOENT") {
-              return cb(null, { path: resolvedPath, hash: "" })
-            }
-            return cb(err)
+          if (!pathStats.isDirectory()) {
+            const pathType = getStatsType(pathStats)
+            gitLog.warn(`Expected submodule directory at ${path}, but found ${pathType}. ${submoduleErrorSuggestion}`)
+            return
           }
-
-          // We need to special-case handling of symlinks. We disallow any "unsafe" symlinks, i.e. any ones that may
-          // link outside of `gitRoot`.
-          if (stats.isSymbolicLink()) {
-            readlink(resolvedPath, (readlinkErr, target) => {
-              if (readlinkErr) {
-                return cb(readlinkErr)
-              }
-
-              // Make sure symlink is relative and points within `path`
-              if (isAbsolute(target)) {
-                gitLog.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
-                return cb(null, { path: resolvedPath, hash: "" })
-              } else if (target.startsWith("..")) {
-                realpath(resolvedPath, (realpathErr, realTarget) => {
-                  if (realpathErr) {
-                    if (realpathErr.code === "ENOENT") {
-                      return cb(null, { path: resolvedPath, hash: "" })
-                    }
-                    return cb(err)
-                  }
-
-                  const relPath = relative(path, realTarget)
-
-                  if (relPath.startsWith("..")) {
-                    gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
-                    return cb(null, { path: resolvedPath, hash: "" })
-                  }
-                  ensureHash(output, stats, cb)
-                })
-              } else {
-                ensureHash(output, stats, cb)
-              }
-            })
+        } catch (err) {
+          // 128 = File no longer exists
+          if (err.exitCode === 128 || err.code === "ENOENT") {
+            gitLog.warn(
+              `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
+            )
+            return
           } else {
-            ensureHash(output, stats, cb)
+            throw err
           }
+        }
+
+        return this.streamPaths({
+          log: gitLog,
+          path: submodulePath,
+          pathDescription: "submodule",
+          exclude: [],
+          filter: (p) =>
+            matchPath(join(submoduleRelPath, p), augmentedIncludes, augmentedExcludes) && (!filter || filter(p)),
+          scanRoot: submodulePath,
+          failOnPrompt,
+          callback,
         })
       })
-    ).filter((f) => f.hash !== "")
+    }
 
-    gitLog.debug(`Found ${result.length} files in ${pathDescription} ${path}`)
+    gitLog.debug(`Found ${count} files in ${pathDescription} ${path}`)
+  }
 
-    return result
+  /**
+   * Returns a list of files, along with file hashes, under the given path, taking into account the configured
+   * .ignore files, and the specified include/exclude filters.
+   */
+  async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
+    const files: VcsFile[] = []
+
+    await this.streamPaths({
+      ...params,
+      callback: (_, entry) => {
+        if (entry) {
+          files.push(entry)
+        }
+      },
+    })
+
+    return files.sort()
   }
 
   private isHashSHA1(hash: string): boolean {
@@ -751,7 +754,7 @@ const notInRepoRootErrorMessage = (path: string) => deline`
  * Given a list of POSIX-style globs/paths and a `basePath`, find paths that point to a directory and append `**\/*`
  * to them, such that they'll be matched consistently between git and our internal pattern matching.
  */
-async function augmentGlobs(basePath: string, globs?: string[]) {
+export async function augmentGlobs(basePath: string, globs?: string[]) {
   if (!globs) {
     return globs
   }
@@ -764,9 +767,31 @@ async function augmentGlobs(basePath: string, globs?: string[]) {
 
     try {
       const isDir = (await stat(joinWithPosix(basePath, pattern))).isDirectory()
-      return isDir ? posix.join(pattern, "**/*") : pattern
+      return isDir ? posix.join(pattern, "**", "*") : pattern
     } catch {
       return pattern
     }
   })
+}
+
+const parseLine = (data: Buffer): VcsFile | undefined => {
+  const line = data.toString().trim()
+  if (!line) {
+    return undefined
+  }
+
+  let filePath: string
+  let hash = ""
+
+  const split = line.trim().split("\t")
+
+  if (split.length === 1) {
+    // File is untracked
+    filePath = split[0]
+  } else {
+    filePath = split[1]
+    hash = split[0].split(" ")[1]
+  }
+
+  return { path: filePath, hash }
 }
