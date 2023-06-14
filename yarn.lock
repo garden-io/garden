@@ -5106,11 +5106,6 @@ get-port@^5.1.1:
   resolved "https://registry.yarnpkg.com/get-port/-/get-port-5.1.1.tgz#0469ed07563479de6efb986baf053dcd7d4e3193"
   integrity sha512-g/Q1aTSDOxFpchXC4i8ZWvxA1lnPqx/JHqcpIw0/LX9T8x/GBbi6YnlN5nhaKIFkT8oFsscUKgDJYxfwfS6QsQ==
 
-get-stdin@0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/get-stdin/-/get-stdin-0.1.0.tgz#5998af24aafc802d15c82c685657eeb8b10d4a91"
-  integrity sha1-WZivJKr8gC0VyCxoVlfuuLENSpE=
-
 get-stream@^4.0.0:
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/get-stream/-/get-stream-4.1.0.tgz#c1b255575f3dc21d59bfc79cd3d2b46b1c3a54b5"
@@ -7313,11 +7308,6 @@ lodash.upperfirst@^4.3.1:
   resolved "https://registry.yarnpkg.com/lodash.upperfirst/-/lodash.upperfirst-4.3.1.tgz#1365edf431480481ef0d1c68957a5ed99d49f7ce"
   integrity sha512-sReKOYJIJf74dhJONhU4e0/shzi1trVbSWDOhKYE5XV2O+H7Sb2Dihwuc7xWxVl+DgFPyTqIN3zMfT9cq5iWDg==
 
-lodash@2.4.1:
-  version "2.4.1"
-  resolved "https://registry.yarnpkg.com/lodash/-/lodash-2.4.1.tgz#5b7723034dda4d262e5a46fb2c58d7cc22f71420"
-  integrity sha1-W3cjA03aTSYuWkb7LFjXzCL3FCA=
-
 lodash@^4.17.13, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.19, lodash@^4.17.20, lodash@^4.17.21:
   version "4.17.21"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
@@ -8049,15 +8039,6 @@ node.extend@^2.0.0:
     has "^1.0.3"
     is "^3.2.1"
 
-nodetree@0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/nodetree/-/nodetree-0.0.3.tgz#0ca55e8726500146783515721b1061a156b5605b"
-  integrity sha1-DKVehyZQAUZ4NRVyGxBhoVa1YFs=
-  dependencies:
-    get-stdin "0.1.0"
-    lodash "2.4.1"
-    nopt "3.0.1"
-
 nopt-defaults@^0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/nopt-defaults/-/nopt-defaults-0.0.1.tgz#f150fcc8882309cbfb76187e12e9bcb20694558b"
@@ -8067,13 +8048,6 @@ nopt-usage@^0.1.0:
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/nopt-usage/-/nopt-usage-0.1.0.tgz#b18b8c183e181047ca9e63b7cde7cfc702cca579"
   integrity sha1-sYuMGD4YEEfKnmO3zefPxwLMpXk=
-
-nopt@3.0.1:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/nopt/-/nopt-3.0.1.tgz#bce5c42446a3291f47622a370abbf158fbbacbfd"
-  integrity sha1-vOXEJEajKR9HYio3CrvxWPu6y/0=
-  dependencies:
-    abbrev "1"
 
 nopt@^2.2.0:
   version "2.2.1"
