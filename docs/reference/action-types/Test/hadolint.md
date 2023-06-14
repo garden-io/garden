@@ -392,9 +392,9 @@ Set a timeout for the test to complete, in seconds.
 
 POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
 
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 
 ## Outputs

@@ -17,6 +17,7 @@ import type { TestAction } from "../actions/test"
 import { NamespaceStatus, namespaceStatusSchema } from "../types/namespace"
 import Joi from "@hapi/joi"
 import { memoize } from "lodash"
+import { BaseProviderConfig } from "../config/provider"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>
@@ -33,11 +34,11 @@ export type WrappedActionHandler<P extends ActionHandlerParamsBase, O> = ActionH
   pluginName: string
 }
 
-export interface PluginActionContextParams extends ActionHandlerParamsBase {
-  ctx: PluginContext
+export interface PluginActionContextParams<C extends BaseProviderConfig = any> extends ActionHandlerParamsBase {
+  ctx: PluginContext<C>
 }
 
-export interface PluginActionParamsBase extends PluginActionContextParams {
+export interface PluginActionParamsBase<C extends BaseProviderConfig = any> extends PluginActionContextParams<C> {
   log: Log
 }
 

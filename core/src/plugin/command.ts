@@ -13,11 +13,12 @@ import { moduleSchema } from "../types/module"
 import { logEntrySchema } from "./base"
 import { Garden } from "../garden"
 import { ConfigGraph } from "../graph/config-graph"
+import { BaseProviderConfig } from "../config/provider"
 
 // TODO: parse args and opts with a schema
-export interface PluginCommandParams {
+export interface PluginCommandParams<C extends BaseProviderConfig = any> {
   garden: Garden
-  ctx: PluginContext
+  ctx: PluginContext<C>
   args: string[]
   log: Log
   graph: ConfigGraph
@@ -50,15 +51,15 @@ export const pluginCommandResultSchema = createSchema({
   }),
 })
 
-export interface PluginCommandHandler<T extends object = object> {
-  (params: PluginCommandParams): PluginCommandResult<T> | Promise<PluginCommandResult<T>>
+export interface PluginCommandHandler<C extends BaseProviderConfig = any, T extends object = object> {
+  (params: PluginCommandParams<C>): PluginCommandResult<T> | Promise<PluginCommandResult<T>>
 }
 
-export interface PluginCommand {
-  base?: PluginCommand
+export interface PluginCommand<C extends BaseProviderConfig = any, T extends object = object> {
+  base?: PluginCommand<any>
   name: string
   description: string
-  handler: PluginCommandHandler
+  handler: PluginCommandHandler<C, T>
   resolveGraph?: boolean
   title?: string | ((params: { args: string[]; environmentName: string }) => string | Promise<string>)
 }

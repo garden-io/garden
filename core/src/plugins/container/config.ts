@@ -990,7 +990,7 @@ export interface ContainerBuildActionSpec {
 }
 
 export type ContainerBuildActionConfig = BuildActionConfig<"container", ContainerBuildActionSpec>
-export type ContainerBuildAction = BuildAction<ContainerBuildActionConfig, ContainerBuildOutputs>
+export type ContainerBuildAction = BuildAction<ContainerBuildActionConfig, ContainerBuildOutputs, {}>
 
 export const containerBuildSpecKeys = memoize(() => ({
   localId: joi

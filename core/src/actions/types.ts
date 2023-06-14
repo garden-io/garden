@@ -159,25 +159,35 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   variables: DeepPrimitiveMap
 }
 
-export interface ResolveActionParams<C extends BaseActionConfig, Outputs extends {} = any> {
+export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs extends {} = any> {
   resolvedGraph: ResolvedConfigGraph
   dependencyResults: GraphResults
   executedDependencies: ExecutedAction[]
   resolvedDependencies: ResolvedAction[]
   spec: C["spec"]
-  staticOutputs: Outputs
+  staticOutputs: StaticOutputs
   inputs: DeepPrimitiveMap
   variables: DeepPrimitiveMap
 }
 
-export type ResolvedActionWrapperParams<C extends BaseActionConfig> = ActionWrapperParams<C> & ResolveActionParams<C>
+export type ResolvedActionWrapperParams<
+  C extends BaseActionConfig,
+  StaticOutputs extends {} = any
+> = ActionWrapperParams<C> & ResolveActionParams<C, StaticOutputs>
 
-export interface ExecuteActionParams<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
-  status: ActionStatus<BaseAction<C, O>, any>
+export interface ExecuteActionParams<
+  C extends BaseActionConfig = BaseActionConfig,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> {
+  status: ActionStatus<BaseAction<C, StaticOutputs>, any, RuntimeOutputs>
 }
 
-export type ExecutedActionWrapperParams<C extends BaseActionConfig, O extends {}> = ResolvedActionWrapperParams<C> &
-  ExecuteActionParams<C, O>
+export type ExecutedActionWrapperParams<
+  C extends BaseActionConfig,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> = ResolvedActionWrapperParams<C, StaticOutputs> & ExecuteActionParams<C, StaticOutputs, RuntimeOutputs>
 
 export type GetActionOutputType<T> = T extends BaseAction<any, infer O> ? O : any
 
@@ -191,23 +201,23 @@ export type ResolvedAction = ResolvedBuildAction | ResolvedDeployAction | Resolv
 export type ExecutedAction = ExecutedBuildAction | ExecutedDeployAction | ExecutedRunAction | ExecutedTestAction
 
 export type Resolved<T extends BaseAction> = T extends BuildAction
-  ? ResolvedBuildAction<T["_config"], T["_outputs"]>
+  ? ResolvedBuildAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends DeployAction
-  ? ResolvedDeployAction<T["_config"], T["_outputs"]>
+  ? ResolvedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends RunAction
-  ? ResolvedRunAction<T["_config"], T["_outputs"]>
+  ? ResolvedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends TestAction
-  ? ResolvedTestAction<T["_config"], T["_outputs"]>
+  ? ResolvedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T
 
 export type Executed<T extends BaseAction> = T extends BuildAction
-  ? ExecutedBuildAction<T["_config"], T["_outputs"]>
+  ? ExecutedBuildAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends DeployAction
-  ? ExecutedDeployAction<T["_config"], T["_outputs"]>
+  ? ExecutedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends RunAction
-  ? ExecutedRunAction<T["_config"], T["_outputs"]>
+  ? ExecutedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends TestAction
-  ? ExecutedTestAction<T["_config"], T["_outputs"]>
+  ? ExecutedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T
 
 export type ActionReferenceMap = {
@@ -223,3 +233,10 @@ export type ActionConfigMap = {
 export interface ActionConfigsByKey {
   [key: string]: ActionConfig
 }
+
+export type GetOutputValueType<K, StaticOutputs, RuntimeOutputs> = K extends keyof StaticOutputs
+  ? StaticOutputs[K]
+  : K extends keyof RuntimeOutputs
+  ? RuntimeOutputs[K] | undefined
+  : never
+

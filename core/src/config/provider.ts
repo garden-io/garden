@@ -27,6 +27,27 @@ import { DashboardPage, dashboardPagesSchema } from "../plugin/handlers/Provider
 import type { ActionState } from "../actions/types"
 import { ValidResultType } from "../tasks/base"
 import { uuidv4 } from "../util/random"
+import { s } from "./zod"
+
+// TODO: dedupe from the joi schema below
+export const baseProviderConfigSchemaZod = s.object({
+  name: s.identifier().describe("The name of the provider plugin to use."),
+  dependencies: s
+    .sparseArray(s.identifier())
+    .default([])
+    .describe("List other providers that should be resolved before this one.")
+    .example(["exec"]),
+  environments: s
+    .sparseArray(s.userIdentifier())
+    .optional()
+    .describe(
+      deline`
+        If specified, this provider will only be used in the listed environments. Note that an empty array effectively
+        disables the provider. To use a provider in all environments, omit this field.
+      `
+    )
+    .example(["dev", "stage"]),
+})
 
 export interface BaseProviderConfig {
   name: string

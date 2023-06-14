@@ -39,7 +39,7 @@ describe("pull-image plugin command", () => {
   }
 
   async function removeImage(action: BuildAction) {
-    const imageId = action._outputs["local-image-id"]
+    const imageId = action._staticOutputs["local-image-id"]
     try {
       await containerHelpers.dockerCli({
         cwd: "/tmp",
@@ -53,7 +53,7 @@ describe("pull-image plugin command", () => {
   }
 
   async function ensureImagePulled(action: BuildAction) {
-    const imageId = action._outputs["local-image-id"]
+    const imageId = action._staticOutputs["local-image-id"]
     const imageHash = await containerHelpers.dockerCli({
       cwd: action.getBuildPath(),
       args: ["run", imageId, "echo", "ok"],
@@ -91,8 +91,8 @@ describe("pull-image plugin command", () => {
     it("should pull the image", async () => {
       await removeImage(action)
       await pullBuild({
-        localId: action._outputs["local-image-id"],
-        remoteId: action._outputs["deployment-image-id"],
+        localId: action._staticOutputs["local-image-id"],
+        remoteId: action._staticOutputs["deployment-image-id"],
         ctx: ctx as KubernetesPluginContext,
         action,
         log: garden.log,
@@ -124,8 +124,8 @@ describe("pull-image plugin command", () => {
     it("should pull the image", async () => {
       await removeImage(action)
       await pullBuild({
-        localId: action._outputs["local-image-id"],
-        remoteId: action._outputs["deployment-image-id"],
+        localId: action._staticOutputs["local-image-id"],
+        remoteId: action._staticOutputs["deployment-image-id"],
         ctx: ctx as KubernetesPluginContext,
         action,
         log: garden.log,

@@ -180,7 +180,7 @@ export async function getIngressMisconfigurationWarnings(
  * Deploys system services (if any)
  */
 export async function prepareEnvironment(
-  params: PrepareEnvironmentParams<KubernetesEnvironmentStatus>
+  params: PrepareEnvironmentParams<KubernetesConfig, KubernetesEnvironmentStatus>
 ): Promise<PrepareEnvironmentResult> {
   const { ctx, log, status } = params
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -198,7 +198,7 @@ export async function prepareSystem({
   force,
   status,
   clusterInit,
-}: PrepareEnvironmentParams<KubernetesEnvironmentStatus> & { clusterInit: boolean }) {
+}: PrepareEnvironmentParams<KubernetesConfig, KubernetesEnvironmentStatus> & { clusterInit: boolean }) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const variables = getKubernetesSystemVariables(provider.config)
@@ -290,7 +290,10 @@ export async function prepareSystem({
   return {}
 }
 
-export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams): Promise<CleanupEnvironmentResult> {
+export async function cleanupEnvironment({
+  ctx,
+  log,
+}: CleanupEnvironmentParams<KubernetesConfig>): Promise<CleanupEnvironmentResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)

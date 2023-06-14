@@ -12,6 +12,7 @@ import { findByName } from "../util/util"
 import { JsonKeyDescription } from "./json-schema"
 import { JoiDescription } from "../config/common"
 import { safeDumpYaml } from "../util/serialization"
+import { zodToJsonSchema } from "zod-to-json-schema"
 
 export class JoiKeyDescription extends BaseKeyDescription {
   private joiDescription: JoiDescription
@@ -122,6 +123,28 @@ export class JoiKeyDescription extends BaseKeyDescription {
                 name: childName,
                 level: nextLevel,
                 parent,
+              })
+          )
+        )
+      }
+
+      // Convert Zod schema to JSON schema for now
+      // TODO: do this more natively and properly
+      const zodSchemaRule = findByName(objSchema.rules || [], "zodSchema")
+
+      if (zodSchemaRule) {
+        const zodSchema = zodSchemaRule.args.zodSchema
+        const jsonSchema = zodToJsonSchema(zodSchema)
+
+        childDescriptions.push(
+          ...Object.entries(jsonSchema["properties"] || {}).map(
+            ([childName, schema]) =>
+              new JsonKeyDescription({
+                schema,
+                name: childName,
+                level: nextLevel,
+                parent,
+                required: jsonSchema["required"] && jsonSchema["required"].includes(childName),
               })
           )
         )

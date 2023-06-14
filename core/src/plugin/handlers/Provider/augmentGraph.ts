@@ -10,11 +10,11 @@ import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { joi, joiArray, joiIdentifierMap } from "../../../config/common"
 import { baseModuleSpecSchema } from "../../../config/module"
-import { providerSchema, ProviderMap } from "../../../config/provider"
+import { providerSchema, ProviderMap, BaseProviderConfig } from "../../../config/provider"
 import { BaseAction, baseActionConfigSchema } from "../../../actions/base"
-import { ActionKind, BaseActionConfig } from "../../../actions/types"
+import type { ActionKind, BaseActionConfig } from "../../../actions/types"
 
-export interface AugmentGraphParams extends PluginActionParamsBase {
+export interface AugmentGraphParams<C extends BaseProviderConfig = any> extends PluginActionParamsBase<C> {
   actions: BaseAction[]
   providers: ProviderMap
 }
