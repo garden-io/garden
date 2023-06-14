@@ -1158,7 +1158,7 @@ export class Garden {
 
     const cacheContexts = [...moduleDependencies, moduleConfig].map((c: ModuleConfig) => getModuleCacheContext(c))
 
-    const treeVersion = await this.vcs.getTreeVersion(log, this.projectName, moduleConfig)
+    const treeVersion = await this.vcs.getTreeVersion({ log, projectName: this.projectName, config: moduleConfig })
 
     validateSchema(treeVersion, treeVersionSchema(), {
       context: `${this.vcs.name} tree version for module at ${moduleConfig.path}`,
@@ -1313,7 +1313,7 @@ export class Garden {
         }
 
         for (const config of actionConfigs) {
-          this.addActionConfig((config as unknown) as BaseActionConfig)
+          this.addActionConfig(config as unknown as BaseActionConfig)
           actionsCount++
         }
       }
