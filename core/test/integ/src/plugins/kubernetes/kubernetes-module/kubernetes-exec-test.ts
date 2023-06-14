@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 
-import { TestGarden } from "../../../../../helpers"
+import { TestGarden, findNamespaceStatusEvent } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { getKubernetesTestGarden } from "./common"
 import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
@@ -43,7 +43,9 @@ describe("kubernetes-type exec Test", () => {
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await clearRunResult({ ctx, log: garden.log, action })
 
+    garden.events.eventLog = []
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    expect(findNamespaceStatusEvent(garden.events.eventLog, "kubernetes-module-test-default")).to.exist
     const result = results.results.getResult(testTask)
 
     expect(result).to.exist

@@ -117,7 +117,6 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
       version: state === "ready" ? action.versionString() : undefined,
       detail,
       mode: deployedMode,
-      namespaceStatuses: [namespaceStatus],
       ingresses,
     },
     // TODO-0.13.1

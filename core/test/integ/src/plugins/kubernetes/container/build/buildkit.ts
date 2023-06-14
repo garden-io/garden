@@ -14,7 +14,7 @@ import {
 } from "../../../../../../../src/plugins/kubernetes/config"
 import { Garden } from "../../../../../../../src"
 import { PluginContext } from "../../../../../../../src/plugin-context"
-import { ensureBuildkit } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
+import { buildkitBuildHandler, ensureBuildkit } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api"
 import { getNamespaceStatus } from "../../../../../../../src/plugins/kubernetes/namespace"
 import { expect } from "chai"
@@ -22,6 +22,9 @@ import { cloneDeep } from "lodash"
 import { buildDockerAuthConfig } from "../../../../../../../src/plugins/kubernetes/init"
 import { buildkitDeploymentName, dockerAuthSecretKey } from "../../../../../../../src/plugins/kubernetes/constants"
 import { grouped } from "../../../../../../helpers"
+import { createActionLog } from "../../../../../../../src/logger/log-entry"
+import { resolveAction } from "../../../../../../../src/graph/actions"
+import { NamespaceStatus } from "../../../../../../../src/types/namespace"
 
 grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
   let garden: Garden
@@ -89,6 +92,27 @@ grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
           tolerationSeconds: undefined,
         },
       ])
+    })
+
+    // TODO: For some reason (seemingly Mutagen-related), the `syncToBuildSync` call inside `buildkitBuildHandler`
+    // hangs. We'd need to investigate & fix that to enable this test case.
+    it.skip("builds a Docker image and emits a namespace status event", async () => {
+      const log = garden.log
+      const graph = await garden.getConfigGraph({ log, emit: false })
+      const action = graph.getBuild("simple-service")
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const resolved = await resolveAction({ garden, graph, action, log })
+
+      // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
+      let namespaceStatus: NamespaceStatus | null = null
+      ctx.events.once("namespaceStatus", (status) => namespaceStatus = status)
+      await buildkitBuildHandler({
+        ctx,
+        log: actionLog,
+        action: resolved,
+      })
+      expect(namespaceStatus).to.exist
+      expect(namespaceStatus!.namespaceName).to.eql("container-test-default")
     })
 
     it("deploys buildkit with the configured nodeSelector", async () => {

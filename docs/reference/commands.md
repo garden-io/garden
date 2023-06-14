@@ -720,15 +720,6 @@ providerStatuses:
     # Use this to include additional information that is specific to the provider.
     detail:
 
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
-
     # Output variables that modules and other variables can reference.
     outputs:
       <name>:
@@ -760,15 +751,6 @@ deployStatuses:
 
       # The mode the action is deployed in.
       mode:
-
-      namespaceStatuses:
-        - pluginName:
-
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
-
-          state:
 
       # The ID used for the service by the provider (if not the same as the service name).
       externalId:
@@ -891,15 +873,6 @@ When this flag is not used, all services in the project are cleaned up simultane
 
     # The mode the action is deployed in.
     mode:
-
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
 
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
@@ -1719,15 +1692,6 @@ providers:
 
       # Use this to include additional information that is specific to the provider.
       detail:
-
-      namespaceStatuses:
-        - pluginName:
-
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
-
-          state:
 
       # Output variables that modules and other variables can reference.
       outputs:
@@ -3206,15 +3170,6 @@ providers:
     # Use this to include additional information that is specific to the provider.
     detail:
 
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
-
     # Output variables that modules and other variables can reference.
     outputs:
       <name>:
@@ -3265,15 +3220,6 @@ actions:
 
         # The mode the action is deployed in.
         mode:
-
-        namespaceStatuses:
-          - pluginName:
-
-            # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-            # letter, and cannot end with a dash) and must not be longer than 63 characters.
-            namespaceName:
-
-            state:
 
         # The ID used for the service by the provider (if not the same as the service name).
         externalId:
@@ -3369,15 +3315,6 @@ actions:
         # The output log from the run.
         log:
 
-        namespaceStatus:
-          pluginName:
-
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
-
-          state:
-
   # A map of statuses for each configured Test.
   Test:
     <name>:
@@ -3408,15 +3345,6 @@ actions:
 
         # The output log from the run.
         log:
-
-        namespaceStatus:
-          pluginName:
-
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
-
-          state:
 ```
 
 ### garden get actions
@@ -3784,15 +3712,6 @@ detail:
   # The output log from the run.
   log:
 
-  namespaceStatus:
-    pluginName:
-
-    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-    # and cannot end with a dash) and must not be longer than 63 characters.
-    namespaceName:
-
-    state:
-
 # Local file paths to any exported artifacts from the Run's execution.
 artifacts:
 ```
@@ -3844,15 +3763,6 @@ detail:
 
   # The output log from the run.
   log:
-
-  namespaceStatus:
-    pluginName:
-
-    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-    # and cannot end with a dash) and must not be longer than 63 characters.
-    namespaceName:
-
-    state:
 
 # Local file paths to any exported artifacts from the test run.
 artifacts:

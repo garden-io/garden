@@ -66,7 +66,6 @@ export const testRouter = (baseParams: BaseRouterParams) =>
         await router.validateActionOutputs(action, "runtime", result.outputs)
 
         // TODO: get this out of the core framework and shift it to the provider
-        router.emitNamespaceEvent(result.detail?.namespaceStatus)
 
         return output
       } finally {

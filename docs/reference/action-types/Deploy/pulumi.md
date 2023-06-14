@@ -597,8 +597,8 @@ Example:
 spec:
   ...
   stackReferences:
-    - ${actions.deploy.some-pulumi-deploy-action.outputs.ip-address}
-    - ${actions.deploy.some-other-pulumi-deploy-action.outputs.database-url}
+    - '${actions.deploy.some-pulumi-deploy-action.outputs.ip-address}'
+    - '${actions.deploy.some-other-pulumi-deploy-action.outputs.database-url}'
 ```
 
 ### `spec.deployFromPreview`

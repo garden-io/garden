@@ -19,7 +19,6 @@ import { DeployActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
 import { ActionMode, Resolved } from "../../../actions/types"
 import { deployStateToActionState, DeployStatus } from "../../../plugin/handlers/Deploy/get-status"
-import { NamespaceStatus } from "../../../types/namespace"
 
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
@@ -65,7 +64,6 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     workload,
     selectorChangedResourceKeys,
     state,
-    namespaceStatus,
     ingresses,
   })
 }
@@ -78,7 +76,6 @@ export function prepareContainerDeployStatus({
   workload,
   selectorChangedResourceKeys,
   state,
-  namespaceStatus,
   ingresses,
 }: {
   action: Resolved<ContainerDeployAction>
@@ -88,7 +85,6 @@ export function prepareContainerDeployStatus({
   workload: KubernetesWorkload
   selectorChangedResourceKeys: string[]
   state: DeployState
-  namespaceStatus: NamespaceStatus
   ingresses: ServiceIngress[] | undefined
 }): DeployStatus<ContainerDeployAction> {
   // Local mode has its own port-forwarding configuration
@@ -114,7 +110,6 @@ export function prepareContainerDeployStatus({
     forwardablePorts,
     ingresses,
     state,
-    namespaceStatuses: [namespaceStatus],
     detail: { remoteResources, workload, selectorChangedResourceKeys },
     mode: deployedMode,
     outputs,

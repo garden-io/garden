@@ -43,11 +43,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       const output = await router.callHandler({ params, handlerType: "deploy" })
       const result = output.result
-
       await router.validateActionOutputs(action, "runtime", result.outputs)
-
-      router.emitNamespaceEvents(result.detail?.namespaceStatuses)
-
       return output
     },
 
@@ -78,7 +74,6 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         },
       })
 
-      router.emitNamespaceEvents(output.result.detail?.namespaceStatuses)
 
       log.success(`Done`)
 
@@ -106,14 +101,9 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
     getStatus: async (params) => {
       const { router, action } = params
-
       const output = await router.callHandler({ params, handlerType: "getStatus" })
       const result = output.result
-
-      router.emitNamespaceEvents(result.detail?.namespaceStatuses)
-
       await router.validateActionOutputs(action, "runtime", result.outputs)
-
       return output
     },
 

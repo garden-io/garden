@@ -187,9 +187,9 @@ export async function prepareEnvironment(
 
   // Prepare system services
   await prepareSystem({ ...params, clusterInit: false })
-  const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
-
-  return { status: { namespaceStatuses: [ns], ready: true, outputs: status.outputs } }
+  // This call is only to emit a `namespaceStatus` event.
+  await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  return { status: { ready: true, outputs: status.outputs } }
 }
 
 export async function prepareSystem({
@@ -337,7 +337,9 @@ export async function cleanupEnvironment({
   // Since we've deleted one or more namespaces, we invalidate the NS cache for this provider instance.
   clearNamespaceCache(provider)
 
-  return { namespaceStatuses: [{ namespaceName: namespace, state: "missing", pluginName: provider.name }] }
+  ctx.events.emit("namespaceStatus", { namespaceName: namespace, state: "missing", pluginName: provider.name })
+
+  return {}
 }
 
 export function getKubernetesSystemVariables(config: KubernetesConfig) {

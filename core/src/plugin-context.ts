@@ -20,6 +20,7 @@ import { EventEmitter } from "eventemitter3"
 import { CreateEventLogParams, EventLogger, LogLevel, StringLogLevel } from "./logger/logger"
 import { Memoize } from "typescript-memoize"
 import type { ParameterValues } from "./cli/params"
+import { NamespaceStatus } from "./types/namespace"
 
 type WrappedFromGarden = Pick<
   Garden,
@@ -116,13 +117,14 @@ export type PluginEventLogMessage = PluginEventLogContext & {
   msg: string
 }
 
-// Define your emitter's types like that:
+// Define your emitter's types as follows:
 // Key: Event name; Value: Listener function signature
 type PluginEvents = {
   abort: (reason?: string) => void
   done: () => void
   failed: (error?: Error) => void
   log: (msg: PluginEventLogMessage) => void
+  namespaceStatus: (status: NamespaceStatus) => void
 }
 
 type PluginEventType = keyof PluginEvents

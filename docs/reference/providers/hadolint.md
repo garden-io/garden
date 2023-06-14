@@ -59,15 +59,30 @@ The name of the provider plugin to use.
 | -------- | -------- |
 | `string` | Yes      |
 
+Example:
+
+```yaml
+providers:
+  - name: "local-kubernetes"
+```
+
 ### `providers[].dependencies[]`
 
 [providers](#providers) > dependencies
 
 List other providers that should be resolved before this one.
 
-| Type    | Default | Required |
-| ------- | ------- | -------- |
-| `array` | `[]`    | No       |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
+
+Example:
+
+```yaml
+providers:
+  - dependencies:
+      - exec
+```
 
 ### `providers[].environments[]`
 
@@ -75,9 +90,18 @@ List other providers that should be resolved before this one.
 
 If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
 
-| Type    | Required |
-| ------- | -------- |
-| `array` | No       |
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+providers:
+  - environments:
+      - dev
+      - stage
+```
 
 ### `providers[].autoInject`
 
@@ -97,7 +121,7 @@ project. Set this to `false` to disable this behavior.
 Set this to `"warning"` if you'd like tests to be marked as failed if one or more warnings are returned.
 Set to `"none"` to always mark the tests as successful.
 
-| Type     | Allowed Values             | Default   | Required |
-| -------- | -------------------------- | --------- | -------- |
-| `string` | "error", "warning", "none" | `"error"` | No       |
+| Type     | Default   | Required |
+| -------- | --------- | -------- |
+| `string` | `"error"` | No       |
 
