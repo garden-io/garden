@@ -187,6 +187,10 @@ export function withContextFromEnv<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+export function bindActiveContext<T>(target: T): T {
+  return opentelemetry.api.context.bind(getActiveContext(), target)
+}
+
 export function getTracePropagationEnvVars() {
   const spanContext = opentelemetry.api.trace.getSpanContext(getActiveContext())
 

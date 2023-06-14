@@ -51,8 +51,6 @@ import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
 import { withSessionContext, wrapActiveSpan } from "../util/tracing"
 
-import * as opentelemetry from "@opentelemetry/sdk-node"
-
 export interface RunOutput {
   argv: any
   code: number
@@ -70,8 +68,6 @@ export class GardenCli {
   public plugins: GardenPluginReference[]
   private initLogger: boolean
   public processRecord: GardenProcess
-  private otelSDK: opentelemetry.NodeSDK
-  private cliSpan: opentelemetry.api.Span
 
   constructor({ plugins, initLogger = false }: { plugins?: GardenPluginReference[]; initLogger?: boolean } = {}) {
     this.plugins = plugins || []

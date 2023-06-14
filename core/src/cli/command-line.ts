@@ -36,6 +36,7 @@ import {
   renderCommands,
 } from "./helpers"
 import type { GlobalOptions, ParameterValues } from "./params"
+import { withSessionContext, wrapActiveSpan } from "../util/tracing"
 
 const defaultMessageDuration = 3000
 const commandLinePrefix = chalk.yellow("🌼  > ")
@@ -695,85 +696,96 @@ ${chalk.white.underline("Keys:")}
 
     const sessionId = uuidv4()
 
-    let garden: Garden
-
-    try {
-      let scan = true
-      let path = this.cwd
-
-      if (opts.root) {
-        scan = false
-        path = resolve(path, opts.root)
-      }
-
-      const projectConfig = await findProjectConfig({
-        log: this.log,
-        path,
-        scan,
-      })
-
-      if (!projectConfig) {
-        const msg = opts.root
-          ? `Could not find project at specified --root '${opts.root}'`
-          : `Could not find project in current directory or any parent directoty`
-        this.flashError(getCmdFailMsg(name))
-        this.log.error(msg)
-        delete this.runningCommands[id]
-        this.renderStatus()
-        return
-      }
-
-      garden = await this.manager.getGardenForRequest({
-        command,
-        projectConfig,
-        globalConfigStore: this.globalConfigStore,
-        log: this.log,
-        args,
-        opts,
-        sessionId,
-      })
-    } catch (error) {
-      this.flashError(getCmdFailMsg(name))
-      this.log.error({ error })
-      delete this.runningCommands[id]
-      this.renderStatus()
-      return
-    }
-
-    // Update persisted history
-    // Note: We're currently not resolving history across concurrent dev commands, but that's anyway not well supported
-    garden.localConfigStore.set("devCommandHistory", this.commandHistory).catch((error) => {
-      this.log.warn(chalk.yellow(`Could not persist command history: ${error}`))
-    })
-
-    command
-      .run({
-        ...prepareParams,
-        garden,
+    await withSessionContext(
+      {
         sessionId,
         parentSessionId: this.manager.sessionId,
-      })
-      .then((output: CommandResult) => {
-        if (output.errors?.length) {
-          logCommandOutputErrors({ errors: output.errors, log: this.log, width })
-          this.flashError(getCmdFailMsg(name))
-        } else if (!command.isDevCommand) {
-          // TODO: print this differently if monitors from the command are active
-          // const monitorsAdded = garden.monitors.getByCommand(command).length
-          this.flashSuccess(getCmdSuccessMsg(name))
-          logCommandSuccess({ commandName: name, width, log: this.log })
-        }
-      })
-      .catch((error: Error) => {
-        // TODO-0.13.1: improve error rendering
-        logCommandError({ error, width, log: this.log })
-        this.flashError(getCmdFailMsg(name))
-      })
-      .finally(() => {
-        garden.events.clearKey(sessionId)
-        delete this.runningCommands[id]
-        this.renderStatus()
-      })
+      },
+      () =>
+        wrapActiveSpan("spawnChildGarden", async () => {
+          let garden: Garden
+
+          try {
+            let scan = true
+            let path = this.cwd
+
+            if (opts.root) {
+              scan = false
+              path = resolve(path, opts.root)
+            }
+
+            const projectConfig = await findProjectConfig({
+              log: this.log,
+              path,
+              scan,
+            })
+
+            if (!projectConfig) {
+              const msg = opts.root
+                ? `Could not find project at specified --root '${opts.root}'`
+                : `Could not find project in current directory or any parent directoty`
+              this.flashError(getCmdFailMsg(name))
+              this.log.error(msg)
+              delete this.runningCommands[id]
+              this.renderStatus()
+              return
+            }
+
+            garden = await wrapActiveSpan("getGardenForRequest", () =>
+              this.manager.getGardenForRequest({
+                command,
+                projectConfig,
+                globalConfigStore: this.globalConfigStore,
+                log: this.log,
+                args,
+                opts,
+                sessionId,
+              })
+            )
+          } catch (error) {
+            this.flashError(getCmdFailMsg(name))
+            this.log.error({ error })
+            delete this.runningCommands[id]
+            this.renderStatus()
+            return
+          }
+
+          // Update persisted history
+          // Note: We're currently not resolving history across concurrent dev commands, but that's anyway not well supported
+          garden.localConfigStore.set("devCommandHistory", this.commandHistory).catch((error) => {
+            this.log.warn(chalk.yellow(`Could not persist command history: ${error}`))
+          })
+
+          command
+            .run({
+              ...prepareParams,
+              garden,
+              sessionId,
+              parentSessionId: this.manager.sessionId,
+            })
+            .then((output: CommandResult) => {
+              if (output.errors?.length) {
+                logCommandOutputErrors({ errors: output.errors, log: this.log, width })
+                this.flashError(getCmdFailMsg(name))
+              } else if (!command.isDevCommand) {
+                // TODO: print this differently if monitors from the command are active
+                // const monitorsAdded = garden.monitors.getByCommand(command).length
+                this.flashSuccess(getCmdSuccessMsg(name))
+                logCommandSuccess({ commandName: name, width, log: this.log })
+              }
+            })
+            .catch((error: Error) => {
+              // TODO-0.13.1: improve error rendering
+              logCommandError({ error, width, log: this.log })
+              this.flashError(getCmdFailMsg(name))
+            })
+            .finally(() => {
+              garden.events.clearKey(sessionId)
+              delete this.runningCommands[id]
+              this.renderStatus()
+            })
+        })
+    )
   }
 
   private getSuggestions(from: number): AutocompleteSuggestion[] {
