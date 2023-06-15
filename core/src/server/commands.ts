@@ -215,6 +215,7 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
   help = "[Internal] Outputs a map of actions with their corresponding deploy and sync statuses."
   hidden = true
 
+  enableAnalytics = false
   streamEvents = false
 
   outputsSchema = () => joi.object()
