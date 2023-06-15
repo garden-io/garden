@@ -307,7 +307,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
   },
 ]
 
-export const supportedVersions = terraformCliSpecs.map(s => s.version)
+export const supportedVersions = terraformCliSpecs.map((s) => s.version)
 
 // Default to latest Terraform version
 export const defaultTerraformVersion = "1.4.6"
