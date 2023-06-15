@@ -20,7 +20,7 @@ import type { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
 import type { PluginContext, PluginEventBroker } from "../plugin-context"
 import type { ConfigContext } from "../config/template-contexts/base"
 import type { BaseAction } from "../actions/base"
-import type { ActionKind, BaseActionConfig, Resolved } from "../actions/types"
+import type { ActionKind, ActionMode, BaseActionConfig, Resolved } from "../actions/types"
 import {
   ActionTypeDefinition,
   ActionClassMap,
@@ -39,6 +39,8 @@ import { defaultProvider } from "../config/provider"
 import type { ConfigGraph } from "../graph/config-graph"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import type { NamespaceStatus } from "../types/namespace"
+import { isDeployAction } from "../actions/deploy"
+import { TemplatableConfigContext } from "../config/template-contexts/project"
 
 export type CommonParams = keyof PluginActionContextParams
 export type RequirePluginName<T> = T & { pluginName: string }
@@ -241,7 +243,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       defaultHandler,
     })
 
-    const templateContext = new ActionConfigContext(this.garden, config)
+    const templateContext = new TemplatableConfigContext(this.garden, config)
 
     const commonParams = await this.commonParams(handler, log, templateContext, undefined)
 
@@ -282,6 +284,10 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       defaultHandler,
     })
 
+    let mode: ActionMode
+    if (isDeployAction(action)) {
+      const spec = action.getConfig("spec")
+    }
     const providers = await this.garden.resolveProviders(log)
     const templateContext = action.isResolved()
       ? new ActionSpecContext({
@@ -295,7 +301,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           inputs: action.getInternal().inputs || {},
           variables: action.getVariables(),
         })
-      : new ActionConfigContext(this.garden, action.getConfig())
+      : new ActionConfigContext(this.garden, action.getConfig(), { mode: action.mode(), name: action.name })
 
     const handlerParams = {
       ...(await this.commonParams(handler, params.log, templateContext, params.events)),
