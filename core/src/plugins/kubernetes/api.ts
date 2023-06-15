@@ -35,7 +35,7 @@ import {
 import { load } from "js-yaml"
 import { readFile } from "fs-extra"
 import WebSocket from "isomorphic-ws"
-
+import pRetry from "p-retry"
 import { Omit, sleep, StringCollector } from "../../util/util"
 import { flatten, isObject, isPlainObject, keyBy, omitBy } from "lodash"
 import { ConfigurationError, GardenBaseError, RuntimeError } from "../../exceptions"
@@ -831,26 +831,26 @@ export class KubeApi {
    *
    * @throws {KubernetesError}
    */
-  async createPod(namespace: string, pod: KubernetesPod, isRetry = false) {
-    try {
-      await this.core.createNamespacedPod(namespace, pod)
-    } catch (error) {
-      const err = new KubernetesError(`Failed to create Pod ${pod.metadata.name}: ${error.message}`, { error })
-      if (isRetry) {
-        throw err
-      }
+  async createPod(namespace: string, pod: KubernetesPod) {
+    await pRetry(
+      async () => {
+        await this.core.createNamespacedPod(namespace, pod)
+      },
+      {
+        retries: 3,
+        minTimeout: 500,
+        onFailedAttempt(error) {
+          // This can occur in laggy environments, just need to retry
+          if (error.message.includes("No API token found for service account")) {
+            return
+          } else if (error.message.includes("error looking up service account")) {
+            return
+          }
 
-      // This can occur in laggy environments, just need to retry
-      if (error.message.includes("No API token found for service account")) {
-        await sleep(500)
-        return this.createPod(namespace, pod, true)
-      } else if (error.message.includes("error looking up service account")) {
-        await sleep(500)
-        return this.createPod(namespace, pod, true)
+          throw new KubernetesError(`Failed to create Pod ${pod.metadata.name}: ${error.message}`, { error })
+        },
       }
-
-      throw err
-    }
+    )
   }
 }
 
