@@ -10,7 +10,7 @@ import { ContainerTestAction } from "../../container/moduleConfig"
 import { storeTestResult } from "../test-results"
 import { runAndCopy } from "../run"
 import { makePodName } from "../util"
-import { getAppNamespaceStatus } from "../namespace"
+import { getNamespaceStatus } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { TestActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
@@ -34,7 +34,7 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
   const k8sCtx = ctx as KubernetesPluginContext
 
   const image = getDeployedImageId(action, k8sCtx.provider)
-  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
   const res = await runAndCopy({
     ...params,

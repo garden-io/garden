@@ -28,6 +28,7 @@ import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../sr
 import { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config"
 import { GlobalConfigStore } from "../../../../../../src/config-store/global"
 import { createActionLog } from "../../../../../../src/logger/log-entry"
+import { NamespaceStatus } from "../../../../../../src/types/namespace"
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden
@@ -137,12 +138,18 @@ describe("helmDeploy", () => {
     })
     const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
-    const status = await helmDeploy({
+
+    // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
+    let namespaceStatus: NamespaceStatus | null = null
+    ctx.events.once("namespaceStatus", (status) => namespaceStatus = status)
+    await helmDeploy({
       ctx,
       log: actionLog,
       action,
       force: false,
     })
+    expect(namespaceStatus).to.exist
+    expect(namespaceStatus!.namespaceName).to.eql("helm-test-default")
 
     const releaseName = getReleaseName(action)
     const releaseStatus = await getReleaseStatus({
@@ -159,13 +166,6 @@ describe("helmDeploy", () => {
       version: action.versionString(),
       mode: "default",
     })
-    expect(status.detail?.namespaceStatuses).to.eql([
-      {
-        pluginName: "local-kubernetes",
-        namespaceName: "helm-test-default",
-        state: "ready",
-      },
-    ])
   })
 
   it("should deploy a chart from a converted Helm module referencing a container module version in its image tag", async () => {
@@ -177,12 +177,18 @@ describe("helmDeploy", () => {
     })
     const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
-    const status = await helmDeploy({
+
+    // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
+    let namespaceStatus: NamespaceStatus | null = null
+    ctx.events.once("namespaceStatus", (status) => namespaceStatus = status)
+    await helmDeploy({
       ctx,
       log: actionLog,
       action,
       force: false,
     })
+    expect(namespaceStatus).to.exist
+    expect(namespaceStatus!.namespaceName).to.eql("helm-test-default")
 
     const releaseName = getReleaseName(action)
     const releaseStatus = await getReleaseStatus({
@@ -199,13 +205,6 @@ describe("helmDeploy", () => {
       version: action.versionString(),
       mode: "default",
     })
-    expect(status.detail?.namespaceStatuses).to.eql([
-      {
-        pluginName: "local-kubernetes",
-        namespaceName: "helm-test-default",
-        state: "ready",
-      },
-    ])
   })
 
   it("should deploy a chart with sync enabled", async () => {
@@ -307,7 +306,7 @@ describe("helmDeploy", () => {
     })
     const actionLog = createActionLog({ log: gardenWithCloudApi.log, actionName: action.name, actionKind: action.kind })
 
-    const status = await helmDeploy({
+     await helmDeploy({
       ctx: ctxWithCloudApi,
       log: actionLog,
       action,
@@ -329,13 +328,6 @@ describe("helmDeploy", () => {
       version: action.versionString(),
       mode: "default",
     })
-    expect(status.detail?.namespaceStatuses).to.eql([
-      {
-        pluginName: "local-kubernetes",
-        namespaceName: "helm-test-default",
-        state: "ready",
-      },
-    ])
 
     const api = await KubeApi.factory(gardenWithCloudApi.log, ctxWithCloudApi, ctxWithCloudApi.provider)
     const renderedResources = await getRenderedResources({

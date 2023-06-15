@@ -176,6 +176,10 @@ interface GetNamespaceParams {
  * ensures it exists in the target cluster (unless skipCreate=true).
  *
  * Returns a namespace status (which includes the namespace's name).
+ *
+ * Also emits a `namespaceStatus` event on the provided plugin context's event bus. This means that the caller doesn't
+ * need to worry about remembering to emit namespace events (they are then caught by the base router and re-emitted on
+ * the Garden instance's event bus).
  */
 export async function getNamespaceStatus({
   log,
@@ -187,20 +191,23 @@ export async function getNamespaceStatus({
   const namespace = cloneDeep(override || provider.config.namespace)!
 
   const api = await KubeApi.factory(log, ctx, provider)
+  let status: NamespaceStatus
   if (!skipCreate) {
     await ensureNamespace(api, ctx, namespace, log)
-    return {
+    status = {
       pluginName: provider.name,
       namespaceName: namespace.name,
       state: "ready",
     }
   } else {
-    return {
+    status = {
       pluginName: provider.name,
       namespaceName: namespace.name,
       state: (await namespaceExists(api, ctx, namespace.name)) ? "ready" : "missing",
     }
   }
+  ctx.events.emit("namespaceStatus", status)
+  return status
 }
 
 export async function getSystemNamespace(
@@ -230,18 +237,6 @@ export async function getAppNamespace(
     provider,
   })
   return status.namespaceName
-}
-
-export async function getAppNamespaceStatus(
-  ctx: KubernetesPluginContext,
-  log: Log,
-  provider: KubernetesProvider
-): Promise<NamespaceStatus> {
-  return getNamespaceStatus({
-    log,
-    ctx,
-    provider,
-  })
 }
 
 export async function getAllNamespaces(api: KubeApi): Promise<string[]> {
@@ -275,7 +270,7 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     )
   }
 
-  const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const ns = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
   return {
     "app-namespace": ns,

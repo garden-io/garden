@@ -7,7 +7,6 @@
  */
 
 import { expect } from "chai"
-import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import {
@@ -22,7 +21,7 @@ import { KubernetesResource, KubernetesWorkload } from "../../../../../../src/pl
 import { cloneDeep, keyBy } from "lodash"
 import { getContainerTestGarden } from "./container"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { expectError, grouped } from "../../../../../helpers"
+import { TestGarden, expectError, findNamespaceStatusEvent, grouped } from "../../../../../helpers"
 import { kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util"
 import { getDeployedImageId, getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"
 import { isConfiguredForSyncMode } from "../../../../../../src/plugins/kubernetes/status/status"
@@ -54,7 +53,7 @@ import { ActionMode } from "../../../../../../src/actions/types"
 import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("kubernetes container deployment handlers", () => {
-  let garden: Garden
+  let garden: TestGarden
   let router: ActionRouter
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
@@ -644,21 +643,17 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
         })
 
+        garden.events.eventLog = []
         const results = await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
         const statuses = getDeployStatuses(results.results)
         const status = statuses[action.name]
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
+
+        expect(findNamespaceStatusEvent(garden.events.eventLog, "container-default")).to.exist
         expect(resources.Deployment.metadata.annotations["garden.io/version"]).to.equal(`${action.versionString()}`)
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
           `${action.name}:${action.getBuildAction()?.versionString()}`
         )
-        expect(status.detail?.namespaceStatuses).to.eql([
-          {
-            pluginName: "local-kubernetes",
-            namespaceName: "container-default",
-            state: "ready",
-          },
-        ])
       })
 
       it("should prune previously applied resources when deploying", async () => {

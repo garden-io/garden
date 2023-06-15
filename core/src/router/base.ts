@@ -63,21 +63,6 @@ export abstract class BaseRouter {
     this.loadedPlugins = keyBy(params.loadedPlugins, "name")
   }
 
-  emitNamespaceEvents(namespaceStatuses: NamespaceStatus[] | undefined) {
-    if (namespaceStatuses && namespaceStatuses.length > 0) {
-      for (const status of namespaceStatuses) {
-        this.emitNamespaceEvent(status)
-      }
-    }
-  }
-
-  emitNamespaceEvent(namespaceStatus: NamespaceStatus | undefined) {
-    if (namespaceStatus) {
-      const { pluginName, state, namespaceName } = namespaceStatus
-      this.garden.events.emit("namespaceStatus", { pluginName, state, namespaceName })
-    }
-  }
-
   protected async commonParams(
     handler: WrappedActionHandler<any, any> | WrappedActionTypeHandler<any, any>,
     log: Log,
@@ -86,8 +71,13 @@ export abstract class BaseRouter {
   ): Promise<PluginActionParamsBase> {
     const provider = await this.garden.resolveProvider(log, handler.pluginName)
 
+    const ctx = await this.garden.getPluginContext({ provider, templateContext, events })
+
+    // Forward plugin events that don't need any action-specific metadata (currently just `namespaceStatus` events).
+    ctx.events.on("namespaceStatus", (status: NamespaceStatus) => this.garden.events.emit("namespaceStatus", status))
+
     return {
-      ctx: await this.garden.getPluginContext({ provider, templateContext, events }),
+      ctx,
       log,
       base: handler.base,
     }

@@ -22,7 +22,6 @@ import {
   mapValues,
   merge,
   omit,
-  pick,
   pull,
   uniq,
 } from "lodash"
@@ -803,16 +802,8 @@ export async function enableAnalytics(garden: TestGarden) {
   return resetConfig
 }
 
-export function getRuntimeStatusEventsWithoutTimestamps(eventLog: EventLogEntry[]) {
-  const runtimeEventNames = ["runStatus", "testStatus", "deployStatus"]
-  return eventLog
-    .filter((e) => runtimeEventNames.includes(e.name))
-    .map((e) => {
-      const cloned = { ...e }
-      cloned.payload = omit(cloned.payload, "startedAt", "completedAt")
-      cloned.payload.status = pick(cloned.payload.status, ["state"])
-      return cloned
-    })
+export function findNamespaceStatusEvent(eventLog: EventLogEntry[], namespaceName: string) {
+  return eventLog.find((e) => e.name === "namespaceStatus" && e.payload.namespaceName === namespaceName)
 }
 
 /**

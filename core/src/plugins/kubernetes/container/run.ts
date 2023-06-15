@@ -11,7 +11,7 @@ import { runAndCopy } from "../run"
 import { KubernetesPluginContext } from "../config"
 import { storeRunResult } from "../run-results"
 import { makePodName } from "../util"
-import { getAppNamespaceStatus } from "../namespace"
+import { getNamespaceStatus } from "../namespace"
 import { RunActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
 import { runResultToActionState } from "../../../actions/base"
@@ -35,7 +35,7 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
   const timeout = action.getConfig("timeout")
   const k8sCtx = ctx as KubernetesPluginContext
   const image = getDeployedImageId(action, k8sCtx.provider)
-  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
   const runResult = await runAndCopy({
     ...params,

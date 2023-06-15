@@ -174,7 +174,6 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       state: "ready",
       version: action.versionString(),
       detail: { remoteResources: statuses.map((s) => s.resource) },
-      namespaceStatuses: [namespaceStatus],
     },
     attached,
     // TODO-0.13.1

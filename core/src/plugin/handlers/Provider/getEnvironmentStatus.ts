@@ -9,7 +9,6 @@
 import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { environmentStatusSchema } from "../../../config/status"
-import type { NamespaceStatus } from "../../../types/namespace"
 import type { BaseProviderConfig } from "../../../config/provider"
 
 export interface GetEnvironmentStatusParams<C extends BaseProviderConfig = any> extends PluginActionParamsBase<C> {}
@@ -17,7 +16,6 @@ export interface GetEnvironmentStatusParams<C extends BaseProviderConfig = any> 
 export interface EnvironmentStatus<O extends {} = any, D extends {} = any> {
   ready: boolean
   detail?: D
-  namespaceStatuses?: NamespaceStatus[]
   outputs: O
   disableCache?: boolean
   cached?: boolean
