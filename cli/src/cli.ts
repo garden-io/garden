@@ -37,16 +37,18 @@ export async function runCli({
 
   try {
     // initialize the tracing to capture the full cli execution
-    result = await withContextFromEnv(() => wrapActiveSpan("garden", async (span) => {
-      if (!cli) {
-        cli = new GardenCli({ plugins: getBundledPlugins(), initLogger })
-      }
+    result = await withContextFromEnv(() =>
+      wrapActiveSpan("garden", async (span) => {
+        if (!cli) {
+          cli = new GardenCli({ plugins: getBundledPlugins(), initLogger })
+        }
 
-      // Note: We slice off the binary/script name from argv.
-      const results = await cli!.run({ args: args || [], exitOnError })
+        // Note: We slice off the binary/script name from argv.
+        const results = await cli!.run({ args: args || [], exitOnError })
 
-      return results
-    }))
+        return results
+      })
+    )
     code = result.code
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -59,7 +61,7 @@ export async function runCli({
     }
 
     try {
-      await getOtelSDK().shutdown()
+      await Promise.race([getOtelSDK().shutdown(), new Promise((resolve) => setTimeout(resolve, 3000))])
     } catch (err) {
       console.log(`Debug: OTEL shutdown failed with error ${err.toString()}`)
     }
