@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { merge } from "lodash"
-import { Action, ExecutedAction, ResolvedAction } from "../../actions/types"
+import { Action, ActionMode, ExecutedAction, ResolvedAction } from "../../actions/types"
 import { Garden } from "../../garden"
 import { GardenModule } from "../../types/module"
 import { deline } from "../../util/string"
@@ -39,7 +39,7 @@ interface ActionReferenceContextParams {
   disabled: boolean
   buildPath: string
   sourcePath: string
-  mode: string
+  mode: ActionMode
   variables: DeepPrimitiveMap
 }
 
@@ -79,7 +79,7 @@ export class ActionReferenceContext extends ConfigContext {
       )
       .example("sync")
   )
-  public mode: string
+  public mode: ActionMode
 
   @schema(joiVariables().required().description("The variables configured on the action.").example({ foo: "bar" }))
   public var: DeepPrimitiveMap
