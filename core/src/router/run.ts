@@ -65,8 +65,6 @@ export const runRouter = (baseParams: BaseRouterParams) =>
 
         await router.validateActionOutputs(action, "runtime", result.outputs)
 
-        // TODO: get this out of the core framework and shift it to the provider
-
         return output
       } finally {
         // Copy everything from the temp directory, and then clean it up

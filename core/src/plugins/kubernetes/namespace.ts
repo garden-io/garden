@@ -239,18 +239,6 @@ export async function getAppNamespace(
   return status.namespaceName
 }
 
-export async function getAppNamespaceStatus(
-  ctx: KubernetesPluginContext,
-  log: Log,
-  provider: KubernetesProvider
-): Promise<NamespaceStatus> {
-  return getNamespaceStatus({
-    log,
-    ctx,
-    provider,
-  })
-}
-
 export async function getAllNamespaces(api: KubeApi): Promise<string[]> {
   const allNamespaces = await api.core.listNamespace()
   return allNamespaces.items.map((n) => n.metadata.name)
@@ -282,7 +270,7 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     )
   }
 
-  const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const ns = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
   return {
     "app-namespace": ns,

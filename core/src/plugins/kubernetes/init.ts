@@ -12,7 +12,7 @@ import {
   prepareNamespaces,
   deleteNamespaces,
   getSystemNamespace,
-  getAppNamespaceStatus,
+  getNamespaceStatus,
   clearNamespaceCache,
 } from "./namespace"
 import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config"
@@ -187,7 +187,7 @@ export async function prepareEnvironment(
 
   // Prepare system services
   await prepareSystem({ ...params, clusterInit: false })
-  const nsStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const nsStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
   ctx.events.emit("namespaceStatus", nsStatus)
   return { status: { ready: true, outputs: status.outputs } }
 }
