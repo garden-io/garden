@@ -831,7 +831,7 @@ export class KubeApi {
    *
    * @throws {KubernetesError}
    */
-  async createPod(namespace: string, pod: KubernetesPod, isRetry = false) {
+  async createPod(namespace: string, pod: KubernetesPod) {
     await pRetry(
       async () => {
         await this.core.createNamespacedPod(namespace, pod)
@@ -840,8 +840,6 @@ export class KubeApi {
         retries: 3,
         minTimeout: 500,
         onFailedAttempt(error) {
-          const err = new KubernetesError(`Failed to create Pod ${pod.metadata.name}: ${error.message}`, { error })
-
           // This can occur in laggy environments, just need to retry
           if (error.message.includes("No API token found for service account")) {
             return
@@ -849,7 +847,7 @@ export class KubeApi {
             return
           }
 
-          throw err
+          throw new KubernetesError(`Failed to create Pod ${pod.metadata.name}: ${error.message}`, { error })
         },
       }
     )
