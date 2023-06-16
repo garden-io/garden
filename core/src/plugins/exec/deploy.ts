@@ -29,7 +29,7 @@ import { deployStateToActionState, DeployStatus } from "../../plugin/handlers/De
 import { Resolved } from "../../actions/types"
 import { convertCommandSpec, execRun, getDefaultEnvVars } from "./common"
 import { isRunning, killRecursive } from "../../process"
-import { getTracePropagationEnvVars } from "../../util/tracing"
+import { getTracePropagationEnvVars } from "../../util/tracing/propagation"
 
 const persistentLocalProcRetryIntervalMs = 2500
 

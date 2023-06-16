@@ -6,11 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getOtelSDK, wrapActiveSpan, withContextFromEnv } from "@garden-io/core/build/src/util/tracing"
 import { shutdown } from "@garden-io/core/build/src/util/util"
 import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
 import { GardenPluginReference } from "@garden-io/core/build/src/plugin/plugin"
 import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global"
+import { getOtelSDK } from "@garden-io/core/build/src/util/tracing/tracing"
+import { withContextFromEnv } from "@garden-io/core/build/src/util/tracing/propagation"
+import { wrapActiveSpan } from "@garden-io/core/build/src/util/tracing/spans"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [

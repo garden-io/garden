@@ -55,7 +55,8 @@ import { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from 
 import { splitFirst } from "../util/string"
 import { ActionMode } from "../actions/types"
 import { AnalyticsHandler } from "../analytics/analytics"
-import { withSessionContext, wrapActiveSpan } from "../util/tracing"
+import { withSessionContext } from "../util/tracing/context"
+import { wrapActiveSpan } from "../util/tracing/spans"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command

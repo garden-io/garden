@@ -14,7 +14,8 @@ import pluralize from "pluralize"
 import { BuildStatus } from "../plugin/handlers/Build/get-status"
 import { resolvedActionToExecuted } from "../actions/helpers"
 import { renderDuration } from "../logger/util"
-import { OtelTraced, wrapActiveSpan } from "../util/tracing"
+import { OtelTraced } from "../util/tracing/decorators"
+import { wrapActiveSpan } from "../util/tracing/spans"
 
 @Profile()
 export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {

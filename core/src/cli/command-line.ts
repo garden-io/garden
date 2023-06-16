@@ -36,7 +36,8 @@ import {
   renderCommands,
 } from "./helpers"
 import type { GlobalOptions, ParameterValues } from "./params"
-import { withSessionContext, wrapActiveSpan } from "../util/tracing"
+import { bindActiveContext, withSessionContext } from "../util/tracing/context"
+import { wrapActiveSpan } from "../util/tracing/spans"
 
 const defaultMessageDuration = 3000
 const commandLinePrefix = chalk.yellow("🌼  > ")
@@ -338,7 +339,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     })
 
     // Execute
-    this.setKeyHandler("return", () => this.handleReturn())
+    this.setKeyHandler("return", bindActiveContext(() => this.handleReturn()))
 
     // Autocomplete
     this.setKeyHandler("tab", () => {

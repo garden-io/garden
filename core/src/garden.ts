@@ -150,7 +150,8 @@ import { MonitorManager } from "./monitors/manager"
 import { AnalyticsHandler } from "./analytics/analytics"
 import { getGardenInstanceKey } from "./server/helpers"
 import { SuggestedCommand } from "./commands/base"
-import { OtelTraced, wrapActiveSpan } from "./util/tracing"
+import { OtelTraced } from "./util/tracing/decorators"
+import { wrapActiveSpan } from "./util/tracing/spans"
 
 const defaultLocalAddress = "localhost"
 

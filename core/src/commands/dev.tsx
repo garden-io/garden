@@ -23,7 +23,7 @@ import moment from "moment"
 import { dedent } from "../util/string"
 import Spinner from "ink-spinner"
 import type { Log } from "../logger/log-entry"
-import { bindActiveContext } from "../util/tracing"
+import { bindActiveContext } from "../util/tracing/context"
 
 const devCommandArgs = {
   ...serveArgs,
