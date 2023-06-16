@@ -314,10 +314,12 @@ export class KubeApi {
     log,
     path,
     opts = {},
+    retryOpts,
   }: {
     log: Log
     path: string
     opts?: Omit<request.OptionsWithUrl, "url">
+    retryOpts?: retryOpts
   }): Promise<any> {
     const baseUrl = this.config.getCurrentCluster()!.server
     const url = urlJoin(baseUrl, path)
@@ -334,14 +336,19 @@ export class KubeApi {
     // apply auth
     await this.config.applyToRequest(requestOpts)
 
-    return await requestWithRetry(log, `Kubernetes API: ${path}`, async () => {
-      try {
-        log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
-        return await request(requestOpts)
-      } catch (err) {
-        throw handleRequestPromiseError(path, err)
-      }
-    })
+    return await requestWithRetry(
+      log,
+      `Kubernetes API: ${path}`,
+      async () => {
+        try {
+          log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
+          return await request(requestOpts)
+        } catch (err) {
+          throw handleRequestPromiseError(path, err)
+        }
+      },
+      retryOpts
+    )
   }
 
   /**
@@ -977,6 +984,8 @@ function handleRequestPromiseError(name: string, err: Error) {
   }
 }
 
+type retryOpts = { maxRetries?: number; minTimeoutMs?: number }
+
 /**
  * Helper function for retrying failed k8s API requests, using exponential backoff.
  *
@@ -988,14 +997,9 @@ function handleRequestPromiseError(name: string, err: Error) {
  * The rationale here is that some errors occur because of network issues, intermittent timeouts etc.
  * and should be retried automatically.
  */
-async function requestWithRetry<R>(
-  log: Log,
-  description: string,
-  req: () => Promise<R>,
-  opts?: { maxRetries?: number; minTimeoutMs?: number }
-): Promise<R> {
-  const maxRetries = opts?.maxRetries || 5
-  const minTimeoutMs = opts?.minTimeoutMs || 500
+async function requestWithRetry<R>(log: Log, description: string, req: () => Promise<R>, opts?: retryOpts): Promise<R> {
+  const maxRetries = opts?.maxRetries ?? 5
+  const minTimeoutMs = opts?.minTimeoutMs ?? 500
   let retryLog: Log | undefined = undefined
   const retry = async (usedRetries: number): Promise<R> => {
     try {
@@ -1050,7 +1054,7 @@ function shouldRetry(err: any): boolean {
   )
 }
 
-const statusCodesForRetry: number[] = [
+export const statusCodesForRetry: number[] = [
   httpStatusCodes.REQUEST_TIMEOUT,
   httpStatusCodes.TOO_MANY_REQUESTS,
 
