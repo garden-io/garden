@@ -658,6 +658,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   return {
     environmentName: environment,
     namespace,
+    defaultNamespace: environmentConfig.defaultNamespace,
     production: !!environmentConfig.production,
     providers: Object.values(mergedProviders),
     variables,
