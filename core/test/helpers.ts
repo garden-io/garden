@@ -52,6 +52,7 @@ import { GraphResultMapWithoutTask } from "../src/graph/results"
 import { dumpYaml } from "../src/util/serialization"
 import { testPlugins } from "./helpers/test-plugin"
 import { testDataDir, testGitUrl } from "./helpers/constants"
+import { exec } from "../src/util/util"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
@@ -199,6 +200,11 @@ export const makeTestGarden = profileAsync(async function _makeTestGarden(
           return relSrc !== ".garden"
         },
       })
+
+      // Add files to git to avoid having to hash all the files
+      await exec("git", ["add", "."], { cwd: targetRoot })
+      // Note: This will error if there are no files added, hence reject=false
+      await exec("git", ["commit", "-m", "copied"], { cwd: targetRoot, reject: false })
 
       if (opts.config?.path) {
         opts.config.path = targetRoot
