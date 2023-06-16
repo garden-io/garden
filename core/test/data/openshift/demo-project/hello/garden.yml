@@ -1,0 +1,9 @@
+kind: Deploy
+type: container
+name: nginx-hello
+spec:
+  image: nginx:latest
+  ports:
+    - name: http
+      containerPort: 80
+      localPort: 8080

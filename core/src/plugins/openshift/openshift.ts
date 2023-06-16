@@ -8,7 +8,9 @@
 
 import { ConfigureProviderParams } from "../../plugin/handlers/Provider/configureProvider"
 import { createGardenPlugin } from "../../plugin/plugin"
+import { containerHandlers } from "../kubernetes/container/handlers"
 import { OpenShiftConfig, configSchema } from "./config"
+import { openshiftContainerDeployExtension } from "./container"
 
 export async function configureProvider({ config }: ConfigureProviderParams<OpenShiftConfig>) {
   return { config }
@@ -22,5 +24,17 @@ export const gardenPlugin = () => {
     handlers: {
       configureProvider,
     },
+
+    extendActionTypes: {
+      Deploy: [openshiftContainerDeployExtension()],
+    },
+
+    extendModuleTypes: [
+      {
+        name: "container",
+        handlers: containerHandlers,
+        needsBuild: true,
+      },
+    ],
   })
 }

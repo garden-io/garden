@@ -66,6 +66,8 @@ export async function ensureNamespace(
     const cache = nsCache.get(providerUid) || {}
 
     if (!cache[namespace.name] || namespaceNeedsUpdate(cache[namespace.name].resource!, namespace)) {
+      // FIXME: if passed `namespace: string` this will set cache[undefined]
+      // This seems to require `namespace: { name: foo }` in project config contrary to docs
       cache[namespace.name] = { status: "pending" }
 
       // Get the latest remote namespace list
@@ -88,6 +90,12 @@ export async function ensureNamespace(
       }
 
       if (cache[namespace.name].status !== "created") {
+        // FIXME: fix root cause, remove check
+        if (cache[namespace.name] === undefined) {
+          log.verbose("Not creating a namespace called undefined")
+          return
+        }
+
         log.verbose("Creating namespace " + namespace.name)
         try {
           result.remoteResource = await api.core.createNamespace({

@@ -67,6 +67,10 @@ export async function prepareSecrets({
   secrets: Array<ProviderSecretRef>
   log: Log
 }) {
+  // TODO: should we always ensure some secrets getting passed here, or keep the check?
+  if (!secrets) {
+    return []
+  }
   await Promise.all(secrets.map((s) => ensureSecret(api, s, namespace, log)))
   return secrets.map((s) => ({ name: s.name }))
 }
