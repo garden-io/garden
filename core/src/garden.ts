@@ -151,6 +151,8 @@ import { AnalyticsHandler } from "./analytics/analytics"
 import { getGardenInstanceKey } from "./server/helpers"
 import { SuggestedCommand } from "./commands/base"
 
+// Test 1
+
 const defaultLocalAddress = "localhost"
 
 export interface GardenOpts {
