@@ -981,12 +981,17 @@ export function describeSchema(schema: Joi.ObjectSchema): SchemaDescription {
 
 export function zodObjectToJoi(schema: z.ZodObject<any>): Joi.ObjectSchema {
   let wrapped = joi.object().zodSchema(schema)
-  if (schema.description) {
-    wrapped = wrapped.description(schema.description)
-  }
+
+  let description = schema.description || ""
+
   const example = schema.getExample()
   if (example) {
     wrapped = wrapped.example(example)
   }
+
+  if (description) {
+    wrapped = wrapped.description(description)
+  }
+
   return wrapped
 }

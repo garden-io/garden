@@ -11,7 +11,14 @@
  * CHANGES ARE REFLECTED IN THE CORRESPONDING ACTION SPECS + CONVERSION HANDLER.
  */
 
-import { joiArray, joiEnvVars, joi, joiSparseArray, createSchema } from "../../config/common"
+import {
+  joiArray,
+  joiEnvVars,
+  joi,
+  joiSparseArray,
+  createSchema,
+  artifactsTargetDescription,
+} from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { GardenModule } from "../../types/module"
 import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
@@ -19,10 +26,10 @@ import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
 import { ModuleSpec, baseBuildSpecSchema, ModuleConfig } from "../../config/module"
 import { BaseTaskSpec, baseTaskSpecSchema } from "../../config/task"
 import { dedent } from "../../util/string"
-import { artifactsSchema, ExecSyncModeSpec } from "./config"
+import { ExecSyncModeSpec } from "./config"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../plugin/handlers/Module/configure"
 import { ConfigurationError } from "../../exceptions"
-import { omit } from "lodash"
+import { memoize, omit } from "lodash"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../../constants"
 
 const execPathDoc = dedent`
@@ -30,6 +37,20 @@ const execPathDoc = dedent`
   If the top level \`local\` directive is set to \`true\`, the command runs in the module source directory instead.
 `
 const localProcDefaultTimeoutSec = 10
+
+const artifactSchema = () =>
+  joi.object().keys({
+    source: joi
+      .posixPath()
+      .allowGlobs()
+      .relativeOnly()
+      .subPathOnly()
+      .required()
+      .description("A POSIX-style path or glob to copy, relative to the build root."),
+    target: joi.posixPath().relativeOnly().subPathOnly().default(".").description(artifactsTargetDescription),
+  })
+
+const artifactsSchema = memoize(() => joiSparseArray(artifactSchema()))
 
 export async function configureExecModule({
   moduleConfig,
@@ -241,7 +262,7 @@ export interface ExecModuleSpec extends ModuleSpec {
 
 export type ExecModuleConfig = ModuleConfig<ExecModuleSpec>
 
-export const execBuildSpecSchema = createSchema({
+export const execModuleBuildSpecSchema = createSchema({
   name: "exec:Module:build-spec",
   extend: baseBuildSpecSchema,
   keys: () => ({
@@ -273,7 +294,7 @@ export const execModuleSpecSchema = createSchema({
         `
       )
       .default(false),
-    build: execBuildSpecSchema(),
+    build: execModuleBuildSpecSchema(),
     env: joiEnvVars(),
     services: joiSparseArray(execServiceSchema()).description("A list of services to deploy from this module."),
     tasks: joiSparseArray(execTaskSpecSchema()).description("A list of tasks that can be run in this module."),

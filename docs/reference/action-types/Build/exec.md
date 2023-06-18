@@ -202,10 +202,11 @@ spec:
   # level `buildAtSource` directive is set to `true`, the command runs in the action source directory instead. Please
   # see the docs for that field for more information and potential implications. Also note that other `exec` actions
   # that reference this build via the `build` field will then also run from this action's source directory.
-  command:
+  #
+  # Example: `["npm","run","build"]`
+  command: []
 
-  # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
-  # `GARDEN`) and values must be primitives.
+  # Environment variables to set when running the command.
   env: {}
 ```
 
@@ -511,26 +512,17 @@ _Note: You may omit this if all you need is for other implicit actions to happen
 
 By default, the command is run inside the Garden build directory (under .garden/build/<build-name>). If the top level `buildAtSource` directive is set to `true`, the command runs in the action source directory instead. Please see the docs for that field for more information and potential implications. Also note that other `exec` actions that reference this build via the `build` field will then also run from this action's source directory.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+Example: `["npm","run","build"]`
 
-Example:
-
-```yaml
-spec:
-  ...
-  command:
-    - npm
-    - run
-    - build
-```
+| Type    | Default | Required |
+| ------- | ------- | -------- |
+| `array` | `[]`    | No       |
 
 ### `spec.env`
 
 [spec](#spec) > env
 
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+Environment variables to set when running the command.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |

@@ -47,7 +47,7 @@ import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph, ResolvedConfigGraph } from "./graph/config-graph"
 import { getRootLogger } from "./logger/logger"
-import { GardenPlugin } from "./plugin/plugin"
+import { GardenPluginSpec } from "./plugin/plugin"
 import {
   loadConfigResources,
   findProjectConfig,
@@ -217,7 +217,7 @@ interface GardenInstanceState {
 @Profile()
 export class Garden {
   public log: Log
-  private loadedPlugins: GardenPlugin[]
+  private loadedPlugins: GardenPluginSpec[]
   protected actionConfigs: ActionConfigMap
   protected moduleConfigs: ModuleConfigMap
   protected workflowConfigs: WorkflowConfigMap
@@ -551,12 +551,12 @@ export class Garden {
     return this.projectConfig
   }
 
-  async getRegisteredPlugins(): Promise<GardenPlugin[]> {
+  async getRegisteredPlugins(): Promise<GardenPluginSpec[]> {
     return Bluebird.map(this.registeredPlugins, (p) => loadPlugin(this.log, this.projectRoot, p))
   }
 
   @pMemoizeDecorator()
-  async getPlugin(pluginName: string): Promise<GardenPlugin> {
+  async getPlugin(pluginName: string): Promise<GardenPluginSpec> {
     const plugins = await this.getAllPlugins()
     const plugin = findByName(plugins, pluginName)
 

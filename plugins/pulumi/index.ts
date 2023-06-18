@@ -20,7 +20,7 @@ import {
   pulumiModuleSchema,
   pulumiProviderConfigSchema,
 } from "./config"
-import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/config"
+import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/build"
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"

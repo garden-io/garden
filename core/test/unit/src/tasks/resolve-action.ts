@@ -298,7 +298,7 @@ describe("ResolveActionTask", () => {
       const task = await getTask("Deploy", "foo")
 
       await expectError(() => garden.processTask(task, log, { throwOnError: true }), {
-        contains: ["Error validating spec for Deploy", '"foo" is not allowed at path'],
+        contains: ["Unrecognized key(s) in object: 'foo'"],
       })
     })
 

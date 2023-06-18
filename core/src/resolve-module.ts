@@ -51,7 +51,7 @@ import type { GroupConfig } from "./config/group"
 import type { ActionConfig, ActionKind, BaseActionConfig } from "./actions/types"
 import type { ModuleGraph } from "./graph/modules"
 import type { GraphResults } from "./graph/results"
-import type { ExecBuildConfig } from "./plugins/exec/config"
+import type { ExecBuildConfig } from "./plugins/exec/build"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
@@ -801,6 +801,7 @@ export function makeDummyBuild({
 
     timeout: module.build.timeout,
     spec: {
+      command: [],
       env: {},
     },
   }

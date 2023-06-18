@@ -16,7 +16,7 @@ import { joi } from "../../../../src/config/common"
 import { validateSchema } from "../../../../src/config/validation"
 import { createActionLog } from "../../../../src/logger/log-entry"
 import { getModuleHandlerDescriptions } from "../../../../src/plugin/module-types"
-import { createGardenPlugin, GardenPluginSpec } from "../../../../src/plugin/plugin"
+import { createGardenPlugin, PartialGardenPluginSpec } from "../../../../src/plugin/plugin"
 import { getProviderActionDescriptions, ProviderHandlers } from "../../../../src/plugin/providers"
 import { createProjectConfig, makeTestGarden, projectRootA } from "../../../helpers"
 import {
@@ -145,7 +145,7 @@ function getRouterUnitTestPlugins() {
   const pluginActionDescriptions = getProviderActionDescriptions()
   const moduleActionDescriptions = getModuleHandlerDescriptions()
 
-  const testPluginASpec: GardenPluginSpec = {
+  const testPluginASpec: PartialGardenPluginSpec = {
     name: "test-plugin-a",
     dependencies: [{ name: "base" }],
 
@@ -278,15 +278,8 @@ function getRouterUnitTestPlugins() {
           convert: async (params) => {
             validateParams(params, moduleActionDescriptions.convert.paramsSchema)
 
-            const {
-              module,
-              services,
-              tasks,
-              tests,
-              dummyBuild,
-              convertBuildDependency,
-              convertRuntimeDependencies,
-            } = params
+            const { module, services, tasks, tests, dummyBuild, convertBuildDependency, convertRuntimeDependencies } =
+              params
 
             const actions: (BuildActionConfig | BaseRuntimeActionConfig)[] = []
 

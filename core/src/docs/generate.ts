@@ -19,7 +19,7 @@ import { writeFileSync, readFile, writeFile, mkdirp } from "fs-extra"
 import { renderModuleTypeReference, moduleTypes } from "./module-type"
 import { renderProviderReference } from "./provider"
 import { defaultEnvironment, defaultNamespace } from "../config/project"
-import { GardenPlugin, GardenPluginReference } from "../plugin/plugin"
+import { GardenPluginSpec, GardenPluginReference } from "../plugin/plugin"
 import { workflowConfigSchema } from "../config/workflow"
 import { configTemplateSchema } from "../config/config-template"
 import { renderActionTypeReference } from "./action-type"
@@ -32,7 +32,7 @@ import { actionKinds } from "../actions/types"
 
 /* eslint-disable no-console */
 
-export async function generateDocs(targetDir: string, getPlugins: () => (GardenPlugin | GardenPluginReference)[]) {
+export async function generateDocs(targetDir: string, getPlugins: () => (GardenPluginSpec | GardenPluginReference)[]) {
   const docsRoot = resolve(process.cwd(), targetDir)
 
   console.log("Updating command references...")
@@ -47,7 +47,7 @@ export async function generateDocs(targetDir: string, getPlugins: () => (GardenP
 
 export async function writeConfigReferenceDocs(
   docsRoot: string,
-  getPlugins: () => (GardenPlugin | GardenPluginReference)[]
+  getPlugins: () => (GardenPluginSpec | GardenPluginReference)[]
 ) {
   const referenceDir = resolve(docsRoot, "reference")
 

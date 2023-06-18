@@ -19,7 +19,7 @@ import { ConfigurationError, PluginError } from "../exceptions"
 import { keyBy, omit, flatten, uniq } from "lodash"
 import { ProviderConfigContext } from "../config/template-contexts/provider"
 import { ModuleConfig } from "../config/module"
-import { GardenPlugin } from "../plugin/plugin"
+import { GardenPluginSpec } from "../plugin/plugin"
 import { joi } from "../config/common"
 import { validateWithPath, validateSchema } from "../config/validation"
 import { defaultEnvironmentStatus, EnvironmentStatus } from "../plugin/handlers/Provider/getEnvironmentStatus"
@@ -34,8 +34,8 @@ import { gardenEnv } from "../constants"
 import { stableStringify } from "../util/string"
 
 interface Params extends CommonTaskParams {
-  plugin: GardenPlugin
-  allPlugins: GardenPlugin[]
+  plugin: GardenPluginSpec
+  allPlugins: GardenPluginSpec[]
   config: GenericProviderConfig
   forceRefresh: boolean
   forceInit: boolean
@@ -62,10 +62,10 @@ export class ResolveProviderTask extends BaseTask<Provider> {
   concurrencyLimit = 20
 
   private config: GenericProviderConfig
-  private plugin: GardenPlugin
+  private plugin: GardenPluginSpec
   private forceRefresh: boolean
   private forceInit: boolean
-  private allPlugins: GardenPlugin[]
+  private allPlugins: GardenPluginSpec[]
 
   constructor(params: Params) {
     super(params)

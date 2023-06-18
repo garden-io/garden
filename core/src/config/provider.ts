@@ -20,7 +20,7 @@ import { collectTemplateReferences } from "../template-string/template-string"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig, moduleConfigSchema } from "./module"
 import { memoize, uniq } from "lodash"
-import { GardenPlugin } from "../plugin/plugin"
+import { GardenPluginSpec } from "../plugin/plugin"
 import { EnvironmentStatus } from "../plugin/handlers/Provider/getEnvironmentStatus"
 import { environmentStatusSchema } from "./status"
 import { DashboardPage, dashboardPagesSchema } from "../plugin/handlers/Provider/getDashboardPage"
@@ -139,7 +139,7 @@ export function providerFromConfig({
   moduleConfigs,
   status,
 }: {
-  plugin: GardenPlugin
+  plugin: GardenPluginSpec
   config: GenericProviderConfig
   dependencies: ProviderMap
   moduleConfigs: ModuleConfig[]
@@ -162,7 +162,7 @@ export function providerFromConfig({
  * Given a plugin and its provider config, return a list of dependency names based on declared dependencies,
  * as well as implicit dependencies based on template strings.
  */
-export async function getAllProviderDependencyNames(plugin: GardenPlugin, config: GenericProviderConfig) {
+export async function getAllProviderDependencyNames(plugin: GardenPluginSpec, config: GenericProviderConfig) {
   return uniq([
     ...(plugin.dependencies || []).map((d) => d.name),
     ...(config.dependencies || []),

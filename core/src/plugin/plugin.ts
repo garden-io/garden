@@ -28,6 +28,8 @@ import {
 } from "./action-types"
 import { PluginContext } from "../plugin-context"
 import { join } from "path"
+import { GardenSdkPlugin } from "./sdk"
+import { providerConfigBaseSchema } from "../config/provider"
 
 // FIXME: Reduce number of import updates needed
 export * from "./base"
@@ -51,7 +53,7 @@ const pluginDependencySchema = createSchema({
   }),
 })
 
-export interface GardenPluginSpec {
+export interface PartialGardenPluginSpec {
   name: string
   base?: string | null
   docs?: string | null
@@ -73,16 +75,9 @@ export interface GardenPluginSpec {
   extendActionTypes?: Partial<ManyActionTypeExtensions>
 }
 
-export interface GardenPlugin extends GardenPluginSpec {
-  dependencies: PluginDependency[]
-
-  handlers: Partial<ProviderHandlers>
-  commands: PluginCommand[]
-  dashboardPages: DashboardPage[]
-
-  createModuleTypes: ModuleTypeDefinition[]
-  extendModuleTypes: ModuleTypeExtension[]
-
+export type GardenPluginSpec = Required<Omit<PartialGardenPluginSpec, "configSchema" | "outputsSchema">> & {
+  configSchema?: Joi.ObjectSchema
+  outputsSchema?: Joi.ObjectSchema
   createActionTypes: ManyActionTypeDefinitions
   extendActionTypes: ManyActionTypeExtensions
 }
@@ -92,13 +87,13 @@ export interface GardenPluginReference {
   callback: GardenPluginCallback
 }
 
-export type GardenPluginCallback = () => GardenPlugin
+export type GardenPluginCallback = () => GardenPluginSpec
 
 export interface PluginMap {
-  [name: string]: GardenPlugin
+  [name: string]: GardenPluginSpec
 }
 
-export type RegisterPluginParam = string | GardenPlugin | GardenPluginReference
+export type RegisterPluginParam = string | GardenPluginSpec | GardenPluginReference | GardenSdkPlugin
 
 export const pluginSchema = createSchema({
   name: "plugin",
@@ -205,10 +200,18 @@ export const pluginNodeModuleSchema = createSchema({
   }),
 })
 
-// This doesn't do much at the moment, but it makes sense to make this an SDK function to make it more future-proof
-export function createGardenPlugin(spec: GardenPluginSpec): GardenPlugin {
+export function createGardenPlugin(spec: PartialGardenPluginSpec): GardenPluginSpec {
+  // Default to empty schemas if no base is set
+  const configSchema = spec.configSchema || (spec.base ? undefined : providerConfigBaseSchema())
+  const outputsSchema = spec.outputsSchema || (spec.base ? undefined : joi.object().keys({}))
+
   return {
     ...spec,
+    base: spec.base || null,
+    docs: spec.docs || null,
+    configSchema,
+    outputsSchema,
+    tools: spec.tools || [],
     dependencies: spec.dependencies || [],
     commands: spec.commands || [],
     createModuleTypes: spec.createModuleTypes || [],

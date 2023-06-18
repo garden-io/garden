@@ -12,12 +12,10 @@ import {
   cloneDeep,
   extend,
   forOwn,
-  get,
   intersection,
   isArray,
   isNull,
   isObject,
-  isString,
   isUndefined,
   mapValues,
   merge,
@@ -27,24 +25,13 @@ import {
 } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
-import { buildExecAction } from "../src/plugins/exec/exec"
-import { convertExecModule } from "../src/plugins/exec/convert"
-import { createSchema, joi, joiArray } from "../src/config/common"
-import {
-  createGardenPlugin,
-  GardenPlugin,
-  GardenPluginReference,
-  GardenPluginSpec,
-  ProviderHandlers,
-  RegisterPluginParam,
-} from "../src/plugin/plugin"
+import { joi } from "../src/config/common"
+import { GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
-import { ModuleVersion } from "../src/vcs/vcs"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion, gardenEnv } from "../src/constants"
 import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../src/cli/params"
-import { ConfigureModuleParams } from "../src/plugin/handlers/Module/configure"
-import { ExternalSourceType, getRemoteSourceLocalPath, hashRepoUrl } from "../src/util/ext-source-util"
+import { ExternalSourceType, getRemoteSourceLocalPath } from "../src/util/ext-source-util"
 import { CommandParams, ProcessCommandResult } from "../src/commands/base"
 import { SuiteFunction, TestFunction } from "mocha"
 import { AnalyticsGlobalConfig } from "../src/config-store/global"
@@ -55,46 +42,22 @@ import { profileAsync } from "../src/util/profiling"
 import { defaultDotIgnoreFile, makeTempDir } from "../src/util/fs"
 import tmp, { DirectoryResult } from "tmp-promise"
 import { ConfigurationError } from "../src/exceptions"
-import Bluebird = require("bluebird")
-import execa = require("execa")
-import timekeeper = require("timekeeper")
-import { execBuildSpecSchema, ExecModule, execTaskSpecSchema, execTestSchema } from "../src/plugins/exec/moduleConfig"
-import {
-  execBuildActionSchema,
-  execDeployActionSchema,
-  execDeployCommandSchema,
-  ExecRun,
-  execRunActionSchema,
-  ExecTest,
-  execTestActionSchema,
-} from "../src/plugins/exec/config"
-import { ManyActionTypeDefinitions, RunActionHandler, TestActionHandler } from "../src/plugin/action-types"
-import { GetRunResult } from "../src/plugin/handlers/Run/get-result"
+import Bluebird from "bluebird"
+import execa from "execa"
+import timekeeper from "timekeeper"
+import { ManyActionTypeDefinitions } from "../src/plugin/action-types"
 import { defaultEnvironment, defaultNamespace, ProjectConfig } from "../src/config/project"
-import { ConvertModuleParams } from "../src/plugin/handlers/Module/convert"
-import { baseServiceSpecSchema } from "../src/config/service"
 import { localConfigFilename } from "../src/config-store/local"
 import { GraphResultMapWithoutTask } from "../src/graph/results"
 import { dumpYaml } from "../src/util/serialization"
+import { testPlugins } from "./helpers/test-plugin"
+import { testDataDir, testGitUrl } from "./helpers/constants"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
 
-// TODO-G2: split test plugin into new module
-
-const testDataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
-const testNow = new Date()
-const testModuleVersionString = "v-1234512345"
-export const testModuleVersion: ModuleVersion = {
-  contentHash: testModuleVersionString,
-  versionString: testModuleVersionString,
-  dependencyVersions: {},
-  files: [],
-}
-
-// All test projects use this git URL
-export const testGitUrl = "https://example.com/my-repo.git#main"
-export const testGitUrlHash = hashRepoUrl(testGitUrl)
+export * from "./helpers/constants"
+export * from "./helpers/test-plugin"
 
 /**
  * Returns a fully resolved path of a concrete subdirectory located in the {@link testDataDir}.
@@ -123,314 +86,7 @@ export async function profileBlock(description: string, block: () => Promise<any
 export const projectRootA = getDataDir("test-project-a")
 export const projectRootBuildDependants = getDataDir("test-build-dependants")
 
-export const testModuleSpecSchema = createSchema({
-  name: "test:Module:spec",
-  keys: () => ({
-    build: execBuildSpecSchema(),
-    services: joiArray(baseServiceSpecSchema()),
-    tests: joiArray(execTestSchema()),
-    tasks: joiArray(execTaskSpecSchema()),
-  }),
-})
-
-export const testDeploySchema = createSchema({
-  name: "test.Deploy",
-  extend: execDeployActionSchema,
-  keys: () => ({
-    // Making this optional for tests
-    deployCommand: execDeployCommandSchema().optional(),
-  }),
-})
-export const testRunSchema = createSchema({
-  name: "test.Run",
-  extend: execRunActionSchema,
-  keys: () => ({}),
-})
-export const testTestSchema = createSchema({
-  name: "test.Test",
-  extend: execTestActionSchema,
-  keys: () => ({}),
-})
-
-export async function configureTestModule({ moduleConfig }: ConfigureModuleParams) {
-  // validate services
-  moduleConfig.serviceConfigs = moduleConfig.spec.services.map((spec) => ({
-    name: spec.name,
-    dependencies: spec.dependencies,
-    disabled: spec.disabled,
-    sourceModuleName: spec.sourceModuleName,
-    timeout: spec.timeout,
-    spec,
-  }))
-
-  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((spec) => ({
-    name: spec.name,
-    dependencies: spec.dependencies,
-    disabled: spec.disabled,
-    timeout: spec.timeout,
-    spec,
-  }))
-
-  moduleConfig.testConfigs = moduleConfig.spec.tests.map((spec) => ({
-    name: spec.name,
-    dependencies: spec.dependencies,
-    disabled: spec.disabled,
-    timeout: spec.timeout,
-    spec,
-  }))
-
-  return { moduleConfig }
-}
-
-const runTest: RunActionHandler<"run", ExecRun> = async ({ action, log }): Promise<GetRunResult> => {
-  const { command } = action.getSpec()
-
-  const commandStr = isString(command) ? command : command.join(" ")
-
-  log.info("Run command: " + commandStr)
-
-  const outputs = {
-    log: commandStr,
-  }
-
-  return {
-    state: "ready",
-    detail: {
-      ...outputs,
-      completedAt: testNow,
-      startedAt: testNow,
-      success: true,
-    },
-    outputs,
-  }
-}
-
-const testBuildStaticOutputsSchema = createSchema({
-  name: "test:Build:static-outputs",
-  keys: () => ({
-    foo: joi.string(),
-  }),
-})
-
-const testPluginSecrets: { [key: string]: string } = {}
-
-export const testPlugin = () =>
-  createGardenPlugin({
-    name: "test-plugin",
-    dashboardPages: [
-      {
-        name: "test",
-        description: "Test dashboard page",
-        title: "Test",
-        newWindow: false,
-      },
-    ],
-    handlers: {
-      async configureProvider({ config }) {
-        for (let member in testPluginSecrets) {
-          delete testPluginSecrets[member]
-        }
-        return { config }
-      },
-
-      async getDashboardPage({ page }) {
-        return { url: `http://localhost:12345/${page.name}` }
-      },
-
-      async getEnvironmentStatus() {
-        return { ready: true, outputs: { testKey: "testValue" } }
-      },
-
-      async prepareEnvironment() {
-        return { status: { ready: true, outputs: { testKey: "testValue" } } }
-      },
-
-      async getDebugInfo() {
-        return {
-          info: {
-            exampleData: "data",
-            exampleData2: "data2",
-          },
-        }
-      },
-    },
-
-    createActionTypes: {
-      Build: [
-        {
-          name: "test",
-          docs: "Test Build action",
-          schema: execBuildActionSchema(),
-          staticOutputsSchema: testBuildStaticOutputsSchema(),
-          handlers: {
-            build: buildExecAction,
-            getStatus: async ({ ctx, action }) => {
-              const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
-              return result || { state: "not-ready", detail: null, outputs: {} }
-            },
-            getOutputs: async (_) => {
-              return { outputs: { foo: "bar" } }
-            },
-          },
-        },
-      ],
-      Deploy: [
-        {
-          name: "test",
-          docs: "Test Deploy action",
-          schema: testDeploySchema(),
-          handlers: {
-            configure: async ({ config }) => {
-              return { config, supportedModes: { sync: !!config.spec.syncMode, local: true } }
-            },
-            deploy: async ({}) => {
-              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
-            },
-            getStatus: async ({ ctx, action }) => {
-              const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
-              return result || { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
-            },
-            exec: async ({ command }) => {
-              return { code: 0, output: "Ran command: " + command.join(" ") }
-            },
-          },
-        },
-      ],
-      Run: [
-        {
-          name: "test",
-          docs: "Test Run action",
-          schema: testRunSchema(),
-          handlers: {
-            run: runTest,
-            getResult: async ({ ctx, action }) => {
-              const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
-              return result || { state: "not-ready", detail: null, outputs: {} }
-            },
-          },
-        },
-      ],
-      Test: [
-        {
-          name: "test",
-          docs: "Test Test action",
-          schema: testTestSchema(),
-          handlers: {
-            run: <TestActionHandler<"run", ExecTest>>(<unknown>runTest),
-            getResult: async ({ ctx, action }) => {
-              const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
-              return result || { state: "not-ready", detail: null, outputs: {} }
-            },
-          },
-        },
-      ],
-    },
-
-    createModuleTypes: [
-      {
-        name: "test",
-        docs: "Test module type",
-        schema: testModuleSpecSchema(),
-        needsBuild: true,
-        handlers: {
-          // We want all the actions from the exec conversion.
-          convert: async (params: ConvertModuleParams) => {
-            const module: ExecModule = params.module
-            const result = await convertExecModule({ ...params, module })
-            // Override action type
-            for (const action of result.group.actions) {
-              action.type = <any>"test"
-            }
-            return result
-          },
-          configure: configureTestModule,
-
-          async getModuleOutputs() {
-            return { outputs: { foo: "bar" } }
-          },
-        },
-      },
-    ],
-  })
-
-export const testPluginB = () => {
-  const base = testPlugin()
-
-  return createGardenPlugin({
-    ...base,
-    name: "test-plugin-b",
-    dependencies: [{ name: "test-plugin" }],
-    createModuleTypes: [],
-    createActionTypes: {},
-  })
-}
-
-export const testPluginC = () => {
-  const base = testPlugin()
-
-  return createGardenPlugin({
-    ...base,
-    name: "test-plugin-c",
-    // TODO-G2: change to create action types
-    createModuleTypes: [
-      {
-        name: "test-c",
-        docs: "Test module type C",
-        schema: testModuleSpecSchema(),
-        handlers: base.createModuleTypes![0].handlers,
-        needsBuild: true,
-      },
-    ],
-    createActionTypes: {},
-  })
-}
-
-export const customizedTestPlugin = (partialCustomSpec: Partial<GardenPluginSpec>) => {
-  const base = testPlugin()
-  merge(base, partialCustomSpec)
-  return base
-}
-
-export const noOpTestPlugin = () =>
-  customizedTestPlugin({
-    name: "test",
-    createActionTypes: {
-      Build: [
-        {
-          name: "test",
-          docs: "Test Build action",
-          schema: joi.object(),
-          handlers: {},
-        },
-      ],
-      Deploy: [
-        {
-          name: "test",
-          docs: "Test Deploy action",
-          schema: joi.object(),
-          handlers: {},
-        },
-      ],
-      Run: [
-        {
-          name: "test",
-          docs: "Test Run action",
-          schema: joi.object(),
-          handlers: {},
-        },
-      ],
-      Test: [
-        {
-          name: "test",
-          docs: "Test Test action",
-          schema: joi.object(),
-          handlers: {},
-        },
-      ],
-    },
-  })
-
-export async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
+export async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPluginSpec) {
   const config: ProjectConfig = createProjectConfig({
     path: tmpDir.path,
     providers: [{ name: "test" }],
@@ -523,13 +179,6 @@ export function makeModuleConfig<M extends ModuleConfig = ModuleConfig>(path: st
     ...from,
   }
 }
-
-export const testPluginReferences: () => GardenPluginReference[] = () =>
-  [testPlugin, testPluginB, testPluginC].map((p) => {
-    const plugin = p()
-    return { name: plugin.name, callback: p }
-  })
-export const testPlugins = () => testPluginReferences().map((p) => p.callback())
 
 export const testProjectTempDirs: { [root: string]: DirectoryResult } = {}
 

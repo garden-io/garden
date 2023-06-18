@@ -155,5 +155,5 @@ export const validateSchema = profile(function $validateSchema<T>(
 
 export interface ArtifactSpec {
   source: string
-  target?: string
+  target: string
 }

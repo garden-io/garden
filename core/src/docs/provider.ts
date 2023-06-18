@@ -12,7 +12,7 @@ import { resolve } from "path"
 import handlebars = require("handlebars")
 import { joiArray, joi } from "../config/common"
 import { providerConfigBaseSchema } from "../config/provider"
-import { GardenPlugin, PluginMap } from "../plugin/plugin"
+import { GardenPluginSpec, PluginMap } from "../plugin/plugin"
 import { getPluginBases } from "../plugins"
 import { renderTemplateStringReference, renderConfigReference, TEMPLATES_DIR } from "./config"
 
@@ -25,10 +25,11 @@ const populateProviderSchema = (schema: Joi.ObjectSchema) =>
  * Generates the provider reference from the provider.hbs template.
  * The reference includes the rendered output from the config-partial.hbs template.
  */
-export function renderProviderReference(name: string, plugin: GardenPlugin, allPlugins: PluginMap) {
+export function renderProviderReference(name: string, plugin: GardenPluginSpec, allPlugins: PluginMap) {
   let configSchema = plugin.configSchema
+  let outputsSchema = plugin.outputsSchema
 
-  // If the plugin doesn't specify its own config schema, we need to walk through its bases to get a schema to document
+  // If the plugin doesn't specify its own sschema, we need to walk through its bases to get a schema to document
   if (!configSchema) {
     for (const base of getPluginBases(plugin, allPlugins)) {
       if (base.configSchema) {
@@ -37,20 +38,26 @@ export function renderProviderReference(name: string, plugin: GardenPlugin, allP
       }
     }
   }
+  if (!outputsSchema) {
+    for (const base of getPluginBases(plugin, allPlugins)) {
+      if (base.outputsSchema) {
+        outputsSchema = base.outputsSchema
+        break
+      }
+    }
+  }
 
   const schema = populateProviderSchema(configSchema || providerConfigBaseSchema())
   const docs = plugin.docs || ""
-
-  const moduleOutputsSchema = plugin.outputsSchema
 
   const providerTemplatePath = resolve(TEMPLATES_DIR, "provider.hbs")
   const { markdownReference, yaml } = renderConfigReference(schema)
 
   const moduleOutputsReference =
-    moduleOutputsSchema &&
+    outputsSchema &&
     renderTemplateStringReference({
       schema: joi.object().keys({
-        outputs: moduleOutputsSchema.required(),
+        outputs: outputsSchema.required(),
       }),
       prefix: "providers",
       placeholder: "<provider-name>",

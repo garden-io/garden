@@ -7,7 +7,7 @@
  */
 
 import { Schema, z } from "zod"
-import { identifierRegex, joiIdentifierDescription, userIdentifierRegex } from "./constants"
+import { envVarRegex, identifierRegex, joiIdentifierDescription, userIdentifierRegex } from "./constants"
 
 // Add metadata support to schemas. See https://github.com/colinhacks/zod/issues/273#issuecomment-1434077058
 declare module "zod" {
@@ -32,11 +32,24 @@ Schema.prototype.getExample = function () {
   return this._def.example
 }
 Schema.prototype.example = function (example: any) {
+  // FIXME: This is hacky. We should handle examples for Zod schemas properly in docs generator.
+  const exampleDescription = `Example: \`${JSON.stringify(example)}\``
+
   const This = (this as any).constructor
   return new This({
     ...this._def,
     example,
+    description: this._def.description ? this._def.description + "\n\n" + exampleDescription : exampleDescription,
   })
+}
+Schema.prototype.describe = function (description: string) {
+  this._def.description = description
+  // Add example to description, if applicable
+  const example = this.getExample()
+  if (example) {
+    this.example(example)
+  }
+  return this
 }
 
 // Add custom methods
@@ -51,6 +64,7 @@ export interface PosixPathOpts {
 }
 
 type GardenSchema = typeof z & {
+  envVars: () => z.ZodRecord<z.ZodString, z.ZodString>
   posixPath: (opts: PosixPathOpts) => z.ZodEffects<z.ZodString, string, string>
   identifier: () => z.ZodString
   userIdentifier: () => z.ZodString
@@ -62,6 +76,8 @@ type GardenSchema = typeof z & {
 
 // This should be imported instead of z because we augment zod with custom methods
 export const s = z as GardenSchema
+
+s.envVars = () => s.record(s.string().regex(envVarRegex).min(1), z.string())
 
 s.posixPath = (opts: PosixPathOpts = {}) => {
   return z

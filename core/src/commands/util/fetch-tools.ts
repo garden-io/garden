@@ -9,7 +9,7 @@
 import { Command, CommandParams } from "../base"
 import { RuntimeError } from "../../exceptions"
 import dedent from "dedent"
-import { GardenPlugin } from "../../plugin/plugin"
+import { GardenPluginSpec } from "../../plugin/plugin"
 import { findProjectConfig } from "../../config/base"
 import { Garden, DummyGarden } from "../../garden"
 import Bluebird from "bluebird"
@@ -55,7 +55,7 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
   printHeader() {}
 
   async action({ garden, log, opts }: CommandParams<{}, FetchToolsOpts>) {
-    let plugins: GardenPlugin[]
+    let plugins: GardenPluginSpec[]
 
     if (opts.all) {
       plugins = await garden.getAllPlugins()
@@ -98,8 +98,8 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
 
     // If the version of the tool is configured on the provider,
     // download only that version of the tool.
-    const toolsNeeded = deduplicated.filter(tool => {
-      const pluginToolVersion = versionedConfigs.find(p => p.name === tool.plugin.name)?.version
+    const toolsNeeded = deduplicated.filter((tool) => {
+      const pluginToolVersion = versionedConfigs.find((p) => p.name === tool.plugin.name)?.version
       const pluginHasVersionConfigured = !!pluginToolVersion
       if (!pluginHasVersionConfigured) {
         return true

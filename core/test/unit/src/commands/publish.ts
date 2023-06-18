@@ -13,11 +13,12 @@ import { PublishCommand } from "../../../../src/commands/publish"
 import { withDefaultGlobalOpts, makeTestGarden, getAllTaskResults, getDataDir } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 import { cloneDeep } from "lodash"
-import { execBuildActionSchema } from "../../../../src/plugins/exec/config"
 import { PublishActionResult, PublishBuildAction } from "../../../../src/plugin/handlers/Build/publish"
-import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
+import { createGardenPlugin, GardenPluginSpec } from "../../../../src/plugin/plugin"
 import { ConvertModuleParams } from "../../../../src/plugin/handlers/Module/convert"
 import { PublishTask } from "../../../../src/tasks/publish"
+import { joi } from "../../../../src/config/common"
+import { execBuildSpecSchema } from "../../../../src/plugins/exec/build"
 
 const projectRootB = getDataDir("test-project-b")
 
@@ -66,7 +67,7 @@ const testProvider = createGardenPlugin({
       {
         name: "test",
         docs: "Test plugin",
-        schema: execBuildActionSchema(),
+        schema: joi.object().zodSchema(execBuildSpecSchema),
         handlers: {
           publish: async (params: PublishActionParams) => {
             return {
@@ -86,7 +87,7 @@ const testProvider = createGardenPlugin({
   },
 })
 
-async function getTestGarden(plugin: GardenPlugin = testProvider) {
+async function getTestGarden(plugin: GardenPluginSpec = testProvider) {
   const garden = await makeTestGarden(projectRootB, { plugins: [plugin], onlySpecifiedPlugins: true })
   await garden.clearBuilds()
   return garden

@@ -8,7 +8,7 @@
 
 import {
   PluginMap,
-  GardenPlugin,
+  GardenPluginSpec,
   ModuleTypeDefinition,
   ModuleTypeExtension,
   pluginSchema,
@@ -36,6 +36,7 @@ import type {
   ManyActionTypeExtensions,
 } from "./plugin/action-types"
 import { ObjectSchema } from "@hapi/joi"
+import { GardenSdkPlugin } from "./plugin/sdk"
 
 export async function loadAndResolvePlugins(
   log: Log,
@@ -50,9 +51,9 @@ export async function loadAndResolvePlugins(
 
 export function resolvePlugins(
   log: Log,
-  loadedPlugins: Dictionary<GardenPlugin>,
+  loadedPlugins: Dictionary<GardenPluginSpec>,
   configs: GenericProviderConfig[]
-): GardenPlugin[] {
+): GardenPluginSpec[] {
   const initializedPlugins: PluginMap = {}
   const validatePlugin = (name: string) => {
     if (initializedPlugins[name]) {
@@ -148,7 +149,7 @@ export function resolvePlugins(
 }
 
 function validateOutputSchemas(
-  plugin: GardenPlugin,
+  plugin: GardenPluginSpec,
   runtimeOutputsSchema?: ObjectSchema,
   staticOutputsSchema?: ObjectSchema
 ) {
@@ -169,7 +170,7 @@ function validateOutputSchemas(
 }
 
 export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: RegisterPluginParam) {
-  let plugin: GardenPlugin
+  let plugin: GardenPluginSpec
 
   if (isString(nameOrPlugin)) {
     let moduleNameOrLocation = nameOrPlugin
@@ -205,10 +206,12 @@ export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: Re
     }
 
     plugin = pluginModule.gardenPlugin
+  } else if (nameOrPlugin instanceof GardenSdkPlugin) {
+    plugin = nameOrPlugin.getSpec()
   } else if (nameOrPlugin["callback"]) {
     plugin = (<GardenPluginReference>nameOrPlugin).callback()
   } else {
-    plugin = <GardenPlugin>nameOrPlugin
+    plugin = <GardenPluginSpec>nameOrPlugin
   }
 
   log.silly(`Loaded plugin ${plugin.name}`)
@@ -248,7 +251,11 @@ export function getDependencyOrder(loadedPlugins: PluginMap): string[] {
 }
 
 // Takes a plugin and resolves it against its base plugin, if applicable
-function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: GenericProviderConfig[]): GardenPlugin {
+function resolvePlugin(
+  plugin: GardenPluginSpec,
+  loadedPlugins: PluginMap,
+  configs: GenericProviderConfig[]
+): GardenPluginSpec {
   if (!plugin.base) {
     return plugin
   }
@@ -260,7 +267,6 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
   const baseIsConfigured = getNames(configs).includes(plugin.base)
 
   const resolved = {
-    outputsSchema: base.outputsSchema,
     ...plugin,
   }
 
@@ -404,7 +410,7 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
 /**
  * Recursively resolves all the bases for the given plugin.
  */
-export function getPluginBases(plugin: GardenPlugin, loadedPlugins: PluginMap): GardenPlugin[] {
+export function getPluginBases(plugin: GardenPluginSpec, loadedPlugins: PluginMap): GardenPluginSpec[] {
   if (!plugin.base) {
     return []
   }
@@ -452,7 +458,7 @@ export function getActionTypeBases(
  * Recursively get all declared dependencies for the given plugin,
  * i.e. direct dependencies, and dependencies of those dependencies etc.
  */
-export function getPluginDependencies(plugin: GardenPlugin, loadedPlugins: PluginMap): GardenPlugin[] {
+export function getPluginDependencies(plugin: GardenPluginSpec, loadedPlugins: PluginMap): GardenPluginSpec[] {
   return uniq(
     flatten(
       (plugin.dependencies || []).map((dep) => {
@@ -476,7 +482,7 @@ export type ActionTypeMap<T> = {
 }
 
 export type ActionTypeDefinitionMap<K extends ActionKind> = {
-  [type: string]: { spec: ActionTypeDefinitions[K]; plugin: GardenPlugin }
+  [type: string]: { spec: ActionTypeDefinitions[K]; plugin: GardenPluginSpec }
 }
 
 export type ActionDefinitionMap = {
@@ -486,7 +492,7 @@ export type ActionDefinitionMap = {
 /**
  * Returns all the action types defined in the given list of plugins.
  */
-export function getActionTypes(plugins: GardenPlugin[]): ActionDefinitionMap {
+export function getActionTypes(plugins: GardenPluginSpec[]): ActionDefinitionMap {
   const map: ActionDefinitionMap = {
     Build: {},
     Deploy: {},
@@ -516,8 +522,8 @@ function resolveActionTypeDefinitions<K extends ActionKind>({
 }): PluginMap {
   // Collect module type declarations
   const graph = new DependencyGraph()
-  const definitionMap: { [type: string]: { plugin: GardenPlugin; spec: ActionTypeDefinitions[K] }[] } = {}
-  const extensionMap: { [type: string]: { plugin: GardenPlugin; spec: ActionTypeExtensions[K] }[] } = {}
+  const definitionMap: { [type: string]: { plugin: GardenPluginSpec; spec: ActionTypeDefinitions[K] }[] } = {}
+  const extensionMap: { [type: string]: { plugin: GardenPluginSpec; spec: ActionTypeExtensions[K] }[] } = {}
 
   for (const plugin of Object.values(resolvedPlugins)) {
     for (const spec of plugin.createActionTypes[kind]) {
@@ -649,7 +655,7 @@ function resolveActionDefinition<K extends ActionKind>({
   definitions,
   resolvedPlugins,
 }: {
-  plugin: GardenPlugin
+  plugin: GardenPluginSpec
   kind: K
   spec: ActionTypeDefinitions[K]
   definitions: ActionTypeDefinitionMap<K>
@@ -736,7 +742,7 @@ function resolveActionDefinition<K extends ActionKind>({
 /**
  * Returns all the module types defined in the given list of plugins.
  */
-export function getModuleTypes(plugins: GardenPlugin[]): ModuleTypeMap {
+export function getModuleTypes(plugins: GardenPluginSpec[]): ModuleTypeMap {
   const definitions = flatten(plugins.map((p) => p.createModuleTypes.map((spec) => ({ ...spec, plugin: p }))))
   const extensions = flatten(plugins.map((p) => p.extendModuleTypes))
 
@@ -751,15 +757,15 @@ export function getModuleTypes(plugins: GardenPlugin[]): ModuleTypeMap {
 }
 
 interface ModuleDefinitionMap {
-  [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeDefinition }
+  [moduleType: string]: { plugin: GardenPluginSpec; spec: ModuleTypeDefinition }
 }
 
 // TODO: deduplicate from action resolution above
 function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericProviderConfig[]): PluginMap {
   // Collect module type declarations
   const graph = new DependencyGraph()
-  const moduleDefinitionMap: { [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeDefinition }[] } = {}
-  const moduleExtensionMap: { [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeExtension }[] } = {}
+  const moduleDefinitionMap: { [moduleType: string]: { plugin: GardenPluginSpec; spec: ModuleTypeDefinition }[] } = {}
+  const moduleExtensionMap: { [moduleType: string]: { plugin: GardenPluginSpec; spec: ModuleTypeExtension }[] } = {}
 
   for (const plugin of Object.values(resolvedPlugins)) {
     for (const spec of plugin.createModuleTypes) {
@@ -870,7 +876,7 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericPr
 
 // TODO: deduplicate from action resolution above
 function resolveModuleDefinition(
-  plugin: GardenPlugin,
+  plugin: GardenPluginSpec,
   spec: ModuleTypeDefinition,
   definitions: ModuleDefinitionMap,
   resolvedPlugins: PluginMap

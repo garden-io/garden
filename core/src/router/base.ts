@@ -16,7 +16,7 @@ import type {
   ResolvedActionHandlerDescription,
   WrappedActionHandler,
 } from "../plugin/base"
-import type { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
+import type { GardenPluginSpec, ActionHandler, PluginMap } from "../plugin/plugin"
 import type { PluginContext, PluginEventBroker } from "../plugin-context"
 import type { ConfigContext } from "../config/template-contexts/base"
 import type { BaseAction } from "../actions/base"
@@ -46,8 +46,8 @@ export type RequirePluginName<T> = T & { pluginName: string }
 
 export interface BaseRouterParams {
   garden: Garden
-  configuredPlugins: GardenPlugin[]
-  loadedPlugins: GardenPlugin[]
+  configuredPlugins: GardenPluginSpec[]
+  loadedPlugins: GardenPluginSpec[]
 }
 
 /**
@@ -55,7 +55,7 @@ export interface BaseRouterParams {
  */
 export abstract class BaseRouter {
   protected readonly garden: Garden
-  protected readonly configuredPlugins: GardenPlugin[]
+  protected readonly configuredPlugins: GardenPluginSpec[]
   protected readonly loadedPlugins: PluginMap
 
   constructor(params: BaseRouterParams) {
@@ -348,7 +348,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
   }
 
   private addHandler<T extends keyof ActionTypeClasses<K>>(
-    plugin: GardenPlugin,
+    plugin: GardenPluginSpec,
     handlerType: T,
     actionType: string,
     handler: GetActionTypeHandler<ActionTypeClasses<K>[T], any>

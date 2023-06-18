@@ -19,7 +19,7 @@ import { PluginActionParamsBase } from "../plugin/base"
 import {
   ProviderActionOutputs,
   ProviderActionParams,
-  GardenPlugin,
+  GardenPluginSpec,
   WrappedActionHandler,
   getProviderActionDescriptions,
   ResolvedActionHandlerDescriptions,
@@ -133,7 +133,6 @@ export class ProviderRouter extends BaseRouter {
       defaultHandler: async () => ({ status: { ready: true, outputs: {} } }),
     })
 
-
     return res
   }
 
@@ -147,7 +146,6 @@ export class ProviderRouter extends BaseRouter {
       params: omit(params, ["pluginName"]),
       defaultHandler: async () => ({}),
     })
-
 
     return res
   }
@@ -231,7 +229,7 @@ export class ProviderRouter extends BaseRouter {
   }
 
   private addPluginHandler<T extends keyof WrappedPluginHandlers>(
-    plugin: GardenPlugin,
+    plugin: GardenPluginSpec,
     handlerType: T,
     handler: ProviderHandlers[T]
   ) {

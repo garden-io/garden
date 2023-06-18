@@ -562,9 +562,7 @@ describe("actionConfigsToGraph", () => {
           },
           spec: {
             // Set so that sync comes up as a supported mode
-            syncMode: {
-              deployCommand: ["echo"],
-            },
+            persistent: true,
           },
         },
       ],

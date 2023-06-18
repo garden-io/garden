@@ -27,10 +27,14 @@ providers:
     name:
 
     # List other providers that should be resolved before this one.
+    #
+    # Example: `["exec"]`
     dependencies: []
 
     # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
     # disables the provider. To use a provider in all environments, omit this field.
+    #
+    # Example: `["dev","stage"]`
     environments:
 
     # By default, the provider automatically creates a `hadolint` Test for every `container` Build in your
@@ -65,6 +69,8 @@ The name of the provider plugin to use.
 
 List other providers that should be resolved before this one.
 
+Example: `["exec"]`
+
 | Type    | Default | Required |
 | ------- | ------- | -------- |
 | `array` | `[]`    | No       |
@@ -74,6 +80,8 @@ List other providers that should be resolved before this one.
 [providers](#providers) > environments
 
 If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
+
+Example: `["dev","stage"]`
 
 | Type    | Required |
 | ------- | -------- |
