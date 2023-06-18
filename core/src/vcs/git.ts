@@ -38,6 +38,10 @@ const gitSafeDirs = new Set<string>()
 let gitSafeDirsRead = false
 let staticDirSafe = false
 
+interface GitEntry extends VcsFile {
+  mode: string
+}
+
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
     return refList[0].split("\t")[0]
@@ -67,11 +71,6 @@ export interface GitCli {
 interface Submodule {
   path: string
   url: string
-}
-
-interface FileEntry {
-  path: string
-  hash: string
 }
 
 // TODO Consider moving git commands to separate (and testable) functions
@@ -323,10 +322,13 @@ export class GitHandler extends VcsHandler {
     // Make sure we have a fresh hash for each file
     let count = 0
 
-    const ensureHash = (entry: FileEntry, stats: Stats, reject: (err: Error) => void) => {
+    const ensureHash = (entry: VcsFile, stats: Stats | undefined, reject: (err: Error) => void) => {
       if (entry.hash === "" || modified.has(entry.path)) {
-        // Don't attempt to hash directories. Directories will by extension be filtered out of the list.
-        if (!stats.isDirectory()) {
+        // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
+        // will by extension be filtered out of the list.
+        if (!stats) {
+        }
+        if (stats && !stats.isDirectory()) {
           return this.hashObject(stats, entry.path, (err, hash) => {
             if (err) {
               return reject(err)
@@ -345,7 +347,7 @@ export class GitHandler extends VcsHandler {
 
     // This function is called for each line output from the ls-files commands that we run, and populates the
     // `files` array.
-    const handleEntry = (entry: VcsFile | undefined, reject: (err: Error) => void) => {
+    const handleEntry = (entry: GitEntry | undefined, reject: (err: Error) => void) => {
       if (!entry) {
         return
       }
@@ -370,6 +372,12 @@ export class GitHandler extends VcsHandler {
 
       // We push to the output array if it passes through the exclude filters.
       const output = { path: resolvedPath, hash: hash || "" }
+
+      // No need to stat unless it has no hash, is a symlink, or is modified
+      // Note: git ls-files always returns mode 120000 for symlinks
+      if (hash && entry.mode !== "120000" && !modified.has(resolvedPath)) {
+        return ensureHash(output, undefined, reject)
+      }
 
       return lstat(resolvedPath, (err, stats) => {
         if (err) {
@@ -774,13 +782,14 @@ export async function augmentGlobs(basePath: string, globs?: string[]) {
   })
 }
 
-const parseLine = (data: Buffer): VcsFile | undefined => {
+const parseLine = (data: Buffer): GitEntry | undefined => {
   const line = data.toString().trim()
   if (!line) {
     return undefined
   }
 
   let filePath: string
+  let mode = ""
   let hash = ""
 
   const split = line.trim().split("\t")
@@ -790,8 +799,10 @@ const parseLine = (data: Buffer): VcsFile | undefined => {
     filePath = split[0]
   } else {
     filePath = split[1]
-    hash = split[0].split(" ")[1]
+    const info = split[0].split(" ")
+    mode = info[0]
+    hash = info[1]
   }
 
-  return { path: filePath, hash }
+  return { path: filePath, hash, mode }
 }
