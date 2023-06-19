@@ -201,6 +201,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     garden,
     config: inputConfig,
     router,
+    mode,
     log,
   })
 
@@ -454,12 +455,14 @@ function getActionSchema(kind: ActionKind) {
 const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
   garden,
   config,
+  mode,
   router,
   log,
 }: {
   garden: Garden
   config: ActionConfig
   router: ActionRouter
+  mode: ActionMode
   log: Log
 }) {
   const description = describeActionConfig(config)
@@ -469,7 +472,14 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
     // Partially resolve inputs
     const partiallyResolvedInputs = resolveTemplateStrings(
       config.internal.inputs || {},
-      new ActionConfigContext(garden, { ...config, internal: { ...config.internal, inputs: {} } }),
+      new ActionConfigContext(
+        garden,
+        { ...config, internal: { ...config.internal, inputs: {} } },
+        {
+          mode,
+          name: config.name,
+        }
+      ),
       {
         allowPartial: true,
       }
@@ -498,7 +508,7 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
   }
 
   const builtinConfigKeys = getBuiltinConfigContextKeys()
-  const builtinFieldContext = new ActionConfigContext(garden, config)
+  const builtinFieldContext = new ActionConfigContext(garden, config, { mode, name: config.name })
 
   function resolveTemplates() {
     // Fully resolve built-in fields that only support ProjectConfigContext

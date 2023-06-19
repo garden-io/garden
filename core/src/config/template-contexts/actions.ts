@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { merge } from "lodash"
-import { Action, ExecutedAction, ResolvedAction } from "../../actions/types"
+import { Action, ActionMode, ExecutedAction, ResolvedAction } from "../../actions/types"
 import { Garden } from "../../garden"
 import { GardenModule } from "../../types/module"
 import { deline } from "../../util/string"
@@ -26,12 +26,50 @@ import { ConfigContext, ErrorContext, schema, ParentContext, TemplateContext } f
 import { exampleVersion, OutputConfigContext } from "./module"
 import { TemplatableConfigContext } from "./project"
 import { DOCS_BASE_URL } from "../../constants"
+import type { ActionConfig } from "../../actions/types"
+import type { WorkflowConfig } from "../workflow"
+
+type ActionConfigThisContextParams = Pick<ActionReferenceContextParams, "name" | "mode">
+
+const actionNameSchema = joiIdentifier().description(`The name of the action.`)
+
+const actionModeSchema = joi
+  .string()
+  .required()
+  .default("default")
+  .allow("default", "sync", "local")
+  .description(
+    "The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used."
+  )
+  .example("sync")
+
+class ActionConfigThisContext extends ConfigContext {
+  @schema(actionNameSchema)
+  public name: string
+  @schema(actionModeSchema)
+  public mode: ActionMode
+
+  constructor(root: ConfigContext, { name, mode }: ActionConfigThisContextParams) {
+    super(root)
+    this.name = name
+    this.mode = mode
+  }
+}
 
 /**
  * This is available to built-in fields on action configs. See ActionSpecContext below for the context available
  * for action spec and variables.
  */
-export class ActionConfigContext extends TemplatableConfigContext {}
+export class ActionConfigContext extends TemplatableConfigContext {
+  @schema(ActionConfigThisContext.getSchema().description("Information about the action currently being resolved."))
+  public this: ActionConfigThisContext
+
+  constructor(garden: Garden, config: ActionConfig | WorkflowConfig, params: ActionConfigThisContextParams) {
+    super(garden, config)
+    const { name, mode } = params
+    this.this = new ActionConfigThisContext(this, params)
+  }
+}
 
 interface ActionReferenceContextParams {
   root: ConfigContext
@@ -39,12 +77,12 @@ interface ActionReferenceContextParams {
   disabled: boolean
   buildPath: string
   sourcePath: string
-  mode: string
+  mode: ActionMode
   variables: DeepPrimitiveMap
 }
 
 export class ActionReferenceContext extends ConfigContext {
-  @schema(joiIdentifier().description(`The name of the action.`))
+  @schema(actionNameSchema)
   public name: string
 
   @schema(joi.boolean().required().description("Whether the action is disabled.").example(true))
@@ -68,18 +106,8 @@ export class ActionReferenceContext extends ConfigContext {
   )
   public sourcePath: string
 
-  @schema(
-    joi
-      .string()
-      .required()
-      .default("default")
-      .allow("default", "sync", "local")
-      .description(
-        "The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used."
-      )
-      .example("sync")
-  )
-  public mode: string
+  @schema(actionModeSchema)
+  public mode: ActionMode
 
   @schema(joiVariables().required().description("The variables configured on the action.").example({ foo: "bar" }))
   public var: DeepPrimitiveMap
