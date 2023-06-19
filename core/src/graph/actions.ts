@@ -472,14 +472,14 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
     // Partially resolve inputs
     const partiallyResolvedInputs = resolveTemplateStrings(
       config.internal.inputs || {},
-      new ActionConfigContext(
+      new ActionConfigContext({
         garden,
-        { ...config, internal: { ...config.internal, inputs: {} } },
-        {
+        config: { ...config, internal: { ...config.internal, inputs: {} } },
+        thisContextParams: {
           mode,
           name: config.name,
-        }
-      ),
+        },
+      }),
       {
         allowPartial: true,
       }
@@ -508,7 +508,14 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
   }
 
   const builtinConfigKeys = getBuiltinConfigContextKeys()
-  const builtinFieldContext = new ActionConfigContext(garden, config, { mode, name: config.name })
+  const builtinFieldContext = new ActionConfigContext({
+    garden,
+    config,
+    thisContextParams: {
+      mode,
+      name: config.name,
+    },
+  })
 
   function resolveTemplates() {
     // Fully resolve built-in fields that only support ProjectConfigContext
