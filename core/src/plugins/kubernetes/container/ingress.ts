@@ -269,7 +269,8 @@ async function pickCertificate(
   provider: KubernetesProvider,
   hostname: string
 ): Promise<IngressTlsCertificate | undefined> {
-  for (const cert of provider.config.tlsCertificates) {
+  const certs = provider.config.tlsCertificates || []
+  for (const cert of certs) {
     const certHostnames = await getCertificateHostnames(api, cert)
 
     for (const certHostname of certHostnames) {

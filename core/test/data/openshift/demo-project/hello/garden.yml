@@ -8,3 +8,7 @@ spec:
     - name: http
       containerPort: 8080
       localPort: 8080
+  ingresses:
+    - path: /
+      port: http
+      hostname: hello.local.demo.garden
