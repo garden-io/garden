@@ -20,7 +20,7 @@ import type { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
 import type { PluginContext, PluginEventBroker } from "../plugin-context"
 import type { ConfigContext } from "../config/template-contexts/base"
 import type { BaseAction } from "../actions/base"
-import type { ActionKind, ActionMode, BaseActionConfig, Resolved } from "../actions/types"
+import type { ActionKind, BaseActionConfig, Resolved } from "../actions/types"
 import {
   ActionTypeDefinition,
   ActionClassMap,
@@ -39,7 +39,6 @@ import { defaultProvider } from "../config/provider"
 import type { ConfigGraph } from "../graph/config-graph"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import type { NamespaceStatus } from "../types/namespace"
-import { isDeployAction } from "../actions/deploy"
 import { TemplatableConfigContext } from "../config/template-contexts/project"
 
 export type CommonParams = keyof PluginActionContextParams
@@ -284,10 +283,6 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       defaultHandler,
     })
 
-    let mode: ActionMode
-    if (isDeployAction(action)) {
-      const spec = action.getConfig("spec")
-    }
     const providers = await this.garden.resolveProviders(log)
     const templateContext = action.isResolved()
       ? new ActionSpecContext({
