@@ -230,7 +230,8 @@ export abstract class VcsHandler {
           // Don't include the config file in the file list
           .filter((f) => !configPath || f.path !== configPath)
 
-        result.contentHash = hashStrings(files.map((f) => f.hash))
+        // compute hash using <file-relative-path>-<file-hash> to cater for path changes (e.g. renaming)
+        result.contentHash = hashStrings(files.map((f) => `${relative(this.projectRoot, f.path)}-${f.hash}`))
         result.files = files.map((f) => f.path)
       }
 

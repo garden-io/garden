@@ -31,7 +31,7 @@ import { GitHandler } from "../../../../src/vcs/git"
 import { resolve, join } from "path"
 import td from "testdouble"
 import tmp from "tmp-promise"
-import { realpath, readFile, writeFile, rm } from "fs-extra"
+import { realpath, readFile, writeFile, rm, rename } from "fs-extra"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_VERSIONFILE_NAME, GardenApiVersion } from "../../../../src/constants"
 import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs"
 import { Log, createActionLog } from "../../../../src/logger/log-entry"
@@ -95,7 +95,6 @@ describe("VcsHandler", () => {
   })
 
   describe("getTreeVersion", () => {
-
     it("should sort the list of files in the returned version", async () => {
       const moduleConfig = await gardenA.resolveModule("module-a")
       handlerA.getFiles = async () => [
@@ -354,6 +353,33 @@ describe("VcsHandler", () => {
         await rm(newFilePath)
       }
     })
+
+    it("should update content hash, when a file is renamed", async () => {
+      const projectRoot = getDataDir("test-projects", "include-exclude")
+      const garden = await makeTestGarden(projectRoot)
+      const newFilePathModuleA = join(garden.projectRoot, "module-a", "somedir", "foo")
+      const renamedFilePathModuleA = join(garden.projectRoot, "module-a", "somedir", "bar")
+      try {
+        await writeFile(newFilePathModuleA, "abcd")
+        const moduleConfigA1 = await garden.resolveModule("module-a")
+        const version1 = await garden.vcs.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: moduleConfigA1,
+        })
+        // rename file foo to bar
+        await rename(newFilePathModuleA, renamedFilePathModuleA)
+        const version2 = await garden.vcs.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: moduleConfigA1,
+          force: true,
+        })
+        expect(version1).to.not.eql(version2)
+      } finally {
+        await rm(renamedFilePathModuleA)
+      }
+    })
   })
 })
 
@@ -445,7 +471,7 @@ describe("getModuleVersionString", () => {
     const garden = await makeTestGarden(projectRoot, { noCache: true })
     const module = await garden.resolveModule("module-a")
 
-    const fixedVersionString = "v-d3e58c6cb9"
+    const fixedVersionString = "v-e3eed855ed"
     expect(module.version.versionString).to.eql(fixedVersionString)
 
     delete process.env.TEST_ENV_VAR
