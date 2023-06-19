@@ -238,10 +238,6 @@ export class ResolvedBuildAction<
   getOutputs() {
     return this._staticOutputs
   }
-
-  getVariables() {
-    return this.variables
-  }
 }
 
 export class ExecutedBuildAction<
