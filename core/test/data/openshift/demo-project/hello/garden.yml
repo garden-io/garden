@@ -2,8 +2,9 @@ kind: Deploy
 type: container
 name: nginx-hello
 spec:
-  image: nginx:latest
+  image: registry.access.redhat.com/ubi9/nginx-122:1-12
+  command: ["nginx", "-g", "daemon off;"]
   ports:
     - name: http
-      containerPort: 80
+      containerPort: 8080
       localPort: 8080
