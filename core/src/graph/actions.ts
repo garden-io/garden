@@ -53,7 +53,7 @@ import {
   resolveTemplateStrings,
 } from "../template-string/template-string"
 import { dedent, deline, naturalList } from "../util/string"
-import { resolveVariables } from "./common"
+import { mergeVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
 import chalk from "chalk"
@@ -266,7 +266,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
   const treeVersion = config.internal.treeVersion || (await garden.vcs.getTreeVersion(log, garden.projectName, config))
 
-  const variables = await resolveVariables({
+  const variables = await mergeVariables({
     basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: config.varfiles,

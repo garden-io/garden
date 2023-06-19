@@ -15,7 +15,7 @@ import { InternalError } from "../exceptions"
 import { validateWithPath } from "../config/validation"
 import { DeepPrimitiveMap } from "../config/common"
 import { merge } from "lodash"
-import { resolveVariables } from "../graph/common"
+import { mergeVariables } from "../graph/common"
 import { actionToResolved } from "../actions/helpers"
 import { ResolvedConfigGraph } from "../graph/config-graph"
 
@@ -118,13 +118,13 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       const group = this.graph.getGroup(groupName)
 
       groupVariables = resolveTemplateStrings(
-        await resolveVariables({ basePath: group.path, variables: group.variables, varfiles: group.varfiles }),
+        await mergeVariables({ basePath: group.path, variables: group.variables, varfiles: group.varfiles }),
         inputsContext
       )
     }
 
     const actionVariables = resolveTemplateStrings(
-      await resolveVariables({
+      await mergeVariables({
         basePath: action.basePath(),
         variables: config.variables,
         varfiles: config.varfiles,
