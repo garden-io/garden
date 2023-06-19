@@ -292,19 +292,4 @@ export class ModuleConfigContext extends OutputConfigContext {
 
     this.this = new ModuleThisContext({ root: this, buildPath, name, path })
   }
-
-  static fromModule(params: Omit<ModuleConfigContextParams, "buildPath"> & { module: GardenModule }) {
-    const { module, garden } = params
-
-    return new ModuleConfigContext({
-      ...params,
-      name: module.name,
-      path: module.path,
-      buildPath: module.buildPath,
-      parentName: module.parentName,
-      templateName: module.templateName,
-      inputs: module.inputs,
-      variables: { ...garden.variables, ...module.variables },
-    })
-  }
 }

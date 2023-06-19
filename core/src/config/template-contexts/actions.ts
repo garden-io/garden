@@ -67,7 +67,6 @@ export class ActionConfigContext extends TemplatableConfigContext {
 
   constructor(garden: Garden, config: ActionConfig | WorkflowConfig, params: ActionConfigThisContextParams) {
     super(garden, config)
-    const { name, mode } = params
     this.this = new ActionConfigThisContext(this, params)
   }
 }
