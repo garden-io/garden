@@ -40,6 +40,7 @@ import { TemplatableConfigContext } from "@garden-io/core/build/src/config/templ
 import { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base"
 import { deletePulumiDeploy } from "./handlers"
 import { ActionLog, createActionLog, Log } from "@garden-io/core/build/src/logger/log-entry"
+import { ActionConfigContext } from "@garden-io/core/build/src/config/template-contexts/actions"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 
@@ -171,7 +172,10 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
 
 const makePluginContextForDeploy = async (params: PulumiParams & { garden: Garden; graph: ConfigGraph }) => {
   const { garden, provider, ctx, action } = params
-  const templateContext = new TemplatableConfigContext(garden, action.getConfig())
+  const templateContext = new ActionConfigContext(garden, action.getConfig(), {
+    name: action.name,
+    mode: action.mode(),
+  })
   const ctxForDeploy = await garden.getPluginContext({ provider, templateContext, events: ctx.events })
   return ctxForDeploy
 }
