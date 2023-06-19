@@ -46,6 +46,7 @@ const actionModeSchema = joi
 class ActionConfigThisContext extends ConfigContext {
   @schema(actionNameSchema)
   public name: string
+
   @schema(actionModeSchema)
   public mode: ActionMode
 
