@@ -383,7 +383,7 @@ describe("KubeApi", () => {
         await api.request({
           log,
           path: "",
-          retryOpts: { maxRetries: 0, minTimeoutMs: 0 },
+          retryOpts: { maxRetries: 1, minTimeoutMs: 0 },
         })
       } catch {}
       expect(wasRetried).to.eql(false)
@@ -409,7 +409,7 @@ describe("KubeApi", () => {
           log,
           path: "",
           opts: { body: { msg: "unrelated error" } },
-          retryOpts: { maxRetries: 0, minTimeoutMs: 0 },
+          retryOpts: { maxRetries: 1, minTimeoutMs: 0 },
         })
       } catch {}
       expect(wasRetried).to.eql(false)
