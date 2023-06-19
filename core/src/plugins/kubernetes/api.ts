@@ -319,7 +319,7 @@ export class KubeApi {
     log: Log
     path: string
     opts?: Omit<request.OptionsWithUrl, "url">
-    retryOpts?: retryOpts
+    retryOpts?: RetryOpts
   }): Promise<any> {
     const baseUrl = this.config.getCurrentCluster()!.server
     const url = urlJoin(baseUrl, path)
@@ -984,7 +984,7 @@ function handleRequestPromiseError(name: string, err: Error) {
   }
 }
 
-type retryOpts = { maxRetries?: number; minTimeoutMs?: number }
+type RetryOpts = { maxRetries?: number; minTimeoutMs?: number }
 
 /**
  * Helper function for retrying failed k8s API requests, using exponential backoff.
@@ -997,7 +997,7 @@ type retryOpts = { maxRetries?: number; minTimeoutMs?: number }
  * The rationale here is that some errors occur because of network issues, intermittent timeouts etc.
  * and should be retried automatically.
  */
-async function requestWithRetry<R>(log: Log, description: string, req: () => Promise<R>, opts?: retryOpts): Promise<R> {
+async function requestWithRetry<R>(log: Log, description: string, req: () => Promise<R>, opts?: RetryOpts): Promise<R> {
   const maxRetries = opts?.maxRetries ?? 5
   const minTimeoutMs = opts?.minTimeoutMs ?? 500
   let retryLog: Log | undefined = undefined
