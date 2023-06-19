@@ -492,6 +492,7 @@ export async function getRunningDeploymentPod({
   const pod = sample(pods.filter((p) => checkPodStatus(p) === "ready"))
   if (!pod) {
     throw new PluginError(`Could not find a running Pod in Deployment ${deploymentName}`, {
+      name: "kubernetes",
       deploymentName,
       namespace,
     })

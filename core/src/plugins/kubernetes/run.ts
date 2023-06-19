@@ -773,6 +773,7 @@ export class PodRunner extends PodRunnerParams {
 
     if (!spec.containers || spec.containers.length === 0) {
       throw new PluginError(`Pod spec for PodRunner must contain at least one container`, {
+        name: "kubernetes",
         spec,
       })
     }
@@ -1187,7 +1188,7 @@ export class PodRunner extends PodRunnerParams {
   }) {
     // Some types and predicates to identify known errors
     const knownErrorTypes = ["out-of-memory", "not-found", "timeout", "pod-runner", "kubernetes"] as const
-    type KnownErrorType = typeof knownErrorTypes[number]
+    type KnownErrorType = (typeof knownErrorTypes)[number]
     // A known error is always an instance of a subclass of GardenBaseError
     type KnownError = Error & {
       message: string

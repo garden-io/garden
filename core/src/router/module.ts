@@ -186,7 +186,7 @@ export class ModuleRouter extends BaseRouter {
             {
               args,
               handlerType,
-              pluginName,
+              name: pluginName,
             }
           )
         }
@@ -320,7 +320,7 @@ export class ModuleRouter extends BaseRouter {
       if (pluginName) {
         throw new PluginError(
           `Plugin '${pluginName}' does not have a '${handlerType}' handler for module type '${moduleType}'.`,
-          errorDetails
+          { name: pluginName, errorDetails }
         )
       } else {
         throw new ParameterError(

@@ -566,7 +566,7 @@ export class Garden {
         `Could not find plugin '${pluginName}'. Are you missing a provider configuration? ` +
           `Currently configured plugins: ${availablePlugins.join(", ")}`,
         {
-          pluginName,
+          name: pluginName,
           availablePlugins,
         }
       )
@@ -736,9 +736,10 @@ export class Garden {
 
       if (cycles.length > 0) {
         const description = validationGraph.cyclesToString(cycles)
+        // TODO: Is this a PluginError?
         throw new PluginError(
           `One or more circular dependencies found between providers or their configurations:\n\n${description}`,
-          { "circular-dependencies": description }
+          { "circular-dependencies": description, "name": "plugin-resolver" }
         )
       }
 
@@ -768,6 +769,7 @@ export class Garden {
         const messages = failed.map((r) => `- ${r!.name}: ${r!.error!.message}`)
         const failedNames = failed.map((r) => r!.name)
         throw new PluginError(`Failed resolving one or more providers:\n- ${failedNames.join("\n- ")}`, {
+          name: "garden",
           rawConfigs,
           taskResults,
           messages,
@@ -1063,7 +1065,7 @@ export class Garden {
               )}' on '${actionReferenceToString(dependency.on)}'
                 but action '${actionReferenceToString(dependency[key])}' could not be found.
               `,
-              { provider, dependency }
+              { name: provider.name, provider, dependency }
             )
           }
         }
@@ -1313,7 +1315,7 @@ export class Garden {
         }
 
         for (const config of actionConfigs) {
-          this.addActionConfig((config as unknown) as BaseActionConfig)
+          this.addActionConfig(config as unknown as BaseActionConfig)
           actionsCount++
         }
       }

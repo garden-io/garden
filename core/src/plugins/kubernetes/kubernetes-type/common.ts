@@ -60,6 +60,7 @@ export async function getManifests({
         return manifest.items as KubernetesResource[]
       } else {
         throw new PluginError("Failed to read Kubernetes manifest: Encountered an invalid List manifest", {
+          name: "kubernetes",
           manifest,
         })
       }
@@ -163,6 +164,8 @@ export async function readManifests(
       kustomizeManifests = loadAll(kustomizeOutput)
     } catch (error) {
       throw new PluginError(`Failed resolving kustomize manifests: ${error.message}`, {
+        name: "kubernetes",
+        command: "kustomize",
         error,
         spec,
       })
@@ -182,7 +185,7 @@ export function gardenNamespaceAnnotationValue(namespaceName: string) {
 
 export function convertServiceResource(
   module: KubernetesModule | HelmModule,
-  serviceResourceSpec?: ServiceResourceSpec,
+  serviceResourceSpec?: ServiceResourceSpec
 ): KubernetesTargetResourceSpec | null {
   const s = serviceResourceSpec || module.spec.serviceResource
 

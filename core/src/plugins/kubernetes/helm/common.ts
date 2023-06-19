@@ -220,7 +220,7 @@ export function getBaseModule(module: HelmModule): HelmModule | undefined {
     throw new PluginError(
       deline`Helm module '${module.name}' references base module '${module.spec.base}'
       but it is missing from the module's build dependencies.`,
-      { moduleName: module.name, baseModuleName: module.spec.base }
+      { name: "kubernetes", command: "helm", moduleName: module.name, baseModuleName: module.spec.base }
     )
   }
 

@@ -18,6 +18,13 @@ export interface GardenError<D extends object = any> extends Error {
   stack?: string
 }
 
+interface GardenErrorDetailBase {
+  name: string
+  command?: string
+  actionKind?: string
+  [key: string]: any
+}
+
 export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
   abstract type: string
 
@@ -84,6 +91,11 @@ export class ValidationError extends GardenBaseError {
 
 export class PluginError extends GardenBaseError {
   type = "plugin"
+  detail: GardenErrorDetailBase
+
+  constructor(message: string, detail: GardenErrorDetailBase) {
+    super(message, detail)
+  }
 }
 
 export class ParameterError extends GardenBaseError {

@@ -42,7 +42,9 @@ export const pullImage: PluginCommand = {
 
     if (provider.config.buildMode === "local-docker") {
       throw new PluginError(`Cannot pull images with buildMode=local-docker`, {
-        provider,
+        ...provider,
+        name: "kubernetes",
+        command: ctx.command.name,
       })
     }
 

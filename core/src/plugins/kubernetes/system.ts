@@ -136,6 +136,7 @@ export async function prepareSystemServices({
 
     if (error) {
       throw new PluginError(`${provider.name} — an error occurred when configuring environment:\n${error}`, {
+        name: "kubernetes",
         error,
         results,
       })

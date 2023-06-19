@@ -473,7 +473,7 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
   try {
     parsed = JSON.parse(result.stdout)
   } catch (err) {
-    throw new PluginError(`Error running conftest: ${result.all}`, { result })
+    throw new PluginError(`Error running conftest: ${result.all}`, { ...result, name: "conftest" })
   }
 
   const allFailures = parsed.filter((p: any) => p.failures?.length > 0)

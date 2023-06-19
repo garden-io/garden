@@ -553,7 +553,14 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
     if (!isEqual(config[field], updatedConfig[field])) {
       throw new PluginError(
         `Configure handler for ${description} attempted to modify the ${field} field, which is not allowed. Please report this as a bug.`,
-        { config, field, original: config[field], modified: updatedConfig[field] }
+        {
+          name: "garden",
+          actionKind: config.kind,
+          config,
+          field,
+          original: config[field],
+          modified: updatedConfig[field],
+        }
       )
     }
   }

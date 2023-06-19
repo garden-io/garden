@@ -175,7 +175,13 @@ async function getIngress(
 
   if (!hostname) {
     // this should be caught when parsing the module
-    throw new PluginError(`Missing hostname in ingress spec`, { deploySpec: action.getSpec(), ingressSpec: spec })
+    throw new PluginError(`Missing hostname in ingress spec`, {
+      name: "kubernetes",
+      command: "ingress",
+      actionKind: action.kind,
+      deploySpec: action.getSpec(),
+      ingressSpec: spec,
+    })
   }
 
   const certificate = await pickCertificate(action, api, provider, hostname)

@@ -74,7 +74,12 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
   const { tarPath } = baseResult.details
 
   if (!tarPath) {
-    throw new PluginError(`Expected details.tarPath from the jib-container build handler.`, { baseResult })
+    throw new PluginError(`Expected details.tarPath from the jib-container build handler.`, {
+      ...baseResult,
+      name: "kubernetes",
+      actionKind: action.kind,
+      command: "jib-container",
+    })
   }
 
   // Push to util or buildkit deployment on remote, and push to registry from there to make sure auth/access is

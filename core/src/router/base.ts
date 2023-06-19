@@ -358,7 +358,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
             {
               args,
               handlerType,
-              pluginName,
+              name: pluginName,
             }
           )
         }
@@ -481,7 +481,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       if (pluginName) {
         throw new PluginError(
           `Plugin '${pluginName}' does not have a '${String(handlerType)}' handler for action type '${actionType}'.`,
-          errorDetails
+          { ...errorDetails, name: pluginName, actionKind: this.kind }
         )
       } else {
         throw new ParameterError(

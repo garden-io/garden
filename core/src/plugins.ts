@@ -75,7 +75,7 @@ export function resolvePlugins(
     if (plugin.base) {
       if (plugin.base === plugin.name) {
         throw new PluginError(`Plugin '${plugin.name}' references itself as a base plugin.`, {
-          pluginName: plugin.name,
+          name: plugin.name,
         })
       }
 
@@ -85,7 +85,7 @@ export function resolvePlugins(
         throw new PluginError(
           `Plugin '${plugin.name}' specifies plugin '${plugin.base}' as a base, ` +
             `but that plugin has not been registered.`,
-          { loadedPlugins: Object.keys(loadedPlugins), base: plugin.base }
+          { name: plugin.name, loadedPlugins: Object.keys(loadedPlugins), base: plugin.base }
         )
       }
 
@@ -102,7 +102,7 @@ export function resolvePlugins(
         throw new PluginError(
           `Plugin '${plugin.name}' lists plugin '${dep.name}' as a dependency,
           but that plugin has not been registered.`,
-          { loadedPlugins: Object.keys(loadedPlugins), dependency: dep }
+          { name: plugin.name, loadedPlugins: Object.keys(loadedPlugins), dependency: dep }
         )
       }
     }
@@ -154,7 +154,9 @@ function validateOutputSchemas(
 ) {
   const unknownFlagIsSet = staticOutputsSchema?.$_getFlag("unknown")
   if (unknownFlagIsSet) {
-    throw new PluginError(`Plugin '${plugin.name}' allows unknown keys in the staticOutputsSchema`, {})
+    throw new PluginError(`Plugin '${plugin.name}' allows unknown keys in the staticOutputsSchema`, {
+      name: plugin.name,
+    })
   }
 
   const runtimeSchema = Object.keys(runtimeOutputsSchema?.describe().keys || {})
@@ -163,7 +165,7 @@ function validateOutputSchemas(
   if (commonKeys.length > 0) {
     throw new PluginError(
       `Plugin '${plugin.name}' has overlapping keys in staticOutputsSchema and runtimeOutputsSchema`,
-      { commonKeys }
+      { name: plugin.name, commonKeys }
     )
   }
 }
@@ -199,6 +201,7 @@ export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: Re
       })
     } catch (err) {
       throw new PluginError(`Unable to load plugin: ${err}`, {
+        name: nameOrPlugin,
         moduleNameOrLocation,
         err,
       })
@@ -241,7 +244,10 @@ export function getDependencyOrder(loadedPlugins: PluginMap): string[] {
   if (cycles.length > 0) {
     const description = graph.cyclesToString(cycles)
     const detail = { "circular-dependencies": description }
-    throw new PluginError(`Found a circular dependency between registered plugins:\n\n${description}`, detail)
+    throw new PluginError(`Found a circular dependency between registered plugins:\n\n${description}`, {
+      ...detail,
+      name: "garden",
+    })
   }
 
   return graph.overallOrder()
@@ -325,7 +331,7 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
     if (findByName(plugin.createModuleTypes, spec.name)) {
       throw new PluginError(
         `Plugin '${plugin.name}' redeclares the '${spec.name}' module type, already declared by its base.`,
-        { plugin, base }
+        { name: plugin.name, plugin, base }
       )
     } else if (!baseIsConfigured) {
       // Base is not explicitly configured, so we pluck the module type definition
@@ -352,7 +358,7 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
       if (findByName(<any>plugin.createActionTypes[kind], spec.name)) {
         throw new PluginError(
           `Plugin '${plugin.name}' redeclares the '${spec.name}' ${kind} type, already declared by its base.`,
-          { plugin, base }
+          { name: plugin.name, plugin, base }
         )
       } else if (!baseIsConfigured) {
         // Base is not explicitly configured, so we pluck the action type definition
@@ -557,7 +563,7 @@ function resolveActionTypeDefinitions<K extends ActionKind>({
     const description = graph.cyclesToString(cycles)
     const detail = { "circular-dependencies": description }
     const msg = `Found circular dependency between ${kind} type bases:\n\n${description}`
-    throw new PluginError(msg, detail)
+    throw new PluginError(msg, { ...detail, name: "garden" })
   }
 
   const ordered = graph.overallOrder().filter((name) => name in definitionMap)
@@ -677,7 +683,7 @@ function resolveActionDefinition<K extends ActionKind>({
       which cannot be found. The plugin is likely missing a dependency declaration.
       Please report an issue with the author.
       `,
-      { type: spec.name, baseName: spec.base, pluginName: plugin.name }
+      { type: spec.name, baseName: spec.base, name: plugin.name }
     )
   }
 
@@ -699,7 +705,7 @@ function resolveActionDefinition<K extends ActionKind>({
       `,
       {
         type,
-        pluginName: plugin.name,
+        name: plugin.name,
         declaredByName: declaredBy,
         bases: pluginBases,
       }
@@ -799,7 +805,7 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericPr
     const description = graph.cyclesToString(cycles)
     const detail = { "circular-dependencies": description }
     const msg = `Found circular dependency between module type bases:\n\n${description}`
-    throw new PluginError(msg, detail)
+    throw new PluginError(msg, { ...detail, name: "garden" })
   }
 
   const ordered = graph.overallOrder().filter((name) => name in moduleDefinitionMap)
@@ -898,7 +904,7 @@ function resolveModuleDefinition(
       which cannot be found. The plugin is likely missing a dependency declaration.
       Please report an issue with the author.
       `,
-      { moduleType: spec.name, baseName: spec.base, pluginName: plugin.name }
+      { moduleType: spec.name, baseName: spec.base, name: plugin.name }
     )
   }
 
@@ -920,7 +926,7 @@ function resolveModuleDefinition(
       `,
       {
         moduleType,
-        pluginName: plugin.name,
+        name: plugin.name,
         declaredByName: declaredBy,
         bases: pluginBases,
       }

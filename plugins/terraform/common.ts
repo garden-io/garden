@@ -179,6 +179,8 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
   } else {
     statusLog.error(`Failed running plan`)
     throw new PluginError(`Unexpected exit code from \`terraform plan\`: ${plan.exitCode}`, {
+      name: "terraform",
+      command: "plan",
       exitCode: plan.exitCode,
       stderr: plan.stderr,
       stdout: plan.stdout,
