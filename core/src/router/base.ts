@@ -303,6 +303,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
             mode: action.mode(),
             name: action.name,
           },
+          variables: action.getVariables(),
         })
 
     const handlerParams = {
