@@ -61,6 +61,7 @@ interface ActionConfigContextParams {
   garden: Garden
   config: ActionConfig | WorkflowConfig
   thisContextParams: ActionConfigThisContextParams
+  variables: DeepPrimitiveMap
 }
 
 /**
@@ -71,9 +72,10 @@ export class ActionConfigContext extends TemplatableConfigContext {
   @schema(ActionConfigThisContext.getSchema().description("Information about the action currently being resolved."))
   public this: ActionConfigThisContext
 
-  constructor({ garden, config, thisContextParams }: ActionConfigContextParams) {
+  constructor({ garden, config, thisContextParams, variables }: ActionConfigContextParams) {
     super(garden, config)
     this.this = new ActionConfigThisContext(this, thisContextParams)
+    this.variables = this.var = variables
   }
 }
 

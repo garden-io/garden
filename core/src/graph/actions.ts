@@ -453,7 +453,7 @@ function getActionSchema(kind: ActionKind) {
   }
 }
 
-const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
+export const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
   garden,
   config,
   mode,
@@ -469,6 +469,25 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
   const description = describeActionConfig(config)
   const templateName = config.internal.templateName
 
+  const variables = await mergeVariables({
+    basePath: config.internal.basePath,
+    variables: config.variables,
+    varfiles: config.varfiles,
+  })
+  const resolvedVariables = resolveTemplateStrings(
+    variables,
+    new ActionConfigContext({
+      garden,
+      config: { ...config, internal: { ...config.internal, inputs: {} } },
+      thisContextParams: {
+        mode,
+        name: config.name,
+      },
+      variables,
+    }),
+    { allowPartial: true }
+  )
+
   if (templateName) {
     // Partially resolve inputs
     const partiallyResolvedInputs = resolveTemplateStrings(
@@ -480,10 +499,9 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
           mode,
           name: config.name,
         },
+        variables: resolvedVariables,
       }),
-      {
-        allowPartial: true,
-      }
+      { allowPartial: true }
     )
 
     const template = garden.configTemplates[templateName]
@@ -516,6 +534,7 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
       mode,
       name: config.name,
     },
+    variables: resolvedVariables,
   })
 
   function resolveTemplates() {
@@ -525,7 +544,7 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
       allowPartial: false,
     })
     config = { ...config, ...resolvedBuiltin }
-    const { spec = {}, variables = {} } = config
+    const { spec = {} } = config
 
     // Validate fully resolved keys (the above + those that don't allow any templating)
     // TODO-0.13.1: better error messages when something goes wrong here
@@ -542,7 +561,7 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
       projectRoot: garden.projectRoot,
     })
 
-    config = { ...config, variables, spec }
+    config = { ...config, variables: resolvedVariables, spec }
 
     // Partially resolve other fields
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)

@@ -179,6 +179,7 @@ const makePluginContextForDeploy = async (params: PulumiParams & { garden: Garde
       name: action.name,
       mode: action.mode(),
     },
+    variables: action.getVariables(),
   })
   const ctxForDeploy = await garden.getPluginContext({ provider, templateContext, events: ctx.events })
   return ctxForDeploy
