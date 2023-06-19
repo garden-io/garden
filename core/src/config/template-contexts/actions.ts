@@ -57,6 +57,12 @@ class ActionConfigThisContext extends ConfigContext {
   }
 }
 
+interface ActionConfigContextParams {
+  garden: Garden
+  config: ActionConfig | WorkflowConfig
+  thisContextParams: ActionConfigThisContextParams
+}
+
 /**
  * This is available to built-in fields on action configs. See ActionSpecContext below for the context available
  * for action spec and variables.
@@ -65,9 +71,9 @@ export class ActionConfigContext extends TemplatableConfigContext {
   @schema(ActionConfigThisContext.getSchema().description("Information about the action currently being resolved."))
   public this: ActionConfigThisContext
 
-  constructor(garden: Garden, config: ActionConfig | WorkflowConfig, params: ActionConfigThisContextParams) {
+  constructor({ garden, config, thisContextParams }: ActionConfigContextParams) {
     super(garden, config)
-    this.this = new ActionConfigThisContext(this, params)
+    this.this = new ActionConfigThisContext(this, thisContextParams)
   }
 }
 

@@ -296,7 +296,14 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           inputs: action.getInternal().inputs || {},
           variables: action.getVariables(),
         })
-      : new ActionConfigContext(this.garden, action.getConfig(), { mode: action.mode(), name: action.name })
+      : new ActionConfigContext({
+          garden: this.garden,
+          config: action.getConfig(),
+          thisContextParams: {
+            mode: action.mode(),
+            name: action.name,
+          },
+        })
 
     const handlerParams = {
       ...(await this.commonParams(handler, params.log, templateContext, params.events)),
