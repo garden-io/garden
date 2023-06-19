@@ -293,7 +293,7 @@ describe("KubeApi", () => {
     const port = 3021
     let api: KubeApi
     const log = getRootLogger().createLog()
-    before("", async () => {
+    before(async () => {
       class TestKubeConfig extends KubeConfig {
         getCurrentCluster() {
           return {
@@ -308,10 +308,10 @@ describe("KubeApi", () => {
     })
 
     let wasRetried: boolean
-    let reqConut: number
+    let reqCount: number
     let statusCodeHandler: () => number
     afterEach(() => {
-      reqConut = 0
+      reqCount = 0
       wasRetried = false
       statusCodeHandler = () => {
         throw "implement in test case"
@@ -319,8 +319,8 @@ describe("KubeApi", () => {
     })
     const server = createServer((req, res) => {
       let bodyRaw = ""
-      reqConut++
-      wasRetried = reqConut > 1
+      reqCount++
+      wasRetried = reqCount > 1
       req.on("data", (data) => {
         bodyRaw += data
       })
@@ -367,7 +367,7 @@ describe("KubeApi", () => {
     })
 
     it("should retry on certain statuses", async () => {
-      statusCodeHandler = () => (reqConut === 2 ? 200 : 500)
+      statusCodeHandler = () => (reqCount === 2 ? 200 : 500)
       const res = await api.request({
         log,
         path: "",
@@ -416,23 +416,23 @@ describe("KubeApi", () => {
     })
 
     it("should respect maxRetries param", async () => {
-      statusCodeHandler = () => (reqConut === 3 ? 200 : 500)
+      statusCodeHandler = () => (reqCount === 3 ? 200 : 500)
       await api.request({
         log,
         path: "",
         retryOpts: { maxRetries: 2, minTimeoutMs: 0 },
       })
-      expect(reqConut).to.eql(3)
+      expect(reqCount).to.eql(3)
     })
 
     it("should not do unneeded retries", async () => {
-      statusCodeHandler = () => (reqConut === 3 ? 200 : 500)
+      statusCodeHandler = () => (reqCount === 3 ? 200 : 500)
       await api.request({
         log,
         path: "",
         retryOpts: { maxRetries: 1000, minTimeoutMs: 0 },
       })
-      expect(reqConut).to.eql(3)
+      expect(reqCount).to.eql(3)
     })
   })
 })
