@@ -28,7 +28,7 @@ import { GitHandler } from "../../../../src/vcs/git"
 import { resolve, join } from "path"
 import td from "testdouble"
 import tmp from "tmp-promise"
-import { realpath, readFile, writeFile } from "fs-extra"
+import { realpath, readFile, writeFile, rename, rm } from "fs-extra"
 import { DEFAULT_API_VERSION, GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
 import { defaultDotIgnoreFiles, fixedProjectExcludes } from "../../../../src/util/fs"
 import { LogEntry } from "../../../../src/logger/log-entry"
@@ -259,6 +259,24 @@ describe("VcsHandler", () => {
       const result = await handlerA.resolveTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
       expect(result).to.eql(version)
     })
+
+    it("should update content hash, when a file is renamed", async () => {
+      const projectRoot = getDataDir("test-projects", "include-exclude")
+      const garden = await makeTestGarden(projectRoot)
+      const newFilePathModuleA = join(garden.projectRoot, "module-a", "somedir", "foo")
+      const renamedFilePathModuleA = join(garden.projectRoot, "module-a", "somedir", "bar")
+      try {
+        await writeFile(newFilePathModuleA, "abcd")
+        const moduleConfigA1 = await garden.resolveModule("module-a")
+        const version1 = await garden.vcs.getTreeVersion(garden.log, garden.projectName, moduleConfigA1)
+        // rename file foo to bar
+        await rename(newFilePathModuleA, renamedFilePathModuleA)
+        const version2 = await garden.vcs.getTreeVersion(garden.log, garden.projectName, moduleConfigA1, true)
+        expect(version1).to.not.eql(version2)
+      } finally {
+        await rm(renamedFilePathModuleA)
+      }
+    })
   })
 })
 
@@ -347,7 +365,7 @@ describe("getModuleVersionString", () => {
     const garden = await makeTestGarden(projectRoot, { noCache: true })
     const module = await garden.resolveModule("module-a")
 
-    const fixedVersionString = "v-6f85bdd407"
+    const fixedVersionString = "v-e3eed855ed"
     expect(module.version.versionString).to.eql(fixedVersionString)
 
     delete process.env.TEST_ENV_VAR
