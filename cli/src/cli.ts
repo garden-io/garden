@@ -65,6 +65,7 @@ export async function runCli({
     try {
       await Promise.race([getOtelSDK().shutdown(), new Promise((resolve) => setTimeout(resolve, 3000))])
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.log(`Debug: OTEL shutdown failed with error ${err.toString()}`)
     }
 
