@@ -586,6 +586,7 @@ export class CloudApi {
     localServerPort,
     environment,
     namespace,
+    isDevCommand,
   }: {
     parentSessionId: string | undefined
     sessionId: string
@@ -594,6 +595,7 @@ export class CloudApi {
     localServerPort?: number
     environment: string
     namespace: string
+    isDevCommand?: boolean
   }): Promise<CloudSession | undefined> {
     let session = this.registeredSessions.get(sessionId)
 
@@ -610,6 +612,7 @@ export class CloudApi {
         projectUid: projectId,
         environment,
         namespace,
+        isDevCommand,
       }
       this.log.debug(`Registering session with ${this.distroName} for ${projectId} in ${environment}/${namespace}.`)
       const res: CloudSessionResponse = await this.post("sessions", {

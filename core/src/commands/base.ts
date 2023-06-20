@@ -55,6 +55,7 @@ import { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from 
 import { splitFirst } from "../util/string"
 import { ActionMode } from "../actions/types"
 import { AnalyticsHandler } from "../analytics/analytics"
+import { getCmdOptionForDev } from "./helpers"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -258,17 +259,18 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
    *
    * @returns The result from the command action
    */
-  async run({
-    garden: parentGarden,
-    args,
-    opts,
-    cli,
-    commandLine,
-    sessionId,
-    parentCommand,
-    parentSessionId,
-    overrideLogLevel,
-  }: RunCommandParams<A, O>): Promise<CommandResult<R>> {
+  async run(params: RunCommandParams<A, O>): Promise<CommandResult<R>> {
+    const {
+      garden: parentGarden,
+      args,
+      opts,
+      cli,
+      commandLine,
+      sessionId,
+      parentCommand,
+      parentSessionId,
+      overrideLogLevel,
+    } = params
     const commandStartTime = new Date()
     const server = this.server
 
@@ -284,6 +286,17 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
 
     let cloudSession: CloudSession | undefined
 
+    // It's not ideal that we have to update the command info here after init, but we don't know whether we're
+    // going into a subcommand in the `GardenCli` class where the `commandInfo` object is first created.
+    if (!["dev", "serve"].includes(this.name) && this.maybePersistent(params) && !params.parentCommand) {
+      // Then this command will be starting a `dev` command and then running itself from there, so we update
+      // the `commandInfo` accordingly.
+      // Example: `garden deploy --sync`.
+      const outerName = this.name
+      garden.commandInfo.name = "dev"
+      garden.commandInfo.opts.cmd = getCmdOptionForDev(outerName, params)
+    }
+
     if (garden.cloudApi && garden.projectId && this.streamEvents) {
       cloudSession = await garden.cloudApi.registerSession({
         parentSessionId: parentSessionId || undefined,
@@ -293,6 +306,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
         localServerPort: server?.port,
         environment: garden.environmentName,
         namespace: garden.namespace,
+        isDevCommand: garden.commandInfo.name === "dev"
       })
     }
 

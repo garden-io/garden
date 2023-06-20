@@ -13,6 +13,7 @@ import { deployArgs, DeployCommand, deployOpts } from "./deploy"
 import { serveOpts } from "./serve"
 import { DevCommand } from "./dev"
 import type { LoggerType } from "../logger/logger"
+import { getCmdOptionForDev } from "./helpers"
 
 const upArgs = {
   ...deployArgs,
@@ -51,7 +52,7 @@ export class UpCommand extends Command<UpArgs, UpOpts> {
       cmd = new DeployCommand()
       params.opts.logs = true
     } else {
-      params.opts.cmd = ["deploy --logs " + params.args.$all!.join(" ")]
+      params.opts.cmd = getCmdOptionForDev("deploy --logs", params)
     }
 
     cmd.printHeader(params)
