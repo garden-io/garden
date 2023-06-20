@@ -352,12 +352,6 @@ export const testPlugin = () =>
     ],
   })
 
-export const customizedTestPlugin = (partialCustomSpec: Partial<GardenPluginSpec>) => {
-  const base = testPlugin()
-  merge(base, partialCustomSpec)
-  return base
-}
-
 export const testPluginB = () => {
   const base = testPlugin()
 
@@ -388,6 +382,12 @@ export const testPluginC = () => {
     ],
     createActionTypes: {},
   })
+}
+
+export const customizedTestPlugin = (partialCustomSpec: Partial<GardenPluginSpec>) => {
+  const base = testPlugin()
+  merge(base, partialCustomSpec)
+  return base
 }
 
 export const getDefaultProjectConfig = (): ProjectConfig =>
