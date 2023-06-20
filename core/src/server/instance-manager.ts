@@ -202,7 +202,7 @@ export class GardenInstanceManager {
   }
 
   async reload(log: Log) {
-    const projectRoots = this.projectRoots.keys()
+    const projectRoots = [...this.projectRoots.keys()]
 
     // Clear existing instances that have no monitors running
     await this.clear()
