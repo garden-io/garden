@@ -54,59 +54,91 @@ Click a button to start your Killercoda or Google Cloud Shell environment 👇�
 
 If you find any bugs 🐛 or have suggestions to improve our labs please don't hesitate to reach out by creating an [issue here](https://github.com/garden-io/garden-interactive-environments) or by asking in our [Discord Community](https://go.garden.io/discord)🌸
 
-## Usage
+## Using Garden
 
-> Make sure you have Garden installed and Kubernetes running locally (e.g. with Minikube or Docker for Desktop) before deploying the project.
+### Configuration
 
-If you have a `garden.yml` file in your project, you can run `garden` commands from the root of your project. If you don't have a `garden.yml` file, clone the quickstart project:
+A Garden "project" is configured via `garden.yml` configuration files. In them, you describe the parts of your system in terms of the following **four actions** and their dependencies on one another:
 
-```sh
-git clone https://github.com/garden-io/garden-quickstart.git
+- **Build actions**
+- **Deploy actions**
+- **Test actions**
+- **Run actions** (for running ad-hoc tasks)
+
+Here's a simple example for a three trier web application:
+
+```yaml
+# This config is in a single file for convenience.
+# You can split it into multiple files and even across repositories!
+kind: Deploy
+name: db
+type: helm
+spec:
+  chart:
+    repo: https://charts.bitnami.com/bitnami
+---
+kind: Run
+name: db-init
+type: container
+dependencies: [deploy.db]
+---
+kind: Deploy
+name: api
+type: kubernetes
+build: api
+dependencies:
+  - run.db-init
+spec:
+  files: [api/manifests]
+---
+kind: Deploy
+name: web
+type: kubernetes
+build: api
+dependencies:
+  - deploy.api
+spec:
+  files: [web/manifests]
+---
+kind: Test
+name: e2e
+type: kubernetes-exec
+dependencies: [deploy.api]
+spec:
+  args: [python, /app/test.py]
 ```
 
-Now start the dev console with:
+For brevity we're omitting the "project" configuration where you specify your environments and configure your plugins, e.g. Kubernetes or Terraform.
 
-```console
-garden dev
-```
+### CLI
 
-Build with:
+You use the Garden CLI to **build**, **deploy**, and **test** your Garden project across multiple environments, e.g. development, CI, and QA.
 
-```console
-build
-```
-
-Deploy with:
-
-```console
-deploy
-```
-
-Test with:
-
-```console
-test
-```
-
-Exit with `exit`.
-
-To create a preview environment on every pull request, simply add the following to your CI pipeline:
+For example, to create a preview environment on every pull request, simply add the following to your CI pipeline:
 
 ```console
 garden deploy --env preview
 ```
 
-A developer wants to run an end-to-end test from their laptop as they code. Simple:
+Or say a developer wants to run an end-to-end test from their laptop _as they code_. Again, it’s simple:
 
 ```console
-garden test --name my-e2e-test
+garden test --name e2e
 ```
 
-Garden also has a special mode called "sync mode" which live reloads changes to your running services—ensuring **blazing fast feedback while developing**. To enable it, simply run:
+Garden also has a special mode called "sync mode" which live reloads changes to your running services—ensuring blazing fast feedback while developing. To enable it, simply run:
 
-```console
+```
 garden deploy --sync
 ```
+
+All of these actions can also be run from within Garden's **interactive development console** (see also screen cap above) which you can start in your terminal with:
+
+```console
+garden dev
+```
+
+From here you can turn code syncing on and off, stream logs, run tests, and more.
 
 ## Docs
 

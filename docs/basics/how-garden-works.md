@@ -97,6 +97,12 @@ Garden also has a special mode called "sync mode" which live reloads changes to 
 garden deploy --sync
 ```
 
+All of these actions can also be run from within Garden's **interactive development console** which you can start in your terminal with:
+
+```console
+garden dev
+```
+
 There are also a handful of utility commands for getting logs, exec-ing into services, publishing images, and more.
 
 Thanks to the Stack Graph, these workflows stay consistent no matter how big your stack grows.
