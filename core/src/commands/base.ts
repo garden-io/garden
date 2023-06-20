@@ -23,7 +23,7 @@ import {
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
-import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel } from "../logger/logger"
+import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel, LogLevel } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { capitalize } from "lodash"
 import {
@@ -103,6 +103,14 @@ export interface RunCommandParams<A extends Parameters = {}, O extends Parameter
    * Only defined if running in dev command or WS server.
    */
   parentSessionId: string | null
+  /**
+   * In certain cases we need to override the log level at the "run command" level. This is because
+   * we're now re-using Garden instances via the InstanceManager and therefore cannot change the level
+   * on the instance proper.
+   *
+   * Used e.g. by the websocket server to set a high log level for internal commands.
+   */
+  overrideLogLevel?: LogLevel
 }
 
 export interface SuggestedCommand {
@@ -259,6 +267,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     sessionId,
     parentCommand,
     parentSessionId,
+    overrideLogLevel,
   }: RunCommandParams<A, O>): Promise<CommandResult<R>> {
     const commandStartTime = new Date()
     const server = this.server
@@ -271,7 +280,8 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
       garden = parentGarden.cloneForCommand(sessionId)
     }
 
-    const log = garden.log
+    const log = overrideLogLevel ? garden.log.createLog({ fixLevel: overrideLogLevel }) : garden.log
+
     let cloudSession: CloudSession | undefined
 
     if (garden.cloudApi && garden.projectId && this.streamEvents) {
