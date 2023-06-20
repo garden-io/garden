@@ -495,7 +495,7 @@ interface StartSyncsParams extends StopSyncsParams {
   action: Resolved<SyncableRuntimeAction>
   basePath: string
   actionDefaults: SyncDefaults
-  manifests: KubernetesResource[]
+  deployedResources: KubernetesResource[]
   defaultNamespace: string
   syncs: KubernetesDeployDevModeSyncSpec[]
 }
@@ -517,7 +517,7 @@ export function getLocalSyncPath(sourcePath: string, basePath: string) {
 }
 
 export async function startSyncs(params: StartSyncsParams) {
-  const { ctx, log, basePath, action, manifests, defaultNamespace, actionDefaults, defaultTarget, syncs } = params
+  const { ctx, log, basePath, action, deployedResources, defaultNamespace, actionDefaults, defaultTarget, syncs } = params
 
   if (syncs.length === 0) {
     return
@@ -541,7 +541,7 @@ export async function startSyncs(params: StartSyncsParams) {
       ctx,
       log,
       provider,
-      manifests,
+      manifests: deployedResources,
       action,
       query: resourceSpec,
     })
@@ -627,7 +627,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
     log,
     basePath,
     action,
-    manifests,
+    deployedResources,
     defaultNamespace,
     actionDefaults,
     defaultTarget,
@@ -662,7 +662,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
         ctx,
         log,
         provider,
-        manifests,
+        manifests: deployedResources,
         action,
         query: resourceSpec,
       })
