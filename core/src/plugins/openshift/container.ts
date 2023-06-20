@@ -6,21 +6,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployActionExtension, DeployActionHandler } from "../../plugin/action-types"
+import { set } from "lodash"
+import { Resolved } from "../../actions/types"
+import { ActionLog } from "../../logger/log-entry"
+import { PluginContext } from "../../plugin-context"
+import { DeployActionExtension, DeployActionHandler, DeployActionParams } from "../../plugin/action-types"
+import { NamespaceStatus } from "../../types/namespace"
+import { gardenAnnotationKey } from "../../util/string"
 import { ContainerDeployAction } from "../container/moduleConfig"
 import { KubeApi } from "../kubernetes/api"
 import { KubernetesPluginContext, KubernetesProvider } from "../kubernetes/config"
-import { createContainerManifests, deleteContainerDeploy, k8sContainerDeploy } from "../kubernetes/container/deployment"
+import {
+  createWorkloadManifest,
+  deleteContainerDeploy,
+  handleChangedSelector,
+} from "../kubernetes/container/deployment"
 import { execInContainer } from "../kubernetes/container/exec"
 import { validateDeploySpec } from "../kubernetes/container/handlers"
-import { getIngresses } from "../kubernetes/container/ingress"
+import { createIngressResources, getIngresses } from "../kubernetes/container/ingress"
 import { k8sGetContainerDeployLogs } from "../kubernetes/container/logs"
-import { k8sGetContainerDeployStatus, prepareContainerDeployStatus } from "../kubernetes/container/status"
+import { createServiceResources } from "../kubernetes/container/service"
+import { prepareContainerDeployStatus } from "../kubernetes/container/status"
 import { k8sContainerStartSync, k8sContainerStopSync, k8sContainerGetSyncStatus } from "../kubernetes/container/sync"
 import { getDeployedImageId } from "../kubernetes/container/util"
-import { getAppNamespaceStatus } from "../kubernetes/namespace"
-import { getPortForwardHandler } from "../kubernetes/port-forward"
-import { compareDeployedResources } from "../kubernetes/status/status"
+import { KUBECTL_DEFAULT_TIMEOUT, apply } from "../kubernetes/kubectl"
+import { namespaceExists } from "../kubernetes/namespace"
+import { getPortForwardHandler, killPortForwards } from "../kubernetes/port-forward"
+import { compareDeployedResources, waitForResources } from "../kubernetes/status/status"
 
 export const openshiftGetContainerDeployStatus: DeployActionHandler<"getStatus", ContainerDeployAction> = async (
   params
@@ -37,7 +49,7 @@ export const openshiftGetContainerDeployStatus: DeployActionHandler<"getStatus",
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const namespaceStatus = await expectNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
   const namespace = namespaceStatus.namespaceName
   const imageId = getDeployedImageId(action, provider)
 
@@ -69,19 +81,17 @@ export const openshiftGetContainerDeployStatus: DeployActionHandler<"getStatus",
   })
 }
 
-// export const openshiftContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {}
-
 export const openshiftContainerDeployExtension = (): DeployActionExtension<ContainerDeployAction> => ({
   name: "container",
   handlers: {
-    deploy: k8sContainerDeploy,
+    deploy: openshiftContainerDeploy,
     delete: deleteContainerDeploy,
     exec: execInContainer,
     getLogs: k8sGetContainerDeployLogs,
     getPortForward: async (params) => {
       return getPortForwardHandler({ ...params, namespace: undefined })
     },
-    getStatus: k8sGetContainerDeployStatus,
+    getStatus: openshiftGetContainerDeployStatus,
 
     startSync: k8sContainerStartSync,
     stopSync: k8sContainerStopSync,
@@ -93,3 +103,148 @@ export const openshiftContainerDeployExtension = (): DeployActionExtension<Conta
     },
   },
 })
+
+// TODO: docstring
+export const openshiftContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
+  const { ctx, action, log, force } = params
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
+
+  const imageId = getDeployedImageId(action, k8sCtx.provider)
+
+  const status = await openshiftGetContainerDeployStatus(params)
+  const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []
+  if (specChangedResourceKeys.length > 0) {
+    const namespaceStatus = await expectNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
+    await handleChangedSelector({
+      action,
+      specChangedResourceKeys,
+      ctx: k8sCtx,
+      namespace: namespaceStatus.namespaceName,
+      log,
+      production: ctx.production,
+      force,
+    })
+  }
+
+  await deployOpenShiftContainerServiceRolling({ ...params, api, imageId })
+
+  const postDeployStatus = await openshiftGetContainerDeployStatus(params)
+
+  // Make sure port forwards work after redeployment
+  killPortForwards(action, postDeployStatus.detail?.forwardablePorts || [], log)
+
+  return postDeployStatus
+}
+
+/**
+ * Returns project/namespace status (which includes the namespace's name).
+ * Based on the kubernetes plugin method `getNamespaceStatus`.
+ * However, this method never attempts to create a missing namespace.
+ * If the expected namespace does not exist, throws an error.
+ *
+ * TODO: improve docstring
+ */
+export async function expectNamespaceStatus({
+  log,
+  ctx,
+  provider,
+}: {
+  log: ActionLog
+  ctx: KubernetesPluginContext
+  provider: KubernetesProvider
+}): Promise<NamespaceStatus> {
+  const namespace = provider.config.namespace!
+  const api = await KubeApi.factory(log, ctx, provider)
+
+  const exists = await namespaceExists(api, ctx, namespace.name)
+  if (!exists) {
+    throw new Error(
+      `Namespace missing. Ask your administrator to ensure you have access to the expected namespace: ${namespace.name}`
+    )
+  }
+
+  return {
+    pluginName: provider.name,
+    namespaceName: namespace.name,
+    state: "ready",
+  }
+}
+
+// NOTE: adapting from the k8s version
+// TODO: deduplicate, document
+export const deployOpenShiftContainerServiceRolling = async (
+  params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi; imageId: string }
+) => {
+  const { ctx, api, action, log, imageId } = params
+  const k8sCtx = <KubernetesPluginContext>ctx
+
+  const namespaceStatus = await expectNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
+  const namespace = namespaceStatus.namespaceName
+
+  const { manifests } = await createContainerManifests({
+    ctx: k8sCtx,
+    api,
+    log,
+    action,
+    imageId,
+  })
+
+  const provider = k8sCtx.provider
+  const pruneLabels = { [gardenAnnotationKey("service")]: action.name }
+
+  await apply({ log, ctx, api, provider, manifests, namespace, pruneLabels })
+
+  await waitForResources({
+    namespace,
+    ctx,
+    provider,
+    actionName: action.key(),
+    resources: manifests,
+    log,
+    timeoutSec: action.getSpec("timeout") || KUBECTL_DEFAULT_TIMEOUT,
+  })
+}
+
+// NOTE: openshift variant once again
+// TODO: deduplicate, document
+export async function createContainerManifests({
+  ctx,
+  api,
+  log,
+  action,
+  imageId,
+}: {
+  ctx: PluginContext
+  api: KubeApi
+  log: ActionLog
+  action: Resolved<ContainerDeployAction>
+  imageId: string
+}) {
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
+  const { production } = ctx
+  const namespace = (await expectNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })).namespaceName
+  const ingresses = await createIngressResources(api, provider, namespace, action, log)
+  const workload = await createWorkloadManifest({
+    ctx: k8sCtx,
+    api,
+    provider,
+    action,
+    imageId,
+    namespace,
+    log,
+    production,
+  })
+  const kubeServices = await createServiceResources(action, namespace)
+  const manifests = [workload, ...kubeServices, ...ingresses]
+
+  for (const obj of manifests) {
+    set(obj, ["metadata", "labels", gardenAnnotationKey("module")], action.moduleName() || "")
+    set(obj, ["metadata", "labels", gardenAnnotationKey("service")], action.name)
+    set(obj, ["metadata", "annotations", gardenAnnotationKey("generated")], "true")
+    set(obj, ["metadata", "annotations", gardenAnnotationKey("version")], action.versionString())
+  }
+
+  return { workload, manifests }
+}
