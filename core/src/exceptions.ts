@@ -18,6 +18,11 @@ export interface GardenError<D extends object = any> extends Error {
   stack?: string
 }
 
+export interface GardenErrorStackTrace {
+  functionName: string
+  relativeFileName: string
+}
+
 export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
   abstract type: string
 
@@ -176,4 +181,41 @@ export function formatGardenErrorWithDetail(error: GardenError) {
     }
   }
   return out
+}
+
+export function getStackTraceMetadata(error: GardenError): GardenErrorStackTrace | undefined {
+  if (!error.stack) {
+    return undefined
+  }
+
+  // Care about the first line matching our code base
+  const lines = error.stack.split("\n").slice(1)
+
+  const metadata = lines.flatMap((l) => {
+    const atLine = l.match(/at (?:(.+?)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/)
+
+    if (!atLine) {
+      return []
+    }
+
+    const functionName: string = atLine[1]
+    const lastSrcPos = atLine[2].lastIndexOf("src")
+
+    if (lastSrcPos === -1) {
+      return []
+    }
+
+    const relativeFileName = atLine[2].slice(lastSrcPos + 4)
+
+    return [
+      {
+        functionName,
+        relativeFileName,
+      },
+    ]
+  })
+
+  // returns the first line since its closest to
+  // the code where the exception was thrown
+  return metadata.at(0)
 }

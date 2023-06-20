@@ -23,7 +23,7 @@ import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
 import { uuidv4 } from "../util/random"
-import { GardenBaseError } from "../exceptions"
+import { GardenBaseError, GardenErrorStackTrace, getStackTraceMetadata } from "../exceptions"
 import { ActionConfigMap } from "../actions/types"
 import { actionKinds } from "../actions/types"
 
@@ -152,6 +152,9 @@ interface CommandResultEvent extends EventBase {
     durationMsec: number
     result: AnalyticsCommandResult
     errors: string[] // list of GardenBaseError types
+    errorMetadata: GardenErrorStackTrace[]
+    lastError?: string
+    lastErrorMetadata?: GardenErrorStackTrace
     exitCode?: number
   }
 }
@@ -607,13 +610,22 @@ export class AnalyticsHandler {
 
     const durationMsec = getDurationMsec(startTime, new Date())
 
+    const allErrors = errors.map((e) => e.type)
+    const allErrorMetadata = errors.flatMap((e) => {
+      const metadata = getStackTraceMetadata(e)
+      return metadata ? [metadata] : []
+    })
+
     return this.track({
       type: "Command Result",
       properties: {
         name: commandName,
         durationMsec,
         result,
-        errors: errors.map((e) => e.type),
+        errors: allErrors,
+        errorMetadata: allErrorMetadata,
+        lastError: allErrors.at(-1),
+        lastErrorMetadata: allErrorMetadata.at(-1),
         exitCode,
         ...this.getBasicAnalyticsProperties(parentSessionId),
       },
