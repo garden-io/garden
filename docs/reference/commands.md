@@ -5794,3 +5794,14 @@ Throws an error and exits with code 1 if something's not right in your garden co
 
 
 
+### garden version
+
+**Shows the current garden version.**
+
+
+#### Usage
+
+    garden version 
+
+
+
