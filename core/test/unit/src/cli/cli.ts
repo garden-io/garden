@@ -14,7 +14,6 @@ import { getDataDir, projectRootA, initTestLogger } from "../../../helpers"
 import { gardenEnv, GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join, resolve } from "path"
 import { Command, CommandGroup, CommandParams, PrepareParams } from "../../../../src/commands/base"
-import { getPackageVersion } from "../../../../src/util/util"
 import { UtilCommand } from "../../../../src/commands/util/util"
 import { StringParameter } from "../../../../src/cli/params"
 import stripAnsi from "strip-ansi"
@@ -92,27 +91,6 @@ describe("cli", () => {
 
       expect(code).to.equal(0)
       expect(consoleOutput).to.equal(cmd.renderHelp())
-    })
-
-    it("aborts with version text if -V is set", async () => {
-      const { code, consoleOutput } = await cli.run({ args: ["-V"], exitOnError: false })
-
-      expect(code).to.equal(0)
-      expect(consoleOutput).to.equal(getPackageVersion())
-    })
-
-    it("aborts with version text if --version is set", async () => {
-      const { code, consoleOutput } = await cli.run({ args: ["--version"], exitOnError: false })
-
-      expect(code).to.equal(0)
-      expect(consoleOutput).to.equal(getPackageVersion())
-    })
-
-    it("aborts with version text if version is first argument", async () => {
-      const { code, consoleOutput } = await cli.run({ args: ["version"], exitOnError: false })
-
-      expect(code).to.equal(0)
-      expect(consoleOutput).to.equal(getPackageVersion())
     })
 
     it("throws if --root is set, pointing to a non-existent path", async () => {

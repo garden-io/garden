@@ -407,10 +407,6 @@ ${renderCommands(commands)}
       return { argv, code: abortCode, errors, result, consoleOutput }
     }
 
-    if (argv.v || argv.version || argv._[0] === "version") {
-      return done(0, getPackageVersion())
-    }
-
     const workingDir = resolve(cwd || process.cwd(), argv.root || "")
 
     if (!(await pathExists(workingDir))) {
