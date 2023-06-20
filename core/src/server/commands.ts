@@ -7,7 +7,7 @@
  */
 
 import type Joi from "@hapi/joi"
-import { getLogLevelChoices, LoggerBase, LogLevel, ServerLogger, VoidLogger } from "../logger/logger"
+import { getLogLevelChoices, LogLevel } from "../logger/logger"
 import stringArgv from "string-argv"
 import { Command, CommandParams, CommandResult, ConsoleCommand } from "../commands/base"
 import { createSchema, joi } from "../config/common"
@@ -395,13 +395,7 @@ export async function resolveRequest({
     }
   }
 
-  let serverLogger: LoggerBase
-  if (internal) {
-    // TODO: Consider using a logger that logs at the silly level but doesn't emit anything.
-    serverLogger = new VoidLogger({ level: LogLevel.info })
-  } else {
-    serverLogger = command?.getServerLogger() || new ServerLogger({ rootLogger: log.root, level: log.root.level })
-  }
+  const serverLogger = command?.getServerLogger() || log.root
 
   const cmdLog = serverLogger.createLog({})
 
