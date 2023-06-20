@@ -43,7 +43,7 @@ export const helmStartSync: DeployActionHandler<"startSync", HelmDeployAction> =
     defaultTarget: spec.defaultTarget,
     basePath: action.basePath(),
     defaultNamespace: namespace,
-    manifests: deployedResources,
+    deployedResources,
     syncs: spec.sync.paths,
   })
 
@@ -71,7 +71,7 @@ export const helmGetSyncStatus: DeployActionHandler<"getSyncStatus", HelmDeployA
     provider: k8sCtx.provider,
   })
 
-  const resources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
+  const deployedResources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
 
   return getSyncStatus({
     ctx: k8sCtx,
@@ -81,7 +81,7 @@ export const helmGetSyncStatus: DeployActionHandler<"getSyncStatus", HelmDeployA
     defaultTarget: spec.defaultTarget,
     basePath: action.basePath(),
     defaultNamespace: namespace,
-    manifests: resources,
+    deployedResources,
     syncs: spec.sync.paths,
     monitor,
   })
