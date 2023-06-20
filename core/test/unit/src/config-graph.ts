@@ -10,25 +10,22 @@ import { join } from "path"
 import { expect } from "chai"
 import { ensureDir } from "fs-extra"
 import {
-  makeTestGardenA,
-  makeTestGarden,
   expectError,
-  makeTestModule,
   getDataDir,
-  createProjectConfig,
-  TestGarden,
-  customizedTestPlugin,
+  makeGarden,
   makeTempDir,
+  makeTestGarden,
+  makeTestGardenA,
+  makeTestModule,
+  noOpTestPlugin,
+  TestGarden,
 } from "../../helpers"
 import { getNames } from "../../../src/util/util"
 import { ConfigGraph, ConfigGraphNode } from "../../../src/graph/config-graph"
 import { Garden } from "../../../src/garden"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../../../src/constants"
 import tmp from "tmp-promise"
-import { GardenPlugin } from "../../../src/plugin/plugin"
-import { ProjectConfig } from "../../../src/config/project"
 import { ActionKind, BaseActionConfig } from "../../../src/actions/types"
-import { joi } from "../../../src/config/common"
 
 const makeAction = ({
   basePath,
@@ -55,16 +52,6 @@ const makeAction = ({
   spec,
 })
 
-async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
-  const config: ProjectConfig = createProjectConfig({
-    path: tmpDir.path,
-    providers: [{ name: "test" }],
-  })
-
-  const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [plugin] })
-  return garden
-}
-
 /**
  * TODO-G2B:
  *  - implement the remained test cases similar to the existing module-based (getDependants* and getDependencies)
@@ -77,43 +64,7 @@ describe("ConfigGraph (action-based configs)", () => {
 
   // Minimalistic test plugin with no-op behaviour and without any schema validation constraints,
   // because we only need to unit test the processing of action configs into the action definitions.
-  const testPlugin = customizedTestPlugin({
-    name: "test",
-    createActionTypes: {
-      Build: [
-        {
-          name: "test",
-          docs: "Test Build action",
-          schema: joi.object(),
-          handlers: {},
-        },
-      ],
-      Deploy: [
-        {
-          name: "test",
-          docs: "Test Deploy action",
-          schema: joi.object(),
-          handlers: {},
-        },
-      ],
-      Run: [
-        {
-          name: "test",
-          docs: "Test Run action",
-          schema: joi.object(),
-          handlers: {},
-        },
-      ],
-      Test: [
-        {
-          name: "test",
-          docs: "Test Test action",
-          schema: joi.object(),
-          handlers: {},
-        },
-      ],
-    },
-  })
+  const testPlugin = noOpTestPlugin()
 
   // Helpers to create minimalistic action configs.
   // Each action type has its own simple spec with a single field named `${lowercase(kind)}Command`.

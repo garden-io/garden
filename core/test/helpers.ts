@@ -32,6 +32,7 @@ import { convertExecModule } from "../src/plugins/exec/convert"
 import { createSchema, joi, joiArray } from "../src/config/common"
 import {
   createGardenPlugin,
+  GardenPlugin,
   GardenPluginReference,
   GardenPluginSpec,
   ProviderHandlers,
@@ -52,7 +53,7 @@ import { LogLevel, RootLogger } from "../src/logger/logger"
 import { GardenCli } from "../src/cli/cli"
 import { profileAsync } from "../src/util/profiling"
 import { defaultDotIgnoreFile, makeTempDir } from "../src/util/fs"
-import { DirectoryResult } from "tmp-promise"
+import tmp, { DirectoryResult } from "tmp-promise"
 import { ConfigurationError } from "../src/exceptions"
 import Bluebird = require("bluebird")
 import execa = require("execa")
@@ -388,6 +389,54 @@ export const customizedTestPlugin = (partialCustomSpec: Partial<GardenPluginSpec
   const base = testPlugin()
   merge(base, partialCustomSpec)
   return base
+}
+
+export const noOpTestPlugin = () =>
+  customizedTestPlugin({
+    name: "test",
+    createActionTypes: {
+      Build: [
+        {
+          name: "test",
+          docs: "Test Build action",
+          schema: joi.object(),
+          handlers: {},
+        },
+      ],
+      Deploy: [
+        {
+          name: "test",
+          docs: "Test Deploy action",
+          schema: joi.object(),
+          handlers: {},
+        },
+      ],
+      Run: [
+        {
+          name: "test",
+          docs: "Test Run action",
+          schema: joi.object(),
+          handlers: {},
+        },
+      ],
+      Test: [
+        {
+          name: "test",
+          docs: "Test Test action",
+          schema: joi.object(),
+          handlers: {},
+        },
+      ],
+    },
+  })
+
+export async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
+  const config: ProjectConfig = createProjectConfig({
+    path: tmpDir.path,
+    providers: [{ name: "test" }],
+  })
+
+  return await TestGarden.factory(tmpDir.path, { config, plugins: [plugin] })
 }
 
 export const getDefaultProjectConfig = (): ProjectConfig =>
