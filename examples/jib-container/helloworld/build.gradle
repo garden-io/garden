@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-  compile 'com.google.guava:guava:23.6-jre'
+  compile 'com.google.guava:guava:32.0.0-jre'
 }
 
 // Note: Garden sets this automatically.
