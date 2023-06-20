@@ -1957,7 +1957,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       projectApiVersion,
     }
   })
-)
+})
 
 /**
  * Dummy Garden class that doesn't scan for modules nor resolves providers.
