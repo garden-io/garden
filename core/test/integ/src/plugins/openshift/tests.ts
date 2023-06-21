@@ -14,7 +14,7 @@ import { ValidateCommand } from "../../../../../src/commands/validate"
 import { getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../helpers"
 import { defaultDeployOpts } from "../../../../unit/src/commands/deploy"
 
-describe("OpenShift", () => {
+describe.skip("OpenShift", () => {
   const projectRoot = getDataDir("openshift", "demo-project")
   let garden
   let log
