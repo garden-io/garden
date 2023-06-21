@@ -20,9 +20,33 @@ import isGlob from "is-glob"
 import { ParameterError } from "../exceptions"
 import { naturalList } from "../util/string"
 import { CommandParams } from "./base"
+import { ServeCommandOpts } from "./serve"
+import { DevCommand } from "./dev"
 
 export function makeGetTestOrTaskLog(actions: (TestAction | RunAction)[]) {
   return actions.map((t) => prettyPrintTestOrTask(t)).join("\n")
+}
+
+/**
+ * Runs a `dev` command and runs `commandName` with the args & opts provided in `params` as the first
+ * interactive command.
+ *
+ * Also updates the `commandInfo` accordinly so that the session registration parameters sent to Cloud are correct.
+ */
+export async function runAsDevCommand(
+  commandName: string, // The calling command's opts need to extend `ServeCommandOpts`.
+  params: CommandParams<{}, ServeCommandOpts>
+) {
+  const commandInfo = params.garden.commandInfo
+  params.opts.cmd = getCmdOptionForDev(commandName, params)
+  commandInfo.name = "dev"
+  commandInfo.args["$all"] = []
+  commandInfo.opts.cmd = params.opts.cmd
+  const devCmd = new DevCommand()
+  devCmd.printHeader(params)
+  await devCmd.prepare(params)
+
+  return devCmd.action(params)
 }
 
 export function getCmdOptionForDev(commandName: string, params: CommandParams) {

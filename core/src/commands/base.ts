@@ -55,7 +55,6 @@ import { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from 
 import { splitFirst } from "../util/string"
 import { ActionMode } from "../actions/types"
 import { AnalyticsHandler } from "../analytics/analytics"
-import { getCmdOptionForDev } from "./helpers"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -286,18 +285,16 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
 
     let cloudSession: CloudSession | undefined
 
-    // It's not ideal that we have to update the command info here after init, but we don't know whether we're
-    // going into a subcommand in the `GardenCli` class where the `commandInfo` object is first created.
-    if (!["dev", "serve"].includes(this.name) && this.maybePersistent(params) && !params.parentCommand) {
-      // Then this command will be starting a `dev` command and then running itself from there, so we update
-      // the `commandInfo` accordingly.
-      // Example: `garden deploy --sync`.
-      const outerName = this.name
-      garden.commandInfo.name = "dev"
-      garden.commandInfo.opts.cmd = getCmdOptionForDev(outerName, params)
-    }
+    // Session registration for the `dev` and `serve` commands is handled in the `serve` command's `action` method,
+    // so we skip registering here to avoid duplication.
+    //
+    // Persistent commands other than `dev` and `serve` (i.e. commands that delegate to the `dev` command, like
+    // `deploy --sync`) are also not registered here, since the `dev` command will have been registered already,
+    // and the `deploy --sync` command which is subsequently run interactively in the `dev` session will register
+    // itself (it will have a parent command, so the last condition in this expression will not match).
+    const skipRegistration = !["dev", "serve"].includes(this.name) && this.maybePersistent(params) && !params.parentCommand
 
-    if (garden.cloudApi && garden.projectId && this.streamEvents) {
+    if (!skipRegistration && garden.cloudApi && garden.projectId && this.streamEvents) {
       cloudSession = await garden.cloudApi.registerSession({
         parentSessionId: parentSessionId || undefined,
         sessionId: garden.sessionId,
