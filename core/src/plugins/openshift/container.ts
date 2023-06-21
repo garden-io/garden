@@ -17,18 +17,16 @@ import { ContainerDeployAction } from "../container/moduleConfig"
 import { KubeApi } from "../kubernetes/api"
 import { KubernetesPluginContext, KubernetesProvider } from "../kubernetes/config"
 import { createWorkloadManifest, handleChangedSelector } from "../kubernetes/container/deployment"
-import { execInContainer } from "../kubernetes/container/exec"
 import { validateDeploySpec } from "../kubernetes/container/handlers"
 import { createIngressResources, getIngresses } from "../kubernetes/container/ingress"
-import { k8sGetContainerDeployLogs } from "../kubernetes/container/logs"
 import { createServiceResources } from "../kubernetes/container/service"
 import { prepareContainerDeployStatus } from "../kubernetes/container/status"
-import { k8sContainerStartSync, k8sContainerStopSync, k8sContainerGetSyncStatus } from "../kubernetes/container/sync"
 import { getDeployedImageId } from "../kubernetes/container/util"
 import { KUBECTL_DEFAULT_TIMEOUT, apply, deleteObjectsBySelector } from "../kubernetes/kubectl"
 import { namespaceExists } from "../kubernetes/namespace"
 import { getPortForwardHandler, killPortForwards } from "../kubernetes/port-forward"
 import { compareDeployedResources, waitForResources } from "../kubernetes/status/status"
+import { streamK8sLogs } from "../kubernetes/logs"
 
 export const openshiftGetContainerDeployStatus: DeployActionHandler<"getStatus", ContainerDeployAction> = async (
   params
@@ -82,16 +80,16 @@ export const openshiftContainerDeployExtension = (): DeployActionExtension<Conta
   handlers: {
     deploy: openshiftContainerDeploy,
     delete: openshiftDeleteContainerDeploy,
-    exec: execInContainer,
-    getLogs: k8sGetContainerDeployLogs,
+    // exec: execInContainer,
+    getLogs: openshiftGetContainerDeployLogs,
     getPortForward: async (params) => {
       return getPortForwardHandler({ ...params, namespace: undefined })
     },
     getStatus: openshiftGetContainerDeployStatus,
 
-    startSync: k8sContainerStartSync,
-    stopSync: k8sContainerStopSync,
-    getSyncStatus: k8sContainerGetSyncStatus,
+    // startSync: k8sContainerStartSync,
+    // stopSync: k8sContainerStopSync,
+    // getSyncStatus: k8sContainerGetSyncStatus,
 
     validate: async ({ ctx, action }) => {
       validateDeploySpec(action.name, <KubernetesProvider>ctx.provider, action.getSpec())
@@ -262,4 +260,32 @@ export async function createContainerManifests({
   }
 
   return { workload, manifests }
+}
+
+export const openshiftGetContainerDeployLogs: DeployActionHandler<"getLogs", ContainerDeployAction> = async (
+  params
+) => {
+  const { ctx, log, action } = params
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
+  const namespace = (await expectNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })).namespaceName
+  const api = await KubeApi.factory(log, ctx, provider)
+
+  const imageId = getDeployedImageId(action, provider)
+
+  const resources = [
+    await createWorkloadManifest({
+      ctx: k8sCtx,
+      api,
+      provider,
+      action,
+      imageId,
+      namespace,
+
+      production: ctx.production,
+      log,
+    }),
+  ]
+
+  return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources, actionName: action.name })
 }

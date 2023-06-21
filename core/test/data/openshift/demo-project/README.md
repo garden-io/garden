@@ -33,5 +33,6 @@ Ideally, at this point this should work:
 ```bash
 garden deploy
 open http://hello.local.demo.garden/
+garden logs nginx-hello # NOTE: this will be empty due to https://github.com/sclorg/nginx-container/issues/94
 garden delete deploy
 ```
