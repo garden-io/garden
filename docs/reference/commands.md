@@ -2783,6 +2783,29 @@ suggestedCommands:
       src:
 ```
 
+### garden get files
+
+**List all files from all or specified actions.**
+
+This is useful to diagnose issues with ignores, include and exclude for a given action.
+
+#### Usage
+
+    garden get files [keys] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `keys` | No | One or more action keys (e.g. deploy.api), separated by spaces. If omitted, all actions are queried.
+
+
+#### Outputs
+
+```yaml
+<name>:
+```
+
 ### garden get linked-repos
 
 **Outputs a list of all linked remote sources, actions and modules for this project.**
