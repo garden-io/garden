@@ -32,13 +32,10 @@ export const openshiftGetContainerDeployStatus: DeployActionHandler<"getStatus",
   params
 ) => {
   const { ctx, action, log } = params
+  // TODO: separate openshift types for these if possible to pass around?
   // const openshiftCtx = <OpenShiftPluginContext>ctx
   // const provider = openshiftCtx.provider
   // const api = await KubeApi.factory(log, ctx, provider)
-
-  // FIXME: temporarily copied over from Kubernetes, assuming kubernetes compatibility
-  // - need to figure out where the required differences are
-  // - combine and separate things as needed
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
@@ -98,7 +95,6 @@ export const openshiftContainerDeployExtension = (): DeployActionExtension<Conta
   },
 })
 
-// TODO: docstring
 export const openshiftContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
   const { ctx, action, log, force } = params
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -124,8 +120,6 @@ export const openshiftContainerDeploy: DeployActionHandler<"deploy", ContainerDe
   await deployOpenShiftContainerServiceRolling({ ...params, api, imageId })
 
   const postDeployStatus = await openshiftGetContainerDeployStatus(params)
-
-  // Make sure port forwards work after redeployment
   killPortForwards(action, postDeployStatus.detail?.forwardablePorts || [], log)
 
   return postDeployStatus
@@ -156,7 +150,6 @@ export const openshiftDeleteContainerDeploy: DeployActionHandler<"delete", Conta
  * However, this method never attempts to create a missing namespace.
  * If the expected namespace does not exist, throws an error.
  *
- * TODO: improve docstring
  */
 export async function expectNamespaceStatus({
   log,
@@ -184,8 +177,6 @@ export async function expectNamespaceStatus({
   }
 }
 
-// NOTE: adapting from the k8s version
-// TODO: deduplicate, document
 export const deployOpenShiftContainerServiceRolling = async (
   params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi; imageId: string }
 ) => {
@@ -219,8 +210,6 @@ export const deployOpenShiftContainerServiceRolling = async (
   })
 }
 
-// NOTE: openshift variant once again
-// TODO: deduplicate, document
 export async function createContainerManifests({
   ctx,
   api,

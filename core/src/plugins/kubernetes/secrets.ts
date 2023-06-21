@@ -67,7 +67,6 @@ export async function prepareSecrets({
   secrets: Array<ProviderSecretRef>
   log: Log
 }) {
-  // TODO: should we always ensure some secrets getting passed here, or keep the check?
   if (!secrets) {
     return []
   }
