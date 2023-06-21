@@ -49,7 +49,7 @@ import { devModeGuideLink } from "./dev-mode"
 import { localModeGuideLink } from "./local-mode"
 import { DOCS_BASE_URL } from "../../constants"
 
-export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.8.1-debug"
+export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.11.0-debug"
 
 export interface KubernetesDevModeSpec extends ContainerDevModeSpec {
   containerName?: string
