@@ -595,7 +595,7 @@ export class CloudApi {
     localServerPort?: number
     environment: string
     namespace: string
-    isDevCommand?: boolean
+    isDevCommand: boolean
   }): Promise<CloudSession | undefined> {
     let session = this.registeredSessions.get(sessionId)
 
