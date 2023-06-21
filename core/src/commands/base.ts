@@ -314,17 +314,14 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
       const distroName = getCloudDistributionName(cloudSession.api.domain)
       const userId = (await cloudSession.api.getProfile()).id
       const commandResultUrl = cloudSession.api.getCommandResultUrl({
-        shortId: cloudSession.shortId,
         sessionId: garden.sessionId,
         projectId: cloudSession.projectId,
         userId,
       }).href
       const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
-      const msg = dedent`🌸  Connected to ${distroName}. View logs and command results at: ${chalk.cyan(
-        commandResultUrl
-      )}\n`
-      cloudLog.info(msg)
+      // FIXME: We need a shortened URL for this
+      cloudLog.info(`View command results at:\n${chalk.cyan(commandResultUrl)}\n`)
     }
 
     let analytics: AnalyticsHandler | undefined
