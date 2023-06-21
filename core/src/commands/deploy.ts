@@ -105,6 +105,10 @@ export const deployOpts = {
   "timestamps": new BooleanParameter({
     help: "Show timestamps with log output. Should be used with the `--logs` option (has no effect if that option is not used).",
   }),
+  "skip-watch": new BooleanParameter({
+    help: "(keeping for backwards compatibility with 0.12.x)",
+    hidden: true,
+  }),
   ...serveOpts,
 }
 
