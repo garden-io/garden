@@ -32,7 +32,7 @@ Ideally, at this point this should work:
 
 ```bash
 garden deploy
-open http://hello.local.demo.garden/
+open http://hello.local.demo.garden/ # NOTE: this will return 403 as there is no content in the served directory and directory listing is forbidden
 garden logs nginx-hello # NOTE: this will be empty due to https://github.com/sclorg/nginx-container/issues/94
 garden delete deploy
 ```
