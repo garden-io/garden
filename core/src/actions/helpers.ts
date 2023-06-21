@@ -6,8 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Bluebird from "bluebird"
 import chalk from "chalk"
-import { memoize } from "lodash"
+import { fromPairs, memoize } from "lodash"
 import { joi } from "../config/common"
 import { Garden } from "../garden"
 import { createActionLog, Log } from "../logger/log-entry"
@@ -21,6 +22,11 @@ import type { Action, ActionState, ExecuteActionParams, Executed, ResolveActionP
 import { ActionRouter } from "../router/router"
 import { ResolvedConfigGraph } from "../graph/config-graph"
 import { relative, sep } from "path"
+import { makeActionCompletePayload } from "../events/util"
+import { ActionStatusPayload } from "../events/action-status-events"
+import { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status"
+import { DeployStatusForEventPayload } from "../types/service"
+import { RunStatusForEventPayload } from "../plugin/plugin"
 
 /**
  * Creates a corresponding Resolved version of the given Action, given the additional parameters needed.
@@ -140,3 +146,90 @@ export function getRelativeActionConfigPath(projectRoot: string, action: Action)
   const relPath = relative(projectRoot, action.configPath() ?? "")
   return relPath.startsWith("..") ? relPath : "." + sep + relPath
 }
+
+export async function getDeployStatusPayloads(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
+  const actions = graph.getDeploys()
+
+  return fromPairs(
+    await Bluebird.map(actions, async (action) => {
+      const startedAt = new Date().toISOString()
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const { result } = await router.deploy.getStatus({ action, log: actionLog, graph })
+
+      const payload = makeActionCompletePayload({
+        result,
+        operation: "getStatus",
+        startedAt,
+        force: false,
+        action,
+      }) as ActionStatusPayload<DeployStatusForEventPayload>
+
+      return [action.name, payload]
+    })
+  )
+}
+
+export async function getBuildStatusPayloads(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
+  const actions = graph.getBuilds()
+
+  return fromPairs(
+    await Bluebird.map(actions, async (action) => {
+      const startedAt = new Date().toISOString()
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const { result } = await router.build.getStatus({ action, log: actionLog, graph })
+
+      const payload = makeActionCompletePayload({
+        result,
+        operation: "getStatus",
+        startedAt,
+        force: false,
+        action,
+      }) as ActionStatusPayload<BuildStatusForEventPayload>
+
+      return [action.name, payload]
+    })
+  )
+}
+
+export async function getTestStatusPayloads(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
+  const actions = graph.getTests()
+
+  return fromPairs(
+    await Bluebird.map(actions, async (action) => {
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const startedAt = new Date().toISOString()
+      const { result } = await router.test.getResult({ action, log: actionLog, graph })
+      const payload = makeActionCompletePayload({
+        result,
+        operation: "getStatus",
+        startedAt,
+        force: false,
+        action,
+      }) as ActionStatusPayload<RunStatusForEventPayload>
+      return [action.name, payload]
+    })
+  )
+}
+
+export async function getRunStatusPayloads(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
+  const actions = graph.getRuns()
+
+  return fromPairs(
+    await Bluebird.map(actions, async (action) => {
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const startedAt = new Date().toISOString()
+      const { result } = await router.run.getResult({ action, log: actionLog, graph })
+
+      const payload = makeActionCompletePayload({
+        result,
+        operation: "getStatus",
+        startedAt,
+        force: false,
+        action,
+      }) as ActionStatusPayload<RunStatusForEventPayload>
+
+      return [action.name, payload]
+    })
+  )
+}
+

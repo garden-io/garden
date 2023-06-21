@@ -26,7 +26,7 @@ import { MonitorManager } from "../monitors/manager"
 import type { GardenPluginReference } from "../plugin/plugin"
 import { environmentToString } from "../types/namespace"
 import { omitUndefined } from "../util/objects"
-import { AutocompleteCommand, ReloadCommand, LogLevelCommand, HideCommand, _GetDeployStatusCommand } from "./commands"
+import { AutocompleteCommand, ReloadCommand, LogLevelCommand, HideCommand, _GetDeployStatusCommand, _GetActionStatusesCommand } from "./commands"
 import { getGardenInstanceKey, GardenInstanceKeyParams } from "./helpers"
 
 interface InstanceContext {
@@ -105,6 +105,7 @@ export class GardenInstanceManager {
         new LogLevelCommand(),
         new HideCommand(),
         new _GetDeployStatusCommand(),
+        new _GetActionStatusesCommand(),
       ]),
       ...(extraCommands || []),
     ]
