@@ -16,11 +16,7 @@ import { gardenAnnotationKey } from "../../util/string"
 import { ContainerDeployAction } from "../container/moduleConfig"
 import { KubeApi } from "../kubernetes/api"
 import { KubernetesPluginContext, KubernetesProvider } from "../kubernetes/config"
-import {
-  createWorkloadManifest,
-  deleteContainerDeploy,
-  handleChangedSelector,
-} from "../kubernetes/container/deployment"
+import { createWorkloadManifest, handleChangedSelector } from "../kubernetes/container/deployment"
 import { execInContainer } from "../kubernetes/container/exec"
 import { validateDeploySpec } from "../kubernetes/container/handlers"
 import { createIngressResources, getIngresses } from "../kubernetes/container/ingress"
@@ -29,7 +25,7 @@ import { createServiceResources } from "../kubernetes/container/service"
 import { prepareContainerDeployStatus } from "../kubernetes/container/status"
 import { k8sContainerStartSync, k8sContainerStopSync, k8sContainerGetSyncStatus } from "../kubernetes/container/sync"
 import { getDeployedImageId } from "../kubernetes/container/util"
-import { KUBECTL_DEFAULT_TIMEOUT, apply } from "../kubernetes/kubectl"
+import { KUBECTL_DEFAULT_TIMEOUT, apply, deleteObjectsBySelector } from "../kubernetes/kubectl"
 import { namespaceExists } from "../kubernetes/namespace"
 import { getPortForwardHandler, killPortForwards } from "../kubernetes/port-forward"
 import { compareDeployedResources, waitForResources } from "../kubernetes/status/status"
@@ -85,7 +81,7 @@ export const openshiftContainerDeployExtension = (): DeployActionExtension<Conta
   name: "container",
   handlers: {
     deploy: openshiftContainerDeploy,
-    delete: deleteContainerDeploy,
+    delete: openshiftDeleteContainerDeploy,
     exec: execInContainer,
     getLogs: k8sGetContainerDeployLogs,
     getPortForward: async (params) => {
@@ -135,6 +131,25 @@ export const openshiftContainerDeploy: DeployActionHandler<"deploy", ContainerDe
   killPortForwards(action, postDeployStatus.detail?.forwardablePorts || [], log)
 
   return postDeployStatus
+}
+
+export const openshiftDeleteContainerDeploy: DeployActionHandler<"delete", ContainerDeployAction> = async (params) => {
+  const { ctx, log, action } = params
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const namespace = (await expectNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })).namespaceName
+  const provider = k8sCtx.provider
+
+  await deleteObjectsBySelector({
+    ctx,
+    log,
+    provider,
+    namespace,
+    selector: `${gardenAnnotationKey("service")}=${action.name}`,
+    objectTypes: ["deployment", "replicaset", "pod", "service", "ingress", "daemonset"],
+    includeUninitialized: false,
+  })
+
+  return { state: "ready", detail: { state: "missing", detail: {} }, outputs: {} }
 }
 
 /**
