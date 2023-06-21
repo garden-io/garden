@@ -277,7 +277,8 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
       const processResult: T["_resultType"] = await this.task.process({ status, dependencyResults, statusOnly: false })
       this.task.emit("processed", { result: processResult })
       if (processResult.state === "ready") {
-        this.task.log.verbose(`${this.task.getDescription()} is ready.`)
+        const msg = `${this.task.getDescription()} is ready.`
+        this.statusOnly || this.task.type === "resolve-action" ? this.task.log.debug(msg) : this.task.log.verbose(msg)
       }
       return processResult
     } catch (error) {
@@ -309,7 +310,8 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
       const result: T["_resultType"] = await this.task.getStatus({ statusOnly: this.statusOnly, dependencyResults })
       this.task.emit("statusResolved", { result })
       if (!this.task.force && result?.state === "ready") {
-        this.task.log.verbose(`${this.task.getDescription()} status is ready.`)
+        const msg = `${this.task.getDescription()} status is ready.`
+        this.statusOnly || this.task.type === "resolve-action" ? this.task.log.debug(msg) : this.task.log.verbose(msg)
       }
       return result
     } catch (error) {
