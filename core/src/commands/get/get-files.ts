@@ -27,11 +27,6 @@ interface Result {
   [key: string]: string[]
 }
 
-/**
- * An abstract base class for get actions subcommands
- * e.g. get builds, deploys, runs, tests.
- * These commands are same as calling get actions command with option kind
- */
 export class GetFilesCommand extends Command<Args, Opts> {
   name = "files"
   help = "List all files from all or specified actions."
