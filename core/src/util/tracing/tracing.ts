@@ -11,8 +11,13 @@ import { HttpInstrumentation } from "@opentelemetry/instrumentation-http"
 import { gardenEnv } from "../../constants"
 import { getSessionContext } from "./context"
 import { prefixWithGardenNamespace } from "./util"
+import { ReconfigurableExporter } from "./reconfigurable-exporter"
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
+import { OTLPExporterNodeConfigBase } from "@opentelemetry/otlp-exporter-base"
 
 export const tracer = opentelemetry.api.trace.getTracer("garden")
+
+export const reconfigurableExporter = new ReconfigurableExporter()
 
 // Singleton we initialize either when we get the SDK the first time
 // or when we call `initTracing` explicitly
@@ -64,10 +69,16 @@ export function initTracing(): opentelemetry.NodeSDK {
         },
       }),
     ],
+    traceExporter: reconfigurableExporter,
     autoDetectResources: false,
   })
 
   otelSDK.start()
 
   return otelSDK
+}
+
+export function configureOTLPHttpExporter(config?: OTLPExporterNodeConfigBase | undefined): void {
+  const exporter = new OTLPTraceExporter(config)
+  reconfigurableExporter.setTargetExporter(exporter)
 }
