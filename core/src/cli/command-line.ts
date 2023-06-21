@@ -38,6 +38,7 @@ import {
 import type { GlobalOptions, ParameterValues } from "./params"
 import { bindActiveContext, withSessionContext } from "../util/tracing/context"
 import { wrapActiveSpan } from "../util/tracing/spans"
+import { GardenCli } from "./cli"
 
 const defaultMessageDuration = 3000
 const commandLinePrefix = chalk.yellow("🌼  > ")
@@ -133,6 +134,8 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private readonly log: Log
   private readonly globalOpts: Partial<ParameterValues<GlobalOptions>>
 
+  private cli: GardenCli
+
   constructor({
     cwd,
     manager,
@@ -140,6 +143,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     globalOpts,
     serveCommand,
     extraCommands,
+    cli,
     history = [],
   }: {
     cwd: string
@@ -148,6 +152,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     globalOpts: Partial<ParameterValues<GlobalOptions>>
     serveCommand: ServeCommand
     extraCommands: Command[]
+    cli: GardenCli
     history?: string[]
   }) {
     super()
@@ -160,6 +165,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.globalOpts = globalOpts
     this.extraCommands = extraCommands
     this.serveCommand = serveCommand
+    this.cli = cli
 
     this.enabled = false
     this.currentCommand = ""
@@ -339,7 +345,10 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     })
 
     // Execute
-    this.setKeyHandler("return", bindActiveContext(() => this.handleReturn()))
+    this.setKeyHandler(
+      "return",
+      bindActiveContext(() => this.handleReturn())
+    )
 
     // Autocomplete
     this.setKeyHandler("tab", () => {
@@ -671,6 +680,7 @@ ${chalk.white.underline("Keys:")}
       opts,
       commandLine: this,
       parentCommand: this.serveCommand,
+      cli: this.cli,
     }
 
     const name = command.getFullName()
@@ -730,15 +740,17 @@ ${chalk.white.underline("Keys:")}
               return
             }
 
-            garden = await wrapActiveSpan("getGardenForRequest", () => this.manager.getGardenForRequest({
-              command,
-              projectConfig,
-              globalConfigStore: this.globalConfigStore,
-              log: this.log,
-              args,
-              opts,
-              sessionId,
-            }))
+            garden = await wrapActiveSpan("getGardenForRequest", () =>
+              this.manager.getGardenForRequest({
+                command,
+                projectConfig,
+                globalConfigStore: this.globalConfigStore,
+                log: this.log,
+                args,
+                opts,
+                sessionId,
+              })
+            )
           } catch (error) {
             this.flashError(getCmdFailMsg(name))
             this.log.error({ error })

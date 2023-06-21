@@ -12,7 +12,7 @@ import React, { FC, useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
 import { serveArgs, ServeCommand, serveOpts } from "./serve"
 import { LoggerType } from "../logger/logger"
-import { ParameterError } from "../exceptions"
+import { InternalError, ParameterError } from "../exceptions"
 import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer"
 import { CommandLine } from "../cli/command-line"
 import chalk from "chalk"
@@ -93,12 +93,15 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
     if (terminalWriter.type === "ink") {
       inkWriter = terminalWriter as InkTerminalWriter
     } else {
-      throw new ParameterError({ message: `This command can only be used with the ink logger type`, detail: {
-        writerTypes: {
-          terminalWriter: terminalWriter.type,
-          fileWriters: logger.getWriters().file.map((w) => w.type),
+      throw new ParameterError({
+        message: `This command can only be used with the ink logger type`,
+        detail: {
+          writerTypes: {
+            terminalWriter: terminalWriter.type,
+            fileWriters: logger.getWriters().file.map((w) => w.type),
+          },
         },
-      }})
+      })
     }
 
     const commandLine = await this.initCommandHandler(params)
@@ -123,9 +126,11 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
         },
       })
 
-      useInput(bindActiveContext((input, key) => {
-        commandLine.handleInput(input, key)
-      }))
+      useInput(
+        bindActiveContext((input, key) => {
+          commandLine.handleInput(input, key)
+        })
+      )
 
       const width = stdout ? stdout.columns - 2 : 50
 
@@ -190,7 +195,10 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
 
   private async initCommandHandler(params: ActionParams) {
     const _this = this
-    const { garden, log, opts } = params
+    const { garden, log, opts, cli } = params
+    if (!cli) {
+      throw new InternalError({ message: `Missing cli argument in dev command.`, detail: {} })
+    }
 
     // override the session for this manager to ensure we inherit from
     // the initial garden dummy instance
@@ -205,6 +213,7 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
       globalOpts: pick(opts, Object.keys(globalOptions)),
       history: await garden.localConfigStore.get("devCommandHistory"),
       serveCommand: this,
+      cli,
     })
     this.commandLine = cl
 
