@@ -25,7 +25,7 @@ import {
   syncTargetPathSchema,
 } from "../container/moduleConfig"
 import { dedent, gardenAnnotationKey } from "../../util/string"
-import { cloneDeep, keyBy, omit, set } from "lodash"
+import { cloneDeep, kebabCase, keyBy, omit, set } from "lodash"
 import {
   getResourceContainer,
   getResourceKey,
@@ -62,7 +62,7 @@ import {
 } from "../../mutagen"
 import { k8sSyncUtilImageName } from "./constants"
 import { templateStringLiteral } from "../../docs/common"
-import { resolve } from "path"
+import { relative, resolve } from "path"
 import Bluebird from "bluebird"
 import { Resolved } from "../../actions/types"
 import { isAbsolute } from "path"
@@ -517,7 +517,8 @@ export function getLocalSyncPath(sourcePath: string, basePath: string) {
 }
 
 export async function startSyncs(params: StartSyncsParams) {
-  const { ctx, log, basePath, action, deployedResources, defaultNamespace, actionDefaults, defaultTarget, syncs } = params
+  const { ctx, log, basePath, action, deployedResources, defaultNamespace, actionDefaults, defaultTarget, syncs } =
+    params
 
   if (syncs.length === 0) {
     return
@@ -685,20 +686,13 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
       return
     }
 
-    const {
-      key,
-      source,
-      target,
-      sourceDescription,
-      targetDescription,
-      resourceName,
-      containerName,
-    } = await prepareSync({
-      ...params,
-      resourceSpec,
-      target: targetResource,
-      spec: s,
-    })
+    const { key, source, target, sourceDescription, targetDescription, resourceName, containerName } =
+      await prepareSync({
+        ...params,
+        resourceSpec,
+        target: targetResource,
+        spec: s,
+      })
 
     if (!isConfiguredForSyncMode(targetResource) || !containerName) {
       syncStatuses.push({
@@ -813,27 +807,17 @@ function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
   return `k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`
 }
 
-function sanitizeForSyncKey(value: string): string {
-  return value
-    .replaceAll(".", "") // remove all periods from relative paths
-    .replaceAll(/\/+/g, "-") // convert each sequence of slashes to a single dash
-    .replaceAll(/\\+/g, "-") // convert each sequence of backslashes to a single dash
-    .replace(":", "") // remove ':' from Windows paths
-    .replace(/^-+/, "") // remove possible extra dashes from the start
-    .replace(/-+$/, "") // remove possible extra dashes from the end
-}
-
 /**
  * Generates a unique key for sa single sync.
  * IMPORTANT!!! The key will be used as an argument in the `mutagen` shell command.
  *  It cannot contain any characters that can break the command execution (like / \ < > | :).
  */
 function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableResource): string {
-  const sourcePath = sanitizeForSyncKey(spec.sourcePath)
-  const containerPath = sanitizeForSyncKey(spec.containerPath)
-  return `${getSyncKeyPrefix(ctx, action)}${target.kind}--${
-    target.metadata.name
-  }-from-${sourcePath}-to-${containerPath}`
+  const sourcePath = relative(action.basePath(), spec.sourcePath)
+  const containerPath = spec.containerPath
+  return kebabCase(
+    `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name}--${sourcePath}--${containerPath}`
+  )
 }
 
 async function prepareSync(params: PrepareSyncParams) {
