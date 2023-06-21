@@ -24,6 +24,7 @@ import { GetWorkflowsCommand } from "./get-workflows"
 import { GetActionsCommand } from "./get-actions"
 import { GetDeploysCommand } from "./get-deploys"
 import { GetBuildsCommand } from "./get-builds"
+import { GetFilesCommand } from "./get-files"
 
 export class GetCommand extends CommandGroup {
   name = "get"
@@ -34,6 +35,7 @@ export class GetCommand extends CommandGroup {
     GetConfigCommand,
     GetDoddiCommand,
     GetEysiCommand,
+    GetFilesCommand,
     GetLinkedReposCommand,
     GetOutputsCommand,
     GetModulesCommand,
