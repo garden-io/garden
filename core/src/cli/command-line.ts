@@ -718,8 +718,6 @@ ${chalk.white.underline("Keys:")}
           : `Could not find project in current directory or any parent directoty`
         this.flashError(getCmdFailMsg(name))
         this.log.error(msg)
-        delete this.runningCommands[id]
-        this.renderStatus()
         return
       }
 
@@ -735,9 +733,10 @@ ${chalk.white.underline("Keys:")}
     } catch (error) {
       this.flashError(getCmdFailMsg(name))
       this.log.error({ error })
+      return
+    } finally {
       delete this.runningCommands[id]
       this.renderStatus()
-      return
     }
 
     // Update persisted history
@@ -770,9 +769,9 @@ ${chalk.white.underline("Keys:")}
         this.flashError(getCmdFailMsg(name))
       })
       .finally(() => {
-        garden.events.clearKey(sessionId)
         delete this.runningCommands[id]
         this.renderStatus()
+        garden.events.clearKey(sessionId)
       })
   }
 
