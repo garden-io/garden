@@ -19,9 +19,14 @@ import { ActionKind } from "../actions/types"
 import isGlob from "is-glob"
 import { ParameterError } from "../exceptions"
 import { naturalList } from "../util/string"
+import { CommandParams } from "./base"
 
 export function makeGetTestOrTaskLog(actions: (TestAction | RunAction)[]) {
   return actions.map((t) => prettyPrintTestOrTask(t)).join("\n")
+}
+
+export function getCmdOptionForDev(commandName: string, params: CommandParams) {
+  return [commandName + " " + params.args.$all?.join(" ")]
 }
 
 export function prettyPrintWorkflow(workflow: WorkflowConfig): string {

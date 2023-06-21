@@ -21,7 +21,7 @@ import {
   emptyActionResults,
 } from "./base"
 import { printEmoji, printHeader } from "../logger/util"
-import { watchParameter, watchRemovedWarning } from "./helpers"
+import { getCmdOptionForDev, watchParameter, watchRemovedWarning } from "./helpers"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
@@ -182,8 +182,7 @@ export class DeployCommand extends Command<Args, Opts> {
     const monitor = this.maybePersistent(params)
     if (monitor && !params.parentCommand) {
       // Then we're not in the dev command yet, so we call that instead with the appropriate initial command.
-      // TODO: Abstract this delegation process into a helper if we write more commands that do this sort of thing.
-      params.opts.cmd = ["deploy " + params.args.$all!.join(" ")]
+      params.opts.cmd = getCmdOptionForDev("deploy", params)
       const devCmd = new DevCommand()
       devCmd.printHeader(params)
       await devCmd.prepare(params)
