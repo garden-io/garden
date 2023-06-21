@@ -595,7 +595,7 @@ export class GardenServer extends EventEmitter {
               garden,
               sessionId: requestId,
               parentSessionId: this.sessionId,
-              overrideLogLevel: internal ? LogLevel.silly : undefined
+              overrideLogLevel: internal ? LogLevel.silly : undefined,
             })
           })
           // Here we check if the command has active monitors and if so,
@@ -680,6 +680,9 @@ export class GardenServer extends EventEmitter {
       let { garden, log: _log } = resolved
       const log = _log.createLog({ fixLevel: LogLevel.silly })
 
+      const loadConfigLog = this.log.createLog({ name: "garden-server", showDuration: true })
+      loadConfigLog.info("Loading config for Live page...")
+
       const cloudApi = await this.manager.getCloudApi({
         log,
         cloudDomain: getGardenCloudDomain(garden.cloudDomain),
@@ -706,9 +709,11 @@ export class GardenServer extends EventEmitter {
 
       try {
         graph = await garden.getConfigGraph({ log, emit: true })
+        loadConfigLog.success("Config loaded")
       } catch (error) {
         errors.push(toGardenError(error))
       } finally {
+        loadConfigLog.success(`Loading config failed with error: ${errors[0].message}`)
         await cloudEventStream.close() // Note: This also flushes events
         send(
           "commandResult",
