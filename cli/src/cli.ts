@@ -10,7 +10,7 @@ import { shutdown } from "@garden-io/core/build/src/util/util"
 import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
 import { GardenPluginReference } from "@garden-io/core/build/src/plugin/plugin"
 import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global"
-import { getOtelSDK } from "@garden-io/core/build/src/util/tracing/tracing"
+import { getOtelSDK, configureOTLPHttpExporter } from "@garden-io/core/build/src/util/tracing/tracing"
 import { withContextFromEnv } from "@garden-io/core/build/src/util/tracing/propagation"
 import { wrapActiveSpan } from "@garden-io/core/build/src/util/tracing/spans"
 
@@ -63,6 +63,7 @@ export async function runCli({
     }
 
     try {
+      configureOTLPHttpExporter()
       await Promise.race([getOtelSDK().shutdown(), new Promise((resolve) => setTimeout(resolve, 3000))])
     } catch (err) {
       // eslint-disable-next-line no-console
