@@ -166,7 +166,7 @@ export class ServeCommand<
             localServerPort: this.server.port,
             environment: defaultGarden.environmentName,
             namespace: defaultGarden.namespace,
-            isDevCommand: false,
+            isDevCommand: true,
           })
           if (session?.shortId) {
             const distroName = getCloudDistributionName(cloudDomain)

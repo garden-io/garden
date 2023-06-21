@@ -21,7 +21,7 @@ import {
   emptyActionResults,
 } from "./base"
 import { printEmoji, printHeader } from "../logger/util"
-import { getCmdOptionForDev, watchParameter, watchRemovedWarning } from "./helpers"
+import { runAsDevCommand, watchParameter, watchRemovedWarning } from "./helpers"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
@@ -35,7 +35,6 @@ import { PortForwardMonitor } from "../monitors/port-forward"
 import { LogMonitor } from "../monitors/logs"
 import { LoggerType, parseLogLevel } from "../logger/logger"
 import { serveOpts } from "./serve"
-import { DevCommand } from "./dev"
 import { gardenEnv } from "../constants"
 
 export const deployArgs = {
@@ -182,12 +181,7 @@ export class DeployCommand extends Command<Args, Opts> {
     const monitor = this.maybePersistent(params)
     if (monitor && !params.parentCommand) {
       // Then we're not in the dev command yet, so we call that instead with the appropriate initial command.
-      params.opts.cmd = getCmdOptionForDev("deploy", params)
-      const devCmd = new DevCommand()
-      devCmd.printHeader(params)
-      await devCmd.prepare(params)
-
-      return devCmd.action(params)
+      return runAsDevCommand("deploy", params)
     }
 
     const disablePortForwards = gardenEnv.GARDEN_DISABLE_PORT_FORWARDS || opts["disable-port-forwards"] || false
