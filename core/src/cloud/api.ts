@@ -447,8 +447,7 @@ export class CloudApi {
       this.log.debug({ msg: `Failed to refresh the token.` })
       const detail = is401Error(err) ? { statusCode: err.response.statusCode } : {}
       throw new CloudApiTokenRefreshError(
-        `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
-          err.message
+        `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${err.message
         }`,
         detail
       )
@@ -682,8 +681,7 @@ export class CloudApi {
     } catch (err) {
       if (!is401Error(err)) {
         throw new CloudApiError(
-          `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
-            err.message
+          `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${err.message
           }`,
           {}
         )
@@ -697,21 +695,13 @@ export class CloudApi {
     return new URL(`/projects/${projectId}`, this.domain)
   }
 
-  getCommandResultUrl({
-    projectId,
-    sessionId,
-    userId,
-    shortId,
-  }: {
-    projectId: string
-    sessionId: string
-    userId: string
-    shortId?: string
-  }) {
-    let path = `/projects/${projectId}?sessionId=${sessionId}&userId=${userId}`
-    if (shortId) {
-      path = `/go/${shortId}`
-    }
+  getCommandResultUrl({ projectId, sessionId, userId }: { projectId: string; sessionId: string; userId: string }) {
+    const path = `/projects/${projectId}?sessionId=${sessionId}&userId=${userId}`
+    return new URL(path, this.domain)
+  }
+
+  getLivePageUrl({ shortId }: { shortId: string }) {
+    const path = `/go/${shortId}`
     return new URL(path, this.domain)
   }
 
