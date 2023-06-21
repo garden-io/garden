@@ -12,14 +12,13 @@ import { ContainerDeployAction, ContainerDeployOutputs } from "../../container/m
 import { KubeApi } from "../api"
 import { compareDeployedResources } from "../status/status"
 import { getIngresses } from "./ingress"
-import { getAppNamespaceStatus } from "../namespace"
+import { getNamespaceStatus } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { KubernetesServerResource, KubernetesWorkload } from "../types"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
 import { ActionMode, Resolved } from "../../../actions/types"
 import { deployStateToActionState, DeployStatus } from "../../../plugin/handlers/Deploy/get-status"
-import { NamespaceStatus } from "../../../types/namespace"
 
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
@@ -36,7 +35,7 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
   const namespace = namespaceStatus.namespaceName
   const imageId = getDeployedImageId(action, provider)
 
@@ -65,7 +64,6 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     workload,
     selectorChangedResourceKeys,
     state,
-    namespaceStatus,
     ingresses,
   })
 }
@@ -78,7 +76,6 @@ export function prepareContainerDeployStatus({
   workload,
   selectorChangedResourceKeys,
   state,
-  namespaceStatus,
   ingresses,
 }: {
   action: Resolved<ContainerDeployAction>
@@ -88,7 +85,6 @@ export function prepareContainerDeployStatus({
   workload: KubernetesWorkload
   selectorChangedResourceKeys: string[]
   state: DeployState
-  namespaceStatus: NamespaceStatus
   ingresses: ServiceIngress[] | undefined
 }): DeployStatus<ContainerDeployAction> {
   // Local mode has its own port-forwarding configuration
@@ -114,7 +110,6 @@ export function prepareContainerDeployStatus({
     forwardablePorts,
     ingresses,
     state,
-    namespaceStatuses: [namespaceStatus],
     detail: { remoteResources, workload, selectorChangedResourceKeys },
     mode: deployedMode,
     outputs,

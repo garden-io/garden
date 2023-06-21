@@ -38,6 +38,7 @@ import { UpdateRemoteCommand } from "./update-remote/update-remote"
 import { UtilCommand } from "./util/util"
 import { ValidateCommand } from "./validate"
 import { UpCommand } from "./up"
+import { VersionCommand } from "./version"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new BuildCommand(),
@@ -70,6 +71,7 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new UpdateRemoteCommand(),
   new UtilCommand(),
   new ValidateCommand(),
+  new VersionCommand(),
 ]
 
 export function flattenCommands(commands: (Command | CommandGroup)[]): Command[] {

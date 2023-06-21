@@ -20,7 +20,7 @@ export const k8sContainerStartSync: DeployActionHandler<"startSync", ContainerDe
   const { ctx, action, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
-  const { target, syncs, manifests } = getSyncs(action)
+  const { target, syncs, deployedResources } = getSyncs(action)
 
   if (syncs.length === 0) {
     return {}
@@ -36,7 +36,7 @@ export const k8sContainerStartSync: DeployActionHandler<"startSync", ContainerDe
     basePath: action.basePath(),
     defaultNamespace,
     defaultTarget: target,
-    manifests,
+    deployedResources,
     syncs,
   })
 
@@ -66,7 +66,7 @@ export const k8sContainerGetSyncStatus: DeployActionHandler<"getSyncStatus", Con
   const { ctx, log, action, monitor } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
-  const { target, syncs, manifests } = getSyncs(action)
+  const { target, syncs, deployedResources } = getSyncs(action)
 
   const defaultNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
@@ -78,7 +78,7 @@ export const k8sContainerGetSyncStatus: DeployActionHandler<"getSyncStatus", Con
     basePath: action.basePath(),
     defaultNamespace,
     defaultTarget: target,
-    manifests,
+    deployedResources,
     syncs,
     monitor,
   })
@@ -87,14 +87,14 @@ export const k8sContainerGetSyncStatus: DeployActionHandler<"getSyncStatus", Con
 function getSyncs(action: Executed<ContainerDeployAction>): {
   syncs: KubernetesDeployDevModeSyncSpec[]
   target?: KubernetesTargetResourceSpec | undefined
-  manifests: KubernetesResource[]
+  deployedResources: KubernetesResource[]
 } {
   const status = action.getStatus()
   const sync = action.getSpec("sync")
   const workload = status.detail.detail.workload
 
   if (!sync?.paths || !workload) {
-    return { syncs: [], manifests: [] }
+    return { syncs: [], deployedResources: [] }
   }
 
   const target = {
@@ -109,5 +109,5 @@ function getSyncs(action: Executed<ContainerDeployAction>): {
     target,
   }))
 
-  return { syncs, target, manifests: status.detail.remoteResources }
+  return { syncs, target, deployedResources: status.detail.remoteResources }
 }

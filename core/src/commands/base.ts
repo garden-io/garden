@@ -23,7 +23,7 @@ import {
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
-import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel } from "../logger/logger"
+import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel, LogLevel } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { capitalize } from "lodash"
 import {
@@ -55,6 +55,7 @@ import { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from 
 import { splitFirst } from "../util/string"
 import { ActionMode } from "../actions/types"
 import { AnalyticsHandler } from "../analytics/analytics"
+import { getCmdOptionForDev } from "./helpers"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -103,6 +104,14 @@ export interface RunCommandParams<A extends Parameters = {}, O extends Parameter
    * Only defined if running in dev command or WS server.
    */
   parentSessionId: string | null
+  /**
+   * In certain cases we need to override the log level at the "run command" level. This is because
+   * we're now re-using Garden instances via the InstanceManager and therefore cannot change the level
+   * on the instance proper.
+   *
+   * Used e.g. by the websocket server to set a high log level for internal commands.
+   */
+  overrideLogLevel?: LogLevel
 }
 
 export interface SuggestedCommand {
@@ -250,16 +259,18 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
    *
    * @returns The result from the command action
    */
-  async run({
-    garden: parentGarden,
-    args,
-    opts,
-    cli,
-    commandLine,
-    sessionId,
-    parentCommand,
-    parentSessionId,
-  }: RunCommandParams<A, O>): Promise<CommandResult<R>> {
+  async run(params: RunCommandParams<A, O>): Promise<CommandResult<R>> {
+    const {
+      garden: parentGarden,
+      args,
+      opts,
+      cli,
+      commandLine,
+      sessionId,
+      parentCommand,
+      parentSessionId,
+      overrideLogLevel,
+    } = params
     const commandStartTime = new Date()
     const server = this.server
 
@@ -271,8 +282,20 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
       garden = parentGarden.cloneForCommand(sessionId)
     }
 
-    const log = garden.log
+    const log = overrideLogLevel ? garden.log.createLog({ fixLevel: overrideLogLevel }) : garden.log
+
     let cloudSession: CloudSession | undefined
+
+    // It's not ideal that we have to update the command info here after init, but we don't know whether we're
+    // going into a subcommand in the `GardenCli` class where the `commandInfo` object is first created.
+    if (!["dev", "serve"].includes(this.name) && this.maybePersistent(params) && !params.parentCommand) {
+      // Then this command will be starting a `dev` command and then running itself from there, so we update
+      // the `commandInfo` accordingly.
+      // Example: `garden deploy --sync`.
+      const outerName = this.name
+      garden.commandInfo.name = "dev"
+      garden.commandInfo.opts.cmd = getCmdOptionForDev(outerName, params)
+    }
 
     if (garden.cloudApi && garden.projectId && this.streamEvents) {
       cloudSession = await garden.cloudApi.registerSession({
@@ -283,6 +306,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
         localServerPort: server?.port,
         environment: garden.environmentName,
         namespace: garden.namespace,
+        isDevCommand: garden.commandInfo.name === "dev"
       })
     }
 

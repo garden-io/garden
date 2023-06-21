@@ -118,7 +118,7 @@ interface CycleGraph {
   }
 }
 
-export async function resolveVariables({
+export async function mergeVariables({
   basePath,
   variables,
   varfiles,

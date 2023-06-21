@@ -180,6 +180,7 @@ export interface GardenParams {
   dotIgnoreFile: string
   proxy: ProxyConfig
   environmentName: string
+  resolvedDefaultNamespace: string | null
   namespace: string
   gardenDirPath: string
   globalConfigStore?: GlobalConfigStore
@@ -245,6 +246,14 @@ export class Garden {
   public readonly projectName: string
   public readonly projectApiVersion: string
   public readonly environmentName: string
+  /**
+   * The resolved default namespace as defined in the Project config for the current environment.
+   */
+  public readonly resolvedDefaultNamespace: string | null
+  /**
+   * The actual namespace for the Garden instance. This is by default the namespace defined in the Project config
+   * for the current environment but can be overwritten with the `--env` flag.
+   */
   public readonly namespace: string
   public readonly variables: DeepPrimitiveMap
   // Any variables passed via the `--var` CLI option (maintained here so that they can be used during module resolution
@@ -281,6 +290,7 @@ export class Garden {
     this.cloudDomain = params.cloudDomain
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
+    this.resolvedDefaultNamespace = params.resolvedDefaultNamespace
     this.namespace = params.namespace
     this.gardenDirPath = params.gardenDirPath
     this.log = params.log
@@ -1148,7 +1158,7 @@ export class Garden {
 
     const cacheContexts = [...moduleDependencies, moduleConfig].map((c: ModuleConfig) => getModuleCacheContext(c))
 
-    const treeVersion = await this.vcs.getTreeVersion(log, this.projectName, moduleConfig)
+    const treeVersion = await this.vcs.getTreeVersion({ log, projectName: this.projectName, config: moduleConfig })
 
     validateSchema(treeVersion, treeVersionSchema(), {
       context: `${this.vcs.name} tree version for module at ${moduleConfig.path}`,
@@ -1303,7 +1313,7 @@ export class Garden {
         }
 
         for (const config of actionConfigs) {
-          this.addActionConfig((config as unknown) as BaseActionConfig)
+          this.addActionConfig(config as unknown as BaseActionConfig)
           actionsCount++
         }
       }
@@ -1506,12 +1516,12 @@ export class Garden {
   public getInstanceKeyParams() {
     let namespace: string | undefined
 
-    let defaultNs = this.getEnvironmentConfig().defaultNamespace
+    // This is either the default namespace defined in the Project config for the current environment or, as a fall back,
+    // the hard coded "default" value.
+    const defaultNs = this.resolvedDefaultNamespace || defaultNamespace
 
-    if (defaultNs === undefined) {
-      defaultNs = defaultNamespace
-    }
-
+    // this.namespace is the actual namespace for this Garden instance, and is either set
+    // via the `--env` flag or defined in the Project config.
     if (this.namespace !== defaultNs) {
       namespace = this.namespace
     }
@@ -1887,6 +1897,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     projectRoot,
     projectName,
     environmentName,
+    resolvedDefaultNamespace: pickedEnv.defaultNamespace,
     namespace,
     variables,
     variableOverrides,

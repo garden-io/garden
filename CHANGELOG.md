@@ -1,4 +1,46 @@
 
+<a name="0.13.3"></a>
+## [0.13.3](https://github.com/garden-io/garden/compare/0.13.2...0.13.3) (2023-06-21)
+
+### Bug Fixes
+
+* microk8s log following race condition ([5cf7f56e8](https://github.com/garden-io/garden/commit/5cf7f56e8))
+* custom commands not available at beginning in the dev mode ([3dda63e6a](https://github.com/garden-io/garden/commit/3dda63e6a))
+* dev command not working with some plugins ([364aa4812](https://github.com/garden-io/garden/commit/364aa4812))
+* show deploy names instead of [object Object] in logs cmd error ([8d8351aa5](https://github.com/garden-io/garden/commit/8d8351aa5))
+* wrong helm release names on runs and tests with modules ([ed9e7b956](https://github.com/garden-io/garden/commit/ed9e7b956))
+* do not mark deploy action outdated for irrelevant file changes ([149bfdf18](https://github.com/garden-io/garden/commit/149bfdf18))
+* print garden version in verbose logging ([ed4147105](https://github.com/garden-io/garden/commit/ed4147105))
+* properly pass module buidld dependencies ([cf751991e](https://github.com/garden-io/garden/commit/cf751991e))
+* properly convert serviceResources ([0f427fd29](https://github.com/garden-io/garden/commit/0f427fd29))
+* infinite retry loop on pod creation error ([8af4a844f](https://github.com/garden-io/garden/commit/8af4a844f))
+* **analytics:** do not track hidden commands ([b005da99b](https://github.com/garden-io/garden/commit/b005da99b))
+* **cli:** ignore deprecated --skip-watch flag in deploy command ([841ea3ff9](https://github.com/garden-io/garden/commit/841ea3ff9))
+* **cloud:** emit ns statuses for in-cluster builds ([#4628](https://github.com/garden-io/garden/issues/4628)) ([fec4668c0](https://github.com/garden-io/garden/commit/fec4668c0))
+* **cloud:** properly handle dev delegation ([#4675](https://github.com/garden-io/garden/issues/4675)) ([4cdad7f50](https://github.com/garden-io/garden/commit/4cdad7f50))
+* **dev:** don't init cloud API on no-project commands ([aff49fd5e](https://github.com/garden-io/garden/commit/aff49fd5e))
+* **garden:** ensure namespace is resolved when getting instance key ([2d0f4e518](https://github.com/garden-io/garden/commit/2d0f4e518))
+* **pulumi:** remove PULUMI_EXPERIMENTAL flag due to side effects ([#4585](https://github.com/garden-io/garden/issues/4585)) ([d9cec2dba](https://github.com/garden-io/garden/commit/d9cec2dba))
+* **server:** ensure logs are displayed in dev command ([25dcdb8bf](https://github.com/garden-io/garden/commit/25dcdb8bf))
+* **server:** set correct default project root for autocomplete requests ([97e4d33e6](https://github.com/garden-io/garden/commit/97e4d33e6))
+* **sync:** fix status bug for `kubernetes` deploys ([564995a59](https://github.com/garden-io/garden/commit/564995a59))
+* **sync:** fix log rendering for sync status cmd ([be933cd7a](https://github.com/garden-io/garden/commit/be933cd7a))
+
+### Features
+
+* **cli:** add `get files` command to see files included in actions ([ee63d5fe5](https://github.com/garden-io/garden/commit/ee63d5fe5))
+* **openshift:** initial provider scaffolding ([#4612](https://github.com/garden-io/garden/issues/4612)) ([c20978eec](https://github.com/garden-io/garden/commit/c20978eec))
+* **template:** allow variable references in include/exclude config ([3773e2ed3](https://github.com/garden-io/garden/commit/3773e2ed3))
+* **template:** allow `this.name` and `this.mode` in action config ([#4646](https://github.com/garden-io/garden/issues/4646)) ([f3bf29ef5](https://github.com/garden-io/garden/commit/f3bf29ef5))
+
+### Improvements
+
+* support version command in dev mode ([90f16eca7](https://github.com/garden-io/garden/commit/90f16eca7))
+* **events:** improve types/consistency for action status events ([aee98c6a3](https://github.com/garden-io/garden/commit/aee98c6a3))
+* **jib:** upgrade Maven Daemon version to `0.9.0` ([0e822b392](https://github.com/garden-io/garden/commit/0e822b392))
+* **jib:** upgrade Maven version to `3.8.8` ([a6310eba1](https://github.com/garden-io/garden/commit/a6310eba1))
+* **k8s:** catch k3s connectivity error and retry ([8c999995f](https://github.com/garden-io/garden/commit/8c999995f))
+
 <a name="0.13.2"></a>
 ## [0.13.2](https://github.com/garden-io/garden/compare/0.13.1...0.13.2) (2023-06-08)
 

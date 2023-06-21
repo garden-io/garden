@@ -133,7 +133,6 @@ export class ProviderRouter extends BaseRouter {
       defaultHandler: async () => ({ status: { ready: true, outputs: {} } }),
     })
 
-    this.emitNamespaceEvents(res.status.namespaceStatuses)
 
     return res
   }
@@ -149,7 +148,6 @@ export class ProviderRouter extends BaseRouter {
       defaultHandler: async () => ({}),
     })
 
-    this.emitNamespaceEvents(res.namespaceStatuses)
 
     return res
   }

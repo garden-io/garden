@@ -166,6 +166,7 @@ export class ServeCommand<
             localServerPort: this.server.port,
             environment: defaultGarden.environmentName,
             namespace: defaultGarden.namespace,
+            isDevCommand: false,
           })
         }
       }

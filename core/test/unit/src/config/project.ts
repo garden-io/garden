@@ -548,6 +548,7 @@ describe("pickEnvironment", () => {
       })
     ).to.eql({
       environmentName: "default",
+      defaultNamespace: "default",
       namespace: "default",
       providers: [
         { name: "exec" },

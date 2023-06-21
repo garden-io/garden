@@ -192,7 +192,6 @@ export function makeActionCompletePayload<
         deployStatus = pick(deployResult.detail, [
           "createdAt",
           "mode",
-          "namespaceStatuses",
           "externalId",
           "externalVersion",
           "forwardablePorts",

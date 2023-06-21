@@ -571,6 +571,10 @@ export abstract class BaseAction<
     }
   }
 
+  getVariables(): DeepPrimitiveMap {
+    return this.variables
+  }
+
   versionString(): string {
     return this.getFullVersion().versionString
   }
@@ -769,10 +773,6 @@ export abstract class ResolvedRuntimeAction<
 
   getOutputs() {
     return this._staticOutputs
-  }
-
-  getVariables() {
-    return this.variables
   }
 }
 

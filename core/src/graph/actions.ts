@@ -53,7 +53,7 @@ import {
   resolveTemplateStrings,
 } from "../template-string/template-string"
 import { dedent, deline, naturalList } from "../util/string"
-import { resolveVariables } from "./common"
+import { mergeVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
 import chalk from "chalk"
@@ -201,6 +201,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     garden,
     config: inputConfig,
     router,
+    mode,
     log,
   })
 
@@ -263,9 +264,10 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   }
 
   const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
-  const treeVersion = config.internal.treeVersion || (await garden.vcs.getTreeVersion(log, garden.projectName, config))
+  const treeVersion =
+    config.internal.treeVersion || (await garden.vcs.getTreeVersion({ log, projectName: garden.projectName, config }))
 
-  const variables = await resolveVariables({
+  const variables = await mergeVariables({
     basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: config.varfiles,
@@ -451,28 +453,55 @@ function getActionSchema(kind: ActionKind) {
   }
 }
 
-const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
+export const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
   garden,
   config,
+  mode,
   router,
   log,
 }: {
   garden: Garden
   config: ActionConfig
   router: ActionRouter
+  mode: ActionMode
   log: Log
 }) {
   const description = describeActionConfig(config)
   const templateName = config.internal.templateName
 
+  const variables = await mergeVariables({
+    basePath: config.internal.basePath,
+    variables: config.variables,
+    varfiles: config.varfiles,
+  })
+  const resolvedVariables = resolveTemplateStrings(
+    variables,
+    new ActionConfigContext({
+      garden,
+      config: { ...config, internal: { ...config.internal, inputs: {} } },
+      thisContextParams: {
+        mode,
+        name: config.name,
+      },
+      variables,
+    }),
+    { allowPartial: true }
+  )
+
   if (templateName) {
     // Partially resolve inputs
     const partiallyResolvedInputs = resolveTemplateStrings(
       config.internal.inputs || {},
-      new ActionConfigContext(garden, { ...config, internal: { ...config.internal, inputs: {} } }),
-      {
-        allowPartial: true,
-      }
+      new ActionConfigContext({
+        garden,
+        config: { ...config, internal: { ...config.internal, inputs: {} } },
+        thisContextParams: {
+          mode,
+          name: config.name,
+        },
+        variables: resolvedVariables,
+      }),
+      { allowPartial: true }
     )
 
     const template = garden.configTemplates[templateName]
@@ -498,7 +527,15 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
   }
 
   const builtinConfigKeys = getBuiltinConfigContextKeys()
-  const builtinFieldContext = new ActionConfigContext(garden, config)
+  const builtinFieldContext = new ActionConfigContext({
+    garden,
+    config,
+    thisContextParams: {
+      mode,
+      name: config.name,
+    },
+    variables: resolvedVariables,
+  })
 
   function resolveTemplates() {
     // Fully resolve built-in fields that only support ProjectConfigContext
@@ -507,7 +544,7 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
       allowPartial: false,
     })
     config = { ...config, ...resolvedBuiltin }
-    const { spec = {}, variables = {} } = config
+    const { spec = {} } = config
 
     // Validate fully resolved keys (the above + those that don't allow any templating)
     // TODO-0.13.1: better error messages when something goes wrong here
@@ -524,7 +561,7 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
       projectRoot: garden.projectRoot,
     })
 
-    config = { ...config, variables, spec }
+    config = { ...config, variables: resolvedVariables, spec }
 
     // Partially resolve other fields
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
@@ -545,6 +582,15 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
         `Configure handler for ${description} attempted to modify the ${field} field, which is not allowed. Please report this as a bug.`,
         { config, field, original: config[field], modified: updatedConfig[field] }
       )
+    }
+  }
+
+  // for an Deploy/Test/Run action, when build is specified
+  // we set the include field to [] unless either of include or exclude
+  // is explicitly set on the config.
+  if (config.kind !== "Build" && config.build) {
+    if (!updatedConfig.include && !updatedConfig.exclude) {
+      updatedConfig.include = []
     }
   }
 

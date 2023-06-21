@@ -39,6 +39,7 @@ import { defaultProvider } from "../config/provider"
 import type { ConfigGraph } from "../graph/config-graph"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import type { NamespaceStatus } from "../types/namespace"
+import { TemplatableConfigContext } from "../config/template-contexts/project"
 
 export type CommonParams = keyof PluginActionContextParams
 export type RequirePluginName<T> = T & { pluginName: string }
@@ -63,21 +64,6 @@ export abstract class BaseRouter {
     this.loadedPlugins = keyBy(params.loadedPlugins, "name")
   }
 
-  emitNamespaceEvents(namespaceStatuses: NamespaceStatus[] | undefined) {
-    if (namespaceStatuses && namespaceStatuses.length > 0) {
-      for (const status of namespaceStatuses) {
-        this.emitNamespaceEvent(status)
-      }
-    }
-  }
-
-  emitNamespaceEvent(namespaceStatus: NamespaceStatus | undefined) {
-    if (namespaceStatus) {
-      const { pluginName, state, namespaceName } = namespaceStatus
-      this.garden.events.emit("namespaceStatus", { pluginName, state, namespaceName })
-    }
-  }
-
   protected async commonParams(
     handler: WrappedActionHandler<any, any> | WrappedActionTypeHandler<any, any>,
     log: Log,
@@ -86,8 +72,13 @@ export abstract class BaseRouter {
   ): Promise<PluginActionParamsBase> {
     const provider = await this.garden.resolveProvider(log, handler.pluginName)
 
+    const ctx = await this.garden.getPluginContext({ provider, templateContext, events })
+
+    // Forward plugin events that don't need any action-specific metadata (currently just `namespaceStatus` events).
+    ctx.events.on("namespaceStatus", (status: NamespaceStatus) => this.garden.events.emit("namespaceStatus", status))
+
     return {
-      ctx: await this.garden.getPluginContext({ provider, templateContext, events }),
+      ctx,
       log,
       base: handler.base,
     }
@@ -251,7 +242,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       defaultHandler,
     })
 
-    const templateContext = new ActionConfigContext(this.garden, config)
+    const templateContext = new TemplatableConfigContext(this.garden, config)
 
     const commonParams = await this.commonParams(handler, log, templateContext, undefined)
 
@@ -305,7 +296,15 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           inputs: action.getInternal().inputs || {},
           variables: action.getVariables(),
         })
-      : new ActionConfigContext(this.garden, action.getConfig())
+      : new ActionConfigContext({
+          garden: this.garden,
+          config: action.getConfig(),
+          thisContextParams: {
+            mode: action.mode(),
+            name: action.name,
+          },
+          variables: action.getVariables(),
+        })
 
     const handlerParams = {
       ...(await this.commonParams(handler, params.log, templateContext, params.events)),

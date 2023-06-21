@@ -595,6 +595,7 @@ export class GardenServer extends EventEmitter {
               garden,
               sessionId: requestId,
               parentSessionId: this.sessionId,
+              overrideLogLevel: internal ? LogLevel.silly : undefined
             })
           })
           // Here we check if the command has active monitors and if so,
@@ -676,7 +677,8 @@ export class GardenServer extends EventEmitter {
     } else if (requestType === "loadConfig") {
       // Emit the config graph for the project (used for the Cloud dashboard)
       const resolved = await this.resolveRequest(ctx, omit(request, "type"))
-      let { garden, log } = resolved
+      let { garden, log: _log } = resolved
+      const log = _log.createLog({ fixLevel: LogLevel.silly })
 
       const cloudApi = await this.manager.getCloudApi({
         log,

@@ -24,7 +24,6 @@ import { ServiceConfig, serviceConfigSchema } from "../config/service"
 import dedent from "dedent"
 import { memoize, uniq } from "lodash"
 import { getEntityVersion } from "../vcs/vcs"
-import { NamespaceStatus, namespaceStatusesSchema } from "./namespace"
 import type { LogLevel } from "../logger/logger"
 import type { ActionMode } from "../actions/types"
 import type { ModuleGraph } from "../graph/modules"
@@ -79,7 +78,6 @@ export type DeployStatusForEventPayload = Pick<
   ServiceStatus,
   | "createdAt"
   | "mode"
-  | "namespaceStatuses"
   | "externalId"
   | "externalVersion"
   | "forwardablePorts"
@@ -209,7 +207,6 @@ export interface ServiceStatus<D = any, O = PrimitiveMap> {
   createdAt?: string
   detail: D
   mode?: ActionMode
-  namespaceStatuses?: NamespaceStatus[]
   externalId?: string
   externalVersion?: string
   forwardablePorts?: ForwardablePort[]
@@ -232,7 +229,6 @@ export const serviceStatusSchema = createSchema({
     createdAt: joi.string().description("When the service was first deployed by the provider."),
     detail: joi.object().meta({ extendable: true }).description("Additional detail, specific to the provider."),
     mode: joi.string().default("default").description("The mode the action is deployed in."),
-    namespaceStatuses: namespaceStatusesSchema().optional(),
     externalId: joi
       .string()
       .description("The ID used for the service by the provider (if not the same as the service name)."),

@@ -14,7 +14,7 @@ import type { BuildAction } from "../actions/build"
 import type { DeployAction } from "../actions/deploy"
 import type { RunAction } from "../actions/run"
 import type { TestAction } from "../actions/test"
-import { NamespaceStatus, namespaceStatusSchema } from "../types/namespace"
+import { NamespaceStatus } from "../types/namespace"
 import Joi from "@hapi/joi"
 import { memoize } from "lodash"
 import { BaseProviderConfig } from "../config/provider"
@@ -131,7 +131,6 @@ export const runResultSchema = createSchema({
     startedAt: joi.date().required().description("When the module run was started."),
     completedAt: joi.date().required().description("When the module run was completed."),
     log: joi.string().allow("").default("").description("The output log from the run."),
-    namespaceStatus: namespaceStatusSchema().optional(),
   }),
   allowUnknown: true,
 })

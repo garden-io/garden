@@ -8,7 +8,6 @@
 
 import Bluebird from "bluebird"
 import { isEmpty, omit, partition, uniq } from "lodash"
-import type { NamespaceStatus } from "../../../types/namespace"
 import type { ModuleActionHandlers } from "../../../plugin/plugin"
 import { ServiceStatus } from "../../../types/service"
 import { gardenAnnotationKey } from "../../../util/string"
@@ -210,7 +209,6 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       version: state === "ready" ? action.versionString() : undefined,
       detail: { remoteResources },
       mode: deployedMode,
-      namespaceStatuses: [namespaceStatus],
       ingresses: getK8sIngresses(remoteResources),
     },
     // TODO-0.13.1
@@ -310,27 +308,21 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
     }
   }
 
-  const namespaceStatuses = [namespaceStatus]
+  ctx.events.emit("namespaceStatus", namespaceStatus)
 
   if (namespaceManifests.length > 0) {
-    namespaceStatuses.push(
-      ...namespaceManifests.map(
-        (m) =>
-          ({
-            pluginName: provider.name,
-            namespaceName: m.metadata.name,
-            state: "ready",
-          } as NamespaceStatus)
-      )
-    )
+    for (const ns of namespaceManifests) {
+      ctx.events.emit("namespaceStatus", {
+        pluginName: provider.name,
+        namespaceName: ns.metadata.name,
+        state: "ready",
+      })
+    }
   }
 
   return {
     ...status,
-    detail: {
-      ...status.detail!,
-      namespaceStatuses,
-    },
+    detail: status.detail!,
     // Tell the framework that the mutagen process is attached, if applicable
     attached,
   }
@@ -386,11 +378,13 @@ export const deleteKubernetesDeploy: DeployActionHandler<"delete", KubernetesDep
   const status: KubernetesServiceStatus = { state: "missing", detail: { remoteResources: [] } }
 
   if (namespaceManifests.length > 0) {
-    status.namespaceStatuses = namespaceManifests.map((m) => ({
-      namespaceName: m.metadata.name,
-      state: "missing",
-      pluginName: provider.name,
-    }))
+    for (const ns of namespaceManifests) {
+      ctx.events.emit("namespaceStatus", {
+        namespaceName: ns.metadata.name,
+        state: "missing",
+        pluginName: provider.name,
+      })
+    }
   }
 
   return {

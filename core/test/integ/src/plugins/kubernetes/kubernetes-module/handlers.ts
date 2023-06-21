@@ -30,11 +30,11 @@ import {
 import Bluebird from "bluebird"
 import { buildHelmModules } from "../helm/common"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
-import { getDeployStatuses } from "../../../../../../src/tasks/helpers"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
 import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants"
 import { ActionModeMap } from "../../../../../../src/actions/types"
+import { NamespaceStatus } from "../../../../../../src/types/namespace"
 
 describe("kubernetes-module handlers", () => {
   let tmpDir: tmp.DirectoryResult
@@ -197,15 +197,14 @@ describe("kubernetes-module handlers", () => {
         action: await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph }),
         force: false,
       }
+
+      // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
+      let namespaceStatus: NamespaceStatus | null = null
+      ctx.events.once("namespaceStatus", (status) => namespaceStatus = status)
       const status = await kubernetesDeploy(deployParams)
       expect(status.state).to.eql("ready")
-      expect(status.detail?.namespaceStatuses).to.eql([
-        {
-          pluginName: "local-kubernetes",
-          namespaceName: "kubernetes-module-test-default",
-          state: "ready",
-        },
-      ])
+      expect(namespaceStatus).to.exist
+      expect(namespaceStatus!.namespaceName).to.eql("kubernetes-module-test-default")
     })
 
     it("should toggle sync mode", async () => {
@@ -279,7 +278,6 @@ describe("kubernetes-module handlers", () => {
         forceBuild: false,
       })
       const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-      const status = getDeployStatuses(results.results)["namespace-resource"]
       ns1Resource = await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log)
 
       expect(ns1Manifest, "ns1Manifest").to.exist
@@ -287,18 +285,6 @@ describe("kubernetes-module handlers", () => {
       expect(ns1Resource, "ns1Resource").to.exist
       // Here, we expect one status for the app namespace, and one status for the namespace resource defined by
       // this module.
-      expect(status.detail?.namespaceStatuses).to.eql([
-        {
-          pluginName: "local-kubernetes",
-          namespaceName: "kubernetes-module-test-default",
-          state: "ready",
-        },
-        {
-          pluginName: "local-kubernetes",
-          namespaceName: "kubernetes-module-ns-1",
-          state: "ready",
-        },
-      ])
 
       // This should result in a new namespace with a new name being deployed.
       garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-2")])

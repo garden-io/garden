@@ -35,7 +35,7 @@ import {
 import { load } from "js-yaml"
 import { readFile } from "fs-extra"
 import WebSocket from "isomorphic-ws"
-
+import pRetry from "p-retry"
 import { Omit, sleep, StringCollector } from "../../util/util"
 import { flatten, isObject, isPlainObject, keyBy, omitBy } from "lodash"
 import { ConfigurationError, GardenBaseError, RuntimeError } from "../../exceptions"
@@ -314,10 +314,12 @@ export class KubeApi {
     log,
     path,
     opts = {},
+    retryOpts,
   }: {
     log: Log
     path: string
     opts?: Omit<request.OptionsWithUrl, "url">
+    retryOpts?: RetryOpts
   }): Promise<any> {
     const baseUrl = this.config.getCurrentCluster()!.server
     const url = urlJoin(baseUrl, path)
@@ -334,14 +336,19 @@ export class KubeApi {
     // apply auth
     await this.config.applyToRequest(requestOpts)
 
-    return await requestWithRetry(log, `Kubernetes API: ${path}`, async () => {
-      try {
-        log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
-        return await request(requestOpts)
-      } catch (err) {
-        throw handleRequestPromiseError(path, err)
-      }
-    })
+    return await requestWithRetry(
+      log,
+      `Kubernetes API: ${path}`,
+      async () => {
+        try {
+          log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
+          return await request(requestOpts)
+        } catch (err) {
+          throw handleRequestPromiseError(path, err)
+        }
+      },
+      retryOpts
+    )
   }
 
   /**
@@ -838,26 +845,26 @@ export class KubeApi {
    *
    * @throws {KubernetesError}
    */
-  async createPod(namespace: string, pod: KubernetesPod, isRetry = false) {
-    try {
-      await this.core.createNamespacedPod(namespace, pod)
-    } catch (error) {
-      const err = new KubernetesError(`Failed to create Pod ${pod.metadata.name}: ${error.message}`, { error })
-      if (isRetry) {
-        throw err
-      }
+  async createPod(namespace: string, pod: KubernetesPod) {
+    await pRetry(
+      async () => {
+        await this.core.createNamespacedPod(namespace, pod)
+      },
+      {
+        retries: 3,
+        minTimeout: 500,
+        onFailedAttempt(error) {
+          // This can occur in laggy environments, just need to retry
+          if (error.message.includes("No API token found for service account")) {
+            return
+          } else if (error.message.includes("error looking up service account")) {
+            return
+          }
 
-      // This can occur in laggy environments, just need to retry
-      if (error.message.includes("No API token found for service account")) {
-        await sleep(500)
-        return this.createPod(namespace, pod, true)
-      } else if (error.message.includes("error looking up service account")) {
-        await sleep(500)
-        return this.createPod(namespace, pod, true)
+          throw new KubernetesError(`Failed to create Pod ${pod.metadata.name}: ${error.message}`, { error })
+        },
       }
-
-      throw err
-    }
+    )
   }
 }
 
@@ -984,6 +991,8 @@ function handleRequestPromiseError(name: string, err: Error) {
   }
 }
 
+type RetryOpts = { maxRetries?: number; minTimeoutMs?: number }
+
 /**
  * Helper function for retrying failed k8s API requests, using exponential backoff.
  *
@@ -995,14 +1004,9 @@ function handleRequestPromiseError(name: string, err: Error) {
  * The rationale here is that some errors occur because of network issues, intermittent timeouts etc.
  * and should be retried automatically.
  */
-async function requestWithRetry<R>(
-  log: Log,
-  description: string,
-  req: () => Promise<R>,
-  opts?: { maxRetries?: number; minTimeoutMs?: number }
-): Promise<R> {
-  const maxRetries = opts?.maxRetries || 5
-  const minTimeoutMs = opts?.minTimeoutMs || 500
+async function requestWithRetry<R>(log: Log, description: string, req: () => Promise<R>, opts?: RetryOpts): Promise<R> {
+  const maxRetries = opts?.maxRetries ?? 5
+  const minTimeoutMs = opts?.minTimeoutMs ?? 500
   let retryLog: Log | undefined = undefined
   const retry = async (usedRetries: number): Promise<R> => {
     try {
@@ -1057,7 +1061,7 @@ function shouldRetry(err: any): boolean {
   )
 }
 
-const statusCodesForRetry: number[] = [
+export const statusCodesForRetry: number[] = [
   httpStatusCodes.REQUEST_TIMEOUT,
   httpStatusCodes.TOO_MANY_REQUESTS,
 
@@ -1086,4 +1090,5 @@ const errorMessageRegexesForRetry = [
   // This can happen if etcd is overloaded
   // (rpc error: code = ResourceExhausted desc = etcdserver: throttle: too many requests)
   /too many requests/,
+  /Unable to connect to the server/
 ]

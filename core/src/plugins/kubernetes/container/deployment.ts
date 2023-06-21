@@ -14,7 +14,7 @@ import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources } from "../status/status"
 import { apply, deleteObjectsBySelector, deleteResourceKeys, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
-import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
+import { getAppNamespace, getNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
@@ -60,7 +60,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   const status = await k8sGetContainerDeployStatus(params)
   const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []
   if (specChangedResourceKeys.length > 0) {
-    const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+    const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
     await handleChangedSelector({
       action,
       specChangedResourceKeys,
@@ -135,7 +135,7 @@ export const deployContainerServiceRolling = async (
   const { ctx, api, action, log, imageId } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
-  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
   const namespace = namespaceStatus.namespaceName
 
   const { manifests } = await createContainerManifests({

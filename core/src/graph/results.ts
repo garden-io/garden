@@ -197,7 +197,6 @@ function filterResultForExport(result: any) {
       "mode",
       "syncMode",
       "localMode",
-      "namespaceStatuses",
       "externalId",
       "externalVersion",
       "forwardablePorts",
@@ -219,7 +218,6 @@ function filterResultForExport(result: any) {
       "exitCode",
       "startedAt",
       "completedAt",
-      "namespaceStatus"
     ),
     detail: filteredDetail,
   }

@@ -22,7 +22,6 @@ import {
   mapValues,
   merge,
   omit,
-  pick,
   pull,
   uniq,
 } from "lodash"
@@ -33,6 +32,7 @@ import { convertExecModule } from "../src/plugins/exec/convert"
 import { createSchema, joi, joiArray } from "../src/config/common"
 import {
   createGardenPlugin,
+  GardenPlugin,
   GardenPluginReference,
   GardenPluginSpec,
   ProviderHandlers,
@@ -53,7 +53,7 @@ import { LogLevel, RootLogger } from "../src/logger/logger"
 import { GardenCli } from "../src/cli/cli"
 import { profileAsync } from "../src/util/profiling"
 import { defaultDotIgnoreFile, makeTempDir } from "../src/util/fs"
-import { DirectoryResult } from "tmp-promise"
+import tmp, { DirectoryResult } from "tmp-promise"
 import { ConfigurationError } from "../src/exceptions"
 import Bluebird = require("bluebird")
 import execa = require("execa")
@@ -353,12 +353,6 @@ export const testPlugin = () =>
     ],
   })
 
-export const customizedTestPlugin = (partialCustomSpec: Partial<GardenPluginSpec>) => {
-  const base = testPlugin()
-  merge(base, partialCustomSpec)
-  return base
-}
-
 export const testPluginB = () => {
   const base = testPlugin()
 
@@ -389,6 +383,60 @@ export const testPluginC = () => {
     ],
     createActionTypes: {},
   })
+}
+
+export const customizedTestPlugin = (partialCustomSpec: Partial<GardenPluginSpec>) => {
+  const base = testPlugin()
+  merge(base, partialCustomSpec)
+  return base
+}
+
+export const noOpTestPlugin = () =>
+  customizedTestPlugin({
+    name: "test",
+    createActionTypes: {
+      Build: [
+        {
+          name: "test",
+          docs: "Test Build action",
+          schema: joi.object(),
+          handlers: {},
+        },
+      ],
+      Deploy: [
+        {
+          name: "test",
+          docs: "Test Deploy action",
+          schema: joi.object(),
+          handlers: {},
+        },
+      ],
+      Run: [
+        {
+          name: "test",
+          docs: "Test Run action",
+          schema: joi.object(),
+          handlers: {},
+        },
+      ],
+      Test: [
+        {
+          name: "test",
+          docs: "Test Test action",
+          schema: joi.object(),
+          handlers: {},
+        },
+      ],
+    },
+  })
+
+export async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
+  const config: ProjectConfig = createProjectConfig({
+    path: tmpDir.path,
+    providers: [{ name: "test" }],
+  })
+
+  return await TestGarden.factory(tmpDir.path, { config, plugins: [plugin] })
 }
 
 export const getDefaultProjectConfig = (): ProjectConfig =>
@@ -803,16 +851,8 @@ export async function enableAnalytics(garden: TestGarden) {
   return resetConfig
 }
 
-export function getRuntimeStatusEventsWithoutTimestamps(eventLog: EventLogEntry[]) {
-  const runtimeEventNames = ["runStatus", "testStatus", "deployStatus"]
-  return eventLog
-    .filter((e) => runtimeEventNames.includes(e.name))
-    .map((e) => {
-      const cloned = { ...e }
-      cloned.payload = omit(cloned.payload, "startedAt", "completedAt")
-      cloned.payload.status = pick(cloned.payload.status, ["state"])
-      return cloned
-    })
+export function findNamespaceStatusEvent(eventLog: EventLogEntry[], namespaceName: string) {
+  return eventLog.find((e) => e.name === "namespaceStatus" && e.payload.namespaceName === namespaceName)
 }
 
 /**

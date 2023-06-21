@@ -31,10 +31,10 @@ import { GitHandler } from "../../../../src/vcs/git"
 import { resolve, join } from "path"
 import td from "testdouble"
 import tmp from "tmp-promise"
-import { realpath, readFile, writeFile } from "fs-extra"
+import { realpath, readFile, writeFile, rm } from "fs-extra"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_VERSIONFILE_NAME, GardenApiVersion } from "../../../../src/constants"
 import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs"
-import { Log } from "../../../../src/logger/log-entry"
+import { Log, createActionLog } from "../../../../src/logger/log-entry"
 import { BaseActionConfig } from "../../../../src/actions/types"
 import { TreeCache } from "../../../../src/cache"
 
@@ -58,8 +58,8 @@ export class TestVcsHandler extends VcsHandler {
     }
   }
 
-  async getTreeVersion(log: Log, projectName: string, moduleConfig: ModuleConfig) {
-    return this.testTreeVersions[moduleConfig.path] || super.getTreeVersion(log, projectName, moduleConfig)
+  async getTreeVersion({ log, projectName, config }: { log: Log; projectName: string; config: ModuleConfig }) {
+    return this.testTreeVersions[config.path] || super.getTreeVersion({ log, projectName, config })
   }
 
   setTestTreeVersion(path: string, version: TreeVersion) {
@@ -95,6 +95,7 @@ describe("VcsHandler", () => {
   })
 
   describe("getTreeVersion", () => {
+
     it("should sort the list of files in the returned version", async () => {
       const moduleConfig = await gardenA.resolveModule("module-a")
       handlerA.getFiles = async () => [
@@ -102,7 +103,11 @@ describe("VcsHandler", () => {
         { path: "b", hash: "b" },
         { path: "d", hash: "d" },
       ]
-      const version = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      const version = await handlerA.getTreeVersion({
+        log: gardenA.log,
+        projectName: gardenA.projectName,
+        config: moduleConfig,
+      })
       expect(version.files).to.eql(["b", "c", "d"])
     })
 
@@ -113,7 +118,11 @@ describe("VcsHandler", () => {
         { path: "b", hash: "b" },
         { path: "d", hash: "d" },
       ]
-      const version = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      const version = await handlerA.getTreeVersion({
+        log: gardenA.log,
+        projectName: gardenA.projectName,
+        config: moduleConfig,
+      })
       expect(version.files).to.eql(["b", "d"])
     })
 
@@ -129,7 +138,11 @@ describe("VcsHandler", () => {
         cache: garden.treeCache,
       })
 
-      const version = await handler.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      const version = await handler.getTreeVersion({
+        log: gardenA.log,
+        projectName: gardenA.projectName,
+        config: moduleConfig,
+      })
 
       expect(version.files).to.eql([
         resolve(moduleConfig.path, "somedir/yes.txt"),
@@ -149,7 +162,11 @@ describe("VcsHandler", () => {
         cache: garden.treeCache,
       })
 
-      const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
+      const version = await handler.getTreeVersion({
+        log: garden.log,
+        projectName: garden.projectName,
+        config: moduleConfig,
+      })
 
       expect(version.files).to.eql([resolve(moduleConfig.path, "yes.txt")])
     })
@@ -167,7 +184,11 @@ describe("VcsHandler", () => {
         cache: garden.treeCache,
       })
 
-      const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
+      const version = await handler.getTreeVersion({
+        log: garden.log,
+        projectName: garden.projectName,
+        config: moduleConfig,
+      })
 
       expect(version.files).to.eql([resolve(moduleConfig.path, "yes.txt")])
     })
@@ -180,9 +201,17 @@ describe("VcsHandler", () => {
       const orgConfig = await readFile(configPath)
 
       try {
-        const version1 = await garden.vcs.getTreeVersion(garden.log, garden.projectName, moduleConfigA1)
+        const version1 = await garden.vcs.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: moduleConfigA1,
+        })
         await writeFile(configPath, orgConfig + "\n---")
-        const version2 = await garden.vcs.getTreeVersion(garden.log, garden.projectName, moduleConfigA1)
+        const version2 = await garden.vcs.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: moduleConfigA1,
+        })
         expect(version1).to.eql(version2)
       } finally {
         await writeFile(configPath, orgConfig)
@@ -196,7 +225,11 @@ describe("VcsHandler", () => {
       })
       const moduleConfig = await gardenA.resolveModule("module-a")
       moduleConfig.path = gardenA.projectRoot
-      const result = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      const result = await handlerA.getTreeVersion({
+        log: gardenA.log,
+        projectName: gardenA.projectName,
+        config: moduleConfig,
+      })
       expect(result.files).to.eql(["foo"])
     })
 
@@ -208,7 +241,11 @@ describe("VcsHandler", () => {
       const moduleConfig = await gardenA.resolveModule("module-a")
       moduleConfig.path = gardenA.projectRoot
       moduleConfig.include = ["foo"]
-      const result = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      const result = await handlerA.getTreeVersion({
+        log: gardenA.log,
+        projectName: gardenA.projectName,
+        config: moduleConfig,
+      })
       expect(result.files).to.eql(["foo"])
     })
 
@@ -218,7 +255,7 @@ describe("VcsHandler", () => {
       })
       const moduleConfig = await gardenA.resolveModule("module-a")
       moduleConfig.include = []
-      await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      await handlerA.getTreeVersion({ log: gardenA.log, projectName: gardenA.projectName, config: moduleConfig })
     })
 
     it("should get a cached tree version if available", async () => {
@@ -228,7 +265,11 @@ describe("VcsHandler", () => {
       const cachedResult = { contentHash: "abcdef", files: ["foo"] }
       handlerA["cache"].set(gardenA.log, cacheKey, cachedResult, ["foo", "bar"])
 
-      const result = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      const result = await handlerA.getTreeVersion({
+        log: gardenA.log,
+        projectName: gardenA.projectName,
+        config: moduleConfig,
+      })
       expect(result).to.eql(cachedResult)
     })
 
@@ -236,10 +277,82 @@ describe("VcsHandler", () => {
       const moduleConfig = await gardenA.resolveModule("module-a")
       const cacheKey = getResourceTreeCacheKey(moduleConfig)
 
-      const result = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      const result = await handlerA.getTreeVersion({
+        log: gardenA.log,
+        projectName: gardenA.projectName,
+        config: moduleConfig,
+      })
       const cachedResult = handlerA["cache"].get(gardenA.log, cacheKey)
 
       expect(result).to.eql(cachedResult)
+    })
+
+    it("should update content hash when include is set and there's a change in included files of module", async () => {
+      const projectRoot = getDataDir("test-projects", "include-exclude")
+      const garden = await makeTestGarden(projectRoot)
+      const moduleConfigA1 = await garden.resolveModule("module-a")
+      const newFilePathModuleA = join(garden.projectRoot, "module-a", "somedir", "foo")
+      try {
+        const version1 = await garden.vcs.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: moduleConfigA1,
+        })
+        await writeFile(newFilePathModuleA, "abcd")
+        const version2 = await garden.vcs.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: moduleConfigA1,
+          force: true,
+        })
+        expect(version1).to.not.eql(version2)
+      } finally {
+        await rm(newFilePathModuleA)
+      }
+    })
+
+    it("should not update content hash for Deploy, when there's no change in included files of Build", async () => {
+      const projectRoot = getDataDir("test-projects", "config-action-include")
+      const garden = await makeTestGarden(projectRoot)
+      const log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
+      const graph = await garden.getConfigGraph({ emit: false, log })
+      const build = graph.getActionByRef("build.test-build")
+      const deploy = graph.getActionByRef("deploy.test-deploy")
+      const resolvedBuild = await garden.resolveAction({ action: build, graph, log })
+      const resolvedDeploy = await garden.resolveAction({ action: deploy, graph, log })
+      const newFilePath = join(garden.projectRoot, "foo")
+      try {
+        const buildVersion1 = await garden.vcs.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: resolvedBuild.getConfig(),
+        })
+
+        const deployVersion1 = await garden.vcs.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: resolvedDeploy.getConfig(),
+        })
+        await writeFile(newFilePath, "abcd")
+
+        const buildVersion2 = await garden.vcs.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: resolvedBuild.getConfig(),
+          force: true,
+        })
+        const deployVersion2 = await garden.vcs.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: resolvedDeploy.getConfig(),
+          force: true,
+        })
+
+        expect(buildVersion1).to.eql(buildVersion2)
+        expect(deployVersion1.contentHash).to.eql(deployVersion2.contentHash)
+      } finally {
+        await rm(newFilePath)
+      }
     })
   })
 })

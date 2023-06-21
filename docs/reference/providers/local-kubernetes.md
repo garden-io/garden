@@ -138,8 +138,8 @@ providers:
           #
           # `auto` is the same as `max` for some registries that are known to support it. Garden will fall back to
           # `inline` for all other registries.
-          #  See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the
-          # detection mechanism.
+          #  See the [clusterBuildkit cache option](#providersclusterbuildkitcache) for a description of the detection
+          # mechanism.
           #
           # See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
           mode: auto
@@ -705,7 +705,7 @@ The values `min` and `max` ensure that garden passes the `mode=max` or `mode=min
 stored stored in the configured `tag`.
 
 `auto` is the same as `max` for some registries that are known to support it. Garden will fall back to `inline` for all other registries.
- See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the detection mechanism.
+ See the [clusterBuildkit cache option](#providersclusterbuildkitcache) for a description of the detection mechanism.
 
 See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
 

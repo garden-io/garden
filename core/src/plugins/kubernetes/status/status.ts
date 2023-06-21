@@ -35,7 +35,7 @@ import { SyncableResource } from "../types"
 import { ActionMode } from "../../../actions/types"
 import { deepMap } from "../../../util/objects"
 import { DeployState, combineStates } from "../../../types/service"
-import { sleep } from "../../../util/util"
+import { isTruthy, sleep } from "../../../util/util"
 
 export interface ResourceStatus<T extends BaseResource | KubernetesObject = BaseResource> {
   state: DeployState
@@ -519,15 +519,15 @@ function detectChangedSpecSelector(manifestsMap: KubernetesResourceMap, deployed
 export async function getDeployedResource<ResourceKind extends KubernetesObject>(
   ctx: PluginContext,
   provider: KubernetesProvider,
-  resource: KubernetesResource<ResourceKind>,
+  manifest: KubernetesResource<ResourceKind>,
   log: Log
 ): Promise<KubernetesResource<ResourceKind> | null> {
   const api = await KubeApi.factory(log, ctx, provider)
   const k8sCtx = ctx as KubernetesPluginContext
-  const namespace = resource.metadata?.namespace || (await getAppNamespace(k8sCtx, log, provider))
+  const namespace = manifest.metadata?.namespace || (await getAppNamespace(k8sCtx, log, provider))
 
   try {
-    const res = await api.readBySpec({ namespace, manifest: resource, log })
+    const res = await api.readBySpec({ namespace, manifest, log })
     return <KubernetesResource<ResourceKind>>res
   } catch (err) {
     if (err.statusCode === 404) {
@@ -536,6 +536,40 @@ export async function getDeployedResource<ResourceKind extends KubernetesObject>
       throw err
     }
   }
+}
+
+/**
+ * Fetches matching deployed resources from the cluster for the provided array of manifests.
+ */
+export async function getDeployedResources<ResourceKind extends KubernetesObject>({
+  ctx,
+  provider,
+  manifests,
+  log,
+}: {
+  ctx: PluginContext
+  provider: KubernetesProvider
+  manifests: KubernetesResource<ResourceKind>[]
+  log: Log
+}): Promise<KubernetesResource<ResourceKind>[]> {
+  const api = await KubeApi.factory(log, ctx, provider)
+  const k8sCtx = ctx as KubernetesPluginContext
+  const appNamespace = await getAppNamespace(k8sCtx, log, provider)
+
+  const deployed = await Bluebird.map(manifests, async (resource: KubernetesResource) => {
+    const namespace = resource.metadata?.namespace || appNamespace
+    try {
+      const res = await api.readBySpec({ namespace, manifest: resource, log })
+      return <KubernetesResource<ResourceKind>>res
+    } catch (err) {
+      if (err.statusCode === 404) {
+        return null
+      } else {
+        throw err
+      }
+    }
+  })
+  return deployed.filter(isTruthy)
 }
 
 /**
