@@ -67,7 +67,6 @@ export const openshiftGetContainerDeployStatus: DeployActionHandler<"getStatus",
     workload,
     selectorChangedResourceKeys,
     state,
-    namespaceStatus,
     ingresses,
   })
 }
