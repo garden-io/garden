@@ -24,7 +24,7 @@ import { prepareContainerDeployStatus } from "../kubernetes/container/status"
 import { getDeployedImageId } from "../kubernetes/container/util"
 import { KUBECTL_DEFAULT_TIMEOUT, apply, deleteObjectsBySelector } from "../kubernetes/kubectl"
 import { namespaceExists } from "../kubernetes/namespace"
-import { getPortForwardHandler, killPortForwards } from "../kubernetes/port-forward"
+import { killPortForwards } from "../kubernetes/port-forward"
 import { compareDeployedResources, waitForResources } from "../kubernetes/status/status"
 import { streamK8sLogs } from "../kubernetes/logs"
 
@@ -78,9 +78,9 @@ export const openshiftContainerDeployExtension = (): DeployActionExtension<Conta
     delete: openshiftDeleteContainerDeploy,
     // exec: execInContainer,
     getLogs: openshiftGetContainerDeployLogs,
-    getPortForward: async (params) => {
-      return getPortForwardHandler({ ...params, namespace: undefined })
-    },
+    // getPortForward: async (params) => {
+    //   return getPortForwardHandler({ ...params, namespace: undefined })
+    // },
     getStatus: openshiftGetContainerDeployStatus,
 
     // startSync: k8sContainerStartSync,
