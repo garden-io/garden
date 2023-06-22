@@ -11,12 +11,13 @@ import { Server } from "http"
 import chalk from "chalk"
 import Koa from "koa"
 import Router = require("koa-router")
+import pty from "node-pty-prebuilt-multiarch"
 import websockify from "koa-websocket"
 import bodyParser = require("koa-bodyparser")
 import getPort = require("get-port")
 import { omit } from "lodash"
 
-import { BaseServerRequest, resolveRequest, serverRequestSchema } from "./commands"
+import { BaseServerRequest, resolveRequest, serverRequestSchema, shellCommandParamsSchema } from "./commands"
 import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
@@ -41,6 +42,8 @@ import { ConfigGraph } from "../graph/config-graph"
 import { getGardenCloudDomain } from "../cloud/api"
 import type { ServeCommand } from "../commands/serve"
 import type { AutocompleteSuggestion } from "../cli/autocomplete"
+import execa = require("execa")
+import { z } from "zod"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -55,26 +58,33 @@ interface WebsocketCloseEvent {
   message: string
 }
 
-interface WebsocketCloseEvents {
-  notReady: WebsocketCloseEvent
-  unauthorized: WebsocketCloseEvent
-}
-
 type EventPipeListener = (name: EventName, payload: any) => void
 
 // Using the websocket closed private range (4000-4999) for the closed codes
 // and adding normal HTTP status codes. So something that would be a 503 HTTP code translates to 4503.
 // See also: https://www.iana.org/assignments/websocket/websocket.xhtml
-const websocketCloseEvents: WebsocketCloseEvents = {
+const websocketCloseEvents = {
+  badRequest: {
+    code: 4400,
+    message: "Bad request",
+  },
+  internalError: {
+    code: 4500,
+    message: "Internal error",
+  },
   notReady: {
     code: 4503,
     message: "Not ready",
+  },
+  ok: {
+    code: 4200,
+    message: "OK",
   },
   unauthorized: {
     code: 4401,
     message: "Unauthorized",
   },
-}
+} satisfies { [name: string]: WebsocketCloseEvent }
 
 interface GardenServerParams {
   log: Log
@@ -446,29 +456,8 @@ export class GardenServer extends EventEmitter {
 
       send("event", { name: "connectionReady", payload: {} })
 
-      // Set up heartbeat to detect dead connections
-      let isAlive = true
-      let heartbeatInterval = setInterval(() => {
-        if (!isAlive) {
-          this.log.debug(`Connection ${connectionId} timed out.`)
-          websocket.terminate()
-        }
-
-        isAlive = false
-        websocket.ping(() => {})
-      }, 1000)
-
-      websocket.on("pong", () => {
-        isAlive = true
-      })
-
-      this.manager.events.ensureAny(eventListener)
-      // TODO: scope and filter logs instead of emitting everything from all instances
-      this.log.root.events.ensureAny(logListener)
-
       const cleanup = () => {
         this.log.debug(`Connection ${connectionId} terminated, cleaning up.`)
-        clearInterval(heartbeatInterval)
 
         this.manager.events.offAny(eventListener)
         this.log.root.events.offAny(logListener)
@@ -484,6 +473,13 @@ export class GardenServer extends EventEmitter {
         this.openConnections.delete(connectionId)
       }
 
+      // Set up heartbeat to detect dead connections
+      this.setupWsHeartbeat(connectionId, websocket, cleanup)
+
+      this.manager.events.ensureAny(eventListener)
+      // TODO: scope and filter logs instead of emitting everything from all instances
+      this.log.root.events.ensureAny(logListener)
+
       // Make sure we clean up listeners when connections end.
       websocket.on("close", cleanup)
 
@@ -495,8 +491,97 @@ export class GardenServer extends EventEmitter {
       })
     })
 
+    wsRouter.get("/pty", async (ctx) => {
+      const websocket: Koa.Context["websocket"] = ctx["websocket"]
+
+      const connectionId = uuidv4()
+
+      const validation = shellCommandBodySchema.safeParse(ctx.query)
+
+      if (!validation.success) {
+        const event = websocketCloseEvents.badRequest
+        websocket.close(event.code, `${event.message}: ${validation.error.message}`)
+        return
+      }
+
+      const { command, args, cwd, key } = validation.data
+
+      // It's crucial to authenticate here because running shell commands locally is sensitive
+      if (key !== this.authKey) {
+        const event = websocketCloseEvents.unauthorized
+        websocket.close(event.code, event.message)
+        return
+      }
+
+      let proc: pty.IPty
+      let cleanedUp = false
+
+      const cleanup = () => {
+        if (cleanedUp) {
+          return
+        }
+        cleanedUp = true
+        this.log.debug(`Connection ${connectionId} terminated, cleaning up.`)
+        proc?.kill()
+      }
+
+      try {
+        proc = pty.spawn(command, args, {
+          name: "xterm-color",
+          cols: 80,
+          rows: 30,
+          cwd,
+          env: {}, // TODO: support this
+        })
+
+        proc.onData((data) => {
+          websocket.OPEN && websocket.send(data)
+        })
+
+        proc.onExit(({ exitCode, signal }) => {
+          const msg = `Command '${command}' exited with code ${exitCode}, signal ${signal}`
+          this.log.info(msg)
+          const event = websocketCloseEvents.ok
+          cleanup()
+          websocket.OPEN && websocket.close(event.code, msg)
+        })
+
+        this.setupWsHeartbeat(connectionId, websocket, cleanup)
+
+        // Make sure we clean up listeners when connections end.
+        websocket.on("close", cleanup)
+
+        // Stream stdin
+        websocket.on("message", (stdin: string | Buffer) => {
+          proc.write(stdin.toString())
+        })
+      } finally {
+        cleanup()
+      }
+    })
+
     app.ws.use(<Koa.Middleware<any>>wsRouter.routes())
     app.ws.use(<Koa.Middleware<any>>wsRouter.allowedMethods())
+  }
+
+  private setupWsHeartbeat(connectionId: string, websocket: Koa.Context["websocket"], cleanup: () => void) {
+    // Set up heartbeat to detect dead connections
+    let isAlive = true
+    let heartbeatInterval = setInterval(() => {
+      if (!isAlive) {
+        this.log.debug(`Connection ${connectionId} timed out.`)
+        clearInterval(heartbeatInterval)
+        cleanup()
+        websocket.terminate()
+      }
+
+      isAlive = false
+      websocket.ping(() => {})
+    }, 1000)
+
+    websocket.on("pong", () => {
+      isAlive = true
+    })
   }
 
   private async handleWsMessage({
@@ -817,3 +902,9 @@ type SendWrapper<T extends ServerWebsocketMessageType = ServerWebsocketMessageTy
   type: T,
   payload: ServerWebsocketMessages[T]
 ) => void
+
+const shellCommandBodySchema = shellCommandParamsSchema.extend({
+  key: z.string().describe("The server auth key."),
+  columns: z.number().default(80).describe("Number of columns in the virtual terminal."),
+  rows: z.number().default(30).describe("Number of rows in the virtual terminal."),
+})

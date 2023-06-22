@@ -7,6 +7,7 @@
  */
 
 import chalk from "chalk"
+import { getAbi } from "node-abi"
 import { resolve, relative, join } from "path"
 import Bluebird from "bluebird"
 import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants"
@@ -248,6 +249,21 @@ async function pkgCommon({
 
   const pkgFetchTmpDir = resolve(repoRoot, "tmp", "pkg-fetch", targetName)
   await mkdirp(pkgFetchTmpDir)
+
+  console.log(` - ${targetName} -> node-pty`)
+  const abi = getAbi(process.version, "node")
+  // TODO: make arch configurable
+  const { nodeBinaryPlatform } = targets[targetName]
+  const filename = nodeBinaryPlatform === "linuxmusl" ? `node.abi${abi}.musl.node` : `node.abi${abi}.node`
+  const abiPath = resolve(
+    repoRoot,
+    "node_modules",
+    "node-pty-prebuilt-multiarch",
+    "prebuilds",
+    `${nodeBinaryPlatform}-x64`,
+    filename
+  )
+  await copy(abiPath, resolve(targetPath, "pty.node"))
 
   console.log(` - ${targetName} -> pkg`)
   await exec(
