@@ -28,9 +28,10 @@ import { GitHandler } from "../../../../src/vcs/git"
 import { resolve, join } from "path"
 import td from "testdouble"
 import tmp from "tmp-promise"
-import { realpath, readFile, writeFile, rename, rm } from "fs-extra"
+import { realpath, readFile, writeFile, rename } from "fs-extra"
 import { DEFAULT_API_VERSION, GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
 import { defaultDotIgnoreFiles, fixedProjectExcludes } from "../../../../src/util/fs"
+import { rm } from "fs/promises"
 import { LogEntry } from "../../../../src/logger/log-entry"
 
 export class TestVcsHandler extends VcsHandler {
@@ -365,7 +366,7 @@ describe("getModuleVersionString", () => {
     const garden = await makeTestGarden(projectRoot, { noCache: true })
     const module = await garden.resolveModule("module-a")
 
-    const fixedVersionString = "v-e3eed855ed"
+    const fixedVersionString = "v-48acad3a28"
     expect(module.version.versionString).to.eql(fixedVersionString)
 
     delete process.env.TEST_ENV_VAR
