@@ -263,6 +263,8 @@ spec:
 
   # Defines the location of the custom executable Maven Daemon binary.
   #
+  # If not provided, then Maven Daemon 0.9.0 will be downloaded and used.
+  #
   # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
   # Maven Daemon.
   # To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
@@ -718,6 +720,8 @@ Defines the Maven phases to be executed during the Garden build step.
 [spec](#spec) > mavendPath
 
 Defines the location of the custom executable Maven Daemon binary.
+
+If not provided, then Maven Daemon 0.9.0 will be downloaded and used.
 
 **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven Daemon.
 To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
