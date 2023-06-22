@@ -20,13 +20,13 @@ export interface GardenError<D extends object = any> extends Error {
 
 export interface GardenErrorStackTrace {
   functionName: string
-  relativeFileName: string
+  relativeFileName?: string
 }
 
 export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
   abstract type: string
 
-  constructor(message: string, public readonly detail: D, public readonly wrappedError?: Error) {
+  constructor(message: string, public readonly detail: D, public readonly wrappedErrors?: GardenError[]) {
     super(message)
     this.detail = detail
   }
@@ -35,8 +35,12 @@ export abstract class GardenBaseError<D extends object = any> extends Error impl
     if (testFlags.expandErrors) {
       let str = super.toString()
 
-      if (this.wrappedError) {
-        str += "\n\nWrapped error:\n\n" + this.wrappedError
+      if (this.wrappedErrors) {
+        str += "\n\nWrapped error:\n\n"
+
+        for (const wrappedError in this.wrappedErrors) {
+          str += wrappedError + "\n\n"
+        }
       }
 
       return str
@@ -191,21 +195,31 @@ export function getStackTraceMetadata(error: GardenError): GardenErrorStackTrace
   // Care about the first line matching our code base
   const lines = error.stack.split("\n").slice(1)
 
+  console.log(error.stack)
+
   const metadata = lines.flatMap((l) => {
     const atLine = l.match(/at (?:(.+?)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/)
 
-    if (!atLine) {
+    if (!atLine || atLine[2] === undefined) {
       return []
     }
 
-    const functionName: string = atLine[1]
-    const lastSrcPos = atLine[2].lastIndexOf("src")
+    const functionName: string = atLine[1] || "<unknown>"
+    const filePath = atLine[2]
+    let lastSrcFilePos = -1
+    let tmpPos = -1
 
-    if (lastSrcPos === -1) {
-      return []
+    if ((tmpPos = filePath.lastIndexOf("src")) > -1) {
+      lastSrcFilePos = tmpPos + 4
+    } else if ((tmpPos = filePath.lastIndexOf("node_modules")) > -1) {
+      lastSrcFilePos = tmpPos + 13
     }
 
-    const relativeFileName = atLine[2].slice(lastSrcPos + 4)
+    let relativeFileName: string | undefined = undefined
+
+    if (lastSrcFilePos > -1) {
+      relativeFileName = filePath.slice(lastSrcFilePos)
+    }
 
     return [
       {
