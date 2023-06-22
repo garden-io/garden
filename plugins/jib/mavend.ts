@@ -60,7 +60,7 @@ export const mavendSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "amd64",
-      sha256: mvndSpec.linux.sha256,
+      sha256: mvndSpec.darwin_amd64.sha256,
       url: `${mvndSpec.baseUrl}${mvndSpec.darwin_amd64.filename}`,
       extract: {
         format: "tar",
@@ -70,7 +70,7 @@ export const mavendSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "aarch64",
-      sha256: mvndSpec.linux.sha256,
+      sha256: mvndSpec.darwin_aarch64.sha256,
       url: `${mvndSpec.baseUrl}${mvndSpec.darwin_aarch64.filename}`,
       extract: {
         format: "tar",
@@ -81,7 +81,7 @@ export const mavendSpec: PluginToolSpec = {
       platform: "windows",
       architecture: "amd64",
       url: `${mvndSpec.baseUrl}${mvndSpec.windows.filename}`,
-      sha256: "d53e045bc5c02aad179fae2fbc565d953354880db6661a8fab31f3a718d7b62c",
+      sha256: mvndSpec.windows.sha256,
       extract: {
         format: "zip",
         targetPath: mvndSpec.windows.targetPath,
