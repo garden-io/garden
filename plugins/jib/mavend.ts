@@ -14,7 +14,7 @@ import { BuildToolParams, runBuildTool, verifyBinaryPath, VerifyBinaryParams } f
 
 const buildLock = new AsyncLock()
 
-const mvndVersion = "0.9.0"
+export const mvndVersion = "0.9.0"
 
 const mvndSpec = {
   description: "The Maven Daemon CLI.",
