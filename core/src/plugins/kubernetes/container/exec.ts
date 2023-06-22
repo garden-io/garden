@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,37 +8,39 @@
 
 import { includes } from "lodash"
 import { DeploymentError } from "../../../exceptions"
-import { ContainerModule } from "../../container/config"
+import { ContainerDeployAction } from "../../container/moduleConfig"
 import { getAppNamespace } from "../namespace"
-import { getContainerServiceStatus } from "./status"
 import { KubernetesPluginContext } from "../config"
 import { execInWorkload } from "../util"
-import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
+import { DeployActionHandler } from "../../../plugin/action-types"
+import { k8sGetContainerDeployStatus } from "./status"
 
-export async function execInService(params: ExecInServiceParams<ContainerModule>) {
-  const { ctx, log, service, command, interactive } = params
+export const execInContainer: DeployActionHandler<"exec", ContainerDeployAction> = async (params) => {
+  const { ctx, log, action, command, interactive } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const status = await getContainerServiceStatus({
-    ...params,
-    // The runtime context doesn't matter here. We're just checking if the service is running.
-    runtimeContext: {
-      envVars: {},
-      dependencies: [],
-    },
-    devMode: false,
-    hotReload: false,
-    localMode: false,
+  const status = await k8sGetContainerDeployStatus({
+    ctx,
+    log,
+    action,
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   // TODO: this check should probably live outside of the plugin
-  if (!status.detail.workload || !includes(["ready", "outdated"], status.state)) {
-    throw new DeploymentError(`Service ${service.name} is not running`, {
-      name: service.name,
+  if (!status.detail?.detail.workload || !includes(["ready", "outdated"], status.detail?.state)) {
+    throw new DeploymentError(`${action.longDescription()} is not running`, {
+      name: action.name,
       state: status.state,
     })
   }
 
-  return execInWorkload({ ctx, provider, log, namespace, workload: status.detail.workload, command, interactive })
+  return execInWorkload({
+    ctx,
+    provider,
+    log,
+    namespace,
+    workload: status.detail?.detail.workload,
+    command,
+    interactive,
+  })
 }

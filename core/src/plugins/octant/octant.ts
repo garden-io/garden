@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,11 +7,11 @@
  */
 
 import { dedent } from "../../util/string"
-import { GetDashboardPageParams } from "../../types/plugin/provider/getDashboardPage"
+import { GetDashboardPageParams } from "../../plugin/handlers/Provider/getDashboardPage"
 import execa, { ExecaChildProcess } from "execa"
 import getPort from "get-port"
 import { getK8sProvider } from "../kubernetes/util"
-import { createGardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../plugin/plugin"
 
 let octantProc: ExecaChildProcess
 let octantPort: number
@@ -36,7 +36,7 @@ export const gardenPlugin = () =>
         if (!octantProc) {
           const tool = ctx.tools["octant.octant"]
           const k8sProvider = getK8sProvider(ctx.provider.dependencies)
-          const path = await tool.getPath(log)
+          const path = await tool.ensurePath(log)
 
           octantPort = await getPort()
           const host = "127.0.0.1:" + octantPort
@@ -66,11 +66,11 @@ export const gardenPlugin = () =>
               }
             })
 
-            octantProc.on("error", (err) => {
+            void octantProc.on("error", (err) => {
               !resolved && reject(err)
             })
 
-            octantProc.on("close", (err) => {
+            void octantProc.on("close", (err) => {
               // TODO: restart process
               !resolved && reject(err)
             })
@@ -83,6 +83,7 @@ export const gardenPlugin = () =>
     tools: [
       {
         name: "octant",
+        version: "0.15.0",
         description: "A web admin UI for Kubernetes.",
         type: "binary",
         _includeInGardenImage: false,

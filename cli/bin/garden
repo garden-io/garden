@@ -14,7 +14,7 @@ if (process.env.GARDEN_ENABLE_PROFILING === "1" || process.env.GARDEN_ENABLE_PRO
   Mod.prototype.require = function () {
     const start = performance.now()
 
-    // tslint:disable-next-line: no-invalid-this
+    // eslint-disable-next-line no-invalid-this
     const mod = req.apply(this, arguments)
     profiler.log("require", start) // Aggregate of all requires
 
@@ -26,7 +26,7 @@ if (process.env.GARDEN_ENABLE_PROFILING === "1" || process.env.GARDEN_ENABLE_PRO
       profiler.log(prefix + split[split.length - 1], start)
     } else {
       profiler.log(prefix + moduleName, start)
-      // tslint:disable-next-line: no-invalid-this
+      // eslint-disable-next-line no-invalid-this
       profiler.log(prefix + basename(this.filename) + ":" + moduleName, start)
     }
 
@@ -37,5 +37,5 @@ if (process.env.GARDEN_ENABLE_PROFILING === "1" || process.env.GARDEN_ENABLE_PRO
 require("source-map-support").install()
 const cli = require("../build/src/cli")
 
-// tslint:disable-next-line: no-floating-promises
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
 cli.runCli()

@@ -173,8 +173,8 @@ TODO              text
 .gitattributes    text
 .gitconfig        text
 .htaccess         text
-*.lock            text -diff
-package-lock.json text -diff
+*.lock            text -diff linguist-generated=true
+package-lock.json text -diff linguist-generated=true
 *.npmignore       text
 *.yaml            text
 *.yml             text

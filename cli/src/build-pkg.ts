@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,14 +24,12 @@ const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const tmpDir = resolve(repoRoot, "tmp", "pkg")
 const tmpStaticDir = resolve(tmpDir, "static")
 const pkgPath = resolve(repoRoot, "cli", "node_modules", ".bin", "pkg")
-const prebuildInstallPath = resolve(repoRoot, "node_modules", ".bin", "prebuild-install")
 const distPath = resolve(repoRoot, "dist")
-const sqliteBinFilename = "better_sqlite3.node"
 
 // Allow larger heap size than default
 const nodeOptions = ["max-old-space-size=4096"]
 
-// tslint:disable: no-console
+/* eslint-disable no-console */
 
 interface TargetHandlerParams {
   targetName: string
@@ -47,10 +45,10 @@ interface TargetSpec {
 }
 
 const targets: { [name: string]: TargetSpec } = {
-  "macos-amd64": { pkgType: "node16-macos-x64", handler: pkgMacos, nodeBinaryPlatform: "darwin" },
-  "linux-amd64": { pkgType: "node16-linux-x64", handler: pkgLinux, nodeBinaryPlatform: "linux" },
-  "windows-amd64": { pkgType: "node16-win-x64", handler: pkgWindows, nodeBinaryPlatform: "win32" },
-  "alpine-amd64": { pkgType: "node16-alpine-x64", handler: pkgAlpine, nodeBinaryPlatform: "linuxmusl" },
+  "macos-amd64": { pkgType: "node18-macos-x64", handler: pkgMacos, nodeBinaryPlatform: "darwin" },
+  "linux-amd64": { pkgType: "node18-linux-x64", handler: pkgLinux, nodeBinaryPlatform: "linux" },
+  "windows-amd64": { pkgType: "node18-win-x64", handler: pkgWindows, nodeBinaryPlatform: "win32" },
+  "alpine-amd64": { pkgType: "node18-alpine-x64", handler: pkgAlpine, nodeBinaryPlatform: "linuxmusl" },
 }
 
 /**
@@ -125,9 +123,9 @@ async function buildBinaries(args: string[]) {
       packageJson.dependencies[depName] = "file:" + relPath
     }
 
-    if (version === "edge") {
+    if (version === "edge" || version.startsWith("edge-")) {
       const gitHash = await exec("git", ["rev-parse", "--short", "HEAD"])
-      packageJson.version = packageJson.version + "-edge-" + gitHash.stdout
+      packageJson.version = `${packageJson.version}-${version}-${gitHash.stdout}`
       console.log("Set package version to " + packageJson.version)
     }
 
@@ -203,7 +201,7 @@ async function pkgAlpine({ targetName, version }: TargetHandlerParams) {
   await mkdirp(targetPath)
 
   console.log(` - ${targetName} -> docker build`)
-  const imageName = "gardendev/garden:alpine-builder"
+  const imageName = "garden-alpine-builder"
   const containerName = "alpine-builder-" + randomString(8)
   const supportDir = resolve(repoRoot, "support")
 
@@ -269,27 +267,6 @@ async function pkgCommon({
     { env: { PKG_CACHE_PATH: pkgFetchTmpDir } }
   )
 
-  console.log(` - ${targetName} -> ${sqliteBinFilename}`)
-
-  // Copy the package to avoid conflicts with other targets
-  const betterSqlitePath = resolve(sourcePath, "node_modules", "better-sqlite3")
-  const tmpRoot = resolve(tmpDir, "better-sqlite3")
-  const tmpPath = resolve(tmpRoot, targetName)
-  await mkdirp(tmpRoot)
-  await remove(tmpPath)
-  await copy(betterSqlitePath, tmpPath)
-
-  const { nodeBinaryPlatform } = targets[targetName]
-
-  await exec(
-    prebuildInstallPath,
-    ["--download", "--runtime", "node", "--arch", "x64", "--platform", nodeBinaryPlatform, "--force"],
-    {
-      cwd: tmpPath,
-    }
-  )
-  await copy(resolve(tmpPath, "build", "Release", sqliteBinFilename), resolve(targetPath, sqliteBinFilename))
-
   console.log(` - ${targetName} -> static`)
   await copyStatic(targetName)
 }
@@ -324,7 +301,7 @@ async function tarball(targetName: string, version: string): Promise<void> {
       hash.end()
       const sha256 = hash.read()
 
-      // tslint:disable-next-line: no-floating-promises
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       writeFile(hashPath, sha256 + "\n")
         .catch(reject)
         .then(_resolve)
@@ -334,7 +311,9 @@ async function tarball(targetName: string, version: string): Promise<void> {
   })
 }
 
-buildBinaries(process.argv.slice(2)).catch((err) => {
-  console.error(chalk.red(err.message))
-  process.exit(1)
-})
+if (require.main === module) {
+  buildBinaries(process.argv.slice(2)).catch((err) => {
+    console.error(chalk.red(err.message))
+    process.exit(1)
+  })
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,7 +32,6 @@ export class SortedStreamIntersection<T> extends Readable {
     this.started = false
   }
 
-  // tslint:disable-next-line: function-name
   _read() {
     if (!this.started) {
       this.start()

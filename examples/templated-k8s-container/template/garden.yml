@@ -1,15 +1,58 @@
-kind: ModuleTemplate
+kind: ConfigTemplate
 name: k8s-container
 inputsSchemaPath: schema.json
-modules:
-  - type: container
-    name: ${parent.name}-image
+
+configs:
+  - kind: Build
+    type: container
+    name: ${parent.name}
     description: ${parent.name} image
-  - type: kubernetes
-    name: ${parent.name}-manifests
-    build:
-      dependencies: ["${parent.name}-image"]
-    files: [.manifests.yml]
-    generateFiles:
-      - sourcePath: manifests.yml
-        targetPath: .manifests.yml
+
+  - kind: Deploy
+    type: kubernetes
+    name: ${parent.name}
+    description: ${parent.name} manifests
+
+    dependencies:
+      - build.${parent.name}
+
+    spec:
+      manifests:
+        - apiVersion: v1
+          kind: Service
+          metadata:
+            name: ${parent.name}
+            labels:
+              service: ${parent.name}
+          spec:
+            type: ClusterIP
+            ports:
+              - name: http
+                port: ${inputs.servicePort}
+                targetPort: http
+            selector:
+              service: ${parent.name}
+
+        - apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: ${parent.name}
+            labels:
+              service: ${parent.name}
+          spec:
+            replicas: ${inputs.replicas || 3}
+            selector:
+              matchLabels:
+                service: ${parent.name}
+            template:
+              metadata:
+                labels:
+                  service: ${parent.name}
+              spec:
+                containers:
+                  - name: main
+                    image: ${actions.build["${parent.name}"].outputs.deployment-image-id}
+                    imagePullPolicy: "Always"
+                    ports:
+                      - name: http
+                        containerPort: ${inputs.containerPort}

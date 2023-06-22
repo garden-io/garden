@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,10 +10,10 @@ import AsyncLock from "async-lock"
 import chalk from "chalk"
 import split2 = require("split2")
 import { isEmpty } from "lodash"
-import { buildSyncVolumeName, dockerAuthSecretKey, inClusterRegistryHostname } from "../../constants"
+import { buildSyncVolumeName, buildkitContainerName, buildkitDeploymentName, buildkitImageName, buildkitRootlessImageName, dockerAuthSecretKey } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
-import { LogEntry } from "../../../../logger/log-entry"
+import { Log } from "../../../../logger/log-entry"
 import { waitForResources, compareDeployedResources } from "../../status/status"
 import { KubernetesProvider, KubernetesPluginContext, ClusterBuildkitCacheConfig } from "../../config"
 import { PluginContext } from "../../../../plugin-context"
@@ -22,36 +22,31 @@ import {
   skopeoBuildStatus,
   BuildHandler,
   syncToBuildSync,
-  getSocatContainer,
   getUtilContainer,
-  utilRsyncPort,
   ensureBuilderSecret,
   builderToleration,
 } from "./common"
 import { getNamespaceStatus } from "../../namespace"
-import { LogLevel } from "../../../../logger/logger"
 import { sleep } from "../../../../util/util"
-import { ContainerModule } from "../../../container/config"
+import { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig"
 import { getDockerBuildArgs } from "../../../container/build"
-import { getRunningDeploymentPod, usingInClusterRegistry } from "../../util"
+import { Resolved } from "../../../../actions/types"
 import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
-import { ContainerModuleOutputs } from "../../../container/container"
+import { getRunningDeploymentPod } from "../../util"
+import { defaultDockerfileName } from "../../../container/config"
+import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { stringifyResources } from "../util"
-
-export const buildkitImageName = "gardendev/buildkit:v0.10.5-2"
-export const buildkitDeploymentName = "garden-buildkit"
-const buildkitContainerName = "buildkitd"
 
 const deployLock = new AsyncLock()
 
 export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
-  const { ctx, module, log } = params
+  const { ctx, action, log } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   const { authSecret } = await ensureBuildkit({
     ctx,
@@ -69,15 +64,18 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
     api,
     ctx,
     provider,
-    module,
+    action,
   })
 }
 
 export const buildkitBuildHandler: BuildHandler = async (params) => {
-  const { ctx, module, log } = params
+  const { ctx, action, log } = params
+  const spec = action.getSpec()
+  const k8sCtx = ctx as KubernetesPluginContext
+
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   await ensureBuildkit({
     ctx,
@@ -87,29 +85,30 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     namespace,
   })
 
-  const localId = module.outputs["local-image-id"]
-  const dockerfile = module.spec.dockerfile || "Dockerfile"
+  const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
+
+  const localId = outputs.localImageId
+  const dockerfile = spec.dockerfile || defaultDockerfileName
 
   const { contextPath } = await syncToBuildSync({
     ...params,
-    ctx: ctx as KubernetesPluginContext,
+    ctx: k8sCtx,
     api,
     namespace,
     deploymentName: buildkitDeploymentName,
-    rsyncPort: utilRsyncPort,
   })
 
-  log.setState(`Building image ${localId}...`)
+  log.info(`Buildkit Building image ${localId}...`)
 
   const logEventContext = {
     origin: "buildkit",
-    log: log.placeholder({ level: LogLevel.verbose }),
+    level: "verbose" as const,
   }
 
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
 
   const command = [
@@ -124,14 +123,14 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "filename=" + dockerfile,
     ...getBuildkitImageFlags(
       provider.config.clusterBuildkit!.cache,
-      module.outputs,
+      outputs,
       provider.config.deploymentRegistry!.insecure
     ),
-    ...getBuildkitModuleFlags(module),
+    ...getBuildkitFlags(action),
   ]
 
   // Execute the build
-  const buildTimeout = module.spec.build.timeout
+  const buildTimeout = action.getConfig("timeout")
 
   const pod = await getRunningDeploymentPod({ api, deploymentName: buildkitDeploymentName, namespace })
 
@@ -158,10 +157,14 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   log.silly(buildLog)
 
   return {
-    buildLog,
-    fetched: false,
-    fresh: true,
-    version: module.version.versionString,
+    state: "ready",
+    outputs,
+    detail: {
+      buildLog,
+      fetched: false,
+      fresh: true,
+      outputs,
+    },
   }
 }
 
@@ -174,12 +177,12 @@ export async function ensureBuildkit({
 }: {
   ctx: PluginContext
   provider: KubernetesProvider
-  log: LogEntry
+  log: Log
   api: KubeApi
   namespace: string
 }) {
   return deployLock.acquire(namespace, async () => {
-    const deployLog = log.placeholder()
+    const deployLog = log.createLog()
 
     // Make sure auth secret is in place
     const { authSecret, updated: secretUpdated } = await ensureBuilderSecret({
@@ -204,7 +207,7 @@ export async function ensureBuildkit({
     }
 
     // Deploy the buildkit daemon
-    deployLog.setState(
+    deployLog.info(
       chalk.gray(`-> Deploying ${buildkitDeploymentName} daemon in ${namespace} namespace (was ${status.state})`)
     )
 
@@ -214,30 +217,32 @@ export async function ensureBuildkit({
       namespace,
       ctx,
       provider,
-      serviceName: "garden-buildkit",
+      actionName: "garden-buildkit",
       resources: [manifest],
       log: deployLog,
       timeoutSec: 600,
     })
 
-    deployLog.setState({ append: true, msg: "Done!" })
+    deployLog.info("Done!")
 
     return { authSecret, updated: true }
   })
 }
 
-export function getBuildkitModuleFlags(module: ContainerModule) {
+export function getBuildkitFlags(action: Resolved<ContainerBuildAction>) {
   const args: string[] = []
 
-  for (const arg of getDockerBuildArgs(module)) {
+  const spec = action.getSpec()
+
+  for (const arg of getDockerBuildArgs(action.versionString(), spec.buildArgs)) {
     args.push("--opt", "build-arg:" + arg)
   }
 
-  if (module.spec.build.targetImage) {
-    args.push("--opt", "target=" + module.spec.build.targetImage)
+  if (spec.targetStage) {
+    args.push("--opt", "target=" + spec.targetStage)
   }
 
-  args.push(...(module.spec.extraFlags || []))
+  args.push(...(spec.extraFlags || []))
 
   return args
 }
@@ -328,7 +333,6 @@ export const getSupportedCacheMode = (
     /^([^/]+\.)?azurecr\.io\//i, // Azure Container registry
     /^hub\.docker\.com\//i, // DockerHub
     /^ghcr\.io\//i, // GitHub Container registry
-    new RegExp(`^${inClusterRegistryHostname}/`, "i"), // Garden in-cluster registry
   ]
 
   // use mode=max for all registries that are known to support it
@@ -416,7 +420,7 @@ export function getBuildkitDeployment(
                 },
               ],
             },
-            // Attach a util container for the rsync server and to use skopeo
+            // Attach the util container
             getUtilContainer(authSecretName, provider),
           ],
           imagePullSecrets,
@@ -452,7 +456,7 @@ export function getBuildkitDeployment(
       "container.apparmor.security.beta.kubernetes.io/buildkitd": "unconfined",
       "container.seccomp.security.alpha.kubernetes.io/buildkitd": "unconfined",
     }
-    buildkitContainer.image += "-rootless"
+    buildkitContainer.image = buildkitRootlessImageName
     buildkitContainer.args = [
       "--addr",
       "unix:///run/user/1000/buildkit/buildkitd.sock",
@@ -465,11 +469,6 @@ export function getBuildkitDeployment(
   }
 
   buildkitContainer.resources = stringifyResources(provider.config.resources.builder)
-
-  if (usingInClusterRegistry(provider)) {
-    // We need a proxy sidecar to be able to reach the in-cluster registry from the Pod
-    deployment.spec!.template.spec!.containers.push(getSocatContainer(provider))
-  }
 
   // Set the configured nodeSelector, if any
   if (!isEmpty(provider.config.clusterBuildkit?.nodeSelector)) {

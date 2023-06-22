@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,10 +7,12 @@
  */
 
 import { V1Service, V1ServicePort } from "@kubernetes/client-node"
-import { ContainerService, ServicePortSpec } from "../../container/config"
+import { ServicePortSpec } from "../../container/moduleConfig"
+import { ContainerDeployAction } from "../../container/moduleConfig"
 import { getDeploymentSelector } from "./deployment"
 import { KubernetesResource } from "../types"
 import { find } from "lodash"
+import { Resolved } from "../../../actions/types"
 
 function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
   const port: V1ServicePort = {
@@ -28,17 +30,14 @@ function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
 }
 
 // todo: consider returning Promise<KubernetesResource<V1Service>[]>
-export async function createServiceResources(
-  service: ContainerService,
-  namespace: string,
-  blueGreen: boolean
-): Promise<any> {
-  if (!service.spec.ports.length) {
+export async function createServiceResources(action: Resolved<ContainerDeployAction>, namespace: string): Promise<any> {
+  const specPorts = action.getSpec("ports")
+
+  if (!specPorts.length) {
     return []
   }
 
-  const createServiceResource = (containerService: ContainerService): KubernetesResource<V1Service> => {
-    const specPorts = service.spec.ports
+  const createServiceResource = (containerAction: Resolved<ContainerDeployAction>): KubernetesResource<V1Service> => {
     const serviceType = !!find(specPorts, (portSpec) => !!portSpec.nodePort) ? "NodePort" : "ClusterIP"
     const servicePorts = specPorts.map(toServicePort)
 
@@ -46,21 +45,17 @@ export async function createServiceResources(
       apiVersion: "v1",
       kind: "Service",
       metadata: {
-        name: containerService.name,
-        annotations: containerService.spec.annotations,
+        name: containerAction.name,
+        annotations: containerAction.getSpec("annotations"),
         namespace,
       },
       spec: {
         ports: servicePorts,
-        selector: getDeploymentSelector(containerService, blueGreen),
+        selector: getDeploymentSelector(action),
         type: serviceType,
       },
     }
   }
 
-  return [createServiceResource(service)]
-}
-
-export function rsyncPortName(serviceName: string) {
-  return `garden-rsync-${serviceName}`
+  return [createServiceResource(action)]
 }

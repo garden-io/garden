@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,227 +7,137 @@
  */
 
 import chalk from "chalk"
-import { includes } from "lodash"
-import { LogEntry } from "../logger/log-entry"
-import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "./base"
-import { GardenService, ServiceStatus, getLinkUrl } from "../types/service"
-import { Garden } from "../garden"
-import { BuildTask } from "./build"
-import { ConfigGraph } from "../config-graph"
-import { startPortProxies } from "../proxy"
-import { GraphResults } from "../task-graph"
-import { prepareRuntimeContext } from "../runtime-context"
-import { GetServiceStatusTask } from "./get-service-status"
-import { Profile } from "../util/profiling"
-import { getServiceStatusDeps, getTaskResultDeps, getDeployDeps, getTaskDeps } from "./helpers"
 
-export interface DeployTaskParams {
-  garden: Garden
-  graph: ConfigGraph
-  service: GardenService
-  force: boolean
-  forceBuild: boolean
-  fromWatch?: boolean
-  log: LogEntry
-  skipRuntimeDependencies?: boolean
-  devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
-  localModeServiceNames: string[]
+import {
+  BaseActionTaskParams,
+  ActionTaskProcessParams,
+  ExecuteActionTask,
+  ActionTaskStatusParams,
+  BaseTask,
+  emitGetStatusEvents,
+  emitProcessingEvents,
+} from "./base"
+import { getLinkUrl } from "../types/service"
+import { Profile } from "../util/profiling"
+import { DeployAction } from "../actions/deploy"
+import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
+import { displayState, resolvedActionToExecuted } from "../actions/helpers"
+import { PluginEventBroker } from "../plugin-context"
+import { ActionLog } from "../logger/log-entry"
+
+export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {
+  events?: PluginEventBroker
+  startSync?: boolean
+}
+
+function printIngresses(status: DeployStatus, log: ActionLog) {
+  for (const ingress of status.detail?.ingresses || []) {
+    log.info(chalk.gray("Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
+  }
 }
 
 @Profile()
-export class DeployTask extends BaseTask {
-  type: TaskType = "deploy"
+export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
+  type = "deploy" as const
   concurrencyLimit = 10
-  graph: ConfigGraph
-  service: GardenService
-  forceBuild: boolean
-  fromWatch: boolean
-  skipRuntimeDependencies: boolean
-  devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
-  localModeServiceNames: string[]
 
-  constructor({
-    garden,
-    graph,
-    log,
-    service,
-    force,
-    forceBuild,
-    fromWatch = false,
-    skipRuntimeDependencies = false,
-    devModeServiceNames,
-    hotReloadServiceNames,
-    localModeServiceNames,
-  }: DeployTaskParams) {
-    super({ garden, log, force, version: service.version })
-    this.graph = graph
-    this.service = service
-    this.forceBuild = forceBuild
-    this.fromWatch = fromWatch
-    this.skipRuntimeDependencies = skipRuntimeDependencies
-    this.devModeServiceNames = devModeServiceNames
-    this.hotReloadServiceNames = hotReloadServiceNames
-    this.localModeServiceNames = localModeServiceNames
+  events?: PluginEventBroker
+  startSync: boolean
+
+  constructor(params: DeployTaskParams) {
+    super(params)
+    this.events = params.events
+    this.startSync = !!params.startSync
   }
 
-  async resolveDependencies() {
-    const dg = this.graph
-
-    const skippedServiceDepNames = [...this.hotReloadServiceNames]
-
-    // We filter out service dependencies on services configured for hot reloading (if any)
-    const deps = dg.getDependencies({
-      nodeType: "deploy",
-      name: this.getName(),
-      recursive: false,
-      filter: (depNode) => !(depNode.type === "deploy" && includes(skippedServiceDepNames, depNode.name)),
-    })
-
-    const statusTask = new GetServiceStatusTask({
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      service: this.service,
-      force: false,
-      devModeServiceNames: this.devModeServiceNames,
-      hotReloadServiceNames: this.hotReloadServiceNames,
-      localModeServiceNames: this.localModeServiceNames,
-    })
-
-    if (this.fromWatch && includes(skippedServiceDepNames, this.service.name)) {
-      // Only need to get existing statuses and results when using hot-reloading
-      return [statusTask, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
-    } else {
-      const buildTasks = await this.getBuildTasks()
-      if (this.skipRuntimeDependencies) {
-        // Then we don't deploy any service dependencies or run any task dependencies, but only get existing
-        // statuses and results.
-        return [statusTask, ...buildTasks, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
-      } else {
-        return [statusTask, ...buildTasks, ...getDeployDeps(this, deps, false), ...getTaskDeps(this, deps, false)]
-      }
+  protected getDependencyParams(): DeployTaskParams {
+    return {
+      ...super.getDependencyParams(),
+      startSync: this.startSync,
     }
-  }
-
-  private async getBuildTasks(): Promise<BaseTask[]> {
-    return BuildTask.factory({
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      module: this.service.module,
-      force: this.forceBuild,
-    })
-  }
-
-  getName() {
-    return this.service.name
   }
 
   getDescription() {
-    return `deploying service '${this.service.name}' (from module '${this.service.module.name}')`
+    return this.action.longDescription()
   }
 
-  async process(dependencyResults: GraphResults): Promise<ServiceStatus> {
-    const version = this.version
+  @emitGetStatusEvents<DeployAction>
+  async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<DeployAction>) {
+    const log = this.log.createLog()
+    const action = this.getResolvedAction(this.action, dependencyResults)
 
-    const devMode = includes(this.devModeServiceNames, this.service.name)
-    const hotReload = !devMode && includes(this.hotReloadServiceNames, this.service.name)
-    const localMode = includes(this.localModeServiceNames, this.service.name)
+    const router = await this.garden.getActionRouter()
 
-    const dependencies = this.graph.getDependencies({
-      nodeType: "deploy",
-      name: this.getName(),
-      recursive: false,
-    })
-
-    const serviceStatuses = getServiceStatuses(dependencyResults)
-    const taskResults = getRunTaskResults(dependencyResults)
-
-    // TODO: attach runtimeContext to GetServiceStatusTask output
-    const runtimeContext = await prepareRuntimeContext({
-      garden: this.garden,
+    const { result: status } = await router.deploy.getStatus({
       graph: this.graph,
-      dependencies,
-      version,
-      moduleVersion: this.service.module.version.versionString,
-      serviceStatuses,
-      taskResults,
+      action,
+      log,
     })
 
-    const actions = await this.garden.getActionRouter()
-
-    let status = serviceStatuses[this.service.name]
-    const devModeSkipRedeploy = status.devMode && (devMode || hotReload)
-    const localModeSkipRedeploy = status.localMode && localMode
-
-    const log = this.log.info({
-      status: "active",
-      section: this.service.name,
-      msg: `Deploying version ${version}...`,
-    })
-
-    if (
-      !this.force &&
-      status.state === "ready" &&
-      (version === status.version || devModeSkipRedeploy || localModeSkipRedeploy)
-    ) {
-      // already deployed and ready
-      log.setSuccess({
-        msg: chalk.green("Already deployed"),
-        append: true,
-      })
-    } else {
-      try {
-        status = await actions.deployService({
-          graph: this.graph,
-          service: this.service,
-          runtimeContext,
-          log,
-          force: this.force,
-          devMode,
-          hotReload,
-          localMode,
-        })
-      } catch (err) {
-        log.setError()
-        throw err
-      }
-
-      log.setSuccess({
-        msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
-        append: true,
-      })
+    if (status.state === "ready" && status.detail?.mode !== action.mode()) {
+      status.state = "not-ready"
     }
 
-    for (const ingress of status.ingresses || []) {
-      log.info(chalk.gray("Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
-    }
-
-    if (this.garden.persistent) {
-      const proxies = await startPortProxies({
-        garden: this.garden,
-        graph: this.graph,
-        log,
-        service: this.service,
-        status,
-      })
-
-      for (const proxy of proxies) {
-        const targetHost = proxy.spec.targetName || this.service.name
-
-        log.info(
-          chalk.gray(
-            `Port forward: ` +
-              chalk.underline(proxy.localUrl) +
-              ` → ${targetHost}:${proxy.spec.targetPort}` +
-              (proxy.spec.name ? ` (${proxy.spec.name})` : "")
-          )
-        )
+    if (!statusOnly && !this.force) {
+      if (status.state === "ready") {
+        log.info("Already deployed")
+        printIngresses(status, log)
+      } else {
+        const state = status.detail?.state || displayState(status.state)
+        log.info(state)
       }
     }
 
-    return status
+    const executedAction = resolvedActionToExecuted(action, { status })
+
+    if (this.startSync && !statusOnly && status.state === "ready" && action.mode() === "sync") {
+      // If the action is already deployed, we still need to make sure the sync is started
+      await router.deploy.startSync({ log, graph: this.graph, action: executedAction })
+    }
+
+    return { ...status, version: action.versionString(), executedAction }
   }
+
+  @emitProcessingEvents<DeployAction>
+  async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
+    const action = this.getResolvedAction(this.action, dependencyResults)
+    const version = action.versionString()
+
+    const router = await this.garden.getActionRouter()
+
+    const log = this.log.createLog()
+    log.info(`Deploying version ${version}...`)
+
+    try {
+      const output = await router.deploy.deploy({
+        graph: this.graph,
+        action,
+        log,
+        force: this.force,
+        events: this.events,
+      })
+      status = output.result
+    } catch (err) {
+      log.error(`Failed`)
+      throw err
+    }
+
+    log.success(`Done`)
+
+    const executedAction = resolvedActionToExecuted(action, { status })
+
+    printIngresses(status, log)
+
+    // Start syncing, if requested
+    if (this.startSync && action.mode() === "sync") {
+      log.info(chalk.gray("Starting sync"))
+      await router.deploy.startSync({ log, graph: this.graph, action: executedAction })
+    }
+
+    return { ...status, version, executedAction }
+  }
+}
+
+export function isDeployTask(task: BaseTask): task is DeployTask {
+  return task.type === "deploy"
 }

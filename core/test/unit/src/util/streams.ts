@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,6 +9,7 @@
 import { SortedStreamIntersection } from "../../../../src/util/streams"
 import { expect } from "chai"
 import { splitStream } from "../../../../src/util/streams"
+import { expectFuzzyMatch } from "../../../helpers"
 
 describe("SortedStreamIntersection", () => {
   const comparator = (a: Buffer, b: Buffer) => a.toString().localeCompare(b.toString())
@@ -92,7 +93,7 @@ describe("SortedStreamIntersection", () => {
     const stream = new SortedStreamIntersection([a, b], comparator)
     stream.on("data", () => {})
     stream.on("error", (err) => {
-      expect(err.message).to.equal("Received unordered stream")
+      expectFuzzyMatch(err.message, "Received unordered stream")
       done()
     })
 

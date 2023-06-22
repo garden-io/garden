@@ -1,2 +1,5 @@
+apiVersion: garden.io/v1
 kind: Project
 name: build-test-project
+environments:
+  - name: local

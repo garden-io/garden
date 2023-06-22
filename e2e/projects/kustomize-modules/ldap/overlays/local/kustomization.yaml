@@ -1,0 +1,9 @@
+resources:
+- ../../base
+patchesStrategicMerge:
+ - deployment.yaml
+namePrefix: local-
+configMapGenerator:
+- name: env-config
+  files:
+  - config.env

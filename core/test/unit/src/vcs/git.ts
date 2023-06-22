@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,10 +14,10 @@ import { basename, join, relative, resolve } from "path"
 
 import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
 import { getCommitIdFromRefList, GitHandler, parseGitUrl } from "../../../../src/vcs/git"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util"
 import { deline } from "../../../../src/util/string"
-import { uuidv4 } from "../../../../src/util/util"
+import { uuidv4 } from "../../../../src/util/random"
 
 // Overriding this to make sure any ignorefile name is respected
 const defaultIgnoreFilename = ".testignore"
@@ -63,14 +63,20 @@ describe("GitHandler", () => {
   let tmpPath: string
   let git: any
   let handler: GitHandler
-  let log: LogEntry
+  let log: Log
 
   beforeEach(async () => {
     garden = await makeTestGardenA()
     log = garden.log
     tmpDir = await makeTempGitRepo()
     tmpPath = await realpath(tmpDir.path)
-    handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [defaultIgnoreFilename], garden.cache)
+    handler = new GitHandler({
+      garden,
+      projectRoot: tmpPath,
+      gardenDirPath: join(tmpPath, ".garden"),
+      ignoreFile: defaultIgnoreFilename,
+      cache: garden.treeCache,
+    })
     git = (<any>handler).gitCli(log, tmpPath)
   })
 
@@ -384,50 +390,15 @@ describe("GitHandler", () => {
 
       const hash = await getGitHash(path)
 
-      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [], garden.cache)
+      const _handler = new GitHandler({
+        garden,
+        projectRoot: tmpPath,
+        gardenDirPath: join(tmpPath, ".garden"),
+        ignoreFile: "",
+        cache: garden.treeCache,
+      })
 
       expect(await _handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
-    })
-
-    it("should correctly handle multiple ignore files", async () => {
-      const nameA = "excluded-a.txt"
-      const nameB = "excluded-b.txt"
-      const nameC = "excluded-c.txt"
-      const nameD = "committed.txt"
-      const nameE = "untracked.txt"
-      const pathA = resolve(tmpPath, nameA)
-      const pathB = resolve(tmpPath, nameB)
-      const pathC = resolve(tmpPath, nameC)
-      const pathD = resolve(tmpPath, nameD)
-      const pathE = resolve(tmpPath, nameE)
-      await createFile(pathA)
-      await createFile(pathB)
-      await createFile(pathC)
-      await createFile(pathD)
-      await createFile(pathE)
-
-      await addToIgnore(tmpPath, nameA)
-      await addToIgnore(tmpPath, nameB, ".testignore2")
-      await addToIgnore(tmpPath, nameC, ".testignore3")
-
-      // We skip paths A and E, to make sure untracked files work as expected
-      await git("add", pathB)
-      await git("add", pathC)
-      await git("add", pathD)
-      await git("commit", "-m", "foo")
-
-      const _handler = new GitHandler(
-        tmpPath,
-        join(tmpPath, ".garden"),
-        [defaultIgnoreFilename, ".testignore2", ".testignore3"],
-        garden.cache
-      )
-
-      const files = (await _handler.getFiles({ path: tmpPath, exclude: [], log })).filter(
-        (f) => !f.path.includes(defaultIgnoreFilename)
-      )
-
-      expect(files.map((f) => f.path)).to.eql([pathE, pathD])
     })
 
     it("should include a relative symlink within the path", async () => {
@@ -493,7 +464,11 @@ describe("GitHandler", () => {
         submodulePath = await realpath(submodule.path)
         initFile = (await commit("init", submodulePath)).uniqueFilename
 
-        await execa("git", ["submodule", "add", "--force", "--", submodulePath, "sub"], { cwd: tmpPath })
+        await execa(
+          "git",
+          ["-c", "protocol.file.allow=always", "submodule", "add", "--force", "--", submodulePath, "sub"],
+          { cwd: tmpPath }
+        )
         await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpPath })
       })
 
@@ -523,20 +498,6 @@ describe("GitHandler", () => {
         const paths = files.map((f) => relative(tmpPath, f.path))
 
         expect(paths).to.eql([".gitmodules", "sub"])
-      })
-
-      it("should include tracked files in submodules when multiple dotignore files are set", async () => {
-        const _handler = new GitHandler(
-          tmpPath,
-          join(tmpPath, ".garden"),
-          [defaultIgnoreFilename, ".gardenignore"],
-          garden.cache
-        )
-
-        const files = await _handler.getFiles({ path: tmpPath, log })
-        const paths = files.map((f) => relative(tmpPath, f.path))
-
-        expect(paths).to.eql([".gitmodules", join("sub", initFile)])
       })
 
       it("should include untracked files in submodules", async () => {
@@ -641,7 +602,9 @@ describe("GitHandler", () => {
           submodulePathB = await realpath(submoduleB.path)
           initFileB = (await commit("init", submodulePathB)).uniqueFilename
 
-          await execa("git", ["submodule", "add", submodulePathB, "sub-b"], { cwd: join(tmpPath, "sub") })
+          await execa("git", ["-c", "protocol.file.allow=always", "submodule", "add", submodulePathB, "sub-b"], {
+            cwd: join(tmpPath, "sub"),
+          })
           await execa("git", ["commit", "-m", "add submodule"], { cwd: join(tmpPath, "sub") })
         })
 
@@ -778,7 +741,9 @@ describe("GitHandler", () => {
 
       if (withSubmodule) {
         // Add repo B as a submodule to repo A
-        await execa("git", ["submodule", "add", tmpRepoPathB], { cwd: tmpRepoPathA })
+        await execa("git", ["-c", "protocol.file.allow=always", "submodule", "add", tmpRepoPathB], {
+          cwd: tmpRepoPathA,
+        })
         await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpRepoPathA })
       }
       const { commitSHA } = await commit("test commit A", tmpRepoPathA)
@@ -945,7 +910,9 @@ describe("GitHandler", () => {
 
       it("should update submodules", async () => {
         // Add repo B as a submodule to repo A
-        await execa("git", ["submodule", "add", tmpRepoPathB], { cwd: tmpRepoPathA })
+        await execa("git", ["-c", "protocol.file.allow=always", "submodule", "add", tmpRepoPathB], {
+          cwd: tmpRepoPathA,
+        })
         await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpRepoPathA })
 
         await handler.ensureRemoteSource({
@@ -959,7 +926,9 @@ describe("GitHandler", () => {
         await commit("update repo B", tmpRepoPathB)
 
         // Update submodule in repo A
-        await execa("git", ["submodule", "update", "--recursive", "--remote"], { cwd: tmpRepoPathA })
+        await execa("git", ["-c", "protocol.file.allow=always", "submodule", "update", "--recursive", "--remote"], {
+          cwd: tmpRepoPathA,
+        })
         await execa("git", ["add", "."], { cwd: tmpRepoPathA })
         await execa("git", ["commit", "-m", "update submodules"], { cwd: tmpRepoPathA })
 

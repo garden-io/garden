@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,18 +8,20 @@
 
 import { expect } from "chai"
 import { getDataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { getServiceLogs } from "../../../../../../src/plugins/kubernetes/container/logs"
+import { k8sGetContainerDeployLogs } from "../../../../../../src/plugins/kubernetes/container/logs"
 import { Stream } from "ts-stream"
-import { ServiceLogEntry } from "../../../../../../src/types/plugin/service/getServiceLogs"
+import { DeployLogEntry } from "../../../../../../src/types/service"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { K8sLogFollower, makeServiceLogEntry } from "../../../../../../src/plugins/kubernetes/logs"
+import { K8sLogFollower, makeDeployLogEntry } from "../../../../../../src/plugins/kubernetes/logs"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import { createWorkloadManifest } from "../../../../../../src/plugins/kubernetes/container/deployment"
 import { sleep } from "../../../../../../src/util/util"
-import { DeleteServiceTask } from "../../../../../../src/tasks/delete-service"
+import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy"
+import { getDeployedImageId } from "../../../../../../src/plugins/kubernetes/container/util"
+import { ContainerDeployAction } from "../../../../../../src/plugins/container/config"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("kubernetes", () => {
   let garden: TestGarden
@@ -32,44 +34,47 @@ describe("kubernetes", () => {
     garden = await makeTestGarden(root)
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
-    ctx = (await garden.getPluginContext(provider)) as KubernetesPluginContext
+    ctx = (await garden.getPluginContext({
+      provider,
+      templateContext: undefined,
+      events: undefined,
+    })) as KubernetesPluginContext
   })
 
   after(async () => {
-    await garden.close()
+    garden.close()
   })
 
-  describe("getServiceLogs", () => {
-    it("should write service logs to stream", async () => {
-      const module = graph.getModule("simple-service")
-      const service = graph.getService("simple-service")
+  describe("k8sGetContainerDeployLogs", () => {
+    it("should write Deploy logs to stream", async () => {
+      const action = graph.getDeploy("simple-service")
+      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
-      const entries: ServiceLogEntry[] = []
+      const entries: DeployLogEntry[] = []
 
       const deployTask = new DeployTask({
         force: true,
         forceBuild: true,
+
         garden,
         graph,
         log: garden.log,
-        service,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
+        action,
       })
 
-      await garden.processTasks([deployTask], { throwOnError: true })
-      const stream = new Stream<ServiceLogEntry>()
+      await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+      const stream = new Stream<DeployLogEntry>()
 
       void stream.forEach((entry) => {
         entries.push(entry)
       })
 
-      await getServiceLogs({
+      const resolvedDeployAction = await garden.resolveAction<ContainerDeployAction>({ action, log: garden.log, graph })
+
+      await k8sGetContainerDeployLogs({
         ctx,
-        module,
-        service,
-        log: garden.log,
+        action: resolvedDeployAction,
+        log: actionLog,
         stream,
         follow: false,
       })
@@ -77,60 +82,62 @@ describe("kubernetes", () => {
       expect(entries[0].msg).to.include("Server running...")
     })
     describe("K8sLogsFollower", () => {
-      let logsFollower: K8sLogFollower<ServiceLogEntry>
+      let logsFollower: K8sLogFollower<DeployLogEntry>
 
       afterEach(() => {
         logsFollower.close()
       })
 
-      it("should write service logs to stream and listen for more", async () => {
-        const service = graph.getService("simple-service")
+      it("should write Deploy logs to stream and listen for more", async () => {
+        const action = graph.getDeploy("simple-service")
         const log = garden.log
         const namespace = provider.config.namespace!.name!
         const api = await KubeApi.factory(log, ctx, provider)
 
-        const entries: ServiceLogEntry[] = []
+        const entries: DeployLogEntry[] = []
 
         const deployTask = new DeployTask({
           force: true,
           forceBuild: true,
+
           garden,
           graph,
           log: garden.log,
-          service,
-          devModeServiceNames: [],
-          hotReloadServiceNames: [],
-          localModeServiceNames: [],
+          action,
         })
 
-        await garden.processTasks([deployTask], { throwOnError: true })
-        const stream = new Stream<ServiceLogEntry>()
+        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+        const stream = new Stream<DeployLogEntry>()
 
         void stream.forEach((entry) => {
           entries.push(entry)
         })
 
+        const resolvedDeployAction = await garden.resolveAction<ContainerDeployAction>({
+          action,
+          log: garden.log,
+          graph,
+        })
+
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
         const resources = [
           await createWorkloadManifest({
+            ctx,
             api,
             provider,
-            service,
-            // No need for the proper context here
-            runtimeContext: emptyRuntimeContext,
+            action: resolvedDeployAction,
             namespace,
-            enableDevMode: false,
-            enableHotReload: false,
-            enableLocalMode: false,
+            imageId: getDeployedImageId(resolvedDeployAction, provider),
+
             production: ctx.production,
-            log,
-            blueGreen: provider.config.deploymentStrategy === "blue-green",
+            log: actionLog,
           }),
         ]
         logsFollower = new K8sLogFollower({
           defaultNamespace: provider.config.namespace!.name!,
           log,
           stream,
-          entryConverter: makeServiceLogEntry(service.name),
+          entryConverter: makeDeployLogEntry(action.name),
           resources,
           k8sApi: api,
         })
@@ -138,106 +145,107 @@ describe("kubernetes", () => {
         setTimeout(() => {
           logsFollower.close()
         }, 5000)
-        await logsFollower.followLogs({ limitBytes: null })
+        await logsFollower.followLogs({})
 
         expect(ctx.log.toString()).to.match(/Connected to container 'simple-service'/)
 
-        const serviceLog = entries.find((e) => e.msg.includes("Server running..."))
+        const deployLog = entries.find((e) => e.msg.includes("Server running..."))
 
-        expect(serviceLog).to.exist
-        expect(serviceLog!.serviceName).to.eql("simple-service")
-        expect(serviceLog!.timestamp).to.be.an.instanceOf(Date)
-        expect(serviceLog!.level).to.eql(2)
+        expect(deployLog).to.exist
+        expect(deployLog!.name).to.eql("simple-service")
+        expect(deployLog!.timestamp).to.be.an.instanceOf(Date)
+        expect(deployLog!.level).to.eql(2)
       })
 
-      it("should automatically connect if a service that was missing is deployed", async () => {
-        const service = graph.getService("simple-service")
-        const log = garden.log
+      it("should automatically connect if a Deploy that was missing is deployed", async () => {
+        const action = graph.getDeploy("simple-service")
         const namespace = provider.config.namespace!.name!
-        const api = await KubeApi.factory(log, ctx, provider)
+        const api = await KubeApi.factory(garden.log, ctx, provider)
 
-        const entries: ServiceLogEntry[] = []
+        const entries: DeployLogEntry[] = []
 
         const deployTask = new DeployTask({
           force: true,
           forceBuild: true,
+
           garden,
           graph,
           log: garden.log,
-          service,
-          devModeServiceNames: [],
-          hotReloadServiceNames: [],
-          localModeServiceNames: [],
+          action,
         })
-        const deleteTask = new DeleteServiceTask({
+        const deleteTask = new DeleteDeployTask({
           garden,
           graph,
+          action,
           log: garden.log,
-          service,
+
+          force: false,
         })
 
-        const stream = new Stream<ServiceLogEntry>()
+        const stream = new Stream<DeployLogEntry>()
 
         void stream.forEach((entry) => {
           entries.push(entry)
         })
 
+        const resolvedDeployAction = await garden.resolveAction<ContainerDeployAction>({
+          action,
+          log: garden.log,
+          graph,
+        })
+
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
         const resources = [
           await createWorkloadManifest({
+            ctx,
             api,
             provider,
-            service,
-            // No need for the proper context here
-            runtimeContext: emptyRuntimeContext,
+            action: resolvedDeployAction,
             namespace,
-            enableDevMode: false,
-            enableHotReload: false,
-            enableLocalMode: false,
+            imageId: getDeployedImageId(resolvedDeployAction, provider),
             production: ctx.production,
-            log,
-            blueGreen: provider.config.deploymentStrategy === "blue-green",
+            log: actionLog,
           }),
         ]
         const retryIntervalMs = 1000
         logsFollower = new K8sLogFollower({
           defaultNamespace: provider.config.namespace!.name!,
           stream,
-          log,
-          entryConverter: makeServiceLogEntry(service.name),
+          log: actionLog,
+          entryConverter: makeDeployLogEntry(action.name),
           resources,
           k8sApi: api,
           retryIntervalMs,
         })
 
-        // Start by deleting the service in case it already exists
-        await garden.processTasks([deleteTask], { throwOnError: true })
+        // Start by deleting the Deploy in case it already exists
+        await garden.processTasks({ tasks: [deleteTask], throwOnError: true })
 
-        // Start following logs even when no services is deployed
+        // Start following logs even when no Deploys are live
         // (we don't wait for the Promise since it won't resolve unless we close the connection)
-        // tslint:disable-next-line: no-floating-promises
-        logsFollower.followLogs({ limitBytes: null })
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        logsFollower.followLogs({})
         await sleep(1500)
 
-        // Deploy the service
-        await garden.processTasks([deployTask], { throwOnError: true })
+        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         await sleep(1500)
 
         logsFollower.close()
 
-        const missingContainerRegex = new RegExp(
-          `<No running containers found for service. Will retry in ${retryIntervalMs / 1000}s...>`
+        const logString = actionLog.toString()
+
+        // First we expect to see a "missing container" entry because the Deploy hasn't been completed
+        expect(logString).to.match(
+          new RegExp(
+            `<No running containers found for Deployment simple-service. Will retry in ${retryIntervalMs / 1000}s...>`
+          )
         )
-        const connectedRegex = new RegExp("<Connected to container 'simple-service' in Pod")
-        const serverRunningRegex = new RegExp("Server running...")
-        expect(ctx.log.toString()).to.match(missingContainerRegex)
-        expect(ctx.log.toString()).to.match(connectedRegex)
-        expect(ctx.log.toString()).to.match(serverRunningRegex)
 
-        // First we expect to see a "missing container" entry because the service hasn't been deployed
+        // Then we expect to see a "container connected" entry when the Deploy has been completed
+        expect(logString).to.match(/<Connected to container 'simple-service' in Pod/)
 
-        // Then we expect to see a "container connected" entry when the service has been deployed
-
-        // Finally we expect to see the service log
+        const deployLog = entries.find((e) => e.msg.includes("Server running..."))
+        expect(deployLog).to.exist
       })
     })
   })

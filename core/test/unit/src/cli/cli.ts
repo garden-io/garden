@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,56 +7,45 @@
  */
 
 import { expect } from "chai"
-import nock from "nock"
-import { isEqual } from "lodash"
 import td from "testdouble"
 
-import { makeDummyGarden, GardenCli, validateRuntimeRequirementsCached } from "../../../../src/cli/cli"
-import {
-  getDataDir,
-  TestGarden,
-  makeTestGardenA,
-  enableAnalytics,
-  projectRootA,
-  TestEventBus,
-  initTestLogger,
-} from "../../../helpers"
+import { GardenCli, validateRuntimeRequirementsCached } from "../../../../src/cli/cli"
+import { getDataDir, projectRootA, initTestLogger } from "../../../helpers"
 import { gardenEnv, GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join, resolve } from "path"
 import { Command, CommandGroup, CommandParams, PrepareParams } from "../../../../src/commands/base"
-import { getPackageVersion } from "../../../../src/util/util"
 import { UtilCommand } from "../../../../src/commands/util/util"
 import { StringParameter } from "../../../../src/cli/params"
 import stripAnsi from "strip-ansi"
 import { ToolsCommand } from "../../../../src/commands/tools"
-import { Logger, getLogger } from "../../../../src/logger/logger"
-import { safeLoad } from "js-yaml"
-import { GardenProcess } from "../../../../src/db/entities/garden-process"
-import { ensureConnected } from "../../../../src/db/connection"
-import { startServer, GardenServer } from "../../../../src/server/server"
-import { FancyTerminalWriter } from "../../../../src/logger/writers/fancy-terminal-writer"
-import { BasicTerminalWriter } from "../../../../src/logger/writers/basic-terminal-writer"
+import { getRootLogger, RootLogger } from "../../../../src/logger/logger"
+import { load } from "js-yaml"
+import { startServer } from "../../../../src/server/server"
 import { envSupportsEmoji } from "../../../../src/logger/util"
 import { expectError } from "../../../../src/util/testing"
-import { GlobalConfigStore, RequirementsCheck } from "../../../../src/config-store"
-import { ExecConfigStore } from "../config-store"
+import { GlobalConfigStore } from "../../../../src/config-store/global"
 import tmp from "tmp-promise"
 import { CloudCommand } from "../../../../src/commands/cloud/cloud"
+import { registerProcess } from "../../../../src/process"
+import { ServeCommand } from "../../../../src/commands/serve"
+import { GardenInstanceManager } from "../../../../src/server/instance-manager"
+import { mkdirp } from "fs-extra"
+import { uuidv4 } from "../../../../src/util/random"
+import { makeDummyGarden } from "../../../../src/garden"
 
 describe("cli", () => {
   let cli: GardenCli
-
-  before(async () => {
-    await ensureConnected()
-  })
+  const globalConfigStore = new GlobalConfigStore()
+  const log = getRootLogger().createLog()
+  const sessionId = uuidv4()
 
   beforeEach(() => {
     cli = new GardenCli()
   })
 
   afterEach(async () => {
-    if (cli.processRecord && cli.processRecord._id) {
-      await cli.processRecord.remove()
+    if (cli.processRecord && cli.processRecord.pid) {
+      await globalConfigStore.delete("activeProcesses", String(cli.processRecord.pid))
     }
   })
 
@@ -65,21 +54,21 @@ describe("cli", () => {
       const { code, consoleOutput } = await cli.run({ args: [], exitOnError: false })
 
       expect(code).to.equal(0)
-      expect(consoleOutput).to.equal(await cli.renderHelp("/"))
+      expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("aborts with default help text if -h option is set and no command", async () => {
       const { code, consoleOutput } = await cli.run({ args: ["-h"], exitOnError: false })
 
       expect(code).to.equal(0)
-      expect(consoleOutput).to.equal(await cli.renderHelp("/"))
+      expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("aborts with default help text if --help option is set and no command", async () => {
       const { code, consoleOutput } = await cli.run({ args: ["-h"], exitOnError: false })
 
       expect(code).to.equal(0)
-      expect(consoleOutput).to.equal(await cli.renderHelp("/"))
+      expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("aborts with command help text if --help option is set and command is specified", async () => {
@@ -89,10 +78,12 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ args }) {
           return { result: { args } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -100,27 +91,6 @@ describe("cli", () => {
 
       expect(code).to.equal(0)
       expect(consoleOutput).to.equal(cmd.renderHelp())
-    })
-
-    it("aborts with version text if -v is set", async () => {
-      const { code, consoleOutput } = await cli.run({ args: ["-v"], exitOnError: false })
-
-      expect(code).to.equal(0)
-      expect(consoleOutput).to.equal(getPackageVersion())
-    })
-
-    it("aborts with version text if --version is set", async () => {
-      const { code, consoleOutput } = await cli.run({ args: ["--version"], exitOnError: false })
-
-      expect(code).to.equal(0)
-      expect(consoleOutput).to.equal(getPackageVersion())
-    })
-
-    it("aborts with version text if version is first argument", async () => {
-      const { code, consoleOutput } = await cli.run({ args: ["version"], exitOnError: false })
-
-      expect(code).to.equal(0)
-      expect(consoleOutput).to.equal(getPackageVersion())
     })
 
     it("throws if --root is set, pointing to a non-existent path", async () => {
@@ -135,7 +105,7 @@ describe("cli", () => {
       const root = getDataDir("test-projects", "custom-commands")
 
       it("picks up all commands in project root", async () => {
-        const commands = await cli["getCustomCommands"](root)
+        const commands = await cli["getCustomCommands"](log, root)
 
         expect(commands.map((c) => c.name).sort()).to.eql(["combo", "echo", "run-task", "script"])
       })
@@ -147,31 +117,34 @@ describe("cli", () => {
       })
 
       it("warns and ignores custom command with same name as built-in command", async () => {
-        const commands = await cli["getCustomCommands"](root)
+        const commands = await cli["getCustomCommands"](log, root)
 
         // The plugin(s) commands are defined in nope.garden.yml
         expect(commands.map((c) => c.name)).to.not.include("plugins")
       })
 
       it("warns if a custom command is provided with same name as alias for built-in command", async () => {
-        const commands = await cli["getCustomCommands"](root)
+        const commands = await cli["getCustomCommands"](log, root)
 
         // The plugin(s) commands are defined in nope.garden.yml
         expect(commands.map((c) => c.name)).to.not.include("plugin")
       })
 
       it("doesn't pick up commands outside of project root", async () => {
-        const commands = await cli["getCustomCommands"](root)
+        const commands = await cli["getCustomCommands"](log, root)
 
         // The nope command is defined in the `nope` directory in the test project.
         expect(commands.map((c) => c.name)).to.not.include("nope")
       })
 
       it("prints custom commands in help text", async () => {
-        const helpText = stripAnsi(await cli.renderHelp(root))
+        const helpText = stripAnsi(await cli.renderHelp(log, root))
 
         expect(helpText).to.include("CUSTOM COMMANDS")
-        expect(helpText).to.include("combo     A complete example using most available features")
+
+        expect(helpText).to.include("combo     A complete example using most")
+        expect(helpText).to.include("available features") // There's a line break
+
         expect(helpText).to.include("echo      Just echo a string")
         expect(helpText).to.include("run-task  Run the specified task")
       })
@@ -179,7 +152,7 @@ describe("cli", () => {
       it("prints help text for a custom command", async () => {
         const res = await cli.run({ args: ["combo", "--help"], exitOnError: false, cwd: root })
 
-        const commands = await cli["getCustomCommands"](root)
+        const commands = await cli["getCustomCommands"](log, root)
         const command = commands.find((c) => c.name === "combo")!
         const helpText = command.renderHelp()
 
@@ -195,7 +168,7 @@ describe("cli", () => {
               exitOnError: false,
               cwd: getDataDir("test-projects", "custom-commands-invalid"),
             }),
-          (err) => expect(err.message).to.include("Error validating custom Command 'invalid'")
+          { contains: "Error validating custom Command 'invalid'" }
         )
       })
 
@@ -206,7 +179,7 @@ describe("cli", () => {
       })
 
       it("exits with code 1 if Garden command fails", async () => {
-        const res = await cli.run({ args: ["run-task", "fail"], exitOnError: false, cwd: root })
+        const res = await cli.run({ args: ["run", "fail"], exitOnError: false, cwd: root })
 
         expect(res.code).to.equal(1)
       })
@@ -214,81 +187,48 @@ describe("cli", () => {
 
     context("test logger initialization", () => {
       const envLoggerType = process.env.GARDEN_LOGGER_TYPE
+      const envLogLevel = process.env.GARDEN_LOG_LEVEL
 
       // Logger is a singleton and we need to reset it between these tests as we're testing
       // that it's initialised correctly in this block.
       beforeEach(() => {
         delete process.env.GARDEN_LOGGER_TYPE
-        Logger.clearInstance()
+        delete process.env.GARDEN_LOG_LEVEL
+        gardenEnv.GARDEN_LOGGER_TYPE = ""
+        gardenEnv.GARDEN_LOG_LEVEL = ""
+        RootLogger.clearInstance()
       })
       // Re-initialise the test logger
       after(() => {
         process.env.GARDEN_LOGGER_TYPE = envLoggerType
-        Logger.clearInstance()
+        process.env.GARDEN_LOG_LEVEL = envLogLevel
+        gardenEnv.GARDEN_LOGGER_TYPE = envLoggerType || ""
+        gardenEnv.GARDEN_LOG_LEVEL = envLogLevel || ""
+        RootLogger.clearInstance()
         initTestLogger()
       })
 
-      it("uses the fancy logger by default", async () => {
+      it("uses the 'TerminalWriter' by default", async () => {
         class TestCommand extends Command {
           name = "test-command"
           help = "halp!"
           noProject = true
 
           printHeader() {}
+
           async action({}) {
             return { result: { something: "important" } }
           }
         }
+
         const cmd = new TestCommand()
         cli.addCommand(cmd)
 
         await cli.run({ args: ["test-command"], exitOnError: false })
 
-        const logger = getLogger()
-        expect(logger.getWriters()[0]).to.be.instanceOf(FancyTerminalWriter)
-      })
-
-      it("uses the basic logger if log level > info", async () => {
-        class TestCommand extends Command {
-          name = "test-command"
-          help = "halp!"
-          noProject = true
-
-          printHeader() {}
-          async action({}) {
-            return { result: { something: "important" } }
-          }
-        }
-        const cmd = new TestCommand()
-        cli.addCommand(cmd)
-
-        await cli.run({
-          args: ["--logger-type=fancy", "--log-level=3", "test-command"],
-          exitOnError: false,
-        })
-
-        const logger = getLogger()
-        expect(logger.getWriters()[0]).to.be.instanceOf(BasicTerminalWriter)
-      })
-
-      it("uses the basic logger if --show-timestamps flag is set to true", async () => {
-        class TestCommand extends Command {
-          name = "test-command"
-          help = "halp!"
-          noProject = true
-
-          printHeader() {}
-          async action({}) {
-            return { result: { something: "important" } }
-          }
-        }
-        const cmd = new TestCommand()
-        cli.addCommand(cmd)
-
-        await cli.run({ args: ["--logger-type=fancy", "--show-timestamps", "test-command"], exitOnError: false })
-
-        const logger = getLogger()
-        expect(logger.getWriters()[0]).to.be.instanceOf(BasicTerminalWriter)
+        const logger = log.root
+        const writers = logger.getWriters()
+        expect(writers.display.type).to.equal("default")
       })
     })
 
@@ -322,14 +262,14 @@ describe("cli", () => {
       const { code, consoleOutput } = await cli.run({ args: ["nonexistent"], exitOnError: false })
 
       expect(code).to.equal(1)
-      expect(consoleOutput).to.equal(await cli.renderHelp("/"))
+      expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("errors and shows general help if nonexistent command is given with --help", async () => {
       const { code, consoleOutput } = await cli.run({ args: ["nonexistent", "--help"], exitOnError: false })
 
       expect(code).to.equal(1)
-      expect(consoleOutput).to.equal(await cli.renderHelp("/"))
+      expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("picks and runs a command", async () => {
@@ -339,10 +279,12 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({}) {
           return { result: { something: "important" } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -359,14 +301,16 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({}) {
           return { result: { something: "important" } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
-      const { code, result } = await cli.run({ args: ["--logger-type=basic", "test-command"], exitOnError: false })
+      const { code, result } = await cli.run({ args: ["test-command"], exitOnError: false })
 
       expect(code).to.equal(0)
       expect(result).to.eql({ something: "important" })
@@ -374,16 +318,19 @@ describe("cli", () => {
 
     it("updates the GardenProcess entry if given with command info before running (no server)", async () => {
       const args = ["test-command", "--root", projectRootA]
-      const record = await GardenProcess.register(args)
+      const processRecord = await registerProcess(globalConfigStore, "test-command", args)
 
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
 
         printHeader() {}
+
         async action({ garden }: CommandParams) {
+          const record = await globalConfigStore.get("activeProcesses", String(processRecord.pid))
+
           expect(record.command).to.equal(this.name)
-          expect(record.sessionId).to.equal(garden.sessionId)
+          expect(record.sessionId).to.exist
           expect(record.persistent).to.equal(false)
           expect(record.serverHost).to.equal(null)
           expect(record.serverAuthKey).to.equal(null)
@@ -395,32 +342,49 @@ describe("cli", () => {
           return { result: {} }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
       try {
-        await cli.run({ args, exitOnError: false, processRecord: record })
+        const result = await cli.run({ args, exitOnError: false, processRecord })
+        if (result.errors[0]) {
+          throw result.errors[0]
+        }
       } finally {
-        await record.remove()
+        await globalConfigStore.delete("activeProcesses", String(processRecord.pid))
       }
     })
 
     it("updates the GardenProcess entry if given with command info before running (with server)", async () => {
       const args = ["test-command", "--root", projectRootA]
-      const record = await GardenProcess.register(args)
+      const processRecord = await registerProcess(globalConfigStore, "test-command", args)
 
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
 
-        async prepare({ footerLog }: PrepareParams) {
-          this.server = await startServer({ log: footerLog })
+        maybePersistent() {
+          return true
+        }
+
+        async prepare({ log: _log }: PrepareParams) {
+          const serveCommand = new ServeCommand()
+          this.server = await startServer({
+            log: _log,
+            defaultProjectRoot: projectRootA,
+            manager: GardenInstanceManager.getInstance({ log, sessionId, serveCommand, plugins: [] }),
+            serveCommand,
+          })
         }
 
         printHeader() {}
+
         async action({ garden }: CommandParams) {
+          const record = await globalConfigStore.get("activeProcesses", String(processRecord.pid))
+
           expect(record.command).to.equal(this.name)
-          expect(record.sessionId).to.equal(garden.sessionId)
+          expect(record.sessionId).to.exist
           expect(record.persistent).to.equal(true)
           expect(record.serverHost).to.equal(this.server!.getUrl())
           expect(record.serverAuthKey).to.equal(this.server!.authKey)
@@ -432,177 +396,22 @@ describe("cli", () => {
           return { result: {} }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
       try {
-        await cli.run({ args, exitOnError: false, processRecord: record })
+        const result = await cli.run({ args, exitOnError: false, processRecord })
+        if (result.errors[0]) {
+          throw result.errors[0]
+        }
       } finally {
-        await record.remove()
+        await globalConfigStore.delete("activeProcesses", String(processRecord.pid))
       }
     })
 
-    it("connects the process to an external dashboard instance if available", async () => {
-      // Spin up test server and register.
-      // Note: We're using test-project-a and the default env+namespace both here and in the CLI run
-      const serverGarden = await makeTestGardenA()
-      const serverEventBus = new TestEventBus()
-      const server = new GardenServer({ log: serverGarden.log })
-      server["incomingEvents"] = serverEventBus
-      await server.start()
-      server.setGarden(serverGarden)
-
-      const record = await GardenProcess.register(["dashboard"])
-      await record.setCommand({
-        command: "dashboard",
-        sessionId: serverGarden.sessionId,
-        persistent: true,
-        serverHost: server.getBaseUrl(),
-        serverAuthKey: server.authKey,
-        projectRoot: serverGarden.projectRoot,
-        projectName: serverGarden.projectName,
-        environmentName: serverGarden.environmentName,
-        namespace: serverGarden.namespace,
-      })
-
-      class TestCommand extends Command {
-        name = "test-command"
-        help = "halp!"
-        streamEvents = true
-        streamLogEntries = true
-
-        printHeader() {}
-        async action({ garden }: CommandParams) {
-          garden.events.emit("_test", "funky functional test")
-          return { result: {} }
-        }
-      }
-      const cmd = new TestCommand()
-      cli.addCommand(cmd)
-
-      const args = ["test-command", "--root", serverGarden.projectRoot]
-
-      try {
-        await cli.run({ args, exitOnError: false })
-      } finally {
-        await record.remove()
-        await server.close()
-      }
-
-      serverEventBus.expectEvent("_test", "funky functional test")
-    })
-
-    it("tells the DashboardEventStream to ignore the local server URL", async () => {
-      const testEventBus = new TestEventBus()
-
-      class TestCommand extends Command {
-        name = "test-command"
-        help = "halp!"
-
-        async prepare({ footerLog }: PrepareParams) {
-          this.server = await startServer({ log: footerLog })
-          this.server["incomingEvents"] = testEventBus
-        }
-
-        printHeader() {}
-        async action({ garden }: CommandParams) {
-          garden.events.emit("_test", "nope")
-          return { result: {} }
-        }
-      }
-      const cmd = new TestCommand()
-      cli.addCommand(cmd)
-
-      const args = ["test-command", "--root", projectRootA]
-
-      await cli.run({ args, exitOnError: false })
-
-      expect(testEventBus.eventLog).to.eql([])
-    })
-
-    it("shows the URL of local server if no external dashboard is found", async () => {
-      class TestCommand extends Command {
-        name = "test-command"
-        help = "halp!"
-
-        isPersistent() {
-          return true
-        }
-
-        async prepare({ footerLog }: PrepareParams) {
-          this.server = await startServer({ log: footerLog })
-        }
-
-        printHeader() {}
-        async action() {
-          return { result: {} }
-        }
-      }
-      const cmd = new TestCommand()
-      cli.addCommand(cmd)
-
-      const args = ["test-command", "--root", projectRootA]
-
-      await cli.run({ args, exitOnError: false })
-
-      const serverStatus = cmd.server!["statusLog"].getLatestMessage().msg!
-      expect(stripAnsi(serverStatus)).to.equal(`Garden dashboard running at ${cmd.server!.getUrl()}`)
-    })
-
-    it("shows the URL of an external dashboard if applicable, instead of the built-in server URL", async () => {
-      // Spin up test server and register.
-      // Note: We're using test-project-a and the default env+namespace both here and in the CLI run
-      const serverGarden = await makeTestGardenA()
-      const serverEventBus = new TestEventBus()
-      const server = new GardenServer({ log: serverGarden.log })
-      server["incomingEvents"] = serverEventBus
-      await server.start()
-      server.setGarden(serverGarden)
-
-      const record = await GardenProcess.register(["dashboard"])
-      await record.setCommand({
-        command: "dashboard",
-        sessionId: serverGarden.sessionId,
-        persistent: true,
-        serverHost: server.getBaseUrl(),
-        serverAuthKey: server.authKey,
-        projectRoot: serverGarden.projectRoot,
-        projectName: serverGarden.projectName,
-        environmentName: serverGarden.environmentName,
-        namespace: serverGarden.namespace,
-      })
-
-      class TestCommand extends Command {
-        name = "test-command"
-        help = "halp!"
-
-        isPersistent() {
-          return true
-        }
-
-        async prepare({ footerLog }: PrepareParams) {
-          this.server = await startServer({ log: footerLog })
-        }
-
-        printHeader() {}
-        async action({}: CommandParams) {
-          return { result: {} }
-        }
-      }
-      const cmd = new TestCommand()
-      cli.addCommand(cmd)
-
-      const args = ["test-command", "--root", serverGarden.projectRoot]
-
-      try {
-        await cli.run({ args, exitOnError: false })
-      } finally {
-        await record.remove()
-        await server.close()
-      }
-
-      const serverStatus = cmd.server!["statusLog"].getLatestMessage().msg!
-      expect(stripAnsi(serverStatus)).to.equal(`Garden dashboard running at ${server.getUrl()}`)
+    it.skip("shows the URL of the Garden Cloud dashboard", async () => {
+      throw "TODO-G2"
     })
 
     it("picks and runs a subcommand in a group", async () => {
@@ -612,16 +421,19 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({}) {
           return { result: { something: "important" } }
         }
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
         help = ""
 
         subCommands = [TestCommand]
       }
+
       const group = new TestGroup()
 
       for (const cmd of group.getSubCommands()) {
@@ -637,15 +449,17 @@ describe("cli", () => {
     it("correctly parses and passes global options", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
         noProject = true
 
         printHeader() {}
+
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -655,18 +469,16 @@ describe("cli", () => {
         "..",
         "--silent",
         "--env=default",
-        "--logger-type",
-        "basic",
         "-l=4",
         "--output",
         "json",
         "--yes",
         "--emoji=false",
+        "--logger-type=json",
         "--show-timestamps=false",
         "--force-refresh",
         "--var",
         "my=value,other=something",
-        "--disable-port-forwards",
       ]
 
       const { code, result } = await cli.run({
@@ -681,7 +493,7 @@ describe("cli", () => {
           "root": resolve(process.cwd(), ".."),
           "silent": true,
           "env": "default",
-          "logger-type": "basic",
+          "logger-type": "json",
           "log-level": "4",
           "output": "json",
           "emoji": false,
@@ -691,7 +503,6 @@ describe("cli", () => {
           "var": ["my=value", "other=something"],
           "version": false,
           "help": false,
-          "disable-port-forwards": true,
         },
       })
     })
@@ -699,15 +510,17 @@ describe("cli", () => {
     it("allows setting env through GARDEN_ENVIRONMENT env variable", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
         noProject = true
 
         printHeader() {}
+
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -731,15 +544,17 @@ describe("cli", () => {
     it("prefers --env over GARDEN_ENVIRONMENT env variable", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
         noProject = true
 
         printHeader() {}
+
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -763,7 +578,7 @@ describe("cli", () => {
     it("correctly parses and passes arguments and options for a command", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
         noProject = true
 
@@ -784,10 +599,12 @@ describe("cli", () => {
         }
 
         printHeader() {}
+
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -814,7 +631,11 @@ describe("cli", () => {
           "version": false,
           "help": false,
           "floop": "floop-opt",
-          "disable-port-forwards": false,
+          "env": undefined,
+          "logger-type": undefined,
+          "output": undefined,
+          "root": undefined,
+          "var": undefined,
         },
       })
     })
@@ -822,7 +643,7 @@ describe("cli", () => {
     it("correctly parses and passes arguments and options for a subcommand", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
         noProject = true
 
@@ -843,6 +664,7 @@ describe("cli", () => {
         }
 
         printHeader() {}
+
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
@@ -854,6 +676,7 @@ describe("cli", () => {
 
         subCommands = [TestCommand]
       }
+
       const group = new TestGroup()
 
       for (const cmd of group.getSubCommands()) {
@@ -883,7 +706,11 @@ describe("cli", () => {
           "version": false,
           "help": false,
           "floop": "floop-opt",
-          "disable-port-forwards": false,
+          "env": undefined,
+          "logger-type": undefined,
+          "output": undefined,
+          "root": undefined,
+          "var": undefined,
         },
       })
     })
@@ -896,9 +723,7 @@ describe("cli", () => {
 
       expect(code).to.equal(1)
       expect(
-        stripped.startsWith(
-          'Invalid value for option --logger-type: "bla" is not a valid argument (should be any of "quiet", "basic", "fancy", "json")'
-        )
+        stripped.startsWith('Invalid value for option --logger-type: "bla" is not a valid argument (should be any of ')
       ).to.be.true
       expect(consoleOutput).to.include(cmd.renderHelp())
     })
@@ -906,7 +731,7 @@ describe("cli", () => {
     it("aborts with usage information on missing/invalid command arguments and options", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
         noProject = true
 
@@ -918,10 +743,12 @@ describe("cli", () => {
         }
 
         printHeader() {}
+
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -941,6 +768,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ args }) {
           return { result: { args } }
         }
@@ -960,6 +788,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ args }) {
           return { result: { args } }
         }
@@ -979,6 +808,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ garden }) {
           return { result: { variables: garden.variables } }
         }
@@ -1001,6 +831,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action() {
           return { result: { some: "output" } }
         }
@@ -1020,6 +851,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action() {
           return { result: { some: "output" } }
         }
@@ -1029,27 +861,7 @@ describe("cli", () => {
       cli.addCommand(command)
 
       const { consoleOutput } = await cli.run({ args: ["test-command", "--output=yaml"], exitOnError: false })
-      expect(safeLoad(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
-    })
-
-    it("should disable port forwards if --disable-port-forwards is set", async () => {
-      class TestCommand extends Command {
-        name = "test-command"
-        help = "halp!"
-        noProject = true
-
-        printHeader() {}
-
-        async action({ garden }: CommandParams) {
-          return { result: { garden } }
-        }
-      }
-
-      const command = new TestCommand()
-      cli.addCommand(command)
-
-      const { result } = await cli.run({ args: ["test-command", "--disable-port-forwards"], exitOnError: false })
-      expect(result.garden.disablePortForwards).to.be.true
+      expect(load(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
     })
 
     it(`should configure a dummy environment when command has noProject=true and --env is specified`, async () => {
@@ -1059,6 +871,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ garden }) {
           return { result: { environmentName: garden.environmentName } }
         }
@@ -1079,6 +892,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ garden }) {
           return { result: { environmentName: garden.environmentName } }
         }
@@ -1094,69 +908,13 @@ describe("cli", () => {
         "Invalid value for option --env: Invalid environment specified ($.%): must be a valid environment name or <namespace>.<environment>"
       )
     })
-
-    context("test analytics", () => {
-      const host = "https://api.segment.io"
-      const scope = nock(host)
-      let garden: TestGarden
-      let resetAnalyticsConfig: Function
-
-      before(async () => {
-        garden = await makeTestGardenA()
-        resetAnalyticsConfig = await enableAnalytics(garden)
-      })
-
-      after(async () => {
-        await resetAnalyticsConfig()
-        nock.cleanAll()
-      })
-
-      // TODO: @eysi This test always passes locally but fails consistently in CI.
-      // I'm pretty stumped so simply skipping this for now but definitely revisiting.
-      // Let's make sure we keep an eye on our analytics data after we release this.
-      // If nothing looks off there, we can assume the test was bad. Otherwise
-      // we'll need to revert.
-      it.skip("should wait for queued analytic events to flush", async () => {
-        class TestCommand extends Command {
-          name = "test-command"
-          help = "hilfe!"
-          noProject = true
-
-          printHeader() {}
-          async action({ args }) {
-            return { result: { args } }
-          }
-        }
-
-        const command = new TestCommand()
-        cli.addCommand(command)
-
-        scope
-          .post(`/v1/batch`, (body) => {
-            const events = body.batch.map((event: any) => ({
-              event: event.event,
-              type: event.type,
-              name: event.properties.name,
-            }))
-            return isEqual(events, [
-              {
-                event: "Run Command",
-                type: "track",
-                name: "test-command",
-              },
-            ])
-          })
-          .reply(200)
-        await cli.run({ args: ["test-command"], exitOnError: false })
-
-        expect(scope.isDone()).to.equal(true)
-      })
-    })
   })
 
   describe("makeDummyGarden", () => {
     it("should initialise and resolve config graph in a directory with no project", async () => {
-      const garden = await makeDummyGarden(join(GARDEN_CORE_ROOT, "tmp", "foobarbas"), {
+      const path = join(GARDEN_CORE_ROOT, "tmp", "foobarbas")
+      await mkdirp(path)
+      const garden = await makeDummyGarden(path, {
         commandInfo: { name: "foo", args: {}, opts: {} },
       })
       const dg = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -1165,8 +923,10 @@ describe("cli", () => {
     })
 
     it("should correctly configure a dummy environment when a namespace is set", async () => {
-      const garden = await makeDummyGarden(join(GARDEN_CORE_ROOT, "tmp", "foobarbas"), {
-        environmentName: "test.foo",
+      const path = join(GARDEN_CORE_ROOT, "tmp", "foobarbas")
+      await mkdirp(path)
+      const garden = await makeDummyGarden(path, {
+        environmentString: "test.foo",
         commandInfo: { name: "foo", args: {}, opts: {} },
       })
       expect(garden).to.be.ok
@@ -1193,12 +953,11 @@ describe("cli", () => {
   describe("runtime dependency check", () => {
     describe("validateRuntimeRequirementsCached", () => {
       let config: GlobalConfigStore
-      let tmpDir
-      const log = getLogger()
+      let tmpDir: tmp.DirectoryResult
 
       before(async () => {
         tmpDir = await tmp.dir({ unsafeCleanup: true })
-        config = new ExecConfigStore(tmpDir.path) as GlobalConfigStore
+        config = new GlobalConfigStore(tmpDir.path)
       })
 
       after(async () => {
@@ -1217,7 +976,7 @@ describe("cli", () => {
       })
 
       it("should call requirementCheckFunction if requirementsCheck hasn't passed", async () => {
-        await config.set(["requirementsCheck"], { passed: false } as RequirementsCheck)
+        await config.set("requirementsCheck", { passed: false })
         const requirementCheckFunction = td.func<() => Promise<void>>()
         await validateRuntimeRequirementsCached(log, config, requirementCheckFunction)
 
@@ -1228,12 +987,12 @@ describe("cli", () => {
         const requirementCheckFunction = td.func<() => Promise<void>>()
         await validateRuntimeRequirementsCached(log, config, requirementCheckFunction)
 
-        const requirementsCheckConfig = (await config.get(["requirementsCheck"])) as RequirementsCheck
+        const requirementsCheckConfig = await config.get("requirementsCheck")
         expect(requirementsCheckConfig.passed).to.equal(true)
       })
 
       it("should not call requirementCheckFunction if requirementsCheck has been passed", async () => {
-        await config.set(["requirementsCheck"], { passed: true } as RequirementsCheck)
+        await config.set("requirementsCheck", { passed: true })
         const requirementCheckFunction = td.func<() => Promise<void>>()
         await validateRuntimeRequirementsCached(log, config, requirementCheckFunction)
 
@@ -1245,10 +1004,9 @@ describe("cli", () => {
           throw new Error("broken")
         }
 
-        await expectError(
-          () => validateRuntimeRequirementsCached(log, config, requirementCheckFunction),
-          (err) => expect(err.message).to.include("broken")
-        )
+        await expectError(() => validateRuntimeRequirementsCached(log, config, requirementCheckFunction), {
+          contains: "broken",
+        })
       })
     })
   })

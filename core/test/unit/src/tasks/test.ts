@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,91 +7,147 @@
  */
 
 import { expect } from "chai"
-import { resolve } from "path"
 import { TestTask } from "../../../../src/tasks/test"
-import { dataDir, makeTestGarden, TestGarden } from "../../../helpers"
-import { LogEntry } from "../../../../src/logger/log-entry"
-import { ConfigGraph } from "../../../../src/config-graph"
-import { testFromConfig } from "../../../../src/types/test"
+import { freezeTime, getDataDir, makeTestGarden, TestGarden } from "../../../helpers"
+import { Log } from "../../../../src/logger/log-entry"
+import { ConfigGraph } from "../../../../src/graph/config-graph"
 
 describe("TestTask", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: LogEntry
+  let log: Log
 
   beforeEach(async () => {
-    garden = await makeTestGarden(resolve(dataDir, "test-project-test-deps"))
+    garden = await makeTestGarden(getDataDir("test-project-test-deps"))
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     log = garden.log
   })
 
   describe("process", () => {
-    it("should correctly resolve runtime outputs from tasks", async () => {
-      const moduleA = graph.getModule("module-a")
-      const testConfig = moduleA.testConfigs[0]
+    it("should emit testStatus events", async () => {
+      garden.events.eventLog = []
+      const action = graph.getTest("module-a-integ")
 
       const testTask = new TestTask({
         garden,
         log,
         graph,
-        test: testFromConfig(moduleA, testConfig, graph),
+        action,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
-      const key = testTask.getKey()
-      const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+      const now = freezeTime().toISOString()
+      await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
-      expect(result!.output.log).to.eql("echo task-a-ok")
+      const testStatusEvents = garden.events.eventLog.filter((e) => e.name === "testStatus")
+      const actionVersion = testStatusEvents[0].payload.actionVersion
+      const actionUid = testStatusEvents[0].payload.actionUid
+
+      expect(testStatusEvents).to.eql([
+        {
+          name: "testStatus",
+          payload: {
+            actionName: "module-a-integ",
+            actionVersion,
+            actionType: "test",
+            actionKind: "test",
+            actionUid,
+            moduleName: "module-a",
+            startedAt: now,
+            force: true,
+            operation: "getStatus",
+            state: "getting-status",
+            status: { state: "unknown" },
+          },
+        },
+        {
+          name: "testStatus",
+          payload: {
+            actionName: "module-a-integ",
+            actionVersion,
+            actionType: "test",
+            actionKind: "test",
+            actionUid,
+            moduleName: "module-a",
+            startedAt: now,
+            completedAt: now,
+            force: true,
+            operation: "getStatus",
+            state: "not-ready",
+            status: { state: "unknown" },
+          },
+        },
+        {
+          name: "testStatus",
+          payload: {
+            actionName: "module-a-integ",
+            actionVersion,
+            actionType: "test",
+            actionKind: "test",
+            actionUid,
+            moduleName: "module-a",
+            startedAt: now,
+            force: true,
+            operation: "process",
+            state: "processing",
+            status: { state: "running" },
+          },
+        },
+        {
+          name: "testStatus",
+          payload: {
+            actionName: "module-a-integ",
+            actionVersion,
+            actionType: "test",
+            actionKind: "test",
+            actionUid,
+            moduleName: "module-a",
+            startedAt: now,
+            completedAt: now,
+            force: true,
+            operation: "process",
+            state: "ready",
+            status: { state: "succeeded" },
+          },
+        },
+      ])
     })
-  })
+    it("should NOT emit testStatus events if statusOnly=true", async () => {
+      garden.events.eventLog = []
+      const action = graph.getTest("module-a-integ")
 
-  describe("getDependencies", () => {
-    it("should include task dependencies", async () => {
-      const moduleA = graph.getModule("module-a")
-      const testConfig = moduleA.testConfigs[0]
-
-      const task = new TestTask({
+      const testTask = new TestTask({
         garden,
         log,
         graph,
-        test: testFromConfig(moduleA, testConfig, graph),
+        action,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
-      const deps = await task.resolveDependencies()
+      await garden.processTasks({ tasks: [testTask], throwOnError: true, statusOnly: true })
 
-      expect(deps.map((d) => d.getKey())).to.eql(["build.module-a", "deploy.service-b", "task.task-a"])
+      const testStatusEvents = garden.events.eventLog.filter((e) => e.name === "testStatus")
+
+      expect(testStatusEvents).to.eql([])
     })
+    it("should correctly resolve runtime outputs from tasks", async () => {
+      const action = graph.getTest("module-a-integ")
 
-    context("when skipRuntimeDependencies = true", () => {
-      it("doesn't return deploy or task dependencies", async () => {
-        const moduleA = graph.getModule("module-a")
-        const testConfig = moduleA.testConfigs[0]
-
-        const task = new TestTask({
-          garden,
-          log,
-          graph,
-          test: testFromConfig(moduleA, testConfig, graph),
-          force: true,
-          forceBuild: false,
-          skipRuntimeDependencies: true, // <-----
-          devModeServiceNames: [],
-          hotReloadServiceNames: [],
-          localModeServiceNames: [],
-        })
-
-        const deps = await task.resolveDependencies()
-        expect(deps.find((dep) => dep.type === "deploy" || dep.type === "task")).to.be.undefined
+      const testTask = new TestTask({
+        garden,
+        log,
+        graph,
+        action,
+        force: true,
+        forceBuild: false,
       })
+
+      const res = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+      const result = res.results.getResult(testTask)!
+
+      expect(result.result?.detail?.log).to.eql("echo echo task-a-ok")
     })
   })
 })

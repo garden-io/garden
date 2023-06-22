@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -302,13 +302,10 @@ describe("ProjectConfigContext", () => {
       loggedIn: true,
       enterpriseDomain,
       secrets: {},
-      commandInfo: { name: "deploy", args: {}, opts: { "hot-reload": ["my-service"] } },
+      commandInfo: { name: "deploy", args: {}, opts: { sync: ["my-service"] } },
     })
 
-    let result = resolveTemplateString(
-      "${command.name == 'deploy' && (command.params.hot-reload contains 'my-service')}",
-      c
-    )
+    let result = resolveTemplateString("${command.name == 'deploy' && (command.params.sync contains 'my-service')}", c)
     expect(result).to.be.true
   })
 
@@ -326,7 +323,7 @@ describe("ProjectConfigContext", () => {
     })
 
     let result = resolveTemplateString(
-      "${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}",
+      "${command.params contains 'sync' && command.params.sync contains 'my-service'}",
       c
     )
     expect(result).to.be.false

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,23 +10,23 @@ import unixify = require("unixify")
 import klaw = require("klaw")
 import glob from "glob"
 import tmp from "tmp-promise"
-import _spawn from "cross-spawn"
 import { pathExists, readFile, writeFile, lstat, realpath, Stats } from "fs-extra"
 import { join, basename, win32, posix } from "path"
 import { platform } from "os"
 
 import { FilesystemError } from "../exceptions"
 import { VcsHandler } from "../vcs/vcs"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { ModuleConfig } from "../config/module"
 import pathIsInside from "path-is-inside"
-import { uuidv4, exec } from "./util"
+import { exec } from "./util"
 import type Micromatch from "micromatch"
+import { uuidv4 } from "./random"
 
 export const defaultConfigFilename = "garden.yml"
 export const configFilenamePattern = "*garden.y*ml"
 const metadataFilename = "metadata.json"
-export const defaultDotIgnoreFiles = [".gardenignore"]
+export const defaultDotIgnoreFile = ".gardenignore"
 export const fixedProjectExcludes = [".git", ".gitmodules", ".garden/**/*", "debug-info*/**"]
 
 /*
@@ -153,7 +153,7 @@ export async function findConfigPathsInPath({
   dir: string
   include?: string[]
   exclude?: string[]
-  log: LogEntry
+  log: Log
 }): Promise<string[]> {
   if (include) {
     include = include.map((path) => {
@@ -171,6 +171,12 @@ export async function findConfigPathsInPath({
   } else {
     include = ["**/" + configFilenamePattern]
   }
+
+  if (!exclude) {
+    exclude = []
+  }
+
+  exclude.push(".garden/**/*")
 
   const paths = await vcs.getFiles({
     path: dir,
@@ -308,16 +314,21 @@ export type TempDirectory = tmp.DirectoryResult
 /**
  * Create a temp directory. Make sure to clean it up after use using the `cleanup()` method on the returned object.
  */
-export async function makeTempDir({ git = false }: { git?: boolean } = {}): Promise<TempDirectory> {
+export async function makeTempDir({
+  git = false,
+  initialCommit = true,
+}: { git?: boolean; initialCommit?: boolean } = {}): Promise<TempDirectory> {
   const tmpDir = await tmp.dir({ unsafeCleanup: true })
   // Fully resolve path so that we don't get path mismatches in tests
   tmpDir.path = await realpath(tmpDir.path)
 
   if (git) {
     await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
-    await writeFile(join(tmpDir.path, "foo"), "bar")
-    await exec("git", ["add", "."], { cwd: tmpDir.path })
-    await exec("git", ["commit", "-m", "first commit"], { cwd: tmpDir.path })
+    if (initialCommit) {
+      await writeFile(join(tmpDir.path, "foo"), "bar")
+      await exec("git", ["add", "."], { cwd: tmpDir.path })
+      await exec("git", ["commit", "-m", "first commit"], { cwd: tmpDir.path })
+    }
   }
 
   return tmpDir

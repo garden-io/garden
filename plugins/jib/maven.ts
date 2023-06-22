@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import AsyncLock from "async-lock"
-import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { find } from "lodash"
 import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
 import { Writable } from "node:stream"
@@ -15,11 +15,11 @@ import execa from "execa"
 
 const buildLock = new AsyncLock()
 
-export const mvnVersion = "3.8.5"
+export const mvnVersion = "3.8.8"
 
 const spec = {
   url: `https://archive.apache.org/dist/maven/maven-3/${mvnVersion}/binaries/apache-maven-${mvnVersion}-bin.tar.gz`,
-  sha256: "88e30700f32a3f60e0d28d0f12a3525d29b7c20c72d130153df5b5d6d890c673",
+  sha256: "17811e108701af5985bf5167abbd47c06e92c6c6bd1c13a1a1c095c9b4ecc32a",
   extract: {
     format: "tar",
     targetPath: `apache-maven-${mvnVersion}/bin/mvn`,
@@ -28,6 +28,7 @@ const spec = {
 
 export const mavenSpec: PluginToolSpec = {
   name: "maven",
+  version: mvnVersion,
   description: "The Maven CLI.",
   type: "binary",
   builds: [
@@ -51,7 +52,7 @@ export const mavenSpec: PluginToolSpec = {
       architecture: "amd64",
       ...spec,
       url: `https://archive.apache.org/dist/maven/maven-3/${mvnVersion}/binaries/apache-maven-${mvnVersion}-bin.zip`,
-      sha256: "d53e045bc5c02aad179fae2fbc565d953354880db6661a8fab31f3a718d7b62c",
+      sha256: "2e181515ce8ae14b7a904c40bb4794831f5fd1d9641107a13b916af15af4001a",
       extract: {
         format: "zip",
         targetPath: spec.extract.targetPath + ".cmd",
@@ -77,7 +78,7 @@ async function checkMavenVersion(mvnPath: string) {
   try {
     const res = await execa(mvnPath, ["--version"])
     return res.stdout
-  } catch (err) {
+  } catch (error) {
     const composeErrorMessage = (err: any): string => {
       if (err.code === "EACCES") {
         return `${baseErrorMessage(
@@ -89,7 +90,7 @@ async function checkMavenVersion(mvnPath: string) {
         return baseErrorMessage(mvnPath)
       }
     }
-    throw new RuntimeError(composeErrorMessage(err), { mvnPath })
+    throw new RuntimeError(composeErrorMessage(error), { mvnPath })
   }
 }
 
@@ -127,7 +128,7 @@ export async function mvn({
   ctx: PluginContext
   args: string[]
   cwd: string
-  log: LogEntry
+  log: Log
   openJdkPath: string
   mavenPath?: string
   outputStream?: Writable
@@ -142,7 +143,7 @@ export async function mvn({
   } else {
     log.verbose(`The Maven binary hasn't been specified explicitly. Maven ${mvnVersion} will be used by default.`)
     const tool = getMvnTool(ctx)
-    mvnPath = await tool.getPath(log)
+    mvnPath = await tool.ensurePath(log)
   }
 
   if (lockacquired) {

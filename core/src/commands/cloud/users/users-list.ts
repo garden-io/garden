@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigurationError, EnterpriseApiError } from "../../../exceptions"
+import { ConfigurationError, CloudApiError } from "../../../exceptions"
 import { ListUsersResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util"
@@ -17,13 +17,14 @@ import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
 import { getCloudDistributionName } from "../../../util/util"
+import { CloudProject } from "../../../cloud/api"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
-    help: deline`Filter on user name. Use comma as a separator to filter on multiple names. Accepts glob patterns.`,
+    help: deline`Filter on user name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.`,
   }),
   "filter-groups": new StringsParameter({
-    help: deline`Filter on the groups the user belongs to. Use comma as a separator to filter on multiple groups. Accepts glob patterns.`,
+    help: deline`Filter on the groups the user belongs to. You may filter on multiple groups by setting this flag multiple times. Accepts glob patterns.`,
   }),
 }
 
@@ -31,7 +32,7 @@ type Opts = typeof usersListOpts
 
 export class UsersListCommand extends Command<{}, Opts> {
   name = "list"
-  help = "List users."
+  help = "List users defined in Garden Cloud."
   description = dedent`
     List all users from Garden Cloud. Optionally filter on group names or user names.
 
@@ -43,8 +44,8 @@ export class UsersListCommand extends Command<{}, Opts> {
 
   options = usersListOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "List users", "information_desk_person")
+  printHeader({ log }) {
+    printHeader(log, "List users", "💁‍♀️")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<UserResult[]>> {
@@ -56,10 +57,14 @@ export class UsersListCommand extends Command<{}, Opts> {
       throw new ConfigurationError(noApiMsg("list", "users"), {})
     }
 
-    const project = await api.getProject()
+    let project: CloudProject | undefined
+
+    if (garden.projectId) {
+      project = await api.getProjectById(garden.projectId)
+    }
 
     if (!project) {
-      throw new EnterpriseApiError(
+      throw new CloudApiError(
         `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
         {}
       )

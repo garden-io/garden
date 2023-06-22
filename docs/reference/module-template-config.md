@@ -5,7 +5,7 @@ title: Module Template Configuration
 
 # Module Template Configuration Reference
 
-Below is the schema reference for `ModuleTemplate` configuration files. To learn more about module templates, see the [Module Templates guide](../using-garden/module-templates.md).
+Below is the schema reference for `ConfigTemplate` configuration files. To learn more about config templates, see the [Config Templates guide](../using-garden/config-templates.md).
 
 The reference is divided into two sections:
 * [YAML Schema](#yaml-schema) contains the config YAML schema
@@ -21,7 +21,7 @@ The values in the schema below are the default values.
 # The schema version of this config (currently not used).
 apiVersion: garden.io/v0
 
-kind: ModuleTemplate
+kind: ConfigTemplate
 
 # The name of the template.
 name:
@@ -134,7 +134,7 @@ modules:
     # generate (and template) any supporting files needed for the module.
     generateFiles:
       - # POSIX-style filename to read the source file contents from, relative to the path of the module (or the
-        # ModuleTemplate configuration file if one is being applied).
+        # ConfigTemplate configuration file if one is being applied).
         # This file may contain template strings, much like any other field in the configuration.
         sourcePath:
 
@@ -180,6 +180,38 @@ modules:
     # POSIX-style path of a sub-directory to set as the module root. If the directory does not exist, it is
     # automatically created.
     path:
+
+# A list of Garden configs this template will output, e.g. a set of actions. The schema for each is the same as when
+# you create resources normally in configuration files, with the addition of a `path` field, which allows you to
+# specify a sub-directory to set as the root location of the resource.
+#
+# The following resource kinds are allowed: `Build`, `Deploy`, `Run`, `Test` and `Workflow`
+#
+# __Note that you may _not_ specify Module resources here. Those need to be specified in the `modules` field.__
+#
+# In addition to any template strings you can normally use for the given configurations (see [the
+# reference](./template-strings/README.md)), you can reference the inputs described by the inputs schema for the
+# template, using ${inputs.*} template strings, as well as ${parent.name} and ${template.name}, to reference the name
+# of the `Render` resource being rendered, and the name of the template itself, respectively.
+#
+# **Important: Make sure you use templates for any identifiers that must be unique, such as action names.**
+# Otherwise you'll inevitably run into configuration errors when re-using the template. The names can reference the
+# ${inputs.*}, ${parent.name} and ${template.name} keys, and must be resolvable when parsing the template (meaning no
+# action or runtime references etc.). Other identifiers can also reference those, plus any other keys available for
+# templates in the given configs (see [the reference](./template-strings/README.md)).
+#
+# Also note that template strings are not allowed in the following fields: `apiVersion` and `kind`
+configs:
+  - # The schema version of this config (currently not used).
+    apiVersion: garden.io/v0
+
+    # The kind of resource to create.
+    kind:
+
+    # The name of the resource.
+    name:
+
+    unknown:
 ```
 
 ## Configuration Keys
@@ -195,9 +227,9 @@ The schema version of this config (currently not used).
 
 ### `kind`
 
-| Type     | Allowed Values   | Default            | Required |
-| -------- | ---------------- | ------------------ | -------- |
-| `string` | "ModuleTemplate" | `"ModuleTemplate"` | Yes      |
+| Type     | Allowed Values                     | Default            | Required |
+| -------- | ---------------------------------- | ------------------ | -------- |
+| `string` | "ConfigTemplate", "ModuleTemplate" | `"ConfigTemplate"` | Yes      |
 
 ### `name`
 
@@ -473,7 +505,7 @@ A list of files to write to the module directory when resolving this module. Thi
 
 [modules](#modules) > [generateFiles](#modulesgeneratefiles) > sourcePath
 
-POSIX-style filename to read the source file contents from, relative to the path of the module (or the ModuleTemplate configuration file if one is being applied).
+POSIX-style filename to read the source file contents from, relative to the path of the module (or the ConfigTemplate configuration file if one is being applied).
 This file may contain template strings, much like any other field in the configuration.
 
 | Type        | Required |
@@ -561,4 +593,61 @@ POSIX-style path of a sub-directory to set as the module root. If the directory 
 | Type        | Required |
 | ----------- | -------- |
 | `posixPath` | No       |
+
+### `configs[]`
+
+A list of Garden configs this template will output, e.g. a set of actions. The schema for each is the same as when you create resources normally in configuration files, with the addition of a `path` field, which allows you to specify a sub-directory to set as the root location of the resource.
+
+The following resource kinds are allowed: `Build`, `Deploy`, `Run`, `Test` and `Workflow`
+
+__Note that you may _not_ specify Module resources here. Those need to be specified in the `modules` field.__
+
+In addition to any template strings you can normally use for the given configurations (see [the reference](./template-strings/README.md)), you can reference the inputs described by the inputs schema for the template, using ${inputs.*} template strings, as well as ${parent.name} and ${template.name}, to reference the name of the `Render` resource being rendered, and the name of the template itself, respectively.
+
+**Important: Make sure you use templates for any identifiers that must be unique, such as action names.**
+Otherwise you'll inevitably run into configuration errors when re-using the template. The names can reference the ${inputs.*}, ${parent.name} and ${template.name} keys, and must be resolvable when parsing the template (meaning no action or runtime references etc.). Other identifiers can also reference those, plus any other keys available for templates in the given configs (see [the reference](./template-strings/README.md)).
+
+Also note that template strings are not allowed in the following fields: `apiVersion` and `kind`
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `configs[].apiVersion`
+
+[configs](#configs) > apiVersion
+
+The schema version of this config (currently not used).
+
+| Type     | Allowed Values | Default          | Required |
+| -------- | -------------- | ---------------- | -------- |
+| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
+
+### `configs[].kind`
+
+[configs](#configs) > kind
+
+The kind of resource to create.
+
+| Type     | Allowed Values                               | Required |
+| -------- | -------------------------------------------- | -------- |
+| `string` | "Build", "Deploy", "Run", "Test", "Workflow" | Yes      |
+
+### `configs[].name`
+
+[configs](#configs) > name
+
+The name of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `configs[].unknown`
+
+[configs](#configs) > unknown
+
+| Type  | Allowed Values          | Required |
+| ----- | ----------------------- | -------- |
+| `any` | {"override":true}, true | Yes      |
 

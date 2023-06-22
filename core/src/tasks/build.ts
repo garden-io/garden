@@ -1,165 +1,103 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import chalk from "chalk"
-import { GardenModule, getModuleKey } from "../types/module"
-import { BuildResult } from "../types/plugin/module/build"
-import { BaseTask, TaskType } from "../tasks/base"
-import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
-import { StageBuildTask } from "./stage-build"
-import { flatten } from "lodash"
+import { ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask, emitGetStatusEvents, emitProcessingEvents } from "../tasks/base"
 import { Profile } from "../util/profiling"
-import { ConfigGraph } from "../config-graph"
-
-export interface BuildTaskParams {
-  garden: Garden
-  graph: ConfigGraph
-  log: LogEntry
-  module: GardenModule
-  force: boolean
-}
+import { BuildAction, BuildActionConfig, ResolvedBuildAction } from "../actions/build"
+import pluralize from "pluralize"
+import { BuildStatus } from "../plugin/handlers/Build/get-status"
+import { resolvedActionToExecuted } from "../actions/helpers"
+import { renderDuration } from "../logger/util"
 
 @Profile()
-export class BuildTask extends BaseTask {
-  type: TaskType = "build"
+export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
+  type = "build" as const
   concurrencyLimit = 5
-  graph: ConfigGraph
-  module: GardenModule
-
-  constructor({ garden, graph, log, module, force }: BuildTaskParams & { _guard: true }) {
-    // Note: The _guard attribute is to prevent accidentally bypassing the factory method
-    super({ garden, log, force, version: module.version.versionString })
-    this.graph = graph
-    this.module = module
-  }
-
-  static async factory(params: BuildTaskParams): Promise<BaseTask[]> {
-    // We need to see if a build step is necessary for the module. If it is, return a build task for the module.
-    // Otherwise, return a build task for each of the module's dependencies.
-    // We do this to avoid displaying no-op build steps in the stack graph.
-    const { garden, graph, log, force } = params
-
-    const buildTask = new BuildTask({ ...params, _guard: true })
-
-    if (params.module.needsBuild) {
-      return [buildTask]
-    } else {
-      const buildTasks = await Bluebird.map(
-        Object.values(params.module.buildDependencies),
-        (module) =>
-          new BuildTask({
-            garden,
-            graph,
-            log,
-            module,
-            force,
-            _guard: true,
-          })
-      )
-      const stageBuildTask = new StageBuildTask({
-        garden,
-        graph,
-        log,
-        module: params.module,
-        force,
-        dependencies: buildTasks,
-      })
-      return [stageBuildTask, ...buildTasks]
-    }
-  }
-
-  async resolveDependencies() {
-    const deps = this.graph.getDependencies({ nodeType: "build", name: this.getName(), recursive: false })
-
-    const buildTasks = flatten(
-      await Bluebird.map(deps.build, async (m: GardenModule) => {
-        return BuildTask.factory({
-          garden: this.garden,
-          graph: this.graph,
-          log: this.log,
-          module: m,
-          force: this.force,
-        })
-      })
-    )
-
-    const stageBuildTask = new StageBuildTask({
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      module: this.module,
-      force: this.force,
-      dependencies: buildTasks,
-    })
-
-    return [stageBuildTask, ...buildTasks]
-  }
-
-  getName() {
-    return getModuleKey(this.module.name, this.module.plugin)
-  }
+  eventName = "buildStatus" as const
 
   getDescription() {
-    return `building ${this.getName()}`
+    return this.action.longDescription()
   }
 
-  async process(): Promise<BuildResult> {
-    const module = this.module
-    const actions = await this.garden.getActionRouter()
 
-    let log: LogEntry
+  @emitGetStatusEvents<BuildAction>
+  async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<BuildAction>) {
+    const router = await this.garden.getActionRouter()
+    const action = this.getResolvedAction(this.action, dependencyResults)
 
-    if (this.force) {
-      log = this.log.info({
-        section: this.getName(),
-        msg: `Building version ${module.version.versionString}...`,
-        status: "active",
-      })
-    } else {
-      log = this.log.info({
-        section: this.getName(),
-        msg: `Getting build status for ${module.version.versionString}...`,
-        status: "active",
-      })
+    const output = await router.build.getStatus({ log: this.log, graph: this.graph, action })
+    const status = output.result
 
-      const status = await actions.getBuildStatus({ log: this.log, graph: this.graph, module })
-
-      if (status.ready) {
-        log.setSuccess({
-          msg: chalk.green(`Already built`),
-          append: true,
-        })
-        return { fresh: false }
-      }
-
-      log.setState(`Building version ${module.version.versionString}...`)
+    if (status.state === "ready" && !statusOnly && !this.force) {
+      this.log.info(`Already built`)
+      await this.ensureBuildContext(action)
     }
 
-    await this.garden.buildStaging.syncDependencyProducts(this.module, this.graph, log)
+    return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
+  }
 
-    let result: BuildResult
+  @emitProcessingEvents<BuildAction>
+  async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, BuildStatus>) {
+    const router = await this.garden.getActionRouter()
+    const action = this.getResolvedAction(this.action, dependencyResults)
+
+    if (action.isDisabled()) {
+      this.log.info(
+        `${action.longDescription()} is disabled, but is being executed because another action depends on it.`
+      )
+    }
+
+    const log = this.log
+    await this.buildStaging(action)
+
     try {
-      result = await actions.build({
+      const { result } = await router.build.build({
         graph: this.graph,
-        module,
+        action,
         log,
       })
+      log.success(`Done`)
+
+      return {
+        ...result,
+        version: action.versionString(),
+        executedAction: resolvedActionToExecuted(action, { status: result }),
+      }
     } catch (err) {
-      log.setError()
+      log.error(`Build failed`)
+
       throw err
     }
+  }
 
-    log.setSuccess({
-      msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
-      append: true,
+  private async ensureBuildContext(action: ResolvedBuildAction<BuildActionConfig>) {
+    const buildContextExists = await this.garden.buildStaging.actionBuildPathExists(action)
+    if (!buildContextExists) {
+      await this.buildStaging(action)
+    }
+  }
+
+  private async buildStaging(action: ResolvedBuildAction<BuildActionConfig>) {
+    const log = this.log
+    const files = action.getFullVersion().files
+
+    if (files.length > 0) {
+      log.verbose(`Syncing sources (${pluralize("file", files.length, true)})...`)
+    }
+
+    await this.garden.buildStaging.syncFromSrc({
+      action,
+      log: log || this.log,
     })
-    return result
+
+    log.verbose(chalk.green(`Done syncing sources ${renderDuration(log.getDuration(1))}`))
+
+    await this.garden.buildStaging.syncDependencyProducts(action, log)
   }
 }

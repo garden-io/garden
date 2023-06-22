@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,7 +30,7 @@ export class GetEysiCommand extends Command {
 
   async action(): Promise<CommandResult> {
     const eysi = (await readFile(join(STATIC_DIR, "eysi.txt"))).toString()
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(eysi)
 
     try {

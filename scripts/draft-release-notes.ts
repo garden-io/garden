@@ -11,7 +11,13 @@ const gardenRoot = resolve(__dirname, "..")
 
 async function getChangelog(prevReleaseTag: string, curReleaseTag: string) {
   try {
-    return (await execa("git-chglog", [`${prevReleaseTag}..${curReleaseTag}`], { cwd: gardenRoot })).stdout
+    return (
+      await execa(
+        "git-chglog",
+        ["--tag-filter-pattern", "^\\d+\\.\\d+\\.\\d+$", "--sort", "semver", `${prevReleaseTag}..${curReleaseTag}`],
+        { cwd: gardenRoot }
+      )
+    ).stdout
   } catch (err) {
     throw new Error(`Error generating changelog: ${err}`)
   }
@@ -33,7 +39,7 @@ const releaseNotesDraft = (version: string, changelog: string, contributors: str
 
 [TODO: INSERT BRIEF RELEASE DESCRIPTION HERE. Give an overview of the release and mention all relevant features.]
 
-[TODO: prepare the list of **external** contributors, replace the list in [[]] with the comma-separated list of @github_names, and remove surrounding [[]] characters. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on Github as well.]
+[TODO: prepare the list of **external** contributors, replace the list in [[]] with the comma-separated list of @github_names.]
 Many thanks to [[${contributors}]] for the contributions to this release!
 
 ## Assets

@@ -1,0 +1,52 @@
+---
+# Cert-Manager Helm Chart configuration
+kind: Deploy
+type: helm
+name: cert-manager
+spec:
+  namespace: cert-manager
+  chart:
+    name: cert-manager
+    version: v1.11.0
+    repo: https://charts.jetstack.io
+  values:
+    installCRDs: ${var.CERT_MANAGER_INSTALL_CRDS}
+---
+# External-DNS Helm Chart
+kind: Deploy
+type: helm
+name: external-dns
+description: This Action installs external-dns in our Kubernetes Cluster.
+spec:
+  namespace: external-dns
+  chart:
+    name: external-dns
+    version: 6.13.3
+    repo: https://charts.bitnami.com/bitnami
+  values: # To check a full list of values, see https://artifacthub.io/packages/helm/bitnami/external-dns
+    provider: ${var.CF_DNS_PROVIDER}
+    domainFilters: ${var.CF_DOMAIN}
+    policy: ${var.CF_UPDATE_STRATEGY}
+    cloudflare:
+      email: ${var.CF_EMAIL}
+      proxied: ${var.CF_PROXIED}
+      apiToken: ${local.env.CF_API_TOKEN}
+---
+# Cluster-issuers Action configuration
+kind: Deploy
+type: helm
+name: cluster-issuers
+description: This Action install the Cluster-issuers Helm Chart in our Kubernetes Cluster.
+spec:
+  namespace: default
+  chart:
+    path: ./charts/cluster-issuers
+  values:
+    cloudflare:
+      email: ${var.CF_EMAIL}
+      apiToken: ${local.env.CF_API_TOKEN}
+      cfDomain: ${var.CF_DOMAIN[0]} # For this example, at the moment we only support one domain.
+    generateStgCert: ${var.GENERATE_STG_CERTS}
+    generateProdCert: ${var.GENERATE_PROD_CERTS}
+dependencies:
+  - deploy.cert-manager # This Action depends on the cert-manager one (we need the CRDs to be installed)

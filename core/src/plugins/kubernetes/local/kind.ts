@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,24 +7,19 @@
  */
 
 import { exec } from "../../../util/util"
-import { LogEntry } from "../../../logger/log-entry"
-import { safeLoad } from "js-yaml"
+import { Log } from "../../../logger/log-entry"
+import { load } from "js-yaml"
 import { KubernetesConfig, KubernetesProvider } from "../config"
 import { RuntimeError } from "../../../exceptions"
 import { KubeApi } from "../api"
 import { KubernetesResource } from "../types"
 import { PluginContext } from "../../../plugin-context"
-import { BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { containerHelpers } from "../../container/helpers"
 import Bluebird from "bluebird"
 
 const nodeCache: { [context: string]: string[] } = {}
 
-export async function getKindImageStatus(
-  config: KubernetesConfig,
-  imageId: string,
-  log: LogEntry
-): Promise<BuildStatus> {
+export async function getKindImageStatus(config: KubernetesConfig, imageId: string, log: Log): Promise<boolean> {
   const parsedId = containerHelpers.parseImageId(imageId)
   const clusterId = containerHelpers.unparseImageId({
     ...parsedId,
@@ -66,10 +61,10 @@ export async function getKindImageStatus(
     log.debug(`Image ${imageId} is not in kind cluster`)
   }
 
-  return { ready }
+  return ready
 }
 
-export async function loadImageToKind(imageId: string, config: KubernetesConfig, log: LogEntry): Promise<void> {
+export async function loadImageToKind(imageId: string, config: KubernetesConfig, log: Log): Promise<void> {
   log.debug(`Loading image ${imageId} into kind cluster`)
 
   try {
@@ -82,11 +77,11 @@ export async function loadImageToKind(imageId: string, config: KubernetesConfig,
   }
 }
 
-export async function isKindCluster(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry): Promise<boolean> {
+export async function isKindCluster(ctx: PluginContext, provider: KubernetesProvider, log: Log): Promise<boolean> {
   return (await isKindInstalled(log)) && (await isKindContext(ctx, provider, log))
 }
 
-async function isKindInstalled(log: LogEntry): Promise<boolean> {
+async function isKindInstalled(log: Log): Promise<boolean> {
   try {
     const kindVersion = (await exec("kind", ["version"])).stdout
     log.debug(`Found kind with the following version details ${kindVersion}`)
@@ -98,7 +93,7 @@ async function isKindInstalled(log: LogEntry): Promise<boolean> {
   return false
 }
 
-async function isKindContext(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry): Promise<boolean> {
+async function isKindContext(ctx: PluginContext, provider: KubernetesProvider, log: Log): Promise<boolean> {
   const kubeApi = await KubeApi.factory(log, ctx, provider)
   const manifest: KubernetesResource = {
     apiVersion: "apps/v1",
@@ -140,7 +135,7 @@ async function getClusterForContext(context: string) {
 async function isContextAMatch(cluster: string, context: string): Promise<Boolean> {
   try {
     const kubeConfigString = (await exec("kind", ["get", "kubeconfig", `--name=${cluster}`])).stdout
-    const kubeConfig = safeLoad(kubeConfigString)!
+    const kubeConfig = load(kubeConfigString)!
     return kubeConfig["current-context"] === context
   } catch (err) {}
   return false

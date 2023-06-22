@@ -20,59 +20,64 @@ The following option flags can be used with any of the CLI commands:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--root` | `-r` | path | Override project root directory (defaults to working directory). Can be absolute or relative to current directory.
-  | `--silent` | `-s` | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
-  | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
-  | `--logger-type` |  | `quiet` `basic` `fancy` `json`  | Set logger type. fancy updates log lines in-place when their status changes (e.g. when tasks complete), basic appends a new log line when a log line&#x27;s status changes, json same as basic, but renders log lines as JSON, quiet suppresses all log output, same as --silent.
-  | `--log-level` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
-  | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
-  | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
-  | `--show-timestamps` |  | boolean | Show timestamps with log output. When enabled, Garden will use the basic logger. I.e., log status changes are rendered as new lines instead of being updated in-place.
-  | `--yes` | `-y` | boolean | Automatically approve any yes/no prompts during execution.
+  | `--root` |  | path | Override project root directory (defaults to working directory). Can be absolute or relative to current directory.
+  | `--env` |  | string | The environment (and optionally namespace) to work against.
   | `--force-refresh` |  | boolean | Force refresh of any caches, e.g. cached provider statuses.
   | `--var` |  | array:string | Set a specific variable value, using the format &lt;key&gt;&#x3D;&lt;value&gt;, e.g. &#x60;--var some-key&#x3D;custom-value&#x60;. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. &#x60;--var key-a&#x3D;foo,key-b&#x3D;&quot;value with quotes&quot;&#x60;.
-  | `--version` | `-v` | boolean | Show the current CLI version.
-  | `--help` | `-h` | boolean | Show help
-  | `--disable-port-forwards` |  | boolean | Disable automatic port forwarding when in watch/hot-reload mode. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS&#x3D;true in your environment.
+  | `--yes` |  | boolean | Automatically approve any yes/no prompts during execution, and allow running protected commands against production environments.
+  | `--silent` |  | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
+  | `--logger-type` |  | `quiet` `default` `basic` `json` `ink`  | Set logger type. default The default Garden logger, basic [DEPRECATED] Sames as the default Garden logger. This option will be removed in a future release, json same as default, but renders log lines as JSON, quiet suppresses all log output, same as --silent.
+  | `--log-level` |  | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5. From the verbose log level onward action execution logs are also printed (e.g. test or run live log outputs).
+  | `--output` |  | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
+  | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
+  | `--show-timestamps` |  | boolean | Show timestamps with log output. When enabled, Garden will use the basic logger. I.e., log status changes are rendered as new lines instead of being updated in-place.
+  | `--version` |  | boolean | Show the current CLI version.
+  | `--help` |  | boolean | Show help
 
 ### garden build
 
-**Build your modules.**
+**Perform your Builds.**
 
-Builds all or specified modules, taking into account build dependency order.
-Optionally stays running and automatically builds modules if their source (or their dependencies' sources) change.
+Runs all or specified Builds, taking into account build dependency order.
+Optionally stays running and automatically builds when sources (or dependencies' sources) change.
 
 Examples:
 
-    garden build            # build all modules in the project
-    garden build my-module  # only build my-module
-    garden build --force    # force rebuild of modules
-    garden build --watch    # watch for changes to code
+    garden build                   # build everything in the project
+    garden build my-image          # only build my-image
+    garden build image-a image-b   # build image-a and image-b
+    garden build --force           # force re-builds, even if builds had already been performed at current version
+    garden build -l 3              # build with verbose log level to see the live log output
 
 #### Usage
 
-    garden build [modules] [options]
+    garden build [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `modules` | No | Specify module(s) to build. Use comma as a separator to specify multiple modules.
+  | `names` | No | Specify Builds to run. You may specify multiple names, separated by spaces.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--force` | `-f` | boolean | Force rebuild of module(s).
-  | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-build.
-  | `--with-dependants` |  | boolean | Also rebuild modules that have build dependencies on one of the modules specified as CLI arguments (recursively). Note: This option has no effect unless a list of module names is specified as CLI arguments (since then, every module in the project will be rebuilt).
+  | `--force` |  | boolean | Force re-build.
+  | `--with-dependants` |  | boolean | Also rebuild any Builds that depend on one of the Builds specified as CLI arguments (recursively). Note: This option has no effect unless a list of Build names is specified as CLI arguments (since otherwise, every Build in the project will be performed anyway).
 
 #### Outputs
 
 ```yaml
-# A map of all modules that were built (or builds scheduled/attempted for) and information about the builds.
-builds:
-  <module name>:
+# Set to true if the command execution was aborted.
+aborted:
+
+# Set to false if the command execution was unsuccessful.
+success:
+
+# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+build:
+  <Build name>:
     # The full log from the build.
     buildLog:
 
@@ -85,44 +90,78 @@ builds:
     # Additional information, specific to the provider.
     details:
 
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
     aborted:
 
-    # The duration of the build in msec, if applicable.
+    # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the build was succeessful.
+    # Whether the action was succeessfully executed.
     success:
 
-    # An error message, if the build failed.
+    # An error message, if the action's execution failed.
     error:
 
-    # The version of the module, service, task or test.
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
     version:
 
-# A map of all services that were deployed (or deployment scheduled/attempted for) and the service status.
-deployments:
-  <service name>:
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deploy:
+  <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
 
-    # Additional detail, specific to the provider.
-    detail:
+    # When the service was first deployed by the provider.
+    updatedAt:
 
-    # Whether the service was deployed with dev mode enabled.
-    devMode:
-
-    # Whether the service was deployed with local mode enabled.
-    localMode:
-
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
+    # The mode the action is deployed in.
+    mode:
 
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
@@ -171,9 +210,92 @@ deployments:
     # Latest error status message of the service (if any).
     lastError:
 
-    # A map of values output from the service.
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
     outputs:
       <name>:
+
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
 
     # How many replicas of the service are currently running.
     runningReplicas:
@@ -181,32 +303,35 @@ deployments:
     # The current deployment status of the service.
     state:
 
-    # When the service was last updated by the provider.
-    updatedAt:
-
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
     aborted:
 
-    # The duration of the build in msec, if applicable.
+    # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the build was succeessful.
+    # Whether the action was succeessfully executed.
     success:
 
-    # An error message, if the build failed.
+    # An error message, if the action's execution failed.
     error:
 
-    # The version of the module, service, task or test.
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
     version:
 
-# A map of all tests that were run (or scheduled/attempted) and the test results.
-tests:
-  <test name>:
-    # The name of the module that was run.
-    moduleName:
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
 
-    # The command that was run in the module.
-    command:
+# A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+test:
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
 
     # The exit code of the run (if applicable).
     exitCode:
@@ -220,65 +345,256 @@ tests:
     # The output log from the run.
     log:
 
-    namespaceStatus:
-      pluginName:
-
-      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-      # letter, and cannot end with a dash) and must not be longer than 63 characters.
-      namespaceName:
-
-      state:
-
-    # A map of primitive values, output from the test.
-    outputs:
-      # Number, string or boolean
-      <name>:
-
-    # The name of the test that was run.
-    testName:
-
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
-    aborted:
-
-    # The duration of the build in msec, if applicable.
-    durationMsec:
-
-    # Whether the build was succeessful.
+  <Test name>:
+    # Whether the module was successfully run.
     success:
 
-    # An error message, if the build failed.
-    error:
+    # The exit code of the run (if applicable).
+    exitCode:
 
-    # The version of the module, service, task or test.
-    version:
+    # When the module run was started.
+    startedAt:
 
-# A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
-graphResults:
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+# A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+run:
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
 ```
 
-### garden call
+### garden cloud secrets list
 
-**Call a service ingress endpoint.**
+**List secrets defined in Garden Cloud.**
 
-Resolves the deployed ingress endpoint for the given service and path, calls the given endpoint and
-outputs the result.
+List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
 
 Examples:
-
-    garden call my-container
-    garden call my-container/some-path
-
-Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
+    garden cloud secrets list                                          # list all secrets
+    garden cloud secrets list --filter-envs dev                        # list all secrets from the dev environment
+    garden cloud secrets list --filter-envs dev --filter-names *_DB_*  # list all secrets from the dev environment that have '_DB_' in their name.
 
 #### Usage
 
-    garden call <serviceAndPath> 
+    garden cloud secrets list [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--filter-envs` |  | array:string | Filter on environment. You may filter on multiple environments by setting this flag multiple times. Accepts glob patterns.&quot;
+  | `--filter-user-ids` |  | array:string | Filter on user ID. You may filter on multiple user IDs by setting this flag multiple times. Accepts glob patterns.
+  | `--filter-names` |  | array:string | Filter on secret name. You may filter on multiple secret names by setting this flag multiple times. Accepts glob patterns.
+
+
+### garden cloud secrets create
+
+**Create secrets in Garden Cloud.**
+
+Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
+them to an environment, or an environment and a user.
+
+To scope secrets to a user, you will need the user's ID which you can get from the
+`garden cloud users list` command.
+
+You can optionally read the secrets from a file.
+
+Examples:
+    garden cloud secrets create DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two secrets
+    garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci    # create a secret and scope it to the ci environment
+    garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
+    garden cloud secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
+
+#### Usage
+
+    garden cloud secrets create [secrets] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `serviceAndPath` | Yes | The name of the service to call followed by the ingress path (e.g. my-container/somepath).
+  | `secrets` | No | The names and values of the secrets to create, separated by &#x27;&#x3D;&#x27;. You may specify multiple secret name/value pairs, separated by spaces. Note that you can also leave this empty and have Garden read the secrets from file.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--scope-to-user-id` |  | number | Scope the secret to a user with the given ID. User scoped secrets must be scoped to an environment as well.
+  | `--scope-to-env` |  | string | Scope the secret to an environment. Note that this does not default to the environment that the command runs in (i.e. the one set via the --env flag) and that you need to set this explicitly if you want to create an environment scoped secret.
+  | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+
+
+### garden cloud secrets delete
+
+**Delete secrets from Garden Cloud.**
+
+Delete secrets in Garden Cloud. You will need the IDs of the secrets you want to delete,
+which you which you can get from the `garden cloud secrets list` command.
+
+Examples:
+    garden cloud secrets delete <ID 1> <ID 2> <ID 3>   # delete three secrets with the given IDs.
+
+#### Usage
+
+    garden cloud secrets delete [ids] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `ids` | No | The ID(s) of the secrets to delete.
+
+
+
+### garden cloud users list
+
+**List users defined in Garden Cloud.**
+
+List all users from Garden Cloud. Optionally filter on group names or user names.
+
+Examples:
+    garden cloud users list                            # list all users
+    garden cloud users list --filter-names Gordon*     # list all the Gordons in Garden Cloud. Useful if you have a lot of Gordons.
+    garden cloud users list --filter-groups devs-*     # list all users in groups that with names that start with 'dev-'
+
+#### Usage
+
+    garden cloud users list [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--filter-names` |  | array:string | Filter on user name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.
+  | `--filter-groups` |  | array:string | Filter on the groups the user belongs to. You may filter on multiple groups by setting this flag multiple times. Accepts glob patterns.
+
+
+### garden cloud users create
+
+**Create users in Garden Cloud.**
+
+Create users in Garden Cloud and optionally add the users to specific groups.
+You can get the group IDs from the `garden cloud users list` command.
+
+To create a user, you'll need their GitHub or GitLab username, depending on which one is your VCS provider, and the name
+they should have in Garden Cloud. Note that it **must** the their GitHub/GitLab username, not their email, as people
+can have several emails tied to their GitHub/GitLab accounts.
+
+You can optionally read the users from a file. The file must have the format vcs-username="Actual Username". For example:
+
+fatema_m="Fatema M"
+gordon99="Gordon G"
+
+Examples:
+    garden cloud users create fatema_m="Fatema M" gordon99="Gordon G"  # create two users
+    garden cloud users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
+    garden cloud users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
+
+#### Usage
+
+    garden cloud users create [users] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `users` | No | The VCS usernames and the names of the users to create, separated by &#x27;&#x3D;&#x27;. You may specify multiple VCS username/name pairs, separated by spaces. Note that you can also leave this empty and have Garden read the users from file.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--add-to-groups` |  | array:string | Add the user to the group with the given ID. You may add the user to multiple groups by setting this flag multiple times.
+  | `--from-file` |  | path | Read the users from the file at the given path. The file should have standard &quot;dotenv&quot; format (as defined by [dotenv](https://github.com/motdotla/dotenv#rules)) where the VCS username is the key and the name is the value.
+
+
+### garden cloud users delete
+
+**Delete users from Garden Cloud.**
+
+Delete users in Garden Cloud. You will need the IDs of the users you want to delete,
+which you which you can get from the `garden cloud users list` command. Use a comma-
+separated list to delete multiple users.
+
+Examples:
+    garden cloud users delete <ID 1> <ID 2> <ID 3>   # delete three users with the given IDs.
+
+#### Usage
+
+    garden cloud users delete [ids] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `ids` | No | The IDs of the users to delete.
+
+
+
+### garden cloud groups list
+
+**List groups defined in Garden Cloud.**
+
+List all groups from Garden Cloud. This is useful for getting the group IDs when creating
+users via the `garden cloud users create` command.
+
+Examples:
+    garden cloud groups list                       # list all groups
+    garden cloud groups list --filter-names dev-*  # list all groups that start with 'dev-'
+
+#### Usage
+
+    garden cloud groups list [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--filter-names` |  | array:string | Filter on group name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.
+
+
+### garden community
+
+**Join our community Discord to chat with us!**
+
+Opens the Garden Community Discord invite link
+
+#### Usage
+
+    garden community 
 
 
 
@@ -286,13 +602,13 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
 **Update your preferences regarding analytics.**
 
-To help us make Garden better, you can opt in to the collection of usage data.
+To help us make Garden better, we collect some analytics data about its usage.
 We make sure all the data collected is anonymized and stripped of sensitive
 information. We collect data about which commands are run, what tasks they trigger,
 which API calls are made to your local Garden server, as well as some info
 about the environment in which Garden runs.
 
-You will be asked if you want to opt-in when running Garden for the
+You will be asked if you want to opt out when running Garden for the
 first time and you can use this command to update your preferences later.
 
 Examples:
@@ -335,10 +651,9 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--skip-comments` |  | boolean | Set to true to disable comment generation.
   | `--dir` |  | path | Directory to place the project in (defaults to current directory).
   | `--filename` |  | string | Filename to place the project config in (defaults to project.garden.yml).
-  | `--interactive` | `-i` | boolean | Set to false to disable interactive prompts.
+  | `--interactive` |  | boolean | Set to false to disable interactive prompts.
   | `--name` |  | string | Name of the project (defaults to current directory name).
 
 
@@ -364,62 +679,38 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--skip-comments` |  | boolean | Set to true to disable comment generation.
   | `--dir` |  | path | Directory to place the module in (defaults to current directory).
   | `--filename` |  | string | Filename to place the module config in (defaults to garden.yml).
-  | `--interactive` | `-i` | boolean | Set to false to disable interactive prompts.
+  | `--interactive` |  | boolean | Set to false to disable interactive prompts.
   | `--name` |  | string | Name of the module (defaults to current directory name).
   | `--type` |  | string | The module type to create. Required if --interactive&#x3D;false.
 
 
-### garden delete secret
+### garden cleanup namespace
 
-**Delete a secret from the environment.**
+**Deletes a running namespace.**
 
-Returns with an error if the provided key could not be found by the provider.
+This will clean up everything deployed in the specified environment, and trigger providers to clear up any other resources
+and reset it. When you then run `garden deploy` after, the namespace will be reconfigured.
 
-Examples:
-
-    garden delete secret kubernetes somekey
-    garden del secret local-kubernetes some-other-key
+This can be useful if you find the namespace to be in an inconsistent state, or need/want to free up resources.
 
 #### Usage
 
-    garden delete secret <provider> <key> 
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `provider` | Yes | The name of the provider to remove the secret from.
-  | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
-
-
-
-### garden delete environment
-
-**Deletes a running environment.**
-
-This will delete all services in the specified environment, and trigger providers to clear up any other resources
-and reset it. When you then run `garden deploy`, the environment will be reconfigured.
-
-This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
-resources.
-
-#### Usage
-
-    garden delete environment [options]
+    garden cleanup namespace [options]
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--dependants-first` |  | boolean | Delete services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling garden delete environment service-a,service-b --dependants-first. When this flag is not used, all services in the project are deleted simultaneously.
+  | `--dependants-first` |  | boolean | Clean up Deploy(s) (or services if using modules) in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
+
+When this flag is not used, all services in the project are cleaned up simultaneously.
 
 #### Outputs
 
 ```yaml
-# The status of each provider in the environment.
+# The status of each provider in the namespace.
 providerStatuses:
   # Description of an environment's status for a provider.
   <name>:
@@ -429,15 +720,6 @@ providerStatuses:
     # Use this to include additional information that is specific to the provider.
     detail:
 
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
-
     # Output variables that modules and other variables can reference.
     outputs:
       <name>:
@@ -445,29 +727,152 @@ providerStatuses:
     # Set to true to disable caching of the status.
     disableCache:
 
-# The status of each service in the environment.
-serviceStatuses:
+# The status of each deployment in the namespace.
+deployStatuses:
   <name>:
+    # The state of the action.
+    state:
+
+    # Structured outputs from the execution, as defined by individual action/module types, to be made available for
+    # dependencies and in templating.
+    outputs:
+      <name>:
+
+    # Set to true if the action handler is running a process persistently and attached to the Garden process after
+    # returning.
+    attached:
+
+    detail:
+      # When the service was first deployed by the provider.
+      createdAt:
+
+      # Additional detail, specific to the provider.
+      detail:
+
+      # The mode the action is deployed in.
+      mode:
+
+      # The ID used for the service by the provider (if not the same as the service name).
+      externalId:
+
+      # The provider version of the deployed service (if different from the Garden module version.
+      externalVersion:
+
+      # A list of ports that can be forwarded to from the Garden agent by the provider.
+      forwardablePorts:
+        - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+          name:
+
+          # The preferred local port to use for forwarding.
+          preferredLocalPort:
+
+          # The protocol of the port.
+          protocol:
+
+          # The target name/hostname to forward to (defaults to the service name).
+          targetName:
+
+          # The target port on the service.
+          targetPort:
+
+          # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+          urlProtocol:
+
+      # List of currently deployed ingress endpoints for the service.
+      ingresses:
+        - # The port number that the service is exposed on internally.
+          # This defaults to the first specified port for the service.
+          port:
+
+          # The ingress path that should be matched to route to this service.
+          path:
+
+          # The protocol to use for the ingress.
+          protocol:
+
+          # The hostname where the service can be accessed.
+          hostname:
+
+      # Latest status message of the service (if any).
+      lastMessage:
+
+      # Latest error status message of the service (if any).
+      lastError:
+
+      # A map of values output from the deployment.
+      outputs:
+        <name>:
+
+      # How many replicas of the service are currently running.
+      runningReplicas:
+
+      # The current deployment status of the service.
+      state:
+
+      # When the service was last updated by the provider.
+      updatedAt:
+
+      # The Garden module version of the deployed service.
+      version:
+```
+
+### garden cleanup deploy
+
+**Cleans up running deployments (or services if using modules).**
+
+Cleans up (i.e. un-deploys) the specified actions. Cleans up all deploys/services in the project if no arguments are provided.
+Note that this command does not take into account any deploys depending on the cleaned up actions, and might
+therefore leave the project in an unstable state. Running `garden deploy` after will re-deploy anything missing.
+
+Examples:
+
+    garden cleanup deploy my-service # deletes my-service
+    garden cleanup deploy            # deletes all deployed services in the project
+
+#### Usage
+
+    garden cleanup deploy [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | The name(s) of the deploy(s) (or services if using modules) to delete. You may specify multiple names, separated by spaces.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--dependants-first` |  | boolean | Clean up Deploy(s) (or services if using modules) in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
+
+When this flag is not used, all services in the project are cleaned up simultaneously.
+  | `--with-dependants` |  | boolean | Also clean up deployments/services that have dependencies on one of the deployments/services specified as CLI arguments (recursively).  When used, this option implies --dependants-first. Note: This option has no effect unless a list of names is specified as CLI arguments (since then, every deploy/service in the project will be deleted).
+
+#### Outputs
+
+```yaml
+<name>:
+  # The state of the action.
+  state:
+
+  # Structured outputs from the execution, as defined by individual action/module types, to be made available for
+  # dependencies and in templating.
+  outputs:
+    <name>:
+
+  # Set to true if the action handler is running a process persistently and attached to the Garden process after
+  # returning.
+  attached:
+
+  detail:
     # When the service was first deployed by the provider.
     createdAt:
 
     # Additional detail, specific to the provider.
     detail:
 
-    # Whether the service was deployed with dev mode enabled.
-    devMode:
-
-    # Whether the service was deployed with local mode enabled.
-    localMode:
-
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
+    # The mode the action is deployed in.
+    mode:
 
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
@@ -516,7 +921,7 @@ serviceStatuses:
     # Latest error status message of the service (if any).
     lastError:
 
-    # A map of values output from the service.
+    # A map of values output from the deployment.
     outputs:
       <name>:
 
@@ -531,187 +936,83 @@ serviceStatuses:
 
     # The Garden module version of the deployed service.
     version:
-```
 
-### garden delete service
-
-**Deletes running services.**
-
-Deletes (i.e. un-deploys) the specified services. Deletes all services in the project if no arguments are provided.
-Note that this command does not take into account any services depending on the deleted service/services, and might
-therefore leave the project in an unstable state. Running `garden deploy` will re-deploy any missing services.
-
-Examples:
-
-    garden delete service my-service # deletes my-service
-    garden delete service            # deletes all deployed services in the project
-
-#### Usage
-
-    garden delete service [services] [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `services` | No | The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--dependants-first` |  | boolean | Delete services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling garden delete environment service-a,service-b --dependants-first. When this flag is not used, all services in the project are deleted simultaneously.
-  | `--with-dependants` |  | boolean | Also delete services that have service dependencies on one of the services specified as CLI arguments (recursively).  When used, this option implies --dependants-first. Note: This option has no effect unless a list of service names is specified as CLI arguments (since then, every service in the project will be deleted).
-
-#### Outputs
-
-```yaml
-<name>:
-  # When the service was first deployed by the provider.
-  createdAt:
-
-  # Additional detail, specific to the provider.
-  detail:
-
-  # Whether the service was deployed with dev mode enabled.
-  devMode:
-
-  # Whether the service was deployed with local mode enabled.
-  localMode:
-
-  namespaceStatuses:
-    - pluginName:
-
-      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-      # letter, and cannot end with a dash) and must not be longer than 63 characters.
-      namespaceName:
-
-      state:
-
-  # The ID used for the service by the provider (if not the same as the service name).
-  externalId:
-
-  # The provider version of the deployed service (if different from the Garden module version.
-  externalVersion:
-
-  # A list of ports that can be forwarded to from the Garden agent by the provider.
-  forwardablePorts:
-    - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
-      name:
-
-      # The preferred local port to use for forwarding.
-      preferredLocalPort:
-
-      # The protocol of the port.
-      protocol:
-
-      # The target name/hostname to forward to (defaults to the service name).
-      targetName:
-
-      # The target port on the service.
-      targetPort:
-
-      # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
-      urlProtocol:
-
-  # List of currently deployed ingress endpoints for the service.
-  ingresses:
-    - # The port number that the service is exposed on internally.
-      # This defaults to the first specified port for the service.
-      port:
-
-      # The ingress path that should be matched to route to this service.
-      path:
-
-      # The protocol to use for the ingress.
-      protocol:
-
-      # The hostname where the service can be accessed.
-      hostname:
-
-  # Latest status message of the service (if any).
-  lastMessage:
-
-  # Latest error status message of the service (if any).
-  lastError:
-
-  # A map of values output from the service.
-  outputs:
-    <name>:
-
-  # How many replicas of the service are currently running.
-  runningReplicas:
-
-  # The current deployment status of the service.
-  state:
-
-  # When the service was last updated by the provider.
-  updatedAt:
-
-  # The Garden module version of the deployed service.
   version:
 ```
 
 ### garden deploy
 
-**Deploy service(s) to your environment.**
+**Deploy actions to your environment.**
 
-Deploys all or specified services, taking into account service dependency order.
-Also builds modules and dependencies if needed.
+Deploys all or specified Deploy actions, taking into account dependency order.
+Also performs builds and other dependencies if needed.
 
-Optionally stays running and automatically re-builds and re-deploys services if their module source
-(or their dependencies' sources) change.
+Optionally stays running and automatically re-builds and re-deploys if sources
+(or dependencies' sources) change.
 
 Examples:
 
-    garden deploy                      # deploy all modules in the project
-    garden deploy my-service           # only deploy my-service
-    garden deploy service-a,service-b  # only deploy service-a and service-b
-    garden deploy --force              # force re-deploy of modules, even if they're already deployed
-    garden deploy --watch              # watch for changes to code
-    garden deploy --dev=my-service     # deploys all services, with dev mode enabled for my-service
-    garden deploy --dev                # deploys all compatible services with dev mode enabled
-    garden deploy --local=my-service   # deploys all services, with local mode enabled for my-service
-    garden deploy --local              # deploys all compatible services with local mode enabled
-    garden deploy --env stage          # deploy your services to an environment called stage
-    garden deploy --skip service-b     # deploy all services except service-b
-    garden deploy --forward            # deploy all services and start port forwards without watching for changes
+    garden deploy                      # deploy everything in the project
+    garden deploy my-deploy            # only deploy my-deploy
+    garden deploy deploy-a,deploy-b    # only deploy deploy-a and deploy-b
+    garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
+    garden deploy --sync=my-deploy     # deploys all Deploys, with sync enabled for my-deploy
+    garden deploy --sync               # deploys all compatible Deploys with sync enabled
+    garden deploy --local=my-deploy    # deploys all Deploys, with local mode enabled for my-deploy
+    garden deploy --local              # deploys all compatible Deploys with local mode enabled
+    garden deploy --env stage          # deploy your Deploys to an environment called stage
+    garden deploy --skip deploy-b      # deploy everything except deploy-b
+    garden deploy --forward            # deploy everything and start port forwards without sync or local mode
+    garden deploy my-deploy --logs     # deploy my-deploy and follow the log output from the deployed service
+    garden deploy my-deploy -l 3       # deploy with verbose log level to see logs of the creation of the deployment
 
 #### Usage
 
-    garden deploy [services] [options]
+    garden deploy [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `services` | No | The name(s) of the service(s) to deploy (skip to deploy all services). Use comma as a separator to specify multiple services.
+  | `names` | No | The name(s) of the Deploy(s) (or services if using modules) to deploy (skip to deploy everything). You may specify multiple names, separated by spaces.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--force` |  | boolean | Force redeploy of service(s).
-  | `--force-build` |  | boolean | Force rebuild of module(s).
-  | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
-  | `--dev-mode` | `--dev` | array:string | The name(s) of the service(s) to deploy with dev mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with dev mode enabled. When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
-  | `--hot-reload` | `--hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
-  | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
-This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
-  | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
-  | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified services, but don&#x27;t deploy any additional services that they depend on or run any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in dev mode without redeploying any service dependencies that may have changed since you last deployed.
-  | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.
-  | `--skip-watch` |  | boolean | [EXPERIMENTAL] If set to &#x60;false&#x60; while in dev-mode (i.e. the --dev-mode/--dev flag is used) then file syncing will still work but Garden will ignore changes to config files and services that are not in dev mode.
-This can be a performance improvement for projects that have a large number of files and where only syncing is needed when in dev mode.
-Note that this flag cannot used if hot reloading is enabled.
-This behaviour will change in a future release in favour of a &quot;smarter&quot; watching mechanism.
+  | `--force` |  | boolean | Force re-deploy.
+  | `--force-build` |  | boolean | Force re-build of build dependencies.
+  | `--sync` |  | array:string | The name(s) of the Deploy(s) to deploy with sync enabled.
+You may specify multiple names by setting this flag multiple times.
+Use * to deploy all supported deployments with sync enabled.
+
+Important: The syncs stay active after the command exits. To stop the syncs, use the &#x60;sync stop&#x60; command.
+  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of Deploy(s) to be started locally with local mode enabled.
+
+You may specify multiple Deploys by setting this flag multiple times. Use * to deploy all Deploys with local mode enabled. When this option is used,
+the command stays running until explicitly aborted.
+
+This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
+  | `--skip` |  | array:string | The name(s) of Deploys you&#x27;d like to skip.
+  | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
+  | `--disable-port-forwards` |  | boolean | Disable automatic port forwarding when running persistently. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS&#x3D;true in your environment.
+  | `--forward` |  | boolean | Create port forwards and leave process running after deploying. This is implied if any of --sync / --local or --logs are set.
+  | `--logs` |  | boolean | Stream logs from the requested Deploy(s) (or services if using modules) during deployment, and leave the log streaming process running after deploying. Note: This option implies the --forward option.
+  | `--timestamps` |  | boolean | Show timestamps with log output. Should be used with the &#x60;--logs&#x60; option (has no effect if that option is not used).
+  | `--port` |  | number | The port number for the server to listen on (defaults to 9700 if available).
 
 #### Outputs
 
 ```yaml
-# A map of all modules that were built (or builds scheduled/attempted for) and information about the builds.
-builds:
-  <module name>:
+# Set to true if the command execution was aborted.
+aborted:
+
+# Set to false if the command execution was unsuccessful.
+success:
+
+# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+build:
+  <Build name>:
     # The full log from the build.
     buildLog:
 
@@ -724,44 +1025,78 @@ builds:
     # Additional information, specific to the provider.
     details:
 
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
     aborted:
 
-    # The duration of the build in msec, if applicable.
+    # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the build was succeessful.
+    # Whether the action was succeessfully executed.
     success:
 
-    # An error message, if the build failed.
+    # An error message, if the action's execution failed.
     error:
 
-    # The version of the module, service, task or test.
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
     version:
 
-# A map of all services that were deployed (or deployment scheduled/attempted for) and the service status.
-deployments:
-  <service name>:
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deploy:
+  <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
 
-    # Additional detail, specific to the provider.
-    detail:
+    # When the service was first deployed by the provider.
+    updatedAt:
 
-    # Whether the service was deployed with dev mode enabled.
-    devMode:
-
-    # Whether the service was deployed with local mode enabled.
-    localMode:
-
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
+    # The mode the action is deployed in.
+    mode:
 
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
@@ -810,9 +1145,92 @@ deployments:
     # Latest error status message of the service (if any).
     lastError:
 
-    # A map of values output from the service.
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
     outputs:
       <name>:
+
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
 
     # How many replicas of the service are currently running.
     runningReplicas:
@@ -820,32 +1238,35 @@ deployments:
     # The current deployment status of the service.
     state:
 
-    # When the service was last updated by the provider.
-    updatedAt:
-
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
     aborted:
 
-    # The duration of the build in msec, if applicable.
+    # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the build was succeessful.
+    # Whether the action was succeessfully executed.
     success:
 
-    # An error message, if the build failed.
+    # An error message, if the action's execution failed.
     error:
 
-    # The version of the module, service, task or test.
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
     version:
 
-# A map of all tests that were run (or scheduled/attempted) and the test results.
-tests:
-  <test name>:
-    # The name of the module that was run.
-    moduleName:
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
 
-    # The command that was run in the module.
-    command:
+# A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+test:
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
 
     # The exit code of the run (if applicable).
     exitCode:
@@ -859,111 +1280,79 @@ tests:
     # The output log from the run.
     log:
 
-    namespaceStatus:
-      pluginName:
-
-      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-      # letter, and cannot end with a dash) and must not be longer than 63 characters.
-      namespaceName:
-
-      state:
-
-    # A map of primitive values, output from the test.
-    outputs:
-      # Number, string or boolean
-      <name>:
-
-    # The name of the test that was run.
-    testName:
-
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
-    aborted:
-
-    # The duration of the build in msec, if applicable.
-    durationMsec:
-
-    # Whether the build was succeessful.
+  <Test name>:
+    # Whether the module was successfully run.
     success:
 
-    # An error message, if the build failed.
-    error:
+    # The exit code of the run (if applicable).
+    exitCode:
 
-    # The version of the module, service, task or test.
-    version:
+    # When the module run was started.
+    startedAt:
 
-# A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
-graphResults:
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+# A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+run:
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
 ```
-
-### garden dev
-
-**Starts the garden development console.**
-
-The Garden dev console is a combination of the `build`, `deploy` and `test` commands.
-It builds, deploys and tests all your modules and services, and re-builds, re-deploys and re-tests
-as you modify the code.
-
-Examples:
-
-    garden dev
-    garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
-    garden dev --hot=*                        # enable hot reloading for all compatible services
-    garden dev --local=service-1,service-2    # enable local mode for service-1 and service-2
-    garden dev --local=*                      # enable local mode for all compatible services
-    garden dev --skip-tests=                  # skip running any tests
-    garden dev --force                        # force redeploy of services when the command starts
-    garden dev --name integ                   # run all tests with the name 'integ' in the project
-    garden test --name integ*                 # run all tests with the name starting with 'integ' in the project
-
-#### Usage
-
-    garden dev [services] [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `services` | No | Specify which services to develop (defaults to all configured services).
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--force` |  | boolean | Force redeploy of service(s).
-  | `--hot-reload` | `--hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading).
-  | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
-This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
-  | `--skip-tests` |  | boolean | Disable running the tests.
-  | `--test-names` | `--tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
-  | `--skip-watch` |  | boolean | [EXPERIMENTAL] Watching is enabled by default but can be disabled by setting this flag to &#x60;false&#x60;.
-If set to &#x60;false&#x60; then file syncing will still work but Garden will ignore changes to config files and services that are not in dev mode.
-This can be a performance improvement for projects that have a large number of files and where only file syncing is needed when in dev mode.
-Note that this flag cannot be used if hot reloading is enabled.
-This flag will be removed in future release in favour of a &quot;smarter&quot; watching mechanism.
-
 
 ### garden exec
 
 **Executes a command (such as an interactive shell) in a running service.**
 
-Finds an active container for a deployed service and executes the given command within the container.
+Finds an active container for a deployed Deploy and executes the given command within the container.
 Supports interactive shells.
 
-_NOTE: This command may not be supported for all module types._
+_NOTE: This command may not be supported for all action types._
 
 Examples:
 
-     garden exec my-service /bin/sh   # runs a shell in the my-service container
+     garden exec my-service /bin/sh   # runs a shell in the my-service Deploy's container
 
 #### Usage
 
-    garden exec <service> <command> [options]
+    garden exec <deploy> <command> [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `service` | Yes | The service to exec the command in.
+  | `deploy` | Yes | The running Deploy action to exec the command in.
   | `command` | Yes | The command to run.
 
 #### Options
@@ -975,7 +1364,7 @@ Examples:
 #### Outputs
 
 ```yaml
-# The exit code of the command executed in the service container.
+# The exit code of the command executed.
 code:
 
 # The output of the executed command.
@@ -988,198 +1377,9 @@ stdout:
 stderr:
 ```
 
-### garden cloud secrets list
-
-**List secrets.**
-
-List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
-
-Examples:
-    garden cloud secrets list                                          # list all secrets
-    garden cloud secrets list --filter-envs dev                        # list all secrets from the dev environment
-    garden cloud secrets list --filter-envs dev --filter-names *_DB_*  # list all secrets from the dev environment that have '_DB_' in their name.
-
-#### Usage
-
-    garden cloud secrets list [options]
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--filter-envs` |  | array:string | Filter on environment. Use comma as a separator to filter on multiple environments. Accepts glob patterns.&quot;
-  | `--filter-user-ids` |  | array:string | Filter on user ID. Use comma as a separator to filter on multiple user IDs. Accepts glob patterns.
-  | `--filter-names` |  | array:string | Filter on secret name. Use comma as a separator to filter on multiple secret names. Accepts glob patterns.
-
-
-### garden cloud secrets create
-
-**Create secrets**
-
-Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
-them to an environment, or an environment and a user.
-
-To scope secrets to a user, you will need the user's ID which you can get from the
-`garden cloud users list` command.
-
-You can optionally read the secrets from a file.
-
-Examples:
-    garden cloud secrets create DB_PASSWORD=my-pwd,ACCESS_KEY=my-key   # create two secrets
-    garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci    # create a secret and scope it to the ci environment
-    garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
-    garden cloud secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
-
-#### Usage
-
-    garden cloud secrets create [secrets] [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `secrets` | No | The names and values of the secrets to create, separated by &#x27;&#x3D;&#x27;. Use comma as a separator to specify multiple secret name/value pairs. Note that you can also leave this empty and have Garden read the secrets from file.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--scope-to-user-id` |  | number | Scope the secret to a user with the given ID. User scoped secrets must be scoped to an environment as well.
-  | `--scope-to-env` |  | string | Scope the secret to an environment. Note that this does not default to the environment that the command runs in (i.e. the one set via the --env flag) and that you need to set this explicitly if you want to create an environment scoped secret.
-  | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
-
-
-### garden cloud secrets delete
-
-**Delete secrets.**
-
-Delete secrets in Garden Cloud. You will nee the IDs of the secrets you want to delete,
-which you which you can get from the `garden cloud secrets list` command.
-
-Examples:
-    garden cloud secrets delete 1,2,3   # delete secrets with IDs 1,2, and 3.
-
-#### Usage
-
-    garden cloud secrets delete [ids] 
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `ids` | No | The IDs of the secrets to delete.
-
-
-
-### garden cloud users list
-
-**List users.**
-
-List all users from Garden Cloud. Optionally filter on group names or user names.
-
-Examples:
-    garden cloud users list                            # list all users
-    garden cloud users list --filter-names Gordon*     # list all the Gordons in Garden Cloud. Useful if you have a lot of Gordons.
-    garden cloud users list --filter-groups devs-*     # list all users in groups that with names that start with 'dev-'
-
-#### Usage
-
-    garden cloud users list [options]
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--filter-names` |  | array:string | Filter on user name. Use comma as a separator to filter on multiple names. Accepts glob patterns.
-  | `--filter-groups` |  | array:string | Filter on the groups the user belongs to. Use comma as a separator to filter on multiple groups. Accepts glob patterns.
-
-
-### garden cloud users create
-
-**Create users**
-
-Create users in Garden Cloud and optionally add the users to specific groups.
-You can get the group IDs from the `garden cloud users list` command.
-
-To create a user, you'll need their GitHub or GitLab username, depending on which one is your VCS provider, and the name
-they should have in Garden Cloud. Note that it **must** the their GitHub/GitLab username, not their email, as people
-can have several emails tied to their GitHub/GitLab accounts.
-
-You can optionally read the users from a file. The file must have the format vcs-username="Actual Username". For example:
-
-fatema_m="Fatema M"
-gordon99="Gordon G"
-
-Examples:
-    garden cloud users create fatema_m="Fatema M",gordon99="Gordon G"      # create two users
-    garden cloud users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
-    garden cloud users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
-
-#### Usage
-
-    garden cloud users create [users] [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `users` | No | The VCS usernames and the names of the users to create, separated by &#x27;&#x3D;&#x27;. Use comma as a separator to specify multiple VCS username/name pairs. Note that you can also leave this empty and have Garden read the users from file.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--add-to-groups` |  | array:string | Add the user to the group with the given ID. Use comma as a separator to add the user to multiple groups.
-  | `--from-file` |  | path | Read the users from the file at the given path. The file should have standard &quot;dotenv&quot; format (as defined by [dotenv](https://github.com/motdotla/dotenv#rules)) where the VCS username is the key and the name is the value.
-
-
-### garden cloud users delete
-
-**Delete users.**
-
-Delete users in Garden Cloud. You will nee the IDs of the users you want to delete,
-which you which you can get from the `garden cloud users list` command.
-
-Examples:
-    garden cloud users delete 1,2,3   # delete users with IDs 1,2, and 3.
-
-#### Usage
-
-    garden cloud users delete [ids] 
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `ids` | No | The IDs of the users to delete.
-
-
-
-### garden cloud groups list
-
-**List groups.**
-
-List all groups from Garden Cloud. This is useful for getting the group IDs when creating
-users via the `garden cloud users create` command.
-
-Examples:
-    garden cloud groups list                       # list all groups
-    garden cloud groups list --filter-names dev-*  # list all groups that start with 'dev-'
-
-#### Usage
-
-    garden cloud groups list [options]
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--filter-names` |  | array:string | Filter on group name. Use comma as a separator to filter on multiple names. Accepts glob patterns.
-
-
 ### garden get graph
 
-**Outputs the dependency relationships specified in this project's garden.yml files.**
+**Outputs the dependency relationships across the project.**
 
 
 #### Usage
@@ -1201,7 +1401,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--exclude-disabled` |  | boolean | Exclude disabled module, service, test, and task configs from output.
+  | `--exclude-disabled` |  | boolean | Exclude disabled action and module configs from output.
   | `--resolve` |  | `full` `partial`  | Choose level of resolution of config templates. Defaults to full. Specify --resolve&#x3D;partial to avoid resolving providers.
 
 #### Outputs
@@ -1240,10 +1440,7 @@ providers:
       environments:
 
     moduleConfigs:
-      - # The schema version of this config (currently not used).
-        apiVersion:
-
-        kind:
+      - kind:
 
         # The type of this module.
         type:
@@ -1311,9 +1508,9 @@ providers:
         # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
-        # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files
-        # and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you
-        # have large directories that should not be watched for changes.
+        # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+        # directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
+        # directories that should not be watched for changes.
         exclude:
 
         # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a
@@ -1390,9 +1587,6 @@ providers:
             # you're using them, using conditional expressions.
             disabled:
 
-            # Set this to true if the module and service configuration supports hot reloading.
-            hotReloadable:
-
             # The `validate` module action should populate this, if the service's code sources are contained in a
             # separate module from the parent module. For example, when the service belongs to a module that contains
             # manifests (e.g. a Helm chart), but the actual code lives in a different module (e.g. a container
@@ -1433,7 +1627,7 @@ providers:
             # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any
             # time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only
             # re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you
-            # run `garden run task`.
+            # run `garden run`.
             cacheResult:
 
             # The task's specification, as defined by its provider plugin.
@@ -1499,21 +1693,16 @@ providers:
       # Use this to include additional information that is specific to the provider.
       detail:
 
-      namespaceStatuses:
-        - pluginName:
-
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
-
-          state:
-
       # Output variables that modules and other variables can reference.
       outputs:
         <name>:
 
       # Set to true to disable caching of the status.
       disableCache:
+
+    state:
+
+    outputs:
 
     # A list of pages that the provider adds to the Garden dashboard.
     dashboardPages:
@@ -1537,12 +1726,601 @@ providers:
 variables:
   <name>:
 
+# All action configs in the project.
+actionConfigs:
+  # Build action configs in the project.
+  Build:
+    <name>:
+      # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
+      # be defined by your configured providers.
+      type:
+
+      # A valid name for the action. Must be unique across all actions of the same _kind_ in your project.
+      name:
+
+      # A description of the action.
+      description:
+
+      # By default, the directory where the action is defined is used as the source for the build context.
+      #
+      # You can override this by setting either `source.path` to another (POSIX-style) path relative to the action
+      # source directory, or `source.repository` to get the source from an external repository.
+      #
+      # If using `source.path`, you must make sure the target path is in a git repository.
+      #
+      # For `source.repository` behavior, please refer to the [Remote Sources
+      # guide](https://docs.garden.io/advanced/using-remote-sources).
+      source:
+        # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
+        # is in a git repository!
+        path:
+
+        # When set, Garden will import the action source from this repository, but use this action configuration (and
+        # not scan for configs in the separate repository).
+        repository:
+          # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a
+          # specific branch or tag, with the format: <git remote url>#<branch|tag>
+          url:
+
+      # A list of other actions that this action depends on, and should be built, deployed or run (depending on the
+      # action type) before processing this action.
+      #
+      # Each dependency should generally be expressed as a `"<kind>.<name>"` string, where _<kind>_ is one of `build`,
+      # `deploy`, `run` or `test`, and _<name>_ is the name of the action to depend on.
+      #
+      # You may also optionally specify a dependency as an object, e.g. `{ kind: "Build", name: "some-image" }`.
+      #
+      # Any empty values (i.e. null or empty strings) are ignored, so that you can conditionally add in a dependency
+      # via template expressions.
+      dependencies:
+
+      # Set this to `true` to disable the action. You can use this with conditional template strings to disable
+      # actions based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name
+      # == "prod"}`). This can be handy when you only need certain actions for specific environments, e.g. only for
+      # development.
+      #
+      # For Build actions, this means the build is not performed _unless_ it is declared as a dependency by another
+      # enabled action (in which case the Build is assumed to be necessary for the dependant action to be run or
+      # built).
+      #
+      # For other action kinds, the action is skipped in all scenarios, and dependency declarations to it are ignored.
+      # Note however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the
+      # action is disabled, so you need to make sure to provide alternate values for those if you're using them, using
+      # conditional expressions.
+      disabled:
+
+      # A map of variables scoped to this particular action. These are resolved before any other parts of the action
+      # configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in
+      # that order. They may reference group-scoped and project-scoped variables, and generally can use any template
+      # strings normally allowed when resolving the action.
+      variables:
+        <name>:
+
+      # Specify a list of paths (relative to the directory where the action is defined) to a file containing
+      # variables, that we apply on top of the action-level `variables` field, and take precedence over group-level
+      # variables (if applicable) and project-level variables, in that order.
+      #
+      # If you specify multiple paths, they are merged in the order specified, i.e. the last one takes precedence over
+      # the previous ones.
+      #
+      # The format of the files is determined by the configured file's extension:
+      #
+      # * `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+      # * `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may
+      # contain any value type.
+      # * `.json` - JSON. Must contain a single JSON _object_ (not an array).
+      #
+      # _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of
+      # nested objects and arrays._
+      #
+      # To use different varfiles in different environments, you can template in the environment name to the varfile
+      # name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles
+      # exist).
+      #
+      # If a listed varfile cannot be found, it is ignored.
+      varfiles:
+
+      # The spec for the specific action type.
+      spec:
+
+      kind:
+
+      # When false, disables publishing this build to remote registries via the publish command.
+      allowPublish:
+
+      # By default, builds are _staged_ in `.garden/build/<build name>` and that directory is used as the build
+      # context. This is done to avoid builds contaminating the source tree, which can end up confusing version
+      # computation, or a build including files that are not intended to be part of it. In most scenarios, the default
+      # behavior is desired and leads to the most predictable and verifiable builds, as well as avoiding potential
+      # confusion around file watching.
+      #
+      # You _can_ override this by setting `buildAtSource: true`, which basically sets the build root for this action
+      # at the location of the Build action config in the source tree. This means e.g. that the build command in
+      # `exec` Builds runs at the source, and for `docker-image` builds the build is initiated from the source
+      # directory.
+      #
+      # An important implication is that `include` and `exclude` directives for the action, as well as `.gardenignore`
+      # files, only affect version hash computation but are otherwise not effective in controlling the build context.
+      # This may lead to unexpected variation in builds with the same version hash. **This may also slow down code
+      # synchronization to remote destinations, e.g. when performing remote `docker-image` builds.**
+      #
+      # Additionally, any `exec` runtime actions (and potentially others) that reference this Build with the `build`
+      # field, will run from the source directory of this action.
+      #
+      # While there may be good reasons to do this in some situations, please be aware that this increases the
+      # potential for side-effects and variability in builds. **You must take extra care**, including making sure that
+      # files generated during builds are excluded with e.g. `.gardenignore` files or `exclude` fields on potentially
+      # affected actions. Another potential issue is causing infinite loops when running with file-watching enabled,
+      # basically triggering a new build during the build.
+      buildAtSource:
+
+      # Copy files from other builds, ahead of running this build.
+      copyFrom:
+        - # The name of the Build action to copy from.
+          build:
+
+          # POSIX-style path or filename of the directory or file(s) to copy to the target, relative to the build path
+          # of the source build.
+          sourcePath:
+
+          # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
+          # Defaults to to same as source path.
+          targetPath:
+
+      # Specify a list of POSIX-style paths or globs that should be included as the build context for the Build, and
+      # will affect the computed _version_ of the action.
+      #
+      # If nothing is specified here, the whole directory may be assumed to be included in the build. Providers are
+      # sometimes able to infer the list of paths, e.g. from a Dockerfile, but often this is inaccurate (say, if a
+      # Dockerfile has an `ADD .` statement) so it may be important to set `include` and/or `exclude` to define the
+      # build context. Otherwise you may find unrelated files being included in the build context and the build
+      # version, which may result in unnecessarily repeated builds.
+      #
+      # You can _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree,
+      # which use the same format as `.gitignore` files. See the [Configuration Files
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # for details.
+      include:
+
+      # Specify a list of POSIX-style paths or glob patterns that should be explicitly excluded from the build context
+      # and the Build version.
+      #
+      # Providers are sometimes able to infer the `include` field, e.g. from a Dockerfile, but often this is
+      # inaccurate (say, if a Dockerfile has an `ADD .` statement) so it may be important to set `include` and/or
+      # `exclude` to define the build context. Otherwise you may find unrelated files being included in the build
+      # context and the build version, which may result in unnecessarily repeated builds.
+      #
+      # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+      # directories are watched for changes when watching is enabled. Use the project `scan.exclude` field to affect
+      # those, if you have large directories that should not be watched for changes.
+      exclude:
+
+      # Set a timeout for the build to complete, in seconds.
+      timeout:
+
+  # Deploy action configs in the project.
+  Deploy:
+    <name>:
+      # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
+      # be defined by your configured providers.
+      type:
+
+      # A valid name for the action. Must be unique across all actions of the same _kind_ in your project.
+      name:
+
+      # A description of the action.
+      description:
+
+      # By default, the directory where the action is defined is used as the source for the build context.
+      #
+      # You can override this by setting either `source.path` to another (POSIX-style) path relative to the action
+      # source directory, or `source.repository` to get the source from an external repository.
+      #
+      # If using `source.path`, you must make sure the target path is in a git repository.
+      #
+      # For `source.repository` behavior, please refer to the [Remote Sources
+      # guide](https://docs.garden.io/advanced/using-remote-sources).
+      source:
+        # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
+        # is in a git repository!
+        path:
+
+        # When set, Garden will import the action source from this repository, but use this action configuration (and
+        # not scan for configs in the separate repository).
+        repository:
+          # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a
+          # specific branch or tag, with the format: <git remote url>#<branch|tag>
+          url:
+
+      # A list of other actions that this action depends on, and should be built, deployed or run (depending on the
+      # action type) before processing this action.
+      #
+      # Each dependency should generally be expressed as a `"<kind>.<name>"` string, where _<kind>_ is one of `build`,
+      # `deploy`, `run` or `test`, and _<name>_ is the name of the action to depend on.
+      #
+      # You may also optionally specify a dependency as an object, e.g. `{ kind: "Build", name: "some-image" }`.
+      #
+      # Any empty values (i.e. null or empty strings) are ignored, so that you can conditionally add in a dependency
+      # via template expressions.
+      dependencies:
+
+      # Set this to `true` to disable the action. You can use this with conditional template strings to disable
+      # actions based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name
+      # == "prod"}`). This can be handy when you only need certain actions for specific environments, e.g. only for
+      # development.
+      #
+      # For Build actions, this means the build is not performed _unless_ it is declared as a dependency by another
+      # enabled action (in which case the Build is assumed to be necessary for the dependant action to be run or
+      # built).
+      #
+      # For other action kinds, the action is skipped in all scenarios, and dependency declarations to it are ignored.
+      # Note however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the
+      # action is disabled, so you need to make sure to provide alternate values for those if you're using them, using
+      # conditional expressions.
+      disabled:
+
+      # Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus
+      # will affect the computed _version_ of the action.
+      #
+      # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
+      # An exception would be e.g. an `exec` action without a `build` reference, where the relevant files cannot be
+      # inferred and you want to define which files should affect the version of the action, e.g. to make sure a Test
+      # action is run when certain files are modified.
+      #
+      # _Build_ actions have a different behavior, since they generally are based on some files in the source tree, so
+      # please reference the docs for more information on those.
+      #
+      # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
+      # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # for details.
+      include:
+
+      # Specify a list of POSIX-style paths or glob patterns that should be explicitly excluded from the action's
+      # version.
+      #
+      # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
+      # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
+      # `include` paths, or such paths inferred by providers. See the [Configuration Files
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # for details.
+      #
+      # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+      # directories are watched for changes when watching is enabled. Use the project `scan.exclude` field to affect
+      # those, if you have large directories that should not be watched for changes.
+      exclude:
+
+      # A map of variables scoped to this particular action. These are resolved before any other parts of the action
+      # configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in
+      # that order. They may reference group-scoped and project-scoped variables, and generally can use any template
+      # strings normally allowed when resolving the action.
+      variables:
+        <name>:
+
+      # Specify a list of paths (relative to the directory where the action is defined) to a file containing
+      # variables, that we apply on top of the action-level `variables` field, and take precedence over group-level
+      # variables (if applicable) and project-level variables, in that order.
+      #
+      # If you specify multiple paths, they are merged in the order specified, i.e. the last one takes precedence over
+      # the previous ones.
+      #
+      # The format of the files is determined by the configured file's extension:
+      #
+      # * `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+      # * `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may
+      # contain any value type.
+      # * `.json` - JSON. Must contain a single JSON _object_ (not an array).
+      #
+      # _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of
+      # nested objects and arrays._
+      #
+      # To use different varfiles in different environments, you can template in the environment name to the varfile
+      # name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles
+      # exist).
+      #
+      # If a listed varfile cannot be found, it is ignored.
+      varfiles:
+
+      # The spec for the specific action type.
+      spec:
+
+      # Specify a _Build_ action, and resolve this action from the context of that Build.
+      #
+      # For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
+      # `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
+      #
+      # This would mean that instead of looking for manifest files relative to this action's location in your project
+      # structure, the output directory for the referenced `exec` Build would be the source.
+      build:
+
+      kind:
+
+      # Timeout for the deploy to complete, in seconds.
+      timeout:
+
+  # Run action configs in the project.
+  Run:
+    <name>:
+      # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
+      # be defined by your configured providers.
+      type:
+
+      # A valid name for the action. Must be unique across all actions of the same _kind_ in your project.
+      name:
+
+      # A description of the action.
+      description:
+
+      # By default, the directory where the action is defined is used as the source for the build context.
+      #
+      # You can override this by setting either `source.path` to another (POSIX-style) path relative to the action
+      # source directory, or `source.repository` to get the source from an external repository.
+      #
+      # If using `source.path`, you must make sure the target path is in a git repository.
+      #
+      # For `source.repository` behavior, please refer to the [Remote Sources
+      # guide](https://docs.garden.io/advanced/using-remote-sources).
+      source:
+        # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
+        # is in a git repository!
+        path:
+
+        # When set, Garden will import the action source from this repository, but use this action configuration (and
+        # not scan for configs in the separate repository).
+        repository:
+          # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a
+          # specific branch or tag, with the format: <git remote url>#<branch|tag>
+          url:
+
+      # A list of other actions that this action depends on, and should be built, deployed or run (depending on the
+      # action type) before processing this action.
+      #
+      # Each dependency should generally be expressed as a `"<kind>.<name>"` string, where _<kind>_ is one of `build`,
+      # `deploy`, `run` or `test`, and _<name>_ is the name of the action to depend on.
+      #
+      # You may also optionally specify a dependency as an object, e.g. `{ kind: "Build", name: "some-image" }`.
+      #
+      # Any empty values (i.e. null or empty strings) are ignored, so that you can conditionally add in a dependency
+      # via template expressions.
+      dependencies:
+
+      # Set this to `true` to disable the action. You can use this with conditional template strings to disable
+      # actions based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name
+      # == "prod"}`). This can be handy when you only need certain actions for specific environments, e.g. only for
+      # development.
+      #
+      # For Build actions, this means the build is not performed _unless_ it is declared as a dependency by another
+      # enabled action (in which case the Build is assumed to be necessary for the dependant action to be run or
+      # built).
+      #
+      # For other action kinds, the action is skipped in all scenarios, and dependency declarations to it are ignored.
+      # Note however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the
+      # action is disabled, so you need to make sure to provide alternate values for those if you're using them, using
+      # conditional expressions.
+      disabled:
+
+      # Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus
+      # will affect the computed _version_ of the action.
+      #
+      # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
+      # An exception would be e.g. an `exec` action without a `build` reference, where the relevant files cannot be
+      # inferred and you want to define which files should affect the version of the action, e.g. to make sure a Test
+      # action is run when certain files are modified.
+      #
+      # _Build_ actions have a different behavior, since they generally are based on some files in the source tree, so
+      # please reference the docs for more information on those.
+      #
+      # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
+      # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # for details.
+      include:
+
+      # Specify a list of POSIX-style paths or glob patterns that should be explicitly excluded from the action's
+      # version.
+      #
+      # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
+      # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
+      # `include` paths, or such paths inferred by providers. See the [Configuration Files
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # for details.
+      #
+      # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+      # directories are watched for changes when watching is enabled. Use the project `scan.exclude` field to affect
+      # those, if you have large directories that should not be watched for changes.
+      exclude:
+
+      # A map of variables scoped to this particular action. These are resolved before any other parts of the action
+      # configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in
+      # that order. They may reference group-scoped and project-scoped variables, and generally can use any template
+      # strings normally allowed when resolving the action.
+      variables:
+        <name>:
+
+      # Specify a list of paths (relative to the directory where the action is defined) to a file containing
+      # variables, that we apply on top of the action-level `variables` field, and take precedence over group-level
+      # variables (if applicable) and project-level variables, in that order.
+      #
+      # If you specify multiple paths, they are merged in the order specified, i.e. the last one takes precedence over
+      # the previous ones.
+      #
+      # The format of the files is determined by the configured file's extension:
+      #
+      # * `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+      # * `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may
+      # contain any value type.
+      # * `.json` - JSON. Must contain a single JSON _object_ (not an array).
+      #
+      # _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of
+      # nested objects and arrays._
+      #
+      # To use different varfiles in different environments, you can template in the environment name to the varfile
+      # name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles
+      # exist).
+      #
+      # If a listed varfile cannot be found, it is ignored.
+      varfiles:
+
+      # The spec for the specific action type.
+      spec:
+
+      # Specify a _Build_ action, and resolve this action from the context of that Build.
+      #
+      # For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
+      # `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
+      #
+      # This would mean that instead of looking for manifest files relative to this action's location in your project
+      # structure, the output directory for the referenced `exec` Build would be the source.
+      build:
+
+      kind:
+
+      # Set a timeout for the run to complete, in seconds.
+      timeout:
+
+  # Test action configs in the project.
+  Test:
+    <name>:
+      # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
+      # be defined by your configured providers.
+      type:
+
+      # A valid name for the action. Must be unique across all actions of the same _kind_ in your project.
+      name:
+
+      # A description of the action.
+      description:
+
+      # By default, the directory where the action is defined is used as the source for the build context.
+      #
+      # You can override this by setting either `source.path` to another (POSIX-style) path relative to the action
+      # source directory, or `source.repository` to get the source from an external repository.
+      #
+      # If using `source.path`, you must make sure the target path is in a git repository.
+      #
+      # For `source.repository` behavior, please refer to the [Remote Sources
+      # guide](https://docs.garden.io/advanced/using-remote-sources).
+      source:
+        # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
+        # is in a git repository!
+        path:
+
+        # When set, Garden will import the action source from this repository, but use this action configuration (and
+        # not scan for configs in the separate repository).
+        repository:
+          # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a
+          # specific branch or tag, with the format: <git remote url>#<branch|tag>
+          url:
+
+      # A list of other actions that this action depends on, and should be built, deployed or run (depending on the
+      # action type) before processing this action.
+      #
+      # Each dependency should generally be expressed as a `"<kind>.<name>"` string, where _<kind>_ is one of `build`,
+      # `deploy`, `run` or `test`, and _<name>_ is the name of the action to depend on.
+      #
+      # You may also optionally specify a dependency as an object, e.g. `{ kind: "Build", name: "some-image" }`.
+      #
+      # Any empty values (i.e. null or empty strings) are ignored, so that you can conditionally add in a dependency
+      # via template expressions.
+      dependencies:
+
+      # Set this to `true` to disable the action. You can use this with conditional template strings to disable
+      # actions based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name
+      # == "prod"}`). This can be handy when you only need certain actions for specific environments, e.g. only for
+      # development.
+      #
+      # For Build actions, this means the build is not performed _unless_ it is declared as a dependency by another
+      # enabled action (in which case the Build is assumed to be necessary for the dependant action to be run or
+      # built).
+      #
+      # For other action kinds, the action is skipped in all scenarios, and dependency declarations to it are ignored.
+      # Note however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the
+      # action is disabled, so you need to make sure to provide alternate values for those if you're using them, using
+      # conditional expressions.
+      disabled:
+
+      # Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus
+      # will affect the computed _version_ of the action.
+      #
+      # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
+      # An exception would be e.g. an `exec` action without a `build` reference, where the relevant files cannot be
+      # inferred and you want to define which files should affect the version of the action, e.g. to make sure a Test
+      # action is run when certain files are modified.
+      #
+      # _Build_ actions have a different behavior, since they generally are based on some files in the source tree, so
+      # please reference the docs for more information on those.
+      #
+      # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
+      # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # for details.
+      include:
+
+      # Specify a list of POSIX-style paths or glob patterns that should be explicitly excluded from the action's
+      # version.
+      #
+      # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
+      # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
+      # `include` paths, or such paths inferred by providers. See the [Configuration Files
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # for details.
+      #
+      # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+      # directories are watched for changes when watching is enabled. Use the project `scan.exclude` field to affect
+      # those, if you have large directories that should not be watched for changes.
+      exclude:
+
+      # A map of variables scoped to this particular action. These are resolved before any other parts of the action
+      # configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in
+      # that order. They may reference group-scoped and project-scoped variables, and generally can use any template
+      # strings normally allowed when resolving the action.
+      variables:
+        <name>:
+
+      # Specify a list of paths (relative to the directory where the action is defined) to a file containing
+      # variables, that we apply on top of the action-level `variables` field, and take precedence over group-level
+      # variables (if applicable) and project-level variables, in that order.
+      #
+      # If you specify multiple paths, they are merged in the order specified, i.e. the last one takes precedence over
+      # the previous ones.
+      #
+      # The format of the files is determined by the configured file's extension:
+      #
+      # * `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+      # * `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may
+      # contain any value type.
+      # * `.json` - JSON. Must contain a single JSON _object_ (not an array).
+      #
+      # _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of
+      # nested objects and arrays._
+      #
+      # To use different varfiles in different environments, you can template in the environment name to the varfile
+      # name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles
+      # exist).
+      #
+      # If a listed varfile cannot be found, it is ignored.
+      varfiles:
+
+      # The spec for the specific action type.
+      spec:
+
+      # Specify a _Build_ action, and resolve this action from the context of that Build.
+      #
+      # For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
+      # `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
+      #
+      # This would mean that instead of looking for manifest files relative to this action's location in your project
+      # structure, the output directory for the referenced `exec` Build would be the source.
+      build:
+
+      kind:
+
+      # Set a timeout for the test to complete, in seconds.
+      timeout:
+
 # All module configs in the project.
 moduleConfigs:
-  - # The schema version of this config (currently not used).
-    apiVersion:
-
-    kind:
+  - kind:
 
     # The type of this module.
     type:
@@ -1609,8 +2387,8 @@ moduleConfigs:
     # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
     # details.
     #
-    # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-    # directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+    # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+    # directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
     # directories that should not be watched for changes.
     exclude:
 
@@ -1688,9 +2466,6 @@ moduleConfigs:
         # you're using them, using conditional expressions.
         disabled:
 
-        # Set this to true if the module and service configuration supports hot reloading.
-        hotReloadable:
-
         # The `validate` module action should populate this, if the service's code sources are contained in a separate
         # module from the parent module. For example, when the service belongs to a module that contains manifests
         # (e.g. a Helm chart), but the actual code lives in a different module (e.g. a container module).
@@ -1729,8 +2504,7 @@ moduleConfigs:
 
         # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
         # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when
-        # its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run
-        # task`.
+        # its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
         cacheResult:
 
         # The task's specification, as defined by its provider plugin.
@@ -1790,10 +2564,7 @@ moduleConfigs:
 
 # All workflow configs in the project.
 workflowConfigs:
-  - # The schema version of this workflow's config (currently not used).
-    apiVersion:
-
-    kind:
+  - kind:
 
     # The name of this workflow.
     name:
@@ -1965,11 +2736,79 @@ projectId:
 
 # The Garden Cloud domain (Garden Cloud only).
 domain:
+
+# All configured external project sources.
+sources:
+  - # The name of the source to import
+    name:
+
+    # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
+    # branch or tag, with the format: <git remote url>#<branch|tag>
+    repositoryUrl:
+
+# A list of suggested commands to run in the project.
+suggestedCommands:
+  - # Name of the command
+    name:
+
+    # Short description of what the command does.
+    description:
+
+    # The source of the suggestion, e.g. a plugin name.
+    source:
+
+    # A Garden command to run (including arguments).
+    gardenCommand:
+
+    # A shell command to run.
+    shellCommand:
+      # The shell command to run (without arguments).
+      command:
+
+      # Arguments to pass to the command.
+      args:
+
+      # Absolute path to run the shell command in.
+      cwd:
+
+    # A URL to open in a browser window.
+    openUrl:
+
+    # The icon to display next to the command, where applicable (e.g. in dashboard or Garden Desktop).
+    icon:
+      # A string reference (and alt text) for the icon.
+      name:
+
+      # A URI for the image. May be a data URI.
+      src:
+```
+
+### garden get files
+
+**List all files from all or specified actions.**
+
+This is useful to diagnose issues with ignores, include and exclude for a given action.
+
+#### Usage
+
+    garden get files [keys] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `keys` | No | One or more action keys (e.g. deploy.api), separated by spaces. If omitted, all actions are queried.
+
+
+#### Outputs
+
+```yaml
+<name>:
 ```
 
 ### garden get linked-repos
 
-**Outputs a list of all linked remote sources and modules for this project.**
+**Outputs a list of all linked remote sources, actions and modules for this project.**
 
 
 #### Usage
@@ -2023,7 +2862,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `modules` | No | Specify module(s) to list. Use comma as a separator to specify multiple modules. Skip to return all modules.
+  | `modules` | No | Specify module(s) to list. You may specify multiple modules, separated by spaces. Skip to return all modules.
 
 #### Options
 
@@ -2039,9 +2878,6 @@ Examples:
 modules:
   # The configuration for a module.
   <name>:
-    # The schema version of this config (currently not used).
-    apiVersion:
-
     kind:
 
     # The type of this module.
@@ -2109,8 +2945,8 @@ modules:
     # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
     # details.
     #
-    # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-    # directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+    # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+    # directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
     # directories that should not be watched for changes.
     exclude:
 
@@ -2185,9 +3021,6 @@ modules:
         # you're using them, using conditional expressions.
         disabled:
 
-        # Set this to true if the module and service configuration supports hot reloading.
-        hotReloadable:
-
         # The `validate` module action should populate this, if the service's code sources are contained in a separate
         # module from the parent module. For example, when the service belongs to a module that contains manifests
         # (e.g. a Helm chart), but the actual code lives in a different module (e.g. a container module).
@@ -2226,8 +3059,7 @@ modules:
 
         # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
         # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when
-        # its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run
-        # task`.
+        # its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
         cacheResult:
 
         # The task's specification, as defined by its provider plugin.
@@ -2288,9 +3120,6 @@ modules:
     # The path to the build staging directory for the module.
     buildPath:
 
-    # The path to the build metadata directory for the module.
-    buildMetadataPath:
-
     # A list of types that this module is compatible with (i.e. the module type itself + all bases).
     compatibleTypes:
 
@@ -2298,6 +3127,9 @@ modules:
     configPath:
 
     version:
+      # The hash of all files belonging to the Garden action/module.
+      contentHash:
+
       # A Stack Graph node (i.e. module, service, task or test) version.
       versionString:
 
@@ -2335,13 +3167,18 @@ modules:
 
 ### garden get status
 
-**Outputs the full status of your environment.**
+**Outputs the full status of your project/environment and all actions.**
 
 
 #### Usage
 
-    garden get status 
+    garden get status [options]
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--skip-detail` |  | boolean | Skip plugin specific details. Only applicable when using the --output&#x3D;json|yaml option. Useful for trimming down the output.
 
 #### Outputs
 
@@ -2356,15 +3193,6 @@ providers:
     # Use this to include additional information that is specific to the provider.
     detail:
 
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
-
     # Output variables that modules and other variables can reference.
     outputs:
       <name>:
@@ -2372,208 +3200,542 @@ providers:
     # Set to true to disable caching of the status.
     disableCache:
 
-# A map of statuses for each configured service.
-services:
-  <name>:
-    # When the service was first deployed by the provider.
-    createdAt:
+actions:
+  # A map of statuses for each configured Build.
+  Build:
+    <name>:
+      # The state of the action.
+      state:
 
-    # Additional detail, specific to the provider.
-    detail:
+      # Optional provider-specific information about the action status or results.
+      detail:
 
-    # Whether the service was deployed with dev mode enabled.
-    devMode:
+      # Structured outputs from the execution, as defined by individual action/module types, to be made available for
+      # dependencies and in templating.
+      outputs:
+        <name>:
 
-    # Whether the service was deployed with local mode enabled.
-    localMode:
+      # Set to true if the action handler is running a process persistently and attached to the Garden process after
+      # returning.
+      attached:
 
-    namespaceStatuses:
-      - pluginName:
+  # A map of statuses for each configured Deploy.
+  Deploy:
+    <name>:
+      # The state of the action.
+      state:
 
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
+      # Structured outputs from the execution, as defined by individual action/module types, to be made available for
+      # dependencies and in templating.
+      outputs:
+        <name>:
 
+      # Set to true if the action handler is running a process persistently and attached to the Garden process after
+      # returning.
+      attached:
+
+      detail:
+        # When the service was first deployed by the provider.
+        createdAt:
+
+        # Additional detail, specific to the provider.
+        detail:
+
+        # The mode the action is deployed in.
+        mode:
+
+        # The ID used for the service by the provider (if not the same as the service name).
+        externalId:
+
+        # The provider version of the deployed service (if different from the Garden module version.
+        externalVersion:
+
+        # A list of ports that can be forwarded to from the Garden agent by the provider.
+        forwardablePorts:
+          - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+            name:
+
+            # The preferred local port to use for forwarding.
+            preferredLocalPort:
+
+            # The protocol of the port.
+            protocol:
+
+            # The target name/hostname to forward to (defaults to the service name).
+            targetName:
+
+            # The target port on the service.
+            targetPort:
+
+            # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+            urlProtocol:
+
+        # List of currently deployed ingress endpoints for the service.
+        ingresses:
+          - # The port number that the service is exposed on internally.
+            # This defaults to the first specified port for the service.
+            port:
+
+            # The ingress path that should be matched to route to this service.
+            path:
+
+            # The protocol to use for the ingress.
+            protocol:
+
+            # The hostname where the service can be accessed.
+            hostname:
+
+        # Latest status message of the service (if any).
+        lastMessage:
+
+        # Latest error status message of the service (if any).
+        lastError:
+
+        # A map of values output from the deployment.
+        outputs:
+          <name>:
+
+        # How many replicas of the service are currently running.
+        runningReplicas:
+
+        # The current deployment status of the service.
         state:
 
-    # The ID used for the service by the provider (if not the same as the service name).
-    externalId:
+        # When the service was last updated by the provider.
+        updatedAt:
 
-    # The provider version of the deployed service (if different from the Garden module version.
-    externalVersion:
+        # The Garden module version of the deployed service.
+        version:
 
-    # A list of ports that can be forwarded to from the Garden agent by the provider.
-    forwardablePorts:
-      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
-        name:
+  # A map of statuses for each configured Run.
+  Run:
+    <name>:
+      # The state of the action.
+      state:
 
-        # The preferred local port to use for forwarding.
-        preferredLocalPort:
+      # Structured outputs from the execution, as defined by individual action/module types, to be made available for
+      # dependencies and in templating.
+      outputs:
+        <name>:
 
-        # The protocol of the port.
-        protocol:
+      # Set to true if the action handler is running a process persistently and attached to the Garden process after
+      # returning.
+      attached:
 
-        # The target name/hostname to forward to (defaults to the service name).
-        targetName:
+      detail:
+        # Whether the module was successfully run.
+        success:
 
-        # The target port on the service.
-        targetPort:
+        # The exit code of the run (if applicable).
+        exitCode:
 
-        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
-        urlProtocol:
+        # When the module run was started.
+        startedAt:
 
-    # List of currently deployed ingress endpoints for the service.
-    ingresses:
-      - # The port number that the service is exposed on internally.
-        # This defaults to the first specified port for the service.
-        port:
+        # When the module run was completed.
+        completedAt:
 
-        # The ingress path that should be matched to route to this service.
-        path:
+        # The output log from the run.
+        log:
 
-        # The protocol to use for the ingress.
-        protocol:
+  # A map of statuses for each configured Test.
+  Test:
+    <name>:
+      # The state of the action.
+      state:
 
-        # The hostname where the service can be accessed.
-        hostname:
+      # Structured outputs from the execution, as defined by individual action/module types, to be made available for
+      # dependencies and in templating.
+      outputs:
+        <name>:
 
-    # Latest status message of the service (if any).
-    lastMessage:
+      # Set to true if the action handler is running a process persistently and attached to the Garden process after
+      # returning.
+      attached:
 
-    # Latest error status message of the service (if any).
-    lastError:
+      detail:
+        # Whether the module was successfully run.
+        success:
 
-    # A map of values output from the service.
-    outputs:
-      <name>:
+        # The exit code of the run (if applicable).
+        exitCode:
 
-    # How many replicas of the service are currently running.
-    runningReplicas:
+        # When the module run was started.
+        startedAt:
 
-    # The current deployment status of the service.
-    state:
+        # When the module run was completed.
+        completedAt:
 
-    # When the service was last updated by the provider.
-    updatedAt:
-
-    # The Garden module version of the deployed service.
-    version:
-
-# A map of statuses for each configured task.
-tasks:
-  <name>:
-    state:
-
-    # When the last run was started (if applicable).
-    startedAt:
-
-    # When the last run completed (if applicable).
-    completedAt:
-
-# A map of statuses for each configured test.
-tests:
-  <name>:
-    state:
-
-    # When the last run was started (if applicable).
-    startedAt:
-
-    # When the last run completed (if applicable).
-    completedAt:
+        # The output log from the run.
+        log:
 ```
 
-### garden get tasks
+### garden get actions
 
-**Lists the tasks defined in your project's modules.**
+**Outputs all or specified actions.**
 
+Outputs all or specified actions. Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get actions                                         # list all actions in the project
+  garden get actions --include-state                         # list all actions in the project with state in output
+  garden get actions --detail                                # list all actions in project with detailed info
+  garden get actions --kind deploy                           # only list the actions of kind 'Deploy'
+  garden get actions A B --kind build --sort type            # list  actions A and B of kind 'Build' sorted by type
+  garden get actions --include-state -o=json                 # get json output
 
 #### Usage
 
-    garden get tasks [tasks] 
+    garden get actions [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `tasks` | No | Specify task(s) to list. Use comma as a separator to specify multiple tasks.
+  | `names` | No | Specify name(s) of the action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all actions.
 
+#### Options
 
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each action, including path, dependencies, dependents, associated module and if the action is disabled.
+  | `--include-state` |  | boolean | Include state of action(s) in output.
+  | `--sort` |  | `name` `kind` `type`  | Sort the actions result by action name, kind or type. By default action results are sorted by name.
+  | `--kind` |  | `build` `deploy` `run` `test`  | Choose actions of specific kind only. By default all actions are shown.
+
+#### Outputs
+
+```yaml
+# A list of the actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
+
+### garden get deploys
+
+**Lists the deploy actions defined in your project.**
+
+Lists all or specified deploy action(s). Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get deploys                      # list all deploy actions in the project
+  garden get deploys --include-state      # list all deploy actions in the project including action state in output
+  garden get deploys --detail             # list all deploy actions in project with detailed info
+  garden get deploys A B --sort type      # list only deploy actions A and B sorted by type
+
+#### Usage
+
+    garden get deploys [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | Specify name(s) of the deploy action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all deploy actions.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each deploy action, including path, dependencies, dependents, associated module and if the deploy action is disabled.
+  | `--include-state` |  | boolean | Include state of deploy(s) in output.
+  | `--sort` |  | `name` `type`  | Sort the deploy actions result by action name or type. By default deploy action results are sorted by name.
+
+#### Outputs
+
+```yaml
+# A list of the deploy actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
+
+### garden get builds
+
+**Lists the build actions defined in your project.**
+
+Lists all or specified build action(s). Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get builds                      # list all build actions in the project
+  garden get builds --include-state      # list all build actions in the project including action state in output
+  garden get builds --detail             # list all build actions in project with detailed info
+  garden get builds A B --sort type      # list only build actions A and B sorted by type
+
+#### Usage
+
+    garden get builds [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | Specify name(s) of the build action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all build actions.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each build action, including path, dependencies, dependents, associated module and if the build action is disabled.
+  | `--include-state` |  | boolean | Include state of build(s) in output.
+  | `--sort` |  | `name` `type`  | Sort the build actions result by action name or type. By default build action results are sorted by name.
+
+#### Outputs
+
+```yaml
+# A list of the build actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
+
+### garden get runs
+
+**Lists the run actions defined in your project.**
+
+Lists all or specified run action(s). Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get runs                      # list all run actions in the project
+  garden get runs --include-state      # list all run actions in the project including action state in output
+  garden get runs --detail             # list all run actions in project with detailed info
+  garden get runs A B --sort type      # list only run actions A and B sorted by type
+
+#### Usage
+
+    garden get runs [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | Specify name(s) of the run action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all run actions.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each run action, including path, dependencies, dependents, associated module and if the run action is disabled.
+  | `--include-state` |  | boolean | Include state of run(s) in output.
+  | `--sort` |  | `name` `type`  | Sort the run actions result by action name or type. By default run action results are sorted by name.
+
+#### Outputs
+
+```yaml
+# A list of the run actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
 
 ### garden get tests
 
-**Lists the tests defined in your project's modules.**
+**Lists the test actions defined in your project.**
 
+Lists all or specified test action(s). Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get tests                      # list all test actions in the project
+  garden get tests --include-state      # list all test actions in the project including action state in output
+  garden get tests --detail             # list all test actions in project with detailed info
+  garden get tests A B --sort type      # list only test actions A and B sorted by type
 
 #### Usage
 
-    garden get tests [tests] 
+    garden get tests [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `tests` | No | Specify tests(s) to list. Use comma as a separator to specify multiple tests.
+  | `names` | No | Specify name(s) of the test action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all test actions.
 
+#### Options
 
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each test action, including path, dependencies, dependents, associated module and if the test action is disabled.
+  | `--include-state` |  | boolean | Include state of test(s) in output.
+  | `--sort` |  | `name` `type`  | Sort the test actions result by action name or type. By default test action results are sorted by name.
 
-### garden get task-result
+#### Outputs
 
-**Outputs the latest execution result of a provided task.**
+```yaml
+# A list of the test actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
+
+### garden get run-result
+
+**Outputs the latest result of a run (or task, if using modules).**
 
 
 #### Usage
 
-    garden get task-result <name> 
+    garden get run-result <name> 
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `name` | Yes | The name of the task
+  | `name` | Yes | The name of the run (or task, if using modules)
 
 
 #### Outputs
 
 ```yaml
-# The name of the module that the task belongs to.
-moduleName:
+# The state of the action.
+state:
 
-# The name of the task that was run.
-taskName:
-
-# The command that the task ran in the module.
-command:
-
-# The string version of the task.
-version:
-
-# Whether the task was successfully run.
-success:
-
-# When the task run was started.
-startedAt:
-
-# When the task run was completed.
-completedAt:
-
-# The output log from the run.
-log:
-
-# A map of primitive values, output from the task.
+# Structured outputs from the execution, as defined by individual action/module types, to be made available for
+# dependencies and in templating.
 outputs:
-  # Number, string or boolean
   <name>:
 
-namespaceStatus:
-  pluginName:
+# Set to true if the action handler is running a process persistently and attached to the Garden process after
+# returning.
+attached:
 
-  # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-  # and cannot end with a dash) and must not be longer than 63 characters.
-  namespaceName:
+detail:
+  # Whether the module was successfully run.
+  success:
 
-  state:
+  # The exit code of the run (if applicable).
+  exitCode:
 
-# Local file paths to any exported artifacts from the task run.
+  # When the module run was started.
+  startedAt:
+
+  # When the module run was completed.
+  completedAt:
+
+  # The output log from the run.
+  log:
+
+# Local file paths to any exported artifacts from the Run's execution.
 artifacts:
 ```
 
@@ -2584,60 +3746,46 @@ artifacts:
 
 #### Usage
 
-    garden get test-result <module> <name> 
+    garden get test-result <name> [moduleTestName] 
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `module` | Yes | Module name of where the test runs.
-  | `name` | Yes | Test name.
+  | `name` | Yes | The name of the test. If this test belongs to a module, specify the module name here instead, and specify the test name from the module in the second argument.
+  | `moduleTestName` | No | When the test belongs to a module, specify its name here (i.e. as the second argument).
 
 
 #### Outputs
 
 ```yaml
-# The name of the module that was run.
-moduleName:
+# The state of the action.
+state:
 
-# The command that was run in the module.
-command:
-
-# Whether the module was successfully run.
-success:
-
-# The exit code of the run (if applicable).
-exitCode:
-
-# When the module run was started.
-startedAt:
-
-# When the module run was completed.
-completedAt:
-
-# The output log from the run.
-log:
-
-namespaceStatus:
-  pluginName:
-
-  # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-  # and cannot end with a dash) and must not be longer than 63 characters.
-  namespaceName:
-
-  state:
-
-# A map of primitive values, output from the test.
+# Structured outputs from the execution, as defined by individual action/module types, to be made available for
+# dependencies and in templating.
 outputs:
-  # Number, string or boolean
   <name>:
 
-# The name of the test that was run.
-testName:
+# Set to true if the action handler is running a process persistently and attached to the Garden process after
+# returning.
+attached:
 
-# The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-# versions of the test's runtime dependencies (if any).
-version:
+detail:
+  # Whether the module was successfully run.
+  success:
+
+  # The exit code of the run (if applicable).
+  exitCode:
+
+  # When the module run was started.
+  startedAt:
+
+  # When the module run was completed.
+  completedAt:
+
+  # The output log from the run.
+  log:
 
 # Local file paths to any exported artifacts from the test run.
 artifacts:
@@ -2679,7 +3827,7 @@ Note that this may include sensitive data, depending on the provider and your co
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `workflows` | No | Specify workflow(s) to list. Use comma as a separator to specify multiple workflows.
+  | `workflows` | No | Specify workflow(s) to list. You may specify multiple workflows, separated by spaces.
 
 
 
@@ -2719,9 +3867,43 @@ sources:
     path:
 ```
 
+### garden link action
+
+**Link a remote action to a local directory.**
+
+After linking a remote action, Garden will read the source from the linked local directory instead of the remote repository. Garden can only link actions that have a remote source, i.e. actions that specify a `source.repository.url` in their configuration.
+
+Examples:
+
+    garden link action build.my-build path/to/my-build # links Build my-build to its local version at the given path
+
+#### Usage
+
+    garden link action <action> <path> 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `action` | Yes | The full key of the action (e.g. deploy.api).
+  | `path` | Yes | Path to the local directory that contains the action.
+
+
+#### Outputs
+
+```yaml
+# A list of all locally linked remote actions.
+sources:
+  - # The key of the linked action.
+    name:
+
+    # The local directory path of the linked repo clone.
+    path:
+```
+
 ### garden link module
 
-**Link a module to a local directory.**
+**Link a remote module to a local directory.**
 
 After linking a remote module, Garden will read the source from the module's local directory instead of from
 the remote URL. Garden can only link modules that have a remote source,
@@ -2755,78 +3937,77 @@ sources:
     path:
 ```
 
+### garden login
+
+**Log in to Garden Cloud.**
+
+Logs you in to Garden Cloud. Subsequent commands will have access to cloud features.
+
+#### Usage
+
+    garden login [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--disable-project-check` |  | boolean | Disables the check that this is run from within a Garden Project. Logs you in to the default Garden Cloud domain
+
+
+### garden logout
+
+**Log out of Garden Cloud.**
+
+Logs you out of Garden Cloud.
+
+#### Usage
+
+    garden logout [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--disable-project-check` |  | boolean | Disables the check that this is run from within a Garden Project. Logs you out from the default Garden Cloud domain
+
+
 ### garden logs
 
-**Retrieves the most recent logs for the specified service(s).**
+**Retrieves the most recent logs for the specified Deploy(s).**
 
-Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults
-to getting logs from the last minute when in `--follow` mode. You can change this with the `--since` option.
+Outputs logs for all or specified Deploys, and optionally waits for new logs to come in.
+Defaults to getting logs from the last minute when in `--follow` mode. You can change this with the `--since` or `--tail` options.
 
 Examples:
 
-    garden logs                            # interleaves color-coded logs from all services (up to a certain limit)
-    garden logs --since 2d                 # interleaves color-coded logs from all services from the last 2 days
-    garden logs --tail 100                 # interleaves the last 100 log lines from all services
-    garden logs service-a,service-b        # interleaves color-coded logs for service-a and service-b
+    garden logs                            # interleaves color-coded logs from all Deploys (up to a certain limit)
+    garden logs --since 2d                 # interleaves color-coded logs from all Deploys from the last 2 days
+    garden logs --tail 100                 # interleaves the last 100 log lines from all Deploys
+    garden logs deploy-a,deploy-b          # interleaves color-coded logs for deploy-a and deploy-b
     garden logs --follow                   # keeps running and streams all incoming logs to the console
     garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
 
 #### Usage
 
-    garden logs [services] [options]
+    garden logs [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `services` | No | The name(s) of the service(s) to log (skip to log all services). Use comma as a separator to specify multiple services.
+  | `names` | No | The name(s) of the Deploy(s) to log (skip to get logs from all Deploys in the project). You may specify multiple names, separated by spaces.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--tag` |  | array:tag | Only show log lines that match the given tag, e.g. &#x60;--tag &#x27;container&#x3D;foo&#x27;&#x60;. If you specify multiple filters in a single tag option (e.g. &#x60;--tag &#x27;container&#x3D;foo,someOtherTag&#x3D;bar&#x27;&#x60;), they must all be matched. If you provide multiple &#x60;--tag&#x60; options (e.g. &#x60;--tag &#x27;container&#x3D;api&#x27; --tag &#x27;container&#x3D;frontend&#x27;&#x60;), they will be OR-ed together (i.e. if any of them match, the log line will be included). You can specify glob-style wildcards, e.g. &#x60;--tag &#x27;container&#x3D;prefix-*&#x27;&#x60;.
-  | `--follow` | `-f` | boolean | Continuously stream new logs from the service(s).
-  | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to showing all log lines (up to a certain limit). Takes precedence over the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
-  | `--show-container` |  | boolean | Show the name of the container with log output. May not apply to all providers
+  | `--follow` |  | boolean | Continuously stream new logs. When the &#x60;--follow&#x60; option is set, we default to &#x60;--since 1m&#x60;.
+  | `--tail` |  | number | Number of lines to show for each deployment. Defaults to showing all log lines (up to a certain limit). Takes precedence over the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
   | `--show-tags` |  | boolean | Show any tags attached to each log line. May not apply to all providers
   | `--timestamps` |  | boolean | Show timestamps with log output.
   | `--since` |  | moment | Only show logs newer than a relative duration like 5s, 2m, or 3h. Defaults to &#x60;&quot;1m&quot;&#x60; when &#x60;--follow&#x60; is true unless &#x60;--tail&#x60; is set. Note that we don&#x27;t recommend using a large value here when in follow mode.
-  | `--hide-service` |  | boolean | Hide the service name and render the logs directly.
-
-
-### garden migrate
-
-**Migrate `garden.yml` configuration files to version 0.12**
-
-Scans the project for `garden.yml` configuration files and updates those that are not compatible with version 0.12.
-By default the command prints the updated versions to the terminal. You can optionally update the files in place with the `write` flag.
-
-Note: This command does not validate the configs per se. It will simply try to convert a given configuration file so that
-it is compatible with version 0.12 or greater, regardless of whether that file was ever a valid Garden config. It is therefore
-recommended that this is used on existing `garden.yml` files that were valid in version v0.10.x.
-
-Examples:
-
-    garden migrate              # scans all garden.yml files and prints the updated versions along with the paths to them.
-    garden migrate --write      # scans all garden.yml files and overwrites them with the updated versions.
-    garden migrate ./garden.yml # scans the provided garden.yml file and prints the updated version.
-
-#### Usage
-
-    garden migrate [configPaths] [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `configPaths` | No | Specify the path to a &#x60;garden.yml&#x60; file to convert. Use comma as a separator to specify multiple files.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--write` |  | boolean | Update the &#x60;garden.yml&#x60; in place.
+  | `--hide-name` |  | boolean | Hide the action name and render the logs directly.
 
 
 ### garden options
@@ -2875,50 +4056,58 @@ Examples:
 
 ### garden publish
 
-**Build and publish module(s) (e.g. container images) to a remote registry.**
+**Build and publish artifacts (e.g. container images) to a remote registry.**
 
-Publishes built module artifacts for all or specified modules.
-Also builds modules and build dependencies if needed.
+Publishes built artifacts for all or specified builds. Also builds dependencies if needed.
 
-By default the artifacts/images are tagged with the Garden module version, but you can also specify the `--tag` option to specify a specific string tag _or_ a templated tag. Any template values that can be used on the module being tagged are available, in addition to ${module.name}, ${module.version} and ${module.hash} tags that allows referencing the name of the module being tagged, as well as its Garden version. ${module.version} includes the "v-" prefix normally used for Garden versions, and ${module.hash} doesn't.
+By default the artifacts/images are tagged with the Garden action version,
+but you can also specify the `--tag` option to specify a specific string tag _or_ a templated tag.
+Any template values that can be used on the build being tagged are available,
+in addition to ${build.name}, ${build.version} and ${build.hash}
+tags that allows referencing the name of the build being tagged, as well as its Garden version.
+${build.version} includes the "v-" prefix normally used for Garden versions, ${build.hash} doesn't.
 
 Examples:
 
-    garden publish                # publish artifacts for all modules in the project
+    garden publish                # publish artifacts for all builds in the project
     garden publish my-container   # only publish my-container
-    garden publish --force-build  # force re-build of modules before publishing artifacts
-    garden publish --allow-dirty  # allow publishing dirty builds (which by default triggers error)
+    garden publish --force-build  # force re-build before publishing artifacts
 
     # Publish my-container with a tag of v0.1
     garden publish my-container --tag "v0.1"
 
     # Publish my-container with a tag of v1.2-<hash> (e.g. v1.2-abcdef123)
-    garden publish my-container --tag "v1.2-${module.hash}"
+    garden publish my-container --tag "v1.2-${build.hash}"
 
 #### Usage
 
-    garden publish [modules] [options]
+    garden publish [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `modules` | No | The name(s) of the module(s) to publish (skip to publish all modules). Use comma as a separator to specify multiple modules.
+  | `names` | No | The name(s) of the builds (or modules) to publish (skip to publish every build). You may specify multiple names, separated by spaces.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--force-build` |  | boolean | Force rebuild of module(s) before publishing.
-  | `--allow-dirty` |  | boolean | Allow publishing dirty builds (with untracked/uncommitted changes).
-  | `--tag` |  | string | Override the tag on the built artifacts. You can use the same sorts of template strings as when templating values in module configs, with the addition of ${module.*} tags, allowing you to reference the name and Garden version of the module being tagged.
+  | `--force-build` |  | boolean | Force rebuild before publishing.
+  | `--tag` |  | string | Override the tag on the built artifacts. You can use the same sorts of template strings as when templating values in configs, with the addition of ${build.*} tags, allowing you to reference the name and Garden version of the module being tagged.
 
 #### Outputs
 
 ```yaml
-# A map of all modules that were built (or builds scheduled/attempted for) and information about the builds.
-builds:
-  <module name>:
+# Set to true if the command execution was aborted.
+aborted:
+
+# Set to false if the command execution was unsuccessful.
+success:
+
+# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+build:
+  <Build name>:
     # The full log from the build.
     buildLog:
 
@@ -2931,44 +4120,78 @@ builds:
     # Additional information, specific to the provider.
     details:
 
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
     aborted:
 
-    # The duration of the build in msec, if applicable.
+    # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the build was succeessful.
+    # Whether the action was succeessfully executed.
     success:
 
-    # An error message, if the build failed.
+    # An error message, if the action's execution failed.
     error:
 
-    # The version of the module, service, task or test.
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
     version:
 
-# A map of all services that were deployed (or deployment scheduled/attempted for) and the service status.
-deployments:
-  <service name>:
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deploy:
+  <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
 
-    # Additional detail, specific to the provider.
-    detail:
+    # When the service was first deployed by the provider.
+    updatedAt:
 
-    # Whether the service was deployed with dev mode enabled.
-    devMode:
-
-    # Whether the service was deployed with local mode enabled.
-    localMode:
-
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
+    # The mode the action is deployed in.
+    mode:
 
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
@@ -3017,9 +4240,92 @@ deployments:
     # Latest error status message of the service (if any).
     lastError:
 
-    # A map of values output from the service.
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
     outputs:
       <name>:
+
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
 
     # How many replicas of the service are currently running.
     runningReplicas:
@@ -3027,32 +4333,35 @@ deployments:
     # The current deployment status of the service.
     state:
 
-    # When the service was last updated by the provider.
-    updatedAt:
-
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
     aborted:
 
-    # The duration of the build in msec, if applicable.
+    # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the build was succeessful.
+    # Whether the action was succeessfully executed.
     success:
 
-    # An error message, if the build failed.
+    # An error message, if the action's execution failed.
     error:
 
-    # The version of the module, service, task or test.
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
     version:
 
-# A map of all tests that were run (or scheduled/attempted) and the test results.
-tests:
-  <test name>:
-    # The name of the module that was run.
-    moduleName:
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
 
-    # The command that was run in the module.
-    command:
+# A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+test:
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
 
     # The exit code of the run (if applicable).
     exitCode:
@@ -3066,314 +4375,480 @@ tests:
     # The output log from the run.
     log:
 
-    namespaceStatus:
-      pluginName:
-
-      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-      # letter, and cannot end with a dash) and must not be longer than 63 characters.
-      namespaceName:
-
-      state:
-
-    # A map of primitive values, output from the test.
-    outputs:
-      # Number, string or boolean
-      <name>:
-
-    # The name of the test that was run.
-    testName:
-
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
-    aborted:
-
-    # The duration of the build in msec, if applicable.
-    durationMsec:
-
-    # Whether the build was succeessful.
+  <Test name>:
+    # Whether the module was successfully run.
     success:
 
-    # An error message, if the build failed.
-    error:
+    # The exit code of the run (if applicable).
+    exitCode:
 
-    # The version of the module, service, task or test.
-    version:
+    # When the module run was started.
+    startedAt:
 
-# A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
-graphResults:
+    # When the module run was completed.
+    completedAt:
 
-# A map of all modules that were published (or scheduled/attempted for publishing) and the results.
+    # The output log from the run.
+    log:
+
+# A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+run:
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+# A map of all builds that were published (or scheduled/attempted for publishing) and the results.
 published:
   <name>:
-    # Set to true if the module was published.
-    published:
+    # The state of the action.
+    state:
 
-    # Optional result message from the provider.
-    message:
+    # Set to true if the action handler is running a process persistently and attached to the Garden process after
+    # returning.
+    attached:
 
-    # The published artifact identifier, if applicable.
-    identifier:
+    detail:
+      # Set to true if the build was published.
+      published:
 
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
+      # Optional result message from the provider.
+      message:
+
+      # The published artifact identifier, if applicable.
+      identifier:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
     aborted:
 
-    # The duration of the build in msec, if applicable.
+    # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the build was succeessful.
+    # Whether the action was succeessfully executed.
     success:
 
-    # An error message, if the build failed.
+    # An error message, if the action's execution failed.
     error:
 
-    # The version of the module, service, task or test.
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
     version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
 ```
 
-### garden run module
+### garden run
 
-**Run an ad-hoc instance of a module.**
+**Perform one or more Run actions**
 
-This is useful for debugging or ad-hoc experimentation with modules.
+This is useful for any ad-hoc Runs, for example database migrations, or when developing.
 
 Examples:
 
-    garden run module my-container                                   # run an ad-hoc instance of a my-container container and attach to it
-    garden run module my-container /bin/sh                           # run an interactive shell in a new my-container container
-    garden run module my-container --interactive=false /some/script  # execute a script in my-container and return the output
+    garden run my-db-migration   # run my-db-migration
+    garden run my-run -l 3       # run with verbose log level to see the live log output
 
 #### Usage
 
-    garden run module <module> [arguments] [options]
+    garden run [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `module` | Yes | The name of the module to run.
-  | `arguments` | No | The arguments to run the module with. Example: &#x27;yarn run my-script&#x27;.
+  | `names` | No | The name(s) of the Run action(s) to perform. You may specify multiple names, separated by spaces. Accepts glob patterns (e.g. init* would run both &#x27;init&#x27; and &#x27;initialize&#x27;).
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result.
-  | `--force-build` |  | boolean | Force rebuild of module before running.
-  | `--command` | `-c` | string | The base command (a.k.a. entrypoint) to run in the module. For container modules, for example, this overrides the image&#x27;s default command/entrypoint. This option may not be relevant for all module types. Example: &#x27;/bin/sh -c&#x27;.
+  | `--force` |  | boolean | Run even if the action is disabled for the environment, and/or a successful result is found in cache.
+  | `--force-build` |  | boolean | Force re-build of Build dependencies before running.
+  | `--module` |  | array:string | The name(s) of one or modules to pull Runs (or tasks if using modules) from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
+  | `--skip` |  | array:string | The name(s) of Runs you&#x27;d like to skip. Accepts glob patterns (e.g. init* would skip both &#x27;init&#x27; and &#x27;initialize&#x27;).
+  | `--skip-dependencies` |  | boolean | Don&#x27;t perform any Deploy or Run actions that the requested Runs depend on.
+This can be useful e.g. when your stack has already been deployed, and you want to run Tests with runtime
+dependencies without redeploying any Deploy (or service if using modules) dependencies that may have changed since you last deployed.
 
-
-### garden run service
-
-**Run an ad-hoc instance of the specified service.**
-
-This can be useful for debugging or ad-hoc experimentation with services.
-
-Examples:
-
-    garden run service my-service   # run an ad-hoc instance of a my-service and attach to it
-
-#### Usage
-
-    garden run service <service> [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `service` | Yes | The service to run.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--force` |  | boolean | Run the service even if it&#x27;s disabled for the environment.
-  | `--force-build` |  | boolean | Force rebuild of module.
-
-
-### garden run task
-
-**Run a task (in the context of its parent module).**
-
-This is useful for re-running tasks ad-hoc, for example after writing/modifying database migrations.
-
-Examples:
-
-    garden run task my-db-migration   # run my-migration
-
-#### Usage
-
-    garden run task <task> [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `task` | Yes | The name of the task to run.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--force` |  | boolean | Run the task even if it&#x27;s disabled for the environment.
-  | `--force-build` |  | boolean | Force rebuild of module before running.
+Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of
+your test suites are up to date when this option is used.
 
 #### Outputs
 
 ```yaml
-# The result of the task.
-result:
-  # The name of the module that the task belongs to.
-  moduleName:
+# Set to true if the command execution was aborted.
+aborted:
 
-  # The name of the task that was run.
-  taskName:
+# Set to false if the command execution was unsuccessful.
+success:
 
-  # The command that the task ran in the module.
-  command:
+# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+build:
+  <Build name>:
+    # The full log from the build.
+    buildLog:
 
-  # When the task run was started.
-  startedAt:
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
 
-  # When the task run was completed.
-  completedAt:
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
 
-  # The output log from the run.
-  log:
+    # Additional information, specific to the provider.
+    details:
 
-  # A map of primitive values, output from the task.
-  outputs:
-    # Number, string or boolean
-    <name>:
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
 
-  namespaceStatus:
-    pluginName:
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
 
-    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-    # and cannot end with a dash) and must not be longer than 63 characters.
-    namespaceName:
+    # Whether the action was succeessfully executed.
+    success:
 
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deploy:
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
+
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
     state:
 
-  # Set to true if the build was not attempted, e.g. if a dependency build failed.
-  aborted:
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
 
-  # The duration of the build in msec, if applicable.
-  durationMsec:
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
 
-  # Whether the build was succeessful.
-  success:
+    # Whether the action was succeessfully executed.
+    success:
 
-  # An error message, if the build failed.
-  error:
+    # An error message, if the action's execution failed.
+    error:
 
-  # The version of the module, service, task or test.
-  version:
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
 
-# A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
-graphResults:
-```
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
 
-### garden run test
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
 
-**Run the specified module test.**
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
 
-This can be useful for debugging tests, particularly integration/end-to-end tests.
+    # When the service was first deployed by the provider.
+    updatedAt:
 
-Examples:
+    # The mode the action is deployed in.
+    mode:
 
-    garden run test my-module integ                      # run the test named 'integ' in my-module
-    garden run test my-module integ --interactive=false  # do not attach to the test run, just output results when completed
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
 
-#### Usage
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
 
-    garden run test <module> <test> [options]
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
 
-#### Arguments
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `module` | Yes | The name of the module to run.
-  | `test` | Yes | The name of the test to run in the module.
+        # The protocol of the port.
+        protocol:
 
-#### Options
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--interactive` | `-i` | boolean | Set to false to skip interactive mode and just output the command result. Note that Garden won&#x27;t retrieve artifacts if set to true (the default).
-  | `--force` |  | boolean | Run the test even if it&#x27;s disabled for the environment.
-  | `--force-build` |  | boolean | Force rebuild of module before running.
+        # The target port on the service.
+        targetPort:
 
-#### Outputs
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
 
-```yaml
-# The result of the test.
-result:
-  # The name of the module that was run.
-  moduleName:
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
 
-  # The command that was run in the module.
-  command:
+        # The ingress path that should be matched to route to this service.
+        path:
 
-  # The exit code of the run (if applicable).
-  exitCode:
+        # The protocol to use for the ingress.
+        protocol:
 
-  # When the module run was started.
-  startedAt:
+        # The hostname where the service can be accessed.
+        hostname:
 
-  # When the module run was completed.
-  completedAt:
+    # Latest status message of the service (if any).
+    lastMessage:
 
-  # The output log from the run.
-  log:
+    # Latest error status message of the service (if any).
+    lastError:
 
-  namespaceStatus:
-    pluginName:
+    # How many replicas of the service are currently running.
+    runningReplicas:
 
-    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-    # and cannot end with a dash) and must not be longer than 63 characters.
-    namespaceName:
-
+    # The current deployment status of the service.
     state:
 
-  # A map of primitive values, output from the test.
-  outputs:
-    # Number, string or boolean
-    <name>:
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
 
-  # The name of the test that was run.
-  testName:
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
 
-  # Set to true if the build was not attempted, e.g. if a dependency build failed.
-  aborted:
+    # Whether the action was succeessfully executed.
+    success:
 
-  # The duration of the build in msec, if applicable.
-  durationMsec:
+    # An error message, if the action's execution failed.
+    error:
 
-  # Whether the build was succeessful.
-  success:
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
 
-  # An error message, if the build failed.
-  error:
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
 
-  # The version of the module, service, task or test.
-  version:
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
 
-# A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
-graphResults:
+# A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+test:
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+# A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+run:
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
 ```
 
-### garden run workflow
+### garden workflow
 
-**Run a workflow.**
+**Run a Workflow.**
 
 Runs the commands and/or scripts defined in the workflow's steps, in sequence.
 
 Examples:
 
-    garden run workflow my-workflow    # run my-workflow
+    garden workflow my-workflow
 
 #### Usage
 
-    garden run workflow <workflow> 
+    garden workflow <workflow> 
 
 #### Arguments
 
@@ -3383,52 +4858,22 @@ Examples:
 
 
 
-### garden scan
-
-**Scans your project and outputs an overview of all modules.**
-
-
-#### Usage
-
-    garden scan 
-
-
-
-### garden dashboard
-
-**Starts the Garden dashboard for the current project and environment.**
-
-Starts the Garden dashboard for the current project, and your selected environment+namespace. The dashboard can be used to monitor your Garden project, look at logs, provider-specific dashboard pages and more.
-
-The dashboard will receive and display updates from other Garden processes that you run with the same Garden project, environment and namespace.
-
-Note: You must currently run one dashboard per-environment and namespace.
-
-#### Usage
-
-    garden dashboard [options]
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--port` |  | number | The port number for the Garden dashboard to listen on.
-
-
 ### garden self-update
 
 **Update the Garden CLI.**
 
 Updates your Garden CLI in-place.
 
-Defaults to the latest release version, but you can also request a specific release version as an argument.
+Defaults to the latest minor release version, but you can also request a specific release version as an argument.
 
 Examples:
 
-   garden self-update          # update to the latest Garden CLI version
-   garden self-update edge     # switch to the latest edge build (which is created anytime a PR is merged)
-   garden self-update 0.12.24  # switch to the 0.12.24 version of the CLI
-   garden self-update --force  # re-install even if the same version is detected
+   garden self-update               # update to the latest minor Garden CLI version
+   garden self-update edge-acorn    # switch to the latest edge build of garden 0.12 (which is created anytime a PR is merged to the 0.12 branch)
+   garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13) (which is created anytime a PR is merged to main)
+   garden self-update 0.12.24       # switch to the exact version 0.12.24 of the CLI
+   garden self-update --major       # install the latest version, even if it's a major bump
+   garden self-update --force       # re-install even if the same version is detected
    garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
 
 #### Usage
@@ -3439,7 +4884,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `version` | No | Specify which version to switch/update to.
+  | `version` | No | Specify which version to switch/update to. It can be either a stable release, a pre-release, or an edge release version.
 
 #### Options
 
@@ -3448,56 +4893,222 @@ Examples:
   | `--force` |  | boolean | Install the Garden CLI even if the specified or detected latest version is the same as the current version.
   | `--install-dir` |  | string | Specify an installation directory, instead of using the directory of the Garden CLI being used. Implies --force.
   | `--platform` |  | `macos` `linux` `windows`  | Override the platform, instead of detecting it automatically.
+  | `--major` |  | boolean | Install the latest major version of Garden. Falls back to the current version if the greater major version does not exist.
+
+Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.
 
 
-### garden test
+### garden set default-env
 
-**Test all or specified modules.**
+**Locally override the default environment for the project.**
 
-Runs all or specified tests defined in the project. Also builds modules and dependencies,
-and deploys service dependencies if needed.
-
-Optionally stays running and automatically re-runs tests if their module source
-(or their dependencies' sources) change.
+Override the default environment for the project for this working copy.
 
 Examples:
 
-    garden test                   # run all tests in the project
-    garden test my-module         # run all tests in the my-module module
-    garden test --name integ      # run all tests with the name 'integ' in the project
-    garden test --name integ*     # run all tests with the name starting with 'integ' in the project
-    garden test -n unit -n lint   # run all tests called either 'unit' or 'lint' in the project
-    garden test --force           # force tests to be re-run, even if they've already run successfully
-    garden test --watch           # watch for changes to code
+  garden set default-env remote       # Set the default env to remote (with the configured default namespace)
+  garden set default-env dev.my-env   # Set the default env to dev.my-env
+  garden set default-env              # Clear any previously set override
 
 #### Usage
 
-    garden test [modules] [options]
+    garden set default-env [env] 
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `modules` | No | The name(s) of the module(s) to test (skip to test all modules). Use comma as a separator to specify multiple modules.
+  | `env` | No | The default environment to set for the current project
+
+
+
+### garden sync start
+
+**Start any configured syncs to the given Deploy action(s).**
+
+Start a sync between your local project directory and one or more Deploys.
+
+Examples:
+    # start syncing to the 'api' Deploy, fail if it's not already deployed in sync mode
+    garden sync start api
+
+    # deploy 'api' in sync mode and dependencies if needed, then start syncing
+    garden sync start api --deploy
+
+    # start syncing to every Deploy already deployed in sync mode
+    garden sync start
+
+    # start syncing to every Deploy that supports it, deploying if needed
+    garden sync start '*' --deploy
+
+    # start syncing to every Deploy that supports it, deploying if needed including runtime dependencies
+    garden sync start --deploy --include-dependencies
+
+    # start syncing to the 'api' and 'worker' Deploys
+    garden sync start api worker
+
+    # start syncing to the 'api' Deploy and keep the process running, following sync status messages
+    garden sync start api -f
+
+#### Usage
+
+    garden sync start [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify &#x27;*&#x27; as an argument.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--name` | `-n` | array:string | Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
-  | `--force` | `-f` | boolean | Force re-test of module(s).
-  | `--force-build` |  | boolean | Force rebuild of module(s).
-  | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
+  | `--deploy` |  | boolean | Deploy the specified actions, if they&#x27;re out of date and/or not deployed in sync mode.
+  | `--with-dependencies` |  | boolean | When deploying actions, also include any runtime dependencies. Ignored if --deploy is not set.
+  | `--monitor` |  | boolean | Keep the process running and print sync status logs after starting them.
+
+
+### garden sync stop
+
+**Stop any active syncs to the given Deploy action(s).**
+
+Stops one or more active syncs.
+
+Examples:
+    # stop syncing to the 'api' Deploy
+    garden sync stop api
+
+    # stop all active syncs
+    garden sync stop
+
+#### Usage
+
+    garden sync stop [names] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, run the command with no arguments.
+
+
+
+### garden sync restart
+
+**Restart any active syncs to the given Deploy action(s).**
+
+Restarts one or more active syncs.
+
+Examples:
+    # Restart syncing to the 'api' Deploy
+    garden sync restart api
+
+    # Restart all active syncs
+    garden sync restart
+
+#### Usage
+
+    garden sync restart <names> 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | Yes | The name(s) of one or more Deploy(s) (or services if using modules) whose syncs you want to restart. You may specify multiple names, separated by spaces. To restart all possible syncs, specify &#x27;*&#x27; as an argument.
+
+
+
+### garden sync status
+
+**Get sync statuses.**
+
+Get the current status of the configured syncs for this project.
+
+Examples:
+    # get all sync statuses
+    garden sync status
+
+    # get sync statuses for the 'api' Deploy
+    garden sync status api
+
+    # output detailed sync statuses in JSON format
+    garden sync status -o json
+
+    # output detailed sync statuses in YAML format
+    garden sync status -o yaml
+
+#### Usage
+
+    garden sync status [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | The name(s) of the Deploy(s) to get the sync status for (skip to get status from all Deploys in the project). You may specify multiple names, separated by space.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--skip-detail` |  | boolean | Skip plugin specific sync details. Only applicable when using the --output&#x3D;json|yaml option. Useful for trimming down the output.
+
+
+### garden test
+
+**Run all or specified Test actions in the project.**
+
+Runs all or specified Tests defined in the project. Also run builds and other dependencies,
+including Deploys if needed.
+
+Examples:
+
+    garden test                     # run all Tests in the project
+    garden test my-test             # run the my-test Test action
+    garden test --module my-module  # run all Tests in the my-module module
+    garden test *integ*             # run all Tests with a name containing 'integ'
+    garden test *unit,*lint         # run all Tests ending with either 'unit' or 'lint' in the project
+    garden test --force             # force Tests to be re-run, even if they've already run successfully
+    garden test -l 3                # run with verbose log level to see the live log output
+
+#### Usage
+
+    garden test [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | The name(s) of the Test action(s) to test (skip to run all tests in the project). You may specify multiple test names, separated by spaces. Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--name` |  | array:string | DEPRECATED: This option will be removed in 0.14. Please use a positional argument &quot;&lt;module name&gt;-&lt;test name&gt;&quot; or &quot;*-&lt;test name&gt;&quot; instead of of &quot;--name&quot;.
+This option can be used to run all tests with the specified name (e.g. unit or integ) in declared in any module.
+Note: Since 0.13, using the --name option is equivalent to using the positional argument &quot;*-&lt;test name&gt;&quot;. This means that new tests declared using the new Action kinds will also be executed if their name matches this pattern.
+Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+  | `--force` |  | boolean | Force re-run of Test, even if a successful result is found in cache.
+  | `--force-build` |  | boolean | Force rebuild of any Build dependencies encountered.
+  | `--interactive` |  | boolean | Run the specified Test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
+  | `--module` |  | array:string | The name(s) of one or modules to run tests from. If both this and test names are specified, the test names filter the tests found in the specified modules.
   | `--skip` |  | array:string | The name(s) of tests you&#x27;d like to skip. Accepts glob patterns (e.g. integ* would skip both &#x27;integ&#x27; and &#x27;integration&#x27;). Applied after the &#x27;name&#x27; filter.
-  | `--skip-dependencies` | `--nodeps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
-  | `--skip-dependants` |  | boolean | When using the modules argument, only run tests for those modules (and skip tests in other modules with dependencies on those modules).
+  | `--skip-dependencies` |  | boolean | Don&#x27;t deploy any Deploys (or services if using modules) or run any Run actions (or tasks if using modules) that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run Tests with runtime dependencies without redeploying any Deploy (or service) dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
 
 #### Outputs
 
 ```yaml
-# A map of all modules that were built (or builds scheduled/attempted for) and information about the builds.
-builds:
-  <module name>:
+# Set to true if the command execution was aborted.
+aborted:
+
+# Set to false if the command execution was unsuccessful.
+success:
+
+# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+build:
+  <Build name>:
     # The full log from the build.
     buildLog:
 
@@ -3510,44 +5121,78 @@ builds:
     # Additional information, specific to the provider.
     details:
 
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
     aborted:
 
-    # The duration of the build in msec, if applicable.
+    # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the build was succeessful.
+    # Whether the action was succeessfully executed.
     success:
 
-    # An error message, if the build failed.
+    # An error message, if the action's execution failed.
     error:
 
-    # The version of the module, service, task or test.
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
     version:
 
-# A map of all services that were deployed (or deployment scheduled/attempted for) and the service status.
-deployments:
-  <service name>:
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+  <Build name>:
+    # The full log from the build.
+    buildLog:
+
+    # Set to true if the build was fetched from a remote registry.
+    fetched:
+
+    # Set to true if the build was performed, false if it was already built, or fetched from a registry
+    fresh:
+
+    # Additional information, specific to the provider.
+    details:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
+
+# A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deploy:
+  <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
 
-    # Additional detail, specific to the provider.
-    detail:
+    # When the service was first deployed by the provider.
+    updatedAt:
 
-    # Whether the service was deployed with dev mode enabled.
-    devMode:
-
-    # Whether the service was deployed with local mode enabled.
-    localMode:
-
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
+    # The mode the action is deployed in.
+    mode:
 
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
@@ -3596,9 +5241,92 @@ deployments:
     # Latest error status message of the service (if any).
     lastError:
 
-    # A map of values output from the service.
+    # How many replicas of the service are currently running.
+    runningReplicas:
+
+    # The current deployment status of the service.
+    state:
+
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
+    aborted:
+
+    # The duration of the action's execution in msec, if applicable.
+    durationMsec:
+
+    # Whether the action was succeessfully executed.
+    success:
+
+    # An error message, if the action's execution failed.
+    error:
+
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
+    version:
+
+    # A map of values output from the action's execution.
     outputs:
       <name>:
+
+  <Deploy name>:
+    # When the service was first deployed by the provider.
+    createdAt:
+
+    # When the service was first deployed by the provider.
+    updatedAt:
+
+    # The mode the action is deployed in.
+    mode:
+
+    # The ID used for the service by the provider (if not the same as the service name).
+    externalId:
+
+    # The provider version of the deployed service (if different from the Garden module version.
+    externalVersion:
+
+    # A list of ports that can be forwarded to from the Garden agent by the provider.
+    forwardablePorts:
+      - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+        name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
+        # The protocol of the port.
+        protocol:
+
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
+
+        # The target port on the service.
+        targetPort:
+
+        # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+        urlProtocol:
+
+    # List of currently deployed ingress endpoints for the service.
+    ingresses:
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
+        path:
+
+        # The protocol to use for the ingress.
+        protocol:
+
+        # The hostname where the service can be accessed.
+        hostname:
+
+    # Latest status message of the service (if any).
+    lastMessage:
+
+    # Latest error status message of the service (if any).
+    lastError:
 
     # How many replicas of the service are currently running.
     runningReplicas:
@@ -3606,32 +5334,35 @@ deployments:
     # The current deployment status of the service.
     state:
 
-    # When the service was last updated by the provider.
-    updatedAt:
-
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
+    # Set to true if the action was not attempted, e.g. if a dependency failed.
     aborted:
 
-    # The duration of the build in msec, if applicable.
+    # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the build was succeessful.
+    # Whether the action was succeessfully executed.
     success:
 
-    # An error message, if the build failed.
+    # An error message, if the action's execution failed.
     error:
 
-    # The version of the module, service, task or test.
+    # The version of the task's inputs, before any resolution or execution happens. For action tasks, this will
+    # generally be the unresolved version.
+    inputVersion:
+
+    # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
+    # action tasks, this will generally be the unresolved version.
     version:
 
-# A map of all tests that were run (or scheduled/attempted) and the test results.
-tests:
-  <test name>:
-    # The name of the module that was run.
-    moduleName:
+    # A map of values output from the action's execution.
+    outputs:
+      <name>:
 
-    # The command that was run in the module.
-    command:
+# A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+test:
+  <Test name>:
+    # Whether the module was successfully run.
+    success:
 
     # The exit code of the run (if applicable).
     exitCode:
@@ -3645,40 +5376,55 @@ tests:
     # The output log from the run.
     log:
 
-    namespaceStatus:
-      pluginName:
-
-      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-      # letter, and cannot end with a dash) and must not be longer than 63 characters.
-      namespaceName:
-
-      state:
-
-    # A map of primitive values, output from the test.
-    outputs:
-      # Number, string or boolean
-      <name>:
-
-    # The name of the test that was run.
-    testName:
-
-    # Set to true if the build was not attempted, e.g. if a dependency build failed.
-    aborted:
-
-    # The duration of the build in msec, if applicable.
-    durationMsec:
-
-    # Whether the build was succeessful.
+  <Test name>:
+    # Whether the module was successfully run.
     success:
 
-    # An error message, if the build failed.
-    error:
+    # The exit code of the run (if applicable).
+    exitCode:
 
-    # The version of the module, service, task or test.
-    version:
+    # When the module run was started.
+    startedAt:
 
-# A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
-graphResults:
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+# A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+run:
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+  <Run name>:
+    # Whether the module was successfully run.
+    success:
+
+    # The exit code of the run (if applicable).
+    exitCode:
+
+    # When the module run was started.
+    startedAt:
+
+    # When the module run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
 ```
 
 ### garden tools
@@ -3744,13 +5490,41 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `sources` | No | The name(s) of the source(s) to unlink. Use comma as a separator to specify multiple sources.
+  | `sources` | No | The name(s) of the source(s) to unlink. You may specify multiple sources, separated by spaces.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--all` | `-a` | boolean | Unlink all sources.
+  | `--all` |  | boolean | Unlink all sources.
+
+
+### garden unlink action
+
+**Unlink a previously linked remote action from its local directory.**
+
+After unlinking a remote action, Garden will go back to reading the action's source from its remote repository instead of its local directory.
+
+Examples:
+
+    garden unlink action build.my-build  # unlinks Build my-build
+    garden unlink action --all           # unlink all actions
+
+#### Usage
+
+    garden unlink action [actions] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `actions` | No | The name(s) of the action(s) to unlink. You may specify multiple actions, separated by spaces.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--all` |  | boolean | Unlink all actions.
 
 
 ### garden unlink module
@@ -3773,13 +5547,27 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `modules` | No | The name(s) of the module(s) to unlink. Use comma as a separator to specify multiple modules.
+  | `modules` | No | The name(s) of the module(s) to unlink. You may specify multiple modules, separated by spaces.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--all` | `-a` | boolean | Unlink all modules.
+  | `--all` |  | boolean | Unlink all modules.
+
+
+### garden up
+
+**Spin up your stack with the dev console and streaming logs.**
+
+Spin up your stack with the dev console and streaming logs.
+
+This is basically an alias for garden dev --cmd 'deploy --logs', but you can add any arguments and flags supported by the deploy command as well.
+
+#### Usage
+
+    garden up 
+
 
 
 ### garden update-remote sources
@@ -3802,7 +5590,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `sources` | No | The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.
+  | `sources` | No | The name(s) of the remote source(s) to update. You may specify multiple sources, separated by spaces.
 
 #### Options
 
@@ -3816,6 +5604,47 @@ Examples:
 # A list of all configured external project sources.
 sources:
   - # The name of the source to import
+    name:
+
+    # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
+    # branch or tag, with the format: <git remote url>#<branch|tag>
+    repositoryUrl:
+```
+
+### garden update-remote actions
+
+**Update remote actions.**
+
+Updates remote actions, i.e. actions that have a `source.repository.url` field set in their config that points to a remote repository.
+
+Examples:
+
+    garden update-remote actions --parallel      # update all remote actions in parallel mode
+    garden update-remote actions                 # update all remote actions in the project
+    garden update-remote action build.my-build   # update remote Build my-build
+
+#### Usage
+
+    garden update-remote actions [actions] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `actions` | No | The name(s) of the remote action(s) to update. You may specify multiple actions, separated by spaces.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.
+
+#### Outputs
+
+```yaml
+# A list of all external action sources in the project.
+sources:
+  - # The name of the action.
     name:
 
     # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
@@ -3844,7 +5673,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `modules` | No | The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.
+  | `modules` | No | The name(s) of the remote module(s) to update. You may specify multiple modules, separated by spaces.
 
 #### Options
 
@@ -3867,12 +5696,12 @@ sources:
 
 ### garden update-remote all
 
-**Update all remote sources and modules.**
+**Update all remote sources, actions and modules.**
 
 Examples:
 
-    garden update-remote all --parallel # update all remote sources and modules in the project in parallel mode
-    garden update-remote all            # update all remote sources and modules in the project
+    garden update-remote all             # update all remote sources, actions and modules in the project
+    garden update-remote all --parallel  # update all remote sources in the project in parallel mode
 
 #### Usage
 
@@ -3890,6 +5719,15 @@ Examples:
 # A list of all configured external project sources.
 projectSources:
   - # The name of the source to import
+    name:
+
+    # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
+    # branch or tag, with the format: <git remote url>#<branch|tag>
+    repositoryUrl:
+
+# A list of all external action sources in the project.
+actionSources:
+  - # The name of the action.
     name:
 
     # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
@@ -3948,15 +5786,45 @@ Hides the specified warning message. The command and key is generally provided a
 
 
 
+### garden util mutagen
+
+**Run any Mutagen CLI command in the context of the current project.**
+
+The Mutagen tool is used for various functions in Garden, most notably syncs (formerly "dev mode") to containers. When experiencing issues with synchronization, it may be helpful to use the Mutagen CLI directly to troubleshoot or gather more information.
+
+This command simply runs the Mutagen CLI with environment variables appropriately set to interact with the syncs created in the context of this project. All arguments and flags are passed directly to Mutagen.
+
+Examples:
+
+    garden util mutagen sync list     # list all active syncs
+    garden util mutagen sync monitor  # continuously monitor all syncs
+
+#### Usage
+
+    garden util mutagen 
+
+
+
 ### garden validate
 
 **Check your garden configuration for errors.**
 
-Throws an error and exits with code 1 if something's not right in your garden.yml files.
+Throws an error and exits with code 1 if something's not right in your garden config files.
 
 #### Usage
 
     garden validate 
+
+
+
+### garden version
+
+**Shows the current garden version.**
+
+
+#### Usage
+
+    garden version 
 
 
 

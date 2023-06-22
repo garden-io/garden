@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,35 +18,31 @@ import {
   memoize,
   omit,
   pick,
-  pickBy,
   range,
   some,
   trimEnd,
   uniqBy,
 } from "lodash"
-import { ResolvableProps } from "bluebird"
+import type { ResolvableProps } from "bluebird"
 import exitHook from "async-exit-hook"
-import Cryo from "cryo"
 import _spawn from "cross-spawn"
-import { readFile, writeFile } from "fs-extra"
+import { readFile } from "fs-extra"
 import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
-import highlight from "cli-highlight"
-import chalk from "chalk"
-import { DumpOptions, safeDump, safeLoad } from "js-yaml"
+import { load } from "js-yaml"
 import { createHash } from "crypto"
 import { dedent, tailString } from "./string"
 import { Readable, Writable } from "stream"
-import { LogEntry } from "../logger/log-entry"
-import { PrimitiveMap } from "../config/common"
+import type { Log } from "../logger/log-entry"
+import type { PrimitiveMap } from "../config/common"
 import { isAbsolute, relative } from "path"
 import { getDefaultProfiler } from "./profiling"
-import { gardenEnv } from "../constants"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants"
 import split2 = require("split2")
 import Bluebird = require("bluebird")
 import execa = require("execa")
 import { execSync } from "child_process"
 
-export { v4 as uuidv4 } from "uuid"
+export { apply as jsonMerge } from "json-merge-patch"
 
 export type HookCallback = (callback?: () => void) => void
 
@@ -60,6 +56,7 @@ export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 export type Diff<T, U> = T extends U ? never : T
 export type Mutable<T> = { -readonly [K in keyof T]: T[K] }
 export type Nullable<T> = { [P in keyof T]: T[P] | null }
+export type MaybeUndefined<T> = T | undefined
 // From: https://stackoverflow.com/a/49936686/5629940
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends Array<infer U>
@@ -76,11 +73,13 @@ export type Unpacked<T> = T extends (infer U)[]
   ? W
   : T
 export type ExcludesFalsy = <T>(x: T | false | null | undefined) => x is T
+export type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 
 const MAX_BUFFER_SIZE = 1024 * 1024
 
 // Used to control process-level operations during testing
 export const testFlags = {
+  expandErrors: false,
   disableShutdown: false,
 }
 
@@ -88,7 +87,7 @@ export async function shutdown(code?: number) {
   // This is a good place to log exitHookNames if needed.
   if (!testFlags.disableShutdown) {
     if (gardenEnv.GARDEN_ENABLE_PROFILING) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(getDefaultProfiler().report())
     }
     process.exit(code)
@@ -105,17 +104,33 @@ export function getPackageVersion(): string {
   return version
 }
 
+type CloudDistroName = "Cloud Dashboard" | "Garden Enterprise" | "Garden Cloud"
+
 /**
  * Returns "Garden Cloud" if domain matches https://<some-subdomain>.app.garden,
  * otherwise "Garden Enterprise".
  *
  * TODO: Return the distribution type from the API and store on the CloudApi class.
  */
-export function getCloudDistributionName(domain: string) {
+export function getCloudDistributionName(domain: string): CloudDistroName {
+  if (domain === DEFAULT_GARDEN_CLOUD_DOMAIN) {
+    return "Cloud Dashboard"
+  }
+
   if (!domain.match(/^https:\/\/.+\.app\.garden$/i)) {
     return "Garden Enterprise"
   }
   return "Garden Cloud"
+}
+
+export function getCloudLogSectionName(distroName: CloudDistroName): string {
+  if (distroName === "Cloud Dashboard") {
+    return "cloud-dashboard"
+  } else if (distroName === "Garden Cloud") {
+    return "garden-cloud"
+  } else {
+    return "garden-enterprise"
+  }
 }
 
 export async function sleep(msec: number) {
@@ -137,24 +152,15 @@ export function defer<T>() {
 }
 
 /**
- * Extracting to a separate function so that we can test output streams
+ * Creates an output stream that logs the message.
  */
-export function renderOutputStream(msg: string, command?: string) {
-  return command ? chalk.gray(`[${command}]: ${msg}`) : chalk.gray(msg)
-}
-
-/**
- * Creates an output stream that updates a log entry on data events (in an opinionated way).
- *
- * Note that new entries are not created but rather the passed log entry gets updated.
- * It's therefore recommended to pass a placeholder entry, for example: `log.placeholder(LogLevel.debug)`
- */
-export function createOutputStream(log: LogEntry) {
+export function createOutputStream(log: Log, origin?: string) {
   const outputStream = split2()
+  const streamLog = log.createLog({ origin })
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    log.setState(renderOutputStream(line.toString()))
+    streamLog.info({ msg: line.toString() })
   })
 
   return outputStream
@@ -205,7 +211,8 @@ export interface ExecOpts extends execa.Options {
  */
 export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
   // Ensure buffer is always set to true so that we can read the error output
-  opts = { windowsHide: true, ...opts, buffer: true, all: true }
+  // Defaulting cwd to process.cwd() to avoid defaulting to a virtual path after packaging with pkg
+  opts = { cwd: process.cwd(), windowsHide: true, ...opts, buffer: true, all: true }
   const proc = execa(cmd, args, omit(opts, ["stdout", "stderr"]))
 
   opts.stdout && proc.stdout && proc.stdout.pipe(opts.stdout)
@@ -220,7 +227,7 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
         dedent`
         Received EMFILE (Too many open files) error when running ${cmd}.
 
-        This may mean there are too many files in the project, and that you need to exclude large dependency directories. Please see https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories for information on how to do that.
+        This may mean there are too many files in the project, and that you need to exclude large dependency directories. Please see ${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories for information on how to do that.
 
         This can also be due to limits on open file descriptors being too low. Here is one guide on how to configure those limits for different platforms: https://docs.riak.com/riak/kv/latest/using/performance/open-files-limit/index.html
         `,
@@ -271,7 +278,7 @@ export interface SpawnOutput {
 export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   const {
     timeoutSec: timeout = 0,
-    cwd,
+    cwd = process.cwd(), // This is to avoid running from a virtual path after packaging in pkg
     data,
     ignoreError = false,
     env,
@@ -375,82 +382,6 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   })
 }
 
-export async function dumpYaml(yamlPath, data) {
-  return writeFile(yamlPath, safeDumpYaml(data, { noRefs: true }))
-}
-
-/**
- * Wraps safeDump and enforces that invalid values are skipped
- */
-export function safeDumpYaml(data, opts: DumpOptions = {}) {
-  return safeDump(data, { ...opts, skipInvalid: true })
-}
-
-/**
- * Encode multiple objects as one multi-doc YAML file
- */
-export function encodeYamlMulti(objects: object[]) {
-  return objects.map((s) => safeDumpYaml(s, { noRefs: true }) + "---\n").join("")
-}
-
-/**
- * Encode and write multiple objects as a multi-doc YAML file
- */
-export async function dumpYamlMulti(yamlPath: string, objects: object[]) {
-  return writeFile(yamlPath, encodeYamlMulti(objects))
-}
-
-/**
- * Splits the input string on the first occurrence of `delimiter`.
- */
-export function splitFirst(s, delimiter) {
-  const parts = s.split(delimiter)
-  return [parts[0], parts.slice(1).join(delimiter)]
-}
-
-/**
- * Splits the input string on the last occurrence of `delimiter`.
- */
-export function splitLast(s: string, delimiter: string) {
-  const parts = s.split(delimiter)
-  return [parts.slice(0, parts.length - 1).join(delimiter), parts[parts.length - 1]]
-}
-
-/**
- * Recursively process all values in the given input,
- * walking through all object keys _and array items_.
- */
-export function deepMap<T extends object, U extends object = T>(
-  value: T | Iterable<T>,
-  fn: (value: any, key: string | number) => any,
-  key?: number | string
-): U | Iterable<U> {
-  if (isArray(value)) {
-    return value.map((v, k) => <U>deepMap(v, fn, k))
-  } else if (isPlainObject(value)) {
-    return <U>mapValues(value, (v, k) => deepMap(<T>(<unknown>v), fn, k))
-  } else {
-    return <U>fn(value, key || 0)
-  }
-}
-
-/**
- * Recursively filter all keys and values in the given input,
- * walking through all object keys _and array items_.
- */
-export function deepFilter<T extends object, U extends object = T>(
-  value: T | Iterable<T>,
-  fn: (value: any, key: string | number) => boolean
-): U | Iterable<U> {
-  if (isArray(value)) {
-    return <Iterable<U>>value.filter(fn).map((v) => deepFilter(v, fn))
-  } else if (isPlainObject(value)) {
-    return <U>mapValues(pickBy(<U>value, fn), (v) => deepFilter(v, fn))
-  } else {
-    return <U>value
-  }
-}
-
 /**
  * Recursively resolves all promises in the given input,
  * walking through all object keys and array items.
@@ -467,11 +398,13 @@ export async function deepResolve<T>(
   }
 }
 
+type DeepMappable = any | ArrayLike<DeepMappable> | { [k: string]: DeepMappable }
+
 /**
  * Recursively maps over all keys in the input and resolves the resulting promises,
  * walking through all object keys and array items.
  */
-export async function asyncDeepMap<T>(
+export async function asyncDeepMap<T extends DeepMappable>(
   obj: T,
   mapper: (value) => Promise<any>,
   options?: Bluebird.ConcurrencyOption
@@ -482,7 +415,7 @@ export async function asyncDeepMap<T>(
     return <T>(
       fromPairs(
         await Bluebird.map(
-          Object.entries(obj),
+          Object.entries(obj as { [k: string]: DeepMappable }),
           async ([key, value]) => [key, await asyncDeepMap(value, mapper, options)],
           options
         )
@@ -493,56 +426,18 @@ export async function asyncDeepMap<T>(
   }
 }
 
-export function omitUndefined(o: object) {
-  return pickBy(o, (v: any) => v !== undefined)
-}
-
-/**
- * Recursively go through an object or array and strip all keys with undefined values, as well as undefined
- * values from arrays. Note: Also iterates through arrays recursively.
- */
-export function deepOmitUndefined(obj: object) {
-  return deepFilter(obj, (v) => v !== undefined)
-}
-
-export function serializeObject(o: any): string {
-  return Buffer.from(Cryo.stringify(o)).toString("base64")
-}
-
-export function deserializeObject(s: string) {
-  return Cryo.parse(Buffer.from(s, "base64"))
-}
-
-export function serializeValues(o: { [key: string]: any }): { [key: string]: string } {
-  return mapValues(o, serializeObject)
-}
-
-export function deserializeValues(o: object) {
-  return mapValues(o, deserializeObject)
-}
-
 export function getEnumKeys(Enum) {
   return Object.values(Enum).filter((k) => typeof k === "string") as string[]
 }
 
-export function highlightYaml(s: string) {
-  return highlight(s, {
-    language: "yaml",
-    theme: {
-      keyword: chalk.white.italic,
-      literal: chalk.white.italic,
-      string: chalk.white,
-    },
-  })
-}
-
 export async function loadYamlFile(path: string): Promise<any> {
   const fileData = await readFile(path)
-  return safeLoad(fileData.toString())
+  return load(fileData.toString())
 }
 
 export interface ObjectWithName {
   name: string
+
   [key: string]: any
 }
 
@@ -629,11 +524,21 @@ export function pickKeys<T extends object, U extends keyof T>(obj: T, keys: U[],
   return picked
 }
 
-export function findByNames<T extends ObjectWithName>(names: string[], entries: T[], description: string) {
+export function findByNames<T extends ObjectWithName>({
+  names,
+  entries,
+  description,
+  allowMissing,
+}: {
+  names: string[]
+  entries: T[]
+  description: string
+  allowMissing: boolean
+}) {
   const available = getNames(entries)
   const missing = difference(names, available)
 
-  if (missing.length) {
+  if (missing.length && !allowMissing) {
     throw new ParameterError(`Could not find ${description}(s): ${missing.join(", ")}`, { available, missing })
   }
 
@@ -662,13 +567,6 @@ export function pushToKey(obj: object, key: string, value: any) {
   } else {
     obj[key] = [value]
   }
-}
-
-/**
- * Returns true if `obj` is a Promise, otherwise false.
- */
-export function isPromise(obj: any): obj is Promise<any> {
-  return !!obj && (typeof obj === "object" || typeof obj === "function") && typeof obj.then === "function"
 }
 
 /**
@@ -738,7 +636,7 @@ export async function runScript({
   script,
   envVars,
 }: {
-  log: LogEntry
+  log: Log
   cwd: string
   script: string
   envVars?: PrimitiveMap
@@ -776,7 +674,7 @@ export async function runScript({
   proc.stdout!.pipe(stdout)
   proc.stderr!.pipe(stderr)
 
-  await proc
+  return await proc
 }
 
 export async function streamToString(stream: Readable) {
@@ -806,7 +704,6 @@ export class StringCollector extends Writable {
     })
   }
 
-  // tslint:disable-next-line: function-name
   _write(chunk: Buffer, _: string, callback: () => void) {
     this.chunks.push(Buffer.from(chunk))
     callback()
@@ -908,4 +805,11 @@ export function getGitHubIssueLink(title: string, type: "bug" | "feature-request
   } else {
     return `https://github.com/garden-io/garden/issues/new?assignees=&labels=&template=BUG_REPORT.md&title=${title}`
   }
+}
+
+/**
+ * Check if a given date instance is valid.
+ */
+export function isValidDateInstance(d: any) {
+  return !isNaN(d) && d instanceof Date
 }

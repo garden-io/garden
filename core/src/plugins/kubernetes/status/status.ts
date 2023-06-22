@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,16 +9,14 @@
 import { diffString } from "json-diff"
 import { DeploymentError } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
-import { ServiceState, combineStates } from "../../../types/service"
-import { sleep, deepMap } from "../../../util/util"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import Bluebird from "bluebird"
-import { KubernetesResource, KubernetesServerResource, BaseResource } from "../types"
-import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit } from "lodash"
+import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
+import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { isSubset } from "../../../util/is-subset"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import {
   V1ReplicationController,
   V1ReplicaSet,
@@ -26,36 +24,40 @@ import {
   V1PersistentVolumeClaim,
   V1Service,
   V1Container,
+  KubernetesObject,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
-import { getPods, hashManifest } from "../util"
+import { getPods, getResourceKey, hashManifest } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
 import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
-import { SyncableResource } from "../hot-reload/hot-reload"
-import { LogLevel } from "../../../logger/logger"
+import { SyncableResource } from "../types"
+import { ActionMode } from "../../../actions/types"
+import { deepMap } from "../../../util/objects"
+import { DeployState, combineStates } from "../../../types/service"
+import { isTruthy, sleep } from "../../../util/util"
 
-export interface ResourceStatus<T = BaseResource> {
-  state: ServiceState
+export interface ResourceStatus<T extends BaseResource | KubernetesObject = BaseResource> {
+  state: DeployState
   resource: KubernetesServerResource<T>
   lastMessage?: string
   warning?: true
   logs?: string
 }
 
-export interface StatusHandlerParams<T = BaseResource> {
+export interface StatusHandlerParams<T extends BaseResource | KubernetesObject = BaseResource> {
   api: KubeApi
   namespace: string
   resource: KubernetesServerResource<T>
-  log: LogEntry
+  log: Log
   resourceVersion?: number
 }
 
-interface StatusHandler<T = BaseResource> {
+interface StatusHandler<T extends BaseResource | KubernetesObject = BaseResource> {
   (params: StatusHandlerParams<T>): Promise<ResourceStatus<T>>
 }
 
-const pvcPhaseMap: { [key: string]: ServiceState } = {
+const pvcPhaseMap: { [key: string]: DeployState } = {
   Available: "ready",
   Bound: "ready",
   Released: "stopped",
@@ -73,7 +75,7 @@ const objHandlers: { [kind: string]: StatusHandler } = {
 
   PersistentVolumeClaim: async ({ resource }: StatusHandlerParams<V1PersistentVolumeClaim>) => {
     const pvc = <KubernetesServerResource<V1PersistentVolumeClaim>>resource
-    const state: ServiceState = pvcPhaseMap[pvc.status.phase!] || "unknown"
+    const state: DeployState = pvcPhaseMap[pvc.status.phase!] || "unknown"
     return { state, resource }
   },
 
@@ -118,19 +120,14 @@ export async function checkResourceStatuses(
   api: KubeApi,
   namespace: string,
   manifests: KubernetesResource[],
-  log: LogEntry
+  log: Log
 ): Promise<ResourceStatus[]> {
   return Bluebird.map(manifests, async (manifest) => {
     return checkResourceStatus(api, namespace, manifest, log)
   })
 }
 
-export async function checkResourceStatus(
-  api: KubeApi,
-  namespace: string,
-  manifest: KubernetesResource,
-  log: LogEntry
-) {
+export async function checkResourceStatus(api: KubeApi, namespace: string, manifest: KubernetesResource, log: Log) {
   const handler = objHandlers[manifest.kind]
 
   if (manifest.metadata?.namespace) {
@@ -145,7 +142,7 @@ export async function checkResourceStatus(
     resourceVersion = parseInt(resource.metadata.resourceVersion!, 10)
   } catch (err) {
     if (err.statusCode === 404) {
-      return { state: <ServiceState>"missing", resource: manifest }
+      return { state: <DeployState>"missing", resource: manifest }
     } else {
       throw err
     }
@@ -166,9 +163,9 @@ interface WaitParams {
   namespace: string
   ctx: PluginContext
   provider: KubernetesProvider
-  serviceName?: string
+  actionName?: string
   resources: KubernetesResource[]
-  log: LogEntry
+  log: Log
   timeoutSec: number
 }
 
@@ -179,48 +176,61 @@ export async function waitForResources({
   namespace,
   ctx,
   provider,
-  serviceName,
+  actionName,
   resources,
   log,
   timeoutSec,
 }: WaitParams) {
   let loops = 0
-  let lastMessage: string | undefined
   const startTime = new Date().getTime()
 
   const logEventContext = {
     origin: "kubernetes-plugin",
-    log: log.placeholder({ level: LogLevel.verbose }),
+    level: "verbose" as const,
   }
 
   const emitLog = (msg: string) =>
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: Buffer.from(msg, "utf-8"), ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg, ...logEventContext })
 
   const waitingMsg = `Waiting for resources to be ready...`
-  const statusLine = log.info({
-    symbol: "info",
-    section: serviceName,
-    msg: waitingMsg,
-  })
+  const statusLine = log
+    .createLog({
+      // TODO: Avoid setting fallback, the action name should be known
+      name: actionName || "<kubernetes>",
+    })
+    .info(waitingMsg)
   emitLog(waitingMsg)
 
   if (resources.length === 0) {
-    const noResourcesMsg = `No resources to wait`
+    const noResourcesMsg = `No resources to wait for`
     emitLog(noResourcesMsg)
-    statusLine.setState({ symbol: "info", section: serviceName, msg: noResourcesMsg })
+    statusLine.info(noResourcesMsg)
     return []
   }
 
   const api = await KubeApi.factory(log, ctx, provider)
-  let statuses: ResourceStatus[]
+
+  const results: { [key: string]: ResourceStatus } = {}
+  const pendingResources = keyBy(resources, getResourceKey)
 
   while (true) {
     await sleep(2000 + 500 * loops)
     loops += 1
 
-    statuses = await checkResourceStatuses(api, namespace, resources, log)
+    const statuses = await checkResourceStatuses(api, namespace, Object.values(pendingResources), log)
 
     for (const status of statuses) {
+      const key = getResourceKey(status.resource)
+
+      const lastMessage = results[key]?.lastMessage
+
+      results[key] = status
+
+      // Avoid unnecessary polling
+      if (status.state === "ready") {
+        delete pendingResources[key]
+      }
+
       const resource = status.resource
       const statusMessage = `${resource.kind} ${resource.metadata.name} is "${status.state}"`
 
@@ -229,7 +239,7 @@ export async function waitForResources({
       emitLog(statusLogMsg)
 
       if (status.state === "unhealthy") {
-        let msg = `Error deploying ${serviceName || "resources"}: ${status.lastMessage || statusMessage}`
+        let msg = `Error deploying ${actionName || "resources"}: ${status.lastMessage || statusMessage}`
 
         if (status.logs) {
           msg += "\n\n" + status.logs
@@ -237,19 +247,18 @@ export async function waitForResources({
 
         emitLog(msg)
         throw new DeploymentError(msg, {
-          serviceName,
+          serviceName: actionName,
           status,
         })
       }
 
-      if (status.lastMessage && (!lastMessage || status.lastMessage !== lastMessage)) {
-        lastMessage = status.lastMessage
-        const symbol = status.warning === true ? "warning" : "info"
-        const statusUpdateLogMsg = `${status.resource.kind}/${status.resource.metadata.name}: ${status.lastMessage}`
-        statusLine.setState({
-          symbol,
-          msg: statusUpdateLogMsg,
-        })
+      if (status.lastMessage && status.lastMessage !== lastMessage) {
+        const statusUpdateLogMsg = `${getResourceKey(status.resource)}: ${status.lastMessage}`
+        if (status.warning) {
+          statusLine.warn(statusUpdateLogMsg)
+        } else {
+          statusLine.info(statusUpdateLogMsg)
+        }
         emitLog(statusUpdateLogMsg)
       }
     }
@@ -265,7 +274,7 @@ export async function waitForResources({
 
     if (now - startTime > timeoutSec * 1000) {
       const deploymentErrMsg = deline`
-        Timed out waiting for ${serviceName || "resources"} to deploy after ${timeoutSec} seconds
+        Timed out waiting for ${actionName || "resources"} to deploy after ${timeoutSec} seconds
       `
       emitLog(deploymentErrMsg)
       throw new DeploymentError(deploymentErrMsg, { statuses })
@@ -274,17 +283,20 @@ export async function waitForResources({
 
   const readyMsg = `Resources ready`
   emitLog(readyMsg)
-  statusLine.setState({ symbol: "info", section: serviceName, msg: readyMsg })
+  statusLine.info(readyMsg)
 
-  return statuses
+  return Object.values(results)
 }
 
 interface ComparisonResult {
-  state: ServiceState
+  state: DeployState
   remoteResources: KubernetesResource[]
-  deployedWithDevMode: boolean
-  deployedWithHotReloading: boolean
-  deployedWithLocalMode: boolean
+  mode: ActionMode
+  /**
+   * These resources have changes in `spec.selector`, and would need to be deleted before redeploying (since Kubernetes
+   * doesn't allow updates to immutable fields).
+   */
+  selectorChangedResourceKeys: string[]
 }
 
 /**
@@ -295,7 +307,7 @@ export async function compareDeployedResources(
   api: KubeApi,
   namespace: string,
   manifests: KubernetesResource[],
-  log: LogEntry
+  log: Log
 ): Promise<ComparisonResult> {
   // Unroll any `List` resource types
   manifests = flatten(manifests.map((r: any) => (r.apiVersion === "v1" && r.kind === "List" ? r.items : [r])))
@@ -305,20 +317,20 @@ export async function compareDeployedResources(
     getDeployedResource(ctx, ctx.provider, resource, log)
   )
   const deployedResources = <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
+  const manifestsMap = keyBy(manifests, (m) => getResourceKey(m))
+  const manifestKeys = Object.keys(manifestsMap)
+  const deployedMap = keyBy(deployedResources, (m) => getResourceKey(m))
 
   const result: ComparisonResult = {
     state: "unknown",
     remoteResources: <KubernetesResource[]>deployedResources.filter((o) => o !== null),
-    deployedWithDevMode: false,
-    deployedWithHotReloading: false,
-    deployedWithLocalMode: false,
+    mode: "default",
+    selectorChangedResourceKeys: detectChangedSpecSelector(manifestsMap, deployedMap),
   }
 
-  const logDescription = (resource: KubernetesResource) => `${resource.kind}/${resource.metadata.name}`
+  const logDescription = (resource: KubernetesResource) => getResourceKey(resource)
 
-  const missingObjectNames = zip(manifests, maybeDeployedObjects)
-    .filter(([_, deployed]) => !deployed)
-    .map(([resource, _]) => logDescription(resource!))
+  const missingObjectNames = manifestKeys.filter((k) => !deployedMap[k]).map((k) => logDescription(manifestsMap[k]))
 
   if (missingObjectNames.length === manifests.length) {
     // All resources missing.
@@ -357,29 +369,31 @@ export async function compareDeployedResources(
     return result
   }
 
-  log.verbose(`Comparing expected and deployed resources...`)
+  log.debug(`Comparing expected and deployed resources...`)
 
-  for (let [newManifest, deployedResource] of zip(manifests, deployedResources) as KubernetesResource[][]) {
-    let manifest = cloneDeep(newManifest)
+  for (const key of Object.keys(manifestsMap)) {
+    let manifest = cloneDeep(manifestsMap[key])
+    let deployedResource = deployedMap[key]
 
     if (!manifest.metadata.annotations) {
       manifest.metadata.annotations = {}
     }
 
     // Discard any last applied config from the input manifest
-    if (manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]) {
-      delete manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]
+    const hashKey = gardenAnnotationKey("manifest-hash")
+    if (manifest.metadata?.annotations?.[hashKey]) {
+      delete manifest.metadata?.annotations?.[hashKey]
+    }
+    if (manifest.spec?.template?.metadata?.annotations?.[hashKey]) {
+      delete manifest.spec?.template?.metadata?.annotations?.[hashKey]
     }
 
-    if (manifest.kind === "DaemonSet" || manifest.kind === "Deployment" || manifest.kind === "StatefulSet") {
-      if (isConfiguredForDevMode(<SyncableResource>manifest)) {
-        result.deployedWithDevMode = true
+    if (isWorkloadResource(manifest)) {
+      if (isConfiguredForSyncMode(manifest)) {
+        result.mode = "sync"
       }
-      if (isConfiguredForHotReloading(<SyncableResource>manifest)) {
-        result.deployedWithHotReloading = true
-      }
-      if (isConfiguredForLocalMode(<SyncableResource>manifest)) {
-        result.deployedWithLocalMode = true
+      if (isConfiguredForLocalMode(manifest)) {
+        result.mode = "local"
       }
     }
 
@@ -447,7 +461,7 @@ export async function compareDeployedResources(
 
     if (!isSubset(deployedResource, manifest)) {
       if (manifest) {
-        log.verbose(`Resource ${manifest.metadata.name} is not a superset of deployed resource`)
+        log.debug(`Resource ${manifest.metadata.name} is not a superset of deployed resource`)
         log.silly(diffString(deployedResource, manifest))
       }
       // console.log(JSON.stringify(resource, null, 4))
@@ -459,36 +473,62 @@ export async function compareDeployedResources(
     }
   }
 
-  log.verbose(`All resources match.`)
+  log.debug(`All resources match.`)
 
   result.state = "ready"
   return result
 }
 
-export function isConfiguredForDevMode(resource: SyncableResource): boolean {
-  return resource.metadata.annotations?.[gardenAnnotationKey("dev-mode")] === "true"
-}
-
-export function isConfiguredForHotReloading(resource: SyncableResource): boolean {
-  return resource.metadata.annotations?.[gardenAnnotationKey("hot-reload")] === "true"
+export function isConfiguredForSyncMode(resource: SyncableResource): boolean {
+  return resource.metadata.annotations?.[gardenAnnotationKey("mode")] === "sync"
 }
 
 export function isConfiguredForLocalMode(resource: SyncableResource): boolean {
-  return resource.metadata.annotations?.[gardenAnnotationKey("local-mode")] === "true"
+  return resource.metadata.annotations?.[gardenAnnotationKey("mode")] === "local"
 }
 
-export async function getDeployedResource(
+function isWorkloadResource(resource: KubernetesResource): resource is KubernetesWorkload {
+  return (
+    resource.kind === "Deployment" ||
+    resource.kind === "DaemonSet" ||
+    resource.kind === "StatefulSet" ||
+    resource.kind === "ReplicaSet"
+  )
+}
+
+type KubernetesResourceMap = { [key: string]: KubernetesResource }
+
+function detectChangedSpecSelector(manifestsMap: KubernetesResourceMap, deployedMap: KubernetesResourceMap): string[] {
+  const manifestKeys = Object.keys(manifestsMap)
+  const changedKeys: string[] = []
+  for (const k of manifestKeys) {
+    const manifest = manifestsMap[k]
+    const deployedResource = deployedMap[k]
+    if (
+      deployedResource && // If no corresponding resource to the local manifest has been deployed, this will be undefined.
+      isWorkloadResource(manifest) &&
+      isWorkloadResource(deployedResource) &&
+      !isEqual(manifest.spec.selector, deployedResource.spec.selector)
+    ) {
+      changedKeys.push(getResourceKey(manifest))
+    }
+  }
+  return changedKeys
+}
+
+export async function getDeployedResource<ResourceKind extends KubernetesObject>(
   ctx: PluginContext,
   provider: KubernetesProvider,
-  resource: KubernetesResource,
-  log: LogEntry
-): Promise<KubernetesResource | null> {
+  manifest: KubernetesResource<ResourceKind>,
+  log: Log
+): Promise<KubernetesResource<ResourceKind> | null> {
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = resource.metadata?.namespace || (await getAppNamespace(ctx, log, provider))
+  const k8sCtx = ctx as KubernetesPluginContext
+  const namespace = manifest.metadata?.namespace || (await getAppNamespace(k8sCtx, log, provider))
 
   try {
-    const res = await api.readBySpec({ namespace, manifest: resource, log })
-    return <KubernetesResource>res
+    const res = await api.readBySpec({ namespace, manifest, log })
+    return <KubernetesResource<ResourceKind>>res
   } catch (err) {
     if (err.statusCode === 404) {
       return null
@@ -496,6 +536,40 @@ export async function getDeployedResource(
       throw err
     }
   }
+}
+
+/**
+ * Fetches matching deployed resources from the cluster for the provided array of manifests.
+ */
+export async function getDeployedResources<ResourceKind extends KubernetesObject>({
+  ctx,
+  provider,
+  manifests,
+  log,
+}: {
+  ctx: PluginContext
+  provider: KubernetesProvider
+  manifests: KubernetesResource<ResourceKind>[]
+  log: Log
+}): Promise<KubernetesResource<ResourceKind>[]> {
+  const api = await KubeApi.factory(log, ctx, provider)
+  const k8sCtx = ctx as KubernetesPluginContext
+  const appNamespace = await getAppNamespace(k8sCtx, log, provider)
+
+  const deployed = await Bluebird.map(manifests, async (resource: KubernetesResource) => {
+    const namespace = resource.metadata?.namespace || appNamespace
+    try {
+      const res = await api.readBySpec({ namespace, manifest: resource, log })
+      return <KubernetesResource<ResourceKind>>res
+    } catch (err) {
+      if (err.statusCode === 404) {
+        return null
+      } else {
+        throw err
+      }
+    }
+  })
+  return deployed.filter(isTruthy)
 }
 
 /**

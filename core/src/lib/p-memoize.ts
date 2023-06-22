@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,8 +17,14 @@ import type { AsyncReturnType } from "type-fest"
 // TODO: Use the one in `type-fest` when it's added there.
 type AnyAsyncFunction = (...args: readonly any[]) => Promise<unknown | void>
 
-const cacheStore = new WeakMap<AnyAsyncFunction, CacheStorage<any, any>>()
-const promiseCacheStore = new WeakMap<AnyAsyncFunction, Map<unknown, unknown>>()
+function getNewStores() {
+  return {
+    cacheStore: new WeakMap<AnyAsyncFunction, CacheStorage<any, any>>(),
+    promiseCacheStore: new WeakMap<AnyAsyncFunction, Map<unknown, unknown>>(),
+  }
+}
+
+let { cacheStore, promiseCacheStore } = getNewStores()
 
 interface CacheStorage<KeyType, ValueType> {
   has: (key: KeyType) => Promise<boolean> | boolean
@@ -104,7 +110,7 @@ export function pMemoizeDecorator<FunctionToMemoize extends AnyAsyncFunction, Ca
     delete descriptor.writable
 
     descriptor.get = function () {
-      // tslint:disable: no-invalid-this
+      // eslint-disable: no-invalid-this
       if (!instanceMap.has(this)) {
         const value = pMemoize(input, options) as FunctionToMemoize
         instanceMap.set(this, value)
@@ -128,4 +134,10 @@ export function pMemoizeClear(fn: AnyAsyncFunction): void {
 
   cache.clear()
   promiseCacheStore.get(fn)!.clear()
+}
+
+export function pMemoizeClearAll() {
+  const newStores = getNewStores()
+  cacheStore = newStores.cacheStore
+  promiseCacheStore = newStores.promiseCacheStore
 }

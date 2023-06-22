@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # install/update homebrew dependencies
-BREW_DEPS="jq cmake git kubectl kubernetes-helm stern rsync icu4c pkg-config faas-cli dep git-chglog parallel"
+BREW_DEPS="jq cmake git kubectl helm rsync icu4c pkg-config dep git-chglog parallel"
 
 brew update
 brew tap git-chglog/git-chglog
@@ -21,8 +21,8 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 # install node
-nvm install 16
-nvm alias default 16
+nvm install v18
+nvm alias default v18
 nvm use default
 
 # install/update global packages

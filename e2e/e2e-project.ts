@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,10 +9,11 @@
 import execa from "execa"
 import minimist from "minimist"
 import { resolve } from "path"
-import { examplesDir } from "./helpers"
+import { projectsDir } from "./helpers"
 import dedent from "dedent"
 import chalk from "chalk"
 import { join } from "path"
+import { realpath } from "fs-extra"
 
 export const parsedArgs = minimist(process.argv.slice(2))
 
@@ -34,15 +35,16 @@ Example: ./core/bin/e2e-project.ts --binPath=/path/to/garden --project=demo-proj
 `
 
 async function run() {
-  // tslint:disable: no-console
+  /* eslint-disable no-console */
   const project = parsedArgs.project
 
   if (!project) {
-    throw new Error(`Must specify project name with --project parameter`)
+    throw new Error("Must specify project name with --project parameter")
   }
 
   // Abort if examples dir is dirty to prevent changes being checked out
-  const projectDir = resolve(examplesDir, project)
+  const projectDir = await realpath(resolve(projectsDir, project))
+
   try {
     await execa("git", ["diff-index", "--quiet", "HEAD", projectDir])
   } catch (_error) {
@@ -61,6 +63,10 @@ async function run() {
   )
 
   const mochaOpts = ["--config", join(__dirname, ".mocharc.yml")]
+
+  if (parsedArgs.b) {
+    mochaOpts.push("-b")
+  }
 
   for (const [key, value] of Object.entries(parsedArgs)) {
     if (key !== "_" && key !== "--") {

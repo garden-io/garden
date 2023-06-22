@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,11 +7,8 @@
  */
 
 import AsyncLock from "async-lock"
-import pRetry from "p-retry"
-import { ContainerModule, ContainerRegistryConfig } from "../../../container/config"
-import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/module/getBuildStatus"
-import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
-import { getRunningDeploymentPod, usingInClusterRegistry } from "../../util"
+import { ContainerBuildAction, ContainerRegistryConfig } from "../../../container/moduleConfig"
+import { getRunningDeploymentPod } from "../../util"
 import {
   buildSyncVolumeName,
   dockerAuthSecretKey,
@@ -23,28 +20,24 @@ import { KubeApi } from "../../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../../config"
 import { PodRunner } from "../../run"
 import { PluginContext } from "../../../../plugin-context"
-import { basename, resolve } from "path"
-import { getPortForward } from "../../port-forward"
-import { normalizeLocalRsyncPath } from "../../../../util/fs"
-import { exec, hashString, sleep } from "../../../../util/util"
+import { hashString, sleep } from "../../../../util/util"
 import { InternalError, RuntimeError } from "../../../../exceptions"
-import { LogEntry } from "../../../../logger/log-entry"
-import { getInClusterRegistryHostname } from "../../init"
+import { Log } from "../../../../logger/log-entry"
 import { prepareDockerAuth } from "../../init"
 import { prepareSecrets } from "../../secrets"
 import chalk from "chalk"
-import { gardenEnv } from "../../../../constants"
-import { getKubectlExecDestination, MutagenDaemon } from "../../mutagen"
+import { Mutagen } from "../../../../mutagen"
 import { randomString } from "../../../../util/string"
 import { V1Container, V1Service } from "@kubernetes/client-node"
 import { cloneDeep, isEmpty } from "lodash"
 import { compareDeployedResources, waitForResources } from "../../status/status"
 import { KubernetesDeployment, KubernetesResource } from "../../types"
+import { BuildActionHandler, BuildActionResults } from "../../../../plugin/action-types"
+import { k8sGetContainerBuildActionOutputs } from "../handlers"
+import { Resolved } from "../../../../actions/types"
 import { stringifyResources } from "../util"
+import { getKubectlExecDestination } from "../../sync"
 
-const inClusterRegistryPort = 5000
-
-export const sharedBuildSyncDeploymentName = "garden-build-sync"
 export const utilContainerName = "util"
 export const utilRsyncPort = 8730
 export const utilDeploymentName = "garden-util"
@@ -67,27 +60,29 @@ export const builderToleration = {
   effect: "NoSchedule",
 }
 
-export type BuildStatusHandler = (params: GetBuildStatusParams<ContainerModule>) => Promise<BuildStatus>
-export type BuildHandler = (params: BuildModuleParams<ContainerModule>) => Promise<BuildResult>
+export type BuildStatusHandler = BuildActionHandler<"getStatus", ContainerBuildAction>
+export type BuildStatusResult = BuildActionResults<"getStatus", ContainerBuildAction>
+export type BuildHandler = BuildActionHandler<"build", ContainerBuildAction>
 
 const deployLock = new AsyncLock()
 
-interface SyncToSharedBuildSyncParams extends BuildModuleParams<ContainerModule> {
+interface SyncToSharedBuildSyncParams {
   ctx: KubernetesPluginContext
+  log: Log
   api: KubeApi
+  action: ContainerBuildAction
   namespace: string
   deploymentName: string
-  rsyncPort: number
   sourcePath?: string
 }
 
 export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
-  const { ctx, module, log, api, namespace, deploymentName, rsyncPort } = params
+  const { ctx, action, log, api, namespace, deploymentName } = params
 
-  const sourcePath = params.sourcePath || module.buildPath
+  const sourcePath = params.sourcePath || action.getBuildPath()
 
   // Because we're syncing to a shared volume, we need to scope by a unique ID
-  const contextRelPath = `${ctx.workingCopyId}/${module.name}`
+  const contextRelPath = `${ctx.workingCopyId}/${action.name}`
 
   // Absolute path mounted on the builder
   const contextPath = `/garden-build/${contextRelPath}`
@@ -100,94 +95,65 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     namespace,
   })
 
-  const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
+  // Sync using mutagen
+  const key = `k8s--build-sync--${ctx.environmentName}--${namespace}--${action.name}--${randomString(8)}`
+  const targetPath = `/data/${ctx.workingCopyId}/${action.name}`
 
-  if (gardenEnv.GARDEN_K8S_BUILD_SYNC_MODE === "mutagen") {
-    // Sync using mutagen
-    const key = `build-sync-${module.name}-${randomString(8)}`
-    const targetPath = `/data/${ctx.workingCopyId}/${module.name}`
+  const mutagen = new Mutagen({ ctx, log })
 
-    // Make sure the target path exists
-    const runner = new PodRunner({
-      ctx,
-      provider: ctx.provider,
-      api,
-      pod: buildSyncPod,
-      namespace,
-    })
+  // Make sure the target path exists
+  const runner = new PodRunner({
+    ctx,
+    provider: ctx.provider,
+    api,
+    pod: buildSyncPod,
+    namespace,
+  })
 
-    await runner.exec({
+  await runner.exec({
+    log,
+    command: ["sh", "-c", "mkdir -p " + targetPath],
+    containerName: utilContainerName,
+    buffer: true,
+  })
+
+  try {
+    const resourceName = `Deployment/${deploymentName}`
+
+    log.debug(`Syncing from ${sourcePath} to ${resourceName}`)
+
+    // -> Create the sync
+    await mutagen.ensureSync({
       log,
-      command: ["sh", "-c", "mkdir -p " + targetPath],
-      containerName: utilContainerName,
-      buffer: true,
+      key,
+      logSection: action.key(),
+      sourceDescription: `${action.kind} ${action.name} build path`,
+      targetDescription: "Build sync Pod",
+      config: {
+        alpha: sourcePath,
+        beta: await getKubectlExecDestination({
+          ctx,
+          log,
+          namespace,
+          containerName: utilContainerName,
+          resourceName,
+          targetPath,
+        }),
+        mode: "one-way-replica",
+        ignore: [],
+      },
     })
 
-    try {
-      const resourceName = `Deployment/${deploymentName}`
-
-      log.debug(`Syncing from ${sourcePath} to ${resourceName}`)
-
-      // -> Create the sync
-      await mutagenDaemon.ensureSync({
-        key,
-        logSection: module.name,
-        sourceDescription: `Module ${module.name} build path`,
-        targetDescription: "Build sync Pod",
-        config: {
-          alpha: sourcePath,
-          beta: await getKubectlExecDestination({
-            ctx,
-            log,
-            namespace,
-            containerName: utilContainerName,
-            resourceName,
-            targetPath,
-          }),
-          mode: "one-way-replica",
-          ignore: [],
-        },
-      })
-
-      // -> Flush the sync once
-      await mutagenDaemon.flushSync(key)
-      log.debug(`Sync from ${sourcePath} to ${resourceName} completed`)
-    } finally {
-      // -> Terminate the sync
-      await mutagenDaemon.terminateSync(key)
-      log.debug(`Sync connection terminated`)
-    }
-  } else {
-    // Sync the build context to the remote sync service
-    // -> Get a tunnel to the service
-    log.setState("Syncing files to cluster...")
-    const syncFwd = await getPortForward({
-      ctx,
-      log,
-      namespace,
-      targetResource: `Pod/${buildSyncPod.metadata.name}`,
-      port: rsyncPort,
-    })
-
-    // -> Run rsync
-    const sourceParent = resolve(sourcePath, "..")
-    const dirName = basename(sourcePath)
-
-    // The '/./' trick is used to automatically create the correct target directory with rsync:
-    // https://stackoverflow.com/questions/1636889/rsync-how-can-i-configure-it-to-create-target-directory-on-server
-    let src = normalizeLocalRsyncPath(`${sourceParent}`) + `/./${dirName}/`
-    const destination = `rsync://localhost:${syncFwd.localPort}/volume/${ctx.workingCopyId}/`
-    const syncArgs = [...commonSyncArgs, "--relative", "--delete", "--temp-dir", "/tmp", src, destination]
-
-    log.debug(`Syncing from ${src} to ${destination}`)
-    // We retry a few times, because we may get intermittent connection issues or concurrency issues
-    await pRetry(() => exec("rsync", syncArgs), {
-      retries: 5,
-      minTimeout: 1000,
-    })
+    // -> Flush the sync once
+    await mutagen.flushSync(key)
+    log.debug(`Sync from ${sourcePath} to ${resourceName} completed`)
+  } finally {
+    // -> Terminate the sync
+    await mutagen.terminateSync(log, key)
+    log.debug(`Sync connection terminated`)
   }
 
-  log.setState("File sync to cluster complete")
+  log.info("File sync to cluster complete")
 
   return { contextRelPath, contextPath, dataPath }
 }
@@ -203,24 +169,27 @@ export async function skopeoBuildStatus({
   api,
   ctx,
   provider,
-  module,
+  action,
 }: {
   namespace: string
   deploymentName: string
   containerName: string
-  log: LogEntry
+  log: Log
   api: KubeApi
   ctx: PluginContext
   provider: KubernetesProvider
-  module: ContainerModule
-}) {
+  action: Resolved<ContainerBuildAction>
+}): Promise<BuildStatusResult> {
   const deploymentRegistry = provider.config.deploymentRegistry
 
   if (!deploymentRegistry) {
     // This is validated in the provider configure handler, so this is an internal error if it happens
     throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
   }
-  const remoteId = module.outputs["deployment-image-id"]
+
+  const outputs = k8sGetContainerBuildActionOutputs({ action, provider })
+
+  const remoteId = outputs.deploymentImageId
   const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "/.docker/config.json"]
 
   if (deploymentRegistry?.insecure === true) {
@@ -253,7 +222,7 @@ export async function skopeoBuildStatus({
       containerName,
       buffer: true,
     })
-    return { ready: true }
+    return { state: "ready", outputs, detail: {} }
   } catch (err) {
     const res = err.detail?.result || {}
 
@@ -266,7 +235,7 @@ export async function skopeoBuildStatus({
         output,
       })
     }
-    return { ready: false }
+    return { state: "unknown", outputs, detail: {} }
   }
 }
 
@@ -274,7 +243,7 @@ export function skopeoManifestUnknown(errMsg: string | null | undefined): boolea
   if (!errMsg) {
     return false
   }
-  return errMsg.includes("manifest unknown") || /artifact [^ ]+ not found/.test(errMsg)
+  return errMsg.includes("manifest unknown") || /(artifact|repository) [^ ]+ not found/.test(errMsg)
 }
 
 /**
@@ -319,12 +288,12 @@ export async function ensureUtilDeployment({
 }: {
   ctx: PluginContext
   provider: KubernetesProvider
-  log: LogEntry
+  log: Log
   api: KubeApi
   namespace: string
 }) {
   return deployLock.acquire(namespace, async () => {
-    const deployLog = log.placeholder()
+    const deployLog = log.createLog()
 
     const { authSecret, updated: secretUpdated } = await ensureBuilderSecret({
       provider,
@@ -354,7 +323,7 @@ export async function ensureUtilDeployment({
     }
 
     // Deploy the service
-    deployLog.setState(
+    deployLog.info(
       chalk.gray(`-> Deploying ${utilDeploymentName} service in ${namespace} namespace (was ${status.state})`)
     )
 
@@ -365,41 +334,19 @@ export async function ensureUtilDeployment({
       namespace,
       ctx,
       provider,
-      serviceName: "garden-util",
+      actionName: "garden-util",
       resources: [deployment, service],
       log: deployLog,
       timeoutSec: 600,
     })
 
-    deployLog.setState({ append: true, msg: "Done!" })
+    deployLog.info("Done!")
 
     return { authSecret, updated: true }
   })
 }
 
-export function getSocatContainer(provider: KubernetesProvider) {
-  const registryHostname = getInClusterRegistryHostname(provider.config)
-
-  return {
-    name: "proxy",
-    image: "gardendev/socat:0.1.0",
-    command: ["/bin/sh", "-c", `socat TCP-LISTEN:5000,fork TCP:${registryHostname}:${inClusterRegistryPort} || exit 0`],
-    ports: [
-      {
-        name: "proxy",
-        containerPort: inClusterRegistryPort,
-        protocol: "TCP",
-      },
-    ],
-    readinessProbe: {
-      tcpSocket: { port: <any>inClusterRegistryPort },
-    },
-  }
-}
-
-export async function getManifestInspectArgs(module: ContainerModule, deploymentRegistry: ContainerRegistryConfig) {
-  const remoteId = module.outputs["deployment-image-id"]
-
+export async function getManifestInspectArgs(remoteId: string, deploymentRegistry: ContainerRegistryConfig) {
   const dockerArgs = ["manifest", "inspect", remoteId]
   if (isLocalHostname(deploymentRegistry.hostname)) {
     dockerArgs.push("--insecure")
@@ -421,7 +368,7 @@ export async function ensureBuilderSecret({
   namespace,
 }: {
   provider: KubernetesProvider
-  log: LogEntry
+  log: Log
   api: KubeApi
   namespace: string
 }) {
@@ -438,7 +385,7 @@ export async function ensureBuilderSecret({
   const existingSecret = await api.readOrNull({ log, namespace, manifest: authSecret })
 
   if (!existingSecret || authSecret.data?.[dockerAuthSecretKey] !== existingSecret.data?.[dockerAuthSecretKey]) {
-    log.setState(chalk.gray(`-> Updating Docker auth secret in namespace ${namespace}`))
+    log.info(chalk.gray(`-> Updating Docker auth secret in namespace ${namespace}`))
     await api.upsert({ kind: "Secret", namespace, log, obj: authSecret })
     updated = true
   }
@@ -501,7 +448,7 @@ export function getUtilContainer(authSecretName: string, provider: KubernetesPro
           command: [
             "/bin/sh",
             "-c",
-            "until test $(pgrep -fc '^[^ ]+rsync') = 1; do echo waiting for rsync to finish...; sleep 1; done",
+            "until test $(pgrep -f '^[^ ]+rsync' | wc -l) = 1; do echo waiting for rsync to finish...; sleep 1; done",
           ],
         },
       },
@@ -576,11 +523,6 @@ export function getUtilManifests(
   }
 
   const service = cloneDeep(baseUtilService)
-
-  if (usingInClusterRegistry(provider)) {
-    // We need a proxy sidecar to be able to reach the in-cluster registry from the Pod
-    deployment.spec!.template.spec!.containers.push(getSocatContainer(provider))
-  }
 
   // Set the configured nodeSelector, if any
   const nodeSelector = provider.config.kaniko?.util?.nodeSelector || provider.config.kaniko?.nodeSelector

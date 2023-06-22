@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,10 +9,8 @@
 import tar from "tar"
 import tmp from "tmp-promise"
 import { cloneDeep, omit, pick, some } from "lodash"
-import { CoreV1Event, V1Container, V1ContainerStatus, V1Pod, V1PodSpec, V1PodStatus } from "@kubernetes/client-node"
-import { RunResult } from "../../types/plugin/base"
-import { GardenModule } from "../../types/module"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
+import { CoreV1Event } from "@kubernetes/client-node"
 import {
   PluginError,
   GardenBaseError,
@@ -27,8 +25,7 @@ import { Writable, Readable, PassThrough } from "stream"
 import { uniqByName, sleep } from "../../util/util"
 import { ExecInPodResult, KubeApi, KubernetesError } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
-import { KubernetesResource, KubernetesPod, KubernetesServerResource } from "./types"
-import { RunModuleParams } from "../../types/plugin/module/runModule"
+import { KubernetesResource, KubernetesPod, KubernetesServerResource, SupportedRuntimeAction } from "./types"
 import { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/config"
 import { prepareEnvVars, makePodName, renderPodEvents } from "./util"
 import { dedent, deline, randomString } from "../../util/string"
@@ -37,17 +34,16 @@ import { prepareSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
 import { PluginContext, PluginEventBroker, PluginEventLogContext } from "../../plugin-context"
 import { waitForResources, ResourceStatus } from "./status/status"
-import { RuntimeContext } from "../../runtime-context"
 import { getResourceRequirements, getSecurityContext } from "./container/util"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { copy } from "fs-extra"
 import { K8sLogFollower, PodLogEntryConverter, PodLogEntryConverterParams } from "./logs"
 import { Stream } from "ts-stream"
+import { BaseRunParams } from "../../plugin/handlers/base/base"
+import { V1PodSpec, V1Container, V1Pod, V1ContainerStatus, V1PodStatus } from "@kubernetes/client-node"
+import { RunResult } from "../../plugin/base"
 import { LogLevel } from "../../logger/logger"
 import { getResourceEvents } from "./status/events"
-
-// Default timeout for individual run/exec operations
-const defaultTimeout = 600
 
 /**
  * When a `podSpec` is passed to `runAndCopy`, only these fields will be used for the runner's pod spec
@@ -106,14 +102,14 @@ export const makeRunLogEntry: PodLogEntryConverter<RunLogEntry> = ({ timestamp, 
 
 export const runContainerExcludeFields: (keyof V1Container)[] = ["readinessProbe", "livenessProbe", "startupProbe"]
 
+// TODO: jfc this function signature stinks like all hell - JE
 export async function runAndCopy({
   ctx,
   log,
-  module,
+  action,
   args,
   command,
   interactive,
-  runtimeContext,
   timeout,
   image,
   container,
@@ -130,7 +126,10 @@ export async function runAndCopy({
   privileged,
   addCapabilities,
   dropCapabilities,
-}: RunModuleParams & {
+}: BaseRunParams & {
+  ctx: PluginContext
+  log: Log
+  action: SupportedRuntimeAction
   image: string
   container?: V1Container
   podName?: string
@@ -154,24 +153,23 @@ export async function runAndCopy({
   const mainContainerName = "main"
 
   if (!description) {
-    description = `Container module '${module.name}'`
+    description = action.longDescription()
   }
 
-  const errorMetadata: any = { moduleName: module.name, description, args, artifacts }
+  const errorMetadata: any = { actionName: action.name, description, args, artifacts }
 
   podSpec = await prepareRunPodSpec({
     podSpec,
     getArtifacts,
     log,
-    module,
+    action,
     args,
     command,
     api,
     provider,
-    runtimeContext,
     envVars,
     resources,
-    description,
+    description: description || "",
     errorMetadata,
     mainContainerName,
     image,
@@ -184,7 +182,7 @@ export async function runAndCopy({
   })
 
   if (!podName) {
-    podName = makePodName("run", module.name)
+    podName = makePodName("run", action.name)
   }
 
   const runParams = {
@@ -192,29 +190,37 @@ export async function runAndCopy({
     api,
     provider,
     log,
-    module,
-    args,
-    command,
-    interactive,
-    runtimeContext,
-    timeout,
-    podSpec,
-    podName,
-    namespace,
+    action,
     version,
+    podData: {
+      podSpec,
+      podName,
+      namespace,
+    },
+    run: {
+      args,
+      command,
+      interactive,
+      timeout,
+    },
   }
 
   if (getArtifacts) {
     const logEventContext = {
       // XXX command cannot be possibly undefined, can it?
       origin: command ? command[0] : "unknown command",
-      log: log.placeholder({ level: LogLevel.verbose }),
+      log: log.createLog({ fixLevel: LogLevel.verbose }),
     }
 
     const outputStream = new PassThrough()
     outputStream.on("error", () => {})
     outputStream.on("data", (data: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().getTime(), data, ...logEventContext })
+      ctx.events.emit("log", {
+        level: "verbose",
+        timestamp: new Date().toISOString(),
+        msg: data.toString(),
+        ...logEventContext,
+      })
     })
 
     return runWithArtifacts({
@@ -239,10 +245,9 @@ export async function prepareRunPodSpec({
   api,
   provider,
   log,
-  module,
+  action,
   args,
   command,
-  runtimeContext,
   envVars,
   resources,
   description,
@@ -258,13 +263,12 @@ export async function prepareRunPodSpec({
 }: {
   podSpec?: V1PodSpec
   getArtifacts: boolean
-  log: LogEntry
-  module: GardenModule
+  log: Log
+  action: SupportedRuntimeAction
   args: string[]
   command: string[] | undefined
   api: KubeApi
   provider: KubernetesProvider
-  runtimeContext: RuntimeContext
   envVars: ContainerEnvVars
   resources?: ContainerResourcesSpec
   description: string
@@ -279,7 +283,7 @@ export async function prepareRunPodSpec({
   dropCapabilities?: string[]
 }): Promise<V1PodSpec> {
   // Prepare environment variables
-  envVars = { ...runtimeContext.envVars, ...envVars }
+  envVars = { ...action.getEnvVars(), ...envVars }
   const env = uniqByName([
     ...prepareEnvVars(envVars),
     // If `container` is specified, include its variables as well
@@ -313,7 +317,7 @@ export async function prepareRunPodSpec({
   }
 
   if (volumes) {
-    configureVolumes(module, preparedPodSpec, volumes)
+    configureVolumes(action, preparedPodSpec, volumes)
   }
 
   if (getArtifacts) {
@@ -354,10 +358,16 @@ function getPodResourceAndRunner({
   ctx,
   api,
   provider,
-  namespace,
-  podName,
-  podSpec,
-}: PodData & { ctx: PluginContext; api: KubeApi; provider: KubernetesProvider }) {
+  podData,
+}: {
+  ctx: PluginContext
+  timeout?: number
+  api: KubeApi
+  provider: KubernetesProvider
+  podData: PodData
+}) {
+  const { namespace, podName, podSpec } = podData
+
   const pod: KubernetesResource<V1Pod> = {
     apiVersion: "v1",
     kind: "Pod",
@@ -382,28 +392,29 @@ function getPodResourceAndRunner({
 async function runWithoutArtifacts({
   ctx,
   api,
+  action,
   provider,
   log,
-  module,
-  timeout,
-  podSpec,
-  podName,
-  namespace,
-  interactive,
+  podData,
+  run,
   version,
-}: RunModuleParams &
-  PodData & {
-    api: KubeApi
-    provider: KubernetesProvider
-    version: string
-  }): Promise<RunResult> {
+}: {
+  ctx: PluginContext
+  log: Log
+  api: KubeApi
+  provider: KubernetesProvider
+  action: SupportedRuntimeAction
+  version: string
+  podData: PodData
+  run: BaseRunParams
+}): Promise<RunResult> {
+  const { timeout: timeoutSec, interactive } = run
+
   const { runner } = getPodResourceAndRunner({
     ctx,
     api,
     provider,
-    namespace,
-    podName,
-    podSpec,
+    podData,
   })
 
   let result: RunResult
@@ -414,14 +425,12 @@ async function runWithoutArtifacts({
       log,
       remove: true,
       events: ctx.events,
-      timeoutSec: timeout || defaultTimeout,
+      timeoutSec,
       tty: interactive,
       throwOnExitCode: true,
     })
     result = {
       ...res,
-      moduleName: module.name,
-      version,
     }
   } catch (err) {
     result = await runner.handlePodError({
@@ -429,7 +438,7 @@ async function runWithoutArtifacts({
       command: runner.getFullCommand(),
       startedAt,
       version,
-      moduleName: module.name,
+      moduleName: action.moduleName(),
     })
   }
 
@@ -461,7 +470,6 @@ ${cmd.join(" ")}
  * @param artifacts the artifacts to be processed
  */
 function getArtifactsTarScript(artifacts: ArtifactSpec[]) {
-  // TODO: only interpret target as directory if it ends with a slash (breaking change, so slated for 0.13)
   const directoriesToCreate = artifacts.map((a) => a.target).filter((target) => !!target && target !== ".")
   const tmpPath = "/tmp/.garden-artifacts-" + randomString(8)
 
@@ -483,12 +491,7 @@ async function runWithArtifacts({
   api,
   provider,
   log,
-  module,
-  args,
-  command,
-  timeout,
-  podSpec,
-  podName,
+  action,
   mainContainerName,
   artifacts,
   artifactsPath,
@@ -496,34 +499,37 @@ async function runWithArtifacts({
   errorMetadata,
   stdout,
   stderr,
-  namespace,
   version,
-}: RunModuleParams &
-  PodData & {
-    api: KubeApi
-    provider: KubernetesProvider
-    version: string
-    mainContainerName: string
-    artifacts: ArtifactSpec[]
-    artifactsPath: string
-    description?: string
-    errorMetadata: any
-    stdout: Writable
-    stderr: Writable
-  }): Promise<RunResult> {
+  podData,
+  run,
+}: {
+  ctx: PluginContext
+  log: Log
+  action: SupportedRuntimeAction
+  mainContainerName: string
+  api: KubeApi
+  provider: KubernetesProvider
+  artifacts: ArtifactSpec[]
+  artifactsPath: string
+  description?: string
+  errorMetadata: any
+  stdout: Writable
+  stderr: Writable
+  version: string
+  podData: PodData
+  run: BaseRunParams
+}): Promise<RunResult> {
+  const { args, command, timeout: timeoutSec } = run
+
   const { pod, runner } = getPodResourceAndRunner({
     ctx,
     api,
     provider,
-    namespace,
-    podName,
-    podSpec,
+    podData,
   })
 
   let result: RunResult
   const startedAt = new Date()
-
-  const timeoutSec = timeout || defaultTimeout
 
   try {
     errorMetadata.pod = pod
@@ -550,7 +556,10 @@ async function runWithArtifacts({
             deline`
               ${description} specifies artifacts to export, but the image doesn't
               contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need to
-              be installed in the image.`,
+              be installed in the image.
+
+              Original error message:
+              ${message}`,
             errorMetadata
           )
         } else {
@@ -615,8 +624,6 @@ async function runWithArtifacts({
       result = {
         ...res,
         log: res.log || (await runner.getMainContainerLogs()),
-        moduleName: module.name,
-        version,
       }
     } catch (err) {
       result = await runner.handlePodError({
@@ -624,7 +631,7 @@ async function runWithArtifacts({
         command: cmd,
         startedAt,
         version,
-        moduleName: module.name,
+        moduleName: action.moduleName(),
       })
     }
 
@@ -702,11 +709,11 @@ class PodRunnerParams {
 }
 
 interface StartParams {
-  log: LogEntry
+  log: Log
   timeoutSec?: number
 }
 
-type ExecParams = StartParams & {
+export type PodRunnerExecParams = StartParams & {
   command: string[]
   containerName?: string
   stdout?: Writable
@@ -720,7 +727,6 @@ type RunParams = StartParams & {
   remove: boolean
   tty: boolean
   events: PluginEventBroker
-  // TODO: 0.13 consider removing this in the scope of https://github.com/garden-io/garden/issues/3254
   throwOnExitCode?: boolean
 }
 
@@ -792,24 +798,26 @@ export class PodRunner extends PodRunnerParams {
       ? this.logEventContext
       : {
           origin: this.getFullCommand()[0]!,
-          log: log.placeholder({ level: LogLevel.verbose }),
+          log: log.createLog({ fixLevel: LogLevel.verbose }),
         }
 
     const stream = new Stream<RunLogEntry>()
     void stream.forEach((entry) => {
       const { msg, timestamp } = entry
+      let isoTimestamp: string
+      try {
+        if (timestamp) {
+          isoTimestamp = timestamp.toISOString()
+        } else {
+          isoTimestamp = new Date().toISOString()
+        }
+      } catch {
+        isoTimestamp = new Date().toISOString()
+      }
       events.emit("log", {
-        // This should be a numeric value (i.e. timestamp.getTime()) as opposed to a
-        // date string to be consistent with other event timestamps.
-        //
-        // However, due to missing types this has been a string value without us really noticing and
-        // and that's the shape Cloud expects. This was (rightly) changed to a numeric value with
-        // https://github.com/garden-io/garden/pull/3576 (b52e9b298f7c59b8210a77edc4c451301daa76e3)
-        // but we need to revert for Cloud backwards compatibility.
-        //
-        // TODO: Change to type number when all Cloud instance versions are >= v.1360.
-        timestamp: timestamp?.toISOString() || new Date().toISOString(),
-        data: Buffer.from(msg),
+        level: "verbose",
+        timestamp: isoTimestamp,
+        msg,
         ...logEventContext,
       })
       if (tty) {
@@ -818,7 +826,9 @@ export class PodRunner extends PodRunnerParams {
     })
     return new K8sLogFollower({
       defaultNamespace: this.namespace,
-      retryIntervalMs: 10,
+      // We use 1 second in the PodRunner, because the task / test will only finish once the LogFollower finished.
+      // If this is too low, we waste resources (network/cpu) – if it's too high we add extra time to the run execution.
+      retryIntervalMs: 1000,
       stream,
       log,
       entryConverter: makeRunLogEntry,
@@ -844,13 +854,13 @@ export class PodRunner extends PodRunnerParams {
 
     const startedAt = new Date()
     const logsFollower = this.prepareLogsFollower(params)
-    const limitBytes = 1000 * 1024 // 1MB
-    logsFollower.followLogs({ limitBytes }).catch((_err) => {
+    logsFollower.followLogs({}).catch((_err) => {
       // Errors in `followLogs` are logged there, so all we need to do here is to ensure that the follower is closed.
       logsFollower.close()
     })
 
     try {
+      const startTime = new Date(Date.now())
       await this.createPod({ log, tty })
 
       // Wait until main container terminates
@@ -858,7 +868,7 @@ export class PodRunner extends PodRunnerParams {
 
       // the Pod might have been killed – if the process exits with code zero when
       // receiving SIGINT, we might not notice if we don't double check this.
-      await this.throwIfPodKilled()
+      await this.throwIfPodKilled(startTime)
 
       // Retrieve logs after run
       const mainContainerLogs = await this.getMainContainerLogs()
@@ -872,8 +882,10 @@ export class PodRunner extends PodRunnerParams {
         success: exitCode === undefined || exitCode === 0,
       }
     } finally {
-      logsFollower.close()
+      log.debug("Closing logsFollower...")
+      await logsFollower.closeAndFlush()
       if (remove) {
+        log.debug("Stopping PodRunner")
         await this.stop()
       }
     }
@@ -1007,7 +1019,7 @@ export class PodRunner extends PodRunnerParams {
    * @throws {TimeoutError}
    * @throws {PodRunnerError}
    */
-  async exec(params: ExecParams) {
+  async exec(params: PodRunnerExecParams) {
     const { command, containerName: container, timeoutSec, tty = false, log, buffer = true } = params
     let { stdout, stderr, stdin } = params
 
@@ -1030,8 +1042,9 @@ export class PodRunner extends PodRunnerParams {
     const containerName = container || this.pod.spec.containers[0].name
 
     log.debug(`Execing command in ${this.namespace}/Pod/${this.podName}/${containerName}: ${command.join(" ")}`)
-
+    const startTime = new Date(Date.now())
     const result = await this.api.execInPod({
+      log,
       namespace: this.namespace,
       podName: this.podName,
       containerName,
@@ -1062,7 +1075,7 @@ export class PodRunner extends PodRunnerParams {
 
     // the Pod might have been killed – if the process exits with code zero when
     // receiving SIGINT, we might not notice if we don't double check this.
-    await this.throwIfPodKilled()
+    await this.throwIfPodKilled(startTime)
 
     if (result.exitCode !== 0) {
       const errorDetails: PodErrorDetails = {
@@ -1088,9 +1101,12 @@ export class PodRunner extends PodRunnerParams {
    *
    * @throws NotFoundError
    */
-  private async throwIfPodKilled(): Promise<void> {
+  private async throwIfPodKilled(afterTime: Date): Promise<void> {
     const events = await getResourceEvents(this.api, this.pod)
-    if (some(events, (event) => event.reason === "Killing")) {
+    if (
+      // If reason is killed and lastTimestamp doesn't exist or is greater than afterTime
+      some(events, (event) => event.reason === "Killing" && (!event.lastTimestamp || event.lastTimestamp > afterTime))
+    ) {
       const details: PodErrorDetails = { podEvents: events }
       throw new NotFoundError("Pod has been killed or evicted.", details)
     }
@@ -1137,7 +1153,7 @@ export class PodRunner extends PodRunnerParams {
    * Sets TTY settings for Pod and creates it.
    * @throws {KubernetesError}
    */
-  private async createPod({ log, tty }: { log: LogEntry; tty: boolean }) {
+  private async createPod({ log, tty }: { log: Log; tty: boolean }) {
     const command = this.getFullCommand()
     log.verbose(`Starting Pod ${this.podName} with command '${command.join(" ")}'`)
 

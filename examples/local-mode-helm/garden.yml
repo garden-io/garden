@@ -1,9 +1,12 @@
+apiVersion: garden.io/v1
 kind: Project
 name: local-mode-helm
 environments:
   - name: local
     variables:
-      baseHostname: vote.local.app.garden
+      baseHostname: vote.local.demo.garden
 providers:
   - name: local-kubernetes
     defaultHostname: ${var.baseHostname}
+variables:
+  localMode: ${command.params contains 'local' && (isEmpty(command.params.local) || command.params.local contains 'backend')}

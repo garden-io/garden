@@ -3,7 +3,7 @@
   "timeout": "120s",
   "ignorePatterns": [
     {
-      "pattern": "local.app.garden",
+      "pattern": "local.demo.garden",
       "reason": "Ignore example URL"
     },
     {

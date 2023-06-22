@@ -1,32 +1,32 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
-import { join } from "path"
-import { GARDEN_GLOBAL_PATH } from "../../../constants"
-import { mkdirp } from "fs-extra"
 import { StringMap } from "../../../config/common"
-import { PluginToolSpec } from "../../../types/plugin/tools"
+import { PluginToolSpec } from "../../../plugin/tools"
 import split2 from "split2"
-import { LogLevel } from "../../../logger/logger"
+import { Dictionary, pickBy } from "lodash"
+
+export const HELM_VERSION = "3.12.0"
 
 export const helm3Spec: PluginToolSpec = {
   name: "helm",
-  description: "The Helm CLI (version 3.x).",
+  description: `The Helm CLI (version ${HELM_VERSION}).`,
+  version: HELM_VERSION,
   type: "binary",
   _includeInGardenImage: true,
   builds: [
     {
       platform: "darwin",
       architecture: "amd64",
-      url: "https://get.helm.sh/helm-v3.7.2-darwin-amd64.tar.gz",
-      sha256: "5a0738afb1e194853aab00258453be8624e0a1d34fcc3c779989ac8dbcd59436",
+      url: `https://get.helm.sh/helm-v${HELM_VERSION}-darwin-amd64.tar.gz`,
+      sha256: "8223beb796ff19b59e615387d29be8c2025c5d3aea08485a262583de7ba7d708",
       extract: {
         format: "tar",
         targetPath: "darwin-amd64/helm",
@@ -35,8 +35,8 @@ export const helm3Spec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "arm64",
-      url: "https://get.helm.sh/helm-v3.7.2-darwin-arm64.tar.gz",
-      sha256: "260d4b8bffcebc6562ea344dfe88efe252cf9511dd6da3cccebf783773d42aec",
+      url: `https://get.helm.sh/helm-v${HELM_VERSION}-darwin-arm64.tar.gz`,
+      sha256: "879f61d2ad245cb3f5018ab8b66a87619f195904a4df3b077c98ec0780e36c37",
       extract: {
         format: "tar",
         targetPath: "darwin-arm64/helm",
@@ -45,8 +45,8 @@ export const helm3Spec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "amd64",
-      url: "https://get.helm.sh/helm-v3.7.2-linux-amd64.tar.gz",
-      sha256: "4ae30e48966aba5f807a4e140dad6736ee1a392940101e4d79ffb4ee86200a9e",
+      url: `https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz`,
+      sha256: "da36e117d6dbc57c8ec5bab2283222fbd108db86c83389eebe045ad1ef3e2c3b",
       extract: {
         format: "tar",
         targetPath: "linux-amd64/helm",
@@ -55,8 +55,8 @@ export const helm3Spec: PluginToolSpec = {
     {
       platform: "windows",
       architecture: "amd64",
-      url: "https://get.helm.sh/helm-v3.7.2-windows-amd64.zip",
-      sha256: "299165f0af46bece9a61b41305cca8e8d5ec5319a4b694589cd71e6b75aca77e",
+      url: `https://get.helm.sh/helm-v${HELM_VERSION}-windows-amd64.zip`,
+      sha256: "52138ba8caec50c358c7aee41aac28d6a8a037878ada3cf5ce6c1049fc772547",
       extract: {
         format: "zip",
         targetPath: "windows-amd64/helm.exe",
@@ -70,16 +70,14 @@ export async function helm({
   namespace,
   log,
   args,
-  version = 3,
   env = {},
   cwd,
   emitLogEvents,
 }: {
   ctx: KubernetesPluginContext
   namespace?: string
-  log: LogEntry
+  log: Log
   args: string[]
-  version?: 2 | 3
   env?: { [key: string]: string }
   cwd?: string
   emitLogEvents: boolean
@@ -90,15 +88,12 @@ export async function helm({
     opts.push("--kubeconfig", ctx.provider.config.kubeconfig)
   }
 
-  const helmHome = join(GARDEN_GLOBAL_PATH, `.helm${version}`)
-  await mkdirp(helmHome)
-
   const cmd = ctx.tools["kubernetes.helm"]
 
+  const processEnv = pickBy(process.env, (v) => v !== undefined) as Dictionary<string>
   const envVars: StringMap = {
-    ...process.env,
+    ...processEnv,
     ...env,
-    HELM_HOME: helmHome,
   }
 
   if (namespace) {
@@ -107,14 +102,14 @@ export async function helm({
 
   const logEventContext = {
     origin: "helm",
-    log: log.placeholder({ level: LogLevel.verbose }),
+    level: "verbose" as const,
   }
 
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
     if (emitLogEvents) {
-      ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
     }
   })
 

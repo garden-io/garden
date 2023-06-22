@@ -13,10 +13,9 @@ orbs:
     GARDEN_DISABLE_VERSION_CHECK: "true"
     GARDEN_DISABLE_ANALYTICS: "true"
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
-    GARDEN_LOGGER_TYPE: basic
 
   shared-machine-config: &shared-machine-config
-    image: "ubuntu-2204:2022.10.2"
+    image: "ubuntu-2204:2023.02.1"
     docker_layer_caching: true
 
   remote-docker: &remote-docker
@@ -25,7 +24,7 @@ orbs:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:16.18.0-1
+    image: gardendev/circleci-runner:18.12.0@sha256:364fda04a732191ada3f3f701d89836902b621ed269eaf135b73b75f92361065
 
   # Configuration for our node jobs
   node-config: &node-config
@@ -45,11 +44,24 @@ orbs:
     attach_workspace:
       at: ./
 
-  # Only run jobs on main
+  only-prs: &only-prs
+    filters:
+      branches:
+        # TODO: remove regex once 0.13 is merged to main.
+        ignore: /^main|0\.13$/
+        #ignore: main
+      tags:
+        ignore: /.*/
+
+
+  # Only run jobs on main branch
   only-main: &only-main
     filters:
       branches:
-        only: main
+        only:
+          - main
+          # TODO: remove 0.13 once 0.13 is merged to main.
+          - "0.13"
       tags:
         ignore: /.*/
 
@@ -59,7 +71,7 @@ orbs:
       branches:
         ignore: /.*/
       tags:
-        only: /\d+\.\d+\.\d+(-\d+)?/
+        only: /\d+\.\d+\.\d+(-[a-zA-Z0-9]+)?/
 
   # Only run for PRs from core team
   only-internal-prs: &only-internal-prs
@@ -74,7 +86,7 @@ orbs:
 commands:
   npm_install:
     description: |
-      Installs npm packages for root, core, and dashboard and loads and saves the caches as appropriate
+      Installs npm packages and loads and saves the caches as appropriate
     parameters:
       context:
         description: Set this to vm if installing in a VM, to avoid conflicting caches with the docker runs
@@ -83,13 +95,13 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - yarn-v4-<<parameters.context>>-{{ checksum "yarn.lock" }}
-            - yarn-v4-<<parameters.context>>
+            - yarn-v6-<<parameters.context>>-{{ checksum "yarn.lock" }}
+            - yarn-v6-<<parameters.context>>
 
       - run: yarn
 
       - save_cache:
-          key: yarn-v4-<<parameters.context>>-{{ checksum "yarn.lock" }}
+          key: yarn-v6-<<parameters.context>>-{{ checksum "yarn.lock" }}
           paths:
             - ~/.cache/yarn
 
@@ -138,7 +150,7 @@ commands:
       - run:
           name: Install kind
           command: |
-            curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.11.1/kind-linux-amd64
+            curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.18.0/kind-linux-amd64
             chmod +x kind-linux-amd64
             sudo mv kind-linux-amd64 /usr/local/bin/kind
       - run:
@@ -172,31 +184,14 @@ commands:
 
             kubectl config set-context kind-kind
 
-  update_nodejs:
-    description: Update Node.js
-    steps:
-      - run:
-          name: Update Node.js
-          command: |
-            # NVM is already installed, we just need to load it...
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            # ...export for subsequent runs...
-            echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
-            echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-            nvm install 16
-            nvm alias default 16
-            nvm use default
-            # ...and finally symlink for when calling Garden with sudo below
-            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
-            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
-            sudo npm install -g yarn
-
   configure_remote_cluster:
     description: Configure the kubectl context via gcloud so that we can access our remote cluster. Used for e2e testing.
     steps:
       - run:
           name: Configure kubectl context via gcloud and authenticate to Google Container Registry
           command: |
+            export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+            echo "export USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $BASH_ENV
             export GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcloud-key.json
             echo "export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS" >> $BASH_ENV
             echo $GCLOUD_SERVICE_KEY > $GOOGLE_APPLICATION_CREDENTIALS
@@ -208,15 +203,19 @@ commands:
 
   cleanup_remote_cluster:
     description: Clean up namespaces in the ci cluster on gcloud (to be used with configure_remote_cluster)
+    parameters:
+      filter:
+        description: What to grep namespaces by to select the current namespace to delete
+        type: string
     steps:
       - run:
-          name: Delete current namespace
-          command: kubectl get ns | grep ${CIRCLE_BUILD_NUM} | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
+          name: Delete current namespace(s)
+          command: kubectl get ns | grep <<parameters.filter>> | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
           when: always
       - run:
           name: Delete namespaces older than 1 hour
           # hack: find namespaces that contain '-ci' and their age ends with h or d, e.g. 1d5h or 24h
-          command: kubectl get ns | grep -E '(d|h)$' | grep -- '-ci' | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
+          command: kubectl get ns | grep -E '(d|h)$' | grep -- '-testing' | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
           when: always
 
   build_dist:
@@ -285,7 +284,6 @@ jobs:
             # Save the built output for future
             - cli/build/
             - core/build/
-            - dashboard/build/
             - static/
             # TODO: see if we can make this somewhat more specific
             - sdk/
@@ -294,14 +292,14 @@ jobs:
   build-dist:
     <<: *node-config
     resource_class: large
-    steps:
-      - build_dist
-  build-dist-edge:
-    <<: *node-config
-    resource_class: large
+    parameters:
+      version:
+        description: The version tag/name to set
+        type: string
+        default: ""
     steps:
       - build_dist:
-          version: edge
+          version: <<parameters.version>>
 
   lint:
     <<: *node-config
@@ -338,6 +336,7 @@ jobs:
 
   test-framework:
     <<: *node-config
+    resource_class: large
     steps:
       - checkout
       - *remote-docker
@@ -347,9 +346,10 @@ jobs:
       - run:
           name: Unit test framework components
           command: |
-            GARDEN_LOGGER_TYPE="" yarn run test:framework:unit
+            yarn run test:framework:unit
           environment:
             CHOKIDAR_USEPOLLING: "1"
+            NODE_OPTIONS: --max_old_space_size=4096
 
   e2e-project:
     <<: *node-config
@@ -368,122 +368,79 @@ jobs:
       - docker_login
       - *attach-workspace
       - run:
-          name: Set environment
-          command: export CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e-<<parameters.project>>
-      - run:
           name: Run e2e test
           command: |
-            yarn e2e-project --project=<<parameters.project>> --env=<<parameters.environment>>
-      - cleanup_remote_cluster
+            cd e2e/projects/<<parameters.project>>
+            git checkout .
+            cd ~/project
+            yarn e2e-project --project=<<parameters.project>> --env=<<parameters.environment>> --showlog -b
+      - cleanup_remote_cluster:
+          filter: <<parameters.project>>-testing-ci-$CIRCLE_BUILD_NUM-e2e
 
-  build-docker-alpine:
+  test-dockerhub:
     <<: *node-config
     steps:
       - *remote-docker
       - checkout
+      # This is to copy the pre-built code from a previous step
       - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
+      - deploy:
+          name: Build and test docker images
           command: |
-            TAG=gardendev/garden:${CIRCLE_SHA1}
-            docker build -t ${TAG} -f support/alpine.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-aws:
+            bash support/docker-bake-test.sh $CIRCLE_BRANCH
+  dockerhub-release:
     <<: *node-config
     steps:
       - *remote-docker
       - checkout
+      # This is to copy the pre-built code from a previous step
       - *attach-workspace
       - docker_login
-      - run:
-          name: Build image and push to registry
+      # TODO: use garden publish here
+      - deploy:
+          name: Release docker images
           command: |
-            TAG=gardendev/garden-aws:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-azure:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
-          command: |
-            TAG=gardendev/garden-azure:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/azure.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-gcloud:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
-          command: |
-            TAG=gardendev/garden-gcloud:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/gcloud.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-aws-gcloud:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
-          command: |
-            TAG=gardendev/garden-aws-gcloud:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws-gcloud.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-aws-gcloud-azure:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
-          command: |
-            TAG=gardendev/garden-aws-gcloud-azure:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws-gcloud-azure.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-full:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
-          command: |
-            TAG=gardendev/garden-full:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/full.Dockerfile dist/alpine-amd64
-            docker push ${TAG}
-  build-docker-buster:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      - *attach-workspace
-      - docker_login
-      - run:
-          name: Build image and push to registry
-          command: |
-            TAG=gardendev/garden:${CIRCLE_SHA1}-buster
-            docker build -t ${TAG} -f support/buster.Dockerfile dist/linux-amd64
-            docker push ${TAG}
+            # TODO: read minor version from package.json file, instead of hardcoding.
+            export MAJOR_VERSION=0
+            export MINOR_VERSION=13
+            export CODENAME=bonsai
+
+            if [[ "${CIRCLE_TAG}" = "" ]]; then
+              # If we don't have a tag, this is an edge release
+              export PRERELEASE=edge
+            else
+              # We have a tag.
+
+              # Double check that this is an 0.13 version number, because otherwise
+              # it would be inconsistent with the hardcoded CODENAME export above.
+              if ! [[ ${CIRCLE_TAG} =~ ^0.13 ]]; then
+                echo "This pipeline should only build 0.13 releases"
+                exit 1
+              fi
+
+              # Parse SemVer tag into different parts
+              regex="^([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9A-Za-z-]+))?(\+([0-9A-Za-z-]+))?$"
+
+              # production release, or prerelease
+              if [[ ${CIRCLE_TAG} =~ $regex ]]; then
+                  export MAJOR_VERSION=${BASH_REMATCH[1]}
+                  export MINOR_VERSION=${BASH_REMATCH[2]}
+                  export PATCH_VERSION=${BASH_REMATCH[3]}
+                  export PRERELEASE=${BASH_REMATCH[5]}
+              else
+                  echo "Invalid SemVer tag."
+                  exit 1
+              fi
+            fi
+
+            # Build and publish
+            docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
+
 
   test-docker-gcloud:
     docker:
-      - image: gardendev/garden-gcloud:${CIRCLE_SHA1}
+      # We do not use a specific digest here on purpose, to use the latest build from the previous job
+      - image: gardendev/garden-gcloud:bonsai-edge-alpine
         environment:
           <<: *shared-env-config
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
@@ -496,29 +453,10 @@ jobs:
           name: Deploy demo-project with container
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker /garden/garden build --root examples/demo-project --env remote --logger-type basic
-      - cleanup_remote_cluster
+      - cleanup_remote_cluster:
+          filter: $CIRCLE_BUILD_NUM-docker
 
-  release-service-docker:
-    <<: *node-config
-    steps:
-      - *remote-docker
-      - checkout
-      # This is to copy the pre-built code from a previous step
-      - *attach-workspace
-      - docker_login
-      # TODO: use garden publish here
-      - deploy:
-          name: Release docker images
-          command: |
-            # Switches between git tag and main for releases
-            TAG=${CIRCLE_TAG:-main}
-            # Push the container
-            ./scripts/push-containers.sh $TAG
-            # Push again with latest tag for non-pre-release tags
-            if [[ "$TAG" == "$CIRCLE_TAG" ]] && [[ $VERSION != *"-"* ]]; then
-              ./scripts/push-containers.sh latest
-            fi
-  release-service-dist:
+  github-release-tag:
     <<: *release-config
     steps:
       # Need to checkout to read version from core/package.json
@@ -542,18 +480,22 @@ jobs:
               ${PRERELEASE} \
               ${DRAFT} \
               ${VERSION} ./dist
-  release-service-dist-edge:
+  github-edge-prerelease:
     <<: *release-config
+    parameters:
+      version:
+        description: The version tag/name to set
+        type: string
     steps:
       - *attach-workspace
       - run:
-          name: Publish a pre-release on GitHub with the tag 'edge'
+          name: Publish a pre-release on GitHub with the valid edge tag
           command: |
             # We assume that the tag already exists. We update the existing tag
             # using the gh cli, and then we upload the artifacts using ghr.
             # We do not create a new release here, as this would spam our fellow coder's
             # GitHub timelines
-            VERSION=edge
+            VERSION=<<parameters.version>>
 
             # Update the release hash
             gh release edit ${VERSION} \
@@ -591,8 +533,9 @@ jobs:
       - run:
           name: Deploy demo-project with binary
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic
-      - cleanup_remote_cluster
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic --var userId=$CIRCLE_BUILD_NUM-dist
+      - cleanup_remote_cluster:
+          filter: $CIRCLE_BUILD_NUM-dist
 
   test-plugins:
     machine:
@@ -610,7 +553,6 @@ jobs:
       - install_kubectl
       - install_kind:
           kindNodeImage: <<parameters.kindNodeImage>>
-      - update_nodejs
       - configure_git
       - npm_install:
           context: vm
@@ -645,7 +587,6 @@ jobs:
       - docker_login
       - install_kind:
           kindNodeImage: <<parameters.kindNodeImage>>
-      - update_nodejs
       - configure_git
       - npm_install:
           context: vm
@@ -707,7 +648,6 @@ jobs:
             sudo chown -R circleci:circleci /home/circleci/.kube
             echo 'export PATH=/snap/bin:$PATH' >> $BASH_ENV
             echo "********* env prepped! *********"
-      - update_nodejs
       - configure_git
       - npm_install:
           context: vm
@@ -719,7 +659,7 @@ jobs:
             # Notes:
             # - We skip tests that only work for remote environments
             # - We currently don't support in-cluster building on microk8s.
-            GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" npm run _integ
+            GARDEN_SKIP_TESTS="kaniko remote-only" npm run _integ
       - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project --logger-type basic
@@ -739,7 +679,7 @@ jobs:
       skipTests:
         description: Integ test groups to skip
         type: string
-        default: "cluster-docker kaniko remote-only"
+        default: "kaniko remote-only"
     environment:
       <<: *shared-env-config
       K8S_VERSION: <<parameters.kubernetesVersion>>
@@ -754,7 +694,6 @@ jobs:
             sudo apt-get update
             sudo apt install nfs-common conntrack
       - docker_login
-      - update_nodejs
       - configure_git
       - npm_install:
           context: vm
@@ -787,11 +726,7 @@ jobs:
             GARDEN_SKIP_TESTS="<<parameters.skipTests>>" yarn _integ
       - run:
           name: Deploy demo-project
-          command: sudo -E ./bin/garden deploy --root examples/demo-project
-      - run:
-          name: Run cluster cleanup
-          command: |
-            sudo -E ./bin/garden plugins local-kubernetes cleanup-cluster-registry --root core/test/data/test-projects/container --env cluster-docker
+          command: ./bin/garden deploy --root examples/demo-project
 
   test-macos:
     macos:
@@ -799,19 +734,9 @@ jobs:
     steps:
       - checkout
       - *attach-workspace
-      # - run:
-      #     name: Configure Node.js
-      #     command: nvm install 16 && nvm alias default 16
       - run:
           name: brew install
-          command: brew install docker kubectl git rsync
-      # Garden has 2 main pre-requisites: git and rsync
-      # Upgrade rsync to the latest version.
-      # The default version is too old, Garden requires 3.1.0+.
-      # This step ensures that Garden is always tested to be compatible with the latest rsync.
-      - run:
-          name: Upgrade rsync
-          command: brew upgrade rsync
+          command: brew install docker kubectl git
       # Upgrade git to the latest version.
       # This step ensures that Garden is always tested to be compatible with the latest git.
       - run:
@@ -825,11 +750,17 @@ jobs:
             tar xzf google-cloud-sdk-411.0.0-darwin-x86_64.tar.gz
             echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - docker_login
+      - run:
+          name: Install gke-gcloud-auth-plugin
+          command: |
+            gcloud --quiet components install gke-gcloud-auth-plugin
+            echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' >> $BASH_ENV
       - configure_remote_cluster
       - run:
           name: Deploy demo-project
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-macos dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic --env remote
-      - cleanup_remote_cluster
+          command: dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote --var userId=$CIRCLE_BUILD_NUM-macos
+      - cleanup_remote_cluster:
+          filter: $CIRCLE_BUILD_NUM-macos
 
   test-windows:
     executor: win/default
@@ -844,6 +775,7 @@ jobs:
             choco upgrade --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
             $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
             gcloud components install gke-gcloud-auth-plugin --quiet
+            $Env:USE_GKE_GCLOUD_AUTH_PLUGIN = True
             refreshenv
       - run:
           name: Write gcloud credentials to file
@@ -860,11 +792,10 @@ jobs:
       - run:
           name: Deploy demo-project
           command: |
-            $env:CIRCLE_BUILD_NUM = "$env:CIRCLE_BUILD_NUM-win"
-            .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --env remote --force-build
+            .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build --var userId=$env:CIRCLE_BUILD_NUM-win
       - run:
           name: Cleanup
-          command: (kubectl delete namespace --wait=false demo-project-$env:CIRCLE_BUILD_NUM-win) -or $true
+          command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
           when: always
 
 workflows:
@@ -882,43 +813,6 @@ workflows:
           requires: [build]
       - check-package-licenses:
           requires: [build]
-      - build-docker-alpine:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-dist]
-      - build-docker-aws:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-alpine]
-      - build-docker-azure:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-alpine]
-      - build-docker-gcloud:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-alpine]
-      - build-docker-aws-gcloud:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-gcloud]
-      - build-docker-aws-gcloud-azure:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-gcloud]
-      - build-docker-full:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-gcloud]
-      - build-docker-buster:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-dist]
-
-      - test-docker-gcloud:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-gcloud]
       - test-framework:
           requires: [build]
       - test-dist:
@@ -928,15 +822,18 @@ workflows:
       - test-macos:
           <<: *only-internal-prs
           requires: [build-dist]
+      - test-dockerhub:
+          <<: *only-prs
+          requires: [build-dist]
       - test-windows:
           <<: *only-internal-prs
           requires: [build-dist]
 
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-code-synchronization
-          project: code-synchronization
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-code-synchronization
+      #     project: code-synchronization
+      #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-demo-project
@@ -945,30 +842,42 @@ workflows:
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-deployment-strategies
-          project: deployment-strategies
+          name: e2e-demo-project-modules
+          project: demo-project-modules
+          environment: remote
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-gke-kaniko-gcr
+          name: e2e-gke-kaniko
           project: gke
-          environment: gke-kaniko-gcr
+          environment: gke-kaniko
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-gke-buildkit-gcr
+          name: e2e-gke-buildkit
           project: gke
-          environment: gke-buildkit-gcr
+          environment: gke-buildkit
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-hadolint
           project: hadolint
           requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-hadolint-modules
+      #     project: hadolint-modules
+      #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-jib-container
           project: jib-container
+          environment: remote
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-jib-container-modules
+          project: jib-container-modules
           environment: remote
           requires: [build]
       - e2e-project:
@@ -978,18 +887,38 @@ workflows:
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-remote-sources
-          project: remote-sources
+          name: e2e-kustomize-modules
+          project: kustomize-modules
+          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-remote-sources
+      #     project: remote-sources
+      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-remote-sources-modules
+          project: remote-sources-modules
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-tasks
-          project: tasks
+          name: e2e-run-actions
+          project: run-actions
           requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-tasks-modules
+      #     project: tasks-modules
+      #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-templated-k8s-container
           project: templated-k8s-container
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-templated-k8s-container-modules
+          project: templated-k8s-container-modules
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
@@ -999,9 +928,20 @@ workflows:
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-vote-modules
+          project: vote-modules
+          environment: remote
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
           name: e2e-vote-helm
           project: vote-helm
           requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-vote-helm-modules
+      #     project: vote-helm-modules
+      #     requires: [build]
 
       ### VM TESTS ###
 
@@ -1014,20 +954,11 @@ workflows:
           requires: [build]
           kubernetesVersion: "1.22.2"
           minikubeVersion: "v1.25.2"
-          # cluster-buildkit works on other minikube versions, but the in-cluster registry has issues on the latest version
-          # This is sort of fine, since we don't _really_ support in-cluster building on minikube, just been using it for
-          # integration tests.
-          skipTests: cluster-docker cluster-buildkit kaniko remote-only
       - test-minikube:
           name: vm-1.23-minikube
           requires: [build]
           kubernetesVersion: "1.23.3"
           minikubeVersion: "v1.25.2"
-      - test-minikube:
-          name: vm-1.19-minikube
-          requires: [build]
-          kubernetesVersion: "1.19.7"
-          minikubeVersion: "v1.16.0"
       - test-microk8s:
           name: vm-1.24-microk8s
           requires: [build]
@@ -1041,43 +972,54 @@ workflows:
           requires: [build]
           kubernetesVersion: "1.26"
       - test-kind:
-          name: vm-1.19-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.19.4
-      - test-kind:
-          name: vm-1.20-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.20.2
-      - test-kind:
           name: vm-1.21-kind
           requires: [build]
-          kindNodeImage: kindest/node:v1.21.2
+          kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
+      # - test-kind:
+      #     name: vm-1.22-kind
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.22.17@sha256:c8a828709a53c25cbdc0790c8afe12f25538617c7be879083248981945c38693
+      # - test-kind:
+      #     name: vm-1.23-kind
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.23.17@sha256:e5fd1d9cd7a9a50939f9c005684df5a6d145e8d695e78463637b79464292e66c
       - test-kind:
-          name: vm-1.22-kind
+          name: vm-1.24-kind
           requires: [build]
-          kindNodeImage: kindest/node:v1.22.9@sha256:8135260b959dfe320206eb36b3aeda9cffcb262f4b44cda6b33f7bb73f453105
+          kindNodeImage: kindest/node:v1.24.12@sha256:1e12918b8bc3d4253bc08f640a231bb0d3b2c5a9b28aa3f2ca1aee93e1e8db16
+      # - test-kind:
+      #     name: vm-1.25-kind
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.25.8@sha256:00d3f5314cc35327706776e95b2f8e504198ce59ac545d0200a89e69fce10b7f
       - test-kind:
-          name: vm-1.23-kind
+          name: vm-1.26-kind
           requires: [build]
-          kindNodeImage: kindest/node:v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae
+          kindNodeImage: kindest/node:v1.26.3@sha256:61b92f38dff6ccc29969e7aa154d34e38b89443af1a2c14e6cfbd2df6419c66f
 
       - test-plugins:
           requires: [build]
-          kindNodeImage: kindest/node:v1.21.2
+          kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
 
-      ### MAIN ONLY ###
-
-      - build-dist-edge:
+      # This is only for edge release (Overrides version to edge-bonsai)
+      - build-dist:
           <<: *only-main
+          name: build-dist-edge
+          version: edge-bonsai
           requires: [build]
-      - release-service-docker:
+
+      - github-edge-prerelease:
+          <<: *only-main
+          version: edge-bonsai
+          requires: [build-dist-edge]
+
+      - dockerhub-release:
           <<: *only-main
           context: docker
-          requires: [build-dist-edge]
-      - release-service-dist-edge:
-          <<: *only-main
-          requires: [build-dist-edge]
-
+          requires:
+            - build-dist-edge
+      - test-docker-gcloud:
+          context: docker
+          requires: [dockerhub-release]
   tags:
     jobs:
       - build:
@@ -1085,10 +1027,10 @@ workflows:
       - build-dist:
           <<: *only-tags
           requires: [build]
-      - release-service-docker:
+      - dockerhub-release:
           <<: *only-tags
           context: docker
           requires: [build-dist]
-      - release-service-dist:
+      - github-release-tag:
           <<: *only-tags
           requires: [build-dist]

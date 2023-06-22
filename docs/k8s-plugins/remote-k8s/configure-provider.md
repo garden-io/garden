@@ -22,6 +22,7 @@ Now we can finally add them to our Garden config.
 First, add your values to the project level Garden configuration file at the root of your project:
 
 ```yaml
+apiVersion: garden.io/v1
 kind: Project
 
 environments:
@@ -75,10 +76,6 @@ garden plugins kubernetes cluster-init
 
 And that's it! Your Kubernetes plugin is now configured
 and you can proceed to deploying your project to
-Kubernetes with Garden. 
+Kubernetes with Garden.
 
-If you're coming here from our [Getting Started guide](https://docs.garden.io/getting-started/0-introduction) you can now proceed with it.
-
-Otherwise we recommend heading to the [Kubernetes Module
-Types](../module-types/README.md) guide to learn how you can use
-different types with your Garden project.
+Next, we recommend learning more about configuring [Kubernetes actions](../action-types/kubernetes.md).

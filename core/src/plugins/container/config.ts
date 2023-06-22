@@ -1,36 +1,39 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { FileCopySpec, GardenModule } from "../../types/module"
 import {
+  artifactsTargetDescription,
   envVarRegex,
   joi,
-  joiIdentifier,
-  joiModuleIncludeDirective,
   joiPrimitive,
   joiSparseArray,
   joiStringMap,
   joiUserIdentifier,
   Primitive,
   PrimitiveMap,
+  createSchema,
+  ActionReference,
 } from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
-import { GardenService, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
+import { ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
-import { BaseBuildSpec, baseBuildSpecSchema, ModuleConfig, ModuleSpec } from "../../config/module"
-import { baseServiceSpecSchema, CommonServiceSpec, ServiceConfig } from "../../config/service"
-import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
-import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
 import { dedent, deline } from "../../util/string"
-import { ContainerModuleOutputs } from "./container"
-import { devModeGuideLink } from "../kubernetes/dev-mode"
-import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
+import { syncGuideLink } from "../kubernetes/sync"
+import { k8sDeploymentTimeoutSchema, runCacheResultSchema } from "../kubernetes/config"
 import { localModeGuideLink } from "../kubernetes/local-mode"
+import { BuildAction, BuildActionConfig } from "../../actions/build"
+import { DeployAction, DeployActionConfig } from "../../actions/deploy"
+import { TestAction, TestActionConfig } from "../../actions/test"
+import { RunAction, RunActionConfig } from "../../actions/run"
+import { memoize } from "lodash"
+import Joi from "@hapi/joi"
+
+export const defaultDockerfileName = "Dockerfile"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -69,11 +72,14 @@ export interface ServicePortSpec {
   nodePort?: number | true
 }
 
-export interface ContainerVolumeSpec {
+export interface ContainerVolumeSpecBase {
   name: string
   containerPath: string
   hostPath?: string
-  module?: string
+}
+
+export interface ContainerVolumeSpec extends ContainerVolumeSpecBase {
+  action?: ActionReference<"Deploy">
 }
 
 export interface ServiceHealthCheckSpec {
@@ -89,7 +95,7 @@ export interface ServiceHealthCheckSpec {
 }
 
 /**
- * DEPRECATED: Use `ContainerResourcesSpec` instead.
+ * DEPRECATED: Use {@link ContainerResourcesSpec} instead.
  */
 export interface ServiceLimitSpec {
   cpu: number
@@ -112,98 +118,35 @@ interface Annotations {
 }
 
 const deploymentStrategies = ["RollingUpdate", "Recreate"] as const
-export type DeploymentStrategy = typeof deploymentStrategies[number]
+export type DeploymentStrategy = (typeof deploymentStrategies)[number]
 export const defaultDeploymentStrategy: DeploymentStrategy = "RollingUpdate"
-
-export interface ContainerServiceSpec extends CommonServiceSpec {
-  annotations: Annotations
-  command?: string[]
-  args: string[]
-  daemon: boolean
-  devMode?: ContainerDevModeSpec
-  localMode?: ContainerLocalModeSpec
-  ingresses: ContainerIngressSpec[]
-  env: PrimitiveMap
-  healthCheck?: ServiceHealthCheckSpec
-  hotReloadCommand?: string[]
-  hotReloadArgs?: string[]
-  timeout?: number
-  limits?: ServiceLimitSpec
-  cpu: ContainerResourcesSpec["cpu"]
-  memory: ContainerResourcesSpec["memory"]
-  ports: ServicePortSpec[]
-  replicas?: number
-  volumes: ContainerVolumeSpec[]
-  privileged?: boolean
-  tty?: boolean
-  addCapabilities?: string[]
-  dropCapabilities?: string[]
-  deploymentStrategy: DeploymentStrategy
-}
 
 export const commandExample = ["/bin/sh", "-c"]
 
-const hotReloadSyncSchema = () =>
-  joi.object().keys({
-    source: joi
-      .posixPath()
-      .relativeOnly()
-      .subPathOnly()
-      .allowGlobs()
-      .default(".")
-      .description(
-        deline`
-        POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
-        Must be a relative path. Defaults to the module's top-level directory if no value is provided.`
-      )
-      .example("src"),
-    target: joi
-      .posixPath()
-      .absoluteOnly()
-      .required()
-      .description(
-        deline`
-        POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is
-        not allowed.`
-      )
-      .example("/app/src"),
-  })
+export type SyncMode =
+  | "one-way"
+  | "one-way-safe"
+  | "one-way-replica"
+  | "one-way-reverse"
+  | "one-way-replica-reverse"
+  | "two-way"
+  | "two-way-safe"
+  | "two-way-resolved"
 
-export interface ContainerHotReloadSpec {
-  sync: FileCopySpec[]
-  postSyncCommand?: string[]
-}
+export const defaultSyncMode: SyncMode = "one-way-safe"
 
-const hotReloadConfigSchema = () =>
-  joi.object().keys({
-    sync: joi
-      .sparseArray()
-      .items(hotReloadSyncSchema())
-      .required()
-      .description("Specify one or more source files or directories to automatically sync into the running container."),
-    postSyncCommand: joi
-      .sparseArray()
-      .items(joi.string())
-      .optional()
-      .description(`An optional command to run inside the container after syncing.`)
-      .example(["rebuild-static-assets.sh"]),
-  }).description(deline`
-    Specifies which files or directories to sync to which paths inside the running containers of hot reload-enabled
-    services when those files or directories are modified. Applies to this module's services, and to services
-    with this module as their \`sourceModule\`.
-  `)
-
-export type SyncMode = "one-way" | "one-way-replica" | "one-way-reverse" | "one-way-replica-reverse" | "two-way"
-
-export interface DevModeSyncSpec {
-  source: string
-  target: string
-  mode: SyncMode
+export interface DevModeSyncOptions {
+  mode?: SyncMode
   exclude?: string[]
   defaultFileMode?: number
   defaultDirectoryMode?: number
   defaultOwner?: number | string
   defaultGroup?: number | string
+}
+
+export interface DevModeSyncSpec extends DevModeSyncOptions {
+  source: string
+  target: string
 }
 
 const permissionsDocs =
@@ -212,7 +155,7 @@ const permissionsDocs =
 const ownerDocs =
   "Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information."
 
-export const syncExcludeSchema = () =>
+export const syncExcludeSchema = memoize(() =>
   joi
     .array()
     .items(joi.posixPath().allowGlobs().subPathOnly())
@@ -224,100 +167,129 @@ export const syncExcludeSchema = () =>
       `
     )
     .example(["dist/**/*", "*.log"])
+)
 
-export const syncDefaultFileModeSchema = () =>
+export const syncModeSchema = memoize(() =>
+  joi
+    .string()
+    .allow(
+      "one-way",
+      "one-way-safe",
+      "one-way-replica",
+      "one-way-reverse",
+      "one-way-replica-reverse",
+      "two-way",
+      "two-way-safe",
+      "two-way-resolved"
+    )
+    .only()
+    .default(defaultSyncMode)
+    .description(
+      `The sync mode to use for the given paths. See the [Code Synchronization guide](${syncGuideLink}) for details.`
+    )
+)
+
+export const syncDefaultFileModeSchema = memoize(() =>
   joi
     .number()
     .min(0)
-    .max(0o777)
+    .max(777)
     .description(
       "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). " +
         permissionsDocs
     )
+)
 
-export const syncDefaultDirectoryModeSchema = () =>
+export const syncDefaultDirectoryModeSchema = memoize(() =>
   joi
     .number()
     .min(0)
-    .max(0o777)
+    .max(777)
     .description(
       "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). " +
         permissionsDocs
     )
+)
 
-export const syncDefaultOwnerSchema = () =>
+export const syncDefaultOwnerSchema = memoize(() =>
   joi
     .alternatives(joi.number().integer(), joi.string())
     .description("Set the default owner of files and directories at the target. " + ownerDocs)
+)
 
-export const syncDefaultGroupSchema = () =>
+export const syncDefaultGroupSchema = memoize(() =>
   joi
     .alternatives(joi.number().integer(), joi.string())
     .description("Set the default group on files and directories at the target. " + ownerDocs)
+)
 
-const devModeSyncSchema = () =>
-  hotReloadSyncSchema().keys({
-    exclude: syncExcludeSchema(),
-    source: joi // same as hotReloadSyncSchema but no subPathOnly and relativeOnly
-      .posixPath()
-      .allowGlobs()
+export const syncTargetPathSchema = memoize(() =>
+  joi
+    .posixPath()
+    .absoluteOnly()
+    .required()
+    .invalid("/")
+    .description(
+      deline`
+      POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
+      `
+    )
+    .example("/app/src")
+)
+
+const containerSyncSchema = createSchema({
+  name: "container-sync",
+  keys: () => ({
+    source: joi
+      .string()
       .default(".")
       .description(
         deline`
-      POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path.
-      Defaults to the module's top-level directory if no value is provided.`
+        POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
+        `
       )
       .example("src"),
-    mode: joi
-      .string()
-      .allow(
-        "one-way",
-        "one-way-safe",
-        "one-way-replica",
-        "one-way-reverse",
-        "one-way-replica-reverse",
-        "two-way",
-        "two-way-safe",
-        "two-way-resolved"
-      )
-      .only()
-      .default("one-way-safe")
-      .description(
-        "The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details."
-      ),
+    target: syncTargetPathSchema(),
+    exclude: syncExcludeSchema(),
+    mode: syncModeSchema(),
     defaultFileMode: syncDefaultFileModeSchema(),
     defaultDirectoryMode: syncDefaultDirectoryModeSchema(),
     defaultOwner: syncDefaultOwnerSchema(),
     defaultGroup: syncDefaultGroupSchema(),
-  })
+  }),
+})
 
-export interface ContainerDevModeSpec {
+export interface ContainerSyncSpec {
   args?: string[]
   command?: string[]
-  sync: DevModeSyncSpec[]
+  paths: DevModeSyncSpec[]
 }
 
-export const containerDevModeSchema = () =>
-  joi.object().keys({
+export const containerSyncPathSchema = createSchema({
+  name: "container-sync-path",
+  description: dedent`
+    Specifies which files or directories to sync to which paths inside the running containers of the service when it's in sync mode, and overrides for the container command and/or arguments.
+
+    Sync is enabled e.g. by setting the \`--sync\` flag on the \`garden deploy\` command.
+
+    See the [Code Synchronization guide](${syncGuideLink}) for more information.
+  `,
+  keys: () => ({
     args: joi
       .sparseArray()
       .items(joi.string())
-      .description("Override the default container arguments when in dev mode."),
+      .description("Override the default container arguments when in sync mode."),
     command: joi
       .sparseArray()
       .items(joi.string())
-      .description("Override the default container command (i.e. entrypoint) when in dev mode."),
-    sync: joi
+      .description("Override the default container command (i.e. entrypoint) when in sync mode."),
+    paths: joi
       .array()
-      .items(devModeSyncSchema())
+      .items(containerSyncSchema())
       .description("Specify one or more source files or directories to automatically sync with the running container."),
-  }).description(dedent`
-    Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
-
-    Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
-
-    See the [Code Synchronization guide](${devModeGuideLink}) for more information.
-  `)
+  }),
+  rename: [["sync", "paths"]],
+})
 
 const defaultLocalModeRestartDelayMsec = 1000
 const defaultLocalModeMaxRestarts = Number.POSITIVE_INFINITY
@@ -327,43 +299,43 @@ export interface LocalModeRestartSpec {
   max: number
 }
 
-export const localModeRestartSchema = () =>
-  joi
-    .object()
-    .keys({
-      delayMsec: joi
-        .number()
-        .integer()
-        .greater(-1)
-        .optional()
-        .default(defaultLocalModeRestartDelayMsec)
-        .description(
-          `Delay in milliseconds between the local application restart attempts. The default value is ${defaultLocalModeRestartDelayMsec}ms.`
-        ),
-      max: joi
-        .number()
-        .integer()
-        .greater(-1)
-        .optional()
-        .default(defaultLocalModeMaxRestarts)
-        .description("Max number of the local application restarts. Unlimited by default."),
-    })
-    .optional()
-    .default({
-      delayMsec: defaultLocalModeRestartDelayMsec,
-      max: defaultLocalModeMaxRestarts,
-    })
-    .description(
-      `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`
-    )
+export const localModeRestartSchema = createSchema({
+  name: "local-mode-restart",
+  description: `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`,
+  keys: () => ({
+    delayMsec: joi
+      .number()
+      .integer()
+      .greater(-1)
+      .optional()
+      .default(defaultLocalModeRestartDelayMsec)
+      .description(
+        `Delay in milliseconds between the local application restart attempts. The default value is ${defaultLocalModeRestartDelayMsec}ms.`
+      ),
+    max: joi
+      .number()
+      .integer()
+      .greater(-1)
+      .optional()
+      .default(defaultLocalModeMaxRestarts)
+      .allow(defaultLocalModeMaxRestarts)
+      .description("Max number of the local application restarts. Unlimited by default."),
+  }),
+  options: { presence: "optional" },
+  default: {
+    delayMsec: defaultLocalModeRestartDelayMsec,
+    max: defaultLocalModeMaxRestarts,
+  },
+})
 
 export interface LocalModePortsSpec {
   local: number
   remote: number
 }
 
-export const localModePortsSchema = () =>
-  joi.object().keys({
+export const localModePortsSchema = createSchema({
+  name: "local-mode-port",
+  keys: () => ({
     local: joi
       .number()
       .integer()
@@ -376,7 +348,8 @@ export const localModePortsSchema = () =>
       .greater(0)
       .optional()
       .description("The remote port to be used for reverse port-forward."),
-  })
+  }),
+})
 
 export interface ContainerLocalModeSpec {
   ports: LocalModePortsSpec[]
@@ -384,8 +357,24 @@ export interface ContainerLocalModeSpec {
   restart: LocalModeRestartSpec
 }
 
-export const containerLocalModeSchema = () =>
-  joi.object().keys({
+export const containerLocalModeSchema = createSchema({
+  name: "container-local-mode",
+  description: dedent`
+    [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
+
+    The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
+    Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
+
+    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` command.
+    Local mode always takes the precedence over sync mode if there are any conflicting service names.
+
+    Health checks are disabled for services running in local mode.
+
+    See the [Local Mode guide](${localModeGuideLink}) for more information.
+
+    Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
+  `,
+  keys: () => ({
     ports: joi
       .array()
       .items(localModePortsSchema())
@@ -398,28 +387,14 @@ export const containerLocalModeSchema = () =>
         "The command to run the local application. If not present, then the local application should be started manually."
       ),
     restart: localModeRestartSchema(),
-  }).description(dedent`
-    [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
+  }),
+})
 
-    The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
-    Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
-
-    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` or \`garden dev\` commands.
-    Local mode always takes the precedence over dev mode if there are any conflicting service names.
-
-    Health checks are disabled for services running in local mode.
-
-    See the [Local Mode guide](${localModeGuideLink}) for more information.
-
-    Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
-  `)
-
-export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
-
-const annotationsSchema = () =>
+const annotationsSchema = memoize(() =>
   joiStringMap(joi.string())
     .example({ "nginx.ingress.kubernetes.io/proxy-body-size": "0" })
     .default(() => ({}))
+)
 
 export interface EnvSecretRef {
   secretRef: {
@@ -428,27 +403,26 @@ export interface EnvSecretRef {
   }
 }
 
-const secretRefSchema = () =>
-  joi
-    .object()
-    .keys({
-      secretRef: joi.object().keys({
-        name: joi.string().required().description("The name of the secret to refer to."),
-        key: joi
-          .string()
-          .description("The key to read from in the referenced secret. May be required for some providers."),
-      }),
-    })
-    .description(
-      "A reference to a secret, that should be applied to the environment variable. " +
-        "Note that this secret must already be defined in the provider."
-    )
+const secretRefSchema = createSchema({
+  name: "container-secret-ref",
+  description:
+    "A reference to a secret, that should be applied to the environment variable. " +
+    "Note that this secret must already be defined in the provider.",
+  keys: () => ({
+    secretRef: joi.object().keys({
+      name: joi.string().required().description("The name of the secret to refer to."),
+      key: joi
+        .string()
+        .description("The key to read from in the referenced secret. May be required for some providers."),
+    }),
+  }),
+})
 
 export interface ContainerEnvVars {
   [key: string]: Primitive | EnvSecretRef
 }
 
-export const containerEnvVarsSchema = () =>
+export const containerEnvVarsSchema = memoize(() =>
   joi
     .object()
     .pattern(envVarRegex, joi.alternatives(joiPrimitive(), secretRefSchema()))
@@ -465,9 +439,11 @@ export const containerEnvVarsSchema = () =>
       },
       {},
     ])
+)
 
-const ingressSchema = () =>
-  joi.object().keys({
+const ingressSchema = createSchema({
+  name: "container-ingress",
+  keys: () => ({
     annotations: annotationsSchema().description(
       "Annotations to attach to the ingress (Note: May not be applicable to all providers)"
     ),
@@ -478,49 +454,51 @@ const ingressSchema = () =>
       .string()
       .required()
       .description("The name of the container port where the specified paths should be routed."),
-  })
+  }),
+})
 
-const healthCheckSchema = () =>
-  joi
-    .object()
-    .keys({
-      httpGet: joi
-        .object()
-        .keys({
-          path: joi
-            .string()
-            .uri(<any>{ relativeOnly: true })
-            .required()
-            .description("The path of the service's health check endpoint."),
-          port: joi
-            .string()
-            .required()
-            .description("The name of the port where the service's health check endpoint should be available."),
-          scheme: joi.string().allow("HTTP", "HTTPS").default("HTTP"),
-        })
-        .description("Set this to check the service's health by making an HTTP request."),
-      command: joi
-        .sparseArray()
-        .items(joi.string())
-        .description("Set this to check the service's health by running a command in its container."),
-      tcpPort: joi
-        .string()
-        .description("Set this to check the service's health by checking if this TCP port is accepting connections."),
-      readinessTimeoutSeconds: joi
-        .number()
-        .min(1)
-        .default(3)
-        .description("The maximum number of seconds to wait until the readiness check counts as failed."),
-      livenessTimeoutSeconds: joi
-        .number()
-        .min(1)
-        .default(3)
-        .description("The maximum number of seconds to wait until the liveness check counts as failed."),
-    })
-    .xor("httpGet", "command", "tcpPort")
+const healthCheckSchema = createSchema({
+  name: "container-health-check",
+  keys: () => ({
+    httpGet: joi
+      .object()
+      .keys({
+        path: joi
+          .string()
+          .uri(<any>{ relativeOnly: true })
+          .required()
+          .description("The path of the service's health check endpoint."),
+        port: joi
+          .string()
+          .required()
+          .description("The name of the port where the service's health check endpoint should be available."),
+        scheme: joi.string().allow("HTTP", "HTTPS").default("HTTP"),
+      })
+      .description("Set this to check the service's health by making an HTTP request."),
+    command: joi
+      .sparseArray()
+      .items(joi.string())
+      .description("Set this to check the service's health by running a command in its container."),
+    tcpPort: joi
+      .string()
+      .description("Set this to check the service's health by checking if this TCP port is accepting connections."),
+    readinessTimeoutSeconds: joi
+      .number()
+      .min(1)
+      .default(3)
+      .description("The maximum number of seconds to wait until the readiness check counts as failed."),
+    livenessTimeoutSeconds: joi
+      .number()
+      .min(1)
+      .default(3)
+      .description("The maximum number of seconds to wait until the liveness check counts as failed."),
+  }),
+  xor: [["httpGet", "command", "tcpPort"]],
+})
 
-const limitsSchema = () =>
-  joi.object().keys({
+const limitsSchema = createSchema({
+  name: "container-limits",
+  keys: () => ({
     cpu: joi
       .number()
       .min(10)
@@ -531,35 +509,39 @@ const limitsSchema = () =>
       .min(64)
       .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)")
       .meta({ deprecated: true }),
-  })
+  }),
+})
 
-export const containerCpuSchema = (targetType: string) =>
+export const containerCpuSchema = () =>
   joi.object().keys({
     min: joi.number().default(defaultContainerResources.cpu.min).description(deline`
-        The minimum amount of CPU the ${targetType} needs to be available for it to be deployed, in millicpus
+        The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus
         (i.e. 1000 = 1 CPU)
       `),
     max: joi.number().default(defaultContainerResources.cpu.max).min(defaultContainerResources.cpu.min).allow(null)
       .description(deline`
-        The maximum amount of CPU the ${targetType} can use, in millicpus (i.e. 1000 = 1 CPU).
+        The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU).
         If set to null will result in no limit being set.
       `),
   })
 
-export const containerMemorySchema = (targetType: string) =>
-  joi.object().keys({
+export const containerMemorySchema = createSchema({
+  name: "container-memory",
+  keys: () => ({
     min: joi.number().default(defaultContainerResources.memory.min).description(deline`
-        The minimum amount of RAM the ${targetType} needs to be available for it to be deployed, in megabytes
+        The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes
         (i.e. 1024 = 1 GB)
       `),
     max: joi.number().default(defaultContainerResources.memory.max).allow(null).min(64).description(deline`
-        The maximum amount of RAM the ${targetType} can use, in megabytes (i.e. 1024 = 1 GB)
+        The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
         If set to null will result in no limit being set.
       `),
-  })
+  }),
+})
 
-export const portSchema = () =>
-  joi.object().keys({
+export const portSchema = createSchema({
+  name: "container-port",
+  keys: () => ({
     name: joiUserIdentifier()
       .required()
       .description("The name of the port (used when referencing the port elsewhere in the service configuration)."),
@@ -609,149 +591,207 @@ export const portSchema = () =>
         This allows you to call the service from the outside by the node's IP address
         and the port number set in this field.
       `),
-  })
+  }),
+})
 
-const volumeSchema = () =>
-  joi
-    .object()
-    .keys({
-      name: joiUserIdentifier().required().description("The name of the allocated volume."),
-      containerPath: joi
-        .posixPath()
-        .required()
-        .description("The path where the volume should be mounted in the container."),
-      hostPath: joi
-        .posixPath()
-        .description(
-          dedent`
-        _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
-        and providers. Some providers may not support it at all._
-
-        A local path or path on the node that's running the container, to mount in the container, relative to the
-        module source path (or absolute).
-      `
-        )
-        .example("/some/dir"),
-      module: joiIdentifier().description(
+export const volumeSchemaBase = createSchema({
+  name: "container-volume-base",
+  keys: () => ({
+    name: joiUserIdentifier().required().description("The name of the allocated volume."),
+    containerPath: joi
+      .posixPath()
+      .required()
+      .description("The path where the volume should be mounted in the container."),
+    hostPath: joi
+      .posixPath()
+      .description(
         dedent`
-      The name of a _volume module_ that should be mounted at \`containerPath\`. The supported module types will depend on which provider you are using. The \`kubernetes\` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
+        _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms and providers. Some providers may not support it at all._
 
-      When a \`module\` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-      Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+        A local path or path on the node that's running the container, to mount in the container, relative to the config source directory (or absolute).
       `
+      )
+      .example("/some/dir"),
+  }),
+})
+
+const volumeSchema = createSchema({
+  name: "container-volume",
+  extend: volumeSchemaBase,
+  keys: () => ({
+    // TODO-0.13.0: remove when kubernetes-container type is ready, better to swap out with raw k8s references
+    action: joi
+      .actionReference()
+      .kind("Deploy")
+      .name("base-volume")
+      .description(
+        dedent`
+        The action reference to a _volume Deploy action_ that should be mounted at \`containerPath\`. The supported action types are \`persistentvolumeclaim\` and \`configmap\`.
+
+        Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+        `
       ),
-    })
-    .oxor("hostPath", "module")
+  }),
+  oxor: [["hostPath", "action"]],
+})
 
-export function getContainerVolumesSchema(targetType: string) {
-  return joiSparseArray(volumeSchema()).unique("name").description(dedent`
-    List of volumes that should be mounted when deploying the ${targetType}.
+export function getContainerVolumesSchema(schema: Joi.ObjectSchema) {
+  return joiSparseArray(schema).unique("name").description(dedent`
+    List of volumes that should be mounted when starting the container.
 
-    Note: If neither \`hostPath\` nor \`module\` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+    Note: If neither \`hostPath\` nor \`action\` is specified,
+    an empty ephemeral volume is created and mounted when deploying the container.
   `)
 }
 
-const containerPrivilegedSchema = (targetType: string) =>
+const containerPrivilegedSchema = memoize(() =>
   joi
     .boolean()
     .optional()
     .description(
-      `If true, run the ${targetType}'s main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.`
+      `If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.`
     )
+)
 
-const containerAddCapabilitiesSchema = (targetType: string) =>
+const containerAddCapabilitiesSchema = memoize(() =>
+  joi.sparseArray().items(joi.string()).optional().description(`POSIX capabilities to add when running the container.`)
+)
+
+const containerDropCapabilitiesSchema = memoize(() =>
   joi
     .sparseArray()
     .items(joi.string())
     .optional()
-    .description(`POSIX capabilities to add to the running ${targetType}'s main container.`)
+    .description(`POSIX capabilities to remove when running the container.`)
+)
 
-const containerDropCapabilitiesSchema = (targetType: string) =>
-  joi
+interface ContainerCommonRuntimeSpec {
+  args: string[]
+  command?: string[]
+  env: PrimitiveMap
+
+  limits?: ServiceLimitSpec
+  cpu: ContainerResourcesSpec["cpu"]
+  memory: ContainerResourcesSpec["memory"]
+
+  privileged?: boolean
+  addCapabilities?: string[]
+  dropCapabilities?: string[]
+}
+
+// Passed to ContainerServiceSpec
+export interface ContainerCommonDeploySpec extends ContainerCommonRuntimeSpec {
+  annotations: Annotations
+  daemon: boolean
+  sync?: ContainerSyncSpec
+  localMode?: ContainerLocalModeSpec
+  ingresses: ContainerIngressSpec[]
+  healthCheck?: ServiceHealthCheckSpec
+  timeout?: number
+  ports: ServicePortSpec[]
+  replicas?: number
+  tty?: boolean
+  deploymentStrategy: DeploymentStrategy
+}
+
+export interface ContainerDeploySpec extends ContainerCommonDeploySpec {
+  volumes: ContainerVolumeSpec[]
+  image?: string
+}
+
+export type ContainerDeployActionConfig = DeployActionConfig<"container", ContainerDeploySpec>
+
+export interface ContainerDeployOutputs {
+  deployedImageId: string
+}
+
+export const containerDeployOutputsSchema = createSchema({
+  name: "container-deploy-outputs",
+  keys: () => ({
+    deployedImageId: joi.string().required().description("The ID of the image that was deployed."),
+  }),
+})
+
+export type ContainerDeployAction = DeployAction<ContainerDeployActionConfig, ContainerDeployOutputs>
+
+const containerCommonRuntimeSchemaKeys = memoize(() => ({
+  command: joi
     .sparseArray()
-    .items(joi.string())
-    .optional()
-    .description(`POSIX capabilities to remove from the running ${targetType}'s main container.`)
-
-const containerServiceSchema = () =>
-  baseServiceSpecSchema().keys({
-    annotations: annotationsSchema().description(
-      dedent`
-      Annotations to attach to the service _(note: May not be applicable to all providers)_.
-
-      When using the Kubernetes provider, these annotations are applied to both Service and Pod resources. You can generally specify the annotations intended for both Pods or Services here, and the ones that don't apply on either side will be ignored (i.e. if you put a Service annotation here, it'll also appear on Pod specs but will be safely ignored there, and vice versa).
-      `
+    .items(joi.string().allow(""))
+    .description("The command/entrypoint to run the container with.")
+    .example(commandExample),
+  args: joi
+    .sparseArray()
+    .items(joi.string().allow(""))
+    .description("The arguments (on top of the `command`, i.e. entrypoint) to run the container with.")
+    .example(["npm", "start"]),
+  env: containerEnvVarsSchema(),
+  cpu: containerCpuSchema().default(defaultContainerResources.cpu),
+  memory: containerMemorySchema().default(defaultContainerResources.memory),
+  volumes: getContainerVolumesSchema(volumeSchema()),
+  privileged: containerPrivilegedSchema(),
+  addCapabilities: containerAddCapabilitiesSchema(),
+  dropCapabilities: containerDropCapabilitiesSchema(),
+  tty: joi
+    .boolean()
+    .default(false)
+    .description(
+      "Specify if containers in this action have TTY support enabled (which implies having stdin support enabled)."
     ),
-    command: joi
-      .sparseArray()
-      .items(joi.string().allow(""))
-      .description("The command/entrypoint to run the container with when starting the service.")
-      .example(commandExample),
-    args: joi
-      .sparseArray()
-      .items(joi.string().allow(""))
-      .description("The arguments to run the container with when starting the service.")
-      .example(["npm", "start"]),
-    daemon: joi.boolean().default(false).description(deline`
-        Whether to run the service as a daemon (to ensure exactly one instance runs per node).
-        May not be supported by all providers.
-      `),
-    devMode: containerDevModeSchema(),
-    localMode: containerLocalModeSchema(),
-    ingresses: joiSparseArray(ingressSchema())
-      .description("List of ingress endpoints that the service exposes.")
-      .example([{ path: "/api", port: "http" }]),
-    env: containerEnvVarsSchema(),
-    healthCheck: healthCheckSchema().description("Specify how the service's health should be checked after deploying."),
-    hotReloadCommand: joi
-      .sparseArray()
-      .items(joi.string())
-      .description(
-        deline`
-        If this module uses the \`hotReload\` field, the container will be run with
-        this command/entrypoint when the service is deployed with hot reloading enabled.`
-      )
-      .example(commandExample),
-    hotReloadArgs: joi
-      .sparseArray()
-      .items(joi.string())
-      .description(
-        deline`
-        If this module uses the \`hotReload\` field, the container will be run with
-        these arguments when the service is deployed with hot reloading enabled.`
-      )
-      .example(["npm", "run", "dev"]),
-    timeout: k8sDeploymentTimeoutSchema(),
-    limits: limitsSchema()
-      .description("Specify resource limits for the service.")
-      .meta({ deprecated: "Please use the `cpu` and `memory` fields instead." }),
-    cpu: containerCpuSchema("service").default(defaultContainerResources.cpu),
-    memory: containerMemorySchema("service").default(defaultContainerResources.memory),
-    ports: joiSparseArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
-    replicas: joi.number().integer().description(deline`
-      The number of instances of the service to deploy.
-      Defaults to 3 for environments configured with \`production: true\`, otherwise 1.
+  deploymentStrategy: joi
+    .string()
+    .default(defaultDeploymentStrategy)
+    .valid(...deploymentStrategies)
+    .description("Specifies the container's deployment strategy."),
+}))
 
-      Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\`,
-      with hot-reloading enabled, or if the provider doesn't support multiple replicas.
+const containerImageSchema = memoize(() =>
+  joi.string().allow(false, null).empty([false, null]).description(deline`
+    Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no \`build\` is specified.
+  `)
+)
+
+export const containerDeploySchemaKeys = memoize(() => ({
+  ...containerCommonRuntimeSchemaKeys(),
+  annotations: annotationsSchema().description(
+    dedent`
+    Annotations to attach to the service _(note: May not be applicable to all providers)_.
+
+    When using the Kubernetes provider, these annotations are applied to both Service and Pod resources. You can generally specify the annotations intended for both Pods or Services here, and the ones that don't apply on either side will be ignored (i.e. if you put a Service annotation here, it'll also appear on Pod specs but will be safely ignored there, and vice versa).
+    `
+  ),
+  daemon: joi.boolean().default(false).description(deline`
+      Whether to run the service as a daemon (to ensure exactly one instance runs per node).
+      May not be supported by all providers.
     `),
-    volumes: getContainerVolumesSchema("service"),
-    privileged: containerPrivilegedSchema("service"),
-    tty: joi
-      .boolean()
-      .default(false)
-      .description(
-        "Specify if containers in this module have TTY support enabled (which implies having stdin support enabled)."
-      ),
-    addCapabilities: containerAddCapabilitiesSchema("service"),
-    dropCapabilities: containerDropCapabilitiesSchema("service"),
-    deploymentStrategy: joi
-      .string()
-      .default(defaultDeploymentStrategy)
-      .valid(...deploymentStrategies)
-      .description("Specifies the container's deployment strategy."),
-  })
+  sync: containerSyncPathSchema(),
+  localMode: containerLocalModeSchema(),
+  image: containerImageSchema(),
+  ingresses: joiSparseArray(ingressSchema())
+    .description("List of ingress endpoints that the service exposes.")
+    .example([{ path: "/api", port: "http" }]),
+  healthCheck: healthCheckSchema().description("Specify how the service's health should be checked after deploying."),
+  // TODO: remove in 0.14, keeping around to avoid config failures
+  hotReload: joi.any().meta({ internal: true }),
+  timeout: k8sDeploymentTimeoutSchema(),
+  limits: limitsSchema()
+    .description("Specify resource limits for the service.")
+    .meta({ deprecated: "Please use the `cpu` and `memory` fields instead." }),
+  ports: joiSparseArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
+  replicas: joi.number().integer().description(deline`
+    The number of instances of the service to deploy.
+    Defaults to 3 for environments configured with \`production: true\`, otherwise 1.
+
+    Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\` or if the provider doesn't support multiple replicas.
+  `),
+}))
+
+export const containerDeploySchema = createSchema({
+  name: "container-deploy",
+  keys: containerDeploySchemaKeys,
+  rename: [["devMode", "sync"]],
+  meta: { name: "container-deploy" },
+})
 
 export interface ContainerRegistryConfig {
   hostname: string
@@ -760,8 +800,9 @@ export interface ContainerRegistryConfig {
   insecure: boolean
 }
 
-export const containerRegistryConfigSchema = () =>
-  joi.object().keys({
+export const containerRegistryConfigSchema = createSchema({
+  name: "container-registry-config",
+  keys: () => ({
     hostname: joi
       .string()
       .required()
@@ -779,21 +820,19 @@ export const containerRegistryConfigSchema = () =>
       .boolean()
       .default(false)
       .description("Set to true to allow insecure connections to the registry (without SSL)."),
-  })
+  }),
+})
 
-export interface ContainerService extends GardenService<ContainerModule> {}
+// TEST //
 
 export const artifactsDescription = dedent`
-  Specify artifacts to copy out of the container after the run. The artifacts are stored locally under
-  the \`.garden/artifacts\` directory.
+Specify artifacts to copy out of the container after the run. The artifacts are stored locally under
+the \`.garden/artifacts\` directory.
 `
 
-export const artifactsTargetDescription = dedent`
-  A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at \`.garden/artifacts\`.
-`
-
-export const containerArtifactSchema = () =>
-  joi.object().keys({
+export const containerArtifactSchema = createSchema({
+  name: "container-artifact",
+  keys: () => ({
     source: joi
       .posixPath()
       .allowGlobs()
@@ -808,179 +847,220 @@ export const containerArtifactSchema = () =>
       .default(".")
       .description(artifactsTargetDescription)
       .example("outputs/foo/"),
-  })
+  }),
+})
 
-const artifactsSchema = () =>
+const artifactsSchema = memoize(() =>
   joi
     .array()
     .items(containerArtifactSchema())
     .description(
       deline`
-      ${artifactsDescription}\n
+    ${artifactsDescription}\n
 
-      Note: Depending on the provider, this may require the container image to include \`sh\` \`tar\`, in order
-      to enable the file transfer.
-    `
+    Note: Depending on the provider, this may require the container image to include \`sh\` \`tar\`, in order
+    to enable the file transfer.
+  `
     )
     .example([{ source: "/report/**/*" }])
+)
 
-export interface ContainerTestSpec extends BaseTestSpec {
-  args: string[]
+export interface ContainerTestOutputs {
+  log: string
+}
+export const containerTestOutputSchema = createSchema({
+  name: "container-test-output",
+  keys: () => ({
+    log: joi
+      .string()
+      .allow("")
+      .default("")
+      .description(
+        "The full log output from the executed action. (Pro-tip: Make it machine readable so it can be parsed by dependants)"
+      ),
+  }),
+})
+
+export interface ContainerTestActionSpec extends ContainerCommonRuntimeSpec {
   artifacts: ArtifactSpec[]
-  command?: string[]
-  env: ContainerEnvVars
-  cpu: ContainerResourcesSpec["cpu"]
-  memory: ContainerResourcesSpec["memory"]
-  volumes: ContainerVolumeSpec[]
-  privileged?: boolean
-  addCapabilities?: string[]
-  dropCapabilities?: string[]
-}
-
-export const containerTestSchema = () =>
-  baseTestSpecSchema().keys({
-    args: joi
-      .sparseArray()
-      .items(joi.string().allow(""))
-      .description("The arguments used to run the test inside the container.")
-      .example(["npm", "test"]),
-    artifacts: artifactsSchema(),
-    command: joi
-      .sparseArray()
-      .items(joi.string().allow(""))
-      .description("The command/entrypoint used to run the test inside the container.")
-      .example(commandExample),
-    env: containerEnvVarsSchema(),
-    cpu: containerCpuSchema("test").default(defaultContainerResources.cpu),
-    memory: containerMemorySchema("test").default(defaultContainerResources.memory),
-    volumes: getContainerVolumesSchema("test"),
-    privileged: containerPrivilegedSchema("test"),
-    addCapabilities: containerAddCapabilitiesSchema("test"),
-    dropCapabilities: containerDropCapabilitiesSchema("test"),
-  })
-
-export interface ContainerTaskSpec extends BaseTaskSpec {
-  args: string[]
-  artifacts: ArtifactSpec[]
-  cacheResult: boolean
-  command?: string[]
-  env: ContainerEnvVars
-  cpu: ContainerResourcesSpec["cpu"]
-  memory: ContainerResourcesSpec["memory"]
-  volumes: ContainerVolumeSpec[]
-  privileged?: boolean
-  addCapabilities?: string[]
-  dropCapabilities?: string[]
-}
-
-export const containerTaskSchema = () =>
-  baseTaskSpecSchema()
-    .keys({
-      args: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description("The arguments used to run the task inside the container.")
-        .example(["rake", "db:migrate"]),
-      artifacts: artifactsSchema(),
-      cacheResult: cacheResultSchema(),
-      command: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description("The command/entrypoint used to run the task inside the container.")
-        .example(commandExample),
-      env: containerEnvVarsSchema(),
-      cpu: containerCpuSchema("task").default(defaultContainerResources.cpu),
-      memory: containerMemorySchema("task").default(defaultContainerResources.memory),
-      volumes: getContainerVolumesSchema("task"),
-      privileged: containerPrivilegedSchema("task"),
-      addCapabilities: containerAddCapabilitiesSchema("task"),
-      dropCapabilities: containerDropCapabilitiesSchema("task"),
-    })
-    .description("A task that can be run in the container.")
-
-export interface ContainerBuildSpec extends BaseBuildSpec {
-  targetImage?: string
-  timeout: number
-}
-
-export interface ContainerModuleSpec extends ModuleSpec {
-  build: ContainerBuildSpec
-  buildArgs: PrimitiveMap
-  extraFlags: string[]
   image?: string
-  dockerfile?: string
-  hotReload?: ContainerHotReloadSpec
-  services: ContainerServiceSpec[]
-  tests: ContainerTestSpec[]
-  tasks: ContainerTaskSpec[]
+  volumes: ContainerVolumeSpec[]
 }
 
-export interface ContainerModuleConfig extends ModuleConfig<ContainerModuleSpec> {}
+export type ContainerTestActionConfig = TestActionConfig<"container", ContainerTestActionSpec>
+export type ContainerTestAction = TestAction<ContainerTestActionConfig, ContainerTestOutputs>
 
-export const defaultImageNamespace = "_"
-export const defaultTag = "latest"
+export const containerTestSpecKeys = memoize(() => ({
+  ...containerCommonRuntimeSchemaKeys(),
+  artifacts: artifactsSchema(),
+  image: containerImageSchema(),
+}))
 
-export const containerBuildSpecSchema = () =>
-  baseBuildSpecSchema().keys({
-    targetImage: joi.string().description(deline`
-        For multi-stage Dockerfiles, specify which image to build (see
-        https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
-        details).
-      `),
-  })
+export const containerTestActionSchema = createSchema({
+  name: "container:Test",
+  keys: containerTestSpecKeys,
+})
 
-export const containerModuleSpecSchema = () =>
-  joi
+// RUN //
+
+export interface ContainerRunOutputs extends ContainerTestOutputs {}
+
+export const containerRunOutputSchema = () => containerTestOutputSchema()
+
+export interface ContainerRunActionSpec extends ContainerTestActionSpec {
+  cacheResult: boolean
+}
+
+export type ContainerRunActionConfig = RunActionConfig<"container", ContainerRunActionSpec>
+export type ContainerRunAction = RunAction<ContainerRunActionConfig, ContainerRunOutputs>
+
+export const containerRunSpecKeys = memoize(() => ({
+  ...containerTestSpecKeys(),
+  cacheResult: runCacheResultSchema(),
+}))
+
+export const containerRunActionSchema = createSchema({
+  name: "container:Run",
+  keys: containerRunSpecKeys,
+})
+
+// BUILD //
+
+export interface ContainerBuildOutputs {
+  "localImageName": string
+  "localImageId": string
+  "deploymentImageName": string
+  "deploymentImageId": string
+
+  // Aliases, for backwards compatibility.
+  // TODO: remove in 0.14
+  "local-image-name": string
+  "local-image-id": string
+  "deployment-image-name": string
+  "deployment-image-id": string
+}
+
+export const containerBuildOutputSchemaKeys = memoize(() => ({
+  "localImageName": joi
+    .string()
+    .required()
+    .description("The name of the image (without tag/version) that the Build uses for local builds and deployments.")
+    .example("my-build"),
+  "localImageId": joi
+    .string()
+    .required()
+    .description("The full ID of the image (incl. tag/version) that the Build uses for local builds and deployments.")
+    .example("my-build:v-abf3f8dca"),
+  "deploymentImageName": joi
+    .string()
+    .required()
+    .description("The name of the image (without tag/version) that the Build will use during deployment.")
+    .example("my-deployment-registry.io/my-org/my-build"),
+  "deploymentImageId": joi
+    .string()
+    .required()
+    .description("The full ID of the image (incl. tag/version) that the Build will use during deployment.")
+    .example("my-deployment-registry.io/my-org/my-build:v-abf3f8dca"),
+
+  // Aliases
+  "local-image-name": joi.string().required().description("Alias for localImageName, for backward compatibility."),
+  "local-image-id": joi.string().required().description("Alias for localImageId, for backward compatibility."),
+  "deployment-image-name": joi
+    .string()
+    .required()
+    .description("Alias for deploymentImageName, for backward compatibility."),
+  "deployment-image-id": joi
+    .string()
+    .required()
+    .description("Alias for deploymentImageId, for backward compatibility."),
+}))
+
+export const containerBuildOutputsSchema = createSchema({
+  name: "container:Build:outputs",
+  keys: containerBuildOutputSchemaKeys,
+})
+
+export interface ContainerBuildActionSpec {
+  buildArgs: PrimitiveMap
+  dockerfile: string
+  extraFlags: string[]
+  localId?: string
+  publishId?: string
+  targetStage?: string
+}
+
+export type ContainerBuildActionConfig = BuildActionConfig<"container", ContainerBuildActionSpec>
+export type ContainerBuildAction = BuildAction<ContainerBuildActionConfig, ContainerBuildOutputs, {}>
+
+export const containerBuildSpecKeys = memoize(() => ({
+  localId: joi
+    .string()
+    .allow(false, null)
+    .empty([false, null])
+    .description(
+      deline`
+      Specify an image ID to use when building locally, instead of the default of using the action name. Must be a valid Docker image identifier. **Note that the image _tag_ is always set to the action version.**
+      `
+    ),
+  publishId: joi
+    .string()
+    .allow(false, null)
+    .empty([false, null])
+    .description(
+      deline`
+      Specify an image ID to use when publishing the image (via the \`garden publish\` command), instead of the default of using the action name. Must be a valid Docker image identifier.
+      `
+    ),
+  targetStage: joi.string().description(deline`
+    For multi-stage Dockerfiles, specify which image/stage to build (see
+    https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
+    details).
+  `),
+}))
+
+export const containerCommonBuildSpecKeys = memoize(() => ({
+  buildArgs: joi
     .object()
-    .keys({
-      build: containerBuildSpecSchema(),
-      buildArgs: joi
-        .object()
-        .pattern(/.+/, joiPrimitive())
-        .default(() => ({})).description(dedent`
-          Specify build arguments to use when building the container image.
+    .pattern(/.+/, joiPrimitive())
+    .default(() => ({})).description(dedent`
+      Specify build arguments to use when building the container image.
 
-          Note: Garden will always set a \`GARDEN_MODULE_VERSION\` argument with the module version at build time.
-        `),
-      extraFlags: joi.sparseArray().items(joi.string()).description(deline`
-        Specify extra flags to use when building the container image.
-        Note that arguments may not be portable across implementations.`),
-      // TODO: validate the image name format
-      image: joi.string().allow(false, null).empty([false, null]).description(deline`
-        Specify the image name for the container. Should be a valid Docker image identifier. If specified and
-        the module does not contain a Dockerfile, this image will be used to deploy services for this module.
-        If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
-      include: joiModuleIncludeDirective(dedent`
-        If neither \`include\` nor \`exclude\` is set, and the module has a Dockerfile, Garden
-        will parse the Dockerfile and automatically set \`include\` to match the files and
-        folders added to the Docker image (via the \`COPY\` and \`ADD\` directives in the Dockerfile).
+      Note: Garden will always set a \`GARDEN_ACTION_VERSION\` (alias \`GARDEN_MODULE_VERSION\`) argument with the module/build version at build time.
+    `),
+  extraFlags: joi.sparseArray().items(joi.string()).description(deline`
+    Specify extra flags to use when building the container image.
+    Note that arguments may not be portable across implementations.`),
+}))
 
-        If neither \`include\` nor \`exclude\` is set, and the module
-        specifies a remote image, Garden automatically sets \`include\` to \`[]\`.
-      `),
-      hotReload: hotReloadConfigSchema(),
-      dockerfile: joi
-        .posixPath()
-        .subPathOnly()
-        .allow(false, null)
-        .empty([false, null])
-        .description("POSIX-style name of Dockerfile, relative to module root."),
-      services: joiSparseArray(containerServiceSchema())
-        .unique("name")
-        .description("A list of services to deploy from this container module."),
-      tests: joiSparseArray(containerTestSchema()).description("A list of tests to run in the module."),
-      // We use the user-facing term "tasks" as the key here, instead of "tasks".
-      tasks: joiSparseArray(containerTaskSchema()).description(deline`
-        A list of tasks that can be run from this container module. These can be used as dependencies for services
-        (executed before the service is deployed) or for other tasks.
-      `),
-    })
-    .description("Configuration for a container module.")
+export const containerBuildSpecSchema = createSchema({
+  name: "container:Build",
+  keys: () => ({
+    ...containerBuildSpecKeys(),
+    ...containerCommonBuildSpecKeys(),
+    dockerfile: joi
+      .posixPath()
+      .subPathOnly()
+      .default(defaultDockerfileName)
+      .description("POSIX-style name of a Dockerfile, relative to the action's source root."),
+    targetStage: joi.string().description(deline`
+      For multi-stage Dockerfiles, specify which image/stage to build (see
+      https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
+      details).
+    `),
+    // TODO: remove in 0.14, keeping around to avoid config failures
+    hotReload: joi.any().meta({ internal: true }),
+  }),
+})
 
-export interface ContainerModule<
-  M extends ContainerModuleSpec = ContainerModuleSpec,
-  S extends ContainerServiceSpec = ContainerServiceSpec,
-  T extends ContainerTestSpec = ContainerTestSpec,
-  W extends ContainerTaskSpec = ContainerTaskSpec,
-  O extends ContainerModuleOutputs = ContainerModuleOutputs
-> extends GardenModule<M, S, T, W, O> {}
+export type ContainerActionConfig =
+  | ContainerDeployActionConfig
+  | ContainerRunActionConfig
+  | ContainerTestActionConfig
+  | ContainerBuildActionConfig
+
+export type ContainerRuntimeAction = ContainerDeployAction | ContainerRunAction | ContainerTestAction
+export type ContainerRuntimeActionConfig =
+  | ContainerDeployActionConfig
+  | ContainerRunActionConfig
+  | ContainerTestActionConfig
+export type ContainerAction = ContainerRuntimeAction | ContainerBuildAction

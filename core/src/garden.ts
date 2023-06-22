@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,27 +8,28 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { ensureDir, readdir } from "fs-extra"
+import { ensureDir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
-import { relative, resolve, join } from "path"
+import { relative, resolve } from "path"
 import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
-const AsyncLock = require("async-lock")
+import AsyncLock from "async-lock"
 
 import { TreeCache } from "./cache"
 import { getBuiltinPlugins } from "./plugins/plugins"
-import { GardenModule, getModuleCacheContext, getModuleKey, ModuleConfigMap, moduleFromConfig } from "./types/module"
-import { ModuleTypeMap } from "./types/plugin/plugin"
+import { GardenModule, getModuleCacheContext, ModuleConfigMap, ModuleTypeMap } from "./types/module"
 import {
   SourceConfig,
   ProjectConfig,
   resolveProjectConfig,
   pickEnvironment,
   OutputSpec,
-  EnvironmentConfig,
   parseEnvironment,
   getDefaultEnvironmentName,
   projectSourcesSchema,
+  ProxyConfig,
+  defaultNamespace,
+  defaultEnvironment,
 } from "./config/project"
 import {
   findByName,
@@ -37,36 +38,41 @@ import {
   getNames,
   findByNames,
   duplicatesByKey,
-  uuidv4,
   getCloudDistributionName,
+  getCloudLogSectionName,
 } from "./util/util"
-import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
+import { ConfigurationError, InternalError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
-import { ConfigGraph } from "./config-graph"
-import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
-import { getLogger } from "./logger/logger"
-import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
-import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenResource } from "./config/base"
-import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joiSparseArray, joi } from "./config/common"
-import { BaseTask } from "./tasks/base"
-import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
+import { ConfigGraph, ResolvedConfigGraph } from "./graph/config-graph"
+import { getRootLogger } from "./logger/logger"
+import { GardenPlugin } from "./plugin/plugin"
+import {
+  loadConfigResources,
+  findProjectConfig,
+  GardenResource,
+  configTemplateKind,
+  renderTemplateKind,
+} from "./config/base"
+import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi, allowUnknown } from "./config/common"
+import { GlobalConfigStore } from "./config-store/global"
+import { LocalConfigStore, LinkedSource } from "./config-store/local"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { ModuleConfig } from "./config/module"
-import { ModuleResolver } from "./resolve-module"
+import { convertModules, ModuleResolver } from "./resolve-module"
 import { createPluginContext, CommandInfo, PluginEventBroker } from "./plugin-context"
-import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
+import { RegisterPluginParam } from "./plugin/plugin"
 import {
   SUPPORTED_PLATFORMS,
-  SupportedPlatform,
   DEFAULT_GARDEN_DIR_NAME,
   gardenEnv,
-  SupportedArchitecture,
   SUPPORTED_ARCHITECTURES,
+  GardenApiVersion,
+  DOCS_BASE_URL,
 } from "./constants"
-import { LogEntry } from "./logger/log-entry"
-import { EventBus } from "./events"
+import { Log } from "./logger/log-entry"
+import { EventBus } from "./events/events"
 import { Watcher } from "./watch"
 import {
   findConfigPathsInPath,
@@ -75,6 +81,7 @@ import {
   detectModuleOverlap,
   ModuleOverlap,
   defaultConfigFilename,
+  defaultDotIgnoreFile,
 } from "./util/fs"
 import {
   Provider,
@@ -84,12 +91,19 @@ import {
   ProviderMap,
 } from "./config/provider"
 import { ResolveProviderTask } from "./tasks/resolve-provider"
-import { ActionRouter } from "./actions"
-import { RuntimeContext } from "./runtime-context"
-import { loadAndResolvePlugins, getDependencyOrder, getModuleTypes, loadPlugin } from "./plugins"
+import { ActionRouter } from "./router/router"
+import {
+  loadAndResolvePlugins,
+  getDependencyOrder,
+  getModuleTypes,
+  loadPlugin,
+  getActionTypes,
+  ActionDefinitionMap,
+  getActionTypeBases,
+  ActionTypeMap,
+} from "./plugins"
 import { deline, naturalList, wordWrap } from "./util/string"
-import { ensureConnected } from "./db/connection"
-import { DependencyValidationGraph } from "./util/validate-dependencies"
+import { DependencyGraph } from "./graph/common"
 import { Profile, profileAsync } from "./util/profiling"
 import username from "username"
 import {
@@ -97,62 +111,63 @@ import {
   resolveTemplateString,
   resolveTemplateStrings,
 } from "./template-string/template-string"
-import { WorkflowConfig, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
+import { WorkflowConfig, WorkflowConfigMap, resolveWorkflowConfig, isWorkflowConfig } from "./config/workflow"
 import { PluginTool, PluginTools } from "./util/ext-tools"
-import {
-  ModuleTemplateResource,
-  resolveModuleTemplate,
-  resolveTemplatedModule,
-  templateKind,
-  ModuleTemplateConfig,
-} from "./config/module-template"
+import { ConfigTemplateResource, resolveConfigTemplate, ConfigTemplateConfig } from "./config/config-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
-import { BuildDirRsync } from "./build-staging/rsync"
-import { CloudApi, CloudProject, EnterpriseApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
-import { DefaultEnvironmentContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
+import { BuildStagingRsync } from "./build-staging/rsync"
+import {
+  DefaultEnvironmentContext,
+  ProjectConfigContext,
+  RemoteSourceConfigContext,
+} from "./config/template-contexts/project"
+import { CloudApi, CloudProject, CloudApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./cloud/get-secrets"
-import { ConfigContext } from "./config/template-contexts/base"
+import type { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
+import { ModuleGraph } from "./graph/modules"
+import {
+  Action,
+  ActionConfigMap,
+  ActionConfigsByKey,
+  ActionKind,
+  actionKinds,
+  ActionModeMap,
+  BaseActionConfig,
+} from "./actions/types"
+import { actionReferenceToString, isActionConfig } from "./actions/base"
+import { GraphSolver, SolveOpts, SolveParams, SolveResult } from "./graph/solver"
+import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, resolveActions } from "./graph/actions"
+import { ActionTypeDefinition } from "./plugin/action-types"
+import type { Task } from "./tasks/base"
+import { GraphResultFromTask, GraphResults } from "./graph/results"
+import { uuidv4 } from "./util/random"
+import { convertTemplatedModuleToRender, RenderTemplateConfig, renderConfigTemplate } from "./config/render-template"
+import { MonitorManager } from "./monitors/manager"
+import { AnalyticsHandler } from "./analytics/analytics"
+import { getGardenInstanceKey } from "./server/helpers"
+import { SuggestedCommand } from "./commands/base"
 
-export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
-  [actionName: string]: PluginActionHandlers[T]
-}
-
-export interface ModuleActionHandlerMap<T extends keyof ModuleAndRuntimeActionHandlers> {
-  [actionName: string]: ModuleAndRuntimeActionHandlers[T]
-}
-
-export type PluginActionMap = {
-  [A in keyof PluginActionHandlers]: {
-    [pluginName: string]: PluginActionHandlers[A]
-  }
-}
-
-export type ModuleActionMap = {
-  [A in keyof ModuleAndRuntimeActionHandlers]: {
-    [moduleType: string]: {
-      [pluginName: string]: ModuleAndRuntimeActionHandlers[A]
-    }
-  }
-}
+const defaultLocalAddress = "localhost"
 
 export interface GardenOpts {
   commandInfo: CommandInfo
   config?: ProjectConfig
-  disablePortForwards?: boolean
-  environmentName?: string
+  environmentString?: string // Note: This is the string, as e.g. passed with the --env flag
   forceRefresh?: boolean
   gardenDirPath?: string
+  globalConfigStore?: GlobalConfigStore
   legacyBuildSync?: boolean
-  log?: LogEntry
+  log?: Log
+  monitors?: MonitorManager
   noEnterprise?: boolean
   persistent?: boolean
   plugins?: RegisterPluginParam[]
   sessionId?: string
-  variables?: PrimitiveMap
+  variableOverrides?: PrimitiveMap
   cloudApi?: CloudApi
 }
 
@@ -160,70 +175,90 @@ export interface GardenParams {
   artifactsPath: string
   vcsInfo: VcsInfo
   projectId?: string
-  enterpriseDomain?: string
+  cloudDomain?: string
   cache: TreeCache
-  disablePortForwards?: boolean
-  dotIgnoreFiles: string[]
+  dotIgnoreFile: string
+  proxy: ProxyConfig
   environmentName: string
-  environmentConfigs: EnvironmentConfig[]
+  resolvedDefaultNamespace: string | null
   namespace: string
   gardenDirPath: string
-  log: LogEntry
+  globalConfigStore?: GlobalConfigStore
+  localConfigStore?: LocalConfigStore
+  log: Log
   moduleIncludePatterns?: string[]
   moduleExcludePatterns?: string[]
+  monitors?: MonitorManager
   opts: GardenOpts
   outputs: OutputSpec[]
   plugins: RegisterPluginParam[]
   production: boolean
+  projectConfig: ProjectConfig
   projectName: string
   projectRoot: string
   projectSources?: SourceConfig[]
   providerConfigs: GenericProviderConfig[]
   variables: DeepPrimitiveMap
-  cliVariables: DeepPrimitiveMap
+  variableOverrides: DeepPrimitiveMap
   secrets: StringMap
   sessionId: string
   username: string | undefined
   workingCopyId: string
   forceRefresh?: boolean
   cloudApi?: CloudApi | null
+  projectApiVersion: ProjectConfig["apiVersion"]
+}
+
+interface GardenInstanceState {
+  configsScanned: boolean
+  needsReload: boolean
 }
 
 @Profile()
 export class Garden {
-  public log: LogEntry
+  public log: Log
   private loadedPlugins: GardenPlugin[]
+  protected actionConfigs: ActionConfigMap
   protected moduleConfigs: ModuleConfigMap
   protected workflowConfigs: WorkflowConfigMap
-  private pluginModuleConfigs: ModuleConfig[]
+  protected configPaths: Set<string>
   private resolvedProviders: { [key: string]: Provider }
-  protected configsScanned: boolean
+  protected readonly state: GardenInstanceState
   protected registeredPlugins: RegisterPluginParam[]
-  private readonly taskGraph: TaskGraph
-  private watcher: Watcher
-  private asyncLock: any
+  private readonly solver: GraphSolver
+  private asyncLock: AsyncLock
   public readonly projectId?: string
-  public readonly enterpriseDomain?: string
+  public readonly cloudDomain?: string
   public sessionId: string
-  public readonly configStore: ConfigStore
-  public readonly globalConfigStore: GlobalConfigStore
+  public readonly localConfigStore: LocalConfigStore
+  public globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
-  public readonly cache: TreeCache
-  private actionHelper: ActionRouter
-  public readonly events: EventBus
+  public readonly treeCache: TreeCache
+  public events: EventBus
   private tools: { [key: string]: PluginTool }
-  public moduleTemplates: { [name: string]: ModuleTemplateConfig }
+  public configTemplates: { [name: string]: ConfigTemplateConfig }
+  private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
+  private emittedWarnings: Set<string>
+  public cloudApi: CloudApi | null
 
   public readonly production: boolean
   public readonly projectRoot: string
   public readonly projectName: string
+  public readonly projectApiVersion: string
   public readonly environmentName: string
-  public readonly environmentConfigs: EnvironmentConfig[]
+  /**
+   * The resolved default namespace as defined in the Project config for the current environment.
+   */
+  public readonly resolvedDefaultNamespace: string | null
+  /**
+   * The actual namespace for the Garden instance. This is by default the namespace defined in the Project config
+   * for the current environment but can be overwritten with the `--env` flag.
+   */
   public readonly namespace: string
   public readonly variables: DeepPrimitiveMap
   // Any variables passed via the `--var` CLI option (maintained here so that they can be used during module resolution
   // to override module variables and module varfiles).
-  public readonly cliVariables: DeepPrimitiveMap
+  public readonly variableOverrides: DeepPrimitiveMap
   public readonly secrets: StringMap
   private readonly projectSources: SourceConfig[]
   public readonly buildStaging: BuildStaging
@@ -231,27 +266,31 @@ export class Garden {
   public readonly artifactsPath: string
   public readonly vcsInfo: VcsInfo
   public readonly opts: GardenOpts
+  private readonly projectConfig: ProjectConfig
   private readonly providerConfigs: GenericProviderConfig[]
   public readonly workingCopyId: string
-  public readonly dotIgnoreFiles: string[]
+  public readonly dotIgnoreFile: string
+  public readonly proxy: ProxyConfig
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
   public readonly persistent: boolean
   public readonly rawOutputs: OutputSpec[]
-  public readonly systemNamespace: string
   public readonly username?: string
   public readonly version: string
   private readonly forceRefresh: boolean
-  public readonly cloudApi: CloudApi | null
-  public readonly disablePortForwards: boolean
   public readonly commandInfo: CommandInfo
+  public readonly monitors: MonitorManager
+  public readonly nestedSessions: Map<string, Garden>
+
+  // Used internally for introspection
+  public readonly isGarden: true
 
   constructor(params: GardenParams) {
     this.projectId = params.projectId
-    this.enterpriseDomain = params.enterpriseDomain
+    this.cloudDomain = params.cloudDomain
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
-    this.environmentConfigs = params.environmentConfigs
+    this.resolvedDefaultNamespace = params.resolvedDefaultNamespace
     this.namespace = params.namespace
     this.gardenDirPath = params.gardenDirPath
     this.log = params.log
@@ -260,15 +299,18 @@ export class Garden {
     this.opts = params.opts
     this.rawOutputs = params.outputs
     this.production = params.production
+    this.projectConfig = params.projectConfig
     this.projectName = params.projectName
     this.projectRoot = params.projectRoot
     this.projectSources = params.projectSources || []
+    this.projectApiVersion = params.projectApiVersion
     this.providerConfigs = params.providerConfigs
     this.variables = params.variables
-    this.cliVariables = params.cliVariables
+    this.variableOverrides = params.variableOverrides
     this.secrets = params.secrets
     this.workingCopyId = params.workingCopyId
-    this.dotIgnoreFiles = params.dotIgnoreFiles
+    this.dotIgnoreFile = params.dotIgnoreFile
+    this.proxy = params.proxy
     this.moduleIncludePatterns = params.moduleIncludePatterns
     this.moduleExcludePatterns = params.moduleExcludePatterns || []
     this.persistent = !!params.opts.persistent
@@ -276,10 +318,22 @@ export class Garden {
     this.forceRefresh = !!params.forceRefresh
     this.cloudApi = params.cloudApi || null
     this.commandInfo = params.opts.commandInfo
-    this.cache = params.cache
+    this.treeCache = params.cache
+    this.isGarden = true
+    this.configTemplates = {}
+    this.emittedWarnings = new Set()
+    this.state = { configsScanned: false, needsReload: false }
+    this.nestedSessions = new Map()
 
     this.asyncLock = new AsyncLock()
-    this.vcs = new GitHandler(params.projectRoot, params.gardenDirPath, params.dotIgnoreFiles, params.cache)
+
+    this.vcs = new GitHandler({
+      garden: this,
+      projectRoot: params.projectRoot,
+      gardenDirPath: params.gardenDirPath,
+      ignoreFile: params.dotIgnoreFile,
+      cache: params.cache,
+    })
 
     // Use the legacy build sync mode if
     // A) GARDEN_LEGACY_BUILD_STAGE=true is set or
@@ -289,39 +343,52 @@ export class Garden {
         ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE || (platform() === "win32" && !gardenEnv.GARDEN_EXPERIMENTAL_BUILD_STAGE)
         : params.opts.legacyBuildSync
 
-    const buildDirCls = legacyBuildSync ? BuildDirRsync : BuildStaging
+    const buildDirCls = legacyBuildSync ? BuildStagingRsync : BuildStaging
+    if (legacyBuildSync) {
+      this.log.silly(`Using rsync build staging mode`)
+    }
     this.buildStaging = new buildDirCls(params.projectRoot, params.gardenDirPath)
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
-    const currentArch = arch()
+    const currentArch = arch() as NodeJS.Architecture
 
-    if (!SUPPORTED_PLATFORMS.includes(<SupportedPlatform>currentPlatform)) {
+    if (!SUPPORTED_PLATFORMS.includes(currentPlatform)) {
       throw new RuntimeError(`Unsupported platform: ${currentPlatform}`, { platform: currentPlatform })
     }
 
-    if (!SUPPORTED_ARCHITECTURES.includes(<SupportedArchitecture>currentArch)) {
+    if (!SUPPORTED_ARCHITECTURES.includes(currentArch)) {
       throw new RuntimeError(`Unsupported CPU architecture: ${currentArch}`, { arch: currentArch })
     }
 
-    this.configsScanned = false
+    this.state.configsScanned = false
     // TODO: Support other VCS options.
-    this.configStore = new LocalConfigStore(this.gardenDirPath)
-    this.globalConfigStore = new GlobalConfigStore()
+    this.localConfigStore = params.localConfigStore || new LocalConfigStore(this.gardenDirPath)
+    this.globalConfigStore = params.globalConfigStore || new GlobalConfigStore()
 
+    this.actionConfigs = {
+      Build: {},
+      Deploy: {},
+      Run: {},
+      Test: {},
+    }
+    this.actionTypeBases = {
+      Build: {},
+      Deploy: {},
+      Run: {},
+      Test: {},
+    }
     this.moduleConfigs = {}
-    this.pluginModuleConfigs = []
     this.workflowConfigs = {}
+    this.configPaths = new Set<string>()
     this.registeredPlugins = [...getBuiltinPlugins(), ...params.plugins]
     this.resolvedProviders = {}
 
-    this.taskGraph = new TaskGraph(this, this.log)
-    this.events = new EventBus()
-
+    this.events = new EventBus({ gardenKey: this.getInstanceKey() })
     // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies
     this.version = getPackageVersion()
-
-    this.disablePortForwards = gardenEnv.GARDEN_DISABLE_PORT_FORWARDS || params.disablePortForwards || false
+    this.monitors = params.monitors || new MonitorManager(this.log, this.events)
+    this.solver = new GraphSolver(this)
   }
 
   static async factory<T extends typeof Garden>(
@@ -340,9 +407,49 @@ export class Garden {
   /**
    * Clean up before shutting down.
    */
-  async close() {
+  close() {
     this.events.removeAllListeners()
-    this.watcher && (await this.watcher.stop())
+    Watcher.getInstance({ log: this.log }).unsubscribe(this.events)
+  }
+
+  /**
+   * Returns a shallow clone of this instance. Useful if you need to override properties for a specific context.
+   */
+  clone(): Garden {
+    return Object.assign(Object.create(Object.getPrototypeOf(this)), this)
+  }
+
+  cloneForCommand(sessionId: string, cloudApi?: CloudApi): Garden {
+    // Make an instance clone to override anything that needs to be scoped to a specific command run
+    // TODO: this could be made more elegant
+    const garden = this.clone()
+    const parentSessionId = this.sessionId
+    this.nestedSessions.set(sessionId, garden)
+    garden.sessionId = sessionId
+
+    garden.log = garden.log.createLog()
+    garden.log.context.sessionId = sessionId
+    garden.log.context.parentSessionId = parentSessionId
+
+    if (cloudApi) {
+      garden.cloudApi = cloudApi
+    }
+
+    const parentEvents = garden.events
+    garden.events = new EventBus({ gardenKey: garden.getInstanceKey(), sessionId })
+    // We make sure events emitted in the context of the command are forwarded to the parent Garden event bus.
+    garden.events.onAny((name, payload) => {
+      parentEvents.emit(name, payload)
+    })
+
+    return garden
+  }
+
+  needsReload(v?: true) {
+    if (v) {
+      this.state.needsReload = true
+    }
+    return this.state.needsReload
   }
 
   /**
@@ -359,14 +466,28 @@ export class Garden {
    * provider template context. Callers should specify the appropriate templating for the handler that will be
    * called with the PluginContext.
    */
-  async getPluginContext(provider: Provider, templateContext?: ConfigContext, events?: PluginEventBroker) {
-    return createPluginContext(
-      this,
+  async getPluginContext({
+    provider,
+    templateContext,
+    events,
+  }: {
+    provider: Provider
+    templateContext: ConfigContext | undefined
+    events: PluginEventBroker | undefined
+  }) {
+    return createPluginContext({
+      garden: this,
       provider,
-      this.opts.commandInfo,
-      templateContext || new ProviderConfigContext(this, provider.dependencies, this.variables),
-      events
-    )
+      command: this.opts.commandInfo,
+      templateContext: templateContext || new ProviderConfigContext(this, provider.dependencies, this.variables),
+      events,
+    })
+  }
+
+  getProjectConfigContext() {
+    const loggedIn = this.isLoggedIn()
+    const enterpriseDomain = this.cloudApi?.domain
+    return new ProjectConfigContext({ ...this, loggedIn, enterpriseDomain })
   }
 
   async clearBuilds() {
@@ -374,55 +495,67 @@ export class Garden {
   }
 
   clearCaches() {
-    this.cache.clear()
-    this.taskGraph.clearCache()
+    this.treeCache.clear()
+    this.solver.clearCache()
   }
 
-  async processTasks(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
-    return this.taskGraph.process(tasks, opts)
+  async emitWarning({ key, log, message }: { key: string; log: Log; message: string }) {
+    await this.asyncLock.acquire("emitWarning", async () => {
+      // Only emit a warning once per instance
+      if (this.emittedWarnings.has(key)) {
+        return
+      }
+
+      const existing = await this.localConfigStore.get("warnings", key)
+
+      if (!existing || !existing.hidden) {
+        this.emittedWarnings.add(key)
+        log.warn(message + `\n→ Run ${chalk.underline(`garden util hide-warning ${key}`)} to disable this warning.`)
+      }
+    })
+  }
+
+  async hideWarning(key: string) {
+    await this.localConfigStore.set("warnings", key, { hidden: true })
+  }
+
+  @pMemoizeDecorator()
+  async getAnalyticsHandler() {
+    return AnalyticsHandler.init(this, this.log)
+  }
+
+  // TODO: would be nice if this returned a type based on the input tasks
+  async processTasks(params: SolveParams): Promise<SolveResult> {
+    return this.solver.solve(params)
+  }
+
+  async processTask<T extends Task>(task: T, log: Log, opts: SolveOpts): Promise<GraphResultFromTask<T> | null> {
+    const { results } = await this.solver.solve({ tasks: [task], log, ...opts })
+    return results.getResult(task)
   }
 
   /**
-   * Enables the file watcher for the project.
-   * Make sure to stop it using `.close()` when cleaning up or when watching is no longer needed.
+   * Subscribes to watch events for config paths.
    */
-  async startWatcher({
-    graph,
-    skipModules,
-    bufferInterval,
-  }: {
-    graph: ConfigGraph
-    skipModules?: GardenModule[]
-    bufferInterval?: number
-  }) {
-    const modules = graph.getModules()
-    const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
-    const paths = [this.projectRoot, ...linkedPaths]
+  watchPaths() {
+    const watcher = Watcher.getInstance({ log: this.log })
+    watcher.unsubscribe(this.events)
+    watcher.subscribe(this.events, [
+      // Watch config files
+      ...Array.from(this.configPaths.values()).map((path) => ({ type: "config" as const, path })),
+      // TODO: watch source directories when on Windows or Mac (watching on linux is too expensive atm)
+    ])
+  }
 
-    // For skipped modules (e.g. those with services in dev mode), we skip watching all files and folders in the
-    // module root except for the module's config path. This way, we can still react to changes in the module's
-    // configuration.
-    const skipPaths = flatten(
-      await Bluebird.map(skipModules || [], async (skipped: GardenModule) => {
-        return (await readdir(skipped.path))
-          .map((relPath) => resolve(skipped.path, relPath))
-          .filter((absPath) => absPath !== skipped.configPath)
-      })
-    )
-    this.watcher = new Watcher({
-      garden: this,
-      log: this.log,
-      paths,
-      modules,
-      skipPaths,
-      bufferInterval,
-    })
+  getProjectConfig() {
+    return this.projectConfig
   }
 
   async getRegisteredPlugins(): Promise<GardenPlugin[]> {
     return Bluebird.map(this.registeredPlugins, (p) => loadPlugin(this.log, this.projectRoot, p))
   }
 
+  @pMemoizeDecorator()
   async getPlugin(pluginName: string): Promise<GardenPlugin> {
     const plugins = await this.getAllPlugins()
     const plugin = findByName(plugins, pluginName)
@@ -445,6 +578,7 @@ export class Garden {
   /**
    * Returns all registered plugins, loading them if necessary.
    */
+  @pMemoizeDecorator()
   async getAllPlugins() {
     // The duplicated check is a small optimization to avoid the async lock when possible,
     // since this is called quite frequently.
@@ -452,10 +586,10 @@ export class Garden {
       return this.loadedPlugins
     }
 
-    await this.asyncLock.acquire("load-plugins", async () => {
+    return this.asyncLock.acquire("load-plugins", async () => {
       // This check is necessary since we could in theory have two calls waiting for the lock at the same time.
       if (this.loadedPlugins) {
-        return
+        return this.loadedPlugins
       }
 
       this.log.silly(`Loading plugins`)
@@ -463,15 +597,16 @@ export class Garden {
 
       this.loadedPlugins = await loadAndResolvePlugins(this.log, this.projectRoot, this.registeredPlugins, rawConfigs)
 
-      this.log.silly(`Loaded plugins: ${rawConfigs.map((c) => c.name).join(", ")}`)
-    })
+      this.log.silly(`Loaded plugins: ${this.loadedPlugins.map((c) => c.name).join(", ")}`)
 
-    return this.loadedPlugins
+      return this.loadedPlugins
+    })
   }
 
   /**
    * Returns plugins that are currently configured in provider configs.
    */
+  @pMemoizeDecorator()
   async getConfiguredPlugins() {
     const plugins = await this.getAllPlugins()
     const configNames = keyBy(this.getRawProviderConfigs(), "name")
@@ -487,11 +622,40 @@ export class Garden {
     return getModuleTypes(configuredPlugins)
   }
 
-  getRawProviderConfigs(names?: string[]) {
-    return names ? findByNames(names, this.providerConfigs, "provider") : this.providerConfigs
+  /**
+   * Returns a mapping of all configured action types in the project and their definitions.
+   */
+  @pMemoizeDecorator()
+  async getActionTypes(): Promise<ActionDefinitionMap> {
+    const configuredPlugins = await this.getConfiguredPlugins()
+    return getActionTypes(configuredPlugins)
   }
 
-  async resolveProvider(log: LogEntry, name: string) {
+  /**
+   * Get the bases for the given action kind/type, with schemas modified to allow any unknown fields.
+   * Used to validate actions whose types inherit from others.
+   *
+   * Implemented here so that we can cache the modified schemas.
+   */
+  async getActionTypeBases(kind: ActionKind, type: string) {
+    const definitions = await this.getActionTypes()
+
+    if (this.actionTypeBases[kind][type]) {
+      return this.actionTypeBases[kind][type] || []
+    }
+
+    const bases = getActionTypeBases(definitions[kind][type].spec, definitions[kind])
+    this.actionTypeBases[kind][type] = bases.map((b) => ({ ...b, schema: allowUnknown(b.schema) }))
+    return this.actionTypeBases[kind][type] || []
+  }
+
+  getRawProviderConfigs({ names, allowMissing = false }: { names?: string[]; allowMissing?: boolean } = {}) {
+    return names
+      ? findByNames({ names, entries: this.providerConfigs, description: "provider", allowMissing })
+      : this.providerConfigs
+  }
+
+  async resolveProvider(log: Log, name: string) {
     if (name === "_default") {
       return defaultProvider
     }
@@ -520,11 +684,12 @@ export class Garden {
     return provider
   }
 
-  async resolveProviders(log: LogEntry, forceInit = false, names?: string[]): Promise<ProviderMap> {
+  async resolveProviders(log: Log, forceInit = false, names?: string[]): Promise<ProviderMap> {
+    // TODO: split this out of the Garden class
     let providers: Provider[] = []
 
     await this.asyncLock.acquire("resolve-providers", async () => {
-      const rawConfigs = this.getRawProviderConfigs(names)
+      const rawConfigs = this.getRawProviderConfigs({ names })
 
       if (!names) {
         names = getNames(rawConfigs)
@@ -541,16 +706,13 @@ export class Garden {
 
       log.silly(`Resolving providers`)
 
-      log = log.info({
-        section: "providers",
-        msg: "Getting status...",
-        status: "active",
-      })
+      const providerLog = log.createLog({ name: "providers", showDuration: true })
+      providerLog.info("Getting status...")
 
       const plugins = keyBy(await this.getAllPlugins(), "name")
 
       // Detect circular dependencies here
-      const validationGraph = new DependencyValidationGraph()
+      const validationGraph = new DependencyGraph()
 
       await Bluebird.map(rawConfigs, async (config) => {
         const plugin = plugins[config.name]
@@ -585,19 +747,22 @@ export class Garden {
 
         return new ResolveProviderTask({
           garden: this,
-          log,
+          log: providerLog,
           plugin,
           config,
-          version: this.version,
+          force: false,
           forceRefresh: this.forceRefresh,
           forceInit,
+          allPlugins: Object.values(plugins),
         })
       })
 
       // Process as many providers in parallel as possible
-      const taskResults = await this.processTasks(tasks)
+      const taskResults = await this.processTasks({ tasks, log })
 
-      const failed = Object.values(taskResults).filter((r) => r && r.error)
+      const providerResults = Object.values(taskResults.results.getMap())
+
+      const failed = providerResults.filter((r) => r && r.error)
 
       if (failed.length) {
         const messages = failed.map((r) => `- ${r!.name}: ${r!.error!.message}`)
@@ -609,7 +774,7 @@ export class Garden {
         })
       }
 
-      providers = Object.values(taskResults).map((result) => result!.output)
+      providers = providerResults.map((result) => result!.result)
 
       const gotCachedResult = !!providers.find((p) => p.status.cached)
 
@@ -626,21 +791,19 @@ export class Garden {
       }
 
       if (gotCachedResult) {
-        log.setSuccess({ msg: chalk.green("Cached"), append: true })
-        log.info({
-          symbol: "info",
-          msg: chalk.gray("Run with --force-refresh to force a refresh of provider statuses."),
-        })
+        providerLog.success("Cached")
+        providerLog.info(chalk.gray("Run with --force-refresh to force a refresh of provider statuses."))
       } else {
-        log.setSuccess({ msg: chalk.green("Done"), append: true })
+        providerLog.success("Done")
       }
 
-      log.silly(`Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
+      providerLog.silly(`Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
     })
 
     return keyBy(providers, "name")
   }
 
+  @pMemoizeDecorator()
   async getTools() {
     if (!this.tools) {
       const plugins = await this.getAllPlugins()
@@ -658,7 +821,7 @@ export class Garden {
   }
 
   /**
-   * When running workflows via the `run workflow` command, we only resolve the workflow being executed.
+   * When running workflows via the `workflow` command, we only resolve the workflow being executed.
    */
   async getWorkflowConfig(name: string): Promise<WorkflowConfig> {
     return resolveWorkflowConfig(this, await this.getRawWorkflowConfig(name))
@@ -669,7 +832,7 @@ export class Garden {
   }
 
   async getRawWorkflowConfigs(names?: string[]): Promise<WorkflowConfig[]> {
-    if (!this.configsScanned) {
+    if (!this.state.configsScanned) {
       await this.scanAndAddConfigs()
     }
     if (names) {
@@ -682,24 +845,21 @@ export class Garden {
   /**
    * Returns the reported status from all configured providers.
    */
-  async getEnvironmentStatus(log: LogEntry) {
+  async getEnvironmentStatus(log: Log) {
     const providers = await this.resolveProviders(log)
     return mapValues(providers, (p) => p.status)
   }
 
+  @pMemoizeDecorator()
   async getActionRouter() {
-    if (!this.actionHelper) {
-      const loadedPlugins = await this.getAllPlugins()
-      const moduleTypes = await this.getModuleTypes()
-      const plugins = keyBy(loadedPlugins, "name")
+    const loadedPlugins = await this.getAllPlugins()
+    const moduleTypes = await this.getModuleTypes()
+    const plugins = keyBy(loadedPlugins, "name")
 
-      // We only pass configured plugins to the router (others won't have the required configuration to call handlers)
-      const configuredPlugins = this.getRawProviderConfigs().map((c) => plugins[c.name])
+    // We only pass configured plugins to the router (others won't have the required configuration to call handlers)
+    const configuredPlugins = this.getRawProviderConfigs().map((c) => plugins[c.name])
 
-      this.actionHelper = new ActionRouter(this, configuredPlugins, loadedPlugins, moduleTypes)
-    }
-
-    return this.actionHelper
+    return new ActionRouter(this, configuredPlugins, loadedPlugins, moduleTypes)
   }
 
   /**
@@ -707,27 +867,39 @@ export class Garden {
    * Scans for modules in the project root and remote/linked sources if it hasn't already been done.
    */
   async getRawModuleConfigs(keys?: string[]): Promise<ModuleConfig[]> {
-    if (!this.configsScanned) {
+    if (!this.state.configsScanned) {
       await this.scanAndAddConfigs()
     }
 
     return Object.values(keys ? pickKeys(this.moduleConfigs, keys, "module config") : this.moduleConfigs)
   }
 
-  async getOutputConfigContext(log: LogEntry, modules: GardenModule[], runtimeContext: RuntimeContext) {
+  /**
+   * Returns action configs that are registered in this context, before template resolution and validation.
+   * Scans for configs in the project root and remote/linked sources if it hasn't already been done.
+   */
+  async getRawActionConfigs() {
+    if (!this.state.configsScanned) {
+      await this.scanAndAddConfigs()
+    }
+
+    return this.actionConfigs
+  }
+
+  async getOutputConfigContext(log: Log, modules: GardenModule[], graphResults: GraphResults) {
     const providers = await this.resolveProviders(log)
     return new OutputConfigContext({
       garden: this,
       resolvedProviders: providers,
       variables: this.variables,
       modules,
-      runtimeContext,
+      graphResults,
       partialRuntimeResolution: false,
     })
   }
 
   /**
-   * Resolve the raw module configs and return a new instance of ConfigGraph.
+   * Resolve the raw module and action configs and return a new instance of ConfigGraph.
    * The graph instance is immutable and represents the configuration at the point of calling this method.
    * For long-running processes, you need to call this again when any module or configuration has been updated.
    *
@@ -735,30 +907,30 @@ export class Garden {
    * When implementing a new command that calls this method and also streams events, make sure that the first
    * call to `getConfigGraph` in the command uses `emit = true` to ensure that the graph event gets streamed.
    */
-  async getConfigGraph({
-    log,
-    runtimeContext,
-    emit,
-  }: {
-    log: LogEntry
-    runtimeContext?: RuntimeContext
-    emit: boolean
-  }) {
-    const resolvedProviders = await this.resolveProviders(log)
-    const rawConfigs = await this.getRawModuleConfigs()
+  async getConfigGraph({ log, graphResults, emit, actionModes = {} }: GetConfigGraphParams): Promise<ConfigGraph> {
+    // TODO: split this out of the Garden class
+    await this.scanAndAddConfigs()
 
-    log = log.info({ status: "active", section: "graph", msg: `Resolving ${rawConfigs.length} modules...` })
+    const resolvedProviders = await this.resolveProviders(log)
+    const rawModuleConfigs = await this.getRawModuleConfigs()
+
+    const graphLog = log.createLog({ name: "graph", showDuration: true }).info(`Resolving actions and modules...`)
 
     // Resolve the project module configs
     const resolver = new ModuleResolver({
       garden: this,
-      log,
-      rawConfigs,
+      log: graphLog,
+      rawConfigs: rawModuleConfigs,
       resolvedProviders,
-      runtimeContext,
+      graphResults,
     })
 
     const resolvedModules = await resolver.resolveAll()
+
+    // Validate the module dependency structure. This will throw on failure.
+    const router = await this.getActionRouter()
+    const moduleTypes = await this.getModuleTypes()
+    const moduleGraph = new ModuleGraph(resolvedModules, moduleTypes)
 
     // Require include/exclude on modules if their paths overlap
     const overlaps = detectModuleOverlap({
@@ -771,10 +943,54 @@ export class Garden {
       throw new ConfigurationError(message, detail)
     }
 
-    const actions = await this.getActionRouter()
-    const moduleTypes = await this.getModuleTypes()
+    // Convert modules to actions
+    const { groups: moduleGroups, actions: moduleActionConfigs } = await convertModules(
+      this,
+      graphLog,
+      resolvedModules,
+      moduleGraph
+    )
 
-    let graph: ConfigGraph | undefined = undefined
+    // Get action configs
+    const actionConfigs: ActionConfigsByKey = {}
+
+    for (const kind of actionKinds) {
+      for (const name in this.actionConfigs[kind]) {
+        const key = actionReferenceToString({ kind, name })
+        actionConfigs[key] = this.actionConfigs[kind][name]
+      }
+    }
+
+    for (const config of moduleActionConfigs) {
+      const key = actionReferenceToString(config)
+      const existing = actionConfigs[key]
+
+      if (existing) {
+        const moduleActionPath = config.internal.configFilePath || config.internal.basePath
+        const actionPath = existing.internal.configFilePath || existing.internal.basePath
+        throw new ConfigurationError(
+          `${existing.kind} action '${existing.name}' (in ${actionPath}) conflicts with ${config.kind} action with same name generated from Module ${config.internal?.moduleName} (in ${moduleActionPath}). Please rename either one.`,
+          { configFromModule: config, actionConfig: existing }
+        )
+      }
+
+      actionConfigs[key] = config
+    }
+
+    // Resolve configs to Actions
+    const linkedSources = keyBy(await getLinkedSources(this, "action"), "name")
+
+    const graph = await actionConfigsToGraph({
+      garden: this,
+      configs: Object.values(actionConfigs),
+      groupConfigs: moduleGroups,
+      log: graphLog,
+      moduleGraph,
+      actionModes,
+      linkedSources,
+    })
+
+    // TODO-0.13.1: detect overlap on Build actions
 
     // Walk through all plugins in dependency order, and allow them to augment the graph
     const plugins = keyBy(await this.getAllPlugins(), "name")
@@ -787,8 +1003,8 @@ export class Garden {
       }
 
       // Skip the routine if the provider doesn't have the handler
-      const handler = await actions.getActionHandler({
-        actionType: "augmentGraph",
+      const handler = await router.provider.getPluginHandler({
+        handlerType: "augmentGraph",
         pluginName,
         throwIfMissing: false,
       })
@@ -797,83 +1013,130 @@ export class Garden {
         continue
       }
 
-      // We clear the graph below whenever an augmentGraph handler adds/modifies modules, and re-init here, in order
-      // to ensure the dependency structure is alright.
-      if (!graph) {
-        graph = new ConfigGraph(resolvedModules, moduleTypes)
-      }
-
-      const { addRuntimeDependencies, addModules } = await actions.augmentGraph({
+      const { addDependencies, addActions } = await router.provider.augmentGraph({
         pluginName,
-        log,
+        log: graphLog,
         providers: resolvedProviders,
-        modules: resolvedModules,
+        actions: graph.getActions(),
+        events: undefined,
       })
+
+      let updated = false
 
       // Resolve modules from specs and add to the list
-      await Bluebird.map(addModules || [], async (spec) => {
-        const path = spec.path || this.projectRoot
-        const moduleConfig = prepareModuleResource(spec, join(path, defaultConfigFilename), this.projectRoot)
-
+      await Bluebird.map(addActions || [], async (config) => {
         // There is no actual config file for plugin modules (which the prepare function assumes)
-        delete moduleConfig.configPath
+        delete config.internal?.configFilePath
 
-        const resolvedConfig = await resolver.resolveModuleConfig(moduleConfig, resolvedModules)
-        resolvedModules.push(
-          await moduleFromConfig({ garden: this, log, config: resolvedConfig, buildDependencies: resolvedModules })
-        )
-        graph = undefined
+        if (!config.internal.basePath) {
+          config.internal.basePath = this.projectRoot
+        }
+
+        const key = actionReferenceToString(config)
+
+        const action = await actionFromConfig({
+          garden: this,
+          graph,
+          config,
+          router,
+          log: graphLog,
+          configsByKey: actionConfigs,
+          mode: actionModes[key] || "default",
+          linkedSources,
+        })
+
+        graph.addAction(action)
+        actionConfigs[key] = config
+
+        updated = true
       })
 
-      for (const dependency of addRuntimeDependencies || []) {
-        let found = false
-
-        for (const moduleConfig of resolvedModules) {
-          for (const serviceConfig of moduleConfig.serviceConfigs) {
-            if (serviceConfig.name === dependency.by) {
-              serviceConfig.dependencies.push(dependency.on)
-              found = true
-            }
-          }
-          for (const taskConfig of moduleConfig.taskConfigs) {
-            if (taskConfig.name === dependency.by) {
-              taskConfig.dependencies.push(dependency.on)
-              found = true
-            }
+      for (const dependency of addDependencies || []) {
+        for (const key of ["by", "on"]) {
+          try {
+            graph.getActionByRef(dependency[key])
+          } catch (err) {
+            throw new PluginError(
+              deline`
+                Provider '${provider.name}' added a dependency by action '${actionReferenceToString(
+                dependency.by
+              )}' on '${actionReferenceToString(dependency.on)}'
+                but action '${actionReferenceToString(dependency[key])}' could not be found.
+              `,
+              { provider, dependency }
+            )
           }
         }
 
-        if (!found) {
-          throw new PluginError(
-            deline`
-              Provider '${provider.name}' added a runtime dependency by '${dependency.by}' on '${dependency.on}'
-              but service or task '${dependency.by}' could not be found.
-            `,
-            { provider, dependency }
-          )
-        }
+        graph.addDependency(dependency.by, dependency.on, {
+          explicit: true,
+          needsStaticOutputs: false,
+          needsExecutedOutputs: false,
+        })
+        updated = true
+      }
 
-        graph = undefined
+      if (updated) {
+        graph.validate()
       }
     }
 
     // Ensure dependency structure is alright
-    graph = new ConfigGraph(resolvedModules, moduleTypes)
+    graph.validate()
 
     if (emit) {
+      // This is meant for consumption by Garden Cloud
       this.events.emit("stackGraph", graph.render())
     }
 
-    log.setSuccess({ msg: chalk.green("Done"), append: true })
+    // This event is internal only, not to be streamed
+    this.events.emit("configGraph", { graph })
 
-    return graph
+    graphLog.success(chalk.green("Done"))
+
+    return graph.toConfigGraph()
+  }
+
+  async getResolvedConfigGraph(params: GetConfigGraphParams): Promise<ResolvedConfigGraph> {
+    const graph = await this.getConfigGraph(params)
+    const resolved = await this.resolveActions({ graph, actions: graph.getActions(), log: params.log })
+    return new ResolvedConfigGraph({
+      actions: Object.values(resolved),
+      moduleGraph: graph.moduleGraph,
+      // TODO: perhaps groups should be resolved here
+      groups: graph.getGroups(),
+    })
+  }
+
+  async resolveAction<T extends Action>({ action, graph, log }: { action: T; log: Log; graph?: ConfigGraph }) {
+    if (!graph) {
+      graph = await this.getConfigGraph({ log, emit: false })
+    }
+
+    return resolveAction({ garden: this, action, graph, log })
+  }
+
+  async resolveActions<T extends Action>({ actions, graph, log }: { actions: T[]; log: Log; graph?: ConfigGraph }) {
+    if (!graph) {
+      graph = await this.getConfigGraph({ log, emit: false })
+    }
+
+    return resolveActions({ garden: this, actions, graph, log })
+  }
+
+  async executeAction<T extends Action>({ action, graph, log }: { action: T; log: Log; graph?: ConfigGraph }) {
+    if (!graph) {
+      graph = await this.getConfigGraph({ log, emit: false })
+    }
+
+    return executeAction({ garden: this, action, graph, log })
   }
 
   /**
-   * Resolves the module version (i.e. build version) for the given configuration and its build dependencies.
+   * Resolves the module version (i.e. build version) for the given module configuration and its build dependencies.
    */
   async resolveModuleVersion(
-    log: LogEntry,
+    log: Log,
     moduleConfig: ModuleConfig,
     moduleDependencies: GardenModule[],
     force = false
@@ -884,18 +1147,18 @@ export class Garden {
     const cacheKey = ["moduleVersions", moduleName, ...depModuleNames]
 
     if (!force) {
-      const cached = <ModuleVersion>this.cache.get(log, cacheKey)
+      const cached = <ModuleVersion>this.treeCache.get(log, cacheKey)
 
       if (cached) {
         return cached
       }
     }
 
-    this.log.silly(`Resolving version for module ${moduleName}`)
+    log.silly(`Resolving version for module ${moduleName}`)
 
     const cacheContexts = [...moduleDependencies, moduleConfig].map((c: ModuleConfig) => getModuleCacheContext(c))
 
-    const treeVersion = await this.vcs.resolveTreeVersion(this.log, this.projectName, moduleConfig)
+    const treeVersion = await this.vcs.getTreeVersion({ log, projectName: this.projectName, config: moduleConfig })
 
     validateSchema(treeVersion, treeVersionSchema(), {
       context: `${this.vcs.name} tree version for module at ${moduleConfig.path}`,
@@ -910,27 +1173,27 @@ export class Garden {
     )
 
     const version: ModuleVersion = {
+      ...treeVersion,
       dependencyVersions: mapValues(keyBy(namedDependencyVersions, "name"), (v) => v.versionString),
       versionString,
-      files: treeVersion.files,
     }
 
-    this.cache.set(log, cacheKey, version, ...cacheContexts)
+    this.treeCache.set(log, cacheKey, version, ...cacheContexts)
     return version
   }
 
   /**
    * Scans the specified directories for Garden config files and returns a list of paths.
    */
-  async scanForConfigs(path: string) {
-    this.log.silly(`Scanning for configs in ${path}`)
+  async scanForConfigs(log: Log, path: string) {
+    log.silly(`Scanning for configs in ${path}`)
 
     return findConfigPathsInPath({
       vcs: this.vcs,
       dir: path,
       include: this.moduleIncludePatterns,
       exclude: this.moduleExcludePatterns,
-      log: this.log,
+      log,
     })
   }
 
@@ -938,19 +1201,23 @@ export class Garden {
     Scans the project root for modules and workflows and adds them to the context.
    */
   async scanAndAddConfigs(force = false) {
+    if (this.state.configsScanned && !force) {
+      return
+    }
+
     return this.asyncLock.acquire("scan-configs", async () => {
-      if (this.configsScanned && !force) {
+      if (this.state.configsScanned && !force) {
         return
       }
 
-      this.log.silly(`Scanning for configs`)
+      this.log.silly(`Scanning for configs (force=${force})`)
 
       // Add external sources that are defined at the project level. External sources are either kept in
       // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
       const linkedSources = await getLinkedSources(this, "project")
       const projectSources = this.getProjectSources()
       const extSourcePaths = await Bluebird.map(projectSources, ({ name, repositoryUrl }) => {
-        return this.loadExtSourcePath({
+        return this.resolveExtSourcePath({
           name,
           linkedSources,
           repositoryUrl,
@@ -959,7 +1226,10 @@ export class Garden {
       })
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
-      const configPaths = flatten(await Bluebird.map(dirsToScan, (path) => this.scanForConfigs(path)))
+      const configPaths = flatten(await Bluebird.map(dirsToScan, (path) => this.scanForConfigs(this.log, path)))
+      for (const path of configPaths) {
+        this.configPaths.add(path)
+      }
 
       const allResources = flatten(
         await Bluebird.map(configPaths, async (path) => (await this.loadResources(path)) || [])
@@ -970,59 +1240,130 @@ export class Garden {
         throwOnMissingSecretKeys(configs, this.secrets, kind, this.log)
       }
 
-      let rawModuleConfigs = [...this.pluginModuleConfigs, ...((groupedResources.Module as ModuleConfig[]) || [])]
+      let rawModuleConfigs = [...((groupedResources.Module as ModuleConfig[]) || [])]
       const rawWorkflowConfigs = (groupedResources.Workflow as WorkflowConfig[]) || []
-      const rawModuleTemplateResources = (groupedResources[templateKind] as ModuleTemplateResource[]) || []
+      const rawConfigTemplateResources = (groupedResources[configTemplateKind] as ConfigTemplateResource[]) || []
 
-      // Resolve module templates
-      const moduleTemplates = await Bluebird.map(rawModuleTemplateResources, (r) => resolveModuleTemplate(this, r))
+      // Resolve config templates
+      const configTemplates = await Bluebird.map(rawConfigTemplateResources, (r) => resolveConfigTemplate(this, r))
+      const templatesByName = keyBy(configTemplates, "name")
       // -> detect duplicate templates
-      const duplicateTemplates = duplicatesByKey(moduleTemplates, "name")
+      const duplicateTemplates = duplicatesByKey(configTemplates, "name")
 
       if (duplicateTemplates.length > 0) {
         const messages = duplicateTemplates
           .map(
             (d) =>
               `Name ${d.value} is used at ${naturalList(
-                d.duplicateItems.map((i) => relative(this.projectRoot, i.configPath || i.path))
+                d.duplicateItems.map((i) =>
+                  relative(this.projectRoot, i.internal.configFilePath || i.internal.basePath)
+                )
               )}`
           )
           .join("\n")
-        throw new ConfigurationError(`Found duplicate names of ${templateKind}s:\n${messages}`, { duplicateTemplates })
+        throw new ConfigurationError(`Found duplicate names of ${configTemplateKind}s:\n${messages}`, {
+          duplicateTemplates,
+        })
       }
 
-      // Resolve templated modules
-      const templatesByKey = keyBy(moduleTemplates, "name")
-      const rawTemplated = rawModuleConfigs.filter((m) => m.type === "templated") as TemplatedModuleConfig[]
-      const resolvedTemplated = await Bluebird.map(rawTemplated, (r) => resolveTemplatedModule(this, r, templatesByKey))
+      // Convert type:templated modules to Render configs
+      // TODO: remove in 0.14
+      const rawTemplatedModules = rawModuleConfigs.filter((m) => m.type === "templated") as TemplatedModuleConfig[]
+      // -> removed templated modules from the module config list
+      rawModuleConfigs = rawModuleConfigs.filter((m) => m.type !== "templated")
 
-      rawModuleConfigs.push(...resolvedTemplated.flatMap((c) => c.modules))
+      const renderConfigs = [
+        ...(groupedResources[renderTemplateKind] || []),
+        ...rawTemplatedModules.map(convertTemplatedModuleToRender),
+      ] as RenderTemplateConfig[]
 
-      // Add all the module and workflow configs
-      await Bluebird.all([
-        Bluebird.map(rawModuleConfigs, async (config) => this.addModuleConfig(config)),
-        Bluebird.map(rawWorkflowConfigs, async (config) => this.addWorkflow(config)),
-      ])
+      // Resolve Render configs
+      const renderResults = await Bluebird.map(renderConfigs, (config) =>
+        renderConfigTemplate({ garden: this, log: this.log, config, templates: templatesByName })
+      )
+      const actionsFromTemplates = renderResults.flatMap((r) => r.configs.filter(isActionConfig))
+      const modulesFromTemplates = renderResults.flatMap((r) => r.modules)
+      const workflowsFromTemplates = renderResults.flatMap((r) => r.configs.filter(isWorkflowConfig))
 
-      this.log.silly(`Scanned and found ${rawModuleConfigs.length} modules and ${rawWorkflowConfigs.length} workflows`)
+      if (renderConfigs.length) {
+        this.log.silly(
+          `Rendered ${actionsFromTemplates.length} actions, ${modulesFromTemplates.length} modules, and ${workflowsFromTemplates.length} workflows from templates`
+        )
+      }
 
-      this.configsScanned = true
-      this.moduleTemplates = keyBy(moduleTemplates, "name")
+      rawModuleConfigs.push(...modulesFromTemplates)
+      rawWorkflowConfigs.push(...workflowsFromTemplates)
+
+      // Add all the configs
+      rawModuleConfigs.map((c) => this.addModuleConfig(c))
+      rawWorkflowConfigs.map((c) => this.addWorkflow(c))
+
+      let actionsCount = 0
+
+      for (const kind of actionKinds) {
+        const actionConfigs = groupedResources[kind] || []
+
+        // Verify that the project apiVersion is defined as compatible with action kinds
+        // This is only available with apiVersion `garden.io/v1` or newer.
+        if (actionConfigs.length && this.projectApiVersion !== GardenApiVersion.v1) {
+          throw new ConfigurationError(
+            `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}". A detailed migration guide is available at ${DOCS_BASE_URL}/tutorials/migrating-to-bonsai`,
+            {}
+          )
+        }
+
+        for (const config of actionConfigs) {
+          this.addActionConfig(config as unknown as BaseActionConfig)
+          actionsCount++
+        }
+      }
+
+      for (const config of actionsFromTemplates) {
+        this.addActionConfig(config)
+      }
+
+      this.log.debug(
+        `Scanned and found ${actionsCount} actions, ${rawWorkflowConfigs.length} workflows and ${rawModuleConfigs.length} modules`
+      )
+
+      this.state.configsScanned = true
+      this.configTemplates = { ...this.configTemplates, ...keyBy(configTemplates, "name") }
+
+      this.events.emit("configsScanned", {})
     })
   }
 
   /**
-   * Returns true if a module has been configured in this project with the specified name.
+   * Add an action config to the context, after validating and calling the appropriate configure plugin handler.
    */
-  hasModule(name: string) {
-    return !!this.moduleConfigs[name]
+  protected addActionConfig(config: BaseActionConfig) {
+    this.log.silly(`Adding ${config.kind} action ${config.name}`)
+    const existing = this.actionConfigs[config.kind][config.name]
+
+    if (existing) {
+      const paths = [
+        existing.internal.configFilePath || existing.internal.basePath,
+        config.internal.configFilePath || config.internal.basePath,
+      ]
+      const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
+
+      throw new ConfigurationError(
+        `${config.kind} action ${config.name} is declared multiple times (in '${pathA}' and '${pathB}')`,
+        {
+          pathA,
+          pathB,
+        }
+      )
+    }
+
+    this.actionConfigs[config.kind][config.name] = config
   }
 
   /**
    * Add a module config to the context, after validating and calling the appropriate configure plugin handler.
    */
-  private async addModuleConfig(config: ModuleConfig) {
-    const key = getModuleKey(config.name, config.plugin)
+  private addModuleConfig(config: ModuleConfig) {
+    const key = config.name
     this.log.silly(`Adding module ${key}`)
     const existing = this.moduleConfigs[key]
 
@@ -1044,14 +1385,14 @@ export class Garden {
    * added workflows, and partially resolving it (i.e. without fully resolving step configs, which
    * is done just-in-time before a given step is run).
    */
-  private async addWorkflow(config: WorkflowConfig) {
+  private addWorkflow(config: WorkflowConfig) {
     const key = config.name
     this.log.silly(`Adding workflow ${key}`)
 
     const existing = this.workflowConfigs[key]
 
     if (existing) {
-      const paths = [existing.configPath || existing.path, config.path]
+      const paths = [existing.internal.configFilePath || existing.internal.basePath, config.internal.basePath]
       const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
 
       throw new ConfigurationError(`Workflow ${key} is declared multiple times (in '${pathA}' and '${pathB}')`, {
@@ -1068,12 +1409,12 @@ export class Garden {
    *
    * @param configPath Path to a garden config file
    */
-  private async loadResources(configPath: string): Promise<GardenResource[]> {
+  private async loadResources(configPath: string): Promise<(GardenResource | ModuleConfig)[]> {
     configPath = resolve(this.projectRoot, configPath)
-    this.log.silly(`Load module and workflow configs from ${configPath}`)
-    const resources = await loadConfigResources(this.projectRoot, configPath)
-    this.log.silly(`Loaded module and workflow configs from ${configPath}`)
-    return <GardenResource[]>resources.filter((r) => r.kind && r.kind !== "Project")
+    this.log.silly(`Load configs from ${configPath}`)
+    const resources = await loadConfigResources(this.log, this.projectRoot, configPath)
+    this.log.silly(`Loaded configs from ${configPath}`)
+    return resources.filter((r) => r.kind && r.kind !== "Project")
   }
 
   //===========================================================================
@@ -1094,7 +1435,7 @@ export class Garden {
   /**
    * Clones the project/module source if needed and returns the path (either from .garden/sources or from a local path)
    */
-  public async loadExtSourcePath({
+  public async resolveExtSourcePath({
     name,
     linkedSources,
     repositoryUrl,
@@ -1155,6 +1496,44 @@ export class Garden {
     return { message, detail: { overlappingModules } }
   }
 
+  public getEnvironmentConfig() {
+    for (const config of this.projectConfig.environments) {
+      if (config.name === this.environmentName) {
+        return config
+      }
+    }
+
+    throw new InternalError(`Could not find environment config ${this.environmentName}`, {
+      environmentName: this.environmentName,
+      projectConfig: this.projectConfig,
+    })
+  }
+
+  public getInstanceKey() {
+    return getGardenInstanceKey(this.getInstanceKeyParams())
+  }
+
+  public getInstanceKeyParams() {
+    let namespace: string | undefined
+
+    // This is either the default namespace defined in the Project config for the current environment or, as a fall back,
+    // the hard coded "default" value.
+    const defaultNs = this.resolvedDefaultNamespace || defaultNamespace
+
+    // this.namespace is the actual namespace for this Garden instance, and is either set
+    // via the `--env` flag or defined in the Project config.
+    if (this.namespace !== defaultNs) {
+      namespace = this.namespace
+    }
+
+    return {
+      environmentName: this.environmentName,
+      namespace,
+      projectRoot: this.projectRoot,
+      variableOverrides: this.opts.variableOverrides || {},
+    }
+  }
+
   /**
    * This dumps the full project configuration including all modules.
    * Set includeDisabled=true to include disabled modules, services, tasks and tests.
@@ -1162,35 +1541,59 @@ export class Garden {
    */
   public async dumpConfig({
     log,
+    graph,
     includeDisabled = false,
-    partial = false,
+    resolveGraph = true,
+    resolveProviders = true,
+    resolveWorkflows = true,
   }: {
-    log: LogEntry
+    log: Log
+    graph?: ConfigGraph
     includeDisabled?: boolean
-    partial?: boolean
+    resolveGraph?: boolean
+    resolveProviders?: boolean
+    resolveWorkflows?: boolean
   }): Promise<ConfigDump> {
     let providers: ConfigDump["providers"] = []
     let moduleConfigs: ModuleConfig[]
     let workflowConfigs: WorkflowConfig[]
+    let actionConfigs: ActionConfigMap = {
+      Build: {},
+      Deploy: {},
+      Run: {},
+      Test: {},
+    }
 
-    if (partial) {
-      providers = this.getRawProviderConfigs()
-      moduleConfigs = await this.getRawModuleConfigs()
-      workflowConfigs = await this.getRawWorkflowConfigs()
+    await this.scanAndAddConfigs()
+
+    if (resolveProviders) {
+      providers = Object.values(await this.resolveProviders(log))
     } else {
-      const graph = await this.getConfigGraph({ log, emit: false })
-      const modules = graph.getModules({ includeDisabled })
-      workflowConfigs = (await this.getRawWorkflowConfigs()).map((config) => resolveWorkflowConfig(this, config))
+      providers = this.getRawProviderConfigs()
+    }
 
+    if (!graph && resolveGraph) {
+      graph = await this.getResolvedConfigGraph({ log, emit: false })
+    }
+
+    if (graph) {
+      for (const action of graph.getActions()) {
+        actionConfigs[action.kind][action.name] = action.getConfig()
+      }
+      const modules = graph.getModules({ includeDisabled })
       moduleConfigs = sortBy(
         modules.map((m) => m._config),
         "name"
       )
-
-      providers = Object.values(await this.resolveProviders(log))
+      workflowConfigs = (await this.getRawWorkflowConfigs()).map((config) => resolveWorkflowConfig(this, config))
+    } else {
+      providers = this.getRawProviderConfigs()
+      moduleConfigs = await this.getRawModuleConfigs()
+      workflowConfigs = await this.getRawWorkflowConfigs()
+      actionConfigs = this.actionConfigs
     }
 
-    const allEnvironmentNames = this.environmentConfigs.map((c) => c.name)
+    const allEnvironmentNames = this.projectConfig.environments.map((c) => c.name)
 
     return {
       environmentName: this.environmentName,
@@ -1198,24 +1601,48 @@ export class Garden {
       namespace: this.namespace,
       providers,
       variables: this.variables,
+      actionConfigs,
       moduleConfigs,
       workflowConfigs: sortBy(workflowConfigs, "name"),
       projectName: this.projectName,
       projectRoot: this.projectRoot,
       projectId: this.projectId,
-      domain: this.enterpriseDomain,
+      domain: this.cloudDomain,
+      sources: this.projectSources,
+      suggestedCommands: await this.getSuggestedCommands(),
     }
+  }
+
+  public async getSuggestedCommands(): Promise<SuggestedCommand[]> {
+    const suggestions: SuggestedCommand[] = [
+      {
+        name: "deploy",
+        description: "Deploy the whole project",
+        gardenCommand: "deploy",
+      },
+    ]
+
+    // TODO: call plugin handlers to get plugin-specific suggestions
+
+    return suggestions
+  }
+
+  /** Returns whether the user is logged in to the Garden Cloud */
+  public isLoggedIn(): boolean {
+    return !!this.cloudApi
   }
 }
 
-export const resolveGardenParams = profileAsync(async function _resolveGardenParams(
-  currentDirectory: string,
-  opts: GardenOpts
-): Promise<GardenParams> {
-  let { environmentName: environmentStr, config, gardenDirPath, plugins = [], disablePortForwards } = opts
+/**
+ * This is split out of the below function for use by GardenServer, in order to resolve just enough to pick a Garden
+ * instance based on request inputs.
+ */
+export async function resolveGardenParamsPartial(currentDirectory: string, opts: GardenOpts) {
+  let { environmentString: environmentStr, config, gardenDirPath } = opts
+  const log = (opts.log || getRootLogger()).createLog()
 
   if (!config) {
-    config = await findProjectConfig(currentDirectory)
+    config = await findProjectConfig({ log, path: currentDirectory })
 
     if (!config) {
       throw new ConfigurationError(`Not a project directory (or any of the parent directories): ${currentDirectory}`, {
@@ -1225,25 +1652,22 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   }
 
   gardenDirPath = resolve(config.path, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
-  await ensureDir(gardenDirPath)
-
   const artifactsPath = resolve(gardenDirPath, "artifacts")
-  await ensureDir(artifactsPath)
 
   const _username = (await username()) || ""
   const projectName = config.name
-  const log = opts.log || getLogger().placeholder()
-
-  // Connect to the state storage
-  await ensureConnected()
-
-  const { sources: projectSources, path: projectRoot } = config
+  const { path: projectRoot } = config
   const commandInfo = opts.commandInfo
 
   const treeCache = new TreeCache()
 
   // Note: another VcsHandler is created later, this one is temporary
-  const gitHandler = new GitHandler(projectRoot, gardenDirPath, [], treeCache)
+  const gitHandler = new GitHandler({
+    projectRoot,
+    gardenDirPath,
+    ignoreFile: defaultConfigFilename,
+    cache: treeCache,
+  })
   const vcsInfo = await gitHandler.getPathInfo(log, projectRoot)
 
   // Since we iterate/traverse them before fully validating them (which we do after resolving template strings), we
@@ -1251,14 +1675,14 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   // This prevents cryptic type errors when the user mistakely writes down e.g. a map instead of an array.
   validateWithPath({
     config: config.environments,
-    schema: joiSparseArray(joi.object()),
-    configType: "environments",
+    schema: joi.array().items(joi.object()).min(1).required(),
+    configType: "project environments",
     path: config.path,
     projectRoot: config.path,
   })
 
-  const defaultEnvironmentName = resolveTemplateString(
-    config.defaultEnvironment,
+  const configDefaultEnvironment = resolveTemplateString(
+    config.defaultEnvironment || "",
     new DefaultEnvironmentContext({
       projectName,
       projectRoot,
@@ -1269,21 +1693,73 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     })
   ) as string
 
-  const defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
+  const localConfigStore = new LocalConfigStore(gardenDirPath)
 
   if (!environmentStr) {
-    environmentStr = defaultEnvironment
+    const localConfigDefaultEnv = await localConfigStore.get("defaultEnv")
+
+    if (localConfigDefaultEnv) {
+      log.info(`Using environment ${localConfigDefaultEnv}, set with the \`set default-env\` command`)
+    }
+
+    environmentStr = getDefaultEnvironmentName(localConfigDefaultEnv || configDefaultEnvironment, config)
   }
 
-  const { environment: environmentName } = parseEnvironment(environmentStr)
+  const { environment: environmentName, namespace } = parseEnvironment(environmentStr)
+
+  return {
+    artifactsPath,
+    commandInfo,
+    config,
+    configDefaultEnvironment,
+    environmentName,
+    environmentStr,
+    gardenDirPath,
+    localConfigStore,
+    log,
+    namespace,
+    projectName,
+    projectRoot,
+    treeCache,
+    username: _username,
+    vcsInfo,
+  }
+}
+
+export const resolveGardenParams = profileAsync(async function _resolveGardenParams(
+  currentDirectory: string,
+  opts: GardenOpts
+): Promise<GardenParams> {
+  let {
+    artifactsPath,
+    commandInfo,
+    config,
+    configDefaultEnvironment,
+    environmentName,
+    environmentStr,
+    namespace,
+    gardenDirPath,
+    localConfigStore,
+    log,
+    projectName,
+    projectRoot,
+    treeCache,
+    username: _username,
+    vcsInfo,
+  } = await resolveGardenParamsPartial(currentDirectory, opts)
+
+  await ensureDir(gardenDirPath)
+  await ensureDir(artifactsPath)
+
+  const projectApiVersion = config.apiVersion
 
   const sessionId = opts.sessionId || uuidv4()
 
   let secrets: StringMap = {}
   const cloudApi = opts.cloudApi || null
   // fall back to get the domain from config if the cloudApi instance failed
-  // to login or was not defined
-  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config)
+  // to login or was not defined.
+  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
 
   // The cloudApi instance only has a project ID when the configured ID has
   // been verified against the cloud instance.
@@ -1291,30 +1767,30 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
-    const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
-    const cloudLog = log.info({ section, msg: "Initializing...", status: "active" })
+    const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
+    cloudLog.verbose(`Connecting to ${distroName}...`)
 
-    let project: CloudProject | undefined
+    let cloudProject: CloudProject | undefined
 
     if (cloudProjectId) {
       // Ensure that the current projectId exists in the remote project
       try {
-        project = await cloudApi.verifyAndConfigureProject(cloudProjectId)
+        cloudProject = await cloudApi.getProjectById(cloudProjectId)
       } catch (err) {
         cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
       }
     }
 
-    if (!project && !cloudProjectId && !config.domain) {
+    if (!cloudProject && !cloudProjectId && !config.domain) {
       // Create a new project in case the project does not exist
       // and the user is logged in to a default domain.
       // Note: excluding projects with a domain is for backwards compatibility
       cloudLog.debug(`Creating or retrieving a ${distroName} project called ${projectName}.`)
 
       try {
-        project = await cloudApi.getOrCreateProject(projectName)
+        cloudProject = await cloudApi.getOrCreateProjectByName(projectName)
       } catch (err) {
-        if (err instanceof EnterpriseApiDuplicateProjectsError) {
+        if (err instanceof CloudApiDuplicateProjectsError) {
           cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
         } else {
           cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)
@@ -1322,30 +1798,24 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       }
     }
 
-    if (project) {
-      const projectUrl = new URL(`/projects/${project.id}`, cloudDomain)
-      cloudLog.info({ symbol: "info", msg: `Visit project at ${projectUrl.href}` })
+    if (cloudProject) {
+      // ensure we use the fetched/created project ID
+      cloudProjectId = cloudProject.id
 
-      if (cloudApi.projectId) {
-        // ensure we use the fetched/created project ID
-        cloudProjectId = cloudApi.projectId
-
-        // Only fetch secrets if the projectId exists in the cloud API instance
-        try {
-          secrets = await getSecrets({ log: cloudLog, projectId: cloudApi.projectId, environmentName, cloudApi })
-          cloudLog.setSuccess({ msg: chalk.green("Ready"), append: true })
-          cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
-        } catch (err) {
-          cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
-          cloudLog.setWarn()
-        }
+      // Only fetch secrets if the projectId exists in the cloud API instance
+      try {
+        secrets = await getSecrets({ log: cloudLog, projectId: cloudProject.id, environmentName, cloudApi })
+        cloudLog.verbose(chalk.green("Ready"))
+        cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
+      } catch (err) {
+        cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
       }
     } else {
       cloudLog.info(
         chalk.yellow(
           wordWrap(
-            deline`Logged in to ${distroName} at ${cloudDomain}, but failed to configure a project.
-            Continuing without ${distroName} features ...`,
+            deline`Logged in to ${cloudDomain}, but could not find the project '${projectName}'.
+            Command results for this command run will not be available in ${distroName}.`,
             120
           )
         )
@@ -1356,7 +1826,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   const loggedIn = !!cloudApi
 
   config = resolveProjectConfig({
-    defaultEnvironment: defaultEnvironmentName,
+    log,
+    defaultEnvironmentName: configDefaultEnvironment,
     config,
     artifactsPath,
     vcsInfo,
@@ -1367,7 +1838,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     commandInfo,
   })
 
-  let { namespace, providers, variables, production } = await pickEnvironment({
+  const pickedEnv = await pickEnvironment({
     projectConfig: config,
     envString: environmentStr,
     artifactsPath,
@@ -1379,51 +1850,78 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     commandInfo,
   })
 
+  let { providers, variables, production } = pickedEnv
+
   // Allow overriding variables
-  const cliVariables = opts.variables || {}
-  variables = { ...variables, ...cliVariables }
+  const variableOverrides = opts.variableOverrides || {}
+  variables = { ...variables, ...variableOverrides }
+
+  // Update the log context
+  log.context.gardenKey = getGardenInstanceKey({ environmentName, namespace, projectRoot, variableOverrides })
+  log.context.sessionId = sessionId
+
+  // Setting this after resolving the gardenKey above because we don't want the default namespace resolved there
+  namespace = pickedEnv.namespace
 
   const workingCopyId = await getWorkingCopyId(gardenDirPath)
 
   // We always exclude the garden dir
   const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
+
   const moduleExcludePatterns = [
-    ...((config.modules || {}).exclude || []),
+    ...((config.scan || {}).exclude || []),
     gardenDirExcludePattern,
     ...fixedProjectExcludes,
   ]
+
+  // Set proxy hostname with the following order of precedence: env var > config > default value ("localhost")
+  let proxyHostname: string
+  if (gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS) {
+    proxyHostname = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
+  } else if (config.proxy?.hostname) {
+    proxyHostname = config.proxy.hostname
+  } else {
+    proxyHostname = defaultLocalAddress
+  }
+  const proxy = {
+    hostname: proxyHostname,
+  }
 
   return {
     artifactsPath,
     vcsInfo,
     sessionId,
-    disablePortForwards,
     projectId: cloudProjectId,
-    enterpriseDomain: cloudDomain,
+    cloudDomain,
+    projectConfig: config,
     projectRoot,
     projectName,
     environmentName,
-    environmentConfigs: config.environments,
+    resolvedDefaultNamespace: pickedEnv.defaultNamespace,
     namespace,
     variables,
-    cliVariables,
+    variableOverrides,
     secrets,
-    projectSources,
+    projectSources: config.sources,
     production,
     gardenDirPath,
+    globalConfigStore: opts.globalConfigStore,
+    localConfigStore,
     opts,
     outputs: config.outputs || [],
-    plugins,
+    plugins: opts.plugins || [],
     providerConfigs: providers,
     moduleExcludePatterns,
     workingCopyId,
-    dotIgnoreFiles: config.dotIgnoreFiles,
-    moduleIncludePatterns: (config.modules || {}).include,
+    dotIgnoreFile: config.dotIgnoreFile,
+    proxy,
     log,
+    moduleIncludePatterns: (config.scan || {}).include,
     username: _username,
     forceRefresh: opts.forceRefresh,
     cloudApi,
     cache: treeCache,
+    projectApiVersion,
   }
 })
 
@@ -1444,16 +1942,51 @@ export class DummyGarden extends Garden {
   }
 }
 
+export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
+  if (!gardenOpts.environmentString) {
+    gardenOpts.environmentString = `${defaultEnvironment}.${defaultNamespace}`
+  }
+
+  const parsed = parseEnvironment(gardenOpts.environmentString)
+  const environmentName = parsed.environment || defaultEnvironment
+  const _defaultNamespace = parsed.namespace || defaultNamespace
+
+  const config: ProjectConfig = {
+    path: root,
+    apiVersion: GardenApiVersion.v1,
+    kind: "Project",
+    name: "no-project",
+    defaultEnvironment: "",
+    dotIgnoreFile: defaultDotIgnoreFile,
+    environments: [{ name: environmentName, defaultNamespace: _defaultNamespace, variables: {} }],
+    providers: [],
+    variables: {},
+  }
+  gardenOpts.config = config
+
+  return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
+}
+
 export interface ConfigDump {
   environmentName: string // TODO: Remove this?
   allEnvironmentNames: string[]
   namespace: string
   providers: (Provider | GenericProviderConfig)[]
   variables: DeepPrimitiveMap
+  actionConfigs: ActionConfigMap
   moduleConfigs: ModuleConfig[]
   workflowConfigs: WorkflowConfig[]
   projectName: string
   projectRoot: string
   projectId?: string
   domain?: string
+  sources: SourceConfig[]
+  suggestedCommands: SuggestedCommand[]
+}
+
+export interface GetConfigGraphParams {
+  log: Log
+  graphResults?: GraphResults
+  emit: boolean
+  actionModes?: ActionModeMap
 }

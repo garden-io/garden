@@ -1,0 +1,26 @@
+# To get started with Dependabot version updates, you'll need to specify which
+# package ecosystems to update and where the package manifests are located.
+# Please see the documentation for all configuration options:
+# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  # Automatically update GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    open-pull-requests-limit: 5
+    schedule:
+      interval: "weekly"
+  # Automatically update Dockerfile FROM images
+  - package-ecosystem: "docker"
+    directory: "/support/"
+    open-pull-requests-limit: 5
+    schedule:
+      interval: "weekly"
+  # TODO: Consider enabling the NPM package ecosystem once we have fixed our build process to support pure ESM build dependencies, see also https://github.com/garden-io/garden/issues/3841
+  # Automatically update NPM packages
+  # - package-ecosystem: "npm"
+  #   directory: "/"
+  #   open-pull-requests-limit: 5
+  #   schedule:
+  #     interval: "daily"

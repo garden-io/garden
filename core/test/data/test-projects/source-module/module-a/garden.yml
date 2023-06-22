@@ -3,3 +3,4 @@ name: module-a
 type: test
 tasks:
   - name: dupe
+    command: [ "echo", "ok" ]

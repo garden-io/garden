@@ -7,8 +7,8 @@ tocTitle: "`exec`"
 
 ## Description
 
-A simple provider that allows running arbitary scripts when initializing providers, and provides the exec
-module type.
+A simple provider that allows running arbitrary scripts when initializing providers, and provides the exec
+action type.
 
 _Note: This provider is always loaded when running Garden. You only need to explicitly declare it in your provider
 configuration if you want to configure a script for it to run._
@@ -113,3 +113,15 @@ this script runs before resolving that provider.
 | -------- | -------- |
 | `string` | No       |
 
+
+## Outputs
+
+The following keys are available via the `${providers.<provider-name>}` template string key for `exec` providers.
+
+### `${providers.<provider-name>.outputs.initScript.log}`
+
+The full log output from the executed command. (Pro-tip: Make it machine readable so it can be parsed by dependants)
+
+| Type     | Default |
+| -------- | ------- |
+| `string` | `""`    |

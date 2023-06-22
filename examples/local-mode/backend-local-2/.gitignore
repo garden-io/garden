@@ -28,3 +28,4 @@ webserver/*server*
 
 # Generated files
 .*.yml
+main

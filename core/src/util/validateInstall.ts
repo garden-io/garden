@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,6 +10,7 @@ import semver from "semver"
 import { RuntimeError } from "../exceptions"
 import { deline } from "./string"
 import { exec } from "./util"
+import { DOCS_BASE_URL } from "../constants"
 
 type BinaryVersionCheckParams = {
   name: string
@@ -23,7 +24,7 @@ function versionCheckError(params: BinaryVersionCheckParams, msg: string, detail
     deline`
       ${msg}
       Please make sure ${params.name} (version ${params.minVersion} or later) is installed and on your PATH.
-      More about garden installation and requirements can be found in our documentation at https://docs.garden.io/getting-started/1-installation#requirements
+      More about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/guides/installation
       `,
     detail
   )

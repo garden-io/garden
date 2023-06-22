@@ -1,0 +1,15 @@
+kind: ModuleTemplate
+name: k8s-container
+inputsSchemaPath: schema.json
+modules:
+  - type: container
+    name: ${parent.name}-image
+    description: ${parent.name} image
+  - type: kubernetes
+    name: ${parent.name}-manifests
+    build:
+      dependencies: ["${parent.name}-image"]
+    files: [.manifests.yml]
+    generateFiles:
+      - sourcePath: manifests.yml
+        targetPath: .manifests.yml

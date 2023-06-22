@@ -23,7 +23,7 @@ If you want to install Garden from source, see the instructions in our [contribu
 You need the following dependencies on your local machine to use Garden:
 
 - Git (v2.14 or newer)
-- rsync (v3.1.0 or newer)
+- _[Windows only]_ rsync (v3.1.0 or newer)
 
 And if you'd like to build and run services locally, you need [a local installation of Kubernetes](https://kubernetes.io/docs/tutorials/hello-minikube/). Garden is committed to supporting [the _latest six_ stable versions (i.e. if the latest stable version is v1.23.x, Garden supports v1.18.x and newer)](https://kubernetes.io/releases/).
 
@@ -31,6 +31,10 @@ And if you'd like to build and run services locally, you need [a local installat
 
 For Mac, we recommend the following steps to install Garden. You can also follow the manual installation
 steps below if you prefer.
+
+{% hint style="info" %}
+For a Mac computer with Apple silicon, Garden needs [Rosetta](https://support.apple.com/en-us/HT211861).
+{% endhint %}
 
 ### Step 1: Install Homebrew
 
@@ -148,7 +152,7 @@ you need to set the `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` environment varia
 ```sh
 export HTTP_PROXY=http://localhost:9999               # <- Replace with your proxy address.
 export HTTPS_PROXY=$HTTP_PROXY                        # <- Replace if you use a separate proxy for HTTPS.
-export NO_PROXY=local.app.garden,localhost,127.0.0.1  # <- This is important! See below.
+export NO_PROXY=local.demo.garden,localhost,127.0.0.1  # <- This is important! See below.
 ```
 
 The `NO_PROXY` variable should include any other hostnames you might use for local development, since you likely

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -196,7 +196,7 @@ async function getRolloutStatus(workload: Workload) {
     const status = <V1StatefulSetStatus>workload.status
     const workloadSpec = <Required<V1StatefulSetSpec>>workload.spec
 
-    const replicas = status.replicas || 0
+    const replicas = workloadSpec.replicas || 0
     const updated = status.updatedReplicas || 0
     const ready = status.readyReplicas || 0
 
@@ -221,7 +221,7 @@ async function getRolloutStatus(workload: Workload) {
 
     const desired = deploymentSpec.replicas === undefined ? 1 : deploymentSpec.replicas
     const updated = status.updatedReplicas || 0
-    const replicas = status.replicas || 0
+    const replicas = deploymentSpec.replicas || 0
     const available = status.availableReplicas || 0
 
     if (updated < desired) {

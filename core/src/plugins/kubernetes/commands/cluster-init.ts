@@ -1,17 +1,14 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginCommand } from "../../../types/plugin/command"
+import { PluginCommand } from "../../../plugin/command"
 import { prepareSystem, getEnvironmentStatus } from "../init"
 import chalk from "chalk"
-import { helm } from "../helm/helm-cli"
-import { KubernetesPluginContext, KubernetesProvider } from "../config"
-import { getSystemNamespace } from "../namespace"
 
 export const clusterInit: PluginCommand = {
   name: "cluster-init",
@@ -22,7 +19,6 @@ export const clusterInit: PluginCommand = {
   },
 
   handler: async ({ ctx, log }) => {
-    const provider = ctx.provider as KubernetesProvider
     const status = await getEnvironmentStatus({ ctx, log })
     let result = {}
 
@@ -37,21 +33,6 @@ export const clusterInit: PluginCommand = {
         clusterInit: true,
       })
     }
-
-    const k8sCtx = ctx as KubernetesPluginContext
-
-    log.info("Cleaning up old resources...")
-
-    const systemNamespace = await getSystemNamespace(ctx, provider, log)
-    try {
-      await helm({
-        ctx: k8sCtx,
-        log,
-        namespace: systemNamespace,
-        args: ["uninstall", "garden-nfs-provisioner"],
-        emitLogEvents: true,
-      })
-    } catch (_) {}
 
     log.info(chalk.green("\nDone!"))
 

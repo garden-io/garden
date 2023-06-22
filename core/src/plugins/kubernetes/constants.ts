@@ -1,10 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+import { DockerImageWithDigest } from "../../util/string"
 
 export const rsyncPort = 873
 export const rsyncPortName = "garden-rsync"
@@ -23,16 +25,20 @@ export const PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME = "garden-prx-ssh"
 
 export const systemDockerAuthSecretName = "builder-docker-config"
 export const dockerAuthSecretKey = ".dockerconfigjson"
-export const inClusterRegistryHostname = "127.0.0.1:5000"
 
 export const gardenUtilDaemonDeploymentName = "garden-util-daemon"
-export const dockerDaemonDeploymentName = "garden-docker-daemon"
 
-export const k8sUtilImageName = "gardendev/k8s-util:0.5.6"
-export const k8sSyncUtilImageName = "gardendev/k8s-sync:0.1.5"
-export const k8sReverseProxyImageName = "gardendev/k8s-reverse-proxy:0.1.0"
-
-export const dockerDaemonContainerName = "docker-daemon"
 export const skopeoDaemonContainerName = "util"
 
 export const defaultIngressClass = "nginx"
+
+// Docker images that Garden ships with
+export const k8sUtilImageName: DockerImageWithDigest = "gardendev/k8s-util:0.5.6@sha256:dce403dc7951e3f714fbb0157aaa08d010601049ea939517957e46ac332073ad"
+export const k8sSyncUtilImageName: DockerImageWithDigest = "gardendev/k8s-sync:0.1.5@sha256:28263cee5ac41acebb8c08f852c4496b15e18c0c94797d7a949a4453b5f91578"
+export const k8sReverseProxyImageName: DockerImageWithDigest = "gardendev/k8s-reverse-proxy:0.1.0@sha256:df2976dc67c237114bd9c70e32bfe4d7131af98e140adf6dac29b47b85e07232"
+export const buildkitImageName: DockerImageWithDigest = "gardendev/buildkit:v0.10.5-2@sha256:c2199fcdabc2ad10a266aab5acfb7861d934e4a787071c4d717cfcb1b5ab39ed"
+export const buildkitRootlessImageName: DockerImageWithDigest = "gardendev/buildkit:v0.10.5-2-rootless@sha256:9d9476286f0bc88ec43b139fa093c4416e521c9bc39e39374c1f40b59be44aed"
+export const defaultKanikoImageName: DockerImageWithDigest = "gcr.io/kaniko-project/executor:v1.8.1-debug@sha256:3bc3f3a05f803cac29164ce12617a7be64931748c944f6c419565f500b65e8db"
+
+export const buildkitDeploymentName = "garden-buildkit"
+export const buildkitContainerName = "buildkitd"

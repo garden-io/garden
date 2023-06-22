@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,19 +7,20 @@
  */
 
 import tmp from "tmp-promise"
-import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
+import { ProjectConfig } from "../../../../../src/config/project"
 import execa = require("execa")
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { getDataDir, TestGarden } from "../../../../helpers"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../src/constants"
+import { createProjectConfig, getDataDir, TestGarden } from "../../../../helpers"
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
 import { dedent } from "../../../../../src/util/string"
 import { TestTask } from "../../../../../src/tasks/test"
 import { writeFile, remove, pathExists } from "fs-extra"
 import { join } from "path"
-import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
-import { testFromConfig } from "../../../../../src/types/test"
-import { defaultBuildTimeout } from "../../../../../src/config/module"
+import { createGardenPlugin } from "../../../../../src/plugin/plugin"
+import { convertModules } from "../../../../../src/resolve-module"
+import { actionFromConfig } from "../../../../../src/graph/actions"
+import { TestAction } from "../../../../../src/actions/test"
 
 describe("hadolint provider", () => {
   let tmpDir: tmp.DirectoryResult
@@ -33,17 +34,10 @@ describe("hadolint provider", () => {
 
     await execa("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
 
-    projectConfigFoo = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
+    projectConfigFoo = createProjectConfig({
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFiles: [],
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "hadolint" }],
-      variables: {},
-    }
+    })
 
     projectHadolintConfigPath = join(tmpPath, ".hadolint.yaml")
   })
@@ -58,20 +52,21 @@ describe("hadolint provider", () => {
     }
   })
 
-  it("should add a hadolint module for each container module with a Dockerfile", async () => {
+  // TODO-G2: add a similar test for action-based configs
+  it("should add a hadolint Test action for each container module with a Dockerfile", async () => {
     const garden = await TestGarden.factory(tmpPath, {
       plugins: [],
       config: projectConfigFoo,
     })
 
-    garden["moduleConfigs"] = {
+    garden.setModuleConfigs([
       // With Dockerfile
-      foo: {
-        apiVersion: DEFAULT_API_VERSION,
+      {
+        apiVersion: GardenApiVersion.v0,
         name: "foo",
         type: "container",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         path: tmpPath,
         serviceConfigs: [],
@@ -80,12 +75,12 @@ describe("hadolint provider", () => {
         spec: { dockerfile: "foo.Dockerfile" },
       },
       // Without Dockerfile
-      bar: {
-        apiVersion: DEFAULT_API_VERSION,
+      {
+        apiVersion: GardenApiVersion.v0,
         name: "bar",
         type: "container",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         path: tmpPath,
         serviceConfigs: [],
@@ -95,24 +90,24 @@ describe("hadolint provider", () => {
           image: "bar:bla",
         },
       },
-    }
+    ])
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const module = graph.getModule("hadolint-foo")
+    const testAction = graph.getTest("hadolint-foo")
 
-    expect(module.path).to.equal(tmpPath)
-    expect(module.spec).to.eql({
-      build: { dependencies: [], timeout: defaultBuildTimeout },
-      dockerfilePath: "foo.Dockerfile",
-    })
+    expect(testAction.basePath()).to.equal(tmpPath)
+    expect(testAction.getConfig("spec")).to.eql({ dockerfilePath: "foo.Dockerfile" })
+    expect(testAction.getConfig().description).to.include("auto-generated")
   })
 
-  it("should add a hadolint module for module types inheriting from container", async () => {
+  // TODO-G2: add a similar test for action-based configs
+  it("should add a hadolint Test action for module types inheriting from container", async () => {
     const foo = createGardenPlugin({
       name: "foo",
       dependencies: [{ name: "container" }],
       createModuleTypes: [
         {
+          needsBuild: false,
           name: "foo",
           base: "container",
           docs: "foo",
@@ -129,13 +124,13 @@ describe("hadolint provider", () => {
       },
     })
 
-    garden["moduleConfigs"] = {
-      foo: {
-        apiVersion: DEFAULT_API_VERSION,
+    garden.setModuleConfigs([
+      {
+        apiVersion: GardenApiVersion.v0,
         name: "foo",
         type: "foo",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         path: tmpPath,
         serviceConfigs: [],
@@ -143,16 +138,14 @@ describe("hadolint provider", () => {
         testConfigs: [],
         spec: { dockerfile: "foo.Dockerfile" },
       },
-    }
+    ])
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const module = graph.getModule("hadolint-foo")
+    const testAction = graph.getTest("hadolint-foo")
 
-    expect(module.path).to.equal(tmpPath)
-    expect(module.spec).to.eql({
-      build: { dependencies: [], timeout: defaultBuildTimeout },
-      dockerfilePath: "foo.Dockerfile",
-    })
+    expect(testAction.basePath()).to.equal(tmpPath)
+    expect(testAction.getConfig("spec")).to.eql({ dockerfilePath: "foo.Dockerfile" })
+    expect(testAction.getConfig().description).to.include("auto-generated")
   })
 
   describe("testModule", () => {
@@ -164,13 +157,13 @@ describe("hadolint provider", () => {
         config: projectConfigFoo,
       })
 
-      garden["moduleConfigs"] = {
-        foo: {
-          apiVersion: DEFAULT_API_VERSION,
+      garden.setModuleConfigs([
+        {
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -178,29 +171,37 @@ describe("hadolint provider", () => {
           testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
-      }
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
+      const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+      const action = (await actionFromConfig({
+        garden,
+        graph,
+        config: actions[0],
+        log: garden.log,
+        configsByKey: {},
+        linkedSources: {},
+        router: await garden.getActionRouter(),
+        mode: "default",
+      })) as TestAction
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
+
+        action,
       })
 
-      const key = testTask.getKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.exist
-      expect(stripAnsi(result!.error!.message)).to.equal(dedent`
+      expect(stripAnsi(result!.error!.message)).to.include(dedent`
       hadolint reported 1 error(s) and 1 warning(s):
 
       DL3007: Using latest is prone to errors if the image will ever update. Pin the version explicitly to a release tag
@@ -229,13 +230,13 @@ describe("hadolint provider", () => {
 
       const modulePath = getDataDir("hadolint", "ignore-dl3007")
 
-      garden["moduleConfigs"] = {
-        foo: {
-          apiVersion: DEFAULT_API_VERSION,
+      garden.setModuleConfigs([
+        {
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path: modulePath,
           serviceConfigs: [],
@@ -243,29 +244,36 @@ describe("hadolint provider", () => {
           testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
-      }
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
+      const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+      const action = (await actionFromConfig({
+        garden,
+        graph,
+        config: actions[0],
+        log: garden.log,
+        configsByKey: {},
+        linkedSources: {},
+        router: await garden.getActionRouter(),
+        mode: "default",
+      })) as TestAction
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
-      const key = testTask.getKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.exist
-      expect(stripAnsi(result!.error!.message)).to.equal(dedent`
+      expect(stripAnsi(result!.error!.message)).to.include(dedent`
       hadolint reported 1 error(s):
 
       DL4000: MAINTAINER is deprecated
@@ -289,13 +297,13 @@ describe("hadolint provider", () => {
         `
       )
 
-      garden["moduleConfigs"] = {
-        foo: {
-          apiVersion: DEFAULT_API_VERSION,
+      garden.setModuleConfigs([
+        {
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -303,29 +311,36 @@ describe("hadolint provider", () => {
           testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
-      }
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
+      const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+      const action = (await actionFromConfig({
+        garden,
+        graph,
+        config: actions[0],
+        log: garden.log,
+        configsByKey: {},
+        linkedSources: {},
+        router: await garden.getActionRouter(),
+        mode: "default",
+      })) as TestAction
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
-      const key = testTask.getKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.exist
-      expect(stripAnsi(result!.error!.message)).to.equal(dedent`
+      expect(stripAnsi(result!.error!.message)).to.include(dedent`
       hadolint reported 1 error(s):
 
       DL4000: MAINTAINER is deprecated
@@ -343,13 +358,13 @@ describe("hadolint provider", () => {
         },
       })
 
-      garden["moduleConfigs"] = {
-        foo: {
-          apiVersion: DEFAULT_API_VERSION,
+      garden.setModuleConfigs([
+        {
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -357,25 +372,32 @@ describe("hadolint provider", () => {
           testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "warn.Dockerfile" },
         },
-      }
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
+      const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+      const action = (await actionFromConfig({
+        garden,
+        graph,
+        config: actions[0],
+        log: garden.log,
+        configsByKey: {},
+        linkedSources: {},
+        router: await garden.getActionRouter(),
+        mode: "default",
+      })) as TestAction
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
-      const key = testTask.getKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.exist
@@ -387,13 +409,13 @@ describe("hadolint provider", () => {
         config: projectConfigFoo,
       })
 
-      garden["moduleConfigs"] = {
-        foo: {
-          apiVersion: DEFAULT_API_VERSION,
+      garden.setModuleConfigs([
+        {
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -401,25 +423,32 @@ describe("hadolint provider", () => {
           testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "warn.Dockerfile" },
         },
-      }
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
+      const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+      const action = (await actionFromConfig({
+        garden,
+        graph,
+        config: actions[0],
+        log: garden.log,
+        configsByKey: {},
+        linkedSources: {},
+        router: await garden.getActionRouter(),
+        mode: "default",
+      })) as TestAction
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
-      const key = testTask.getKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.not.exist
@@ -434,13 +463,13 @@ describe("hadolint provider", () => {
         },
       })
 
-      garden["moduleConfigs"] = {
-        foo: {
-          apiVersion: DEFAULT_API_VERSION,
+      garden.setModuleConfigs([
+        {
+          apiVersion: GardenApiVersion.v0,
           name: "foo",
           type: "hadolint",
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           path,
           serviceConfigs: [],
@@ -448,25 +477,32 @@ describe("hadolint provider", () => {
           testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
-      }
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
+      const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+      const action = (await actionFromConfig({
+        garden,
+        graph,
+        config: actions[0],
+        log: garden.log,
+        configsByKey: {},
+        linkedSources: {},
+        router: await garden.getActionRouter(),
+        mode: "default",
+      })) as TestAction
 
       const testTask = new TestTask({
         garden,
-        test: testFromConfig(module, module.testConfigs[0], graph),
         log: garden.log,
         graph,
+        action,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
-      const key = testTask.getKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.not.exist

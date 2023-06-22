@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,7 @@
 import { SecretResult as SecretResultApi, UserResult as UserResultApi } from "@garden-io/platform-api-types"
 import { dedent } from "../../util/string"
 
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { capitalize } from "lodash"
 import minimatch from "minimatch"
 import pluralize from "pluralize"
@@ -19,7 +19,7 @@ import { CommandResult } from "../base"
 import { userPrompt } from "../../util/util"
 
 export interface DeleteResult {
-  id: number
+  id: string | number
   status: string
 }
 
@@ -29,29 +29,29 @@ export interface ApiCommandError {
 }
 
 export interface SecretResult {
-  id: number
+  id: string
   createdAt: string
   updatedAt: string
   name: string
   environment?: {
     name: string
-    id: number
+    id: string
   }
   user?: {
     name: string
-    id: number
+    id: string
     vcsUsername: string
   }
 }
 
 export interface UserResult {
-  id: number
+  id: string
   createdAt: string
   updatedAt: string
   name: string
   vcsUsername: string | null | undefined
   groups: {
-    id: number
+    id: string
     name: string
   }[]
 }
@@ -107,8 +107,8 @@ export function handleBulkOperationResult<T>({
   cmdLog,
   resource,
 }: {
-  log: LogEntry
-  cmdLog: LogEntry
+  log: Log
+  cmdLog: Log
   results: T[]
   errors: ApiCommandError[]
   action: "create" | "delete"
@@ -120,7 +120,7 @@ export function handleBulkOperationResult<T>({
   log.info("")
 
   if (errors.length > 0) {
-    cmdLog.setError({ msg: "Error", append: true })
+    cmdLog.error("Error")
 
     const actionVerb = action === "create" ? "creating" : "deleting"
     const errorMsgs = errors
@@ -140,7 +140,7 @@ export function handleBulkOperationResult<T>({
       ${errorMsgs}\n
     `)
   } else {
-    cmdLog.setSuccess()
+    cmdLog.success("Done")
   }
 
   if (successCount > 0) {

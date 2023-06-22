@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,19 +9,23 @@
 import codenamize = require("@codenamize/codenamize")
 import { platform, release } from "os"
 import ci = require("ci-info")
-import { isEmpty, uniq } from "lodash"
-import { globalConfigKeys, AnalyticsGlobalConfig } from "../config-store"
-import { getPackageVersion, uuidv4, sleep } from "../util/util"
+import { uniq } from "lodash"
+import { AnalyticsGlobalConfig } from "../config-store/global"
+import { getPackageVersion, sleep, getDurationMsec } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import hasha = require("hasha")
 import { Garden } from "../garden"
-import { AnalyticsType } from "./analytics-types"
+import { AnalyticsCommandResult, AnalyticsEventType } from "./analytics-types"
 import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
+import { uuidv4 } from "../util/random"
+import { GardenBaseError } from "../exceptions"
+import { ActionConfigMap } from "../actions/types"
+import { actionKinds } from "../actions/types"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 const CI_USER = "ci-user"
@@ -59,10 +63,14 @@ export function getAnonymousUserId({
  * A recurring user is a user that is using Garden again after 12 hours
  * or more since first run.
  */
-function getIsRecurringUser(firstRunAt: string, latestRunAt: string) {
+function getIsRecurringUser(firstRunAt?: Date, latestRunAt?: Date) {
+  if (!firstRunAt || !latestRunAt) {
+    return false
+  }
+
   const msInHour = 60 * 60 * 1000
-  const t1 = new Date(firstRunAt).getTime()
-  const t2 = new Date(latestRunAt).getTime()
+  const t1 = firstRunAt.getTime()
+  const t2 = latestRunAt.getTime()
   const hoursSinceFirstRun = Math.abs(t1 - t2) / msInHour
   return hoursSinceFirstRun > 12
 }
@@ -86,6 +94,11 @@ interface ProjectMetadata {
   servicesCount: number
   testsCount: number
   moduleTypes: string[]
+  actionsCount: number
+  buildActionCount: number
+  testActionCount: number
+  deployActionCount: number
+  runActionCount: number
 }
 
 interface PropertiesBase {
@@ -104,26 +117,27 @@ interface PropertiesBase {
   system: SystemInfo
   isCI: boolean
   sessionId: string
+  parentSessionId: string | undefined
   projectMetadata: ProjectMetadata
-  firstRunAt: string
-  latestRunAt: string
+  firstRunAt?: Date
+  latestRunAt?: Date
   isRecurringUser: boolean
 }
 
 interface EventBase {
-  type: AnalyticsType
+  type: AnalyticsEventType
   properties: PropertiesBase
 }
 
 interface CommandEvent extends EventBase {
-  type: AnalyticsType.COMMAND
+  type: "Run Command"
   properties: PropertiesBase & {
     name: string
   }
 }
 
 interface ApiEvent extends EventBase {
-  type: AnalyticsType.CALL_API
+  type: "Call API"
   properties: PropertiesBase & {
     path: string
     command: string
@@ -131,8 +145,19 @@ interface ApiEvent extends EventBase {
   }
 }
 
+interface CommandResultEvent extends EventBase {
+  type: "Command Result"
+  properties: PropertiesBase & {
+    name: string
+    durationMsec: number
+    result: AnalyticsCommandResult
+    errors: string[] // list of GardenBaseError types
+    exitCode?: number
+  }
+}
+
 interface ConfigErrorEvent extends EventBase {
-  type: AnalyticsType.MODULE_CONFIG_ERROR
+  type: "Module Configuration Error"
   properties: PropertiesBase & {
     moduleName: string
     moduleType: string
@@ -140,14 +165,14 @@ interface ConfigErrorEvent extends EventBase {
 }
 
 interface ProjectErrorEvent extends EventBase {
-  type: AnalyticsType.PROJECT_CONFIG_ERROR
+  type: "Project Configuration Error"
   properties: PropertiesBase & {
     fields: Array<string>
   }
 }
 
 interface ValidationErrorEvent extends EventBase {
-  type: AnalyticsType.VALIDATION_ERROR
+  type: "Validation Error"
   properties: PropertiesBase & {
     fields: Array<string>
   }
@@ -163,8 +188,8 @@ interface IdentifyEvent {
     platformVersion: string
     gardenVersion: string
     isCI: boolean
-    firstRunAt: string
-    latestRunAt: string
+    firstRunAt?: Date
+    latestRunAt?: Date
     isRecurringUser: boolean
   }
 }
@@ -173,12 +198,18 @@ interface ApiRequestBody {
   command: string
 }
 
-type AnalyticsEvent = CommandEvent | ApiEvent | ConfigErrorEvent | ProjectErrorEvent | ValidationErrorEvent
+type AnalyticsEvent =
+  | CommandEvent
+  | CommandResultEvent
+  | ApiEvent
+  | ConfigErrorEvent
+  | ProjectErrorEvent
+  | ValidationErrorEvent
 
 export interface SegmentEvent {
   userId?: string
   anonymousId?: string
-  event: AnalyticsType
+  event: AnalyticsEventType
   properties: AnalyticsEvent["properties"]
 }
 
@@ -198,7 +229,7 @@ export interface SegmentEvent {
 export class AnalyticsHandler {
   private static instance?: AnalyticsHandler
   private segment: any // TODO
-  private log: LogEntry
+  private log: Log
   private analyticsConfig: AnalyticsGlobalConfig
   private projectId: string
   private projectName: string
@@ -225,15 +256,19 @@ export class AnalyticsHandler {
     garden,
     log,
     analyticsConfig,
+    anonymousUserId,
     moduleConfigs,
+    actionConfigs,
     cloudUser,
     isEnabled,
     ciInfo,
   }: {
     garden: Garden
-    log: LogEntry
+    log: Log
     analyticsConfig: AnalyticsGlobalConfig
+    anonymousUserId: string
     moduleConfigs: ModuleConfig[]
+    actionConfigs: ActionConfigMap
     isEnabled: boolean
     cloudUser?: UserResult
     ciInfo: CiInfo
@@ -244,17 +279,35 @@ export class AnalyticsHandler {
     this.isEnabled = isEnabled
     this.garden = garden
     this.sessionId = garden.sessionId
-    this.isLoggedIn = !!garden.cloudApi
+    this.isLoggedIn = garden.isLoggedIn()
     // Events that are queued or flushed but the network response hasn't returned
     this.pendingEvents = new Map()
 
     this.analyticsConfig = analyticsConfig
+
+    let actionsCount = 0
+    const countByActionKind: { [key: string]: number } = {}
+
+    for (const kind of actionKinds) {
+      countByActionKind[kind] = 0
+
+      for (const name in actionConfigs[kind]) {
+        countByActionKind[kind] = countByActionKind[kind] + 1
+        actionsCount++
+      }
+    }
+
     this.projectMetadata = {
       modulesCount: moduleConfigs.length,
       moduleTypes: uniq(moduleConfigs.map((c) => c.type)),
       tasksCount: countActions(moduleConfigs, "tasks"),
       servicesCount: countActions(moduleConfigs, "services"),
       testsCount: countActions(moduleConfigs, "tests"),
+      actionsCount,
+      buildActionCount: countByActionKind["Build"],
+      testActionCount: countByActionKind["Test"],
+      deployActionCount: countByActionKind["Deploy"],
+      runActionCount: countByActionKind["Run"],
     }
     this.systemConfig = {
       platform: platform(),
@@ -284,7 +337,7 @@ export class AnalyticsHandler {
       this.enterpriseProjectIdV2 = AnalyticsHandler.hashV2(enterpriseProjectId)
     }
 
-    const enterpriseDomain = this.garden.enterpriseDomain
+    const enterpriseDomain = this.garden.cloudDomain
     if (enterpriseDomain) {
       this.enterpriseDomain = AnalyticsHandler.hash(enterpriseDomain)
       this.enterpriseDomainV2 = AnalyticsHandler.hashV2(enterpriseDomain)
@@ -297,10 +350,10 @@ export class AnalyticsHandler {
 
     this.isRecurringUser = getIsRecurringUser(analyticsConfig.firstRunAt, analyticsConfig.latestRunAt)
 
-    const userIdV2 = AnalyticsHandler.hashV2(analyticsConfig.anonymousUserId)
+    const userIdV2 = AnalyticsHandler.hashV2(anonymousUserId)
     this.identify({
       userId: this.cloudUserId,
-      anonymousId: analyticsConfig.anonymousUserId,
+      anonymousId: anonymousUserId,
       traits: {
         userIdV2,
         customer: cloudUser?.organization.name,
@@ -315,14 +368,16 @@ export class AnalyticsHandler {
     })
   }
 
-  static async init(garden: Garden, log: LogEntry) {
-    if (!AnalyticsHandler.instance) {
+  static async init(garden: Garden, log: Log) {
+    // Ensure that we re-initialize the analytics metadata when switching projects
+    if (!AnalyticsHandler.instance || AnalyticsHandler.instance.garden?.projectName !== garden.projectName) {
       // We're passing this explictliy to that it's easier to overwrite and test
       // in actual CI.
       const ciInfo = {
         isCi: ci.isCI,
         ciName: ci.name,
       }
+
       AnalyticsHandler.instance = await AnalyticsHandler.factory({ garden, log, ciInfo })
     } else {
       /**
@@ -353,10 +408,11 @@ export class AnalyticsHandler {
    *
    * It also initializes the analytics config and updates the analytics data we store in local config.
    */
-  static async factory({ garden, log, ciInfo }: { garden: Garden; log: LogEntry; ciInfo: CiInfo }) {
-    const currentAnalyticsConfig = (await garden.globalConfigStore.get()).analytics
-    const isFirstRun = isEmpty(currentAnalyticsConfig)
+  static async factory({ garden, log, ciInfo }: { garden: Garden; log: Log; ciInfo: CiInfo }) {
+    const currentAnalyticsConfig = await garden.globalConfigStore.get("analytics")
+    const isFirstRun = !currentAnalyticsConfig.firstRunAt
     const moduleConfigs = await garden.getRawModuleConfigs()
+    const actionConfigs = await garden.getRawActionConfigs()
 
     let cloudUser: UserResult | undefined
     if (garden.cloudApi) {
@@ -372,7 +428,7 @@ export class AnalyticsHandler {
       const msg = dedent`
         Thanks for installing Garden! We work hard to provide you with the best experience we can. We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect or if you'd like to opt out of telemetry, please read more at ${gitHubUrl}
       `
-      log.info({ symbol: "info", msg })
+      log.info(msg)
     }
 
     const anonymousUserId = getAnonymousUserId({ analyticsConfig: currentAnalyticsConfig, isCi: ciInfo.isCi })
@@ -383,13 +439,13 @@ export class AnalyticsHandler {
       isEnabled = false
     } else if (cloudUser) {
       isEnabled = true
-    } else if (currentAnalyticsConfig?.optedIn === false) {
+    } else if (currentAnalyticsConfig?.optedOut === true) {
       isEnabled = false
     } else {
       isEnabled = true
     }
 
-    const now = new Date().toUTCString()
+    const now = new Date()
 
     const firstRunAt = currentAnalyticsConfig?.firstRunAt || now
     const latestRunAt = now
@@ -398,14 +454,24 @@ export class AnalyticsHandler {
       anonymousUserId,
       firstRunAt,
       latestRunAt,
-      optedIn: currentAnalyticsConfig?.optedIn === false ? false : true,
-      cloudVersion: currentAnalyticsConfig?.cloudVersion || 0,
+      optedOut: currentAnalyticsConfig?.optedOut,
+      cloudVersion: currentAnalyticsConfig?.cloudVersion,
       cloudProfileEnabled: !!cloudUser,
     }
 
-    await garden.globalConfigStore.set([globalConfigKeys.analytics], analyticsConfig)
+    await garden.globalConfigStore.set("analytics", analyticsConfig)
 
-    return new AnalyticsHandler({ garden, log, analyticsConfig, moduleConfigs, cloudUser, isEnabled, ciInfo })
+    return new AnalyticsHandler({
+      garden,
+      log,
+      analyticsConfig,
+      moduleConfigs,
+      actionConfigs,
+      cloudUser,
+      isEnabled,
+      ciInfo,
+      anonymousUserId,
+    })
   }
 
   /**
@@ -439,7 +505,7 @@ export class AnalyticsHandler {
   /**
    * Returns some common metadata to be used on each event.
    */
-  private getBasicAnalyticsProperties(): PropertiesBase {
+  private getBasicAnalyticsProperties(parentSessionId: string | undefined = undefined): PropertiesBase {
     return {
       projectId: this.projectId,
       projectIdV2: this.projectIdV2,
@@ -455,6 +521,8 @@ export class AnalyticsHandler {
       system: this.systemConfig,
       isCI: this.isCI,
       sessionId: this.sessionId,
+      // default to the sessionId since if not set we are the parent
+      parentSessionId: parentSessionId || this.sessionId,
       projectMetadata: this.projectMetadata,
       firstRunAt: this.analyticsConfig.firstRunAt,
       latestRunAt: this.analyticsConfig.latestRunAt,
@@ -463,18 +531,18 @@ export class AnalyticsHandler {
   }
 
   /**
-   * It sets the optedIn property in the globalConfigStore.
+   * It sets the optedOut property in the globalConfigStore.
    * This is the property checked to decide if an event should be tracked or not.
    */
-  async setAnalyticsOptIn(isOptedIn: boolean) {
-    this.analyticsConfig.optedIn = isOptedIn
-    await this.garden.globalConfigStore.set([globalConfigKeys.analytics, "optedIn"], isOptedIn)
+  async setAnalyticsOptOut(isOptedOut: boolean) {
+    this.analyticsConfig.optedOut = isOptedOut
+    await this.garden.globalConfigStore.set("analytics", "optedOut", isOptedOut)
   }
 
   /**
    * The actual segment track method.
    */
-  private track(event: AnalyticsEvent) {
+  private track(event: AnalyticsEvent, parentSessionId: string | undefined = undefined) {
     if (!this.segment || !this.isEnabled) {
       return false
     }
@@ -484,7 +552,7 @@ export class AnalyticsHandler {
       anonymousId: this.analyticsConfig.anonymousUserId,
       event: event.type,
       properties: {
-        ...this.getBasicAnalyticsProperties(),
+        ...this.getBasicAnalyticsProperties(parentSessionId),
         ...event.properties,
       },
     }
@@ -515,18 +583,45 @@ export class AnalyticsHandler {
   /**
    * Tracks a Command.
    */
-  trackCommand(commandName: string) {
+  trackCommand(commandName: string, parentSessionId?: string) {
     return this.track({
-      type: AnalyticsType.COMMAND,
+      type: "Run Command",
       properties: {
         name: commandName,
-        ...this.getBasicAnalyticsProperties(),
+        ...this.getBasicAnalyticsProperties(parentSessionId),
       },
     })
   }
 
   /**
-   * Tracks an Api call generated from within the Dashboard.
+   * Track a command result.
+   */
+  trackCommandResult(
+    commandName: string,
+    errors: GardenBaseError[],
+    startTime: Date,
+    exitCode?: number,
+    parentSessionId?: string
+  ) {
+    const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
+
+    const durationMsec = getDurationMsec(startTime, new Date())
+
+    return this.track({
+      type: "Command Result",
+      properties: {
+        name: commandName,
+        durationMsec,
+        result,
+        errors: errors.map((e) => e.type),
+        exitCode,
+        ...this.getBasicAnalyticsProperties(parentSessionId),
+      },
+    })
+  }
+
+  /**
+   * Tracks an API call sent to the core server.
    *
    * NOTE: for privacy issues we only collect the 'command' from the body
    */
@@ -539,18 +634,49 @@ export class AnalyticsHandler {
     }
 
     return this.track({
-      type: AnalyticsType.CALL_API,
+      type: "Call API",
       properties,
     })
   }
 
   /**
+   * Tracks a Garden action configuration error
+   */
+  trackActionConfigError({
+    kind,
+    type,
+    name,
+    moduleName,
+  }: {
+    kind: string
+    type: string
+    name: string
+    moduleName: string
+  }) {
+    return this.track(<ConfigErrorEvent>{
+      type: "Module Configuration Error",
+      properties: {
+        ...this.getBasicAnalyticsProperties(),
+        kind,
+        moduleType: type,
+        name: hasha(name, { algorithm: "sha256" }),
+        moduleName: hasha(moduleName, { algorithm: "sha256" }),
+      },
+    })
+  }
+
+  /**
+   *  Tracks a Garden Module configuration error
+   *
+   * @param {string} moduleType The type of the module causing the configuration error
+   * @returns
+   * @memberof AnalyticsHandler
    * Tracks a Garden Module configuration error
    */
   trackModuleConfigError(name: string, moduleType: string) {
     const moduleName = hasha(name, { algorithm: "sha256" })
     return this.track({
-      type: AnalyticsType.MODULE_CONFIG_ERROR,
+      type: "Module Configuration Error",
       properties: {
         ...this.getBasicAnalyticsProperties(),
         moduleName,
@@ -564,7 +690,7 @@ export class AnalyticsHandler {
    */
   trackProjectConfigError(fields: Array<string>) {
     return this.track({
-      type: AnalyticsType.PROJECT_CONFIG_ERROR,
+      type: "Project Configuration Error",
       properties: {
         ...this.getBasicAnalyticsProperties(),
         fields,
@@ -577,7 +703,7 @@ export class AnalyticsHandler {
    */
   trackConfigValidationError(fields: Array<string>) {
     return this.track({
-      type: AnalyticsType.VALIDATION_ERROR,
+      type: "Validation Error",
       properties: {
         ...this.getBasicAnalyticsProperties(),
         fields,

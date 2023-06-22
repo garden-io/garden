@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,7 @@
 import { Command, CommandParams } from "../base"
 import { RuntimeError } from "../../exceptions"
 import dedent from "dedent"
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { GardenPlugin } from "../../plugin/plugin"
 import { findProjectConfig } from "../../config/base"
 import { Garden, DummyGarden } from "../../garden"
 import Bluebird from "bluebird"
@@ -59,9 +59,9 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
 
     if (opts.all) {
       plugins = await garden.getAllPlugins()
-      printHeader(log, "Fetching tools for all registered providers", "hammer_and_wrench")
+      printHeader(log, "Fetching tools for all registered providers", "🛠️")
     } else {
-      const projectRoot = findProjectConfig(garden.projectRoot)
+      const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
 
       if (!projectRoot) {
         throw new RuntimeError(
@@ -71,12 +71,16 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
       }
 
       if (garden instanceof DummyGarden) {
-        garden = await Garden.factory(garden.projectRoot, { ...omit(garden.opts, "config"), log })
+        garden = await Garden.factory(garden.projectRoot, {
+          ...omit(garden.opts, "config", "environmentString"),
+          log,
+          environmentString: opts.env,
+        })
       }
 
       plugins = await garden.getConfiguredPlugins()
 
-      printHeader(log, "Fetching all tools for the current project and environment", "hammer_and_wrench")
+      printHeader(log, "Fetching all tools for the current project and environment", "🛠️")
     }
 
     let tools = plugins.flatMap((plugin) =>
@@ -90,10 +94,24 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
     // No need to fetch the same tools multiple times, if they're used in multiple providers
     const deduplicated = uniqBy(tools, ({ tool }) => tool["versionPath"])
 
+    const versionedConfigs = garden.getRawProviderConfigs({ names: ["pulumi", "terraform"], allowMissing: true })
+
+    // If the version of the tool is configured on the provider,
+    // download only that version of the tool.
+    const toolsNeeded = deduplicated.filter(tool => {
+      const pluginToolVersion = versionedConfigs.find(p => p.name === tool.plugin.name)?.version
+      const pluginHasVersionConfigured = !!pluginToolVersion
+      if (!pluginHasVersionConfigured) {
+        return true
+      } else {
+        return pluginToolVersion === tool.tool.spec.version
+      }
+    })
+
     const paths = fromPairs(
-      await Bluebird.map(deduplicated, async ({ plugin, tool }) => {
+      await Bluebird.map(toolsNeeded, async ({ plugin, tool }) => {
         const fullName = `${plugin.name}.${tool.name}`
-        const path = await tool.getPath(log)
+        const path = await tool.ensurePath(log)
         return [fullName, { type: tool.type, path }]
       })
     )

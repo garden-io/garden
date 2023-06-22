@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,7 +18,7 @@ describe("Command", () => {
     it("renders the command help text", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
 
         arguments = {
@@ -38,10 +38,12 @@ describe("Command", () => {
         }
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       const cmd = new TestCommand()
 
       expect(trimLineEnds(stripAnsi(cmd.renderHelp())).trim()).to.equal(dedent`
@@ -68,10 +70,12 @@ describe("Command", () => {
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       const cmd = new TestCommand()
       expect(cmd.getPaths()).to.eql([["test-command"]])
     })
@@ -79,14 +83,16 @@ describe("Command", () => {
     it("returns the command path and alias if set and not part of a group", () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       const cmd = new TestCommand()
       expect(cmd.getPaths()).to.eql([["test-command"], ["some-alias"]])
     })
@@ -97,17 +103,22 @@ describe("Command", () => {
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
         help = ""
 
         subCommands = [TestCommand]
       }
+
       const cmd = new TestCommand(new TestGroup())
+      // FIXME: This is needs to be set "manually" for now to work around issues with cloning commands.
+      cmd["parent"] = new TestGroup()
       expect(cmd.getPaths()).to.eql([["test-group", "test-command"]])
     })
 
@@ -117,18 +128,23 @@ describe("Command", () => {
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
-        alias = "group-alias"
+        aliases = ["group-alias"]
         help = ""
 
         subCommands = [TestCommand]
       }
+
       const cmd = new TestCommand(new TestGroup())
+      // FIXME: This is needs to be set "manually" for now to work around issues with cloning commands.
+      cmd["parent"] = new TestGroup()
       expect(cmd.getPaths()).to.eql([
         ["test-group", "test-command"],
         ["group-alias", "test-command"],
@@ -138,21 +154,26 @@ describe("Command", () => {
     it("returns the full command paths including command alias if part of a group", () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "command-alias"
+        aliases = ["command-alias"]
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
         help = ""
 
         subCommands = [TestCommand]
       }
+
       const cmd = new TestCommand(new TestGroup())
+      // FIXME: This is needs to be set "manually" for now to work around issues with cloning commands.
+      cmd["parent"] = new TestGroup()
       expect(cmd.getPaths()).to.eql([
         ["test-group", "test-command"],
         ["test-group", "command-alias"],
@@ -162,22 +183,27 @@ describe("Command", () => {
     it("returns all permutations with aliases if both command and group have an alias", () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "command-alias"
+        aliases = ["command-alias"]
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
-        alias = "group-alias"
+        aliases = ["group-alias"]
         help = ""
 
         subCommands = [TestCommand]
       }
+
       const cmd = new TestCommand(new TestGroup())
+      // FIXME: This is needs to be set "manually" for now to work around issues with cloning commands.
+      cmd["parent"] = new TestGroup()
       expect(cmd.getPaths()).to.eql([
         ["test-group", "test-command"],
         ["test-group", "command-alias"],
@@ -196,31 +222,37 @@ describe("CommandGroup", () => {
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestSubgroupA extends CommandGroup {
         name = "test-group-a"
         help = ""
 
         subCommands = [TestCommandA]
       }
+
       class TestCommandB extends Command {
         name = "test-command-b"
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestSubgroupB extends CommandGroup {
         name = "test-group-b"
         help = ""
 
         subCommands = [TestCommandB]
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
         help = ""
@@ -241,14 +273,16 @@ describe("CommandGroup", () => {
     it("renders the command help text", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "command-alias"
+        aliases = ["command-alias"]
         help = "Some help text."
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
         help = ""
@@ -257,6 +291,7 @@ describe("CommandGroup", () => {
       }
 
       const cmd = new TestGroup()
+      // FIXME: This is needs to be set "manually" for now to work around issues with cloning commands.
 
       expect(trimLineEnds(stripAnsi(cmd.renderHelp())).trim()).to.equal(dedent`
       USAGE

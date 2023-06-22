@@ -1,0 +1,5 @@
+kind: Deploy
+description: Istio gateway service
+type: helm
+name: bookinfo-gateway
+dependencies: [deploy.istio-gateway]

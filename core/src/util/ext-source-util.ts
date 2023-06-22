@@ -1,64 +1,67 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { uniqBy } from "lodash"
+import { keyBy } from "lodash"
 import chalk from "chalk"
-import pathIsInside = require("path-is-inside")
 
-import { PROJECT_SOURCES_DIR_NAME, MODULE_SOURCES_DIR_NAME } from "../constants"
-import { LinkedSource, localConfigKeys } from "../config-store"
+import { LinkedSource } from "../config-store/local"
 import { ParameterError } from "../exceptions"
 import { GardenModule } from "../types/module"
-import { join } from "path"
 import { Garden } from "../garden"
 import { hashString } from "./util"
+import { titleize } from "./string"
+import { join } from "path"
 
-export type ExternalSourceType = "project" | "module"
-
-export function getRemoteSourcesDirname(type: ExternalSourceType): string {
-  return type === "project" ? PROJECT_SOURCES_DIR_NAME : MODULE_SOURCES_DIR_NAME
-}
+export type ExternalSourceType = "project" | "module" | "action"
 
 /**
  * A remote source dir name has the format 'source-name--HASH_OF_REPO_URL'
  * so that we can detect if the repo url has changed
  */
-export function getRemoteSourceRelPath({
-  name,
-  url,
-  sourceType,
-}: {
+export function getRemoteSourceDirname({ name, url }: { name: string; url: string }) {
+  return name + "--" + hashRepoUrl(url)
+}
+
+/**
+ * Return the absolute path to the directory where remote sources are cloned to, for the given source type.
+ */
+export function getRemoteSourcesPath({ type, gardenDirPath }: { type: ExternalSourceType; gardenDirPath: string }) {
+  return join(gardenDirPath, "sources", type)
+}
+
+/**
+ * Return the absolute local path of the given remote source, i.e. where it should be cloned to.
+ */
+export function getRemoteSourceLocalPath(params: {
   name: string
   url: string
-  sourceType: ExternalSourceType
+  type: ExternalSourceType
+  gardenDirPath: string
 }) {
-  const dirname = name + "--" + hashRepoUrl(url)
-  return join(getRemoteSourcesDirname(sourceType), dirname)
+  return join(getRemoteSourcesPath(params), getRemoteSourceDirname(params))
 }
 
 export function hashRepoUrl(url: string) {
   return hashString(url, 10)
 }
 
-export function hasRemoteSource(module: GardenModule): boolean {
+export function moduleHasRemoteSource(module: GardenModule): boolean {
   return !!module.repositoryUrl
 }
-export function getConfigKey(type: ExternalSourceType): string {
-  return type === "project" ? localConfigKeys().linkedProjectSources : localConfigKeys().linkedModuleSources
-}
 
-/**
- * Check if any module is linked, including those within an external project source.
- * Returns true if module path is not under the project root or alternatively if the module is a Garden module.
- */
-export function isModuleLinked(module: GardenModule, garden: Garden) {
-  const isPluginModule = !!module.plugin
-  return !pathIsInside(module.path, garden.projectRoot) && !isPluginModule
+export function getConfigKey(type: ExternalSourceType) {
+  if (type === "project") {
+    return "linkedProjectSources"
+  } else if (type === "action") {
+    return "linkedActionSources"
+  } else {
+    return "linkedModuleSources"
+  }
 }
 
 /**
@@ -66,15 +69,18 @@ export function isModuleLinked(module: GardenModule, garden: Garden) {
  * Returns all linked sources if typed not specified.
  */
 export async function getLinkedSources(garden: Garden, type?: ExternalSourceType): Promise<LinkedSource[]> {
-  const localConfig = await garden.configStore.get()
-  const linkedModuleSources = localConfig.linkedModuleSources || []
-  const linkedProjectSources = localConfig.linkedProjectSources || []
+  const localConfig = await garden.localConfigStore.get()
+  const linkedActionSources = Object.values(localConfig.linkedActionSources)
+  const linkedModuleSources = Object.values(localConfig.linkedModuleSources)
+  const linkedProjectSources = Object.values(localConfig.linkedProjectSources)
   if (type === "module") {
     return linkedModuleSources
   } else if (type === "project") {
     return linkedProjectSources
+  } else if (type === "action") {
+    return linkedActionSources
   } else {
-    return [...linkedModuleSources, ...linkedProjectSources]
+    return [...linkedActionSources, ...linkedModuleSources, ...linkedProjectSources]
   }
 }
 
@@ -87,9 +93,9 @@ export async function addLinkedSources({
   sourceType: ExternalSourceType
   sources: LinkedSource[]
 }): Promise<LinkedSource[]> {
-  const linked = uniqBy([...(await getLinkedSources(garden, sourceType)), ...sources], "name")
-  await garden.configStore.set([getConfigKey(sourceType)], linked)
-  return linked
+  const linked = keyBy([...(await getLinkedSources(garden, sourceType)), ...sources], "name")
+  await garden.localConfigStore.set(getConfigKey(sourceType), linked)
+  return Object.values(linked)
 }
 
 export async function removeLinkedSources({
@@ -106,17 +112,13 @@ export async function removeLinkedSources({
 
   for (const name of names) {
     if (!currentNames.includes(name)) {
-      const msg =
-        sourceType === "project"
-          ? `Source ${chalk.underline(name)} is not linked. Did you mean to unlink a module?`
-          : `Module ${chalk.underline(name)} is not linked. Did you mean to unlink a source?`
-      const errorKey = sourceType === "project" ? "currentlyLinkedSources" : "currentlyLinkedModules"
-
-      throw new ParameterError(msg, { [errorKey]: currentNames, input: names })
+      const msgType = sourceType === "project" ? "source" : titleize(sourceType)
+      const msg = `${titleize(msgType)} ${chalk.underline(name)} is not linked. Did you mean to unlink a ${msgType}?`
+      throw new ParameterError(msg, { currentlyLinked: currentNames, input: names })
     }
   }
 
   const linked = currentlyLinked.filter(({ name }) => !names.includes(name))
-  await garden.configStore.set([getConfigKey(sourceType)], linked)
+  await garden.localConfigStore.set(getConfigKey(sourceType), keyBy(linked, "name"))
   return linked
 }

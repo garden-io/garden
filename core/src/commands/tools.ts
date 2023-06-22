@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,11 +9,10 @@
 import chalk from "chalk"
 import { max, omit, sortBy } from "lodash"
 import { dedent, renderTable, tablePresets } from "../util/string"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { Garden, DummyGarden } from "../garden"
 import { Command, CommandParams } from "./base"
 import { getTerminalWidth } from "../logger/util"
-import { LoggerType } from "../logger/logger"
 import { ParameterError } from "../exceptions"
 import { uniqByName, exec, shutdown } from "../util/util"
 import { PluginTool } from "../util/ext-tools"
@@ -24,6 +23,10 @@ const toolsArgs = {
   tool: new StringOption({
     help: "The name of the tool to run.",
     required: false,
+    getSuggestions: (_) => {
+      // TODO
+      return []
+    },
   }),
 }
 
@@ -71,17 +74,13 @@ export class ToolsCommand extends Command<Args, Opts> {
   arguments = toolsArgs
   options = toolsOpts
 
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
-
   printHeader() {}
 
-  async prepare({ log }) {
+  async prepare({ log }: { log: Log }) {
     // Override the logger output, to output to stderr instead of stdout, to avoid contaminating command output
-    const basicWriter = log.root.writers.find((w) => w.type === "basic")
-    if (basicWriter) {
-      basicWriter.output = process.stderr
+    const terminalWriter = log.root.getWriters().display
+    if (terminalWriter.type === "default" || terminalWriter.type === "basic") {
+      terminalWriter.output = process.stderr
     }
   }
 
@@ -122,7 +121,7 @@ export class ToolsCommand extends Command<Args, Opts> {
       }
     } else {
       // Place configured providers at the top for preference, if applicable
-      const projectRoot = await findProjectConfig(garden.projectRoot)
+      const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
 
       if (projectRoot) {
         // This will normally be the case, but we're checking explictly to accommodate testing
@@ -154,7 +153,7 @@ export class ToolsCommand extends Command<Args, Opts> {
     }
 
     const toolCls = new PluginTool(matchedTools[0].tool)
-    const path = await toolCls.getPath(log)
+    const path = await toolCls.ensurePath(log)
 
     // We just output the path if --get-path is set, or if the tool is a library
     if (opts["get-path"] || toolCls.type === "library") {
@@ -169,7 +168,6 @@ export class ToolsCommand extends Command<Args, Opts> {
       return { result: { tools, path, stdout: result.stdout, stderr: result.stderr, exitCode: result.exitCode } }
     } else {
       // We attach stdout and stderr directly, and exit with the same code as we get from the command
-      log.stop()
       const result = await exec(path, args["--"] || [], { reject: false, stdio: "inherit" })
       await shutdown(result.exitCode)
       // Note: We never reach this line, just putting it here for the type-checker
@@ -186,7 +184,7 @@ async function getTools(garden: Garden) {
   )
 }
 
-async function printTools(garden: Garden, log: LogEntry) {
+async function printTools(garden: Garden, log: Log) {
   log.info(dedent`
   ${chalk.white.bold("USAGE")}
 

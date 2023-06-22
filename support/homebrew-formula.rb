@@ -5,8 +5,6 @@ class GardenCli < Formula
   version "{{version}}"
   sha256 "{{sha256}}"
 
-  depends_on "rsync"
-
   def install
     libexec.install "garden", "fsevents.node", "static", "better_sqlite3.node"
     bin.install_symlink libexec/"garden"

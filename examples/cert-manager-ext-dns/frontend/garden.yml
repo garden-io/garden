@@ -1,0 +1,31 @@
+# Builds the frontend React App
+kind: Build
+type: container
+name: frontend
+description: React App Build for TLS and DNS example
+---
+# Deploys the frontend React App
+kind: Deploy
+type: container
+name: frontend
+description: React App Deploy for TLS and DNS example
+build: frontend
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      containerPort: 3000
+  ingresses:
+    - path: /
+      hostname: "react.${var.base-hostname}"
+      port: http
+---
+# Setup tests for the frontend React App
+kind: Test
+name: react-unit
+type: container
+build: frontend
+spec:
+  args: [npm, test]
+dependencies:
+  - deploy.frontend

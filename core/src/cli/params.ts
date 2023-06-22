@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,11 +16,12 @@ import { parseEnvironment } from "../config/project"
 import { getLogLevelChoices, LOGGER_TYPES, LogLevel } from "../logger/logger"
 import { dedent, deline } from "../util/string"
 import chalk = require("chalk")
-import { safeDumpYaml } from "../util/util"
+import { safeDumpYaml } from "../util/serialization"
 import { resolve } from "path"
 import { isArray } from "lodash"
 import { gardenEnv } from "../constants"
 import { envSupportsEmoji } from "../logger/util"
+import { ConfigDump } from "../garden"
 
 export const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -41,10 +42,16 @@ function splitDuration(duration: string) {
     .filter(Boolean)
 }
 
-export interface ParameterConstructor<T> {
+interface GetSuggestionsParams {
+  configDump: ConfigDump
+}
+
+type GetSuggestionsCallback = (params: GetSuggestionsParams) => string[]
+
+export interface ParameterConstructorParams<T> {
   help: string
   required?: boolean
-  alias?: string
+  aliases?: string[]
   defaultValue?: T
   valueName?: string
   hints?: string
@@ -53,6 +60,8 @@ export interface ParameterConstructor<T> {
   cliOnly?: boolean
   hidden?: boolean
   spread?: boolean
+  suggestionPriority?: number
+  getSuggestions?: GetSuggestionsCallback
 }
 
 export abstract class Parameter<T> {
@@ -62,14 +71,17 @@ export abstract class Parameter<T> {
   _valueType: T
 
   defaultValue: T | undefined
-  help: string
-  required: boolean
-  alias?: string
-  hints?: string
-  valueName: string
-  overrides: string[]
-  hidden: boolean
-  spread: boolean
+  readonly help: string
+  readonly required: boolean
+  readonly aliases?: string[]
+  readonly hints?: string
+  readonly valueName: string
+  readonly overrides: string[]
+  readonly hidden: boolean
+  readonly spread: boolean
+
+  private readonly _getSuggestions?: GetSuggestionsCallback
+  public readonly suggestionPriority: number
 
   readonly cliDefault: T | undefined // Optionally specify a separate default for CLI invocation
   readonly cliOnly: boolean // If true, only expose in the CLI, and not in the HTTP/WS server.
@@ -77,7 +89,7 @@ export abstract class Parameter<T> {
   constructor({
     help,
     required,
-    alias,
+    aliases,
     defaultValue,
     valueName,
     overrides,
@@ -86,10 +98,12 @@ export abstract class Parameter<T> {
     cliOnly,
     hidden,
     spread,
-  }: ParameterConstructor<T>) {
+    suggestionPriority,
+    getSuggestions,
+  }: ParameterConstructorParams<T>) {
     this.help = help
     this.required = required || false
-    this.alias = alias
+    this.aliases = aliases
     this.hints = hints
     this.defaultValue = defaultValue
     this.valueName = valueName || "_valueType"
@@ -98,6 +112,8 @@ export abstract class Parameter<T> {
     this.cliOnly = cliOnly || false
     this.hidden = hidden || false
     this.spread = spread || false
+    this.suggestionPriority = suggestionPriority || 1
+    this._getSuggestions = getSuggestions
   }
 
   // TODO: merge this and the parseString method?
@@ -108,15 +124,19 @@ export abstract class Parameter<T> {
   }
 
   coerce(input?: string): T {
-    return (input as unknown) as T
+    return input as unknown as T
   }
 
   getDefaultValue(cli: boolean) {
     return cli && this.cliDefault !== undefined ? this.cliDefault : this.defaultValue
   }
 
-  async autoComplete(): Promise<string[]> {
-    return []
+  getSuggestions(params: GetSuggestionsParams): string[] {
+    if (this._getSuggestions) {
+      return this._getSuggestions(params)
+    } else {
+      return []
+    }
   }
 }
 
@@ -132,9 +152,9 @@ export class StringOption extends Parameter<string | undefined> {
   schema = joi.string()
 }
 
-export interface StringsConstructor extends ParameterConstructor<string[]> {
+export interface StringsConstructorParams extends ParameterConstructorParams<string[]> {
   delimiter?: string
-  variadic?: boolean
+  spread?: boolean
 }
 
 export class StringsParameter extends Parameter<string[] | undefined> {
@@ -142,14 +162,12 @@ export class StringsParameter extends Parameter<string[] | undefined> {
   schema = joi.array().items(joi.string())
 
   delimiter: string | RegExp
-  variadic: boolean
 
-  constructor(args: StringsConstructor) {
+  constructor(args: StringsConstructorParams) {
     super(args)
 
     // The default delimiter splits on commas, ignoring commas between double quotes
     this.delimiter = args.delimiter || /,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/
-    this.variadic = !!args.variadic
   }
 
   coerce(input?: string | string[]): string[] {
@@ -239,7 +257,7 @@ export class IntegerParameter extends Parameter<number> {
   }
 }
 
-export interface ChoicesConstructor extends ParameterConstructor<string> {
+export interface ChoicesConstructor extends ParameterConstructorParams<string> {
   choices: string[]
 }
 
@@ -252,10 +270,17 @@ export class ChoicesParameter extends Parameter<string> {
     super(args)
 
     this.choices = args.choices
-    this.schema = joi.string().valid(...args.choices)
+
+    if (args.defaultValue !== undefined && !this.choices.includes(args.defaultValue)) {
+      this.choices.push(args.defaultValue)
+    }
+
+    this.schema = joi.string().valid(...this.choices)
   }
 
   coerce(input: string) {
+    input = String(input)
+
     if (this.choices.includes(input)) {
       return input
     } else {
@@ -269,7 +294,7 @@ export class ChoicesParameter extends Parameter<string> {
     }
   }
 
-  async autoComplete() {
+  getSuggestions() {
     return this.choices
   }
 }
@@ -278,7 +303,7 @@ export class BooleanParameter extends Parameter<boolean> {
   type = "boolean"
   schema = joi.boolean()
 
-  constructor(args: ParameterConstructor<boolean>) {
+  constructor(args: ParameterConstructorParams<boolean>) {
     super(args)
     this.defaultValue = args.defaultValue || false
   }
@@ -311,15 +336,18 @@ export class TagsOption extends Parameter<string[] | undefined> {
   }
 }
 
-export class EnvironmentOption extends StringParameter {
+export class EnvironmentParameter extends StringOption {
   type = "string"
   schema = joi.environment()
 
-  constructor({ help = "The environment (and optionally namespace) to work against." } = {}) {
+  constructor({ help = "The environment (and optionally namespace) to work against.", required = false } = {}) {
     super({
       help,
-      required: false,
-      alias: "e",
+      required,
+      aliases: ["e"],
+      getSuggestions: ({ configDump }) => {
+        return configDump.allEnvironmentNames
+      },
     })
   }
 
@@ -327,6 +355,7 @@ export class EnvironmentOption extends StringParameter {
     if (!input) {
       return
     }
+
     // Validate the environment
     parseEnvironment(input)
     return input
@@ -354,41 +383,37 @@ export function describeParameters(args?: Parameters) {
   }))
 }
 
-export const globalOptions = {
-  "root": new PathParameter({
-    alias: "r",
-    help:
-      "Override project root directory (defaults to working directory). Can be absolute or relative to current directory.",
-  }),
+export const globalDisplayOptions = {
   "silent": new BooleanParameter({
-    alias: "s",
     help: "Suppress log output. Same as setting --logger-type=quiet.",
     defaultValue: false,
     cliOnly: true,
   }),
-  "env": new EnvironmentOption(),
   "logger-type": new ChoicesParameter({
     choices: [...LOGGER_TYPES],
     help: deline`
       Set logger type.
-      ${chalk.bold("fancy")} updates log lines in-place when their status changes (e.g. when tasks complete),
-      ${chalk.bold("basic")} appends a new log line when a log line's status changes,
-      ${chalk.bold("json")} same as basic, but renders log lines as JSON,
+      ${chalk.bold("default")} The default Garden logger,
+      ${chalk.bold(
+        "basic"
+      )} [DEPRECATED] Sames as the default Garden logger. This option will be removed in a future release,
+      ${chalk.bold("json")} same as default, but renders log lines as JSON,
       ${chalk.bold("quiet")} suppresses all log output, same as --silent.
     `,
     cliOnly: true,
   }),
   "log-level": new ChoicesParameter({
-    alias: "l",
+    aliases: ["l"],
     choices: getLogLevelChoices(),
     help: deline`
       Set logger level. Values can be either string or numeric and are prioritized from 0 to 5
-      (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.`,
+      (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
+      From the verbose log level onward action execution logs are also printed (e.g. test or run live log outputs).`,
     hints: "[choice] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
     defaultValue: LogLevel[LogLevel.info],
   }),
   "output": new ChoicesParameter({
-    alias: "o",
+    aliases: ["o"],
     choices: Object.keys(OUTPUT_RENDERERS),
     help: "Output command result in specified format (note: disables progress logging and interactive functionality).",
   }),
@@ -403,31 +428,38 @@ export const globalOptions = {
       )} logger. I.e., log status changes are rendered as new lines instead of being updated in-place.`,
     defaultValue: false,
   }),
-  "yes": new BooleanParameter({
-    alias: "y",
-    help: "Automatically approve any yes/no prompts during execution.",
-    defaultValue: false,
+  "version": new BooleanParameter({
+    aliases: ["V"],
+    help: "Show the current CLI version.",
   }),
+  "help": new BooleanParameter({
+    aliases: ["h"],
+    help: "Show help",
+  }),
+}
+
+export const globalGardenInstanceOptions = {
+  "root": new PathParameter({
+    help: "Override project root directory (defaults to working directory). Can be absolute or relative to current directory.",
+  }),
+  "env": new EnvironmentParameter(),
   "force-refresh": new BooleanParameter({
     help: "Force refresh of any caches, e.g. cached provider statuses.",
     defaultValue: false,
   }),
   "var": new StringsParameter({
-    help:
-      'Set a specific variable value, using the format <key>=<value>, e.g. `--var some-key=custom-value`. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. `--var key-a=foo,key-b="value with quotes"`.',
+    help: 'Set a specific variable value, using the format <key>=<value>, e.g. `--var some-key=custom-value`. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. `--var key-a=foo,key-b="value with quotes"`.',
   }),
-  "version": new BooleanParameter({
-    alias: "v",
-    help: "Show the current CLI version.",
+  "yes": new BooleanParameter({
+    aliases: ["y"],
+    help: "Automatically approve any yes/no prompts during execution, and allow running protected commands against production environments.",
+    defaultValue: false,
   }),
-  "help": new BooleanParameter({
-    alias: "h",
-    help: "Show help",
-  }),
-  "disable-port-forwards": new BooleanParameter({
-    help:
-      "Disable automatic port forwarding when in watch/hot-reload mode. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS=true in your environment.",
-  }),
+}
+
+export const globalOptions = {
+  ...globalGardenInstanceOptions,
+  ...globalDisplayOptions,
 }
 
 export type GlobalOptions = typeof globalOptions

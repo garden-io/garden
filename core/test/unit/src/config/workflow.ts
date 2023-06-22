@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,8 +7,7 @@
  */
 
 import { expect } from "chai"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
+import { expectError, getDataDir, makeTestGarden, makeTestGardenA, TestGarden } from "../../../helpers"
 import {
   WorkflowConfig,
   resolveWorkflowConfig,
@@ -17,15 +16,20 @@ import {
   minimumWorkflowLimits,
   defaultWorkflowRequests,
   defaultWorkflowLimits,
+  defaultWorkflowResources,
 } from "../../../../src/config/workflow"
 import { EnvironmentConfig, defaultNamespace } from "../../../../src/config/project"
-import stripAnsi from "strip-ansi"
+import { join } from "path"
+import { GardenApiVersion } from "../../../../src/constants"
 
 describe("resolveWorkflowConfig", () => {
   let garden: TestGarden
 
   const defaults = {
     files: [],
+    internal: {
+      basePath: "/tmp/foo",
+    },
     resources: {
       requests: defaultWorkflowRequests,
       limits: defaultWorkflowLimits,
@@ -42,10 +46,10 @@ describe("resolveWorkflowConfig", () => {
   it("should pass through a canonical workflow config", async () => {
     const config: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
-      path: "/tmp/foo",
+
       description: "Sample workflow",
       envVars: {},
       steps: [
@@ -71,10 +75,10 @@ describe("resolveWorkflowConfig", () => {
   it("should set workflow.resources.limits to workflow.limits if workflow.limits is specified", async () => {
     const config: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
-      path: "/tmp/foo",
+
       description: "Sample workflow",
       envVars: {},
       limits: minimumWorkflowLimits, // <----
@@ -105,17 +109,17 @@ describe("resolveWorkflowConfig", () => {
   it("should resolve template strings", async () => {
     const config: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
-      path: "/tmp/foo",
+
       description: "Secret: ${secrets.foo}, var: ${variables.foo}",
       envVars: {},
       steps: [
         {
           description: "Deploy the stack",
           command: ["deploy"],
-          skip: ("${var.skip}" as unknown) as boolean,
+          skip: "${var.skip}" as unknown as boolean,
           when: "onSuccess",
           envVars: {},
         },
@@ -131,10 +135,10 @@ describe("resolveWorkflowConfig", () => {
   it("should not resolve template strings in step commands and scripts", async () => {
     const config: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
-      path: "/tmp/foo",
+
       description: "foo",
       envVars: {},
       steps: [
@@ -157,10 +161,10 @@ describe("resolveWorkflowConfig", () => {
   it("should not resolve template strings in trigger specs or in the workflow name", async () => {
     const configWithTemplateStringInName: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-${secrets.foo}", // <--- should not be resolved, resulting in an error
-      path: "/tmp/foo",
+
       envVars: {},
       steps: [
         { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess" },
@@ -168,20 +172,16 @@ describe("resolveWorkflowConfig", () => {
       ],
     }
 
-    expectError(
-      () => resolveWorkflowConfig(garden, configWithTemplateStringInName),
-      (err) =>
-        expect(stripAnsi(err.message)).to.include(
-          'key .name with value "workflow-${secrets.foo}" fails to match the required pattern'
-        )
-    )
+    await expectError(() => resolveWorkflowConfig(garden, configWithTemplateStringInName), {
+      contains: 'key .name with value "workflow-${secrets.foo}" fails to match the required pattern',
+    })
 
     const configWithTemplateStringInTrigger: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
-      path: "/tmp/foo",
+
       envVars: {},
       steps: [
         { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess" },
@@ -194,27 +194,30 @@ describe("resolveWorkflowConfig", () => {
       ],
     }
 
-    expectError(
-      () => resolveWorkflowConfig(garden, configWithTemplateStringInTrigger),
-      (err) => expect(err.message).to.include("Invalid environment in trigger for workflow")
-    )
+    return expectError(() => resolveWorkflowConfig(garden, configWithTemplateStringInTrigger), {
+      contains: "Invalid environment in trigger for workflow",
+    })
   })
 
   it("should populate default values in the schema", async () => {
-    const config = <WorkflowConfig>{
-      apiVersion: DEFAULT_API_VERSION,
+    const config: WorkflowConfig = {
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
-      path: "/tmp/foo",
+
+      internal: {
+        basePath: "/tmp",
+      },
+
       description: "Description",
       envVars: {},
-      resources: {},
+      resources: defaultWorkflowResources,
       steps: [{ description: "Deploy the stack", command: ["deploy"] }, { command: ["test"] }],
     }
 
     expect(resolveWorkflowConfig(garden, config)).to.eql({
-      ...config,
       ...defaults,
+      ...config,
       steps: [
         { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess", envVars: {} },
         { command: ["test"], skip: false, when: "onSuccess", envVars: {} },
@@ -225,10 +228,10 @@ describe("resolveWorkflowConfig", () => {
   it("should throw if a trigger uses an environment that isn't defined in the project", async () => {
     const config: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
-      path: "/tmp/foo",
+
       description: "Sample workflow",
       envVars: {},
       steps: [{ description: "Deploy the stack", command: ["deploy"] }, { command: ["test"] }],
@@ -242,10 +245,30 @@ describe("resolveWorkflowConfig", () => {
       ],
     }
 
-    await expectError(
-      () => resolveWorkflowConfig(garden, config),
-      (err) => expect(err.message).to.match(/Invalid environment in trigger for workflow workflow-a/)
-    )
+    await expectError(() => resolveWorkflowConfig(garden, config), {
+      contains: "Invalid environment in trigger for workflow workflow-a",
+    })
+  })
+
+  it("should resolve a workflow from a template", async () => {
+    const _garden = await makeTestGarden(getDataDir("test-projects", "config-templates"))
+
+    const workflow = await _garden.getWorkflowConfig("foo-test")
+
+    const internal = {
+      basePath: _garden.projectRoot,
+      configFilePath: join(_garden.projectRoot, "workflows.garden.yml"),
+      parentName: "foo",
+      templateName: "workflows",
+      inputs: {
+        name: "test",
+        envName: "local", // <- should be resolved
+      },
+    }
+
+    expect(workflow).to.exist
+    expect(workflow.steps[0].script).to.equal('echo "${inputs.envName}"') // <- resolved later
+    expect(workflow.internal).to.eql(internal)
   })
 
   describe("populateNamespaceForTriggers", () => {
@@ -257,10 +280,10 @@ describe("resolveWorkflowConfig", () => {
     }
     const config: WorkflowConfig = {
       ...defaults,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v0,
       kind: "Workflow",
       name: "workflow-a",
-      path: "/tmp/foo",
+
       description: "Sample workflow",
       envVars: {},
       steps: [{ description: "Deploy the stack", command: ["deploy"] }, { command: ["test"] }],
@@ -288,13 +311,9 @@ describe("resolveWorkflowConfig", () => {
         },
       ]
 
-      expectError(
-        () => populateNamespaceForTriggers({ ...config, triggers: [trigger] }, environmentConfigs),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            `Invalid namespace in trigger for workflow workflow-a: Environment test has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.test).`
-          )
-      )
+      void expectError(() => populateNamespaceForTriggers({ ...config, triggers: [trigger] }, environmentConfigs), {
+        contains: `Invalid namespace in trigger for workflow workflow-a: Environment test has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.test).`,
+      })
     })
 
     it("should populate the trigger with a default namespace if one is defined", () => {

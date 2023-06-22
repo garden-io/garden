@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,7 +18,7 @@ import { JsonLogEntry } from "@garden-io/core/build/src/logger/writers/json-term
 import { WatchTestConditionState } from "./run-garden"
 
 export const parsedArgs = parseArgs(process.argv.slice(2))
-export const examplesDir = resolve(GARDEN_CORE_ROOT, "..", "examples")
+export const projectsDir = resolve(GARDEN_CORE_ROOT, "..", "e2e", "projects")
 
 export async function removeExampleDotGardenDir(projectRoot: string) {
   try {
@@ -42,6 +42,7 @@ export async function deleteExampleNamespaces(namespaces: string[]) {
   // Note: we don't wait for the kubectl command to return, since that's basically a fire-and-forget and would cost
   // a lot of time to wait for.
   deleteNamespacesKubectl(namespacesToDelete).catch((err) => {
+    // eslint-disable-next-line
     console.error(chalk.red.bold(`Error when cleaning namespaces: ${err.message}`))
   })
 }
@@ -107,10 +108,7 @@ export function stringifyJsonLog(entry: JsonLogEntry, opts = { error: false }) {
     return `${linePrefix}[INVALID] ${JSON.stringify(entry)}`
   }
 
-  const sections = entry.allSections || (entry.section ? [entry.section] : [])
-  const sectionStr = sections.map((s) => chalk.cyanBright(s)).join(sectionDivider)
-
-  const line = sectionStr ? `${sectionStr}${sectionDivider}${entry.msg}` : entry.msg
+  const line = entry.section ? `${entry.section}${sectionDivider}${entry.msg}` : entry.msg
 
   const level = chalk.gray(padEnd(`[${entry.level}] `, 10))
 

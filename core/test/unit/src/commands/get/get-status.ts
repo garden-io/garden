@@ -1,21 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import tmp from "tmp-promise"
-import execa from "execa"
-
-import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
-import { joi } from "../../../../../src/config/common"
-import { ServiceState } from "../../../../../src/types/service"
-import { GetServiceStatusParams } from "../../../../../src/types/plugin/service/getServiceStatus"
-import { TestGarden } from "../../../../helpers"
+import { makeTestGardenA } from "../../../../helpers"
 import { GetStatusCommand } from "../../../../../src/commands/get/get-status"
 import { withDefaultGlobalOpts } from "../../../../helpers"
 import { expect } from "chai"
@@ -23,110 +14,183 @@ import { LogLevel } from "../../../../../src/logger/logger"
 import { getLogMessages } from "../../../../../src/util/testing"
 
 describe("GetStatusCommand", () => {
-  let tmpDir: tmp.DirectoryResult
-  let config: ProjectConfig
-
-  before(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
-
-    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
-
-    config = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
-      path: tmpDir.path,
-      defaultEnvironment: "default",
-      dotIgnoreFiles: [],
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
-      providers: [{ name: "test" }],
-      variables: {},
-    }
-  })
-
-  after(async () => {
-    await tmpDir.cleanup()
-  })
+  const command = new GetStatusCommand()
 
   describe("action", () => {
-    it("should warn if a service's status can't be resolved", async () => {
-      const testPlugin = createGardenPlugin({
-        name: "test",
-        createModuleTypes: [
-          {
-            name: "test",
-            docs: "test",
-            serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
-            handlers: {
-              build: async () => ({}),
-              getServiceStatus: async ({ service }: GetServiceStatusParams) => {
-                return {
-                  state: <ServiceState>"ready",
-                  detail: {},
-                  outputs: { log: service.spec.log },
-                }
-              },
-            },
-          },
-        ],
+    it("returns statuses for all actions in a project", async () => {
+      const garden = await makeTestGardenA()
+
+      const { result } = await garden.runCommand({
+        command,
+        args: {},
+        opts: {
+          "skip-detail": false,
+          "only-deploys": false,
+        },
       })
 
-      const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
-
-      garden.setModuleConfigs([
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          name: "test",
-          type: "test",
-          allowPublish: false,
-          disabled: false,
-          build: { dependencies: [] },
-          path: tmpDir.path,
-          serviceConfigs: [
-            {
-              name: "test-service",
-              dependencies: ["test-task"],
-              disabled: false,
-              hotReloadable: false,
-              spec: {
-                log: "${runtime.tasks.test-task.outputs.log}",
-              },
+      expect(result).to.eql({
+        providers: {
+          "exec": {
+            ready: true,
+            outputs: {},
+          },
+          "container": {
+            ready: true,
+            outputs: {},
+          },
+          "templated": {
+            ready: true,
+            outputs: {},
+          },
+          "test-plugin": {
+            ready: true,
+            outputs: {
+              testKey: "testValue",
             },
-          ],
-          taskConfigs: [
-            {
-              name: "test-task",
-              cacheResult: true,
-              dependencies: [],
-              disabled: false,
-              spec: {
-                log: "test output",
-              },
-              timeout: 10,
+          },
+          "test-plugin-b": {
+            ready: true,
+            outputs: {
+              testKey: "testValue",
             },
-          ],
-          testConfigs: [],
-          spec: { bla: "fla" },
+          },
         },
-      ])
+        actions: {
+          Build: {
+            "module-b": {
+              state: "not-ready",
+              detail: null,
+              outputs: {},
+            },
+            "module-c": {
+              state: "not-ready",
+              detail: null,
+              outputs: {},
+            },
+            "module-a": {
+              state: "not-ready",
+              detail: null,
+              outputs: {},
+            },
+          },
+          Deploy: {
+            "service-b": {
+              state: "ready",
+              detail: {
+                state: "ready",
+                detail: {},
+                forwardablePorts: [],
+                outputs: {},
+                mode: "default",
+              },
+              outputs: {},
+            },
+            "service-c": {
+              state: "ready",
+              detail: {
+                state: "ready",
+                detail: {},
+                forwardablePorts: [],
+                outputs: {},
+                mode: "default",
+              },
+              outputs: {},
+            },
+            "service-a": {
+              state: "ready",
+              detail: {
+                state: "ready",
+                detail: {},
+                forwardablePorts: [],
+                outputs: {},
+                mode: "default",
+              },
+              outputs: {},
+            },
+          },
+          Test: {
+            "module-b-unit": {
+              state: "not-ready",
+              detail: null,
+              outputs: {},
+            },
+            "module-c-unit": {
+              state: "not-ready",
+              detail: null,
+              outputs: {},
+            },
+            "module-c-integ": {
+              state: "not-ready",
+              detail: null,
+              outputs: {},
+            },
+            "module-a-unit": {
+              state: "not-ready",
+              detail: null,
+              outputs: {},
+            },
+            "module-a-integration": {
+              state: "not-ready",
+              detail: null,
+              outputs: {},
+            },
+          },
+          Run: {
+            "task-b": {
+              state: "not-ready",
+              detail: null,
+              outputs: {},
+            },
+            "task-c": {
+              state: "not-ready",
+              detail: null,
+              outputs: {},
+            },
+            "task-a": {
+              state: "not-ready",
+              detail: null,
+              outputs: {},
+            },
+            "task-a2": {
+              state: "not-ready",
+              detail: null,
+              outputs: {},
+            },
+          },
+        },
+      })
+    })
 
-      const command = new GetStatusCommand()
+    it("should warn if a service's status can't be resolved", async () => {
+      const garden = await makeTestGardenA()
       const log = garden.log
-      const { result } = await command.action({
+
+      await garden.setTestActionStatus({
+        log,
+        kind: "Deploy",
+        name: "service-a",
+        status: {
+          state: "unknown",
+          detail: { state: "unknown", detail: {} },
+          outputs: {},
+        },
+      })
+
+      await command.action({
         garden,
         log,
         args: {},
-        opts: withDefaultGlobalOpts({}),
-        headerLog: log,
-        footerLog: log,
+        opts: withDefaultGlobalOpts({
+          "skip-detail": false,
+          "only-deploys": false,
+        }),
       })
-
-      expect(command.outputsSchema().validate(result).error).to.be.undefined
 
       const logMessages = getLogMessages(log, (l) => l.level === LogLevel.warn)
 
       expect(logMessages).to.include(
-        "Unable to resolve status for service test-service. It is likely missing or outdated. This can come up if the service has runtime dependencies that are not resolvable, i.e. not deployed or invalid."
+        "Unable to resolve status for Deploy service-a. It is likely missing or outdated. This can come up if the deployment has runtime dependencies that are not resolvable, i.e. not deployed or invalid."
       )
     })
   })

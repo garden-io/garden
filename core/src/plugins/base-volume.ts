@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,24 +7,23 @@
  */
 
 import { baseModuleSpecSchema, ModuleSpec } from "../config/module"
-import { joi } from "../config/common"
+import { createSchema, joi } from "../config/common"
 import { dedent } from "../util/string"
-import { createGardenPlugin } from "../types/plugin/plugin"
+import { createGardenPlugin } from "../plugin/plugin"
+import { memoize } from "lodash"
 
-type VolumeAccessMode = "ReadOnlyMany" | "ReadWriteOnce" | "ReadWriteMany"
+export type VolumeAccessMode = "ReadOnlyMany" | "ReadWriteOnce" | "ReadWriteMany"
 
 export interface BaseVolumeSpec extends ModuleSpec {
   accessModes: VolumeAccessMode[]
 }
 
-export const baseVolumeSpecSchema = () =>
-  baseModuleSpecSchema().keys({
-    accessModes: joi
-      .sparseArray()
-      .items(joi.string().allow("ReadOnlyMany", "ReadWriteOnce", "ReadWriteMany"))
-      .required()
-      .unique()
-      .min(1).description(dedent`
+export const accessModesSchemaKeys = memoize(() => ({
+  accessModes: joi
+    .sparseArray()
+    .items(joi.string().allow("ReadOnlyMany", "ReadWriteOnce", "ReadWriteMany"))
+    .unique()
+    .min(1).description(dedent`
       A list of access modes supported by the volume when mounting. At least one must be specified. The available modes are as follows:
 
        ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
@@ -33,7 +32,13 @@ export const baseVolumeSpecSchema = () =>
 
       At least one mode must be specified.
       `),
-  })
+}))
+
+export const baseVolumeSpecSchema = createSchema({
+  name: "base-volume-spec",
+  extend: baseModuleSpecSchema,
+  keys: accessModesSchemaKeys,
+})
 
 export const gardenPlugin = () =>
   createGardenPlugin({
@@ -45,6 +50,7 @@ export const gardenPlugin = () =>
         Internal abstraction used for specifying and referencing (usually persistent) volumes by other module types.
       `,
         schema: baseVolumeSpecSchema(),
+        needsBuild: false,
         handlers: {},
       },
     ],

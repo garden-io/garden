@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,16 +27,19 @@ import { validateWithPath } from "../config/validation"
 import { ConfigurationError, GardenBaseError, InternalError, RuntimeError, toGardenError } from "../exceptions"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { listDirectory, isConfigFilename } from "../util/fs"
-import { Command, CommandGroup, CommandParams, CommandResult, PrintHeaderParams } from "./base"
+import { Command, CommandParams, CommandResult, PrintHeaderParams } from "./base"
 import { customMinimist } from "../lib/minimist"
 import { removeSlice } from "../util/util"
 import { join } from "path"
+import { getBuiltinCommands } from "./commands"
+import { Log } from "../logger/log-entry"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
     name: spec.name,
     help: spec.description,
     required: spec.required,
+    spread: true,
   }
 
   if (spec.type === "string") {
@@ -71,21 +74,23 @@ export class CustomCommandWrapper extends Command {
   name = "<custom>"
   help = ""
 
+  isCustom = true
+
   allowUndefinedArguments = true
 
   constructor(public spec: CommandResource) {
-    super()
+    super(spec)
     this.name = spec.name
     this.help = spec.description?.short
     this.description = spec.description?.long
 
     // Convert argument specs, so they'll be validated
-    this.arguments = spec.args ? mapValues(keyBy(spec.args, "name"), convertArgSpec) : undefined
+    this.arguments = spec.args ? mapValues(keyBy(spec.args, "name"), convertArgSpec) : {}
     this.options = mapValues(keyBy(spec.opts, "name"), convertArgSpec)
   }
 
-  printHeader({ headerLog }: PrintHeaderParams) {
-    headerLog.info(chalk.cyan(this.name))
+  printHeader({ log }: PrintHeaderParams) {
+    log.info(chalk.cyan(this.name))
   }
 
   async action({ garden, cli, log, args, opts }: CommandParams<any, any>): Promise<CommandResult<CustomCommandResult>> {
@@ -120,7 +125,7 @@ export class CustomCommandWrapper extends Command {
       const exec = validateWithPath({
         config: resolveTemplateStrings(this.spec.exec, commandContext),
         schema: customCommandExecSchema(),
-        path: this.spec.path,
+        path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
         configType: `exec field in custom Command '${this.name}'`,
       })
@@ -164,7 +169,7 @@ export class CustomCommandWrapper extends Command {
       let gardenCommand = validateWithPath({
         config: resolveTemplateStrings(this.spec.gardenCommand, commandContext),
         schema: customCommandGardenCommandSchema(),
-        path: this.spec.path,
+        path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
         configType: `gardenCommand field in custom Command '${this.name}'`,
       })
@@ -173,7 +178,7 @@ export class CustomCommandWrapper extends Command {
 
       // Doing runtime check to avoid updating hundreds of test invocations with a new required param, sorry. - JE
       if (!cli) {
-        throw new InternalError(`Missing cli argument in custom command wrapper. This is a bug, please report it.`, {})
+        throw new InternalError(`Missing cli argument in custom command wrapper.`, {})
       }
 
       // Pass explicitly set global opts with the command, if they're not set in the command itself.
@@ -224,14 +229,14 @@ export class CustomCommandWrapper extends Command {
   }
 }
 
-export async function getCustomCommands(builtinCommands: (Command | CommandGroup)[], projectRoot: string) {
+export async function getCustomCommands(log: Log, projectRoot: string) {
   // Look for Command resources in the project root directory
   const rootFiles = await listDirectory(projectRoot, { recursive: false })
   const paths = rootFiles.filter(isConfigFilename).map((p) => join(projectRoot, p))
 
-  const resources = flatten(await Bluebird.map(paths, (path) => loadConfigResources(projectRoot, path)))
+  const resources = flatten(await Bluebird.map(paths, (path) => loadConfigResources(log, projectRoot, path)))
 
-  const builtinNames = builtinCommands.flatMap((c) => c.getPaths().map((p) => p.join(" ")))
+  const builtinNames = getBuiltinCommands().flatMap((c) => c.getPaths().map((p) => p.join(" ")))
 
   // Filter and validate the resources
   const commandResources = <CommandResource[]>resources
@@ -241,7 +246,7 @@ export async function getCustomCommands(builtinCommands: (Command | CommandGroup
       }
 
       if (builtinNames.includes(r.name)) {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         console.log(
           chalk.yellow(
             `Ignoring custom command ${r.name} because it conflicts with a built-in command with the same name`
@@ -260,7 +265,7 @@ export async function getCustomCommands(builtinCommands: (Command | CommandGroup
           exec: joi.any(),
           gardenCommand: joi.any(),
         }),
-        path: config.path,
+        path: (<CommandResource>config).internal.basePath,
         projectRoot,
         configType: `custom Command '${config.name}'`,
       })

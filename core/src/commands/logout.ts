@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,51 +9,77 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import { CloudApi, getGardenCloudDomain } from "../cloud/api"
-import { dedent } from "../util/string"
+import { dedent, deline } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
-import { ProjectResource } from "../config/project"
 import { ConfigurationError } from "../exceptions"
+import { ProjectResource } from "../config/project"
+import { findProjectConfig } from "../config/base"
+import { BooleanParameter } from "../cli/params"
 
-export class LogOutCommand extends Command {
+export const logoutOpts = {
+  "disable-project-check": new BooleanParameter({
+    help: deline`Disables the check that this is run from within a Garden Project. Logs you out from the default Garden Cloud domain`,
+    defaultValue: false,
+  }),
+}
+
+type Opts = typeof logoutOpts
+
+export class LogOutCommand extends Command<{}, Opts> {
   name = "logout"
   help = "Log out of Garden Cloud."
-  hidden = true
   noProject = true
 
   description = dedent`
     Logs you out of Garden Cloud.
   `
+  options = logoutOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Log out", "cloud")
+  printHeader({ log }) {
+    printHeader(log, "Log out", "☁️")
   }
 
-  async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
-    // Note: lazy-loading for startup performance
-    const { ClientAuthToken } = require("../db/entities/client-auth-token")
+  async action({ garden, log, opts }: CommandParams): Promise<CommandResult> {
+    // The Cloud API is missing from the Garden class for commands with noProject
+    // so we initialize it with a cloud domain derived from `getGardenCloudDomain`.
 
-    const token = await ClientAuthToken.findOne()
-    const distroName = getCloudDistributionName(garden.enterpriseDomain || "")
+    let projectConfig: ProjectResource | undefined = undefined
+    const forceProjectCheck = !opts["disable-project-check"]
 
-    if (!token) {
-      log.info({ msg: `You're already logged out from ${distroName}.` })
-      return {}
+    if (forceProjectCheck) {
+      projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
+
+      // Fail if this is not run within a garden project
+      if (!projectConfig) {
+        throw new ConfigurationError(
+          `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+          {
+            root: garden.projectRoot,
+          }
+        )
+      }
     }
+
+    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig?.domain)
+
+    const distroName = getCloudDistributionName(cloudDomain)
 
     try {
       // The Enterprise API is missing from the Garden class for commands with noProject
       // so we initialize it here.
-      const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
-      const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
 
-      if (!cloudDomain) {
-        throw new ConfigurationError(`Project config is missing a cloud domain.`, {})
+      const token = await garden.globalConfigStore.get("clientAuthTokens", cloudDomain)
+
+      if (!token) {
+        log.info({ msg: `You're already logged out from ${cloudDomain}.` })
+        return {}
       }
 
       const cloudApi = await CloudApi.factory({
         log,
         cloudDomain,
         skipLogging: true,
+        globalConfigStore: garden.globalConfigStore,
       })
 
       if (!cloudApi) {
@@ -66,13 +92,10 @@ export class LogOutCommand extends Command {
       const msg = dedent`
       The following issue occurred while logging out from ${distroName} (your session will be cleared regardless): ${err.message}\n
       `
-      log.warn({
-        symbol: "warning",
-        msg,
-      })
+      log.warn(msg)
     } finally {
-      log.info({ msg: `Succesfully logged out from ${distroName}.` })
-      await CloudApi.clearAuthToken(log)
+      await CloudApi.clearAuthToken(log, garden.globalConfigStore, cloudDomain)
+      log.info({ msg: `Succesfully logged out from ${cloudDomain}.` })
     }
     return {}
   }

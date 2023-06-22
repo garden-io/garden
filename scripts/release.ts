@@ -8,7 +8,7 @@ import parseArgs = require("minimist")
 import deline = require("deline")
 import { resolve, relative } from "path"
 import { readFile, createWriteStream, writeFile } from "fs-extra"
-import { getPackages } from "./run-script"
+import { getPackages } from "./script-utils"
 import Bluebird = require("bluebird")
 const replace = require("replace-in-file")
 
@@ -285,7 +285,13 @@ async function updateChangelog(version: string) {
   const changelogPath = "./CHANGELOG.md";
   // TODO: Use readStream and pipe
   const changelog = await readFile(changelogPath)
-  const nextChangelogEntry = (await execa("git-chglog", ["--next-tag", version, version], { cwd: gardenRoot })).stdout
+  const nextChangelogEntry = (
+    await execa(
+      "git-chglog",
+      ["--tag-filter-pattern", "^\\d+\\.\\d+\\.\\d+$", "--sort", "semver", "--next-tag", version, version],
+      { cwd: gardenRoot }
+    )
+  ).stdout
   return new Promise((resolve, reject) => {
     const writeStream = createWriteStream(changelogPath)
     writeStream.write(nextChangelogEntry)
@@ -320,8 +326,8 @@ async function stripPrereleaseTags(tags: string[], version: string) {
     }
   }
 
-  // We also need to remove the "edge" tag
-  await execa("git", ["tag", "-d", "edge"])
+  // We also need to remove the "edge-bonsai" tag
+  await execa("git", ["tag", "-d", "edge-bonsai"])
 }
 
 (async () => {

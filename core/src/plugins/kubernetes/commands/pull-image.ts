@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,23 +10,21 @@ import fs from "fs"
 import tmp from "tmp-promise"
 import { KubernetesPluginContext } from "../config"
 import { PluginError, ParameterError } from "../../../exceptions"
-import { PluginCommand } from "../../../types/plugin/command"
+import { PluginCommand } from "../../../plugin/command"
 import chalk from "chalk"
-import { GardenModule } from "../../../types/module"
-import { findByNames } from "../../../util/util"
-import { filter, map } from "lodash"
 import { KubeApi } from "../api"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { containerHelpers } from "../../container/helpers"
 import { RuntimeError } from "../../../exceptions"
 import { PodRunner } from "../run"
 import { dockerAuthSecretKey, systemDockerAuthSecretName, k8sUtilImageName } from "../constants"
 import { getAppNamespace, getSystemNamespace } from "../namespace"
-import { getRegistryPortForward } from "../container/util"
 import { randomString } from "../../../util/string"
 import { PluginContext } from "../../../plugin-context"
 import { ensureBuilderSecret } from "../container/build/common"
-import { usingInClusterRegistry } from "../util"
+import { ContainerBuildAction } from "../../container/config"
+import { k8sGetContainerBuildActionOutputs } from "../container/handlers"
+import { Resolved } from "../../../actions/types"
 
 const tmpTarPath = "/tmp/image.tar"
 const imagePullTimeoutSeconds = 60 * 20
@@ -35,9 +33,9 @@ export const pullImage: PluginCommand = {
   name: "pull-image",
   description: "Pull built images from a remote registry to a local docker daemon",
   title: "Pull images from a remote registry",
-  resolveModules: true,
+  resolveGraph: true,
 
-  handler: async ({ ctx, args, log, modules }) => {
+  handler: async ({ ctx, args, log, garden, graph }) => {
     const result = {}
     const k8sCtx = ctx as KubernetesPluginContext
     const provider = k8sCtx.provider
@@ -48,108 +46,61 @@ export const pullImage: PluginCommand = {
       })
     }
 
-    const modulesToPull = findModules(modules, args)
-    log.info({ msg: chalk.cyan(`\nPulling images for ${modulesToPull.length} modules`) })
+    const buildsToPull = graph.getBuilds({ names: args.length > 0 ? args : undefined }).filter((b) => {
+      const valid = b.isCompatible("container")
+      if (!valid && args.includes(b.name)) {
+        throw new ParameterError(chalk.red(`Build ${chalk.white(b.name)} is not a container build.`), {
+          name: b.name,
+        })
+      }
+      return valid
+    })
 
-    await pullModules(k8sCtx, modulesToPull, log)
+    log.info({ msg: chalk.cyan(`\nPulling images for ${buildsToPull.length} builds`) })
 
-    log.info({ msg: chalk.green("\nDone!"), status: "success" })
+    const resolvedBuilds = await garden.resolveActions({ actions: buildsToPull, graph, log })
+
+    await pullBuilds(k8sCtx, Object.values(resolvedBuilds), log)
+
+    log.success("\nDone!")
 
     return { result }
   },
 }
 
-function findModules(modules: GardenModule[], names: string[]): GardenModule[] {
-  let foundModules: GardenModule[]
-
-  if (!names || names.length === 0) {
-    foundModules = modules
-  } else {
-    foundModules = findByNames(names, modules, "modules")
-  }
-
-  ensureAllModulesValid(foundModules)
-
-  return foundModules
-}
-
-function ensureAllModulesValid(modules: GardenModule[]) {
-  const invalidModules = filter(modules, (module) => {
-    return !module.compatibleTypes.includes("container") || !containerHelpers.hasDockerfile(module, module.version)
-  })
-
-  if (invalidModules.length > 0) {
-    const invalidModuleNames = map(invalidModules, (module) => {
-      return module.name
-    })
-
-    throw new ParameterError(chalk.red(`Modules ${chalk.white(invalidModuleNames)} are not container modules.`), {
-      invalidModuleNames,
-      compatibleTypes: "container",
-    })
-  }
-}
-
-async function pullModules(ctx: KubernetesPluginContext, modules: GardenModule[], log: LogEntry) {
+async function pullBuilds(ctx: KubernetesPluginContext, builds: Resolved<ContainerBuildAction>[], log: Log) {
   await Promise.all(
-    modules.map(async (module) => {
-      const remoteId = containerHelpers.getPublicImageId(module)
-      const localId = module.outputs["local-image-id"]
+    builds.map(async (action) => {
+      const outputs = k8sGetContainerBuildActionOutputs({ provider: ctx.provider, action })
+      const remoteId = action.getSpec("publishId") || outputs.deploymentImageId
+      const localId = outputs.localImageId
       log.info({ msg: chalk.cyan(`Pulling image ${remoteId} to ${localId}`) })
-      await pullModule(ctx, module, log)
+      await pullBuild({ ctx, action, log, localId, remoteId })
       log.info({ msg: chalk.green(`\nPulled image: ${remoteId} -> ${localId}`) })
     })
   )
 }
 
-export async function pullModule(ctx: KubernetesPluginContext, module: GardenModule, log: LogEntry) {
-  const localId = module.outputs["local-image-id"]
-
-  if (usingInClusterRegistry(ctx.provider)) {
-    await pullFromInClusterRegistry(ctx, module, log, localId)
-  } else {
-    await pullFromExternalRegistry(ctx, module, log, localId)
-  }
+interface PullParams {
+  ctx: KubernetesPluginContext
+  action: ContainerBuildAction
+  log: Log
+  localId: string
+  remoteId: string
 }
 
-async function pullFromInClusterRegistry(
-  ctx: KubernetesPluginContext,
-  module: GardenModule,
-  log: LogEntry,
-  localId: string
-) {
-  const fwd = await getRegistryPortForward(ctx, log)
-  const imageId = module.outputs["deployment-image-id"]
-  const pullImageId = containerHelpers.unparseImageId({
-    ...containerHelpers.parseImageId(imageId),
-    // Note: using localhost directly here has issues with Docker for Mac.
-    // https://github.com/docker/for-mac/issues/3611
-    host: `local.app.garden:${fwd.localPort}`,
-  })
-
-  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["pull", pullImageId], log, ctx })
-  await containerHelpers.dockerCli({
-    cwd: module.buildPath,
-    args: ["tag", pullImageId, localId],
-    log,
-    ctx,
-  })
-  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["rmi", pullImageId], log, ctx })
+export async function pullBuild(params: PullParams) {
+  await pullFromExternalRegistry(params)
 }
 
-async function pullFromExternalRegistry(
-  ctx: KubernetesPluginContext,
-  module: GardenModule,
-  log: LogEntry,
-  localId: string
-) {
+async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullParams) {
   const api = await KubeApi.factory(log, ctx, ctx.provider)
   const buildMode = ctx.provider.config.buildMode
 
   let namespace: string
   let authSecretName: string
 
-  if (buildMode === "cluster-buildkit") {
+  if (buildMode === "cluster-buildkit" || buildMode === "kaniko") {
     namespace = await getAppNamespace(ctx, log, ctx.provider)
 
     const { authSecret } = await ensureBuilderSecret({
@@ -165,8 +116,6 @@ async function pullFromExternalRegistry(
     authSecretName = systemDockerAuthSecretName
   }
 
-  const imageId = module.outputs["deployment-image-id"]
-
   // See https://github.com/containers/skopeo for how all this works and the syntax
   const skopeoCommand = [
     "skopeo",
@@ -174,7 +123,7 @@ async function pullFromExternalRegistry(
     "--insecure-policy",
     "copy",
     "--quiet",
-    `docker://${imageId}`,
+    `docker://${remoteId}`,
     `docker-archive:${tmpTarPath}:${localId}`,
   ]
 
@@ -224,7 +173,7 @@ async function pullFromExternalRegistry(
     },
   })
 
-  log.debug(`Pulling image ${imageId} from registry to local docker`)
+  log.debug(`Pulling image ${remoteId} from registry to local docker`)
 
   try {
     await runner.start({ log })
@@ -240,9 +189,9 @@ async function pullFromExternalRegistry(
     log.debug(`Loading image to local docker with ID ${localId}`)
     await loadImage({ ctx, runner, log })
   } catch (err) {
-    throw new RuntimeError(`Failed pulling image ${imageId}: ${err.message}`, {
+    throw new RuntimeError(`Failed pulling image ${remoteId}: ${err.message}`, {
       err,
-      imageId,
+      remoteId,
       localId,
     })
   } finally {
@@ -250,7 +199,7 @@ async function pullFromExternalRegistry(
   }
 }
 
-async function loadImage({ ctx, runner, log }: { ctx: PluginContext; runner: PodRunner; log: LogEntry }) {
+async function loadImage({ ctx, runner, log }: { ctx: PluginContext; runner: PodRunner; log: Log }) {
   await tmp.withFile(async ({ path }) => {
     let writeStream = fs.createWriteStream(path)
 

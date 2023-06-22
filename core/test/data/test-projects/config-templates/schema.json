@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "envName": {
+      "type": "string"
+    },
+    "providerKey": {
+      "type": "string"
+    }
+  }
+}

@@ -1,11 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import { GardenBaseError, ConfigurationError, TemplateStringError } from "../exceptions"
 import {
   ConfigContext,
@@ -15,7 +16,7 @@ import {
   ContextKeySegment,
   GenericContext,
 } from "../config/template-contexts/base"
-import { difference, uniq, isPlainObject, isNumber, isString, cloneDeep } from "lodash"
+import { difference, uniq, isPlainObject, isNumber, cloneDeep, isString } from "lodash"
 import {
   Primitive,
   StringMap,
@@ -25,13 +26,19 @@ import {
   arrayForEachKey,
   arrayForEachReturnKey,
   arrayForEachFilterKey,
+  ActionReference,
+  conditionalKey,
+  conditionalThenKey,
+  conditionalElseKey,
 } from "../config/common"
 import { profile } from "../util/profiling"
-import { dedent, deline, naturalList, truncate } from "../util/string"
-import { deepMap, ObjectWithName } from "../util/util"
-import { LogEntry } from "../logger/log-entry"
-import { ModuleConfigContext } from "../config/template-contexts/module"
+import { dedent, deline, naturalList, titleize, truncate } from "../util/string"
+import type { ObjectWithName } from "../util/util"
+import { Log } from "../logger/log-entry"
+import type { ModuleConfigContext } from "../config/template-contexts/module"
 import { callHelperFunction } from "./functions"
+import { ActionKind, actionKindsLower } from "../actions/types"
+import { deepMap } from "../util/objects"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -194,23 +201,29 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
 
     return resolved
   } catch (err) {
-    const prefix = `Invalid template string (${truncate(string, 35).replace(/\n/g, "\\n")}): `
+    const prefix = `Invalid template string (${chalk.white(truncate(string, 35).replace(/\n/g, "\\n"))}): `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 
-    throw new TemplateStringError(message, {
-      err,
-    })
+    throw new TemplateStringError(message, {})
   }
 }
 
 /**
  * Recursively parses and resolves all templated strings in the given object.
  */
-export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T>(
-  value: T,
+
+// `extends any` here isn't pretty but this function is hard to type correctly
+export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T extends any>(
+  value: T ,
   context: ConfigContext,
   opts: ContextResolveOpts = {}
 ): T {
+  if (value === null) {
+    return null as T
+  }
+  if (value === undefined) {
+    return undefined as T
+  }
   if (typeof value === "string") {
     return <T>resolveTemplateString(value, context, opts)
   } else if (Array.isArray(value)) {
@@ -258,6 +271,9 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
     if (value[arrayForEachKey] !== undefined) {
       // Handle $forEach loop
       return handleForEachObject(value, context, opts)
+    } else if (value[conditionalKey] !== undefined) {
+      // Handle $if conditional
+      return handleConditional(value, context, opts)
     } else {
       // Resolve $merge keys, depth-first, leaves-first
       let output = {}
@@ -291,7 +307,7 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
   }
 })
 
-const expectedKeys = [arrayForEachKey, arrayForEachReturnKey, arrayForEachFilterKey]
+const expectedForEachKeys = [arrayForEachKey, arrayForEachReturnKey, arrayForEachFilterKey]
 
 function handleForEachObject(value: any, context: ConfigContext, opts: ContextResolveOpts) {
   // Validate input object
@@ -301,14 +317,14 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
     })
   }
 
-  const unexpectedKeys = Object.keys(value).filter((k) => !expectedKeys.includes(k))
+  const unexpectedKeys = Object.keys(value).filter((k) => !expectedForEachKeys.includes(k))
 
   if (unexpectedKeys.length > 0) {
     const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
 
-    throw new ConfigurationError(`Found one or more unexpected keys on $forEach object: ${extraKeys}`, {
+    throw new ConfigurationError(`Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}`, {
       value,
-      expectedKeys,
+      expectedKeys: expectedForEachKeys,
       unexpectedKeys,
     })
   }
@@ -376,6 +392,60 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
   return resolveTemplateStrings(output, context, opts)
 }
 
+const expectedConditionalKeys = [conditionalKey, conditionalThenKey, conditionalElseKey]
+
+function handleConditional(value: any, context: ConfigContext, opts: ContextResolveOpts) {
+  // Validate input object
+  const thenExpression = value[conditionalThenKey]
+  const elseExpression = value[conditionalElseKey]
+
+  if (thenExpression === undefined) {
+    throw new ConfigurationError(`Missing ${conditionalThenKey} field next to ${conditionalKey} field.`, {
+      value,
+    })
+  }
+
+  const unexpectedKeys = Object.keys(value).filter((k) => !expectedConditionalKeys.includes(k))
+
+  if (unexpectedKeys.length > 0) {
+    const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
+
+    throw new ConfigurationError(`Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}`, {
+      value,
+      expectedKeys: expectedConditionalKeys,
+      unexpectedKeys,
+    })
+  }
+
+  // Try resolving the value of the $if key
+  const resolvedConditional = resolveTemplateStrings(value[conditionalKey], context, opts)
+
+  if (typeof resolvedConditional !== "boolean") {
+    if (opts.allowPartial) {
+      return value
+    } else {
+      throw new ConfigurationError(
+        `Value of ${conditionalKey} key must be (or resolve to) a boolean (got ${typeof resolvedConditional})`,
+        {
+          value,
+          resolved: resolvedConditional,
+        }
+      )
+    }
+  }
+
+  // Note: We implicitly default the $else value to undefined
+
+  const resolvedThen = resolveTemplateStrings(thenExpression, context, opts)
+  const resolvedElse = resolveTemplateStrings(elseExpression, context, opts)
+
+  if (!!resolvedConditional) {
+    return resolvedThen
+  } else {
+    return resolvedElse
+  }
+}
+
 /**
  * Returns `true` if the given value is a string and looks to contain a template string.
  */
@@ -416,6 +486,87 @@ export function getRuntimeTemplateReferences<T extends object>(obj: T) {
   return refs.filter((ref) => ref[0] === "runtime")
 }
 
+interface ActionTemplateReference extends ActionReference {
+  fullRef: ContextKeySegment[]
+}
+
+/**
+ * Collects every reference to another action in the given config object, including translated runtime.* references.
+ * An error is thrown if a reference is not resolvable, i.e. if a nested template is used as a reference.
+ *
+ * TODO-0.13.1: Allow such nested references in certain cases, e.g. if resolvable with a ProjectConfigContext.
+ */
+export function getActionTemplateReferences<T extends object>(config: T): ActionTemplateReference[] {
+  const rawRefs = collectTemplateReferences(config)
+
+  // ${action.*}
+  const refs: ActionTemplateReference[] = rawRefs
+    .filter((ref) => ref[0] === "actions")
+    .map((ref) => {
+      if (!ref[1]) {
+        throw new ConfigurationError("Found invalid action reference (missing kind)", { config, ref })
+      }
+      if (!isString(ref[1])) {
+        throw new ConfigurationError("Found invalid action reference (kind is not a string)", { config, ref })
+      }
+      if (!actionKindsLower.includes(<any>ref[1])) {
+        throw new ConfigurationError(`Found invalid action reference (invalid kind '${ref[1]}')`, { config, ref })
+      }
+
+      if (!ref[2]) {
+        throw new ConfigurationError("Found invalid action reference (missing name)", { config, ref })
+      }
+      if (!isString(ref[2])) {
+        throw new ConfigurationError("Found invalid action reference (name is not a string)", { config, ref })
+      }
+
+      return {
+        kind: <ActionKind>titleize(ref[1]),
+        name: ref[2],
+        fullRef: ref,
+      }
+    })
+
+  // ${runtime.*}
+  for (const ref of rawRefs) {
+    if (ref[0] !== "runtime") {
+      continue
+    }
+
+    let kind: ActionKind
+
+    if (!ref[1]) {
+      throw new ConfigurationError("Found invalid runtime reference (missing kind)", { config, ref })
+    }
+    if (!isString(ref[1])) {
+      throw new ConfigurationError("Found invalid runtime reference (kind is not a string)", { config, ref })
+    }
+
+    if (ref[1] === "services") {
+      kind = "Deploy"
+    } else if (ref[1] === "tasks") {
+      kind = "Run"
+    } else {
+      throw new ConfigurationError(`Found invalid runtime reference (invalid kind '${ref[1]}')`, { config, ref })
+    }
+
+    if (!ref[2]) {
+      throw new ConfigurationError(`Found invalid runtime reference (missing name)`, { config, ref })
+    }
+    if (!isString(ref[2])) {
+      throw new ConfigurationError("Found invalid runtime reference (name is not a string)", { config, ref })
+    }
+
+    refs.push({
+      kind,
+      name: ref[2],
+      fullRef: ref,
+    })
+  }
+
+  return refs
+}
+
 export function getModuleTemplateReferences<T extends object>(obj: T, context: ModuleConfigContext) {
   const refs = collectTemplateReferences(obj)
   const moduleNames = refs.filter((ref) => ref[0] === "modules" && ref.length > 1)
@@ -432,12 +583,7 @@ export function getModuleTemplateReferences<T extends object>(obj: T, context: M
  *
  * TODO: We've disabled this for now. Re-introudce once we've removed get config command call from GE!
  */
-export function throwOnMissingSecretKeys(
-  configs: ObjectWithName[],
-  secrets: StringMap,
-  prefix: string,
-  log?: LogEntry
-) {
+export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: StringMap, prefix: string, log?: Log) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]
   for (const config of configs) {
     const missing = detectMissingSecretKeys(config, secrets)

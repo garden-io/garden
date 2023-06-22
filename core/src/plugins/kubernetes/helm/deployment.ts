@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,112 +9,69 @@
 import Bluebird from "bluebird"
 import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
-import { HelmModule } from "./config"
-import {
-  filterManifests,
-  getBaseModule,
-  getChartPath,
-  getReleaseName,
-  getValueArgs,
-  prepareManifests,
-  prepareTemplates,
-} from "./common"
-import {
-  gardenCloudAECPauseAnnotation,
-  getPausedResources,
-  getReleaseStatus,
-  getRenderedResources,
-  HelmServiceStatus,
-} from "./status"
-import { SyncableResource } from "../hot-reload/hot-reload"
+import { filterManifests, getReleaseName, getValueArgs, prepareManifests, prepareTemplates } from "./common"
+import { gardenCloudAECPauseAnnotation, getPausedResources, getReleaseStatus, getRenderedResources } from "./status"
 import { apply, deleteResources } from "../kubectl"
-import { KubernetesPluginContext, ServiceResourceSpec } from "../config"
-import { ContainerHotReloadSpec } from "../../container/config"
-import { DeployServiceParams } from "../../../types/plugin/service/deployService"
-import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
+import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
-import { getServiceResource, getServiceResourceSpec } from "../util"
-import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
-import { configureHotReload, getHotReloadContainerName, getHotReloadSpec } from "../hot-reload/helpers"
-import { configureDevMode, startDevModeSync } from "../dev-mode"
+import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
+import { configureSyncMode } from "../sync"
 import { KubeApi } from "../api"
-import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
+import { ConfiguredLocalMode, configureLocalMode, startServiceInLocalMode } from "../local-mode"
+import { DeployActionHandler } from "../../../plugin/action-types"
+import { HelmDeployAction } from "./config"
+import { isEmpty } from "lodash"
 
-export async function deployHelmService({
-  ctx,
-  module,
-  service,
-  log,
-  force,
-  devMode,
-  hotReload,
-  localMode,
-}: DeployServiceParams<HelmModule>): Promise<HelmServiceStatus> {
-  let hotReloadSpec: ContainerHotReloadSpec | null = null
-  let serviceResourceSpec: ServiceResourceSpec | null = null
-  let serviceResource: SyncableResource | null = null
-
+export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async (params) => {
+  const { ctx, action, log, force } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
+  const spec = action.getSpec()
+  let attached = false
+
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const namespaceStatus = await getModuleNamespaceStatus({
+  const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
-    module,
+    action,
     provider: k8sCtx.provider,
   })
-  const namespace = namespaceStatus.namespaceName
 
+  const namespace = namespaceStatus.namespaceName
   const preparedTemplates = await prepareTemplates({
     ctx: k8sCtx,
-    module,
-    devMode,
-    hotReload,
-    localMode,
+    action,
     log,
-    version: service.version,
   })
+  const { reference } = preparedTemplates
+  const releaseName = getReleaseName(action)
+  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log })
 
-  const chartPath = await getChartPath(module)
-  const releaseName = getReleaseName(module)
-  const releaseStatus = await getReleaseStatus({
-    ctx: k8sCtx,
-    module,
-    service,
-    releaseName,
-    log,
-    devMode,
-    hotReload,
-    localMode,
-  })
-
+  const timeout = action.getConfig("timeout")
   const commonArgs = [
     "--namespace",
     namespace,
     "--timeout",
-    module.spec.timeout.toString(10) + "s",
-    ...(await getValueArgs(module, devMode, hotReload, localMode)),
+    timeout.toString(10) + "s",
+    ...(await getValueArgs({ action, valuesPath: preparedTemplates.valuesPath })),
   ]
 
-  if (module.spec.atomicInstall) {
+  if (spec.atomic) {
     // Make sure chart gets purged if it fails to install
     commonArgs.push("--atomic")
   }
 
   if (releaseStatus.state === "missing") {
     log.silly(`Installing Helm release ${releaseName}`)
-    const installArgs = ["install", releaseName, chartPath, ...commonArgs]
+    const installArgs = ["install", releaseName, ...reference, ...commonArgs]
     if (force && !ctx.production) {
       installArgs.push("--replace")
     }
     await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs], emitLogEvents: true })
   } else {
-    if (hotReload) {
-      hotReloadSpec = getHotReloadSpec(service)
-    }
     log.silly(`Upgrading Helm release ${releaseName}`)
-    const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", ...commonArgs]
+    const upgradeArgs = ["upgrade", releaseName, ...reference, "--install", ...commonArgs]
     await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs], emitLogEvents: true })
 
     // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
@@ -122,7 +79,7 @@ export async function deployHelmService({
     // dangling annotations created by Garden Cloud.
     if (ctx.cloudApi) {
       try {
-        const pausedResources = await getPausedResources({ ctx: k8sCtx, module, namespace, releaseName, log })
+        const pausedResources = await getPausedResources({ ctx: k8sCtx, action, namespace, releaseName, log })
         await Bluebird.all(
           pausedResources.map((resource) => {
             const { annotations } = resource.metadata
@@ -134,67 +91,48 @@ export async function deployHelmService({
           })
         )
       } catch (error) {
-        const errorMsg = `Failed to remove Garden Cloud AEC annotations for service: ${service.name}.`
+        const errorMsg = `Failed to remove Garden Cloud AEC annotations for service: ${action.name}.`
         log.warn(errorMsg)
         log.debug(error)
       }
     }
   }
 
-  const preparedManifests = await prepareManifests({
+  let preparedManifests = await prepareManifests({
     ctx: k8sCtx,
     log,
-    module,
-    devMode,
-    hotReload,
-    localMode,
-    version: service.version,
-    namespace: preparedTemplates.namespace,
-    releaseName: preparedTemplates.releaseName,
-    chartPath: preparedTemplates.chartPath,
+    action,
+    ...preparedTemplates,
   })
   const manifests = await filterManifests(preparedManifests)
 
-  if ((devMode && module.spec.devMode) || hotReload || (localMode && module.spec.localMode)) {
-    serviceResourceSpec = getServiceResourceSpec(module, getBaseModule(module))
-    serviceResource = await getServiceResource({
+  const mode = action.mode()
+
+  // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
+  // installing/upgrading via Helm, we need to separately update the target here for sync-mode/local-mode.
+  // Local mode always takes precedence over sync mode.
+  let configuredLocalMode: ConfiguredLocalMode | undefined = undefined
+  if (mode === "local" && spec.localMode && !isEmpty(spec.localMode)) {
+    configuredLocalMode = await configureLocalMode({
+      ctx,
+      spec: spec.localMode,
+      defaultTarget: spec.defaultTarget,
+      manifests,
+      action,
+      log,
+    })
+    await apply({ log, ctx, api, provider, manifests: configuredLocalMode.updated, namespace })
+  } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
+    const configured = await configureSyncMode({
       ctx,
       log,
       provider,
-      module,
+      action,
+      defaultTarget: spec.defaultTarget,
       manifests,
-      resourceSpec: serviceResourceSpec,
+      spec: spec.sync,
     })
-  }
-
-  // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
-  // installing/upgrading via Helm, we need to separately update the target here for dev-mode/hot-reload/local-mode.
-  // Local mode always takes precedence over dev mode.
-  if (localMode && service.spec.localMode && serviceResourceSpec && serviceResource) {
-    await configureLocalMode({
-      ctx,
-      spec: service.spec.localMode,
-      targetResource: serviceResource,
-      gardenService: service,
-      log,
-      containerName: service.spec.localMode.containerName,
-    })
-    await apply({ log, ctx, api, provider, manifests: [serviceResource], namespace })
-  } else if (devMode && service.spec.devMode && serviceResourceSpec && serviceResource) {
-    configureDevMode({
-      target: serviceResource,
-      spec: service.spec.devMode,
-      containerName: service.spec.devMode.containerName,
-    })
-    await apply({ log, ctx, api, provider, manifests: [serviceResource], namespace })
-  } else if (hotReload && hotReloadSpec && serviceResourceSpec && serviceResource) {
-    configureHotReload({
-      target: serviceResource,
-      hotReloadSpec,
-      hotReloadArgs: serviceResourceSpec.hotReloadArgs,
-      containerName: getHotReloadContainerName(module),
-    })
-    await apply({ log, ctx, api, provider, manifests: [serviceResource], namespace })
+    await apply({ log, ctx, api, provider, manifests: configured.updated, namespace })
   }
 
   // FIXME: we should get these objects from the cluster, and not from the local `helm template` command, because
@@ -203,73 +141,68 @@ export async function deployHelmService({
     namespace,
     ctx,
     provider,
-    serviceName: service.name,
+    actionName: action.key(),
     resources: manifests,
     log,
-    timeoutSec: module.spec.timeout,
+    timeoutSec: timeout,
   })
 
   // Local mode has its own port-forwarding configuration
-  const forwardablePorts = localMode && service.spec.localMode ? [] : getForwardablePorts(manifests, service)
+  const forwardablePorts = mode === "local" && spec.localMode ? [] : getForwardablePorts(manifests, action)
 
   // Make sure port forwards work after redeployment
-  killPortForwards(service, forwardablePorts || [], log)
+  killPortForwards(action, forwardablePorts || [], log)
 
-  // Local mode always takes precedence over dev mode.
-  if (localMode && service.spec.localMode && serviceResource && serviceResourceSpec) {
+  // Local mode always takes precedence over sync mode.
+  if (mode === "local" && spec.localMode && configuredLocalMode && configuredLocalMode.updated?.length) {
     await startServiceInLocalMode({
       ctx,
-      spec: service.spec.localMode,
-      targetResource: serviceResource,
-      gardenService: service,
+      spec: spec.localMode,
+      targetResource: configuredLocalMode.updated[0],
+      manifests,
+      action,
       namespace,
       log,
-      containerName: service.spec.localMode.containerName,
     })
-  } else if (devMode && service.spec.devMode && serviceResource && serviceResourceSpec) {
-    await startDevModeSync({
-      ctx,
-      log,
-      moduleRoot: service.sourceModule.path,
-      namespace: serviceResource.metadata.namespace || namespace,
-      target: serviceResource,
-      spec: service.spec.devMode,
-      containerName: service.spec.devMode.containerName,
-      serviceName: service.name,
-    })
+    attached = true
   }
 
   return {
-    forwardablePorts,
     state: "ready",
-    version: service.version,
-    detail: { remoteResources: statuses.map((s) => s.resource) },
-    namespaceStatuses: [namespaceStatus],
+    detail: {
+      forwardablePorts,
+      state: "ready",
+      version: action.versionString(),
+      detail: { remoteResources: statuses.map((s) => s.resource) },
+    },
+    attached,
+    // TODO-0.13.1
+    outputs: {},
   }
 }
 
-export async function deleteService(params: DeleteServiceParams): Promise<HelmServiceStatus> {
-  const { ctx, log, module } = params
+export const deleteHelmDeploy: DeployActionHandler<"delete", HelmDeployAction> = async (params) => {
+  const { ctx, log, action } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const releaseName = getReleaseName(module)
+  const releaseName = getReleaseName(action)
 
-  const namespace = await getModuleNamespace({
+  const namespace = await getActionNamespace({
     ctx: k8sCtx,
     log,
-    module,
+    action,
     provider: k8sCtx.provider,
   })
 
-  const resources = await getRenderedResources({ ctx: k8sCtx, module, releaseName, log })
+  const resources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
 
   await helm({ ctx: k8sCtx, log, namespace, args: ["uninstall", releaseName], emitLogEvents: true })
 
   // Wait for resources to terminate
   await deleteResources({ log, ctx, provider, resources, namespace })
 
-  log.setSuccess("Service deleted")
+  log.success("Service deleted")
 
-  return { state: "missing", detail: { remoteResources: [] } }
+  return { state: "not-ready", outputs: {}, detail: { state: "missing", detail: { remoteResources: [] } } }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,30 +7,108 @@
  */
 
 import { expect } from "chai"
-import { getMatchingServiceNames } from "../../../../src/commands/helpers"
-import { ConfigGraph } from "../../../../src/config-graph"
-import { makeTestGardenA } from "../../../helpers"
+import { validateActionSearchResults } from "../../../../src/commands/helpers"
+import { getRootLogger } from "../../../../src/logger/logger"
+import { initTestLogger } from "../../../helpers"
+import { expectError } from "../../../helpers"
 
-describe("getDevModeServiceNames", () => {
-  let graph: ConfigGraph
+describe("command helpers", () => {
+  initTestLogger()
+  const logger = getRootLogger()
 
-  before(async () => {
-    const garden = await makeTestGardenA()
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-  })
+  describe("validateActionSearchResults", () => {
+    it("should throw if an action by exact name was not found", async () => {
+      await expectError(
+        () =>
+          validateActionSearchResults({
+            actionKind: "Build",
+            actions: [{ name: "action-1" }],
+            log: logger.createLog(),
+            names: ["foo"],
+            errData: {},
+          }),
+        { contains: 'action "foo" was not found' }
+      )
+    })
 
-  it("should return all services if --dev-mode=* is set", async () => {
-    const result = getMatchingServiceNames(["*"], graph)
-    expect(result).to.eql(graph.getServices().map((s) => s.name))
-  })
+    it("should throw if an action by exact name was not found even if wildcards are specified", async () => {
+      await expectError(
+        () =>
+          validateActionSearchResults({
+            actionKind: "Build",
+            actions: [{ name: "action-1" }],
+            log: logger.createLog(),
+            names: ["foo", "foo*"],
+            errData: {},
+          }),
+        { contains: 'action "foo" was not found' }
+      )
+    })
 
-  it("should return all services if --dev-mode is set with no value", async () => {
-    const result = getMatchingServiceNames([], graph)
-    expect(result).to.eql(graph.getServices().map((s) => s.name))
-  })
+    it("should contain action kind in error message", async () => {
+      await expectError(
+        () =>
+          validateActionSearchResults({
+            actionKind: "Build",
+            actions: [{ name: "action-1" }],
+            log: logger.createLog(),
+            names: ["foo"],
+            errData: {},
+          }),
+        { contains: "Build action" }
+      )
+    })
 
-  it("should return specific service if --dev-mode is set with a service name", async () => {
-    const result = getMatchingServiceNames(["service-a"], graph)
-    expect(result).to.eql(["service-a"])
+    it("should throw an error if no actions are found using wildcards", async () => {
+      await expectError(
+        () =>
+          validateActionSearchResults({
+            actionKind: "Build",
+            actions: [],
+            log: logger.createLog(),
+            names: ["foo*"],
+            errData: {},
+          }),
+        { contains: "No Build actions were found" }
+      )
+    })
+
+    it("should contain arguments in error message", async () => {
+      await expectError(
+        () =>
+          validateActionSearchResults({
+            actionKind: "Build",
+            actions: [],
+            log: logger.createLog(),
+            names: ["foo*"],
+            errData: {},
+          }),
+        { contains: "(matching argument(s) 'foo*')" }
+      )
+    })
+
+    it("should log a warning of no names are provided and no actions are found", async () => {
+      let log = logger.createLog()
+      validateActionSearchResults({
+        actionKind: "Build",
+        actions: [],
+        log,
+        names: undefined,
+        errData: {},
+      })
+
+      expect(log.entries[0].msg?.includes("No Build actions were found. Aborting.")).to.eql(true)
+
+      log = logger.createLog()
+      validateActionSearchResults({
+        actionKind: "Build",
+        actions: [],
+        log,
+        names: [],
+        errData: {},
+      })
+
+      expect(log.entries[0].msg?.includes("No Build actions were found. Aborting.")).to.eql(true)
+    })
   })
 })

@@ -6,7 +6,7 @@ ignore:
   - build/test/e2e/**/*
   - test/,src/,.garden
 reporter: spec
-timeout: 300000
+timeout: 180000
 exit: true
 spec:
   - build/test/integ/**/*.js

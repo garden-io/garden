@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,21 +8,24 @@
 
 import { expect } from "chai"
 import { Garden } from "../../../../../../src/garden"
-import { ConfigGraph } from "../../../../../../src/config-graph"
 import { getContainerTestGarden } from "../container/container"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { MutagenDaemon } from "../../../../../../src/plugins/kubernetes/mutagen"
+import { getMutagenMonitor } from "../../../../../../src/mutagen"
 import { syncPause, syncResume, syncStatus } from "../../../../../../src/plugins/kubernetes/commands/sync"
-import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
+import { Log } from "../../../../../../src/logger/log-entry"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
+import { join } from "path"
+import { MUTAGEN_DIR_NAME } from "../../../../../../src/constants"
+import { cleanProject } from "../../../../../helpers"
 
 describe("sync plugin commands", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext
-  let log: LogEntry
+  let log: Log
 
   before(async () => {
     await init("local")
@@ -30,41 +33,44 @@ describe("sync plugin commands", () => {
 
   after(async () => {
     if (garden) {
-      await garden.close()
-      await MutagenDaemon.clearInstance()
+      garden.close()
+      const dataDir = join(garden.gardenDirPath, MUTAGEN_DIR_NAME)
+      await getMutagenMonitor({ log, dataDir }).stop()
+      await cleanProject(garden.gardenDirPath)
     }
   })
 
   const init = async (environmentName: string) => {
-    garden = await getContainerTestGarden(environmentName)
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    // we use noTempDir here because the tests may fail otherwise locally
+    // This has something to do with with the project being in a temp directory.
+    garden = await getContainerTestGarden(environmentName, { noTempDir: true})
+    graph = await garden.getConfigGraph({
+      log: garden.log,
+      emit: false,
+      actionModes: { sync: ["deploy.sync-mode"] },
+    })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     log = garden.log
-    const service = graph.getService("dev-mode")
+    const action = graph.getDeploy("sync-mode")
 
     // The deploy task actually creates the sync
     const deployTask = new DeployTask({
       garden,
       graph,
       log,
-      service,
+      action,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [service.name],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
+      startSync: true,
     })
 
-    await garden.processTasks([deployTask], { throwOnError: true })
-
-    await MutagenDaemon.start({ ctx, log })
+    await garden.processTasks({ log, tasks: [deployTask], throwOnError: true })
   }
 
   describe("sync-status", () => {
     it("should print the Mutagen sync status", async () => {
-      const modules = graph.getModules()
-      const res = (await syncStatus.handler({ ctx, log, garden, modules, args: [] })) as any
+      const res = (await syncStatus.handler({ ctx, log, garden, graph, args: [] })) as any
 
       expect(res.result.syncSessions.length).to.equal(1)
       expect(res.result.syncSessions[0].alpha).to.exist
@@ -76,12 +82,11 @@ describe("sync plugin commands", () => {
 
   describe("sync-pause and sync-resume", () => {
     it("should pause all Mutagen syncs", async () => {
-      const modules = graph.getModules()
-      await syncPause.handler({ ctx, log, garden, modules, args: [] })
-      const pausedStatus = (await syncStatus.handler({ ctx, log, garden, modules, args: [] })) as any
+      await syncPause.handler({ ctx, log, garden, graph, args: [] })
+      const pausedStatus = (await syncStatus.handler({ ctx, log, garden, graph, args: [] })) as any
 
-      await syncResume.handler({ ctx, log, garden, modules, args: [] })
-      const resumedStatus = (await syncStatus.handler({ ctx, log, garden, modules, args: [] })) as any
+      await syncResume.handler({ ctx, log, garden, graph, args: [] })
+      const resumedStatus = (await syncStatus.handler({ ctx, log, garden, graph, args: [] })) as any
 
       expect(pausedStatus.result.syncSessions[0].paused).to.equal(true)
       expect(resumedStatus.result.syncSessions[0].paused).to.equal(false)

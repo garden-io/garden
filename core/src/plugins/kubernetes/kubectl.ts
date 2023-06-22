@@ -1,20 +1,19 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import _spawn from "cross-spawn"
-import { encodeYamlMulti } from "../../util/util"
+import { encodeYamlMulti } from "../../util/serialization"
 import { ExecParams, PluginTool } from "../../util/ext-tools"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { KubernetesProvider } from "./config"
 import { KubernetesResource } from "./types"
 import { gardenAnnotationKey } from "../../util/string"
-import { hashManifest } from "./util"
-import { PluginToolSpec } from "../../types/plugin/tools"
+import { getResourceKey, hashManifest } from "./util"
+import { PluginToolSpec } from "../../plugin/tools"
 import { PluginContext } from "../../plugin-context"
 import { KubeApi } from "./api"
 import { pathExists } from "fs-extra"
@@ -44,7 +43,7 @@ const versionedPruneKinds = [
 ]
 
 export interface ApplyParams {
-  log: LogEntry
+  log: Log
   ctx: PluginContext
   api: KubeApi
   provider: KubernetesProvider
@@ -132,27 +131,34 @@ export async function apply({
   }
 }
 
-export async function deleteResources({
-  log,
-  ctx,
-  provider,
-  namespace,
-  resources,
-  includeUninitialized = false,
-}: {
-  log: LogEntry
+export async function deleteResources(params: {
+  log: Log
   ctx: PluginContext
   provider: KubernetesProvider
   namespace: string
   resources: KubernetesResource[]
   includeUninitialized?: boolean
 }) {
-  const args = [
-    "delete",
-    "--wait=true",
-    "--ignore-not-found=true",
-    ...resources.map((r) => `${r.kind}/${r.metadata.name}`),
-  ]
+  const keys = params.resources.map(getResourceKey)
+  return deleteResourceKeys({ ...params, keys })
+}
+
+export async function deleteResourceKeys({
+  log,
+  ctx,
+  provider,
+  namespace,
+  keys,
+  includeUninitialized = false,
+}: {
+  log: Log
+  ctx: PluginContext
+  provider: KubernetesProvider
+  namespace: string
+  keys: string[]
+  includeUninitialized?: boolean
+}) {
+  const args = ["delete", "--wait=true", "--ignore-not-found=true", ...keys]
 
   includeUninitialized && args.push("--include-uninitialized")
 
@@ -168,7 +174,7 @@ export async function deleteObjectsBySelector({
   objectTypes,
   includeUninitialized = false,
 }: {
-  log: LogEntry
+  log: Log
   ctx: PluginContext
   provider: KubernetesProvider
   namespace: string
@@ -184,7 +190,7 @@ export async function deleteObjectsBySelector({
 }
 
 interface KubectlParams extends ExecParams {
-  log: LogEntry
+  log: Log
   namespace?: string
   configPath?: string
   args: string[]
@@ -204,7 +210,7 @@ class Kubectl extends PluginTool {
     super(spec)
   }
 
-  async getPath(log: LogEntry) {
+  async ensurePath(log: Log) {
     const override = this.provider.config.kubectlPath
 
     if (override) {
@@ -217,7 +223,7 @@ class Kubectl extends PluginTool {
       return override
     }
 
-    return super.getPath(log)
+    return super.ensurePath(log)
   }
 
   async stdout(params: KubectlParams) {
@@ -290,6 +296,7 @@ export function prepareConnectionOpts({
 
 export const kubectlSpec: PluginToolSpec = {
   name: "kubectl",
+  version: "1.23.3",
   description: "The official Kubernetes CLI.",
   type: "binary",
   _includeInGardenImage: true,

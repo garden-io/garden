@@ -1,29 +1,29 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModule } from "./config"
-import { PublishModuleParams } from "../../types/plugin/module/publishModule"
+import { ContainerBuildAction } from "./moduleConfig"
 import { containerHelpers } from "./helpers"
+import { BuildActionHandler } from "../../plugin/action-types"
 
-export async function publishContainerModule({ ctx, module, log, tag }: PublishModuleParams<ContainerModule>) {
-  if (!containerHelpers.hasDockerfile(module, module.version)) {
-    log.setState({ msg: `Nothing to publish` })
-    return { published: false }
-  }
+export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async ({
+  ctx,
+  action,
+  log,
+  tag,
+}) => {
+  const localId = action.getOutput("localImageId")
+  const remoteId = containerHelpers.getPublicImageId(action, tag)
 
-  const localId = module.outputs["local-image-id"]
-  const remoteId = containerHelpers.getPublicImageId(module, tag)
-
-  log.setState({ msg: `Publishing image ${remoteId}...` })
+  log.info({ msg: `Publishing image ${remoteId}...` })
 
   if (localId !== remoteId) {
     await containerHelpers.dockerCli({
-      cwd: module.buildPath,
+      cwd: action.getBuildPath(),
       args: ["tag", localId, remoteId],
       log,
       ctx,
@@ -31,7 +31,12 @@ export async function publishContainerModule({ ctx, module, log, tag }: PublishM
   }
 
   // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["push", remoteId], log, ctx })
+  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteId], log, ctx })
 
-  return { published: true, message: `Published ${remoteId}` }
+  return {
+    state: "ready",
+    detail: { published: true, message: `Published ${remoteId}` },
+    // TODO-0.13.1
+    outputs: {},
+  }
 }

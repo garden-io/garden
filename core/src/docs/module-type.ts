@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,7 +13,7 @@ import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { joi } from "../config/common"
 import { ModuleReferenceContext, ServiceRuntimeContext, TaskRuntimeContext } from "../config/template-contexts/module"
-import { ModuleTypeDefinition } from "../types/plugin/plugin"
+import { ModuleTypeDefinition } from "../plugin/plugin"
 import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config"
 
 const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema().concat(schema)
@@ -27,8 +27,6 @@ export const moduleTypes = [
   { name: "helm", pluginName: "local-kubernetes" },
   { name: "jib-container" },
   { name: "kubernetes", pluginName: "local-kubernetes" },
-  { name: "maven-container" },
-  { name: "openfaas" },
   { name: "persistentvolumeclaim", pluginName: "local-kubernetes" },
   { name: "templated" },
   { name: "terraform" },

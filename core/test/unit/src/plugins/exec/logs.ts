@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,12 +8,12 @@
 
 import tmp from "tmp-promise"
 import { expect } from "chai"
-import { join, resolve } from "path"
+import { join } from "path"
 import moment from "moment"
 import { Garden } from "../../../../../src/garden"
 import { gardenPlugin } from "../../../../../src/plugins/exec/exec"
-import { LogEntry } from "../../../../../src/logger/log-entry"
-import { dataDir, makeTestGarden } from "../../../../helpers"
+import { Log } from "../../../../../src/logger/log-entry"
+import { getDataDir, makeTestGarden } from "../../../../helpers"
 import { appendFile, ensureFile, remove, writeFile } from "fs-extra"
 import { randomString } from "../../../../../src/util/string"
 import { ExecLogsFollower, LocalServiceLogEntry } from "../../../../../src/plugins/exec/logs"
@@ -45,10 +45,10 @@ async function writeLogFile(path: string, entries: LocalServiceLogEntry[], appen
 
 describe("ExecLogsFollower", () => {
   let tmpDir: tmp.DirectoryResult
-  const projectRoot = resolve(dataDir, "test-project-exec")
+  const projectRoot = getDataDir("test-project-exec")
 
   let garden: Garden
-  let log: LogEntry
+  let log: Log
 
   before(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
@@ -67,7 +67,7 @@ describe("ExecLogsFollower", () => {
 
       const execLogsFollower = new ExecLogsFollower({
         stream,
-        serviceName: "foo",
+        deployName: "foo",
         log,
         logFilePath,
       })
@@ -75,7 +75,7 @@ describe("ExecLogsFollower", () => {
       const entries = range(100).map((el) => ({
         msg: String(el),
         timestamp: new Date(),
-        serviceName: "foo",
+        name: "foo",
         level: 2,
       }))
 
@@ -92,7 +92,7 @@ describe("ExecLogsFollower", () => {
 
       const execLogsFollower = new ExecLogsFollower({
         stream,
-        serviceName: "foo",
+        deployName: "foo",
         log,
         logFilePath,
       })
@@ -100,7 +100,7 @@ describe("ExecLogsFollower", () => {
       const entries = range(10).map((el) => ({
         msg: String(el),
         timestamp: new Date(),
-        serviceName: "foo",
+        name: "foo",
         level: 0,
       }))
 
@@ -117,7 +117,7 @@ describe("ExecLogsFollower", () => {
 
       const execLogsFollower = new ExecLogsFollower({
         stream,
-        serviceName: "foo",
+        deployName: "foo",
         log,
         logFilePath,
       })
@@ -125,7 +125,7 @@ describe("ExecLogsFollower", () => {
       const entries = range(100).map((el) => ({
         msg: String(el),
         timestamp: new Date(),
-        serviceName: "foo",
+        name: "foo",
         level: 2,
       }))
 
@@ -141,7 +141,7 @@ describe("ExecLogsFollower", () => {
 
       const execLogsFollower = new ExecLogsFollower({
         stream,
-        serviceName: "foo",
+        deployName: "foo",
         log,
         logFilePath,
       })
@@ -150,25 +150,25 @@ describe("ExecLogsFollower", () => {
         {
           msg: "Hello 1",
           timestamp: moment().subtract(2, "h").toDate(),
-          serviceName: "foo",
+          name: "foo",
           level: 2,
         },
         {
           msg: "Hello 2",
           timestamp: moment().subtract(2, "h").toDate(),
-          serviceName: "foo",
+          name: "foo",
           level: 2,
         },
         {
           msg: "Hello 3",
           timestamp: moment().subtract(1, "h").toDate(),
-          serviceName: "foo",
+          name: "foo",
           level: 2,
         },
         {
           msg: "Hello 4",
           timestamp: moment().subtract(1, "h").toDate(),
-          serviceName: "foo",
+          name: "foo",
           level: 2,
         },
       ]
@@ -187,7 +187,7 @@ describe("ExecLogsFollower", () => {
 
       const execLogsFollower = new ExecLogsFollower({
         stream,
-        serviceName: "foo",
+        deployName: "foo",
         log,
         logFilePath,
       })
@@ -200,19 +200,19 @@ describe("ExecLogsFollower", () => {
         },
         {
           msg: "Invalid - Missing timestamp",
-          serviceName: "foo",
+          name: "foo",
           level: 2,
         },
         {
           msg: "Valid 1",
           timestamp: moment().subtract(1, "h").toDate(),
-          serviceName: "foo",
+          name: "foo",
           level: 2,
         },
         {
           msg: "Valid 2",
           timestamp: moment().subtract(1, "h").toDate(),
-          serviceName: "foo",
+          name: "foo",
           level: 2,
         },
       ]
@@ -229,7 +229,7 @@ describe("ExecLogsFollower", () => {
 
       const execLogsFollower = new ExecLogsFollower({
         stream,
-        serviceName: "foo",
+        deployName: "foo",
         log,
         logFilePath,
       })
@@ -254,7 +254,7 @@ describe("ExecLogsFollower", () => {
 
         execLogsFollower = new ExecLogsFollower({
           stream,
-          serviceName: "foo",
+          deployName: "foo",
           log,
           logFilePath,
           retryIntervalMs: 250,
@@ -264,7 +264,7 @@ describe("ExecLogsFollower", () => {
         const entries = range(100).map((el) => ({
           msg: String(el),
           timestamp: new Date(),
-          serviceName: "foo",
+          name: "foo",
           level: 2,
         }))
 
@@ -280,7 +280,7 @@ describe("ExecLogsFollower", () => {
 
         execLogsFollower = new ExecLogsFollower({
           stream,
-          serviceName: "foo",
+          deployName: "foo",
           log,
           logFilePath,
           retryIntervalMs: 250,
@@ -291,7 +291,7 @@ describe("ExecLogsFollower", () => {
         const firstBatch = range(100).map((el) => ({
           msg: `first-batch-${String(el)}`,
           timestamp: new Date(),
-          serviceName: "foo",
+          name: "foo",
           level: 2,
         }))
 
@@ -304,7 +304,7 @@ describe("ExecLogsFollower", () => {
         const secondBatch = range(100).map((el) => ({
           msg: `second-batch-${String(el)}`,
           timestamp: new Date(),
-          serviceName: "foo",
+          name: "foo",
           level: 2,
         }))
 
@@ -320,7 +320,7 @@ describe("ExecLogsFollower", () => {
 
         execLogsFollower = new ExecLogsFollower({
           stream,
-          serviceName: "foo",
+          deployName: "foo",
           log,
           logFilePath,
           retryIntervalMs: 250,
@@ -331,7 +331,7 @@ describe("ExecLogsFollower", () => {
         const firstBatch = range(100).map((el) => ({
           msg: `first-batch-${String(el)}`,
           timestamp: new Date(),
-          serviceName: "foo",
+          name: "foo",
           level: 2,
         }))
 
@@ -349,7 +349,7 @@ describe("ExecLogsFollower", () => {
         const secondBatch = range(100).map((el) => ({
           msg: `second-batch-${String(el)}`,
           timestamp: new Date(),
-          serviceName: "foo",
+          name: "foo",
           level: 2,
         }))
 
@@ -365,7 +365,7 @@ describe("ExecLogsFollower", () => {
 
         execLogsFollower = new ExecLogsFollower({
           stream,
-          serviceName: "foo",
+          deployName: "foo",
           log,
           logFilePath,
           retryIntervalMs: 250,

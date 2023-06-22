@@ -1,0 +1,6 @@
+kind: "Deploy"
+type: "kubernetes"
+name: "config-map-list"
+spec:
+  files:
+    - manifests.yaml

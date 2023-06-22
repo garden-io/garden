@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,35 +9,30 @@
 import { IncomingHttpHeaders } from "http"
 
 import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
-import { EnterpriseApiError } from "../exceptions"
-import { LogEntry } from "../logger/log-entry"
-import { gardenEnv } from "../constants"
-import type { ClientAuthToken as ClientAuthTokenType } from "../db/entities/client-auth-token"
+import { CloudApiError } from "../exceptions"
+import { Log } from "../logger/log-entry"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
 import { Cookie } from "tough-cookie"
 import { isObject } from "lodash"
 import { deline } from "../util/string"
-import chalk from "chalk"
 import {
   GetProjectResponse,
   GetProfileResponse,
   CreateProjectsForRepoResponse,
   ListProjectsResponse,
 } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getPackageVersion } from "../util/util"
+import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
-import { ProjectResource } from "../config/project"
+import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
+import { add } from "date-fns"
+import { LogLevel } from "../logger/logger"
+import { makeAuthHeader } from "./auth"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
 
-export class EnterpriseApiDuplicateProjectsError extends EnterpriseApiError {}
-
-// If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
-// switch to ci-token authentication method.
-export const authTokenHeader =
-  gardenEnv.GARDEN_AUTH_TOKEN && !gardenEnv.GARDEN_GE_SCHEDULED ? "x-ci-token" : "x-access-auth-token"
-
-export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]: clientAuthToken })
+export class CloudApiDuplicateProjectsError extends CloudApiError {}
+export class CloudApiTokenRefreshError extends CloudApiError {}
 
 export function isGotError(error: any, statusCode: number): error is GotHttpError {
   return error instanceof GotHttpError && error.response.statusCode === statusCode
@@ -96,21 +91,27 @@ export type ApiFetchResponse<T> = T & {
 }
 
 // TODO: Read this from the `api-types` package once the session registration logic has been released in Cloud.
-export interface RegisterSessionResponse {
+export interface CloudSessionResponse {
   environmentId: number
   namespaceId: number
+  shortId: string
+}
+
+export interface CloudSession extends CloudSessionResponse {
+  api: CloudApi
+  id: string
+  projectId: string
 }
 
 // Represents a cloud environment
 export interface CloudEnvironment {
-  id: number
+  id: string
   name: string
 }
 
 // Represents a cloud project
 export interface CloudProject {
-  id: number
-  uid: string
+  id: string
   name: string
   repositoryUrl: string
   environments: CloudEnvironment[]
@@ -127,7 +128,6 @@ function toCloudProject(
 
   return {
     id: project.id,
-    uid: project.uid,
     name: project.name,
     repositoryUrl: project.repositoryUrl,
     environments,
@@ -138,20 +138,23 @@ function toCloudProject(
  * A helper function to get the cloud domain from a project config. Uses the env var
  * GARDEN_CLOUD_DOMAIN to override a configured domain.
  */
-export function getGardenCloudDomain(projectConfig?: ProjectResource): string | undefined {
-  if (!projectConfig) {
-    return undefined
-  }
-
+export function getGardenCloudDomain(configuredDomain: string | undefined): string {
   let cloudDomain: string | undefined
 
   if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
     cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
-  } else if (projectConfig.domain) {
-    cloudDomain = new URL(projectConfig.domain).origin
+  } else if (configuredDomain) {
+    cloudDomain = new URL(configuredDomain).origin
   }
 
-  return cloudDomain
+  return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
+}
+
+export interface CloudApiFactoryParams {
+  log: Log
+  cloudDomain: string
+  globalConfigStore: GlobalConfigStore
+  skipLogging?: boolean
 }
 
 /**
@@ -162,23 +165,25 @@ export function getGardenCloudDomain(projectConfig?: ProjectResource): string | 
  */
 export class CloudApi {
   private intervalId: NodeJS.Timer | null
-  private log: LogEntry
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private apiPrefix = "api"
-  private _project?: CloudProject
   private _profile?: GetProfileResponse["data"]
-  public domain: string
-  public projectId: string | undefined
 
-  // Set when/if the Core session is registered with Cloud
-  public environmentId?: number
-  public namespaceId?: number
-  public sessionRegistered = false
+  private projects: Map<string, CloudProject> // keyed by project ID
+  private registeredSessions: Map<string, CloudSession> // keyed by session ID
 
-  constructor(log: LogEntry, enterpriseDomain: string) {
+  private log: Log
+  public readonly domain: string
+  public readonly distroName: string
+  private globalConfigStore: GlobalConfigStore
+
+  constructor({ log, domain, globalConfigStore }: { log: Log; domain: string; globalConfigStore: GlobalConfigStore }) {
     this.log = log
-    // TODO: Replace all instances of "enterpriseDomain" with "cloudDomain".
-    this.domain = enterpriseDomain
+    this.domain = domain
+    this.distroName = getCloudDistributionName(domain)
+    this.globalConfigStore = globalConfigStore
+    this.projects = new Map()
+    this.registeredSessions = new Map()
   }
 
   /**
@@ -190,35 +195,31 @@ export class CloudApi {
    * Optionally skip logging during initialization. Useful for noProject commands that need to use the class
    * without all the "flair".
    */
-  static async factory({
-    log,
-    cloudDomain,
-    skipLogging = false,
-  }: {
-    log: LogEntry
-    cloudDomain: string
-    skipLogging?: boolean
-  }) {
-    log.debug("Initializing Garden Cloud API client.")
+  static async factory({ log, cloudDomain, globalConfigStore, skipLogging = false }: CloudApiFactoryParams) {
+    const distroName = getCloudDistributionName(cloudDomain)
+    const fixLevel = skipLogging ? LogLevel.silly : undefined
+    const cloudFactoryLog = log.createLog({ fixLevel, name: getCloudLogSectionName(distroName), showDuration: true })
 
-    const token = await CloudApi.getClientAuthTokenFromDb(log)
+    cloudFactoryLog.debug("Initializing Garden Cloud API client.")
+
+    const token = await CloudApi.getStoredAuthToken(log, globalConfigStore, cloudDomain)
+
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
-      log.debug("User is not logged in. Aborting.")
-      return null
+      log.debug(
+        `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
+      )
+      return
     }
 
-    const api = new CloudApi(log, cloudDomain)
+    const api = new CloudApi({ log, domain: cloudDomain, globalConfigStore })
     const tokenIsValid = await api.checkClientAuthToken()
 
-    const distroName = getCloudDistributionName(api.domain)
-    const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
-
-    const enterpriseLog = skipLogging ? null : log.info({ section, msg: "Authorizing...", status: "active" })
+    cloudFactoryLog.debug("Authorizing...")
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
       // Throw if using an invalid "CI" access token
       if (!tokenIsValid) {
-        throw new EnterpriseApiError(
+        throw new CloudApiError(
           deline`
             The provided access token is expired or has been revoked, please create a new
             one from the ${distroName} UI.`,
@@ -228,60 +229,46 @@ export class CloudApi {
     } else {
       // Refresh the token if it's invalid.
       if (!tokenIsValid) {
-        enterpriseLog?.debug({ msg: `Current auth token is invalid, refreshing` })
-        try {
-          // We can assert the token exsists since we're not using GARDEN_AUTH_TOKEN
-          await api.refreshToken(token!)
-        } catch (err) {
-          enterpriseLog?.setError({ msg: `Invalid session`, append: true })
-          enterpriseLog?.warn(deline`
-          Your session is invalid and could not be refreshed. If you were previously logged
-          in to another instance of ${distroName}, please log out first and then
-          log back in again.
-        `)
-          throw err
-        }
+        cloudFactoryLog.debug({ msg: `Current auth token is invalid, refreshing` })
+
+        // We can assert the token exists since we're not using GARDEN_AUTH_TOKEN
+        await api.refreshToken(token!)
       }
 
       // Start refresh interval if using JWT
-      log.debug({ msg: `Starting refresh interval.` })
+      cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
       api.startInterval()
     }
-
-    enterpriseLog?.setSuccess({ msg: chalk.green("Done"), append: true })
 
     return api
   }
 
-  static async saveAuthToken(log: LogEntry, tokenResponse: AuthTokenResponse) {
+  static async saveAuthToken(
+    log: Log,
+    globalConfigStore: GlobalConfigStore,
+    tokenResponse: AuthTokenResponse,
+    domain: string
+  ) {
+    const distroName = getCloudDistributionName(domain)
+
     if (!tokenResponse.token) {
       const errMsg = deline`
         Received a null/empty client auth token while logging in. This indicates that either your user account hasn't
-        yet been created in Garden Cloud, or that there's a problem with your account's VCS username / login
+        yet been created in ${distroName}, or that there's a problem with your account's VCS username / login
         credentials.
       `
-      throw new EnterpriseApiError(errMsg, { tokenResponse })
+      throw new CloudApiError(errMsg, { tokenResponse })
     }
     try {
-      // Note: lazy-loading for startup performance
-      const { ClientAuthToken } = require("../db/entities/client-auth-token")
-      const { add } = require("date-fns")
-
-      const manager = ClientAuthToken.getConnection().manager
-      await manager.transaction(async (transactionalEntityManager) => {
-        await transactionalEntityManager.clear(ClientAuthToken)
-        await transactionalEntityManager.save(
-          ClientAuthToken,
-          ClientAuthToken.create({
-            token: tokenResponse.token,
-            refreshToken: tokenResponse.refreshToken,
-            validity: add(new Date(), { seconds: tokenResponse.tokenValidity / 1000 }),
-          })
-        )
+      const validityMs = tokenResponse.tokenValidity || 604800000
+      await globalConfigStore.set("clientAuthTokens", domain, {
+        token: tokenResponse.token,
+        refreshToken: tokenResponse.refreshToken,
+        validity: add(new Date(), { seconds: validityMs / 1000 }),
       })
-      log.debug("Saved client auth token to local config db")
+      log.debug("Saved client auth token to config store")
     } catch (error) {
-      throw new EnterpriseApiError(
+      throw new CloudApiError(
         `An error occurred while saving client auth token to local config db:\n${error.message}`,
         { tokenResponse }
       )
@@ -294,29 +281,9 @@ export class CloudApi {
    * In the inconsistent/erroneous case of more than one auth token existing in the local store, picks the first auth
    * token and deletes all others.
    */
-  static async getClientAuthTokenFromDb(log: LogEntry) {
-    // Note: lazy-loading for startup performance
-    const { ClientAuthToken } = require("../db/entities/client-auth-token")
-    const [tokens, tokenCount] = await ClientAuthToken.findAndCount()
-
-    const token = tokens[0] ? tokens[0] : undefined
-
-    if (tokenCount > 1) {
-      log.debug("More than one client auth token found, clearing up...")
-      try {
-        await ClientAuthToken.getConnection()
-          .createQueryBuilder()
-          .delete()
-          .from(ClientAuthToken)
-          .where("token != :token", { token: token?.token })
-          .execute()
-      } catch (error) {
-        log.error(`An error occurred while clearing up duplicate client auth tokens:\n${error.message}`)
-      }
-    }
-    log.silly(`Retrieved client auth token from local config db`)
-
-    return token
+  static async getStoredAuthToken(log: Log, globalConfigStore: GlobalConfigStore, domain: string) {
+    log.silly(`Retrieving client auth token from config store`)
+    return globalConfigStore.get("clientAuthTokens", domain)
   }
 
   /**
@@ -326,23 +293,24 @@ export class CloudApi {
    * Note that the GARDEN_AUTH_TOKEN environment variable takes precedence over a persisted auth token if both are
    * present.
    */
-  static async getAuthToken(log: LogEntry): Promise<string | undefined> {
+  static async getAuthToken(
+    log: Log,
+    globalConfigStore: GlobalConfigStore,
+    domain: string
+  ): Promise<string | undefined> {
     const tokenFromEnv = gardenEnv.GARDEN_AUTH_TOKEN
     if (tokenFromEnv) {
       log.silly("Read client auth token from env")
       return tokenFromEnv
     }
-    return (await CloudApi.getClientAuthTokenFromDb(log))?.token
+    return (await CloudApi.getStoredAuthToken(log, globalConfigStore, domain))?.token
   }
 
   /**
    * If a persisted client auth token exists, deletes it.
    */
-  static async clearAuthToken(log: LogEntry) {
-    // Note: lazy-loading for startup performance
-    const { ClientAuthToken } = require("../db/entities/client-auth-token")
-
-    await ClientAuthToken.getConnection().createQueryBuilder().delete().from(ClientAuthToken).execute()
+  static async clearAuthToken(log: Log, globalConfigStore: GlobalConfigStore, domain: string) {
+    await globalConfigStore.delete("clientAuthTokens", domain)
     log.debug("Cleared persisted auth token (if any)")
   }
 
@@ -363,29 +331,11 @@ export class CloudApi {
     }
   }
 
-  /**
-   * Verifies the projectId against Garden Cloud and assigns it
-   * to the active API instance. Returns the project metadata or throws
-   * an error if the project does not exist.
-   */
-  async verifyAndConfigureProject(projectId: string): Promise<CloudProject> {
-    let project: CloudProject | undefined
-    try {
-      this.projectId = projectId
-      project = await this.getProject()
-    } catch (err) {
-      this.projectId = undefined
-      throw err
-    }
-
-    if (!project) {
-      throw new EnterpriseApiError(`Garden Cloud has no project with ${projectId}`, {})
-    }
-
-    return project
+  sessionRegistered(id: string) {
+    return this.registeredSessions.has(id)
   }
 
-  async getProjectByName(projectName: string): Promise<CloudProject | undefined> {
+  async getAllProjects(): Promise<CloudProject[]> {
     let response: ListProjectsResponse
 
     try {
@@ -395,13 +345,24 @@ export class CloudApi {
       throw err
     }
 
-    let projects: ListProjectsResponse["data"] = response.data
+    let projectList: ListProjectsResponse["data"] = response.data
 
-    projects = projects.filter((p) => p.name === projectName)
+    return projectList.map((p) => {
+      const project = toCloudProject(p)
+      // Cache the entry by ID
+      this.projects.set(project.id, project)
+      return project
+    })
+  }
+
+  async getProjectByName(projectName: string): Promise<CloudProject | undefined> {
+    const allProjects = await this.getAllProjects()
+
+    const projects = allProjects.filter((p) => p.name === projectName)
 
     // Expect a single project, otherwise we fail with an error
     if (projects.length > 1) {
-      throw new EnterpriseApiDuplicateProjectsError(
+      throw new CloudApiDuplicateProjectsError(
         deline`Found an unexpected state with multiple projects using the same name, ${projectName}.
         Please make sure there is only one project with the given name.
         Projects can be deleted through the Garden Cloud UI at ${this.domain}`,
@@ -409,13 +370,7 @@ export class CloudApi {
       )
     }
 
-    let project: ListProjectsResponse["data"][0] | undefined = projects[0]
-
-    if (!project) {
-      return undefined
-    }
-
-    return toCloudProject(project)
+    return projects[0]
   }
 
   async createProject(projectName: string): Promise<CloudProject> {
@@ -441,25 +396,18 @@ export class CloudApi {
     return toCloudProject(project)
   }
 
-  async getOrCreateProject(projectName: string): Promise<CloudProject> {
+  async getOrCreateProjectByName(projectName: string): Promise<CloudProject> {
     let project: CloudProject | undefined = await this.getProjectByName(projectName)
 
     if (!project) {
       project = await this.createProject(projectName)
     }
 
-    // This is necessary to internally configure the project for this instance
-    this._project = project
-    this.projectId = project.uid
-
     return project
   }
 
   private async refreshTokenIfExpired() {
-    // Note: lazy-loading for startup performance
-    const { ClientAuthToken } = require("../db/entities/client-auth-token")
-
-    const token = await ClientAuthToken.findOne()
+    const token = await this.globalConfigStore.get("clientAuthTokens", this.domain)
 
     if (!token || gardenEnv.GARDEN_AUTH_TOKEN) {
       this.log.debug({ msg: "Nothing to refresh, returning." })
@@ -474,7 +422,7 @@ export class CloudApi {
     }
   }
 
-  private async refreshToken(token: ClientAuthTokenType) {
+  private async refreshToken(token: ClientAuthToken) {
     try {
       let res: any
       res = await this.get<any>("token/refresh", { headers: { Cookie: `rt=${token?.refreshToken}` } })
@@ -494,13 +442,12 @@ export class CloudApi {
         refreshToken: rt.value || "",
         tokenValidity: res.data.jwtValidity,
       }
-      await CloudApi.saveAuthToken(this.log, tokenObj)
+      await CloudApi.saveAuthToken(this.log, this.globalConfigStore, tokenObj, this.domain)
     } catch (err) {
       this.log.debug({ msg: `Failed to refresh the token.` })
       const detail = is401Error(err) ? { statusCode: err.response.statusCode } : {}
-      throw new EnterpriseApiError(
-        `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
-          err.message
+      throw new CloudApiTokenRefreshError(
+        `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${err.message
         }`,
         detail
       )
@@ -510,7 +457,7 @@ export class CloudApi {
   private async apiFetch<T>(path: string, params: ApiFetchParams): Promise<ApiFetchResponse<T>> {
     const { method, headers, retry, retryDescription } = params
     this.log.silly({ msg: `Calling Cloud API with ${method} ${path}` })
-    const token = await CloudApi.getAuthToken(this.log)
+    const token = await CloudApi.getAuthToken(this.log, this.globalConfigStore, this.domain)
     // TODO add more logging details
     const requestObj = {
       method,
@@ -529,7 +476,7 @@ export class CloudApi {
     }
 
     if (retry) {
-      let retryLog: LogEntry | undefined = undefined
+      let retryLog: Log | undefined = undefined
       const retryLimit = params.maxRetries || 3
       requestOptions.retry = {
         methods: ["GET", "POST", "PUT", "DELETE"], // We explicitly include the POST method if `retry = true`.
@@ -556,9 +503,9 @@ export class CloudApi {
               // Intentionally skipping search params in case they contain tokens or sensitive data.
               const href = options.url.origin + options.url.pathname
               const description = retryDescription || `Request`
-              retryLog = retryLog || this.log.debug("")
+              retryLog = retryLog || this.log.createLog({ fixLevel: LogLevel.debug })
               const statusCodeDescription = error.code ? ` (status code ${error.code})` : ``
-              retryLog.setState(deline`
+              retryLog.info(deline`
                 ${description} failed with error ${error.message}${statusCodeDescription},
                 retrying (${retryCount}/${retryLimit}) (url=${href})
               `)
@@ -584,7 +531,7 @@ export class CloudApi {
     const res = await got<T>(url.href, requestOptions)
 
     if (!isObject(res.body)) {
-      throw new EnterpriseApiError(`Unexpected API response`, {
+      throw new CloudApiError(`Unexpected API response`, {
         path,
         body: res?.body,
       })
@@ -631,42 +578,58 @@ export class CloudApi {
   }
 
   async registerSession({
+    parentSessionId,
     sessionId,
+    projectId,
     commandInfo,
     localServerPort,
     environment,
     namespace,
+    isDevCommand,
   }: {
+    parentSessionId: string | undefined
     sessionId: string
+    projectId: string
     commandInfo: CommandInfo
     localServerPort?: number
     environment: string
     namespace: string
-  }): Promise<void> {
+    isDevCommand: boolean
+  }): Promise<CloudSession | undefined> {
+    let session = this.registeredSessions.get(sessionId)
+
+    if (session) {
+      return session
+    }
+
     try {
       const body = {
         sessionId,
+        parentSessionId,
         commandInfo,
         localServerPort,
-        projectUid: this.projectId,
+        projectUid: projectId,
         environment,
         namespace,
+        isDevCommand,
       }
-      this.log.debug(`Registering session with Garden Cloud for ${this.projectId} in ${environment}/${namespace}.`)
-      const res: RegisterSessionResponse = await this.post("sessions", {
+      this.log.debug(`Registering session with ${this.distroName} for ${projectId} in ${environment}/${namespace}.`)
+      const res: CloudSessionResponse = await this.post("sessions", {
         body,
         retry: true,
         retryDescription: "Registering session",
       })
-      this.environmentId = res.environmentId
-      this.namespaceId = res.namespaceId
-      this.log.debug("Successfully registered session with Garden Cloud.")
+      this.log.debug(`Successfully registered session with ${this.distroName}.`)
+
+      session = { api: this, id: sessionId, projectId, ...res }
+      this.registeredSessions.set(sessionId, session)
+      return session
     } catch (err) {
       // We don't want the command to fail when an error occurs during session registration.
       if (isGotError(err, 422)) {
         const errMsg = deline`
           Session registration skipped due to mismatch between CLI and API versions. Please make sure your Garden CLI
-          version is compatible with your version of Garden Cloud.
+          version is compatible with your version of ${this.distroName}.
         `
         this.log.debug(errMsg)
       } else {
@@ -674,30 +637,25 @@ export class CloudApi {
         // the Core version.
         this.log.verbose(`An error occurred while registering the session: ${err.message}`)
       }
-    }
-    this.sessionRegistered = true
-  }
-
-  async getProject(): Promise<CloudProject | undefined> {
-    if (!this.projectId) {
-      this.log.debug(`Could not retrieve a project which has not yet been configured`)
       return
     }
+  }
 
-    // If we are using a new project ID, retrieve again from the API
-    // NOTE: If we wan't to use this with multiple project IDs we need
-    // a cache supporting that + check if the remote project metadata
-    // was updated.
-    if (this._project && this._project.uid === this.projectId) {
-      return this._project
+  async getProjectById(projectId: string): Promise<CloudProject | undefined> {
+    const existing = this.projects.get(projectId)
+
+    if (existing) {
+      return existing
     }
 
-    const res = await this.get<GetProjectResponse>(`/projects/uid/${this.projectId}`)
-    const project: GetProjectResponse["data"] = res.data
+    const res = await this.get<GetProjectResponse>(`/projects/uid/${projectId}`)
+    const projectData: GetProjectResponse["data"] = res.data
 
-    this._project = toCloudProject(project)
+    const project = toCloudProject(projectData)
 
-    return this._project
+    this.projects.set(projectId, project)
+
+    return project
   }
 
   async getProfile() {
@@ -722,9 +680,8 @@ export class CloudApi {
       valid = true
     } catch (err) {
       if (!is401Error(err)) {
-        throw new EnterpriseApiError(
-          `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
-            err.message
+        throw new CloudApiError(
+          `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${err.message
           }`,
           {}
         )
@@ -732,5 +689,23 @@ export class CloudApi {
     }
     this.log.debug(`Checked client auth token with ${getCloudDistributionName(this.domain)} - valid: ${valid}`)
     return valid
+  }
+
+  getProjectUrl(projectId: string) {
+    return new URL(`/projects/${projectId}`, this.domain)
+  }
+
+  getCommandResultUrl({ projectId, sessionId, userId }: { projectId: string; sessionId: string; userId: string }) {
+    const path = `/projects/${projectId}?sessionId=${sessionId}&userId=${userId}`
+    return new URL(path, this.domain)
+  }
+
+  getLivePageUrl({ shortId }: { shortId: string }) {
+    const path = `/go/${shortId}`
+    return new URL(path, this.domain)
+  }
+
+  getRegisteredSession(sessionId: string) {
+    return this.registeredSessions.get(sessionId)
   }
 }

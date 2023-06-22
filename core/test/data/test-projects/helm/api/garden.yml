@@ -1,8 +1,33 @@
+kind: Deploy
+name: api
+description: The API backend for the voting UI
+type: helm
+dependencies:
+  - build.api-image
+spec:
+  releaseName: api-release
+  sync:
+    paths:
+      - containerPath: "/app"
+  defaultTarget:
+    kind: Deployment
+    name: api-release
+  values:
+    image:
+      repository: api-image
+      tag: ${actions.build.api-image.version}
+    ingress:
+      enabled: true
+      paths: [/]
+      hosts: [api.local.demo.garden]
+
+---
+
 kind: Module
 description: The API backend for the voting UI
 type: helm
-name: api
-releaseName: api-release
+name: api-module
+releaseName: api-module-release
 devMode:
   sync:
   - target: /app
@@ -15,5 +40,5 @@ values:
     tag: ${modules.api-image.version}
   ingress:
     enabled: true
-    paths: [/]
-    hosts: [api.local.app.garden]
+    paths: [/api-module/]
+    hosts: [api.local.demo.garden]

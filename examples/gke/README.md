@@ -2,7 +2,7 @@
 
 A variant on the `demo-project` example, with an example configuration for GKE with in-cluster building with Kaniko or BuildKit.
 
-A few environments are configured, `gke-kaniko`, `gke-kaniko-gcr`, `gke-buildkit` and `gke-buildkit-gcr`. The first two use Kaniko for in-cluster builds, the last two use BuildKit. The ones with the `-gcr` suffix use GCR as the deployment registry, and the other ones use the basic in-cluster registry (which is simpler to set up but won't scale as well as using GCR).
+Two environments are configured, `gke-kaniko` and `gke-buildkit`. The first uses Kaniko for in-cluster builds, the latter uses BuildKit. The example is set up to use GCR as the deployment registry.
 
 ## Setup
 
@@ -81,16 +81,6 @@ You'll need to replace the values under the `variables` keys in the `garden.yml`
 
 You can optionally set up an ingress controller in the cluster and point a DNS hostname to it, and set that under `variables.default-hostname`.
 
-### Step 6 - Initialize the cluster (Kaniko only)
-
-When using Kaniko, you need to install the cluster-wide services Garden needs by running:
-
-```sh
-garden plugins kubernetes cluster-init --env=<gke-kaniko|gke-kaniko-gcr>
-```
-
-_This is not necessary when using BuildKit._
-
 ## Usage
 
 ### Deploy your services
@@ -99,5 +89,5 @@ Finally, to build and deploy your services to your new GKE cluster, run:
 
 ```sh
 # Choose which environment to deploy with the --env parameter
-garden deploy --env=<gke-kaniko|gke-kaniko-gcr|gke-buildkit|gke-buildkit-gcr>
+garden deploy --env=<gke-kaniko|gke-buildkit>
 ```

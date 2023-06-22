@@ -1,5 +1,7 @@
 kind: Project
 name: persistentvolumeclaim
+environments:
+  - name: local
 providers:
   - name: local-kubernetes
 ---

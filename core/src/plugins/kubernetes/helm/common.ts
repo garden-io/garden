@@ -1,46 +1,42 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep, flatten, isPlainObject } from "lodash"
+import { flatten, isPlainObject } from "lodash"
 import { join, resolve } from "path"
 import { pathExists, readFile, remove, writeFile } from "fs-extra"
-import { apply as jsonMerge } from "json-merge-patch"
+import tempy from "tempy"
+import cryptoRandomString = require("crypto-random-string")
 
 import { PluginContext } from "../../../plugin-context"
-import { LogEntry } from "../../../logger/log-entry"
-import { getModuleNamespace } from "../namespace"
-import { KubernetesResource } from "../types"
+import { Log } from "../../../logger/log-entry"
+import { getActionNamespace } from "../namespace"
+import { HelmRuntimeAction, KubernetesResource } from "../types"
 import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli"
-import { HelmModule, HelmModuleConfig } from "./config"
+import { HelmModule } from "./module-config"
 import { ConfigurationError, PluginError } from "../../../exceptions"
-import { GardenModule } from "../../../types/module"
 import { deline, tailString } from "../../../util/string"
 import { flattenResources, getAnnotation } from "../util"
 import { KubernetesPluginContext } from "../config"
-import { RunResult } from "../../../types/plugin/base"
+import { RunResult } from "../../../plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
-import { dumpYaml } from "../../../util/util"
-import cryptoRandomString = require("crypto-random-string")
+import { safeDumpYaml } from "../../../util/serialization"
+import { HelmDeployAction } from "./config"
+import { Resolved } from "../../../actions/types"
 
-const gardenValuesFilename = "garden-values.yml"
+export const helmChartYamlFilename = "Chart.yaml"
 
 interface Chart {
   apiVersion: string
   dependencies?: { name: string }[]
 }
 
-async function containsChart(basePath: string, config: HelmModuleConfig) {
-  const yamlPath = join(basePath, config.spec.chartPath, "Chart.yaml")
-  return pathExists(yamlPath)
-}
-
-async function dependencyUpdate(ctx: KubernetesPluginContext, log: LogEntry, namespace: string, chartPath: string) {
+async function dependencyUpdate(ctx: KubernetesPluginContext, log: Log, namespace: string, chartPath: string) {
   await helm({
     ctx,
     log,
@@ -50,36 +46,13 @@ async function dependencyUpdate(ctx: KubernetesPluginContext, log: LogEntry, nam
   })
 }
 
-/**
- * Returns true if the specified Helm module contains a template (as opposed to just referencing a remote template).
- */
-export async function containsSource(config: HelmModuleConfig) {
-  return containsChart(config.path, config)
-}
-
-/**
- * Returns true if the specified Helm module contains a template in its build path (as opposed to just referencing
- * a remote template).
- */
-export async function containsBuildSource(module: HelmModule) {
-  return containsChart(module.buildPath, module)
-}
-
-interface GetChartResourcesParams {
+interface PrepareTemplatesParams {
   ctx: KubernetesPluginContext
-  module: GardenModule
-  devMode: boolean
-  hotReload: boolean
-  localMode: boolean
-  log: LogEntry
-  version: string
+  action: Resolved<HelmRuntimeAction>
+  log: Log
 }
 
-type PrepareManifestsParams = GetChartResourcesParams & {
-  namespace: string
-  releaseName: string
-  chartPath: string
-}
+interface GetChartResourcesParams extends PrepareTemplatesParams {}
 
 /**
  * Render the template in the specified Helm module (locally), and return all the resources in the chart.
@@ -92,78 +65,99 @@ export async function getChartResources(params: GetChartResourcesParams) {
  * Renders the given Helm module and returns a multi-document YAML string.
  */
 export async function renderTemplates(params: GetChartResourcesParams): Promise<string> {
-  const { ctx, module, devMode, hotReload, localMode, version, log } = params
-  const { namespace, releaseName, chartPath } = await prepareTemplates(params)
+  const { ctx, action, log } = params
+  const prepareResult = await prepareTemplates(params)
 
   log.debug("Preparing chart...")
 
   return await prepareManifests({
     ctx,
-    module,
-    devMode,
-    hotReload,
-    localMode,
-    version,
+    action,
     log,
-    namespace,
-    releaseName,
-    chartPath,
+    ...prepareResult,
   })
 }
 
-export async function prepareTemplates({
-  ctx,
-  module,
-  log,
-  version,
-}: GetChartResourcesParams): Promise<{ namespace: string; releaseName: string; chartPath: string }> {
-  const chartPath = await getChartPath(module)
+interface PrepareTemplatesOutput {
+  chartPath?: string
+  namespace: string
+  reference: string[]
+  releaseName: string
+  valuesPath: string
+}
+
+export async function prepareTemplates({ ctx, action, log }: PrepareTemplatesParams): Promise<PrepareTemplatesOutput> {
+  const chartPath = await getChartPath(action)
 
   // create the values.yml file (merge the configured parameters into the default values)
   // Merge with the base module's values, if applicable
-  let specValues = module.spec.values || {}
-
-  const baseModule = getBaseModule(module)
-  if (baseModule) {
-    specValues = jsonMerge(cloneDeep(baseModule.spec.values), specValues)
-  }
+  const { chart, values } = action.getSpec()
 
   // Add Garden metadata
-  specValues[".garden"] = {
-    moduleName: module.name,
+  values[".garden"] = {
+    moduleName: action.name,
     projectName: ctx.projectName,
-    version,
+    version: action.versionString(),
   }
 
-  const valuesPath = getGardenValuesPath(chartPath)
-  log.silly(`Writing chart values to ${valuesPath}`)
-  await dumpYaml(valuesPath, specValues)
+  const valuesPath = await tempy.write(safeDumpYaml(values))
+  log.silly(`Wrote chart values to ${valuesPath}`)
 
-  const releaseName = getReleaseName(module)
-  const namespace = await getModuleNamespace({
+  const releaseName = getReleaseName(action)
+  const namespace = await getActionNamespace({
     ctx,
     log,
-    module,
+    action,
     provider: ctx.provider,
     skipCreate: true,
   })
 
-  if (await pathExists(join(chartPath, "requirements.yaml"))) {
-    await dependencyUpdate(ctx, log, namespace, chartPath)
-  }
+  let reference: string[]
 
-  const chartYaml = join(chartPath, "Chart.yaml")
-  if (await pathExists(chartYaml)) {
-    const chart = <Chart[]>loadTemplate((await readFile(chartYaml)).toString())
-    if (chart[0].dependencies?.length) {
+  if (chartPath) {
+    reference = [chartPath]
+
+    // This only applies for local charts
+    if (await pathExists(join(chartPath, "requirements.yaml"))) {
       await dependencyUpdate(ctx, log, namespace, chartPath)
     }
+
+    const chartYaml = join(chartPath, helmChartYamlFilename)
+    if (await pathExists(chartYaml)) {
+      const chartTemplate = <Chart[]>loadTemplate((await readFile(chartYaml)).toString())
+      if (chartTemplate[0].dependencies?.length) {
+        await dependencyUpdate(ctx, log, namespace, chartPath)
+      }
+    }
+  } else if (chart?.url) {
+    reference = [chart.url]
+    if (chart.version) {
+      reference.push("--version", chart.version)
+    }
+  } else if (chart?.name) {
+    reference = [chart.name]
+    if (chart.version) {
+      reference.push("--version", chart.version)
+    }
+    if (chart.repo) {
+      reference.push("--repo", chart.repo)
+    }
+  } else {
+    // This will generally be caught at schema validation
+    throw new ConfigurationError(`${action.longDescription()} specifies none of chart.name, chart.path nor chart.url`, {
+      chartSpec: chart,
+    })
   }
-  return { namespace, releaseName, chartPath }
+
+  return { namespace, releaseName, chartPath, valuesPath, reference }
 }
 
+type PrepareManifestsParams = GetChartResourcesParams & PrepareTemplatesOutput
+
 export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
-  const { ctx, module, devMode, hotReload, localMode, log, namespace, releaseName, chartPath } = params
+  const { ctx, action, log, namespace, releaseName, valuesPath, reference } = params
+  const timeout = action.getConfig().timeout
+
   const res = await helm({
     ctx,
     log,
@@ -171,7 +165,7 @@ export async function prepareManifests(params: PrepareManifestsParams): Promise<
     args: [
       "install",
       releaseName,
-      chartPath,
+      ...reference,
       "--dry-run",
       "--namespace",
       namespace,
@@ -179,8 +173,8 @@ export async function prepareManifests(params: PrepareManifestsParams): Promise<
       "--output",
       "json",
       "--timeout",
-      module.spec.timeout.toString(10) + "s",
-      ...(await getValueArgs(module, devMode, hotReload, localMode)),
+      timeout.toString(10) + "s",
+      ...(await getValueArgs({ action, valuesPath })),
     ],
     // do not send JSON output to Garden Cloud or CLI verbose log
     emitLogEvents: false,
@@ -215,7 +209,7 @@ export async function filterManifests(renderedTemplates: string) {
  * Returns the base module of the specified Helm module, or undefined if none is specified.
  * Throws an error if the referenced module is missing, or is not a Helm module.
  */
-export function getBaseModule(module: HelmModule) {
+export function getBaseModule(module: HelmModule): HelmModule | undefined {
   if (!module.spec.base) {
     return
   }
@@ -242,54 +236,58 @@ export function getBaseModule(module: HelmModule) {
 }
 
 /**
- * Get the full path to the chart, within the module build directory.
+ * Get the full absolute path to the chart, within the action build path, if applicable.
  */
-export async function getChartPath(module: HelmModule) {
-  const baseModule = getBaseModule(module)
+export async function getChartPath(action: Resolved<HelmRuntimeAction>) {
+  const chartSpec = action.getSpec().chart || {}
+  const chartPath = chartSpec.path || "."
+  const chartDir = resolve(action.getBuildPath(), chartPath)
+  const yamlPath = resolve(chartDir, helmChartYamlFilename)
+  const chartExists = await pathExists(yamlPath)
 
-  if (baseModule) {
-    return join(module.buildPath, baseModule.spec.chartPath)
-  } else if (await containsBuildSource(module)) {
-    return join(module.buildPath, module.spec.chartPath)
+  if (chartSpec.path) {
+    // Path is explicitly specified
+    if (!chartExists) {
+      throw new ConfigurationError(
+        `${action.longDescription()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
+        { spec: action.getSpec() }
+      )
+    }
+    return chartDir
+  } else if (chartSpec.name || chartSpec.url) {
+    // Remote chart is specified. Return undefined.
+    return
+  } else if (chartExists) {
+    // Chart exists at the module build path
+    return chartDir
   } else {
-    // This value is validated to exist in the validate module action
-    const splitName = module.spec.chart!.split("/")
-    const chartDir = splitName[splitName.length - 1]
-    return join(module.buildPath, chartDir)
+    throw new ConfigurationError(
+      `${action.longDescription()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
+      { spec: action.getSpec() }
+    )
   }
-}
-
-/**
- * Get the path to the values file that we generate (garden-values.yml) within the chart directory.
- */
-export function getGardenValuesPath(chartPath: string) {
-  return join(chartPath, gardenValuesFilename)
 }
 
 /**
  * Get the value files arguments that should be applied to any helm install/render command.
  */
-export async function getValueArgs(module: HelmModule, devMode: boolean, hotReload: boolean, localMode: boolean) {
-  const chartPath = await getChartPath(module)
-  const gardenValuesPath = getGardenValuesPath(chartPath)
-
+export async function getValueArgs({
+  action,
+  valuesPath,
+}: {
+  action: Resolved<HelmRuntimeAction>
+  valuesPath: string
+}) {
   // The garden-values.yml file (which is created from the `values` field in the module config) takes precedence,
   // so it's added to the end of the list.
-  const valueFiles = module.spec.valueFiles.map((f) => resolve(module.buildPath, f)).concat([gardenValuesPath])
+  const valueFiles = action
+    .getSpec()
+    .valueFiles.map((f) => resolve(action.getBuildPath(), f))
+    .concat([valuesPath])
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
 
-  // Local mode always takes precedence over dev mode
-  if (localMode) {
-    args.push("--set", "\\.garden.localMode=true")
-  } else {
-    if (devMode) {
-      args.push("--set", "\\.garden.devMode=true")
-    }
-    if (hotReload) {
-      args.push("--set", "\\.garden.hotReload=true")
-    }
-  }
+  args.push("--set", "\\.garden.mode=" + action.mode())
 
   return args
 }
@@ -297,32 +295,50 @@ export async function getValueArgs(module: HelmModule, devMode: boolean, hotRelo
 /**
  * Get the release name to use for the module/chart (the module name, unless overridden in config).
  */
-export function getReleaseName(config: HelmModuleConfig) {
-  return config.spec.releaseName || config.name
+export function getReleaseName(action: Resolved<HelmRuntimeAction>) {
+  return action.getSpec().releaseName || action.name
 }
 
 /**
  * This is a dirty hack that allows us to resolve Helm template strings ad-hoc.
  * Basically this writes a dummy file to the chart, has Helm resolve it, and then deletes the file.
  */
-export async function renderHelmTemplateString(
-  ctx: PluginContext,
-  log: LogEntry,
-  module: HelmModule,
-  chartPath: string,
+export async function renderHelmTemplateString({
+  ctx,
+  log,
+  action,
+  chartPath,
+  value,
+  valuesPath,
+  reference,
+}: {
+  ctx: PluginContext
+  log: Log
+  action: Resolved<HelmDeployAction>
+  chartPath?: string
   value: string
-): Promise<string> {
+  valuesPath: string
+  reference: string[]
+}): Promise<string> {
+  // TODO: see if we can lift this limitation
+  if (!chartPath) {
+    throw new ConfigurationError(
+      `Referencing Helm template strings is currently only supported for local Helm charts`,
+      {}
+    )
+  }
+
   const relPath = join("templates", cryptoRandomString({ length: 16 }) + ".yaml")
   const tempFilePath = join(chartPath, relPath)
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getModuleNamespace({
+  const namespace = await getActionNamespace({
     ctx: k8sCtx,
     log,
-    module,
+    action,
     provider: k8sCtx.provider,
     skipCreate: true,
   })
-  const releaseName = getReleaseName(module)
+  const releaseName = getReleaseName(action)
 
   try {
     // Need to add quotes for this to work as expected. Also makes sense since we only support string outputs here.
@@ -339,10 +355,10 @@ export async function renderHelmTemplateString(
           "--namespace",
           namespace,
           "--dependency-update",
-          ...(await getValueArgs(module, false, false, false)),
+          ...(await getValueArgs({ action, valuesPath })),
           "--show-only",
           relPath,
-          chartPath,
+          ...reference,
         ],
         emitLogEvents: true,
       })
@@ -363,9 +379,10 @@ export async function renderHelmTemplateString(
  * We therefore need to use the `loadAll` function. See the following link for a conversation on using
  * `loadAll` in this context: https://github.com/kubeapps/kubeapps/issues/636.
  */
-export function loadTemplate(template: string) {
+export function loadTemplate(template: string): KubernetesResource[] {
   return loadAll(template || "", undefined, { json: true })
     .filter((obj) => obj !== null)
+    .map((obj) => obj as any)
     .map((obj) => {
       if (isPlainObject(obj)) {
         if (!obj.metadata) {

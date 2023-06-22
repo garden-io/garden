@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 
 import execa from "execa"
 import { find } from "lodash"
-import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
 import { resolve } from "path"
 import { pathExists } from "fs-extra"
@@ -27,6 +27,7 @@ const spec = {
 
 export const gradleSpec: PluginToolSpec = {
   name: "gradle",
+  version: gradleVersion,
   description: "The gradle CLI.",
   type: "binary",
   builds: [
@@ -74,7 +75,7 @@ async function checkGradleVersion(gradlePath: string) {
   try {
     const res = await execa(gradlePath, ["--version"])
     return res.stdout
-  } catch (err) {
+  } catch (error) {
     const composeErrorMessage = (err: any): string => {
       if (err.code === "EACCES") {
         return `${baseErrorMessage(
@@ -86,7 +87,7 @@ async function checkGradleVersion(gradlePath: string) {
         return baseErrorMessage(gradlePath)
       }
     }
-    throw new RuntimeError(composeErrorMessage(err), { gradlePath })
+    throw new RuntimeError(composeErrorMessage(error), { gradlePath })
   }
 }
 
@@ -127,7 +128,7 @@ export async function gradle({
   ctx: PluginContext
   args: string[]
   cwd: string
-  log: LogEntry
+  log: Log
   openJdkPath: string
   gradlePath?: string
   outputStream: Writable
@@ -150,7 +151,7 @@ export async function gradle({
         `The Gradle binary hasn't been specified explicitly. Gradle ${gradleVersion} will be used by default.`
       )
       const tool = getGradleTool(ctx)
-      effectiveGradlePath = await tool.getPath(log)
+      effectiveGradlePath = await tool.ensurePath(log)
     }
   }
 

@@ -1,27 +1,34 @@
-kind: Module
+kind: Build
 name: backend
-description: Rust backend server example.
+description: Rust backend server example.
 type: container
-dockerfile: "${environment.name == 'release' ? 'release.Dockerfile' : 'dev.Dockerfile'}"
-image: rust-example-${environment.name}
+spec:
+  dockerfile: "${environment.name == 'release' ? 'release.Dockerfile' : 'dev.Dockerfile'}"
 
-services:
-  - name: backend
-    devMode:
-      sync:
-        - source: ./
-          target: /app
-          mode: "one-way-replica"
-          exclude:
-            - target
-    ports:
-      - name: http
-        containerPort: 3000
-    healthCheck:
-      httpGet:
-        path: /
-        port: http
-    ingresses:
-      - path: /
-        port: http
-        hostname: backend.${var.base-hostname}
+---
+kind: Deploy
+name: backend
+description: Backend service
+type: container
+
+build: backend
+
+spec:
+  sync:
+    paths:
+      - source: ./
+        target: /app
+        mode: "one-way-replica"
+        exclude:
+          - target
+  ports:
+    - name: http
+      containerPort: 3000
+  healthCheck:
+    httpGet:
+      path: /
+      port: http
+  ingresses:
+    - path: /
+      port: http
+      hostname: backend.${var.base-hostname}

@@ -1,0 +1,7 @@
+kind: Module
+description: The voting UI container image
+name: vote-image
+type: container
+tests:
+  - name: unit
+    args: [npm, run, test:unit]

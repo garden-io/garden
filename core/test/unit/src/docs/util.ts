@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,8 @@
 
 import { dedent } from "../../../../src/util/string"
 import { expect } from "chai"
-import { convertMarkdownLinks } from "../../../../src/docs/common"
+import { convertMarkdownLinks, makeDocsLink, makeDocsLinkOpts } from "../../../../src/docs/common"
+import { DOCS_BASE_URL } from "../../../../src/constants"
 
 describe("convertMarkdownLinks", () => {
   it("should convert all markdown links in the given text to plain links", () => {
@@ -23,5 +24,32 @@ describe("convertMarkdownLinks", () => {
 
     See the Configuration Files guide (https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
     `)
+  })
+})
+
+describe("makeDocsLink", () => {
+  const originalRelDocValue = makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH
+  after(() => {
+    makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH = originalRelDocValue
+  })
+
+  it("should use docs base url when relative docs path is not set", () => {
+    makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH = ""
+    expect(makeDocsLink("file")).to.eql(DOCS_BASE_URL + "/file")
+    expect(makeDocsLink`file`).to.eql(DOCS_BASE_URL + "/file")
+    expect(makeDocsLink("path/file")).to.eql(DOCS_BASE_URL + "/path/file")
+    expect(makeDocsLink`path/file`).to.eql(DOCS_BASE_URL + "/path/file")
+    expect(makeDocsLink("file", "#frag")).to.eql(DOCS_BASE_URL + "/file#frag")
+    expect(makeDocsLink("path/file", "#frag")).to.eql(DOCS_BASE_URL + "/path/file#frag")
+  })
+
+  it("should use relative docs path if set", () => {
+    makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH = "../"
+    expect(makeDocsLink("file")).to.eql("../file.md")
+    expect(makeDocsLink`file`).to.eql("../file.md")
+    expect(makeDocsLink("path/file")).to.eql("../path/file.md")
+    expect(makeDocsLink`path/file`).to.eql("../path/file.md")
+    expect(makeDocsLink("file", "#frag")).to.eql("../file.md#frag")
+    expect(makeDocsLink("path/file", "#frag")).to.eql("../path/file.md#frag")
   })
 })

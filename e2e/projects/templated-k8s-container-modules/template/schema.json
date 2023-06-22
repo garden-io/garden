@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "properties": {
+    "containerPort": {
+      "type": "integer"
+    },
+    "servicePort": {
+      "type": "integer"
+    },
+    "replicas": {
+      "type": "integer",
+      "default": 3
+    }
+  },
+  "required": [
+    "containerPort",
+    "servicePort"
+  ]
+}

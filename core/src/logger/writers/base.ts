@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,12 +10,20 @@ import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { LogLevel } from "../logger"
 
+export interface BaseWriterParams {
+  level?: LogLevel
+  output?: NodeJS.WriteStream
+}
+
 export abstract class Writer {
   abstract type: string
+  public level: LogLevel
+  public output: NodeJS.WriteStream
 
-  constructor(public level: LogLevel = LogLevel.info, public output = process.stdout) {}
+  constructor({ level = LogLevel.info, output = process.stdout }: BaseWriterParams = {}) {
+    this.level = level
+    this.output = output
+  }
 
-  abstract onGraphChange(entry: LogEntry, logger: Logger): void
-  abstract stop(): void
-  cleanup(): void {}
+  abstract write(entry: LogEntry, logger: Logger): void
 }

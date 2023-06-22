@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,6 @@
 
 import { Command, CommandParams, CommandResult } from "../base"
 import dedent = require("dedent")
-import { AnalyticsHandler } from "../../analytics/analytics"
 import { BooleanParameter } from "../../cli/params"
 
 const configAnalyticsEnabledArgs = {
@@ -28,13 +27,13 @@ export class ConfigAnalyticsEnabled extends Command {
   arguments = configAnalyticsEnabledArgs
 
   description = dedent`
-    To help us make Garden better, you can opt in to the collection of usage data.
+    To help us make Garden better, we collect some analytics data about its usage.
     We make sure all the data collected is anonymized and stripped of sensitive
     information. We collect data about which commands are run, what tasks they trigger,
     which API calls are made to your local Garden server, as well as some info
     about the environment in which Garden runs.
 
-    You will be asked if you want to opt-in when running Garden for the
+    You will be asked if you want to opt out when running Garden for the
     first time and you can use this command to update your preferences later.
 
     Examples:
@@ -47,13 +46,13 @@ export class ConfigAnalyticsEnabled extends Command {
   printHeader() {}
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
-    const analyticsClient = await AnalyticsHandler.init(garden, log)
-    await analyticsClient.setAnalyticsOptIn(args.enable)
+    const analyticsClient = await garden.getAnalyticsHandler()
+    await analyticsClient.setAnalyticsOptOut(!args.enable)
 
     if (args.enable) {
-      log.setSuccess(`Thanks for helping us make Garden better! Anonymized analytics collection is now active.`)
+      log.success(`Thanks for helping us make Garden better! Anonymized analytics collection is now active.`)
     } else {
-      log.setSuccess(`The collection of anonymous CLI usage data is now disabled.`)
+      log.success(`The collection of anonymous CLI usage data is now disabled.`)
     }
 
     return {}

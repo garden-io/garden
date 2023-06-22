@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,9 +13,10 @@ import {
   RecoverableProcessState,
   validateRetryConfig,
 } from "../../../../src/util/recoverable-process"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 import { sleep } from "../../../../src/util/util"
-import { initTestLogger } from "../../../helpers"
+import { initTestLogger, makeTempGarden, TestGarden } from "../../../helpers"
+import { PluginEventBroker } from "../../../../src/plugin-context"
 
 describe("validateRetryConfig", () => {
   it("must fail on negative minTimeoutMs", () => {
@@ -75,13 +76,21 @@ describe("validateRetryConfig", () => {
 
 describe("RecoverableProcess", async () => {
   initTestLogger()
-  const log = getLogger().placeholder()
+  const log = getRootLogger().createLog()
 
   const doNothingForeverOsCommand = { command: "tail -f /dev/null" }
   const badOsCommand = { command: "bad_os_command_which_does_not_exists_and_must_fail_the_process" }
 
   const longTimeMs = 10000000
   const longSleepOsCommand = { command: `sleep ${longTimeMs}` }
+
+  let garden: TestGarden
+  let events: PluginEventBroker
+
+  before(async () => {
+    garden = (await makeTempGarden()).garden
+    events = new PluginEventBroker(garden)
+  })
 
   /**
    * FIXME: some tests are skipped because child-processes are not getting killed in CircleCI pipeline for some reason.
@@ -100,6 +109,7 @@ describe("RecoverableProcess", async () => {
 
   function infiniteProcess(maxRetries: number, minTimeoutMs: number): RecoverableProcess {
     return new RecoverableProcess({
+      events,
       osCommand: doNothingForeverOsCommand,
       retryConfig: {
         maxRetries,
@@ -111,6 +121,7 @@ describe("RecoverableProcess", async () => {
 
   function failingProcess(maxRetries: number, minTimeoutMs: number): RecoverableProcess {
     return new RecoverableProcess({
+      events,
       osCommand: badOsCommand,
       retryConfig: {
         maxRetries,
@@ -122,6 +133,7 @@ describe("RecoverableProcess", async () => {
 
   function longSleepingProcess(maxRetries: number, minTimeoutMs: number): RecoverableProcess {
     return new RecoverableProcess({
+      events,
       osCommand: longSleepOsCommand,
       retryConfig: {
         maxRetries,
@@ -194,6 +206,7 @@ describe("RecoverableProcess", async () => {
 
   it("new instance has state 'runnable'", () => {
     const p = new RecoverableProcess({
+      events,
       osCommand: { command: "pwd" },
       retryConfig: { maxRetries: 1, minTimeoutMs: 1000 },
       log,

@@ -1,13 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import { BaseTask, TaskParams, TaskType } from "./base"
+import { BaseTask, CommonTaskParams, ResolveProcessDependenciesParams, TaskProcessParams } from "./base"
 import {
   GenericProviderConfig,
   Provider,
@@ -18,26 +17,25 @@ import {
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { ConfigurationError, PluginError } from "../exceptions"
 import { keyBy, omit, flatten, uniq } from "lodash"
-import { GraphResults } from "../task-graph"
 import { ProviderConfigContext } from "../config/template-contexts/provider"
 import { ModuleConfig } from "../config/module"
-import { GardenPlugin } from "../types/plugin/plugin"
+import { GardenPlugin } from "../plugin/plugin"
 import { joi } from "../config/common"
 import { validateWithPath, validateSchema } from "../config/validation"
-import Bluebird from "bluebird"
-import { defaultEnvironmentStatus, EnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
+import { defaultEnvironmentStatus, EnvironmentStatus } from "../plugin/handlers/Provider/getEnvironmentStatus"
 import { getPluginBases, getPluginBaseNames } from "../plugins"
 import { Profile } from "../util/profiling"
 import { join, dirname } from "path"
 import { readFile, writeFile, ensureDir } from "fs-extra"
 import { deserialize, serialize } from "v8"
 import { environmentStatusSchema } from "../config/status"
-import { hashString } from "../util/util"
+import { hashString, isNotNull } from "../util/util"
 import { gardenEnv } from "../constants"
 import { stableStringify } from "../util/string"
 
-interface Params extends TaskParams {
+interface Params extends CommonTaskParams {
   plugin: GardenPlugin
+  allPlugins: GardenPlugin[]
   config: GenericProviderConfig
   forceRefresh: boolean
   forceInit: boolean
@@ -59,19 +57,21 @@ const defaultCacheTtl = 3600 // 1 hour
  * Resolves the configuration for the specified provider.
  */
 @Profile()
-export class ResolveProviderTask extends BaseTask {
-  type: TaskType = "resolve-provider"
+export class ResolveProviderTask extends BaseTask<Provider> {
+  type = "resolve-provider"
   concurrencyLimit = 20
 
   private config: GenericProviderConfig
   private plugin: GardenPlugin
   private forceRefresh: boolean
   private forceInit: boolean
+  private allPlugins: GardenPlugin[]
 
   constructor(params: Params) {
     super(params)
     this.config = params.config
     this.plugin = params.plugin
+    this.allPlugins = params.allPlugins
     this.forceRefresh = params.forceRefresh
     this.forceInit = params.forceInit
   }
@@ -81,17 +81,29 @@ export class ResolveProviderTask extends BaseTask {
   }
 
   getDescription() {
-    return `resolving provider ${this.getName()}`
+    return `resolve provider ${this.getName()}`
   }
 
-  async resolveDependencies() {
+  getInputVersion() {
+    return this.garden.version
+  }
+
+  resolveStatusDependencies() {
+    return []
+  }
+
+  resolveProcessDependencies({ status }: ResolveProcessDependenciesParams<Provider>) {
+    if (status?.state === "ready" && !this.force) {
+      return []
+    }
+
     const pluginDeps = this.plugin.dependencies
     const explicitDeps = (this.config.dependencies || []).map((name) => ({ name }))
-    const implicitDeps = (await getProviderTemplateReferences(this.config)).map((name) => ({ name }))
+    const implicitDeps = getProviderTemplateReferences(this.config).map((name) => ({ name }))
     const allDeps = uniq([...pluginDeps, ...explicitDeps, ...implicitDeps])
 
     const rawProviderConfigs = this.garden.getRawProviderConfigs()
-    const plugins = keyBy(await this.garden.getAllPlugins(), "name")
+    const plugins = keyBy(this.allPlugins, "name")
 
     const matchDependencies = (depName: string) => {
       // Match against a provider if its name matches directly, or it inherits from a base named `depName`
@@ -101,7 +113,7 @@ export class ResolveProviderTask extends BaseTask {
     }
 
     // Make sure explicit dependencies are configured
-    await Bluebird.map(pluginDeps, async (dep) => {
+    pluginDeps.map((dep) => {
       const matched = matchDependencies(dep.name)
 
       if (matched.length === 0 && !dep.optional) {
@@ -114,16 +126,17 @@ export class ResolveProviderTask extends BaseTask {
     })
 
     return flatten(
-      await Bluebird.map(allDeps, async (dep) => {
+      allDeps.map((dep) => {
         return matchDependencies(dep.name).map((config) => {
           const plugin = plugins[config.name]
 
           return new ResolveProviderTask({
             garden: this.garden,
             plugin,
+            allPlugins: this.allPlugins,
             config,
             log: this.log,
-            version: this.version,
+            force: this.force,
             forceRefresh: this.forceRefresh,
             forceInit: this.forceInit,
           })
@@ -132,11 +145,13 @@ export class ResolveProviderTask extends BaseTask {
     )
   }
 
-  async process(dependencyResults: GraphResults) {
-    const resolvedProviders: ProviderMap = keyBy(
-      Object.values(dependencyResults).map((result) => result && result.output),
-      "name"
-    )
+  async getStatus() {
+    return null
+  }
+
+  async process({ dependencyResults }: TaskProcessParams) {
+    const providerResults = dependencyResults.getResultsByType(this).filter(isNotNull)
+    const resolvedProviders: ProviderMap = keyBy(providerResults.map((r) => r.result).filter(isNotNull), "name")
 
     // Return immediately if the provider has been previously resolved
     const alreadyResolvedProviders = this.garden["resolvedProviders"][this.config.name]
@@ -175,26 +190,28 @@ export class ResolveProviderTask extends BaseTask {
 
     // Validating the output config against the base plugins. This is important to make sure base handlers are
     // compatible with the config.
-    const plugins = await this.garden.getAllPlugins()
+    const plugins = this.allPlugins
     const pluginsByName = keyBy(plugins, "name")
     const plugin = pluginsByName[providerName]
 
-    const configureOutput = await actions.configureProvider({
-      ctx: await this.garden.getPluginContext(
-        providerFromConfig({
+    const configureOutput = await actions.provider.configureProvider({
+      ctx: await this.garden.getPluginContext({
+        provider: providerFromConfig({
           plugin,
           config: resolvedConfig,
           dependencies: {},
           moduleConfigs: [],
           status: { ready: false, outputs: {} },
-        })
-      ),
+        }),
+        templateContext: undefined,
+        events: undefined,
+      }),
       environmentName: this.garden.environmentName,
       namespace: this.garden.namespace,
       pluginName: providerName,
       log: this.log,
       config: resolvedConfig,
-      configStore: this.garden.configStore,
+      configStore: this.garden.localConfigStore,
       projectName: this.garden.projectName,
       projectRoot: this.garden.projectRoot,
       dependencies: resolvedProviders,
@@ -317,7 +334,11 @@ export class ResolveProviderTask extends BaseTask {
   private async ensurePrepared(tmpProvider: Provider) {
     const pluginName = tmpProvider.name
     const actions = await this.garden.getActionRouter()
-    const ctx = await this.garden.getPluginContext(tmpProvider)
+    const ctx = await this.garden.getPluginContext({
+      provider: tmpProvider,
+      templateContext: undefined,
+      events: undefined,
+    })
 
     this.log.silly(`Getting status for ${pluginName}`)
 
@@ -329,8 +350,8 @@ export class ResolveProviderTask extends BaseTask {
     }
 
     // TODO: avoid calling the handler manually (currently doing it to override the plugin context)
-    const handler = await actions["getActionHandler"]({
-      actionType: "getEnvironmentStatus",
+    const handler = await actions.provider["getPluginHandler"]({
+      handlerType: "getEnvironmentStatus",
       pluginName,
       defaultHandler: async () => defaultEnvironmentStatus,
     })
@@ -341,17 +362,17 @@ export class ResolveProviderTask extends BaseTask {
 
     if (this.forceInit || !status.ready) {
       // Deliberately setting the text on the parent log here
-      this.log.setState(`Preparing environment...`)
+      this.log.info(`Preparing environment...`)
 
-      const envLogEntry = this.log.info({
-        status: "active",
-        section: pluginName,
-        msg: "Configuring...",
-      })
+      const envLogEntry = this.log
+        .createLog({
+          name: pluginName,
+        })
+        .info("Configuring...")
 
       // TODO: avoid calling the handler manually
-      const prepareHandler = await actions["getActionHandler"]({
-        actionType: "prepareEnvironment",
+      const prepareHandler = await actions.provider["getPluginHandler"]({
+        handlerType: "prepareEnvironment",
         pluginName,
         defaultHandler: async () => ({ status }),
       })
@@ -359,7 +380,7 @@ export class ResolveProviderTask extends BaseTask {
 
       status = result.status
 
-      envLogEntry.setSuccess({ msg: chalk.green("Ready"), append: true })
+      envLogEntry.success("Ready")
     }
 
     if (!status.ready) {

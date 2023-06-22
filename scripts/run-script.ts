@@ -1,8 +1,8 @@
 #!/usr/bin/env ts-node
+/* eslint-disable no-console */
 
 import execa from "execa"
 import minimist from "minimist"
-import minimatch from "minimatch"
 import Bluebird from "bluebird"
 import { max, padEnd, padStart, mapValues, pickBy } from "lodash"
 import { DepGraph } from "dependency-graph"
@@ -10,35 +10,13 @@ import split2 = require("split2")
 import chalk from "chalk"
 import wrapAnsi from "wrap-ansi"
 import stripAnsi from "strip-ansi"
-import { resolve } from "path"
+import { join, resolve } from "path"
+import { createWriteStream, WriteStream } from "fs"
+import { getPackages, yarnPath } from "./script-utils"
 
-const colors = [chalk.red, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
+const colors = [chalk.blueBright, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
 
 const lineChar = "┄"
-const yarnPath = resolve(__dirname, "..", ".yarn", "releases", "yarn-1.22.5.js")
-
-export async function getPackages({ scope, ignore }: { scope?: string; ignore?: string } = {}) {
-  let packages = JSON.parse((await execa("node", [yarnPath, "--silent", "workspaces", "info"])).stdout)
-
-  if (scope) {
-    packages = pickBy(packages, (_, k) => minimatch(k, scope))
-  }
-
-  if (ignore) {
-    packages = pickBy(packages, (_, k) => !minimatch(k, ignore))
-  }
-
-  return mapValues(packages, (p, k) => {
-    const location = resolve(__dirname, "..", p.location)
-    return {
-      ...p,
-      name: k,
-      location,
-      packageJson: require(resolve(location, "package.json")),
-      shortName: k.split("/")[1],
-    }
-  })
-}
 
 async function runInPackages(args: string[]) {
   const argv = minimist(args, { boolean: ["bail", "parallel"], default: { bail: true } })
@@ -51,6 +29,14 @@ async function runInPackages(args: string[]) {
     throw new Error("Must specify script name")
   }
 
+  let reportStream: WriteStream | undefined = undefined
+
+  if (argv.report) {
+    const path = join(process.cwd(), argv.report)
+    console.log(chalk.cyan(`Writing script output to ${path}`))
+    reportStream = createWriteStream(path)
+  }
+
   const packages = await getPackages({ scope, ignore })
   const packageList: any[] = Object.values(packages)
 
@@ -58,7 +44,7 @@ async function runInPackages(args: string[]) {
     packageList[i].color = colors[i % colors.length]
   }
 
-  console.log(
+  write(
     chalk.cyanBright(
       `\nRunning script ${chalk.whiteBright(script)} in package(s) ` +
         chalk.whiteBright(Object.keys(packages).join(", "))
@@ -72,6 +58,11 @@ async function runInPackages(args: string[]) {
   let lastPackage: string = ""
   let failed: string[] = []
 
+  function write(line: string) {
+    console.log(line)
+    reportStream?.write(line + "\n")
+  }
+
   async function runScript(packageName: string) {
     const { color, location, shortName, packageJson } = packages[packageName]
 
@@ -79,7 +70,12 @@ async function runInPackages(args: string[]) {
       return
     }
 
-    const proc = execa(yarnPath, ["run", script, ...rest], { cwd: resolve(repoRoot, location), reject: false })
+    const proc = execa("node", [yarnPath, "run", script, ...rest], { cwd: resolve(repoRoot, location), reject: false })
+
+    proc.on("error", (error) => {
+      write(chalk.redBright(`\nCould not run ${script} script in package ${packageName}: ${error}`))
+      process.exit(1)
+    })
 
     const stream = split2()
     stream.on("data", (data) => {
@@ -91,7 +87,7 @@ async function runInPackages(args: string[]) {
       }
 
       if (lastPackage !== packageName) {
-        console.log(chalk.gray(padEnd("", width || 80, "┄")))
+        write(chalk.gray(padEnd("", width || 80, "┄")))
       }
       lastPackage = packageName
 
@@ -106,13 +102,13 @@ async function runInPackages(args: string[]) {
           .split("\n")
           .map((l) => l + padEnd("", lineWidth - stripAnsi(l).length, " "))
 
-        console.log(`${color.bold(prefix)}${justified[0]}${color.bold(suffix)}`)
+        write(`${color.bold(prefix)}${justified[0]}${color.bold(suffix)}`)
 
         for (const nextLine of justified.slice(1)) {
-          console.log(`${padStart(nextLine, prefix.length + lineWidth, " ")}${color.bold(suffix)}`)
+          write(`${padStart(nextLine, prefix.length + lineWidth, " ")}${color.bold(suffix)}`)
         }
       } else {
-        console.log(color.bold(prefix) + line)
+        write(color.bold(prefix) + line)
       }
     })
 
@@ -123,7 +119,7 @@ async function runInPackages(args: string[]) {
 
     if (result.exitCode && result.exitCode !== 0) {
       if (bail) {
-        console.log(chalk.redBright(`\n${script} script in package ${packageName} failed with code ${result.exitCode}`))
+        write(chalk.redBright(`\n${script} script in package ${packageName} failed with code ${result.exitCode}`))
         process.exit(result.exitCode)
       } else {
         failed.push(packageName)
@@ -157,13 +153,13 @@ async function runInPackages(args: string[]) {
     }
   }
 
-  console.log(chalk.gray(padEnd("", process.stdout.columns || 80, "┄")))
+  write(chalk.gray(padEnd("", process.stdout.columns || 80, "┄")))
 
   if (failed.length > 0) {
-    console.log(chalk.redBright(`${script} script failed in ${failed.length} packages(s): ${failed.join(", ")}\n`))
+    write(chalk.redBright(`${script} script failed in ${failed.length} packages(s): ${failed.join(", ")}\n`))
     process.exit(failed.length)
   } else {
-    console.log(chalk.greenBright("Done!\n"))
+    write(chalk.greenBright("Done!\n"))
   }
 }
 

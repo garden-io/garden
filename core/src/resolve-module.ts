@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,28 +16,43 @@ import {
 } from "./template-string/template-string"
 import { ContextResolveOpts, GenericContext } from "./config/template-contexts/base"
 import { relative, resolve, posix, dirname } from "path"
-import { Garden } from "./garden"
+import type { Garden } from "./garden"
 import { ConfigurationError, FilesystemError, PluginError } from "./exceptions"
 import { deline, dedent } from "./util/string"
-import { getModuleKey, ModuleConfigMap, GardenModule, ModuleMap, moduleFromConfig } from "./types/module"
-import { getModuleTypeBases } from "./plugins"
-import { ModuleConfig, moduleConfigSchema } from "./config/module"
-import { Profile } from "./util/profiling"
+import {
+  ModuleConfigMap,
+  GardenModule,
+  ModuleMap,
+  moduleFromConfig,
+  ModuleTypeMap,
+  getModuleTypeBases,
+} from "./types/module"
+import { BuildDependencyConfig, ModuleConfig, moduleConfigSchema } from "./config/module"
+import { Profile, profileAsync } from "./util/profiling"
 import { getLinkedSources } from "./util/ext-source-util"
-import { allowUnknown, DeepPrimitiveMap } from "./config/common"
-import { ProviderMap } from "./config/provider"
-import { RuntimeContext } from "./runtime-context"
+import { ActionReference, allowUnknown, DeepPrimitiveMap } from "./config/common"
+import type { ProviderMap } from "./config/provider"
 import chalk from "chalk"
-import { DependencyValidationGraph } from "./util/validate-dependencies"
+import { DependencyGraph } from "./graph/common"
 import Bluebird from "bluebird"
 import { readFile, mkdirp, writeFile } from "fs-extra"
-import { LogEntry } from "./logger/log-entry"
+import type { Log } from "./logger/log-entry"
 import { ModuleConfigContext, ModuleConfigContextParams } from "./config/template-contexts/module"
 import { pathToCacheContext } from "./cache"
 import { loadVarfile } from "./config/base"
 import { merge } from "json-merge-patch"
 import { prepareBuildDependencies } from "./config/base"
-import { ModuleTypeDefinition, ModuleTypeMap } from "./types/plugin/plugin"
+import type { ModuleTypeDefinition } from "./plugin/plugin"
+import { serviceFromConfig } from "./types/service"
+import { taskFromConfig } from "./types/task"
+import { testFromConfig } from "./types/test"
+import { BuildActionConfig, BuildCopyFrom, isBuildActionConfig } from "./actions/build"
+import type { GroupConfig } from "./config/group"
+import type { ActionConfig, ActionKind, BaseActionConfig } from "./actions/types"
+import type { ModuleGraph } from "./graph/modules"
+import type { GraphResults } from "./graph/results"
+import type { ExecBuildConfig } from "./plugins/exec/config"
+import { pMemoizeDecorator } from "./lib/p-memoize"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -52,10 +67,10 @@ export const moduleResolutionConcurrencyLimit = 50
 @Profile()
 export class ModuleResolver {
   private garden: Garden
-  private log: LogEntry
+  private log: Log
   private rawConfigsByKey: ModuleConfigMap
   private resolvedProviders: ProviderMap
-  private runtimeContext?: RuntimeContext
+  private graphResults?: GraphResults
   private bases: { [type: string]: ModuleTypeDefinition[] }
 
   constructor({
@@ -63,19 +78,19 @@ export class ModuleResolver {
     log,
     rawConfigs,
     resolvedProviders,
-    runtimeContext,
+    graphResults,
   }: {
     garden: Garden
-    log: LogEntry
+    log: Log
     rawConfigs: ModuleConfig[]
     resolvedProviders: ProviderMap
-    runtimeContext?: RuntimeContext
+    graphResults?: GraphResults
   }) {
     this.garden = garden
     this.log = log
-    this.rawConfigsByKey = keyBy(rawConfigs, (c) => getModuleKey(c.name, c.plugin))
+    this.rawConfigsByKey = keyBy(rawConfigs, (c) => c.name)
     this.resolvedProviders = resolvedProviders
-    this.runtimeContext = runtimeContext
+    this.graphResults = graphResults
     this.bases = {}
   }
 
@@ -83,8 +98,8 @@ export class ModuleResolver {
     // Collect template references for every raw config and work out module references in templates and explicit
     // dependency references. We use two graphs, one will be fully populated as we progress, the other we gradually
     // remove nodes from as we complete the processing.
-    const fullGraph = new DependencyValidationGraph()
-    const processingGraph = new DependencyValidationGraph()
+    const fullGraph = new DependencyGraph()
+    const processingGraph = new DependencyGraph()
 
     for (const key of Object.keys(this.rawConfigsByKey)) {
       for (const graph of [fullGraph, processingGraph]) {
@@ -96,7 +111,7 @@ export class ModuleResolver {
       const deps = this.getModuleDependenciesFromConfig(rawConfig, buildPath)
       for (const graph of [fullGraph, processingGraph]) {
         for (const dep of deps) {
-          const depKey = getModuleKey(dep.name, dep.plugin)
+          const depKey = dep.name
           graph.addNode(depKey)
           graph.addDependency(key, depKey)
         }
@@ -133,7 +148,7 @@ export class ModuleResolver {
 
           // Check if any new build dependencies were added by the configure handler
           for (const dep of resolvedConfig.build.dependencies) {
-            const depKey = getModuleKey(dep.name, dep.plugin)
+            const depKey = dep.name
 
             if (!dependencyNames.includes(depKey)) {
               this.log.silly(`ModuleResolver: Found new dependency ${depKey} when resolving ${moduleKey}`)
@@ -241,10 +256,14 @@ export class ModuleResolver {
       garden: this.garden,
       variables: this.garden.variables,
       resolvedProviders: this.resolvedProviders,
-      moduleConfig: rawConfig,
+      name: rawConfig.name,
+      path: rawConfig.path,
       buildPath,
+      parentName: rawConfig.parentName,
+      templateName: rawConfig.templateName,
+      inputs: rawConfig.inputs,
       modules: [],
-      runtimeContext: this.runtimeContext,
+      graphResults: this.graphResults,
       partialRuntimeResolution: true,
     })
 
@@ -260,7 +279,7 @@ export class ModuleResolver {
       buildDeps = resolvedDeps
         // We only collect fully-resolved references here
         .filter((d) => !mayContainTemplateString(d) && (isString(d) || d.name))
-        .map((d) => (isString(d) ? d : getModuleKey(d.name, d.plugin)))
+        .map((d) => (isString(d) ? d : d.name))
     }
 
     const deps = [...templateDeps, ...buildDeps]
@@ -274,6 +293,11 @@ export class ModuleResolver {
 
       return moduleConfig
     })
+  }
+
+  @pMemoizeDecorator()
+  private async getLinkedSources() {
+    return getLinkedSources(this.garden, "module")
   }
 
   /**
@@ -290,9 +314,13 @@ export class ModuleResolver {
       variables: garden.variables,
       resolvedProviders: this.resolvedProviders,
       modules: dependencies,
-      moduleConfig: config,
+      name: config.name,
+      path: config.path,
       buildPath,
-      runtimeContext: this.runtimeContext,
+      parentName: config.parentName,
+      templateName: config.templateName,
+      inputs: config.inputs,
+      graphResults: this.graphResults,
       partialRuntimeResolution: true,
     }
 
@@ -303,7 +331,7 @@ export class ModuleResolver {
     const templateName = config.templateName
 
     if (templateName) {
-      const template = this.garden.moduleTemplates[templateName]
+      const template = this.garden.configTemplates[templateName]
 
       inputs = resolveTemplateStrings(
         inputs,
@@ -334,7 +362,6 @@ export class ModuleResolver {
     // And finally fully resolve the config
     const configContext = new ModuleConfigContext({
       ...templateContextParams,
-      moduleConfig: config,
       variables: { ...garden.variables, ...resolvedModuleVariables },
     })
 
@@ -392,15 +419,16 @@ export class ModuleResolver {
     config = validateWithPath({
       config,
       schema: moduleConfigSchema(),
-      configType: "module",
+      configType: "Module",
       name: config.name,
       path: config.path,
       projectRoot: garden.projectRoot,
     })
 
     if (config.repositoryUrl) {
-      const linkedSources = await getLinkedSources(garden, "module")
-      config.path = await garden.loadExtSourcePath({
+      const linkedSources = await this.getLinkedSources()
+      config.basePath = config.path
+      config.path = await garden.resolveExtSourcePath({
         name: config.name,
         linkedSources,
         repositoryUrl: config.repositoryUrl,
@@ -408,8 +436,8 @@ export class ModuleResolver {
       })
     }
 
-    const actions = await garden.getActionRouter()
-    const configureResult = await actions.configureModule({
+    const router = await garden.getActionRouter()
+    const configureResult = await router.module.configureModule({
       moduleConfig: config,
       log: garden.log,
     })
@@ -431,21 +459,6 @@ export class ModuleResolver {
           configType: `configuration for module '${config.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: ConfigurationError,
         })
-      }
-    }
-
-    // FIXME: We should be able to avoid this
-    config.name = getModuleKey(config.name, config.plugin)
-
-    if (config.plugin) {
-      for (const serviceConfig of config.serviceConfigs) {
-        serviceConfig.name = getModuleKey(serviceConfig.name, config.plugin)
-      }
-      for (const taskConfig of config.taskConfigs) {
-        taskConfig.name = getModuleKey(taskConfig.name, config.plugin)
-      }
-      for (const testConfig of config.testConfigs) {
-        testConfig.name = getModuleKey(testConfig.name, config.plugin)
       }
     }
 
@@ -473,10 +486,14 @@ export class ModuleResolver {
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
       variables: { ...this.garden.variables, ...resolvedConfig.variables },
-      moduleConfig: resolvedConfig,
+      name: resolvedConfig.name,
+      path: resolvedConfig.path,
       buildPath,
+      parentName: resolvedConfig.parentName,
+      templateName: resolvedConfig.templateName,
+      inputs: resolvedConfig.inputs,
       modules: dependencies,
-      runtimeContext: this.runtimeContext,
+      graphResults: this.graphResults,
       partialRuntimeResolution: true,
     })
 
@@ -540,7 +557,7 @@ export class ModuleResolver {
     // Make sure version is re-computed after writing new/updated files
     if (updatedFiles) {
       const cacheContext = pathToCacheContext(resolvedConfig.path)
-      this.garden.cache.invalidateUp(this.log, cacheContext)
+      this.garden.treeCache.invalidateUp(this.log, cacheContext)
     }
 
     const module = await moduleFromConfig({
@@ -589,7 +606,7 @@ export class ModuleResolver {
   /**
    * Resolves module variables with the following precedence order:
    *
-   *   garden.cliVariables > module varfile > config.variables
+   *   garden.variableOverrides > module varfile > config.variables
    */
   private async resolveVariables(
     config: ModuleConfig,
@@ -609,13 +626,230 @@ export class ModuleResolver {
 
     const rawVariables = config.variables
     const moduleVariables = resolveTemplateStrings(cloneDeep(rawVariables || {}), moduleConfigContext, resolveOpts)
-    const mergedVariables: DeepPrimitiveMap = <any>merge(moduleVariables, merge(varfileVars, this.garden.cliVariables))
+    const mergedVariables: DeepPrimitiveMap = <any>(
+      merge(moduleVariables, merge(varfileVars, this.garden.variableOverrides))
+    )
     return mergedVariables
   }
 }
 
 export interface ModuleConfigResolveOpts extends ContextResolveOpts {
   configContext: ModuleConfigContext
+}
+
+export interface ConvertModulesResult {
+  groups: GroupConfig[]
+  actions: BaseActionConfig[]
+}
+
+export function findGroupConfig(result: ConvertModulesResult, groupName: string) {
+  return result.groups.find((g) => g.name === groupName)
+}
+
+export function findActionConfigInGroup(group: GroupConfig, kind: ActionKind, name: string) {
+  return group.actions.find((a) => a.kind === kind && a.name === name)
+}
+
+export const convertModules = profileAsync(async function convertModules(
+  garden: Garden,
+  log: Log,
+  modules: GardenModule[],
+  graph: ModuleGraph
+): Promise<ConvertModulesResult> {
+  const allServices = keyBy(graph.getServices(), "name")
+  const allTasks = keyBy(graph.getTasks(), "name")
+
+  const groups: GroupConfig[] = []
+  const actions: BaseActionConfig[] = []
+
+  await Bluebird.map(modules, async (module) => {
+    const services = module.serviceConfigs.map((c) => serviceFromConfig(graph, module, c))
+    const tasks = module.taskConfigs.map((c) => taskFromConfig(module, c))
+    const tests = module.testConfigs.map((c) => testFromConfig(module, c, graph))
+
+    const router = await garden.getActionRouter()
+
+    const copyFrom: BuildCopyFrom[] = []
+
+    for (const d of module.build.dependencies) {
+      if (d.copy) {
+        copyFrom.push(...d.copy.map((c) => ({ build: d.name, sourcePath: c.source, targetPath: c.target })))
+      }
+    }
+
+    const convertBuildDependency = (d: string | BuildDependencyConfig): ActionReference => {
+      if (typeof d === "string") {
+        return { kind: "Build", name: d }
+      } else {
+        return { kind: "Build", name: d.name }
+      }
+    }
+
+    const convertRuntimeDependencies = (deps: string[]): ActionReference[] => {
+      const resolved: ActionReference[] = []
+
+      for (const d of deps || []) {
+        if (allServices[d]) {
+          resolved.push({ kind: "Deploy", name: d })
+        } else if (allTasks[d]) {
+          resolved.push({ kind: "Run", name: d })
+        }
+      }
+
+      return resolved
+    }
+
+    let dummyBuild: ExecBuildConfig | undefined = undefined
+
+    if (copyFrom.length > 0) {
+      dummyBuild = makeDummyBuild({
+        module,
+        copyFrom,
+        dependencies: module.build.dependencies.map(convertBuildDependency),
+      })
+    }
+
+    log.debug(`Converting ${module.type} module ${module.name} to actions`)
+
+    const result = await router.module.convert({
+      log,
+      module,
+      services,
+      tasks,
+      tests,
+      dummyBuild,
+
+      baseFields: {
+        internal: {
+          basePath: module.basePath || module.path,
+        },
+        copyFrom,
+        disabled: module.disabled,
+        source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
+      },
+
+      convertBuildDependency,
+      convertTestName: (d: string) => {
+        return module.name + "-" + d
+      },
+
+      convertRuntimeDependencies,
+      prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig<string, any>) {
+        const resolved: ActionReference[] = convertRuntimeDependencies(deps)
+        if (build) {
+          resolved.push({ kind: "Build", name: build.name })
+        }
+        return resolved
+      },
+    })
+
+    const totalReturned = (result.actions?.length || 0) + (result.group?.actions.length || 0)
+
+    log.debug(`Module ${module.name} converted to ${totalReturned} actions`)
+
+    if (result.group) {
+      for (const action of result.group.actions) {
+        action.internal.groupName = result.group.name
+        inheritModuleToAction(module, action)
+      }
+
+      if (!result.group.internal) {
+        result.group.internal = {}
+      }
+      result.group.internal.configFilePath = module.configPath
+
+      groups.push(result.group)
+    }
+
+    if (result.actions) {
+      for (const action of result.actions) {
+        inheritModuleToAction(module, action)
+      }
+
+      actions.push(...result.actions)
+    }
+  })
+
+  return { groups, actions }
+})
+
+export function makeDummyBuild({
+  module,
+  copyFrom,
+  dependencies,
+}: {
+  module: GardenModule
+  // To make it clear at the call site that we're not inferring `copyFrom` or `dependencies` from `module`, we  ask the
+  // caller to explicitly provide `undefined` instead of making the param optional.
+  copyFrom: BuildCopyFrom[] | undefined
+  dependencies: ActionReference[] | undefined
+}): ExecBuildConfig {
+  return {
+    kind: "Build",
+    type: "exec",
+    name: module.name,
+
+    internal: {
+      basePath: module.path,
+    },
+
+    copyFrom,
+    source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
+
+    allowPublish: module.allowPublish,
+    dependencies,
+
+    timeout: module.build.timeout,
+    spec: {
+      env: {},
+    },
+  }
+}
+
+function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
+  if (!action.internal.basePath) {
+    action.internal.basePath = module.basePath || module.path
+  }
+
+  // Converted actions are fully resolved upfront
+  action.internal.resolved = true
+
+  // Enforce some inheritance from module
+  action.internal.moduleName = module.name
+  action.internal.moduleVersion = module.version
+  if (module.disabled) {
+    action.disabled = true
+  }
+  action.internal.basePath = module.path
+  if (module.configPath) {
+    action.internal.configFilePath = module.configPath
+  }
+  if (module.templateName) {
+    action.internal.templateName = module.templateName
+  }
+  if (module.inputs) {
+    action.internal.inputs = module.inputs
+  }
+  if (module.repositoryUrl) {
+    action.internal.remoteClonePath = module.path // This is set to the source local path during module resolution
+  }
+  if (isBuildActionConfig(action)) {
+    if (!module.allowPublish) {
+      action.allowPublish = false
+    }
+    action.internal.treeVersion = module.version
+  }
+  if (!action.varfiles && module.varfile) {
+    action.varfiles = [module.varfile]
+  }
+  if (!action.variables) {
+    action.variables = module.variables
+  }
+
+  // Need to remove this since we set it in the baseFields object passed to the convert handler
+  if (action.kind !== "Build") {
+    delete action["copyFrom"]
+  }
 }
 
 function missingBuildDependency(moduleName: string, dependencyName: string) {

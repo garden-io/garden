@@ -1,30 +1,22 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
-import chalk from "chalk"
-import { find, includes } from "lodash"
-import minimatch = require("minimatch")
+import { find } from "lodash"
+import minimatch from "minimatch"
 
-import { GardenModule } from "../types/module"
-import { TestResult } from "../types/plugin/module/getTestResult"
-import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "../tasks/base"
-import { prepareRuntimeContext } from "../runtime-context"
-import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
-import { ConfigGraph } from "../config-graph"
-import { getDeployDeps, getServiceStatusDeps, getTaskDeps, getTaskResultDeps, makeTestTaskName } from "./helpers"
-import { BuildTask } from "./build"
-import { GraphResults } from "../task-graph"
+import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams, emitGetStatusEvents, emitProcessingEvents } from "../tasks/base"
 import { Profile } from "../util/profiling"
-import { GardenTest, testFromConfig } from "../types/test"
 import { ModuleConfig } from "../config/module"
-import { pMemoizeDecorator } from "../lib/p-memoize"
+import { resolvedActionToExecuted } from "../actions/helpers"
+import { TestAction } from "../actions/test"
+import { GetTestResult } from "../plugin/handlers/Test/get-result"
+import { TestConfig } from "../config/test"
+import { moduleTestNameToActionName } from "../types/module"
 
 class TestError extends Error {
   toString() {
@@ -32,252 +24,118 @@ class TestError extends Error {
   }
 }
 
-export interface TestTaskParams {
-  garden: Garden
-  log: LogEntry
-  graph: ConfigGraph
-  test: GardenTest
-  force: boolean
-  forceBuild: boolean
-  fromWatch?: boolean
-  skipRuntimeDependencies?: boolean
-  devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
-  localModeServiceNames: string[]
+export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
   silent?: boolean
   interactive?: boolean
 }
 
 @Profile()
-export class TestTask extends BaseTask {
-  type: TaskType = "test"
-  test: GardenTest
-  graph: ConfigGraph
-  forceBuild: boolean
-  fromWatch: boolean
-  skipRuntimeDependencies: boolean
-  devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
-  localModeServiceNames: string[]
+export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
+  type = "test" as const
+
   silent: boolean
 
-  constructor({
-    garden,
-    graph,
-    log,
-    test,
-    force,
-    forceBuild,
-    fromWatch = false,
-    skipRuntimeDependencies = false,
-    devModeServiceNames,
-    hotReloadServiceNames,
-    localModeServiceNames,
-    silent = true,
-    interactive = false,
-  }: TestTaskParams) {
-    super({ garden, log, force, version: test.version })
-    this.test = test
-    this.graph = graph
-    this.force = force
-    this.forceBuild = forceBuild
-    this.fromWatch = fromWatch
-    this.skipRuntimeDependencies = skipRuntimeDependencies
-    this.devModeServiceNames = devModeServiceNames
-    this.hotReloadServiceNames = hotReloadServiceNames
-    this.localModeServiceNames = localModeServiceNames
+  constructor(params: TestTaskParams) {
+    super(params)
+
+    const { silent = true, interactive = false } = params
+
     this.silent = silent
     this.interactive = interactive
   }
 
-  async resolveDependencies() {
-    const testResult = await this.getTestResult()
-
-    if (testResult && testResult.success) {
-      return []
-    }
-
-    const deps = this.graph.getDependencies({
-      nodeType: "test",
-      name: this.getName(),
-      recursive: false,
-      filter: (depNode) =>
-        !(
-          this.fromWatch &&
-          depNode.type === "deploy" &&
-          includes([...this.devModeServiceNames, ...this.hotReloadServiceNames], depNode.name)
-        ),
-    })
-
-    const buildTasks = await BuildTask.factory({
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      module: this.test.module,
-      force: this.forceBuild,
-    })
-
-    if (this.skipRuntimeDependencies) {
-      return [...buildTasks, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
-    } else {
-      return [...buildTasks, ...getDeployDeps(this, deps, false), ...getTaskDeps(this, deps, this.force)]
-    }
-  }
-
-  getName() {
-    return makeTestTaskName(this.test.module.name, this.test.name)
+  protected getDependencyParams(): TestTaskParams {
+    return { ...super.getDependencyParams(), silent: this.silent, interactive: this.interactive }
   }
 
   getDescription() {
-    return `running ${this.test.name} tests in module ${this.test.module.name}`
+    return this.action.longDescription()
   }
 
-  async process(dependencyResults: GraphResults): Promise<TestResult> {
-    // find out if module has already been tested
-    const testResult = await this.getTestResult()
+  @emitGetStatusEvents<TestAction>
+  async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
+    this.log.verbose("Checking status...")
+    const action = this.getResolvedAction(this.action, dependencyResults)
+    const router = await this.garden.getActionRouter()
 
-    if (testResult && testResult.success) {
-      const passedEntry = this.log.info({
-        section: this.test.module.name,
-        msg: `${this.test.name} tests`,
-      })
-      passedEntry.setSuccess({
-        msg: chalk.green("Already passed"),
-        append: true,
-      })
-      return testResult
-    }
-
-    const log = this.log.info({
-      section: this.test.module.name,
-      msg: `Running ${this.test.name} tests`,
-      status: "active",
-    })
-
-    const dependencies = this.graph.getDependencies({
-      nodeType: "test",
-      name: this.getName(),
-      recursive: false,
-    })
-    const serviceStatuses = getServiceStatuses(dependencyResults)
-    const taskResults = getRunTaskResults(dependencyResults)
-
-    const runtimeContext = await prepareRuntimeContext({
-      garden: this.garden,
-      graph: this.graph,
-      dependencies,
-      version: this.version,
-      moduleVersion: this.test.module.version.versionString,
-      serviceStatuses,
-      taskResults,
-    })
-
-    const actions = await this.garden.getActionRouter()
-
-    let result: TestResult
-    try {
-      result = await actions.testModule({
-        log,
-        module: this.test.module,
-        graph: this.graph,
-        runtimeContext,
-        silent: this.silent,
-        interactive: this.interactive,
-        test: this.test,
-      })
-    } catch (err) {
-      log.setError()
-      throw err
-    }
-    if (result.success) {
-      log.setSuccess({
-        msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`),
-        append: true,
-      })
-    } else {
-      const failedMsg = !!result.exitCode ? `Failed with code ${result.exitCode}!` : `Failed!`
-      log.setError({
-        msg: `${failedMsg} (took ${log.getDuration(1)} sec)`,
-        append: true,
-      })
-      throw new TestError(result.log)
-    }
-
-    return result
-  }
-
-  // We memoize this method for performance and to avoid emitting two `testStatus` events when the task is added
-  // and processed (since this method is called in `resolveDependencies` and `process`).
-  @pMemoizeDecorator()
-  private async getTestResult(): Promise<TestResult | null> {
-    if (this.force) {
-      return null
-    }
-
-    const actions = await this.garden.getActionRouter()
-
-    return actions.getTestResult({
+    const { result: status } = await router.test.getResult({
       log: this.log,
       graph: this.graph,
-      module: this.test.module,
-      test: this.test,
+      action,
     })
+
+    this.log.verbose("Status check complete")
+
+    const testResult = status?.detail
+
+    const version = action.versionString()
+    const executedAction = resolvedActionToExecuted(action, { status })
+
+    if (testResult && testResult.success) {
+      if (!this.force) {
+        this.log.success("Already passed")
+      }
+      return {
+        ...status,
+        version,
+        executedAction,
+      }
+    } else {
+      return {
+        ...status,
+        state: "not-ready" as const,
+        version,
+        executedAction,
+      }
+    }
+  }
+
+  @emitProcessingEvents<TestAction>
+  async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
+    const action = this.getResolvedAction(this.action, dependencyResults)
+
+    this.log.info(`Running...`)
+
+    const router = await this.garden.getActionRouter()
+
+    let status: GetTestResult<TestAction>
+    try {
+      const output = await router.test.run({
+        log: this.log,
+        action,
+        graph: this.graph,
+        silent: this.silent,
+        interactive: this.interactive,
+      })
+      status = output.result
+    } catch (err) {
+      this.log.error(`Failed running test`)
+
+      throw err
+    }
+    if (status.detail?.success) {
+      this.log.success(`Success`)
+    } else {
+      const exitCode = status.detail?.exitCode
+      const failedMsg = !!exitCode ? `Failed with code ${exitCode}!` : `Failed!`
+      this.log.error(failedMsg)
+      throw new TestError(status.detail?.log)
+    }
+
+    return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 }
 
-export async function getTestTasks({
-  garden,
-  log,
-  graph,
-  module,
-  filterNames,
-  devModeServiceNames,
-  hotReloadServiceNames,
-  localModeServiceNames,
-  force = false,
-  forceBuild = false,
-  fromWatch = false,
-  skipRuntimeDependencies = false,
-}: {
-  garden: Garden
-  log: LogEntry
-  graph: ConfigGraph
-  module: GardenModule
-  filterNames?: string[]
-  devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
-  localModeServiceNames: string[]
-  force?: boolean
-  forceBuild?: boolean
-  fromWatch?: boolean
-  skipRuntimeDependencies?: boolean
-}) {
-  return Bluebird.map(
-    filterTestConfigs(module.testConfigs, filterNames),
-    (testConfig) =>
-      new TestTask({
-        garden,
-        graph,
-        log,
-        force,
-        forceBuild,
-        fromWatch,
-        test: testFromConfig(module, testConfig, graph),
-        devModeServiceNames,
-        hotReloadServiceNames,
-        localModeServiceNames,
-        skipRuntimeDependencies,
-      })
-  )
-}
-
-export function filterTestConfigs(
-  configs: ModuleConfig["testConfigs"],
-  filterNames?: string[]
-): ModuleConfig["testConfigs"] {
-  return configs.filter(
-    (test) =>
-      !test.disabled &&
-      (!filterNames || filterNames.length === 0 || find(filterNames, (n: string) => minimatch(test.name, n)))
-  )
+export function filterTestConfigs(module: ModuleConfig, filterNames?: string[]): ModuleConfig["testConfigs"] {
+  const acceptableTestConfig = (test: TestConfig) => {
+    if (test.disabled) {
+      return false
+    }
+    if (!filterNames || filterNames.length === 0) {
+      return true
+    }
+    const testName = moduleTestNameToActionName(module.name, test.name)
+    return find(filterNames, (n: string) => minimatch(testName, n))
+  }
+  return module.testConfigs.filter(acceptableTestConfig)
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -126,7 +126,7 @@ FormatString
 
 InvalidFormatString
   = Prefix? FormatStart .* {
-  	throw new TemplateStringError("Unable to parse as valid template string.")
+  	throw new TemplateStringError("Unable to parse as valid template string.", {})
   }
 
 EscapeStart
@@ -291,7 +291,8 @@ ContainsExpression
       if (!isPrimitive(tail)) {
         return {
           _error: new TemplateStringError(
-            `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof tail}).`
+            `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof tail}).`,
+            {}
           )
         }
       }
@@ -309,7 +310,8 @@ ContainsExpression
       } else {
         return {
           _error: new TemplateStringError(
-            `The left-hand side of a 'contains' operator must be a string, array or object (got ${headType}).`
+            `The left-hand side of a 'contains' operator must be a string, array or object (got ${headType}).`,
+            {}
           )
         }
       }

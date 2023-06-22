@@ -1,447 +1,435 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { spawn } from "child_process"
 import { expect } from "chai"
-import { join, resolve } from "path"
-import psTree from "ps-tree"
+import { join } from "path"
 
 import { Garden } from "../../../../../src/garden"
-import { gardenPlugin, configureExecModule, getLogFilePath } from "../../../../../src/plugins/exec/exec"
-import { GARDEN_BUILD_VERSION_FILENAME, DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { LogEntry } from "../../../../../src/logger/log-entry"
-import { keyBy } from "lodash"
-import { getDataDir, makeTestModule, expectError } from "../../../../helpers"
-import { TaskTask } from "../../../../../src/tasks/task"
-import { readModuleVersionFile } from "../../../../../src/vcs/vcs"
-import { dataDir, makeTestGarden } from "../../../../helpers"
+import { ExecProvider, gardenPlugin } from "../../../../../src/plugins/exec/exec"
+import { ActionLog, createActionLog } from "../../../../../src/logger/log-entry"
+import { keyBy, omit } from "lodash"
+import {
+  getDataDir,
+  makeTestModule,
+  expectError,
+  createProjectConfig,
+  TestGarden,
+  makeModuleConfig,
+  makeTempDir,
+} from "../../../../helpers"
+import { RunTask } from "../../../../../src/tasks/run"
+import { makeTestGarden } from "../../../../helpers"
 import { ModuleConfig } from "../../../../../src/config/module"
-import { ConfigGraph } from "../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { pathExists, emptyDir } from "fs-extra"
 import { TestTask } from "../../../../../src/tasks/test"
-import { defaultNamespace } from "../../../../../src/config/project"
 import { readFile, remove } from "fs-extra"
-import { testFromConfig } from "../../../../../src/types/test"
 import { dedent } from "../../../../../src/util/string"
 import { sleep } from "../../../../../src/util/util"
+import { configureExecModule, ExecModuleConfig } from "../../../../../src/plugins/exec/moduleConfig"
+import { actionFromConfig } from "../../../../../src/graph/actions"
+import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
+import { PluginContext } from "../../../../../src/plugin-context"
+import {
+  convertModules,
+  ConvertModulesResult,
+  findActionConfigInGroup,
+  findGroupConfig,
+} from "../../../../../src/resolve-module"
+import tmp from "tmp-promise"
+import { ProjectConfig } from "../../../../../src/config/project"
+import { BuildActionConfig } from "../../../../../src/actions/build"
+import { DeployActionConfig } from "../../../../../src/actions/deploy"
+import { RunActionConfig } from "../../../../../src/actions/run"
+import { getLogFilePath } from "../../../../../src/plugins/exec/deploy"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC,
+} from "../../../../../src/constants"
+import { isRunning, killRecursive } from "../../../../../src/process"
 
 describe("exec plugin", () => {
-  const moduleName = "module-a"
-  const testProjectRoot = resolve(dataDir, "test-project-exec")
-  const plugin = gardenPlugin()
+  context("test-project based tests", () => {
+    const testProjectRoot = getDataDir("test-project-exec")
+    const plugin = gardenPlugin()
 
-  let garden: Garden
-  let graph: ConfigGraph
-  let log: LogEntry
+    let garden: Garden
+    let ctx: PluginContext
+    let execProvider: ExecProvider
+    let graph: ConfigGraph
+    let log: ActionLog
 
-  beforeEach(async () => {
-    garden = await makeTestGarden(testProjectRoot, { plugins: [plugin] })
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    log = garden.log
-    await garden.clearBuilds()
-  })
-
-  it("should run a script on init in the project root, if configured", async () => {
-    const _garden = await makeTestGarden(testProjectRoot, {
-      plugins: [plugin],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
-        path: garden.projectRoot,
-        defaultEnvironment: "default",
-        dotIgnoreFiles: [],
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
-        providers: [{ name: "exec", initScript: "echo hello! > .garden/test.txt" }],
-        variables: {},
-      },
-      noCache: true,
+    beforeEach(async () => {
+      garden = await makeTestGarden(testProjectRoot, { plugins: [plugin] })
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      execProvider = await garden.resolveProvider(garden.log, "exec")
+      ctx = await garden.getPluginContext({ provider: execProvider, templateContext: undefined, events: undefined })
+      log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
+      await garden.clearBuilds()
     })
 
-    await _garden.getConfigGraph({ log: _garden.log, emit: false, noCache: true })
+    it("should run a script on init in the project root, if configured", async () => {
+      const _garden = await makeTestGarden(testProjectRoot, {
+        plugins: [plugin],
+        config: createProjectConfig({
+          path: garden.projectRoot,
+          providers: [{ name: "exec", initScript: "echo hello! > .garden/test.txt" }],
+        }),
+        noCache: true,
+      })
 
-    const f = await readFile(join(_garden.projectRoot, ".garden", "test.txt"))
+      await _garden.getConfigGraph({ log: _garden.log, emit: false, noCache: true })
 
-    expect(f.toString().trim()).to.equal("hello!")
-  })
+      const f = await readFile(join(_garden.projectRoot, ".garden", "test.txt"))
 
-  it("should throw if a script configured and exits with a non-zero code", async () => {
-    const _garden = await makeTestGarden(garden.projectRoot, {
-      plugins: [plugin],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
-        path: testProjectRoot,
-        defaultEnvironment: "default",
-        dotIgnoreFiles: [],
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
-        providers: [{ name: "exec", initScript: "echo oh no!; exit 1" }],
-        variables: {},
-      },
+      expect(f.toString().trim()).to.equal("hello!")
     })
 
-    await expectError(() => _garden.resolveProviders(_garden.log), "plugin")
-  })
+    it("should throw if a script configured and exits with a non-zero code", async () => {
+      const _garden = await makeTestGarden(garden.projectRoot, {
+        plugins: [plugin],
+        config: createProjectConfig({
+          path: testProjectRoot,
+          providers: [{ name: "exec", initScript: "echo oh no!; exit 1" }],
+        }),
+      })
 
-  it("should correctly parse exec modules", async () => {
-    const modules = keyBy(graph.getModules(), "name")
-    const { "module-a": moduleA, "module-b": moduleB, "module-c": moduleC, "module-local": moduleLocal } = modules
+      await expectError(() => _garden.resolveProviders(_garden.log), "plugin")
+    })
 
-    expect(moduleA.build.dependencies).to.eql([])
-    expect(moduleA.spec.build.command).to.eql(["echo", "A"])
-    expect(moduleA.serviceConfigs).to.eql([
-      {
-        dependencies: [],
-        disabled: false,
-        hotReloadable: false,
-        name: "apple",
-        spec: {
-          cleanupCommand: ["rm -f deployed.log && echo cleaned up"],
+    it("should correctly parse exec modules", async () => {
+      const modules = keyBy(graph.getModules(), "name")
+      const { "module-a": moduleA, "module-b": moduleB, "module-c": moduleC, "module-local": moduleLocal } = modules
+
+      expect(moduleA.build.dependencies).to.eql([])
+      expect(moduleA.spec.build.command).to.eql(["echo", "A"])
+      expect(moduleA.serviceConfigs).to.eql([
+        {
           dependencies: [],
-          deployCommand: ["touch deployed.log && echo deployed"],
           disabled: false,
-          env: {},
           name: "apple",
-          statusCommand: ["test -f deployed.log && echo already deployed"],
+          spec: {
+            cleanupCommand: ["rm -f deployed.log && echo cleaned up"],
+            dependencies: [],
+            deployCommand: ["touch deployed.log && echo deployed"],
+            disabled: false,
+            env: {},
+            name: "apple",
+            statusCommand: ["test -f deployed.log && echo already deployed"],
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          },
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
         },
-      },
-    ])
-    expect(moduleA.taskConfigs).to.eql([
-      {
-        name: "banana",
-        cacheResult: false,
-        dependencies: ["orange"],
-        disabled: false,
-        timeout: null,
-        spec: {
-          artifacts: [],
+      ])
+      expect(moduleA.taskConfigs).to.eql([
+        {
           name: "banana",
-          command: ["echo", "BANANA"],
-          env: {},
+          cacheResult: false,
           dependencies: ["orange"],
           disabled: false,
-          timeout: null,
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          spec: {
+            artifacts: [],
+            name: "banana",
+            command: ["echo", "BANANA"],
+            env: {},
+            dependencies: ["orange"],
+            disabled: false,
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          },
         },
-      },
-      {
-        name: "orange",
-        cacheResult: false,
-        dependencies: [],
-        disabled: false,
-        timeout: 999,
-        spec: {
-          artifacts: [],
+        {
           name: "orange",
-          command: ["echo", "ORANGE"],
-          env: {},
+          cacheResult: false,
           dependencies: [],
           disabled: false,
           timeout: 999,
-        },
-      },
-    ])
-    expect(moduleA.testConfigs).to.eql([
-      {
-        name: "unit",
-        dependencies: [],
-        disabled: false,
-        timeout: null,
-        spec: {
-          name: "unit",
-          artifacts: [],
-          dependencies: [],
-          disabled: false,
-          command: ["echo", "OK"],
-          env: {
-            FOO: "boo",
+          spec: {
+            artifacts: [],
+            name: "orange",
+            command: ["echo", "ORANGE"],
+            env: {},
+            dependencies: [],
+            disabled: false,
+            timeout: 999,
           },
-          timeout: null,
         },
-      },
-    ])
-
-    expect(moduleB.build.dependencies).to.eql([{ name: "module-a", copy: [] }])
-    expect(moduleB.spec.build.command).to.eql(["echo", "B"])
-
-    expect(moduleB.serviceConfigs).to.eql([])
-    expect(moduleB.taskConfigs).to.eql([])
-    expect(moduleB.testConfigs).to.eql([
-      {
-        name: "unit",
-        dependencies: [],
-        disabled: false,
-        timeout: null,
-        spec: {
-          name: "unit",
-          artifacts: [],
-          dependencies: [],
-          disabled: false,
-          command: ["echo", "OK"],
-          env: {},
-          timeout: null,
-        },
-      },
-    ])
-
-    expect(moduleC.build.dependencies).to.eql([{ name: "module-b", copy: [] }])
-    expect(moduleC.spec.build.command).to.eql([])
-
-    expect(moduleC.serviceConfigs).to.eql([])
-    expect(moduleC.taskConfigs).to.eql([])
-    expect(moduleC.testConfigs).to.eql([
-      {
-        name: "unit",
-        dependencies: [],
-        disabled: false,
-        timeout: null,
-        spec: {
+      ])
+      expect(moduleA.testConfigs).to.eql([
+        {
           name: "unit",
           dependencies: [],
-          artifacts: [],
           disabled: false,
-          command: ["echo", "OK"],
-          env: {},
-          timeout: null,
-        },
-      },
-    ])
-
-    expect(moduleLocal.spec.local).to.eql(true)
-    expect(moduleLocal.build.dependencies).to.eql([])
-    expect(moduleLocal.spec.build.command).to.eql(["pwd"])
-
-    expect(moduleLocal.serviceConfigs).to.eql([
-      {
-        dependencies: [],
-        disabled: false,
-        hotReloadable: false,
-        name: "touch",
-        spec: {
-          cleanupCommand: ["rm -f deployed.log && echo cleaned up"],
-          dependencies: [],
-          deployCommand: ["touch deployed.log && echo deployed"],
-          disabled: false,
-          env: {},
-          name: "touch",
-          statusCommand: ["test -f deployed.log && echo already deployed"],
-        },
-      },
-      {
-        dependencies: [],
-        disabled: false,
-        hotReloadable: false,
-        name: "echo",
-        spec: {
-          dependencies: [],
-          deployCommand: ["echo", "deployed $NAME"],
-          disabled: false,
-          env: { NAME: "echo service" },
-          name: "echo",
-        },
-      },
-      {
-        dependencies: [],
-        disabled: false,
-        hotReloadable: false,
-        name: "error",
-        spec: {
-          cleanupCommand: ["sh", '-c "echo fail! && exit 1"'],
-          dependencies: [],
-          deployCommand: ["sh", '-c "echo fail! && exit 1"'],
-          disabled: false,
-          env: {},
-          name: "error",
-        },
-      },
-      {
-        dependencies: [],
-        disabled: false,
-        hotReloadable: false,
-        name: "empty",
-        spec: {
-          dependencies: [],
-          deployCommand: [],
-          disabled: false,
-          env: {},
-          name: "empty",
-        },
-      },
-    ])
-    expect(moduleLocal.taskConfigs).to.eql([
-      {
-        name: "pwd",
-        cacheResult: false,
-        dependencies: [],
-        disabled: false,
-        timeout: null,
-        spec: {
-          name: "pwd",
-          env: {},
-          command: ["pwd"],
-          artifacts: [],
-          dependencies: [],
-          disabled: false,
-          timeout: null,
-        },
-      },
-    ])
-    expect(moduleLocal.testConfigs).to.eql([])
-  })
-
-  it("should propagate task logs to runtime outputs", async () => {
-    const _garden = await makeTestGarden(getDataDir("test-projects", "exec-task-outputs"))
-    const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
-    const taskB = _graph.getTask("task-b")
-
-    const taskTask = new TaskTask({
-      garden: _garden,
-      graph: _graph,
-      task: taskB,
-      log: _garden.log,
-      force: false,
-      forceBuild: false,
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
-    })
-    const results = await _garden.processTasks([taskTask])
-
-    // Task A echoes "task-a-output" and Task B echoes the output from Task A
-    expect(results["task.task-b"]).to.exist
-    expect(results["task.task-b"]).to.have.property("output")
-    expect(results["task.task-b"]!.output.log).to.equal("task-a-output")
-    expect(results["task.task-b"]!.output).to.have.property("outputs")
-    expect(results["task.task-b"]!.output.outputs.log).to.equal("task-a-output")
-  })
-
-  it("should copy artifacts after task runs", async () => {
-    const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
-    const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
-    const task = _graph.getTask("task-a")
-
-    const taskTask = new TaskTask({
-      garden: _garden,
-      graph: _graph,
-      task,
-      log: _garden.log,
-      force: false,
-      forceBuild: false,
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
-    })
-
-    await emptyDir(_garden.artifactsPath)
-
-    await _garden.processTasks([taskTask])
-
-    expect(await pathExists(join(_garden.artifactsPath, "task-outputs", "task-a.txt"))).to.be.true
-  })
-
-  it("should copy artifacts after test runs", async () => {
-    const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
-    const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
-    const test = _graph.getTest("module-a", "test-a")
-
-    const testTask = new TestTask({
-      garden: _garden,
-      graph: _graph,
-      test,
-      log: _garden.log,
-      force: false,
-      forceBuild: false,
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
-    })
-
-    await emptyDir(_garden.artifactsPath)
-
-    await _garden.processTasks([testTask])
-
-    expect(await pathExists(join(_garden.artifactsPath, "test-outputs", "test-a.txt"))).to.be.true
-  })
-
-  describe("configureExecModule", () => {
-    it("should throw if a local exec module has a build.copy spec", async () => {
-      const moduleConfig = makeTestModule(<Partial<ModuleConfig>>{
-        local: true,
-        build: {
-          dependencies: [
-            {
-              name: "foo",
-              copy: [
-                {
-                  source: ".",
-                  target: ".",
-                },
-              ],
+          timeout: DEFAULT_TEST_TIMEOUT_SEC,
+          spec: {
+            name: "unit",
+            artifacts: [],
+            dependencies: [],
+            disabled: false,
+            command: ["echo", "OK"],
+            env: {
+              FOO: "boo",
             },
-          ],
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
+          },
         },
-      })
-      const provider = await garden.resolveProvider(garden.log, "test-plugin")
-      const ctx = await garden.getPluginContext(provider)
-      await expectError(async () => await configureExecModule({ ctx, moduleConfig, log }), "configuration")
-    })
-  })
+      ])
 
-  describe("build", () => {
-    it("should write a build version file after building", async () => {
-      const module = graph.getModule(moduleName)
-      const buildMetadataPath = module.buildMetadataPath
-      const versionFilePath = join(buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
+      expect(moduleB.build.dependencies).to.eql([{ name: "module-a", copy: [] }])
+      expect(moduleB.spec.build.command).to.eql(["echo", "B"])
 
-      await garden.buildStaging.syncFromSrc(module, log)
-      const actions = await garden.getActionRouter()
-      await actions.build({ log, module, graph })
-
-      const versionFileContents = await readModuleVersionFile(versionFilePath)
-
-      expect(versionFileContents).to.eql(module.version)
-    })
-
-    it("should run the build command in the module dir if local true", async () => {
-      const module = graph.getModule("module-local")
-      const actions = await garden.getActionRouter()
-      const res = await actions.build({ log, module, graph })
-      expect(res.buildLog).to.eql(join(garden.projectRoot, "module-local"))
-    })
-
-    it("should receive module version as an env var", async () => {
-      const module = graph.getModule("module-local")
-      const actions = await garden.getActionRouter()
-
-      module.spec.build.command = ["echo", "$GARDEN_MODULE_VERSION"]
-      const res = await actions.build({ log, module, graph })
-
-      expect(res.buildLog).to.equal(module.version.versionString)
-    })
-  })
-
-  describe("testExecModule", () => {
-    it("should run the test command in the module dir if local true", async () => {
-      const module = graph.getModule("module-local")
-      const actions = await garden.getActionRouter()
-      const res = await actions.testModule({
-        log,
-        module,
-        interactive: true,
-        graph,
-        runtimeContext: {
-          envVars: {},
+      expect(moduleB.serviceConfigs).to.eql([])
+      expect(moduleB.taskConfigs).to.eql([])
+      expect(moduleB.testConfigs).to.eql([
+        {
+          name: "unit",
           dependencies: [],
+          disabled: false,
+          timeout: DEFAULT_TEST_TIMEOUT_SEC,
+          spec: {
+            name: "unit",
+            artifacts: [],
+            dependencies: [],
+            disabled: false,
+            command: ["echo", "OK"],
+            env: {},
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
+          },
         },
-        silent: false,
-        test: testFromConfig(
-          module,
-          {
+      ])
+
+      expect(moduleC.build.dependencies).to.eql([{ name: "module-b", copy: [] }])
+      expect(moduleC.spec.build.command).to.eql([])
+
+      expect(moduleC.serviceConfigs).to.eql([])
+      expect(moduleC.taskConfigs).to.eql([])
+      expect(moduleC.testConfigs).to.eql([
+        {
+          name: "unit",
+          dependencies: [],
+          disabled: false,
+          timeout: DEFAULT_TEST_TIMEOUT_SEC,
+          spec: {
+            name: "unit",
+            dependencies: [],
+            artifacts: [],
+            disabled: false,
+            command: ["echo", "OK"],
+            env: {},
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
+          },
+        },
+      ])
+
+      expect(moduleLocal.spec.local).to.eql(true)
+      expect(moduleLocal.build.dependencies).to.eql([])
+      expect(moduleLocal.spec.build.command).to.eql(["pwd"])
+
+      expect(moduleLocal.serviceConfigs).to.eql([
+        {
+          dependencies: [],
+          disabled: false,
+          name: "touch",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          spec: {
+            cleanupCommand: ["rm -f deployed.log && echo cleaned up"],
+            dependencies: [],
+            deployCommand: ["touch deployed.log && echo deployed"],
+            disabled: false,
+            env: {},
+            name: "touch",
+            statusCommand: ["test -f deployed.log && echo already deployed"],
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          },
+        },
+        {
+          dependencies: [],
+          disabled: false,
+          name: "echo",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          spec: {
+            dependencies: [],
+            deployCommand: ["echo", "deployed $NAME"],
+            disabled: false,
+            env: { NAME: "echo service" },
+            name: "echo",
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          },
+        },
+        {
+          dependencies: [],
+          disabled: false,
+          name: "error",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          spec: {
+            cleanupCommand: ["sh", '-c "echo fail! && exit 1"'],
+            dependencies: [],
+            deployCommand: ["sh", '-c "echo fail! && exit 1"'],
+            disabled: false,
+            env: {},
+            name: "error",
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          },
+        },
+        {
+          dependencies: [],
+          disabled: false,
+          name: "empty",
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          spec: {
+            dependencies: [],
+            deployCommand: [],
+            disabled: false,
+            env: {},
+            name: "empty",
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          },
+        },
+      ])
+      expect(moduleLocal.taskConfigs).to.eql([
+        {
+          name: "pwd",
+          cacheResult: false,
+          dependencies: [],
+          disabled: false,
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          spec: {
+            name: "pwd",
+            env: {},
+            command: ["pwd"],
+            artifacts: [],
+            dependencies: [],
+            disabled: false,
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          },
+        },
+      ])
+      expect(moduleLocal.testConfigs).to.eql([])
+    })
+
+    it("should copy artifacts after task runs", async () => {
+      const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
+      const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
+      const run = _graph.getRun("task-a")
+
+      const taskTask = new RunTask({
+        garden: _garden,
+        graph: _graph,
+        action: run,
+
+        log: _garden.log,
+        force: false,
+        forceBuild: false,
+      })
+
+      await emptyDir(_garden.artifactsPath)
+
+      await _garden.processTasks({ tasks: [taskTask], throwOnError: false })
+
+      expect(await pathExists(join(_garden.artifactsPath, "task-outputs", "task-a.txt"))).to.be.true
+    })
+
+    it("should copy artifacts after test runs", async () => {
+      const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
+      const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
+      const test = _graph.getTest("module-a-test-a")
+
+      const testTask = new TestTask({
+        garden: _garden,
+        graph: _graph,
+        action: test,
+
+        log: _garden.log,
+        force: false,
+        forceBuild: false,
+      })
+
+      await emptyDir(_garden.artifactsPath)
+
+      await _garden.processTasks({ tasks: [testTask], throwOnError: false })
+
+      expect(await pathExists(join(_garden.artifactsPath, "test-outputs", "test-a.txt"))).to.be.true
+    })
+
+    describe("configureExecModule", () => {
+      it("should throw if a local exec module has a build.copy spec", async () => {
+        const moduleConfig = makeTestModule(<Partial<ModuleConfig>>{
+          build: {
+            dependencies: [
+              {
+                name: "foo",
+                copy: [
+                  {
+                    source: ".",
+                    target: ".",
+                  },
+                ],
+              },
+            ],
+          },
+          spec: { local: true },
+        })
+        await expectError(async () => await configureExecModule({ ctx, moduleConfig, log }), "configuration")
+      })
+    })
+
+    describe("build", () => {
+      it("should run the build command in the action dir if local true", async () => {
+        const action = graph.getBuild("module-local")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
+
+        const expectedBuildLog = join(garden.projectRoot, "module-local")
+        expect(res.detail).to.eql({ buildLog: expectedBuildLog, fresh: true })
+      })
+
+      it("should receive action version as an env var", async () => {
+        const action = graph.getBuild("module-local")
+        const actions = await garden.getActionRouter()
+
+        action._config.spec.command = ["sh", "-c", "echo $GARDEN_ACTION_VERSION"]
+        action._config.spec.shell = false
+
+        const resolvedAction = await garden.resolveAction({ log, graph, action })
+        const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
+
+        expect(res.detail).to.eql({ buildLog: action.versionString(), fresh: true })
+      })
+
+      it("should receive module version as an env var", async () => {
+        const action = graph.getBuild("module-local")
+        const actions = await garden.getActionRouter()
+
+        action._config.spec.command = ["sh", "-c", "echo $GARDEN_MODULE_VERSION"]
+        action._config.spec.shell = false
+
+        const resolvedAction = await garden.resolveAction({ log, graph, action })
+        const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
+
+        expect(res.detail).to.eql({ buildLog: action.versionString(), fresh: true })
+      })
+    })
+
+    describe("testExecModule", () => {
+      it("should run the test command in the action dir if local true", async () => {
+        const router = await garden.getActionRouter()
+
+        const basePath = join(garden.projectRoot, "module-local")
+        const rawAction = (await actionFromConfig({
+          garden,
+          graph,
+          router,
+          log,
+          config: {
+            type: "exec",
+            kind: "Test",
             name: "test",
             dependencies: [],
             disabled: false,
@@ -449,285 +437,399 @@ describe("exec plugin", () => {
             spec: {
               command: ["pwd"],
             },
-          },
-          graph
-        ),
-      })
-      expect(res.log).to.eql(join(garden.projectRoot, "module-local"))
-    })
+            internal: {
+              basePath,
+            },
+          } as TestActionConfig,
+          configsByKey: {},
+          mode: "default",
+          linkedSources: {},
+        })) as TestAction
 
-    it("should receive module version as an env var", async () => {
-      const module = graph.getModule("module-local")
-      const actions = await garden.getActionRouter()
-      const res = await actions.testModule({
-        log,
-        module,
-        interactive: true,
-        graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
-        silent: false,
-        test: testFromConfig(
-          module,
-          {
+        const action = await garden.resolveAction<TestAction>({ action: rawAction, graph, log })
+        const { result: res } = await router.test.run({
+          log,
+          interactive: false,
+          graph,
+          silent: false,
+          action,
+        })
+
+        expect(res.outputs.log).to.eql(basePath)
+      })
+
+      it("should receive version as an env var", async () => {
+        const router = await garden.getActionRouter()
+        const rawAction = (await actionFromConfig({
+          garden,
+          graph,
+          router,
+          log,
+          config: {
+            type: "exec",
+            kind: "Test",
             name: "test",
             dependencies: [],
             disabled: false,
             timeout: 1234,
             spec: {
-              command: ["echo", "$GARDEN_MODULE_VERSION"],
+              shell: true,
+              command: ["echo $GARDEN_ACTION_VERSION"],
             },
-          },
-          graph
-        ),
-      })
-      expect(res.log).to.equal(module.version.versionString)
-    })
-  })
-
-  describe("runExecTask", () => {
-    it("should run the task command in the module dir if local true", async () => {
-      const actions = await garden.getActionRouter()
-      const task = graph.getTask("pwd")
-      const res = await actions.runTask({
-        log,
-        task,
-        interactive: true,
-        graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
-      })
-      expect(res.log).to.eql(join(garden.projectRoot, "module-local"))
-    })
-
-    it("should receive module version as an env var", async () => {
-      const module = graph.getModule("module-local")
-      const actions = await garden.getActionRouter()
-      const task = graph.getTask("pwd")
-
-      task.spec.command = ["echo", "$GARDEN_MODULE_VERSION"]
-
-      const res = await actions.runTask({
-        log,
-        task,
-        interactive: true,
-        graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
-      })
-
-      expect(res.log).to.equal(module.version.versionString)
-    })
-  })
-
-  describe("runExecModule", () => {
-    it("should run the module with the args that are passed through the command", async () => {
-      const module = graph.getModule("module-local")
-      const actions = await garden.getActionRouter()
-      const res = await actions.runModule({
-        log,
-        module,
-        command: [],
-        args: ["echo", "hello", "world"],
-        interactive: false,
-        graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
-      })
-      expect(res.log).to.eql("hello world")
-    })
-  })
-
-  context("services", () => {
-    let touchFilePath: string
-
-    beforeEach(async () => {
-      touchFilePath = join(garden.projectRoot, "module-local", "deployed.log")
-      await remove(touchFilePath)
-    })
-
-    describe("deployExecService", () => {
-      it("runs the service's deploy command with the specified env vars", async () => {
-        const service = graph.getService("echo")
-        const actions = await garden.getActionRouter()
-        const res = await actions.deployService({
-          devMode: false,
-          force: false,
-          hotReload: false,
-          localMode: false,
+            internal: {
+              basePath: garden.projectRoot,
+            },
+          } as TestActionConfig,
+          configsByKey: {},
+          linkedSources: {},
+          mode: "default",
+        })) as TestAction
+        const action = await garden.resolveAction({ action: rawAction, graph, log })
+        const { result: res } = await router.test.run({
           log,
-          service,
+          action,
+          interactive: true,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
+          silent: false,
         })
-        expect(res.detail.deployCommandOutput).to.eql("deployed echo service")
+        expect(res.outputs.log).to.equal(action.versionString())
       })
+    })
 
-      it("skips deploying if deploy command is empty but does not throw", async () => {
-        const service = graph.getService("empty")
+    describe("runExecTask", () => {
+      it("should run the task command in the action dir if local true", async () => {
         const actions = await garden.getActionRouter()
-        const res = await actions.deployService({
-          devMode: false,
-          force: false,
-          hotReload: false,
-          localMode: false,
+        const task = graph.getRun("pwd")
+        const action = await garden.resolveAction({ action: task, graph, log })
+        const { result: res } = await actions.run.run({
           log,
-          service,
+          action,
+          interactive: true,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
         })
-        expect(res.detail.skipped).to.eql(true)
+
+        const expectedLogPath = join(garden.projectRoot, "module-local")
+        expect(res.detail?.log).to.eql(expectedLogPath)
       })
 
-      it("throws if deployCommand returns with non-zero code", async () => {
-        const service = graph.getService("error")
+      it("should receive action version as an env var", async () => {
         const actions = await garden.getActionRouter()
-        await expectError(
-          async () =>
-            await actions.deployService({
-              devMode: false,
-              force: false,
-              hotReload: false,
-              localMode: false,
-              log,
-              service,
-              graph,
-              runtimeContext: {
-                envVars: {},
-                dependencies: [],
-              },
-            }),
-          (err) =>
-            expect(err.message).to.equal(dedent`
+        const task = graph.getRun("pwd")
+        const action = await garden.resolveAction({ action: task, graph, log })
+
+        action._config.spec.shell = true
+        action._config.spec.command = ["echo", "$GARDEN_ACTION_VERSION"]
+
+        const { result: res } = await actions.run.run({
+          log,
+          action,
+          interactive: true,
+          graph,
+        })
+
+        expect(res.detail?.log).to.equal(action.versionString())
+      })
+    })
+
+    context("Deploys", () => {
+      let touchFilePath: string
+
+      beforeEach(async () => {
+        touchFilePath = join(garden.projectRoot, "module-local", "deployed.log")
+        await remove(touchFilePath)
+      })
+
+      describe("deployExec", () => {
+        it("runs the Deploy's deployCommand with the specified env vars", async () => {
+          const rawAction = graph.getDeploy("echo")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ log, graph, action: rawAction })
+          const { result: res } = await router.deploy.deploy({
+            force: false,
+
+            log,
+            action,
+            graph,
+          })
+          expect(res.state).to.eql("ready")
+          expect(res.detail?.state).to.eql("ready")
+          expect(res.detail?.detail.deployCommandOutput).to.eql("deployed echo service")
+        })
+
+        it("skips deploying if deployCommand is empty but does not throw", async () => {
+          const rawAction = graph.getDeploy("empty")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const { result: res } = await router.deploy.deploy({
+            force: false,
+
+            log,
+            action,
+            graph,
+          })
+          expect(res.detail?.detail.skipped).to.eql(true)
+        })
+
+        it("throws if deployCommand returns with non-zero code", async () => {
+          const rawAction = graph.getDeploy("error")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          await expectError(
+            async () =>
+              await router.deploy.deploy({
+                force: false,
+
+                log,
+                action,
+                graph,
+              }),
+            (err) =>
+              expect(err.message).to.equal(dedent`
             Command "sh -c "echo fail! && exit 1"" failed with code 1:
 
             Here's the full output:
 
             fail!
             `)
-        )
+          )
+        })
       })
-      context("devMode", () => {
+
+      describe("getExecDeployStatus", async () => {
+        it("returns 'unknown' if no statusCommand is set", async () => {
+          const actionName = "error"
+          const rawAction = graph.getDeploy(actionName)
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const res = await router.getDeployStatuses({
+            log,
+            graph,
+            names: [action.name],
+          })
+
+          const actionRes = res[actionName]
+          expect(actionRes.state).to.equal("unknown")
+          const detail = actionRes.detail!
+          expect(detail.state).to.equal("unknown")
+          expect(detail.detail).to.be.empty
+        })
+
+        it("returns 'ready' if statusCommand returns zero exit code", async () => {
+          const actionName = "touch"
+          const rawAction = graph.getDeploy(actionName)
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          await router.deploy.deploy({
+            force: false,
+            log,
+            action,
+            graph,
+          })
+          const res = await router.getDeployStatuses({
+            log,
+            graph,
+            names: [action.name],
+          })
+
+          const actionRes = res[actionName]
+          expect(actionRes.state).to.equal("ready")
+          const detail = actionRes.detail!
+          expect(detail.state).to.equal("ready")
+          expect(detail.detail.statusCommandOutput).to.equal("already deployed")
+        })
+
+        it("returns 'not-ready' if statusCommand returns non-zero exit code", async () => {
+          const actionName = "touch"
+          const rawAction = graph.getDeploy(actionName)
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const res = await router.getDeployStatuses({
+            graph,
+            log,
+            names: [action.name],
+          })
+
+          const actionRes = res[actionName]
+          expect(actionRes.state).to.equal("not-ready")
+          const detail = actionRes.detail!
+          // The deploy state is different (has more states) than the action state
+          expect(detail.state).to.equal("outdated")
+          expect(detail.detail.statusCommandOutput).to.be.empty
+        })
+      })
+
+      describe("deleteExecDeploy", async () => {
+        it("runs the cleanup command if set", async () => {
+          const rawAction = graph.getDeploy("touch")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          await router.deploy.deploy({
+            force: false,
+            log,
+            action,
+            graph,
+          })
+          const { result: res } = await router.deploy.delete({
+            log,
+            graph,
+            action,
+          })
+
+          expect(res.state).to.equal("not-ready")
+          const detail = res.detail!
+          expect(detail.state).to.equal("missing")
+          expect(detail.detail.cleanupCommandOutput).to.equal("cleaned up")
+        })
+
+        it("returns 'unknown' state if no cleanupCommand is set", async () => {
+          const rawAction = graph.getDeploy("echo")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const { result: res } = await router.deploy.delete({
+            log,
+            graph,
+            action,
+          })
+
+          expect(res.state).to.equal("unknown")
+          expect(res.detail?.state).to.equal("unknown")
+        })
+
+        it("throws if cleanupCommand returns with non-zero code", async () => {
+          const rawAction = graph.getDeploy("error")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          await expectError(
+            async () =>
+              await router.deploy.delete({
+                log,
+                action,
+                graph,
+              }),
+            (err) =>
+              expect(err.message).to.equal(dedent`
+            Command "sh -c "echo fail! && exit 1"" failed with code 1:
+
+            Here's the full output:
+
+            fail!
+            `)
+          )
+        })
+      })
+
+      context("persistent Deploys", () => {
         // We set the pid in the "it" statements.
         let pid = -1
+
+        beforeEach(async () => {
+          graph = await garden.getConfigGraph({
+            log: garden.log,
+            emit: false,
+            actionModes: { sync: ["deploy.sync-*"] },
+          })
+        })
 
         afterEach(async () => {
           if (pid > 1) {
             try {
-              // This ensures the actual child process gets killed.
-              // See: https://github.com/sindresorhus/execa/issues/96#issuecomment-776280798
-              psTree(pid, function (_err, children) {
-                spawn(
-                  "kill",
-                  ["-9"].concat(
-                    children.map(function (p) {
-                      return p.PID
-                    })
-                  )
-                )
-              })
+              await killRecursive("SIGKILL", pid)
             } catch (_err) {}
           }
         })
 
-        it("should run a persistent local service in dev mode", async () => {
-          const service = graph.getService("dev-mode")
-          const actions = await garden.getActionRouter()
-          const res = await actions.deployService({
-            devMode: true,
+        it("should run a persistent local service in sync mode", async () => {
+          const rawAction = graph.getDeploy("sync-mode")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const { result: res } = await router.deploy.deploy({
             force: false,
-            hotReload: false,
-            localMode: false,
             log,
-            service,
+            action,
             graph,
-            runtimeContext: {
-              envVars: {},
-              dependencies: [],
-            },
           })
 
-          pid = res.detail.pid
+          pid = res.detail?.detail.pid
           expect(pid).to.be.a("number")
           expect(pid).to.be.greaterThan(0)
         })
+        it("deleteExecDeploy kills the persistent local process", async () => {
+          const rawAction = graph.getDeploy("sync-mode")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const { result: deployRes } = await router.deploy.deploy({
+            force: false,
+            log,
+            action,
+            graph,
+          })
+
+          pid = deployRes.detail?.detail.pid
+          expect(pid).to.be.a("number")
+          expect(pid).to.be.greaterThan(0)
+
+          await router.deploy.delete({
+            log,
+            graph,
+            action,
+          })
+
+          // Since the `kill` CLI command exits immediately (before the process terminates), we need to wait a little.
+          await sleep(2000)
+
+          expect(isRunning(pid)).to.be.false
+        })
         it("should write logs to a local file with the proper format", async () => {
           // This services just echos a string N times before exiting.
-          const service = graph.getService("dev-mode-with-logs")
-          const actions = await garden.getActionRouter()
-          const res = await actions.deployService({
-            devMode: true,
+          const rawAction = graph.getDeploy("sync-mode-with-logs")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const { result: res } = await router.deploy.deploy({
             force: false,
-            hotReload: false,
-            localMode: false,
             log,
-            service,
+            action,
             graph,
-            runtimeContext: {
-              envVars: {},
-              dependencies: [],
-            },
           })
 
           // Wait for entries to be written since we otherwise don't wait on persistent commands (unless
           // a status command is set).
           await sleep(1500)
 
-          pid = res.detail.pid
+          pid = res.detail?.detail.pid
           expect(pid).to.be.a("number")
           expect(pid).to.be.greaterThan(0)
 
-          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, serviceName: service.name })
+          const logFilePath = getLogFilePath({ ctx, deployName: action.name })
           const logFileContents = (await readFile(logFilePath)).toString()
           const logEntriesWithoutTimestamps = logFileContents
             .split("\n")
             .filter((line) => !!line)
             .map((line) => JSON.parse(line))
-            .map((parsed) => {
-              return {
-                serviceName: parsed.serviceName,
-                msg: parsed.msg,
-                level: parsed.level,
-              }
-            })
+            .map((parsed) => omit(parsed, "timestamp"))
 
           expect(logEntriesWithoutTimestamps).to.eql([
             {
-              serviceName: "dev-mode-with-logs",
+              name: "sync-mode-with-logs",
               msg: "Hello 1",
               level: 2,
             },
             {
-              serviceName: "dev-mode-with-logs",
+              name: "sync-mode-with-logs",
               msg: "Hello 2",
               level: 2,
             },
             {
-              serviceName: "dev-mode-with-logs",
+              name: "sync-mode-with-logs",
               msg: "Hello 3",
               level: 2,
             },
             {
-              serviceName: "dev-mode-with-logs",
+              name: "sync-mode-with-logs",
               msg: "Hello 4",
               level: 2,
             },
             {
-              serviceName: "dev-mode-with-logs",
+              name: "sync-mode-with-logs",
               msg: "Hello 5",
               level: 2,
             },
@@ -735,92 +837,74 @@ describe("exec plugin", () => {
         })
         it("should handle empty log lines", async () => {
           // This services just echos a string N times before exiting.
-          const service = graph.getService("dev-mode-with-empty-log-lines")
-          const actions = await garden.getActionRouter()
-          const res = await actions.deployService({
-            devMode: true,
+          const rawAction = graph.getDeploy("sync-mode-with-empty-log-lines")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const { result: res } = await router.deploy.deploy({
             force: false,
-            hotReload: false,
-            localMode: false,
             log,
-            service,
+            action,
             graph,
-            runtimeContext: {
-              envVars: {},
-              dependencies: [],
-            },
           })
 
           // Wait for entries to be written since we otherwise don't wait on persistent commands (unless
           // a status command is set).
           await sleep(1500)
 
-          pid = res.detail.pid
+          pid = res.detail?.detail.pid
 
-          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, serviceName: service.name })
+          const logFilePath = getLogFilePath({ ctx, deployName: action.name })
           const logFileContents = (await readFile(logFilePath)).toString()
           const logEntriesWithoutTimestamps = logFileContents
             .split("\n")
             .filter((line) => !!line)
             .map((line) => JSON.parse(line))
-            .map((parsed) => {
-              return {
-                serviceName: parsed.serviceName,
-                msg: parsed.msg,
-                level: parsed.level,
-              }
-            })
+            .map((parsed) => omit(parsed, "timestamp"))
 
           expect(logEntriesWithoutTimestamps).to.eql([
             {
-              serviceName: "dev-mode-with-empty-log-lines",
+              name: "sync-mode-with-empty-log-lines",
               msg: "Hello",
               level: 2,
             },
             {
-              serviceName: "dev-mode-with-empty-log-lines",
+              name: "sync-mode-with-empty-log-lines",
               msg: "1",
               level: 2,
             },
             {
-              serviceName: "dev-mode-with-empty-log-lines",
+              name: "sync-mode-with-empty-log-lines",
               msg: "Hello",
               level: 2,
             },
             {
-              serviceName: "dev-mode-with-empty-log-lines",
+              name: "sync-mode-with-empty-log-lines",
               msg: "2",
               level: 2,
             },
             {
-              serviceName: "dev-mode-with-empty-log-lines",
+              name: "sync-mode-with-empty-log-lines",
               msg: "Hello",
               level: 2,
             },
             {
-              serviceName: "dev-mode-with-empty-log-lines",
+              name: "sync-mode-with-empty-log-lines",
               msg: "3",
               level: 2,
             },
           ])
         })
         it("should eventually timeout if status command is set and it returns a non-zero exit code ", async () => {
-          const service = graph.getService("dev-mode-timeout")
-          const actions = await garden.getActionRouter()
+          const rawAction = graph.getDeploy("sync-mode-timeout")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
           let error: any
           try {
-            await actions.deployService({
-              devMode: true,
+            await router.deploy.deploy({
               force: false,
-              hotReload: false,
-              localMode: false,
               log,
-              service,
+              action,
               graph,
-              runtimeContext: {
-                envVars: {},
-                dependencies: [],
-              },
             })
           } catch (err) {
             error = err
@@ -829,156 +913,616 @@ describe("exec plugin", () => {
           pid = error.detail.pid
           expect(pid).to.be.a("number")
           expect(pid).to.be.greaterThan(0)
-          expect(error.detail.serviceName).to.eql("dev-mode-timeout")
+          expect(error.detail.deployName).to.eql("sync-mode-timeout")
           expect(error.detail.statusCommand).to.eql([`/bin/sh -c "echo Status command output; exit 1"`])
-          expect(error.detail.timeout).to.eql(3)
-          expect(error.message).to.include(`Timed out waiting for local service dev-mode-timeout to be ready.`)
+          expect(error.detail.statusTimeout).to.eql(3)
+          expect(error.message).to.include(`Timed out waiting for local service sync-mode-timeout to be ready.`)
           expect(error.message).to.include(`The last exit code was 1.`)
           expect(error.message).to.include(`Command output:\nStatus command output`)
         })
       })
     })
+  })
 
-    describe("getExecServiceStatus", async () => {
-      it("returns 'unknown' if no statusCommand is set", async () => {
-        const service = graph.getService("error")
-        const actions = await garden.getActionRouter()
-        const res = await actions.getServiceStatus({
-          devMode: false,
-          hotReload: false,
-          localMode: false,
-          log,
-          service,
-          graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
+  /**
+   * Test specs in this context use {@link convertModules} helper function
+   * to test the whole module-to-action conversion chain,
+   * including the creation of {@link ConvertModuleParams} object and passing it to {@link ModuleRouter#convert}
+   * via the {@link ActionRouter}.
+   *
+   * This has been done because mocking of {@link ConvertModuleParams} is not easy and can be fragile,
+   * as it requires implementation of naming-conversion and construction of services, tasks and tests.
+   *
+   * In order to test the {@link ExecModule}-to-action conversion,
+   * the test {@link Garden} instance must have a configured "exec" provider and "exec" plugin.
+   *
+   * Each test spec used temporary Garden project initialized in a tmp dir,
+   * and doesn't use any disk-located pre-defined test projects.
+   *
+   * Each test spec defines a minimalistic module-based config and re-initializes the {@link ConfigGraph} instance.
+   */
+  context("code-based config tests", () => {
+    describe("convert", () => {
+      async function makeGarden(tmpDirResult: tmp.DirectoryResult): Promise<TestGarden> {
+        const config: ProjectConfig = createProjectConfig({
+          path: tmpDirResult.path,
+          providers: [{ name: "exec" }],
         })
-        expect(res.state).to.equal("unknown")
+
+        return TestGarden.factory(tmpDirResult.path, { config, plugins: [gardenPlugin()] })
+      }
+
+      let tmpDir: tmp.DirectoryResult
+      let garden: TestGarden
+
+      before(async () => {
+        tmpDir = await makeTempDir({ git: true, initialCommit: false })
+        garden = await makeGarden(tmpDir)
       })
 
-      it("returns 'ready' if statusCommand returns zero exit code", async () => {
-        const service = graph.getService("touch")
-        const actions = await garden.getActionRouter()
-        await actions.deployService({
-          devMode: false,
-          hotReload: false,
-          localMode: false,
-          force: false,
-          log,
-          service,
-          graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
-        })
-        const res = await actions.getServiceStatus({
-          devMode: false,
-          hotReload: false,
-          localMode: false,
-          log,
-          service,
-          graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
-        })
-        expect(res.state).to.equal("ready")
-        expect(res.version).to.equal(service.version)
-        expect(res.detail.statusCommandOutput).to.equal("already deployed")
+      after(async () => {
+        await tmpDir.cleanup()
       })
 
-      it("returns 'outdated' if statusCommand returns non-zero exit code", async () => {
-        const service = graph.getService("touch")
-        const actions = await garden.getActionRouter()
-        const res = await actions.getServiceStatus({
-          devMode: false,
-          hotReload: false,
-          localMode: false,
-          log,
-          service,
-          graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
-        })
-        expect(res.state).to.equal("outdated")
-        expect(res.version).to.equal(service.version)
-      })
-    })
-
-    describe("deleteExecService", async () => {
-      it("runs the cleanup command if set", async () => {
-        const service = graph.getService("touch")
-        const actions = await garden.getActionRouter()
-        await actions.deployService({
-          devMode: false,
-          hotReload: false,
-          localMode: false,
-          force: false,
-          log,
-          service,
-          graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
-        })
-        const res = await actions.deleteService({
-          log,
-          service,
-          graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
-        })
-        expect(res.state).to.equal("missing")
-        expect(res.detail.cleanupCommandOutput).to.equal("cleaned up")
-      })
-
-      it("returns 'unknown' state if no cleanupCommand is set", async () => {
-        const service = graph.getService("echo")
-        const actions = await garden.getActionRouter()
-        const res = await actions.deleteService({
-          log,
-          service,
-          graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
-        })
-        expect(res.state).to.equal("unknown")
-      })
-
-      it("throws if cleanupCommand returns with non-zero code", async () => {
-        const service = graph.getService("error")
-        const actions = await garden.getActionRouter()
-        await expectError(
-          async () =>
-            await actions.deleteService({
-              log,
-              service,
-              graph,
-              runtimeContext: {
-                envVars: {},
-                dependencies: [],
+      context("variables", () => {
+        it("adds configured variables to the Group", async () => {
+          const moduleA = "module-a"
+          const taskCommand = ["echo", moduleA]
+          const variables = { FOO: "foo", BAR: "bar" }
+          garden.setModuleConfigs([
+            makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+              name: moduleA,
+              type: "exec",
+              variables,
+              spec: {
+                build: {
+                  command: [],
+                },
+                services: [],
+                tests: [],
+                tasks: [
+                  {
+                    name: "task-a",
+                    command: taskCommand,
+                    dependencies: [],
+                    disabled: false,
+                    env: {},
+                    timeout: 10,
+                  },
+                ],
+                env: {},
               },
             }),
-          (err) =>
-            expect(err.message).to.equal(dedent`
-            Command "sh -c "echo fail! && exit 1"" failed with code 1:
+          ])
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+          const module = tmpGraph.getModule(moduleA)
 
-            Here's the full output:
+          const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
 
-            fail!
-            `)
-        )
+          const group = findGroupConfig(result, moduleA)!
+          expect(group).to.exist
+          expect(group.variables).to.eql(variables)
+        })
+      })
+
+      context("Build action", () => {
+        it("adds a Build action if build.command is set", async () => {
+          const moduleA = "module-a"
+          const buildCommand = ["echo", moduleA]
+          garden.setModuleConfigs([
+            makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+              name: moduleA,
+              type: "exec",
+              spec: {
+                build: {
+                  command: buildCommand,
+                },
+                services: [],
+                tasks: [],
+                tests: [],
+                env: {},
+              },
+            }),
+          ])
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+          const module = tmpGraph.getModule(moduleA)
+
+          const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const group = findGroupConfig(result, moduleA)!
+          expect(group.actions).to.exist
+          expect(group.actions.length).to.eql(1)
+
+          const build = findActionConfigInGroup(group, "Build", moduleA) as BuildActionConfig
+          expect(build).to.exist
+          expect(build.name).to.eql(moduleA)
+          expect(build.spec.command).to.eql(buildCommand)
+        })
+
+        it("adds a Build action if build.dependencies[].copy is set and adds a copy field", async () => {
+          const moduleNameA = "module-a"
+          const moduleNameB = "module-b"
+          const buildCommandA = ["echo", moduleNameA]
+          const buildCommandB = ["echo", moduleNameB]
+
+          const sourcePath = "./module-a.out"
+          const targetPath = "a/module-a.out"
+
+          garden.setModuleConfigs([
+            makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+              name: moduleNameA,
+              type: "exec",
+              spec: {
+                build: {
+                  command: buildCommandA,
+                },
+                services: [],
+                tasks: [],
+                tests: [],
+                env: {},
+              },
+            }),
+            makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+              name: moduleNameB,
+              type: "exec",
+              // module-level build config
+              build: {
+                dependencies: [
+                  {
+                    name: moduleNameA,
+                    copy: [
+                      {
+                        source: sourcePath,
+                        target: targetPath,
+                      },
+                    ],
+                  },
+                ],
+                timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+              },
+              spec: {
+                // exec-plugin specific build config defined in the spec
+                build: {
+                  command: buildCommandB,
+                },
+                services: [],
+                tasks: [],
+                tests: [],
+                env: {},
+              },
+            }),
+          ])
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+          const moduleB = tmpGraph.getModule(moduleNameB)
+
+          const result = await convertModules(garden, garden.log, [moduleB], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupB = findGroupConfig(result, moduleNameB)!
+          expect(groupB.actions).to.exist
+          expect(groupB.actions.length).to.eql(1)
+
+          const buildB = findActionConfigInGroup(groupB, "Build", moduleNameB)! as BuildActionConfig
+          expect(buildB).to.exist
+          expect(buildB.name).to.eql(moduleNameB)
+          expect(buildB.spec.command).to.eql(buildCommandB)
+          expect(buildB.copyFrom).to.eql([{ build: moduleNameA, sourcePath, targetPath }])
+        })
+
+        /**
+         * See TODO-G2 comments in {@link preprocessActionConfig}.
+         */
+        it.skip("converts the repositoryUrl field", async () => {
+          throw "TODO-G2"
+        })
+
+        it.skip("sets Build dependencies correctly", async () => {
+          throw "TODO-G2"
+        })
+
+        describe("sets buildAtSource on Build", () => {
+          async function getGraph(name: string, local: boolean) {
+            const buildCommand = ["echo", name]
+            garden.setModuleConfigs([
+              makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+                name,
+                type: "exec",
+                spec: {
+                  local, // <---
+                  build: {
+                    command: buildCommand,
+                  },
+                  services: [],
+                  tasks: [],
+                  tests: [],
+                  env: {},
+                },
+              }),
+            ])
+            return garden.getConfigGraph({ log: garden.log, emit: false })
+          }
+
+          function assertBuildAtSource(moduleName: string, result: ConvertModulesResult, buildAtSource: boolean) {
+            expect(result.groups).to.exist
+
+            const group = findGroupConfig(result, moduleName)!
+            expect(group.actions).to.exist
+            expect(group.actions.length).to.eql(1)
+
+            const build = findActionConfigInGroup(group, "Build", moduleName)! as BuildActionConfig
+            expect(build).to.exist
+            expect(build.buildAtSource).to.eql(buildAtSource)
+          }
+
+          it("sets buildAtSource on Build if local:true", async () => {
+            const moduleA = "module-a"
+            const tmpGraph = await getGraph(moduleA, true)
+            const module = tmpGraph.getModule(moduleA)
+            const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+
+            assertBuildAtSource(module.name, result, true)
+          })
+
+          it("does not set buildAtSource on Build if local:false", async () => {
+            const moduleA = "module-a"
+            const tmpGraph = await getGraph(moduleA, false)
+            const module = tmpGraph.getModule(moduleA)
+            const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+
+            assertBuildAtSource(module.name, result, false)
+          })
+        })
+      })
+
+      context("Deploy/Run/Test (runtime) actions", () => {
+        it("correctly maps a serviceConfig to a Deploy with a build", async () => {
+          // Dependencies
+          // build field
+          // timeout
+          // service spec
+
+          const moduleNameA = "module-a"
+          const buildCommandA = ["echo", moduleNameA]
+          const deployNameA = "service-a"
+          const deployCommandA = ["echo", "deployed", deployNameA]
+          const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+            name: moduleNameA,
+            type: "exec",
+            spec: {
+              // <--- plugin-level build field
+              build: {
+                command: buildCommandA,
+              },
+              services: [
+                {
+                  name: deployNameA,
+                  deployCommand: deployCommandA,
+                  dependencies: [],
+                  disabled: false,
+                  env: {},
+                  timeout: 10,
+                },
+              ],
+              tasks: [],
+              tests: [],
+              env: {},
+            },
+          })
+
+          garden.setModuleConfigs([moduleConfigA])
+          // this will produce modules with `serviceConfigs` fields initialized
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          const moduleA = tmpGraph.getModule(moduleNameA)
+
+          // this will use `serviceConfigs` defined in modules
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupA = findGroupConfig(result, moduleNameA)!
+          expect(groupA).to.exist
+
+          const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
+          expect(buildA).to.exist
+          expect(buildA.dependencies).to.eql([])
+
+          const deployA = findActionConfigInGroup(groupA, "Deploy", deployNameA)! as DeployActionConfig
+          expect(deployA).to.exist
+          expect(deployA.build).to.eql(moduleNameA)
+          expect(deployA.dependencies).to.eql([])
+        })
+
+        it("correctly maps a serviceConfig to a Deploy with no build", async () => {
+          // Dependencies
+          // + build dependencies
+          // timeout
+          // service spec
+
+          const moduleNameA = "module-a"
+          const deployNameA = "service-a"
+          const deployCommandA = ["echo", "deployed", deployNameA]
+          const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+            name: moduleNameA,
+            type: "exec",
+            spec: {
+              // <--- build field
+              build: {
+                command: [], // <--- empty build command
+              },
+              services: [
+                {
+                  name: deployNameA,
+                  deployCommand: deployCommandA,
+                  dependencies: [],
+                  disabled: false,
+                  env: {},
+                  timeout: 10,
+                },
+              ],
+              tasks: [],
+              tests: [],
+              env: {},
+            },
+          })
+          delete moduleConfigA.spec.build // <--- delete build from the spec to ensure there is no build action
+
+          garden.setModuleConfigs([moduleConfigA])
+          // this will produce modules with `serviceConfigs` fields initialized
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          const moduleA = tmpGraph.getModule(moduleNameA)
+
+          // this will use `serviceConfigs` defined in modules
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupA = findGroupConfig(result, moduleNameA)!
+          expect(groupA).to.exist
+
+          const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
+          // build action must be missing
+          expect(buildA).to.not.exist
+
+          const deployA = findActionConfigInGroup(groupA, "Deploy", deployNameA)! as DeployActionConfig
+          expect(deployA).to.exist
+          // no build name expected here
+          expect(deployA.build).to.not.exist
+          expect(deployA.dependencies).to.eql([])
+        })
+
+        it("correctly maps a taskConfig to a Run with a build", async () => {
+          // Dependencies
+          // build field
+          // timeout
+          // task spec
+
+          const moduleNameA = "module-a"
+          const buildCommandA = ["echo", moduleNameA]
+          const taskNameA = "task-a"
+          const commandA = ["echo", "run", taskNameA]
+          const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+            name: moduleNameA,
+            type: "exec",
+            spec: {
+              // <--- plugin-level build field
+              build: {
+                command: buildCommandA,
+              },
+              services: [],
+              tests: [],
+              tasks: [
+                {
+                  name: taskNameA,
+                  command: commandA,
+                  dependencies: [],
+                  disabled: false,
+                  env: {},
+                  timeout: 10,
+                },
+              ],
+              env: {},
+            },
+          })
+
+          garden.setModuleConfigs([moduleConfigA])
+          // this will produce modules with `taskConfigs` fields initialized
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          const moduleA = tmpGraph.getModule(moduleNameA)
+
+          // this will use `taskConfigs` defined in modules
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupA = findGroupConfig(result, moduleNameA)!
+          expect(groupA).to.exist
+
+          const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
+          expect(buildA).to.exist
+          expect(buildA.dependencies).to.eql([])
+
+          const runA = findActionConfigInGroup(groupA, "Run", taskNameA)! as RunActionConfig
+          expect(runA).to.exist
+          expect(runA.build).to.eql(moduleNameA)
+          expect(runA.dependencies).to.eql([])
+        })
+
+        it("correctly maps a taskConfig to a Run with no build", async () => {
+          // Dependencies
+          // + build dependencies
+          // timeout
+          // task spec
+
+          const moduleNameA = "module-a"
+          const taskNameA = "task-a"
+          const commandA = ["echo", "run", taskNameA]
+          const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+            name: moduleNameA,
+            type: "exec",
+            spec: {
+              // <--- build field
+              build: {
+                command: [], // <--- empty build command
+              },
+              services: [],
+              tasks: [
+                {
+                  name: taskNameA,
+                  command: commandA,
+                  dependencies: [],
+                  disabled: false,
+                  env: {},
+                  timeout: 10,
+                },
+              ],
+              tests: [],
+              env: {},
+            },
+          })
+          delete moduleConfigA.spec.build // <--- delete build from the spec to ensure there is no build action
+
+          garden.setModuleConfigs([moduleConfigA])
+          // this will produce modules with `taskConfigs` fields initialized
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          const moduleA = tmpGraph.getModule(moduleNameA)
+
+          // this will use `taskConfigs` defined in modules
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupA = findGroupConfig(result, moduleNameA)!
+          expect(groupA).to.exist
+
+          const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
+          // build action must be missing
+          expect(buildA).to.not.exist
+
+          const runA = findActionConfigInGroup(groupA, "Run", taskNameA)! as RunActionConfig
+          expect(runA).to.exist
+          // no build name expected here
+          expect(runA.build).to.not.exist
+          expect(runA.dependencies).to.eql([])
+        })
+
+        it("correctly maps a testConfig to a Test with a build", async () => {
+          // Dependencies
+          // build field
+          // timeout
+          // test spec
+
+          const moduleNameA = "module-a"
+          const buildCommandA = ["echo", moduleNameA]
+          const testNameA = "test-a"
+          const convertedTestNameA = "module-a-test-a"
+          const commandA = ["echo", "test", testNameA]
+          const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+            name: moduleNameA,
+            type: "exec",
+            spec: {
+              // <--- plugin-level build field
+              build: {
+                command: buildCommandA,
+              },
+              services: [],
+              tasks: [],
+              tests: [
+                {
+                  name: testNameA,
+                  command: commandA,
+                  dependencies: [],
+                  disabled: false,
+                  env: {},
+                  timeout: 10,
+                },
+              ],
+              env: {},
+            },
+          })
+
+          garden.setModuleConfigs([moduleConfigA])
+          // this will produce modules with `testConfigs` fields initialized
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          const moduleA = tmpGraph.getModule(moduleNameA)
+
+          // this will use `testConfigs` defined in modules
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupA = findGroupConfig(result, moduleNameA)!
+          expect(groupA).to.exist
+
+          const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
+          expect(buildA).to.exist
+          expect(buildA.dependencies).to.eql([])
+
+          const testA = findActionConfigInGroup(groupA, "Test", convertedTestNameA)! as TestActionConfig
+          expect(testA).to.exist
+          expect(testA.build).to.eql(moduleNameA)
+          expect(testA.dependencies).to.eql([])
+        })
+
+        it("correctly maps a testConfig to a Test with no build", async () => {
+          // Dependencies
+          // + build dependencies
+          // timeout
+          // test spec
+
+          const moduleNameA = "module-a"
+          const testNameA = "test-a"
+          const convertedTestNameA = "module-a-test-a"
+          const commandA = ["echo", "test", testNameA]
+          const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+            name: moduleNameA,
+            type: "exec",
+            spec: {
+              // <--- build field
+              build: {
+                command: [], // <--- empty build command
+              },
+              services: [],
+              tasks: [],
+              tests: [
+                {
+                  name: testNameA,
+                  command: commandA,
+                  dependencies: [],
+                  disabled: false,
+                  env: {},
+                  timeout: 10,
+                },
+              ],
+              env: {},
+            },
+          })
+          delete moduleConfigA.spec.build // <--- delete build from the spec to ensure there is no build action
+
+          garden.setModuleConfigs([moduleConfigA])
+          // this will produce modules with `testConfigs` fields initialized
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          const moduleA = tmpGraph.getModule(moduleNameA)
+
+          // this will use `testConfigs` defined in modules
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupA = findGroupConfig(result, moduleNameA)!
+          expect(groupA).to.exist
+
+          const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
+          // build action must be missing
+          expect(buildA).to.not.exist
+
+          const testA = findActionConfigInGroup(groupA, "Test", convertedTestNameA)! as TestActionConfig
+          expect(testA).to.exist
+          // no build name expected here
+          expect(testA.build).to.not.exist
+          expect(testA.dependencies).to.eql([])
+        })
       })
     })
   })

@@ -1,0 +1,37 @@
+apiVersion: garden.io/v1
+kind: Project
+name: vote-helm-argocd
+defaultEnvironment: "${local.env.GITHUB_ACTIONS ? 'ci' : 'gke-gitops-dev'}"
+variables:
+  common-k8s-provider-config:
+    context: gke_garden # update context accordingly, using the same cluster as both CI and Dev
+    buildMode: cluster-buildkit
+    imagePullSecrets:
+      - name: regcred
+        namespace: default
+    deploymentRegistry:
+      hostname: index.docker.io
+      namespace: gardendev # Update according to your container registry namespace
+  dev-k8s-namespace: ${project.name}-${local.username}
+  ci-k8s-namespace: ${project.name}-${local.username}-${local.env.GITHUB_REF_NAME || "branch"}-${local.env.GITHUB_RUN_NUMBER || 0}
+environments:
+  - name: local
+    variables:
+      baseHostname: vote.local.demo.garden
+  - name: gke-gitops-dev
+    defaultNamespace: ${var.dev-k8s-namespace}
+    variables:
+      baseHostname: ${var.dev-k8s-namespace}.dev-1.sys.garden
+  - name: ci
+    defaultNamespace: ${var.ci-k8s-namespace}
+    variables:
+      baseHostname: ${var.ci-k8s-namespace}.ci.sys.garden
+providers:
+  - name: local-kubernetes
+    environments: [local]
+    context: docker-desktop
+  - name: kubernetes
+    environments: [gke-gitops-dev, ci]
+    $merge: ${var.common-k8s-provider-config}
+    namespace: ${environment.namespace}
+    defaultHostname: ${var.baseHostname}

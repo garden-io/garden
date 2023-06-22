@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,8 +27,11 @@ export abstract class BaseKeyDescription<T = any> {
   }
 
   abstract getChildren(renderPatternKeys?: boolean): BaseKeyDescription[]
+
   abstract getDefaultValue(): T | undefined
+
   abstract formatExample(): string | undefined
+
   abstract formatAllowedValues(): string | undefined
 
   formatName() {
@@ -127,4 +130,28 @@ export function templateStringLiteral(key: string) {
 
 export function isArrayType(type: string) {
   return type === "array" || type === "sparseArray"
+}
+
+// Override this externally to change the behaviour of makeDocsLink
+export const makeDocsLinkOpts = {
+  GARDEN_RELATIVE_DOCS_PATH: "",
+}
+/**
+ *
+ * @param docsPathInput path to the file as from the /docs directory
+ * @param fragment URI fragment
+ * @returns a functioning url
+ *
+ * @example makeDocsLink("k8s-plugins/action-types/container", "#secrets")
+ */
+export function makeDocsLink(docsPathInput: string | TemplateStringsArray, fragment = ""): string {
+  let docsPath: string = Array.isArray(docsPathInput) ? docsPathInput[0] : docsPathInput
+
+  // If this is set it means we're rendering the reference docs
+  // so we return a relative link
+  if (makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH) {
+    return `${makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH}${docsPath}.md${fragment}`
+  }
+
+  return `${DOCS_BASE_URL}/${docsPath}${fragment}`
 }

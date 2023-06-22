@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import { stringify } from "query-string"
-import { ConfigurationError, EnterpriseApiError } from "../../../exceptions"
+import { ConfigurationError, CloudApiError } from "../../../exceptions"
 import { ListSecretsResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util"
@@ -18,19 +18,20 @@ import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
 import { getCloudDistributionName } from "../../../util/util"
+import { CloudProject } from "../../../cloud/api"
 
 const pageLimit = 100
 
 export const secretsListOpts = {
   "filter-envs": new StringsParameter({
-    help: deline`Filter on environment. Use comma as a separator to filter on multiple environments.
+    help: deline`Filter on environment. You may filter on multiple environments by setting this flag multiple times.
     Accepts glob patterns."`,
   }),
   "filter-user-ids": new StringsParameter({
-    help: deline`Filter on user ID. Use comma as a separator to filter on multiple user IDs. Accepts glob patterns.`,
+    help: deline`Filter on user ID. You may filter on multiple user IDs by setting this flag multiple times. Accepts glob patterns.`,
   }),
   "filter-names": new StringsParameter({
-    help: deline`Filter on secret name. Use comma as a separator to filter on multiple secret names. Accepts glob patterns.`,
+    help: deline`Filter on secret name. You may filter on multiple secret names by setting this flag multiple times. Accepts glob patterns.`,
   }),
 }
 
@@ -38,7 +39,7 @@ type Opts = typeof secretsListOpts
 
 export class SecretsListCommand extends Command<{}, Opts> {
   name = "list"
-  help = "List secrets."
+  help = "List secrets defined in Garden Cloud."
   description = dedent`
     List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
 
@@ -50,8 +51,8 @@ export class SecretsListCommand extends Command<{}, Opts> {
 
   options = secretsListOpts
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "List secrets", "lock")
+  printHeader({ log }) {
+    printHeader(log, "List secrets", "🔒")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<SecretResult[]>> {
@@ -64,10 +65,14 @@ export class SecretsListCommand extends Command<{}, Opts> {
       throw new ConfigurationError(noApiMsg("list", "secrets"), {})
     }
 
-    const project = await api.getProject()
+    let project: CloudProject | undefined
+
+    if (garden.projectId) {
+      project = await api.getProjectById(garden.projectId)
+    }
 
     if (!project) {
-      throw new EnterpriseApiError(
+      throw new CloudApiError(
         `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
         {}
       )

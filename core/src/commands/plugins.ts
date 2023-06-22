@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,22 +8,25 @@
 
 import chalk from "chalk"
 import { max, fromPairs, zip } from "lodash"
-import { findByName } from "../util/util"
+import { findByName, getNames } from "../util/util"
 import { dedent, renderTable, tablePresets } from "../util/string"
 import { ParameterError, toGardenError } from "../exceptions"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { Garden } from "../garden"
 import { Command, CommandResult, CommandParams } from "./base"
 import Bluebird from "bluebird"
 import { printHeader, getTerminalWidth } from "../logger/util"
-import { LoggerType } from "../logger/logger"
 import { StringOption } from "../cli/params"
-import { GardenModule } from "../types/module"
+import { ConfigGraph } from "../graph/config-graph"
+import { ModuleGraph } from "../graph/modules"
 
 const pluginArgs = {
   plugin: new StringOption({
     help: "The name of the plugin, whose command you wish to run.",
     required: false,
+    getSuggestions: ({ configDump }) => {
+      return getNames(configDump.providers)
+    },
   }),
   command: new StringOption({
     help: "The name of the command to run.",
@@ -36,7 +39,7 @@ type Args = typeof pluginArgs
 export class PluginsCommand extends Command<Args> {
   name = "plugins"
   help = "Plugin-specific commands."
-  alias = "plugin"
+  aliases = ["plugin"]
 
   description = dedent`
     Execute a command defined by a plugin in your project.
@@ -57,12 +60,8 @@ export class PluginsCommand extends Command<Args> {
 
   arguments = pluginArgs
 
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
-
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Plugins", "gear")
+  printHeader({ log }) {
+    printHeader(log, "Plugins", "⚙️")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
@@ -98,24 +97,23 @@ export class PluginsCommand extends Command<Args> {
         typeof command.title === "function"
           ? await command.title({ args: commandArgs, environmentName })
           : command.title
-      printHeader(log, title, "gear")
+      printHeader(log, title, "⚙️")
     }
 
     const provider = await garden.resolveProvider(log, args.plugin)
-    const ctx = await garden.getPluginContext(provider)
+    const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-    let modules: GardenModule[] = []
+    let graph = new ConfigGraph({ actions: [], moduleGraph: new ModuleGraph([], {}), groups: [] })
 
     // Commands can optionally ask for all the modules in the project/environment
-    if (command.resolveModules) {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      modules = graph.getModules()
+    if (command.resolveGraph) {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     }
 
     log.info("")
 
     try {
-      const { result, errors = [] } = await command.handler({ garden, ctx, log, args: commandArgs, modules })
+      const { result, errors = [] } = await command.handler({ garden, ctx, log, args: commandArgs, graph })
       return { result, errors: errors.map(toGardenError) }
     } catch (err) {
       return { errors: [toGardenError(err)] }
@@ -123,7 +121,7 @@ export class PluginsCommand extends Command<Args> {
   }
 }
 
-async function listPlugins(garden: Garden, log: LogEntry, pluginsToList: string[]) {
+async function listPlugins(garden: Garden, log: Log, pluginsToList: string[]) {
   log.info(dedent`
   ${chalk.white.bold("USAGE")}
 

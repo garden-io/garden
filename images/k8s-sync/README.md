@@ -1,6 +1,6 @@
 # Image `k8s-sync`
 
-This image is used for code-synchronization in dev mode. It's based on the [Alpine Linux](https://www.alpinelinux.org/)
+This image is used for code synchronization. It's based on the [Alpine Linux](https://www.alpinelinux.org/)
 and [Mutagen](https://github.com/mutagen-io/mutagen).
 
 ## Mutagen version update

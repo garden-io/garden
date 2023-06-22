@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,8 +13,8 @@ import { keyBy, mapValues, escapeRegExp, trim, isEmpty, camelCase, kebabCase, is
 import { joi, JoiDescription, joiPrimitive, Primitive } from "../config/common"
 import Joi from "@hapi/joi"
 import { validateSchema } from "../config/validation"
-import { safeLoad, safeLoadAll } from "js-yaml"
-import { safeDumpYaml } from "../util/util"
+import { load, loadAll } from "js-yaml"
+import { safeDumpYaml } from "../util/serialization"
 import indentString from "indent-string"
 
 interface ExampleArgument {
@@ -366,7 +366,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
         ],
       },
     ],
-    fn: (str: string, multi?: boolean) => (multi ? safeLoadAll(str) : safeLoad(str)),
+    fn: (str: string, multi?: boolean) => (multi ? loadAll(str) : load(str)),
   },
   {
     name: "yamlEncode",

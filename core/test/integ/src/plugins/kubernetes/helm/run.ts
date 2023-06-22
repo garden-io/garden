@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,14 +9,15 @@
 import { expect } from "chai"
 
 import { expectError, TestGarden } from "../../../../../helpers"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { getHelmTestGarden } from "./common"
-import { TaskTask } from "../../../../../../src/tasks/task"
+import { RunTask } from "../../../../../../src/tasks/run"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
-import { clearTaskResult } from "../../../../../../src/plugins/kubernetes/task-results"
+import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
-describe("runHelmTask", () => {
+describe("Helm Pod Run", () => {
   let garden: TestGarden
   let graph: ConfigGraph
 
@@ -28,134 +29,126 @@ describe("runHelmTask", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
-  it("should run a basic task and store its result", async () => {
-    const task = graph.getTask("echo-task")
+  it("should run a basic Run and store its result", async () => {
+    const action = graph.getRun("echo-task")
 
-    const testTask = new TaskTask({
+    const testTask = new RunTask({
       garden,
       graph,
-      task,
+      action,
       log: garden.log,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
     })
 
-    const key = testTask.getKey()
-
-    // Clear any existing task result
+    // Clear any existing Run result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
-    const ctx = await garden.getPluginContext(provider)
-    await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
+    const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    await clearRunResult({ ctx, log: garden.log, action })
 
-    const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+    const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const result = results.results.getResult(testTask)
 
     expect(result).to.exist
-    expect(result).to.have.property("output")
-    expect(result!.output.log.trim()).to.equal("ok")
-    expect(result!.output).to.have.property("outputs")
-    expect(result!.output.outputs.log.trim()).to.equal("ok")
-    expect(result!.output.namespaceStatus).to.exist
+    expect(result?.outputs).to.exist
+    expect(result!.result!.detail?.log.trim()).to.equal("ok")
+    expect(result!.result!.outputs.log.trim()).to.equal("ok")
+    expect(result!.result!.detail?.namespaceStatus).to.exist
 
-    // We also verify that, despite the task failing, its result was still saved.
+    // We also verify that result was saved.
     const actions = await garden.getActionRouter()
-    const storedResult = await actions.getTaskResult({
-      log: garden.log,
-      task,
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+    const storedResult = await actions.run.getResult({
+      log: actionLog,
+      action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })
 
     expect(storedResult).to.exist
   })
 
-  it("should not store task results if cacheResult=false", async () => {
-    const task = graph.getTask("echo-task")
-    task.config.cacheResult = false
+  it("should not store Run results if cacheResult=false", async () => {
+    const action = graph.getRun("echo-task")
+    action["_config"].spec.cacheResult = false
 
-    const testTask = new TaskTask({
+    const testTask = new RunTask({
       garden,
       graph,
-      task,
+      action,
       log: garden.log,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
     })
 
-    // Clear any existing task result
+    // Clear any existing Run result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
-    const ctx = await garden.getPluginContext(provider)
-    await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
+    const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    await clearRunResult({ ctx, log: garden.log, action })
 
-    await garden.processTasks([testTask], { throwOnError: true })
+    await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
-    // We also verify that, despite the task failing, its result was still saved.
-    const actions = await garden.getActionRouter()
-    const storedResult = await actions.getTaskResult({
-      log: garden.log,
-      task,
+    // Verify that the result was not saved
+    const router = await garden.getActionRouter()
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+    const { result } = await router.run.getResult({
+      log: actionLog,
+      action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })
 
-    expect(storedResult).to.not.exist
+    expect(result.state).to.eql("not-ready")
   })
 
   it("should run a task in a different namespace, if configured", async () => {
-    const task = graph.getTask("chart-with-namespace-task")
+    const action = graph.getRun("chart-with-namespace-task")
 
-    const testTask = new TaskTask({
+    const testTask = new RunTask({
       garden,
       graph,
-      task,
+      action,
       log: garden.log,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
     })
 
-    const key = testTask.getKey()
-    const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+    const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const result = results.results.getResult(testTask)
 
     expect(result).to.exist
-    expect(result).to.have.property("output")
-    expect(result!.output.log.trim()).to.equal(task.module.spec.namespace)
-    expect(result!.output).to.have.property("outputs")
-    expect(result!.output.outputs.log.trim()).to.equal(task.module.spec.namespace)
+    expect(result!.result).to.exist
+    expect(result?.outputs).to.exist
+    expect(result!.result!.detail?.log.trim()).to.equal(action.getConfig().spec.namespace)
+    expect(result!.result).to.have.property("outputs")
+    expect(result!.result!.outputs.log.trim()).to.equal(action.getConfig().spec.namespace)
   })
 
   it("should fail if an error occurs, but store the result", async () => {
-    const task = graph.getTask("echo-task")
-    task.config.spec.command = ["bork"] // this will fail
+    const action = graph.getRun("echo-task")
+    action["_config"].spec.command = ["bork"] // this will fail
 
-    const testTask = new TaskTask({
+    const testTask = new RunTask({
       garden,
       graph,
-      task,
+      action,
       log: garden.log,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
     })
 
     await expectError(
-      async () => await garden.processTasks([testTask], { throwOnError: true }),
+      async () => await garden.processTasks({ tasks: [testTask], throwOnError: true }),
       (err) => expect(err.message).to.match(/bork/)
     )
 
     const actions = await garden.getActionRouter()
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     // We also verify that, despite the task failing, its result was still saved.
-    const result = await actions.getTaskResult({
-      log: garden.log,
-      task,
+    const result = await actions.run.getResult({
+      log: actionLog,
+      action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })
 
@@ -164,70 +157,61 @@ describe("runHelmTask", () => {
 
   context("artifacts are specified", () => {
     it("should copy artifacts out of the container", async () => {
-      const task = graph.getTask("artifacts-task")
+      const action = graph.getRun("artifacts-task")
 
-      const testTask = new TaskTask({
+      const testTask = new RunTask({
         garden,
         graph,
-        task,
+        action,
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
 
-      await garden.processTasks([testTask], { throwOnError: true })
+      await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
       expect(await pathExists(join(garden.artifactsPath, "task.txt"))).to.be.true
       expect(await pathExists(join(garden.artifactsPath, "subdir", "task.txt"))).to.be.true
     })
 
     it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
-      const task = await graph.getTask("artifacts-task-fail")
+      const action = await graph.getRun("artifacts-task-fail")
 
-      const testTask = new TaskTask({
+      const testTask = new RunTask({
         garden,
         graph,
-        task,
+        action,
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
       await emptyDir(garden.artifactsPath)
 
-      const results = await garden.processTasks([testTask], { throwOnError: false })
+      const results = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
-      expect(results[testTask.getKey()]!.error).to.exist
+      expect(results.error).to.exist
 
       expect(await pathExists(join(garden.artifactsPath, "test.txt"))).to.be.true
       expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true
     })
 
     it("should handle globs when copying artifacts out of the container", async () => {
-      const task = graph.getTask("globs-task")
+      const action = graph.getRun("globs-task")
 
-      const testTask = new TaskTask({
+      const testTask = new RunTask({
         garden,
         graph,
-        task,
+        action,
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
 
-      await garden.processTasks([testTask], { throwOnError: true })
+      await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
       expect(await pathExists(join(garden.artifactsPath, "subdir", "task.txt"))).to.be.true
       expect(await pathExists(join(garden.artifactsPath, "output.txt"))).to.be.true

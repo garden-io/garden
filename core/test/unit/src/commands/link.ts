@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,15 +17,117 @@ import {
   makeExtProjectSourcesGarden,
   makeExtModuleSourcesGarden,
   resetLocalConfig,
+  makeExtActionSourcesGarden,
 } from "../../../helpers"
 import { LinkSourceCommand } from "../../../../src/commands/link/source"
 import { Garden } from "../../../../src/garden"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { copy } from "fs-extra"
+import { LinkActionCommand } from "../../../../src/commands/link/action"
 
 describe("LinkCommand", () => {
   let garden: Garden
-  let log: LogEntry
+  let log: Log
+
+  describe("LinkActionCommand", () => {
+    const cmd = new LinkActionCommand()
+
+    beforeEach(async () => {
+      garden = await makeExtActionSourcesGarden()
+      log = garden.log
+    })
+
+    afterEach(async () => {
+      await resetLocalConfig(garden.gardenDirPath)
+    })
+
+    it("should link external actions", async () => {
+      const localActionPath = join(getDataDir("test-projects", "local-action-sources"), "build.a")
+
+      await cmd.action({
+        garden,
+        log,
+        args: {
+          action: "build.a",
+          path: localActionPath,
+        },
+        opts: withDefaultGlobalOpts({}),
+      })
+
+      const linkedActionSources = await garden.localConfigStore.get("linkedActionSources")
+
+      expect(linkedActionSources).to.eql({
+        "build.a": {
+          name: "build.a",
+          path: localActionPath,
+        },
+      })
+    })
+
+    it("should handle relative paths", async () => {
+      const localActionPath = resolve(garden.projectRoot, "..", "test-projects", "local-action-sources", "build.a")
+
+      await cmd.action({
+        garden,
+        log,
+        args: {
+          action: "build.a",
+          path: join("..", "test-projects", "local-action-sources", "build.a"),
+        },
+        opts: withDefaultGlobalOpts({}),
+      })
+
+      const linkedActionSources = await garden.localConfigStore.get("linkedActionSources")
+
+      expect(linkedActionSources).to.eql({
+        "build.a": {
+          name: "build.a",
+          path: localActionPath,
+        },
+      })
+    })
+
+    it("should throw if action to link does not have an external source", async () => {
+      await expectError(
+        async () =>
+          cmd.action({
+            garden,
+            log,
+            args: {
+              action: "build.c",
+              path: "",
+            },
+            opts: withDefaultGlobalOpts({}),
+          }),
+        "parameter"
+      )
+    })
+
+    it("should return linked action sources", async () => {
+      const path = resolve("..", "test-projects", "local-action-sources", "build.a")
+
+      const { result } = await cmd.action({
+        garden,
+        log,
+        args: {
+          action: "build.a",
+          path,
+        },
+        opts: withDefaultGlobalOpts({}),
+      })
+
+      expect(cmd.outputsSchema().validate(result).error).to.be.undefined
+
+      expect(result).to.eql({
+        sources: [
+          {
+            name: "build.a",
+            path,
+          },
+        ],
+      })
+    })
+  })
 
   describe("LinkModuleCommand", () => {
     const cmd = new LinkModuleCommand()
@@ -40,13 +142,11 @@ describe("LinkCommand", () => {
     })
 
     it("should link external modules", async () => {
-      const localModulePath = join(getDataDir("test-project-local-module-sources"), "module-a")
+      const localModulePath = join(getDataDir("test-projects", "local-module-sources"), "module-a")
 
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           module: "module-a",
           path: localModulePath,
@@ -54,29 +154,37 @@ describe("LinkCommand", () => {
         opts: withDefaultGlobalOpts({}),
       })
 
-      const { linkedModuleSources } = await garden.configStore.get()
+      const linkedModuleSources = await garden.localConfigStore.get("linkedModuleSources")
 
-      expect(linkedModuleSources).to.eql([{ name: "module-a", path: localModulePath }])
+      expect(linkedModuleSources).to.eql({
+        "module-a": {
+          name: "module-a",
+          path: localModulePath,
+        },
+      })
     })
 
     it("should handle relative paths", async () => {
-      const localModulePath = resolve(garden.projectRoot, "..", "test-project-local-module-sources", "module-a")
+      const localModulePath = resolve(garden.projectRoot, "..", "test-projects", "local-module-sources", "module-a")
 
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           module: "module-a",
-          path: join("..", "test-project-local-module-sources", "module-a"),
+          path: join("..", "test-projects", "local-module-sources", "module-a"),
         },
         opts: withDefaultGlobalOpts({}),
       })
 
-      const { linkedModuleSources } = await garden.configStore.get()
+      const linkedModuleSources = await garden.localConfigStore.get("linkedModuleSources")
 
-      expect(linkedModuleSources).to.eql([{ name: "module-a", path: localModulePath }])
+      expect(linkedModuleSources).to.eql({
+        "module-a": {
+          name: "module-a",
+          path: localModulePath,
+        },
+      })
     })
 
     it("should throw if module to link does not have an external source", async () => {
@@ -85,8 +193,6 @@ describe("LinkCommand", () => {
           cmd.action({
             garden,
             log,
-            headerLog: log,
-            footerLog: log,
             args: {
               module: "banana",
               path: "",
@@ -98,13 +204,11 @@ describe("LinkCommand", () => {
     })
 
     it("should return linked module sources", async () => {
-      const path = resolve("..", "test-project-local-module-sources", "module-a")
+      const path = resolve("..", "test-projects", "local-module-sources", "module-a")
 
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           module: "module-a",
           path,
@@ -131,8 +235,8 @@ describe("LinkCommand", () => {
 
     before(async () => {
       garden = await makeExtProjectSourcesGarden()
-      localSourcePath = resolve(garden.projectRoot, "..", "test-project-local-project-sources")
-      await copy(getDataDir("test-project-local-project-sources"), localSourcePath)
+      localSourcePath = resolve(garden.projectRoot, "..", "test-projects", "local-project-sources")
+      await copy(getDataDir("test-projects", "local-project-sources"), localSourcePath)
       log = garden.log
     })
 
@@ -144,8 +248,6 @@ describe("LinkCommand", () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           source: "source-a",
           path: localSourcePath,
@@ -153,27 +255,35 @@ describe("LinkCommand", () => {
         opts: withDefaultGlobalOpts({}),
       })
 
-      const { linkedProjectSources } = await garden.configStore.get()
+      const linkedProjectSources = await garden.localConfigStore.get("linkedProjectSources")
 
-      expect(linkedProjectSources).to.eql([{ name: "source-a", path: localSourcePath }])
+      expect(linkedProjectSources).to.eql({
+        "source-a": {
+          name: "source-a",
+          path: localSourcePath,
+        },
+      })
     })
 
     it("should handle relative paths", async () => {
       await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           source: "source-a",
-          path: join("..", "test-project-local-project-sources", `source-a`),
+          path: join("..", "test-projects", "local-project-sources"),
         },
         opts: withDefaultGlobalOpts({}),
       })
 
-      const { linkedProjectSources } = await garden.configStore.get()
+      const linkedProjectSources = await garden.localConfigStore.get("linkedProjectSources")
 
-      expect(linkedProjectSources).to.eql([{ name: "source-a", path: localSourcePath }])
+      expect(linkedProjectSources).to.eql({
+        "source-a": {
+          name: "source-a",
+          path: localSourcePath,
+        },
+      })
     })
 
     it("should return linked sources", async () => {
@@ -182,8 +292,6 @@ describe("LinkCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        headerLog: log,
-        footerLog: log,
         args: {
           source: "source-a",
           path,

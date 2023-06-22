@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,7 +13,11 @@ import { prettyPrintWorkflow } from "../helpers"
 
 const getWorkflowsArgs = {
   workflows: new StringsParameter({
-    help: "Specify workflow(s) to list. Use comma as a separator to specify multiple workflows.",
+    help: "Specify workflow(s) to list. You may specify multiple workflows, separated by spaces.",
+    spread: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.workflowConfigs)
+    },
   }),
 }
 
@@ -25,8 +29,8 @@ export class GetWorkflowsCommand extends Command<Args> {
 
   arguments = getWorkflowsArgs
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Workflows", "open_book")
+  printHeader({ log }) {
+    printHeader(log, "Workflows", "📖")
   }
 
   async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult> {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import moment from "moment"
 import { lstat, pathExists, remove } from "fs-extra"
 import { join } from "path"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { listDirectory } from "../util/fs"
 
 const logfileExpiryDays = 7
@@ -19,7 +19,7 @@ const logfileExpiryDays = 7
  * Deletes any debug/JSON logfiles that are older than `logfileExpiryDays`, and returns the debug & silly
  * logfile names for the currently executing command.
  */
-export async function prepareDebugLogfiles(log: LogEntry, logsDirPath: string, commandFullName: string) {
+export async function prepareDebugLogfiles(log: Log, logsDirPath: string, commandFullName: string) {
   try {
     if (await pathExists(logsDirPath)) {
       const filenames = await listDirectory(logsDirPath, { recursive: false })

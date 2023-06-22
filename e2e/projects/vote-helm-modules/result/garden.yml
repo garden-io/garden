@@ -1,0 +1,23 @@
+kind: Module
+description: Helm chart for the results UI
+type: helm
+name: result
+base: base-chart
+serviceResource:
+  containerModule: result-image
+dependencies:
+  - db-init
+values:
+  name: result
+  image:
+    repository: ${modules.result-image.outputs.deployment-image-name}
+    tag: ${modules.result-image.version}
+  ingress:
+    enabled: true
+    paths: [/]
+    hosts: ["result.${var.baseHostname}"]
+tests:
+  - name: integ
+    args: [echo, ok]
+    dependencies:
+      - db-init

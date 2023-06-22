@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ import { resolve } from "path"
 import { mapValues, startCase } from "lodash"
 
 import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/exceptions"
-import { LogEntry, PluginContext } from "@garden-io/sdk/types"
+import { Log, PluginContext } from "@garden-io/sdk/types"
 import { dedent } from "@garden-io/sdk/util/string"
 import { terraform } from "./cli"
 import { TerraformProvider } from "."
@@ -25,7 +25,6 @@ export const variablesSchema = () => joiStringMap(joi.any())
 export interface TerraformBaseSpec {
   allowDestroy: boolean
   autoApply: boolean
-  dependencies: string[]
   variables: PrimitiveMap
   version: string | null
   workspace?: string
@@ -33,7 +32,7 @@ export interface TerraformBaseSpec {
 
 interface TerraformParams {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   provider: TerraformProvider
   root: string
 }
@@ -59,28 +58,49 @@ export async function tfValidate(params: TerraformParams) {
   })
 
   if (res.valid === false) {
-    const reasons = res.diagnostics.map((d: any) => d.summary)
-
-    if (
-      reasons.includes("Could not satisfy plugin requirements") ||
-      reasons.includes("Module not installed") ||
-      reasons.includes("Could not load plugin")
-    ) {
-      // We need to run `terraform init` and retry validation
-      log.debug("Initializing Terraform")
-      await tfInit(params)
-
-      const retryRes = await terraform(ctx, provider).json({
+    // We need to run `terraform init` and retry validation
+    log.debug(`Validation failed, trying to run "terraform init".`)
+    let retryRes: any
+    let initError: any
+    try {
+      await terraform(ctx, provider).exec({ log, args: ["init"], cwd: root, timeoutSec: 600 })
+      retryRes = await terraform(ctx, provider).json({
         log,
         args,
         ignoreError: true,
         cwd: root,
       })
-      if (retryRes.valid === "false") {
-        throw tfValidationError(retryRes)
+    } catch (error) {
+      // We catch the error thrown by the terraform init request
+      log.debug("Terraform init failed with error: ${error.message}")
+      initError = error
+    }
+
+    // If the original validate request has failed and there is an error thrown by the init request
+    // OR the second validate try has failed, we throw a new ConfigurationError.
+    if ((res?.valid === false && initError) || retryRes?.valid === false) {
+      let errorMsg = dedent`Failed validating Terraform configuration:`
+
+      // It failed when running "terraform init": in this case we only add the error from the
+      // first validation try
+      if (initError) {
+        const resultErrors = res.diagnostics.map(
+          (d: any) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`
+        )
+        errorMsg += dedent`\n\n${resultErrors.join("\n")}
+
+    Garden tried running "terraform init" but got the following error:\n
+    ${initError.message}`
+      } else {
+        // "terraform init" went through but there is still a validation error afterwards so we
+        // add the retry error.
+        const resultErrors = retryRes.diagnostics.map(
+          (d: any) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`
+        )
+        errorMsg += dedent`\n\n${resultErrors.join("\n")}`
       }
-    } else {
-      throw tfValidationError(res)
+
+      throw new ConfigurationError(errorMsg, { failedResponse: retryRes || res, initError })
     }
   }
 }
@@ -106,13 +126,6 @@ export function getRoot(ctx: PluginContext, provider: TerraformProvider) {
   return resolve(ctx.projectRoot, provider.config.initRoot || ".")
 }
 
-export function tfValidationError(result: any) {
-  const errors = result.diagnostics.map((d: any) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`)
-  return new ConfigurationError(dedent`Failed validating Terraform configuration:\n\n${errors.join("\n")}`, {
-    result,
-  })
-}
-
 interface TerraformParamsWithVariables extends TerraformParamsWithWorkspace {
   variables: object
 }
@@ -132,7 +145,7 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
   await setWorkspace(params)
   await tfValidate(params)
 
-  const logEntry = log.verbose({ section: "terraform", msg: "Running plan...", status: "active" })
+  const statusLog = log.createLog({ name: "terraform" }).info("Running plan...")
 
   const plan = await terraform(ctx, provider).exec({
     log,
@@ -152,19 +165,19 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
 
   if (plan.exitCode === 0) {
     // Stack is up-to-date
-    logEntry.setSuccess({ msg: chalk.green("Stack up-to-date"), append: true })
+    statusLog.success(chalk.green("Stack up-to-date"))
     return "up-to-date"
   } else if (plan.exitCode === 1) {
     // Error from terraform. This can, for example, happen if variables are missing or there are errors in the tf files.
     // We ignore this here and carry on. Following commands will output the same error.
-    logEntry.setError()
+    statusLog.error(`Failed running plan`)
     return "error"
   } else if (plan.exitCode === 2) {
     // No error but stack is not up-to-date
-    logEntry.setWarn({ msg: "Not up-to-date" })
+    statusLog.warn({ msg: "Not up-to-date" })
     return "outdated"
   } else {
-    logEntry.setError()
+    statusLog.error(`Failed running plan`)
     throw new PluginError(`Unexpected exit code from \`terraform plan\`: ${plan.exitCode}`, {
       exitCode: plan.exitCode,
       stderr: plan.stderr,
@@ -181,7 +194,7 @@ export async function applyStack(params: TerraformParamsWithVariables) {
   const args = ["apply", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
   const proc = await terraform(ctx, provider).spawn({ log, args, cwd: root })
 
-  const statusLine = log.info("→ Applying Terraform stack...")
+  const statusLine = log.createLog({}).info("→ Applying Terraform stack...")
   const logStream = split2()
 
   let stdout: string = ""
@@ -202,7 +215,7 @@ export async function applyStack(params: TerraformParamsWithVariables) {
   }
 
   logStream.on("data", (line: Buffer) => {
-    statusLine.setState(chalk.gray("→ " + line.toString()))
+    statusLine.info(chalk.gray("→ " + line.toString()))
   })
 
   await new Promise<void>((_resolve, reject) => {
@@ -245,7 +258,7 @@ export async function getWorkspaces(params: TerraformParams) {
   const { ctx, log, provider, root } = params
 
   // Must in some cases ensure init is complete before listing workspaces
-  await tfInit(params)
+  await terraform(ctx, provider).exec({ log, args: ["init"], cwd: root, timeoutSec: 600 })
 
   const res = await terraform(ctx, provider).stdout({ args: ["workspace", "list"], cwd: root, log })
   let selected = "default"
@@ -291,8 +304,4 @@ export async function setWorkspace(params: TerraformParamsWithWorkspace) {
   } else {
     await terraform(ctx, provider).stdout({ args: ["workspace", "new", workspace], cwd: root, log })
   }
-}
-
-export async function tfInit({ ctx, log, provider, root }: TerraformParams) {
-  await terraform(ctx, provider).exec({ log, args: ["init"], cwd: root, timeoutSec: 600 })
 }

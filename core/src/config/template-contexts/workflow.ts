@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,8 +10,9 @@ import { joiIdentifierMap, DeepPrimitiveMap, joiVariables } from "../common"
 import { Garden } from "../../garden"
 import { joi } from "../common"
 import { dedent } from "../../util/string"
-import { RemoteSourceConfigContext } from "./project"
+import { RemoteSourceConfigContext, TemplatableConfigContext } from "./project"
 import { schema, ConfigContext, ErrorContext } from "./base"
+import type { WorkflowConfig } from "../workflow"
 
 /**
  * This context is available for template strings in all workflow config fields except `name` and `triggers[]`.
@@ -50,7 +51,7 @@ export interface WorkflowStepResult {
   log: string
 }
 
-export class WorkflowStepConfigContext extends WorkflowConfigContext {
+export class WorkflowStepConfigContext extends TemplatableConfigContext {
   @schema(
     joiIdentifierMap(WorkflowStepContext.getSchema())
       .description(
@@ -69,13 +70,15 @@ export class WorkflowStepConfigContext extends WorkflowConfigContext {
     garden,
     resolvedSteps,
     stepName,
+    workflow,
   }: {
     allStepNames: string[]
     garden: Garden
     resolvedSteps: { [name: string]: WorkflowStepResult }
     stepName: string
+    workflow: WorkflowConfig
   }) {
-    super(garden, garden.variables)
+    super(garden, workflow)
 
     this.steps = new Map<string, WorkflowStepContext | ErrorContext>()
 

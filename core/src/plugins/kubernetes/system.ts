@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,15 +8,15 @@
 
 import { join } from "path"
 
-import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
+import { GardenApiVersion, STATIC_DIR } from "../../constants"
 import { Garden } from "../../garden"
 import { KubernetesPluginContext, KubernetesConfig } from "./config"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { getSystemNamespace } from "./namespace"
 import { PluginError } from "../../exceptions"
 import { DeepPrimitiveMap } from "../../config/common"
 import { combineStates } from "../../types/service"
-import { defaultDotIgnoreFiles } from "../../util/fs"
+import { defaultDotIgnoreFile } from "../../util/fs"
 import { LogLevel } from "../../logger/logger"
 import { defaultNamespace } from "../../config/project"
 
@@ -37,7 +37,7 @@ export function getSystemMetadataNamespaceName(config: KubernetesConfig) {
 export async function getSystemGarden(
   ctx: KubernetesPluginContext,
   variables: DeepPrimitiveMap,
-  log: LogEntry
+  log: Log
 ): Promise<Garden> {
   const systemNamespace = await getSystemNamespace(ctx, ctx.provider, log)
 
@@ -55,54 +55,52 @@ export async function getSystemGarden(
     environments: ["default"],
     name: ctx.provider.name,
     namespace: { name: systemNamespace },
-    deploymentStrategy: "rolling",
     _systemServices: [],
   }
 
   return Garden.factory(systemProjectPath, {
     gardenDirPath: join(ctx.gardenDirPath, "kubernetes.garden"),
-    environmentName: "default",
+    environmentString: "default",
     noEnterprise: true, // we don't want to e.g. verify a client auth token or fetch secrets here
     config: {
       path: systemProjectPath,
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: GardenApiVersion.v1,
       kind: "Project",
       name: systemNamespace,
       defaultEnvironment: "default",
-      dotIgnoreFiles: defaultDotIgnoreFiles,
+      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [sysProvider],
       variables,
     },
     commandInfo: ctx.command,
-    log: log.debug({
-      section: "garden system",
-      msg: "Initializing...",
-      status: "active",
-      indent: 1,
-      childEntriesInheritLevel: true,
-    }),
+    log: log
+      .createLog({
+        name: "garden system",
+        fixLevel: LogLevel.debug,
+      })
+      .info("Initializing..."),
   })
 }
 
 interface GetSystemServicesStatusParams {
   ctx: KubernetesPluginContext
   sysGarden: Garden
-  log: LogEntry
+  log: Log
   namespace: string
-  serviceNames: string[]
+  names: string[]
 }
 
-export async function getSystemServiceStatus({ sysGarden, log, serviceNames }: GetSystemServicesStatusParams) {
+export async function getSystemServiceStatus({ sysGarden, log, names }: GetSystemServicesStatusParams) {
   const actions = await sysGarden.getActionRouter()
   const graph = await sysGarden.getConfigGraph({ log, emit: false })
 
-  const serviceStatuses = await actions.getServiceStatuses({
-    log: log.placeholder({ level: LogLevel.verbose, childEntriesInheritLevel: true }),
+  const serviceStatuses = await actions.getDeployStatuses({
+    log: log.createLog({ fixLevel: LogLevel.verbose }),
     graph,
-    serviceNames,
+    names,
   })
-  const state = combineStates(Object.values(serviceStatuses).map((s) => (s && s.state) || "unknown"))
+  const state = combineStates(Object.values(serviceStatuses).map((s) => s.detail?.state || "unknown"))
 
   return {
     state,
@@ -114,7 +112,13 @@ interface PrepareSystemServicesParams extends GetSystemServicesStatusParams {
   force: boolean
 }
 
-export async function prepareSystemServices({ ctx, sysGarden, log, serviceNames, force }: PrepareSystemServicesParams) {
+export async function prepareSystemServices({
+  ctx,
+  sysGarden,
+  log,
+  names: serviceNames,
+  force,
+}: PrepareSystemServicesParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
 
@@ -122,36 +126,19 @@ export async function prepareSystemServices({ ctx, sysGarden, log, serviceNames,
   if (serviceNames.length > 0) {
     const actions = await sysGarden.getActionRouter()
     const graph = await sysGarden.getConfigGraph({ log, emit: false })
-    const results = await actions.deployServices({
+    const { error, results } = await actions.deployMany({
       graph,
       log,
-      serviceNames,
+      deployNames: serviceNames,
       force,
       forceBuild: force,
     })
 
-    const failed = Object.values(results)
-      .filter((r) => r && r.error)
-      .map((r) => r!)
-    const errors = failed.map((r) => r.error)
-
-    if (failed.length === 1) {
-      const error = errors[0]
-
+    if (error) {
       throw new PluginError(`${provider.name} — an error occurred when configuring environment:\n${error}`, {
         error,
         results,
       })
-    } else if (failed.length > 0) {
-      const errorsStr = errors.map((e) => `- ${e}`).join("\n")
-
-      throw new PluginError(
-        `${provider.name} — ${failed.length} errors occurred when configuring environment:\n${errorsStr}`,
-        {
-          errors,
-          results,
-        }
-      )
     }
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,41 +7,34 @@
  */
 
 import env from "env-var"
-import { resolve, join } from "path"
+import { join, resolve } from "path"
 import { homedir } from "os"
 
 export const isPkg = !!(<any>process).pkg
 
-export const LOCAL_CONFIG_FILENAME = "local-config.yml"
-export const GLOBAL_CONFIG_FILENAME = "global-config.yml"
 export const GARDEN_CORE_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(__dirname, "..", "..")
 export const GARDEN_CLI_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(GARDEN_CORE_ROOT, "..", "cli")
 export const STATIC_DIR = isPkg ? resolve(process.execPath, "..", "static") : resolve(GARDEN_CORE_ROOT, "..", "static")
-// We symlink to it the built dashboard to the core static directory during dev, and copy it there for dist builds
-export const DASHBOARD_STATIC_DIR = join(STATIC_DIR, "dashboard")
 export const DEFAULT_GARDEN_DIR_NAME = ".garden"
 export const MUTAGEN_DIR_NAME = "mutagen"
-export const LATEST_MUTAGEN_DATA_DIR_NAME = "latest"
 export const LOGS_DIR_NAME = "logs"
 export const GARDEN_GLOBAL_PATH = join(homedir(), DEFAULT_GARDEN_DIR_NAME)
-export const LOGS_DIR = join(DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME)
 export const ERROR_LOG_FILENAME = "error.log"
-export const PROJECT_SOURCES_DIR_NAME = join("sources", "project")
-export const MODULE_SOURCES_DIR_NAME = join("sources", "module")
-export const GARDEN_BUILD_VERSION_FILENAME = "garden-build-version"
 export const GARDEN_VERSIONFILE_NAME = ".garden-version"
 export const DEFAULT_PORT_PROTOCOL = "TCP"
 
-export const DEFAULT_API_VERSION = "garden.io/v0"
+export enum GardenApiVersion {
+  v0 = "garden.io/v0",
+  v1 = "garden.io/v1",
+}
 
-export const DEFAULT_TEST_TIMEOUT = 60 * 1000
-export const DEFAULT_TASK_TIMEOUT = 60 * 1000
+export const DEFAULT_BUILD_TIMEOUT_SEC = 600
+export const DEFAULT_TEST_TIMEOUT_SEC = 600
+export const DEFAULT_RUN_TIMEOUT_SEC = 600
+export const DEFAULT_DEPLOY_TIMEOUT_SEC = 300
 
-export type SupportedPlatform = "linux" | "darwin" | "win32"
-export const SUPPORTED_PLATFORMS: SupportedPlatform[] = ["linux", "darwin", "win32"]
-
-export type SupportedArchitecture = "x64" | "arm64"
-export const SUPPORTED_ARCHITECTURES: SupportedArchitecture[] = ["x64", "arm64"]
+export const SUPPORTED_PLATFORMS: NodeJS.Platform[] = ["linux", "darwin", "win32"]
+export const SUPPORTED_ARCHITECTURES: NodeJS.Architecture[] = ["x64", "arm64"]
 
 // These keys aren't sensitive, so we ask GitGuardian to ignore them.
 export const SEGMENT_DEV_API_KEY = "D3DUZ3lBSDO3krnuIO7eYDdtlDAjooKW" // ggignore
@@ -49,6 +42,8 @@ export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggigno
 
 export const DOCS_BASE_URL = "https://docs.garden.io"
 export const VERSION_CHECK_URL = "https://get.garden.io/version"
+
+export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
 
 /**
  * Environment variables, with defaults where appropriate.
@@ -67,7 +62,6 @@ export const gardenEnv = {
   GARDEN_ENVIRONMENT: env.get("GARDEN_ENVIRONMENT").required(false).asString(),
   GARDEN_EXPERIMENTAL_BUILD_STAGE: env.get("GARDEN_EXPERIMENTAL_BUILD_STAGE").required(false).asBool(),
   GARDEN_GE_SCHEDULED: env.get("GARDEN_GE_SCHEDULED").required(false).asBool(),
-  GARDEN_K8S_BUILD_SYNC_MODE: env.get("GARDEN_K8S_BUILD_SYNC_MODE").required(false).default("rsync").asString(),
   GARDEN_LEGACY_BUILD_STAGE: env.get("GARDEN_LEGACY_BUILD_STAGE").required(false).asBool(),
   GARDEN_LOG_LEVEL: env.get("GARDEN_LOG_LEVEL").required(false).asString(),
   GARDEN_LOGGER_TYPE: env.get("GARDEN_LOGGER_TYPE").required(false).asString(),
@@ -78,8 +72,5 @@ export const gardenEnv = {
   GARDEN_HARD_CONCURRENCY_LIMIT: env.get("GARDEN_HARD_CONCURRENCY_LIMIT").required(false).default(50).asInt(),
   GARDEN_TASK_CONCURRENCY_LIMIT: env.get("GARDEN_TASK_CONCURRENCY_LIMIT").required(false).default(6).asInt(),
   GARDEN_WORKFLOW_RUN_UID: env.get("GARDEN_WORKFLOW_RUN_UID").required(false).asString(),
-  // Allow users to fallback to "legacy" fancy writer render logic in case recent changes introduce
-  // issues on terminals we haven't tested. We can remove again in v0.13.
-  GARDEN_LEGACY_FANCY_LOG_RENDER: env.get("GARDEN_LEGACY_FANCY_LOG_RENDER").required(false).asBool(),
   GARDEN_CLOUD_DOMAIN: env.get("GARDEN_CLOUD_DOMAIN").required(false).asUrlString(),
 }

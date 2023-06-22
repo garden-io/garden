@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,35 +7,31 @@
  */
 
 import { expect } from "chai"
-import { resolve, join } from "path"
+import { join } from "path"
 import td from "testdouble"
 import { Garden } from "../../../../../src/garden"
 import { prepareDockerAuth, getIngressMisconfigurationWarnings } from "../../../../../src/plugins/kubernetes/init"
 import { dockerAuthSecretKey } from "../../../../../src/plugins/kubernetes/constants"
 import { ConfigurationError } from "../../../../../src/exceptions"
-import {
-  KubernetesProvider,
-  KubernetesConfig,
-  defaultResources,
-  defaultStorage,
-} from "../../../../../src/plugins/kubernetes/config"
+import { KubernetesProvider, KubernetesConfig, defaultResources } from "../../../../../src/plugins/kubernetes/config"
 import { gardenPlugin } from "../../../../../src/plugins/container/container"
 import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
-import { dataDir, makeTestGarden, expectError } from "../../../../helpers"
+import { makeTestGarden, expectError, getDataDir } from "../../../../helpers"
 import { KubernetesList, KubernetesResource } from "../../../../../src/plugins/kubernetes/types"
 import { V1IngressClass, V1Secret } from "@kubernetes/client-node"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { kubectlSpec } from "../../../../../src/plugins/kubernetes/kubectl"
 import { PluginTool } from "../../../../../src/util/ext-tools"
+import { uuidv4 } from "../../../../../src/util/random"
 
 const basicConfig: KubernetesConfig = {
   name: "kubernetes",
   buildMode: "local-docker",
   context: "my-cluster",
-  defaultHostname: "my.domain.com",
+  defaultHostname: "hostname.invalid",
   deploymentRegistry: {
-    hostname: "foo.garden",
+    hostname: "registry.invalid",
     port: 5000,
     namespace: "boo",
     insecure: true,
@@ -62,21 +58,22 @@ const basicConfig: KubernetesConfig = {
   ingressHttpPort: 80,
   ingressHttpsPort: 443,
   resources: defaultResources,
-  storage: defaultStorage,
   setupIngressController: null,
   systemNodeSelector: {},
-  registryProxyTolerations: [],
   tlsCertificates: [],
   _systemServices: [],
 }
 
 const basicProvider: KubernetesProvider = {
   name: "kubernetes",
+  uid: uuidv4(),
   config: basicConfig,
   dependencies: {},
   moduleConfigs: [],
   status: { ready: true, outputs: {} },
   dashboardPages: [],
+  outputs: {},
+  state: "ready",
 }
 
 const dockerSimpleAuthSecret: KubernetesResource<V1Secret> = {
@@ -111,7 +108,7 @@ const dockerCredentialHelperSecret: KubernetesResource<V1Secret> = {
 const kubeConfigEnvVar = process.env.KUBECONFIG
 
 describe("kubernetes init", () => {
-  const projectRoot = resolve(dataDir, "test-project-container")
+  const projectRoot = getDataDir("test-project-container")
   let garden: Garden
   let ctx: PluginContext
   let api: KubeApi
@@ -134,7 +131,7 @@ describe("kubernetes init", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
-    ctx = await garden.getPluginContext(basicProvider)
+    ctx = await garden.getPluginContext({ provider: basicProvider, templateContext: undefined, events: undefined })
     ctx.tools["kubernetes.kubectl"] = new PluginTool(kubectlSpec)
     api = await KubeApi.factory(garden.log, ctx, basicProvider)
   })
@@ -143,7 +140,15 @@ describe("kubernetes init", () => {
       beforeEach(async () => {
         const core = td.replace(api, "core")
         td.when(core.listNamespace()).thenResolve({
-          items: [{ status: { phase: "Active" }, metadata: { name: "default" } }],
+          items: [
+            {
+              apiVersion: "v1",
+              kind: "Namepsace",
+              status: { phase: "Active" },
+              metadata: { name: "default" },
+              spec: {},
+            },
+          ],
         })
         td.when(core.readNamespacedSecret("test-docker-auth", "default")).thenResolve(dockerSimpleAuthSecret)
         td.when(core.readNamespacedSecret("test-cred-helper-auth", "default")).thenResolve(dockerCredentialHelperSecret)
@@ -187,7 +192,15 @@ describe("kubernetes init", () => {
           },
         }
         td.when(core.listNamespace()).thenResolve({
-          items: [{ status: { phase: "Active" }, metadata: { name: "default" } }],
+          items: [
+            {
+              apiVersion: "v1",
+              kind: "Namepsace",
+              status: { phase: "Active" },
+              metadata: { name: "default" },
+              spec: {},
+            },
+          ],
         })
         td.when(core.readNamespacedSecret("test-docker-auth", "default")).thenResolve(emptyDockerSimpleAuthSecret)
         td.when(core.readNamespacedSecret("test-cred-helper-auth", "default")).thenResolve(

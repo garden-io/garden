@@ -5,4 +5,3 @@ providers:
   - name: conftest-container
   - name: conftest-kubernetes
   - name: jib
-  - name: maven-container

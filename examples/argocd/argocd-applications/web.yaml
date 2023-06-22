@@ -1,0 +1,31 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: web
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: web=gardendev/web-image # update according to your registry/image
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/web.update-strategy: name
+    argocd-image-updater.argoproj.io/web.allow-tags: regexp:^main-[0-9]+$ # update according to your image tag
+    argocd-image-updater.argoproj.io/web.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/web.helm.image-tag: image.tag
+spec:
+  syncPolicy:
+    automated: {}
+    syncOptions:
+    - CreateNamespace=true
+  destination:
+    namespace: vote-helm-default
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    repoURL: https://github.com/garden-io-testing/gitops-demo.git
+    targetRevision: HEAD
+    path: web/chart
+    helm:
+      version: v3
+      valueFiles:
+      - values-prod.yaml

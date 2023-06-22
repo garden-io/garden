@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,10 +10,9 @@ import { CommandGroup } from "../base"
 import { GetGraphCommand } from "./get-graph"
 import { GetConfigCommand } from "./get-config"
 import { GetEysiCommand } from "./get-eysi"
-import { GetSecretCommand } from "./get-secret"
 import { GetStatusCommand } from "./get-status"
-import { GetTasksCommand } from "./get-tasks"
-import { GetTaskResultCommand } from "./get-task-result"
+import { GetRunsCommand } from "./get-runs"
+import { GetRunResultCommand } from "./get-run-result"
 import { GetTestResultCommand } from "./get-test-result"
 import { GetDebugInfoCommand } from "./get-debug-info"
 import { GetLinkedReposCommand } from "./get-linked-repos"
@@ -22,6 +21,10 @@ import { GetDoddiCommand } from "./get-doddi"
 import { GetModulesCommand } from "./get-modules"
 import { GetTestsCommand } from "./get-tests"
 import { GetWorkflowsCommand } from "./get-workflows"
+import { GetActionsCommand } from "./get-actions"
+import { GetDeploysCommand } from "./get-deploys"
+import { GetBuildsCommand } from "./get-builds"
+import { GetFilesCommand } from "./get-files"
 
 export class GetCommand extends CommandGroup {
   name = "get"
@@ -32,14 +35,17 @@ export class GetCommand extends CommandGroup {
     GetConfigCommand,
     GetDoddiCommand,
     GetEysiCommand,
+    GetFilesCommand,
     GetLinkedReposCommand,
     GetOutputsCommand,
     GetModulesCommand,
-    GetSecretCommand,
     GetStatusCommand,
-    GetTasksCommand,
+    GetActionsCommand,
+    GetDeploysCommand,
+    GetBuildsCommand,
+    GetRunsCommand,
     GetTestsCommand,
-    GetTaskResultCommand,
+    GetRunResultCommand,
     GetTestResultCommand,
     GetDebugInfoCommand,
     GetWorkflowsCommand,

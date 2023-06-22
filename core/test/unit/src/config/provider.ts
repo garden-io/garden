@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { GenericProviderConfig, getAllProviderDependencyNames } from "../../../../src/config/provider"
 import { expectError } from "../../../helpers"
-import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../src/plugin/plugin"
 
 describe("getProviderDependencies", () => {
   const plugin = createGardenPlugin({
@@ -40,14 +40,9 @@ describe("getProviderDependencies", () => {
       someKey: "${providers}",
     }
 
-    await expectError(
-      () => getAllProviderDependencyNames(plugin, config),
-      (err) => {
-        expect(err.message).to.equal(
-          "Invalid template key 'providers' in configuration for provider 'my-provider'. " +
-            "You must specify a provider name as well (e.g. \\${providers.my-provider})."
-        )
-      }
-    )
+    await expectError(() => getAllProviderDependencyNames(plugin, config), {
+      contains:
+        "Invalid template key 'providers' in configuration for provider 'my-provider'. You must specify a provider name as well (e.g. \\${providers.my-provider}).",
+    })
   })
 })

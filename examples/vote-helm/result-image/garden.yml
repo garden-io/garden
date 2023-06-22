@@ -1,4 +1,4 @@
-kind: Module
+kind: Build
 description: Results UI service container
 type: container
 name: result-image

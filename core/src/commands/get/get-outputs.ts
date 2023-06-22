@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -31,8 +31,8 @@ export class GetOutputsCommand extends Command {
 
   outputsSchema = () => joiVariables().description("A map of all the defined project outputs, fully resolved.")
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Resolving project outputs", "notebook")
+  printHeader({ log }) {
+    printHeader(log, "Resolving project outputs", "📓")
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<PrimitiveMap>> {

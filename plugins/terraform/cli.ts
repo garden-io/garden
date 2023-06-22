@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ import { TerraformProvider } from "."
 import which from "which"
 import { ConfigurationError, RuntimeError } from "@garden-io/sdk/exceptions"
 import { CliWrapper, PluginToolSpec } from "@garden-io/sdk/util/ext-tools"
-import { LogEntry, PluginContext } from "@garden-io/sdk/types"
+import { Log, PluginContext } from "@garden-io/sdk/types"
 
 export function terraform(ctx: PluginContext, provider: TerraformProvider) {
   const version = provider.config.version
@@ -36,7 +36,7 @@ export class GlobalTerraform extends CliWrapper {
     super("terraform", "terraform")
   }
 
-  async getPath(_: LogEntry) {
+  async getPath(_: Log) {
     try {
       return await which("terraform")
     } catch (err) {
@@ -45,12 +45,12 @@ export class GlobalTerraform extends CliWrapper {
   }
 }
 
-export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
-  "0.12.26": {
+export const terraformCliSpecs: PluginToolSpec[] = [
+  {
     name: "terraform-0-12-26",
+    version: "0.12.26",
     description: "The terraform CLI, v0.12.26",
     type: "binary",
-    _includeInGardenImage: true,
     builds: [
       {
         platform: "darwin",
@@ -84,8 +84,9 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "0.13.3": {
+  {
     name: "terraform-0-13-3",
+    version: "0.13.3",
     description: "The terraform CLI, v0.13.3",
     type: "binary",
     builds: [
@@ -93,7 +94,7 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
         platform: "darwin",
         architecture: "amd64",
         url: "https://releases.hashicorp.com/terraform/0.13.3/terraform_0.13.3_darwin_amd64.zip",
-        sha256: "ccbfd3af8732a47b6bd32c419e1a52e41eb8a39ff7437afffbef438b5c0f92c3",
+        sha256: "4a613dc18ff8cfac525a59cc0e78216fa0a9ecd63e6ac45603561ceb72f6d772",
         extract: {
           format: "zip",
           targetPath: "terraform",
@@ -121,8 +122,9 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "0.14.7": {
+  {
     name: "terraform-0-14-7",
+    version: "0.14.7",
     description: "The terraform CLI, v0.14.7",
     type: "binary",
     builds: [
@@ -158,8 +160,9 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "1.0.5": {
+  {
     name: "terraform-1-0-5",
+    version: "1.0.5",
     description: "The terraform CLI, v1.0.5",
     type: "binary",
     builds: [
@@ -205,8 +208,9 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "1.2.9": {
+  {
     name: "terraform-1-2-9",
+    version: "1.2.9",
     description: "The terraform CLI, v1.2.9",
     type: "binary",
     builds: [
@@ -214,7 +218,7 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
         platform: "darwin",
         architecture: "amd64",
         url: "https://releases.hashicorp.com/terraform/1.2.9/terraform_1.2.9_darwin_amd64.zip",
-        sha256: "46206e564fdd792e709b7ec70eab1c873c9b1b17f4d33c07a1faa9d68955061b",
+        sha256: "84a678ece9929cebc34c7a9a1ba287c8b91820b336f4af8437af7feaa0117b7c",
         extract: {
           format: "zip",
           targetPath: "terraform",
@@ -224,7 +228,7 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
         platform: "darwin",
         architecture: "arm64",
         url: "https://releases.hashicorp.com/terraform/1.2.9/terraform_1.2.9_darwin_arm64.zip",
-        sha256: "e61195aa7cc5caf6c86c35b8099b4a29339cd51e54518eb020bddb35cfc0737d",
+        sha256: "bc3b94b53cdf1be3c4988faa61aad343f48e013928c64bfc6ebeb61657f97baa",
         extract: {
           format: "zip",
           targetPath: "terraform",
@@ -252,9 +256,58 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-}
+  {
+    name: "terraform-1-4-6",
+    version: "1.4.6",
+    description: "The terraform CLI, v1.4.6",
+    type: "binary",
+    _includeInGardenImage: true,
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "amd64",
+        url: "https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_darwin_amd64.zip",
+        sha256: "5d8332994b86411b049391d31ad1a0785dfb470db8b9c50617de28ddb5d1f25d",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "darwin",
+        architecture: "arm64",
+        url: "https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_darwin_arm64.zip",
+        sha256: "30a2f87298ff9f299452119bd14afaa8d5b000c572f62fa64baf432e35d9dec1",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: "https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip",
+        sha256: "e079db1a8945e39b1f8ba4e513946b3ab9f32bd5a2bdf19b9b186d22c5a3d53b",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: "https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_windows_amd64.zip",
+        sha256: "f666aa1388f94c9b86ea01cb884ba53b9132d2cec3d9cac976ad93a2aba901d5",
+        extract: {
+          format: "zip",
+          targetPath: "terraform.exe",
+        },
+      },
+    ],
+  },
+]
 
-export const supportedVersions = Object.keys(terraformCliSpecs)
+export const supportedVersions = terraformCliSpecs.map((s) => s.version)
 
 // Default to latest Terraform version
-export const defaultTerraformVersion = "1.2.9"
+export const defaultTerraformVersion = "1.4.6"

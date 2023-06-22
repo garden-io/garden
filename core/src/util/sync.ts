@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import { exec } from "./util"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { LogLevel } from "../logger/logger"
 
 /**
@@ -29,7 +29,7 @@ export async function syncWithOptions({
   withDelete,
   files,
 }: {
-  log: LogEntry
+  log: Log
   syncOpts: string[]
   sourcePath: string
   destinationPath: string
@@ -52,8 +52,13 @@ export async function syncWithOptions({
       // Workaround for this issue: https://stackoverflow.com/questions/1813907
       opts.push("--include-from=-", "--exclude=*", "--delete-excluded")
 
-      // -> Make sure the file list is anchored (otherwise filenames are matched as patterns)
-      files = files.map((f) => "/" + f)
+      files = files.map((f) => {
+        // -> Make sure the file list is anchored (otherwise filenames are matched as patterns)
+        let filename = "/" + f
+        // -> Escape rsync include/exclude wildcard characters https://linux.die.net/man/1/rsync
+        filename = filename.replaceAll(/(\[|\?|\*)/g, "\\$1")
+        return filename
+      })
 
       input = "/**/\n" + files.join("\n")
     }

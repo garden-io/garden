@@ -1,35 +1,38 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import { Command, CommandParams, CommandResult } from "./base"
 import { printEmoji, printHeader } from "../logger/util"
-import dedent = require("dedent")
 import { resolveWorkflowConfig } from "../config/workflow"
-import chalk = require("chalk")
+import { dedent } from "../util/string"
 
 export class ValidateCommand extends Command {
   name = "validate"
   help = "Check your garden configuration for errors."
-  emoji: "heavy_check_mark"
+  emoji: "✔️"
+
+  aliases: ["scan"]
 
   description = dedent`
-    Throws an error and exits with code 1 if something's not right in your garden.yml files.
+    Throws an error and exits with code 1 if something's not right in your garden config files.
   `
 
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Validate", "heavy_check_mark")
+  printHeader({ log }) {
+    printHeader(log, "Validate", "✔️")
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult> {
-    await garden.getConfigGraph({ log, emit: false })
+    // This implicitly validates modules and actions.
+    await garden.getResolvedConfigGraph({ log, emit: false })
 
     /*
-     * Normally, workflow configs are only resolved when they're run via the `run workflow` command (and only the
+     * Normally, workflow configs are only resolved when they're run via the `workflow` command (and only the
      * workflow being run).
      *
      * Here, we want to validate all workflow configs (so we try resolving them all).
@@ -40,7 +43,7 @@ export class ValidateCommand extends Command {
     }
 
     log.info("")
-    log.info(chalk.green("OK") + " " + printEmoji("heavy_check_mark", log))
+    log.info(chalk.green("OK") + " " + printEmoji("✔️", log))
 
     return {}
   }

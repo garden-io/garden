@@ -1,29 +1,34 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { exec, getPlatform, getArchitecture } from "../../../../src/util/util"
-import { makeTempDir, TempDirectory, TestGarden, withDefaultGlobalOpts, dataDir, expectError } from "../../../helpers"
+import { getPlatform, getArchitecture } from "../../../../src/util/util"
+import {
+  makeTempDir,
+  TempDirectory,
+  TestGarden,
+  withDefaultGlobalOpts,
+  expectError,
+  createProjectConfig,
+  getDataDir,
+} from "../../../helpers"
 import { expect } from "chai"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
-import { join } from "path"
+import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { ToolsCommand } from "../../../../src/commands/tools"
 import { LogLevel } from "../../../../src/logger/logger"
 import { dedent } from "../../../../src/util/string"
-import { LogEntry } from "../../../../src/logger/log-entry"
-import { makeDummyGarden } from "../../../../src/cli/cli"
-import { defaultNamespace } from "../../../../src/config/project"
+import { Log } from "../../../../src/logger/log-entry"
+import { makeDummyGarden } from "../../../../src/garden"
 import { getLogMessages } from "../../../../src/util/testing"
 
 describe("ToolsCommand", () => {
   let tmpDir: TempDirectory
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
 
   const pluginA = createGardenPlugin({
     name: "test-a",
@@ -31,6 +36,7 @@ describe("ToolsCommand", () => {
     tools: [
       {
         name: "tool",
+        version: "foo",
         description: "foo",
         type: "binary",
         _includeInGardenImage: false,
@@ -38,13 +44,14 @@ describe("ToolsCommand", () => {
           {
             platform: getPlatform(),
             architecture: getArchitecture(),
-            url: "file://" + join(dataDir, "tools", "tool-a.sh"),
+            url: "file://" + getDataDir("tools", "tool-a.sh"),
             sha256: "90b5248d2fc6106bdf3e5a66e8efd54383b6c4258725e9d455efb7ee32a64223",
           },
         ],
       },
       {
         name: "lib",
+        version: "foo",
         description: "foo",
         type: "library",
         _includeInGardenImage: false,
@@ -52,7 +59,7 @@ describe("ToolsCommand", () => {
           {
             platform: getPlatform(),
             architecture: getArchitecture(),
-            url: "file://" + join(dataDir, "tools", "tool-a.sh"),
+            url: "file://" + getDataDir("tools", "tool-a.sh"),
             sha256: "90b5248d2fc6106bdf3e5a66e8efd54383b6c4258725e9d455efb7ee32a64223",
           },
         ],
@@ -66,6 +73,7 @@ describe("ToolsCommand", () => {
     tools: [
       {
         name: "tool",
+        version: "foo",
         description: "foo",
         type: "binary",
         _includeInGardenImage: false,
@@ -73,7 +81,7 @@ describe("ToolsCommand", () => {
           {
             platform: getPlatform(),
             architecture: getArchitecture(),
-            url: "file://" + join(dataDir, "tools", "tool-b.sh"),
+            url: "file://" + getDataDir("tools", "tool-b.sh"),
             sha256: "b770f87151d8be76214960ecaa45de1b4a892930f1989f28de02bc2f44047ef5",
           },
         ],
@@ -84,22 +92,14 @@ describe("ToolsCommand", () => {
   const command = new ToolsCommand()
 
   before(async () => {
-    tmpDir = await makeTempDir()
-    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
 
     garden = await TestGarden.factory(tmpDir.path, {
       plugins: [pluginA, pluginB],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
+      config: createProjectConfig({
         path: tmpDir.path,
-        defaultEnvironment: "default",
-        dotIgnoreFiles: [],
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }],
-        variables: {},
-      },
+      }),
     })
     log = garden.log
 
@@ -113,8 +113,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { tool: undefined },
       opts: withDefaultGlobalOpts({ "get-path": false }),
     })
@@ -145,6 +143,7 @@ describe("ToolsCommand", () => {
         type: "binary",
         builds: pluginA.tools![0].builds,
         pluginName: "test-a",
+        version: "foo",
       },
       {
         name: "lib",
@@ -152,6 +151,7 @@ describe("ToolsCommand", () => {
         type: "library",
         builds: pluginA.tools![0].builds,
         pluginName: "test-a",
+        version: "foo",
       },
       {
         name: "tool",
@@ -159,6 +159,7 @@ describe("ToolsCommand", () => {
         type: "binary",
         builds: pluginB.tools![0].builds,
         pluginName: "test-b",
+        version: "foo",
       },
     ])
   })
@@ -167,8 +168,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { "tool": "tool", "--": ["0"] },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
@@ -184,15 +183,13 @@ describe("ToolsCommand", () => {
         command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { "tool": "51616ok3xnnz....361.2362&123", "--": ["0"] },
           opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
         }),
-      (err) =>
-        expect(err.message).to.equal(
-          "Invalid tool name argument. Please specify either a tool name (no periods) or <plugin name>.<tool name>."
-        )
+      {
+        contains:
+          "Invalid tool name argument. Please specify either a tool name (no periods) or <plugin name>.<tool name>.",
+      }
     )
   })
 
@@ -202,12 +199,10 @@ describe("ToolsCommand", () => {
         command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { "tool": "bla.tool", "--": ["0"] },
           opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
         }),
-      (err) => expect(err.message).to.equal("Could not find plugin bla.")
+      { contains: "Could not find plugin bla." }
     )
   })
 
@@ -217,12 +212,10 @@ describe("ToolsCommand", () => {
         command.action({
           garden,
           log,
-          headerLog: log,
-          footerLog: log,
           args: { "tool": "bla", "--": ["0"] },
           opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
         }),
-      (err) => expect(err.message).to.equal("Could not find tool bla.")
+      { contains: "Could not find tool bla." }
     )
   })
 
@@ -236,8 +229,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden: _garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { "tool": "tool", "--": ["0"] },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
@@ -251,8 +242,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { "tool": "test-b.tool", "--": ["0"] },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
@@ -266,8 +255,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { tool: "test-a.lib" },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
@@ -282,8 +269,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { tool: "test-a.tool" },
       opts: withDefaultGlobalOpts({ "get-path": true, "output": "json" }),
     })
@@ -298,8 +283,6 @@ describe("ToolsCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: { "tool": "tool", "--": ["1"] },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })

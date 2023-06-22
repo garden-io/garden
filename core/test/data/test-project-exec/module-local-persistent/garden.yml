@@ -1,24 +1,24 @@
 kind: Module
-name: module-local-dev-mode
+name: module-local-sync-mode
 type: exec
 local: true
 services:
-  - name: dev-mode
-    devMode:
-      command: [/bin/sh -c "while true; do sleep 10000; done"]
+  - name: sync-mode
+    syncMode:
+      command: [/bin/sh -c "while true; do sleep 1000; done"]
     deployCommand: []
-  - name: dev-mode-with-logs
-    devMode:
+  - name: sync-mode-with-logs
+    syncMode:
       command: [/bin/bash -c 'for((i=1;i<=5;i+=1)); do echo "Hello $i"; done']
     deployCommand: []
-  - name: dev-mode-with-empty-log-lines
-    devMode:
+  - name: sync-mode-with-empty-log-lines
+    syncMode:
       command: [/bin/bash -c 'for((i=1;i<=3;i+=1)); do printf "Hello\n\n$i\n"; done']
     deployCommand: []
-  - name: dev-mode-timeout
+  - name: sync-mode-timeout
     persistent: true
     devMode:
-      command: [/bin/sh -c "while true; do sleep 10000; done"]
+      command: [/bin/sh -c "while true; do sleep 1000; done"]
       statusCommand: [/bin/sh -c "echo Status command output; exit 1"]
       timeout: 3
     deployCommand: []

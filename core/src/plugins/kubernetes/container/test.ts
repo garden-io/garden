@@ -1,23 +1,23 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModule } from "../../container/config"
-import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
+import { ContainerTestAction } from "../../container/moduleConfig"
 import { storeTestResult } from "../test-results"
-import { TestModuleParams } from "../../../types/plugin/module/testModule"
-import { TestResult } from "../../../types/plugin/module/getTestResult"
 import { runAndCopy } from "../run"
 import { makePodName } from "../util"
-import { getAppNamespaceStatus } from "../namespace"
+import { getNamespaceStatus } from "../namespace"
 import { KubernetesPluginContext } from "../config"
+import { TestActionHandler } from "../../../plugin/action-types"
+import { getDeployedImageId } from "./util"
+import { runResultToActionState } from "../../../actions/base"
 
-export async function testContainerModule(params: TestModuleParams<ContainerModule>): Promise<TestResult> {
-  const { ctx, module, test, log } = params
+export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
+  const { ctx, action, log } = params
   const {
     command,
     args,
@@ -29,15 +29,14 @@ export async function testContainerModule(params: TestModuleParams<ContainerModu
     privileged,
     addCapabilities,
     dropCapabilities,
-  } = test.config.spec
-  const testName = test.name
-  const timeout = test.config.timeout || DEFAULT_TEST_TIMEOUT
+  } = action.getSpec()
+  const timeout = action.getConfig("timeout")
   const k8sCtx = ctx as KubernetesPluginContext
 
-  const image = module.outputs["deployment-image-id"]
-  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const image = getDeployedImageId(action, k8sCtx.provider)
+  const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
-  const result = await runAndCopy({
+  const res = await runAndCopy({
     ...params,
     command,
     args,
@@ -46,25 +45,26 @@ export async function testContainerModule(params: TestModuleParams<ContainerModu
     resources: { cpu, memory },
     image,
     namespace: namespaceStatus.namespaceName,
-    podName: makePodName("test", module.name, testName),
-    description: `Test '${testName}' in container module '${module.name}'`,
+    podName: makePodName("test", action.name),
     timeout,
-    version: test.version,
+    version: action.versionString(),
     volumes,
     privileged,
     addCapabilities,
     dropCapabilities,
   })
 
-  return storeTestResult({
+  const result = {
+    namespaceStatus,
+    ...res,
+  }
+
+  await storeTestResult({
     ctx,
     log,
-    module,
-    test,
-    result: {
-      testName,
-      namespaceStatus,
-      ...result,
-    },
+    action,
+    result,
   })
+
+  return { state: runResultToActionState(result), detail: result, outputs: { log: res.log } }
 }

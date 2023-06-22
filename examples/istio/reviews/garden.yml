@@ -1,4 +1,0 @@
-kind: Module
-name: reviews
-description: Reviews service chart
-type: helm

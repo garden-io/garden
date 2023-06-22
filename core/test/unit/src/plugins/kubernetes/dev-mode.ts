@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,15 +7,15 @@
  */
 
 import { expect } from "chai"
-import { builtInExcludes, getLocalSyncPath, makeSyncConfig } from "../../../../../src/plugins/kubernetes/dev-mode"
+import { builtInExcludes, getLocalSyncPath, makeSyncConfig } from "../../../../../src/plugins/kubernetes/sync"
 
-describe("k8s dev mode helpers", () => {
+describe("k8s sync helpers", () => {
   describe("getLocalSyncPath", () => {
     context("relative source path", () => {
       it("should join the module root path with the source path", () => {
         const relativeSourcePath = "../relative/path"
-        const moduleRoot = "/this/is/module/path"
-        const localPath = getLocalSyncPath(relativeSourcePath, moduleRoot)
+        const basePath = "/this/is/module/path"
+        const localPath = getLocalSyncPath(relativeSourcePath, basePath)
         expect(localPath).to.equal("/this/is/module/relative/path")
       })
     })
@@ -23,8 +23,8 @@ describe("k8s dev mode helpers", () => {
     context("absolute source path", () => {
       it("should ignore the module root path and return the absolute source path", () => {
         const absoluteSourcePath = "/absolute/path"
-        const moduleRoot = "/this/is/module/path"
-        const localPath = getLocalSyncPath(absoluteSourcePath, moduleRoot)
+        const basePath = "/this/is/module/path"
+        const localPath = getLocalSyncPath(absoluteSourcePath, basePath)
         expect(localPath).to.equal(absoluteSourcePath)
       })
     })
@@ -33,26 +33,21 @@ describe("k8s dev mode helpers", () => {
   describe("makeSyncConfig", () => {
     const localPath = "/path/to/module/src"
     const remoteDestination = "exec:'various fun connection parameters'"
-    const source = "src"
-    const target = "/app/src"
 
     it("should generate a simple sync config", () => {
       const config = makeSyncConfig({
         localPath,
         remoteDestination,
-        defaults: {},
-        spec: {
-          source,
-          target,
-          mode: "one-way",
-        },
+        actionDefaults: {},
+        opts: {},
+        providerDefaults: {},
       })
 
       expect(config).to.eql({
         alpha: localPath,
         beta: remoteDestination,
         ignore: [...builtInExcludes],
-        mode: "one-way",
+        mode: "one-way-safe",
         defaultOwner: undefined,
         defaultGroup: undefined,
         defaultDirectoryMode: undefined,
@@ -64,18 +59,17 @@ describe("k8s dev mode helpers", () => {
       const config = makeSyncConfig({
         localPath,
         remoteDestination,
-        defaults: {
+        actionDefaults: {
           exclude: ["**/*.log"],
           owner: "node",
           group: "admin",
           fileMode: 600,
           directoryMode: 700,
         },
-        spec: {
-          source,
-          target,
+        opts: {
           mode: "one-way",
         },
+        providerDefaults: {},
       })
 
       expect(config).to.eql({
@@ -94,16 +88,14 @@ describe("k8s dev mode helpers", () => {
       const config = makeSyncConfig({
         localPath,
         remoteDestination,
-        defaults: {
+        actionDefaults: {
           exclude: ["**/*.log"],
           owner: "node",
           group: "admin",
           fileMode: 600,
           directoryMode: 700,
         },
-        spec: {
-          source,
-          target,
+        opts: {
           mode: "one-way",
           exclude: ["node_modules"],
           defaultOwner: "owner_from_spec",
@@ -111,6 +103,7 @@ describe("k8s dev mode helpers", () => {
           defaultFileMode: 700,
           defaultDirectoryMode: 777,
         },
+        providerDefaults: {},
       })
 
       expect(config).to.eql({
@@ -129,12 +122,11 @@ describe("k8s dev mode helpers", () => {
       const config = makeSyncConfig({
         localPath,
         remoteDestination,
-        defaults: {},
-        spec: {
-          source,
-          target,
+        actionDefaults: {},
+        opts: {
           mode: "one-way-replica-reverse",
         },
+        providerDefaults: {},
       })
 
       expect(config).to.eql({

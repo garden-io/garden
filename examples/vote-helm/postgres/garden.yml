@@ -1,43 +1,53 @@
-kind: Module
-description: Postgres database for storing voting results
+kind: Deploy
+description: Postgres container for storing voting results
 type: helm
-name: postgres
-chart: postgresql
-repo: https://charts.bitnami.com/bitnami
-version: "11.6.12"
-serviceResource:
-  kind: StatefulSet
-  name: postgres
-tasks:
-  - name: db-init
-    command: [/bin/sh, -c]
-    # The postgres health check appears to go through before the server accepts remote connections, so we need to
-    # sleep for a while.
-    # https://github.com/CrunchyData/crunchy-containers/issues/653
-    args: [
-      "sleep 15 && psql -w -U postgres --host=postgres --port=5432 -d postgres -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'"
+name: db
+spec:
+  chart:
+    name: postgresql
+    repo: https://charts.bitnami.com/bitnami
+    version: "12.4.2"
+  values:
+    # This is a more digestable name than the default one in the template
+    fullnameOverride: postgres
+    auth:
+      # This should of course not be used in production
+      postgresPassword: postgres
+    # Avoid some late startup flakiness
+    primary:
+      readinessProbe:
+        successThreshold: 3 # Raised from a default of 1
+
+---
+kind: Run
+name: db-init
+type: kubernetes-exec
+dependencies: [deploy.db]
+spec:
+  resource:
+    kind: "StatefulSet"
+    name: "postgres"
+  command: [
+      "/bin/sh",
+      "-c",
+      # The postgres health check appears to go through before the server accepts remote connections, so we need to
+      # sleep for a while.
+      # https://github.com/CrunchyData/crunchy-containers/issues/653
+      "sleep 15 && PGPASSWORD=postgres psql -w -U postgres --host=postgres --port=5432 -d postgres -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'",
     ]
-    env:
-      PGPASSWORD: postgres
-    dependencies:
-      - postgres
-  - name: db-clear
-    args: [
-      psql,
-      -w,
-      -U, postgres,
-      --host, postgres,
-      --port=5432,
-      -d, postgres,
-      -c, "TRUNCATE votes"
+
+---
+kind: Run
+name: db-clear
+type: kubernetes-exec
+dependencies: [deploy.db]
+spec:
+  resource:
+    kind: "StatefulSet"
+    name: "postgres"
+  command:
+    [
+      "/bin/sh",
+      "-c",
+      "PGPASSWORD=postgres psql -w -U postgres --host postgres --port=5432 -d postgres -c 'TRUNCATE votes'",
     ]
-    env:
-      PGPASSWORD: postgres
-    dependencies:
-      - postgres
-values:
-  # This is a more digestable name than the default one in the template
-  fullnameOverride: postgres
-  auth:
-    # This should of course not be used in production
-    postgresPassword: postgres

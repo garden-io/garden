@@ -1,101 +1,95 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { BuildTask } from "./build"
-import { GardenModule } from "../types/module"
-import { PublishModuleResult } from "../types/plugin/module/publishModule"
-import { BaseTask, TaskType } from "../tasks/base"
-import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
-import { ConfigGraph } from "../config-graph"
-import { emptyRuntimeContext } from "../runtime-context"
+import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
 import { resolveTemplateString } from "../template-string/template-string"
 import { joi } from "../config/common"
 import { versionStringPrefix } from "../vcs/vcs"
 import { ConfigContext, schema } from "../config/template-contexts/base"
-import { ModuleConfigContext, ModuleConfigContextParams } from "../config/template-contexts/module"
+import { PublishActionResult } from "../plugin/handlers/Build/publish"
+import { BuildAction } from "../actions/build"
+import { ActionSpecContext, ActionSpecContextParams } from "../config/template-contexts/actions"
 
-export interface PublishTaskParams {
-  garden: Garden
-  graph: ConfigGraph
-  log: LogEntry
-  module: GardenModule
-  forceBuild: boolean
+export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
   tagTemplate?: string
 }
 
-export class PublishTask extends BaseTask {
-  type: TaskType = "publish"
+export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult> {
+  type = "publish"
   concurrencyLimit = 5
 
-  graph: ConfigGraph
-  module: GardenModule
-  forceBuild: boolean
   tagTemplate?: string
 
-  constructor({ garden, graph, log, module, forceBuild, tagTemplate }: PublishTaskParams) {
-    super({ garden, log, version: module.version.versionString })
-    this.graph = graph
-    this.module = module
-    this.forceBuild = forceBuild
-    this.tagTemplate = tagTemplate
+  constructor(params: PublishTaskParams) {
+    super(params)
+    this.tagTemplate = params.tagTemplate
   }
 
-  async resolveDependencies() {
-    if (!this.module.allowPublish) {
-      return []
+  protected getDependencyParams(): PublishTaskParams {
+    return { ...super.getDependencyParams(), tagTemplate: this.tagTemplate }
+  }
+
+  resolveStatusDependencies() {
+    return []
+  }
+
+  resolveProcessDependencies() {
+    if (this.action.getConfig("allowPublish") === false) {
+      return [this.getResolveTask(this.action)]
     }
-    return BuildTask.factory({
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      module: this.module,
-      force: this.forceBuild,
-    })
-  }
-
-  getName() {
-    return this.module.name
+    return [
+      new BuildTask({
+        ...this.getDependencyParams(),
+        action: this.action,
+        force: !!this.forceActions.find((ref) => this.action.matchesRef(ref)),
+      }),
+    ]
   }
 
   getDescription() {
-    return `publishing module ${this.module.name}`
+    return `publish ${this.action.longDescription()}`
   }
 
-  async process(): Promise<PublishModuleResult> {
-    const module = this.module
+  async getStatus() {
+    // TODO-0.13.1
+    return null
+  }
 
-    if (!module.allowPublish) {
-      this.log.info({
-        section: module.name,
-        msg: "Publishing disabled (allowPublish=false set on module)",
-        status: "active",
-      })
-      return { published: false }
+  async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, PublishActionResult>) {
+    if (this.action.getConfig("allowPublish") === false) {
+      this.log.info("Publishing disabled (allowPublish=false set on build)")
+      return {
+        state: "ready" as const,
+        detail: { published: false },
+        outputs: {},
+        version: this.getResolvedAction(this.action, dependencyResults).versionString(),
+      }
     }
 
-    let tag: string | undefined = undefined
+    const action = this.getExecutedAction(this.action, dependencyResults)
+    const version = action.versionString()
+
+    let tag = version
 
     if (this.tagTemplate) {
       const resolvedProviders = await this.garden.resolveProviders(this.log)
-      const dependencies = Object.values(module.buildDependencies)
 
-      const templateContext = new ModuleTagContext({
+      const templateContext = new BuildTagContext({
         garden: this.garden,
-        moduleConfig: module,
-        variables: { ...this.garden.variables, ...module.variables },
+        action,
         resolvedProviders,
-        module,
-        buildPath: module.buildPath,
-        modules: dependencies,
-        runtimeContext: emptyRuntimeContext,
-        partialRuntimeResolution: true,
+        modules: this.graph.getModules(),
+        partialRuntimeResolution: false,
+        resolvedDependencies: action.getResolvedDependencies(),
+        executedDependencies: action.getExecutedDependencies(),
+        inputs: action.getInternal().inputs || {},
+        variables: action.getVariables(),
       })
 
       // Resolve template string and make sure the result is a string
@@ -104,59 +98,56 @@ export class PublishTask extends BaseTask {
       // TODO: validate the tag?
     }
 
-    const log = this.log.info({
-      section: module.name,
-      msg: "Publishing with tag " + tag,
-      status: "active",
-    })
+    this.log.info("Publishing with tag " + tag)
 
-    const actions = await this.garden.getActionRouter()
+    const router = await this.garden.getActionRouter()
 
-    let result: PublishModuleResult
+    let result: PublishActionResult
     try {
-      result = await actions.publishModule({ module, log, graph: this.graph, tag })
+      const output = await router.build.publish({ action, log: this.log, graph: this.graph, tag })
+      result = output.result
     } catch (err) {
-      log.setError()
+      this.log.error(`Failed publishing build ${action.name}`)
       throw err
     }
 
-    if (result.published) {
-      log.setSuccess({
-        msg: chalk.green(result.message || `Ready`),
-        append: true,
-      })
-    } else {
-      log.setWarn({ msg: result.message, append: true })
+    if (result.detail?.published) {
+      this.log.success(result.detail.message || `Ready`)
+    } else if (result.detail?.message) {
+      this.log.warn(result.detail.message)
     }
 
-    return result
+    return { ...result, version }
   }
 }
 
-class ModuleSelfContext extends ConfigContext {
-  @schema(joi.string().description("The name of the module being tagged."))
+class BuildSelfContext extends ConfigContext {
+  @schema(joi.string().description("The name of the build being tagged."))
   public name: string
 
-  @schema(joi.string().description("The version of the module being tagged (including the 'v-' prefix)."))
+  @schema(joi.string().description("The version of the build being tagged (including the 'v-' prefix)."))
   public version: string
 
-  @schema(joi.string().description("The version hash of the module being tagged (minus the 'v-' prefix)."))
+  @schema(joi.string().description("The version hash of the build being tagged (minus the 'v-' prefix)."))
   public hash: string
 
-  constructor(parent: ConfigContext, module: GardenModule) {
+  constructor(parent: ConfigContext, build: BuildAction) {
     super(parent)
-    this.name = module.name
-    this.version = module.version.versionString
-    this.hash = module.version.versionString.slice(versionStringPrefix.length)
+    this.name = build.name
+    this.version = build.versionString()
+    this.hash = this.version.slice(versionStringPrefix.length)
   }
 }
 
-class ModuleTagContext extends ModuleConfigContext {
-  @schema(ModuleSelfContext.getSchema().description("Extended information about the module being tagged."))
-  public module: ModuleSelfContext
+class BuildTagContext extends ActionSpecContext {
+  @schema(BuildSelfContext.getSchema().description("Extended information about the build being tagged."))
+  public build: BuildSelfContext
 
-  constructor(params: ModuleConfigContextParams & { module: GardenModule }) {
+  @schema(BuildSelfContext.getSchema().description("Alias kept for compatibility."))
+  public module: BuildSelfContext
+
+  constructor(params: ActionSpecContextParams & { action: BuildAction }) {
     super(params)
-    this.module = new ModuleSelfContext(this, params.module)
+    this.build = this.module = new BuildSelfContext(this, params.action)
   }
 }

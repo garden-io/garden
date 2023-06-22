@@ -1,83 +1,79 @@
-kind: Module
+kind: Deploy
 name: backend
 description: Backend service container
 type: kubernetes
 
-localMode:
-  ports:
-    - local: 8090
-      remote: 8080
-  # starts the local application
-  command: [ "../backend-local/main" ]
-  containerName: backend
+build: backend-image
+dependencies: "${var.localMode ? ['run.build-backend-local'] : []}"
 
-serviceResource:
-  kind: Deployment
-  name: backend-deployment
-
-build:
-  dependencies: [ "backend-image" ]
-
-manifests:
-  - apiVersion: v1
-    kind: Service
-    metadata:
-      name: backend
-      namespace: local-mode-k8s-default
-      labels:
-        app: backend
-    spec:
-      ports:
-        - name: http
-          protocol: TCP
-          port: 80
-          targetPort: 8080
-      selector:
-        app: backend
-  - kind: Deployment
-    apiVersion: apps/v1
-    metadata:
+spec:
+  localMode:
+    ports:
+      - local: 8090
+        remote: 8080
+    # starts the local application
+    command: [ "../backend-local/main" ]
+    target:
+      kind: Deployment
       name: backend-deployment
-      namespace: local-mode-k8s-default
-      labels:
-        app: backend
-    spec:
-      selector:
-        matchLabels:
-          app: backend
-      template:
-        metadata:
-          labels:
-            app: backend
-        spec:
-          containers:
-            - name: backend
-              image: ${modules.backend-image.outputs.deployment-image-id}
-              ports:
-                - name: http
-                  protocol: TCP
-                  containerPort: 8080
-  - apiVersion: networking.k8s.io/v1
-    kind: Ingress
-    metadata:
-      name: backend-0
-      namespace: local-mode-k8s-default
-      labels:
-        app: backend
-    spec:
-      ingressClassName: nginx
-      rules:
-        - host: local-mode.local.app.garden
-          http:
-            paths:
-              - path: /hello-backend
-                pathType: Prefix
-                backend:
-                  service:
-                    name: backend
-                    port:
-                      number: 80
+      containerName: backend
 
-tasks:
-  - name: test
-    command: [ "sh", "-c", "echo task output" ]
+  manifests:
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: backend
+        namespace: local-mode-k8s-default
+        labels:
+          app: backend
+      spec:
+        ports:
+          - name: http
+            protocol: TCP
+            port: 80
+            targetPort: 8080
+        selector:
+          app: backend
+    - kind: Deployment
+      apiVersion: apps/v1
+      metadata:
+        name: backend-deployment
+        namespace: local-mode-k8s-default
+        labels:
+          app: backend
+      spec:
+        selector:
+          matchLabels:
+            app: backend
+        template:
+          metadata:
+            labels:
+              app: backend
+          spec:
+            containers:
+              - name: backend
+                image: ${actions.build.backend-image.outputs.deployment-image-id}
+                ports:
+                  - name: http
+                    protocol: TCP
+                    containerPort: 8080
+    - apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: backend-0
+        namespace: local-mode-k8s-default
+        labels:
+          app: backend
+      spec:
+        ingressClassName: nginx
+        rules:
+          - host: local-mode.local.demo.garden
+            http:
+              paths:
+                - path: /hello-backend
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: backend
+                      port:
+                        number: 80

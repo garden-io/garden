@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,38 +8,46 @@
 
 import { intersection, cloneDeep } from "lodash"
 
-import { PluginContext } from "../../plugin-context"
 import { KubeApi, KubernetesError } from "./api"
-import { KubernetesProvider, KubernetesPluginContext, NamespaceConfig } from "./config"
+import type { KubernetesProvider, KubernetesPluginContext, NamespaceConfig } from "./config"
 import { DeploymentError, TimeoutError } from "../../exceptions"
 import { getPackageVersion, sleep } from "../../util/util"
-import { GetEnvironmentStatusParams } from "../../types/plugin/provider/getEnvironmentStatus"
+import type { GetEnvironmentStatusParams } from "../../plugin/handlers/Provider/getEnvironmentStatus"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
-import { LogEntry } from "../../logger/log-entry"
+import type { Log } from "../../logger/log-entry"
 import { gardenAnnotationKey } from "../../util/string"
 import dedent from "dedent"
-import { HelmModule } from "./helm/config"
-import { KubernetesModule } from "./kubernetes-module/config"
-import { V1Namespace } from "@kubernetes/client-node"
+import type { V1Namespace } from "@kubernetes/client-node"
 import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
-import { NamespaceStatus } from "../../types/plugin/base"
-import { KubernetesServerResource } from "./types"
+import type { NamespaceStatus } from "../../types/namespace"
+import type { KubernetesServerResource, SupportedRuntimeAction } from "./types"
+import type { Resolved } from "../../actions/types"
+import { BoundedCache } from "../../cache"
+import AsyncLock from "async-lock"
 
 const GARDEN_VERSION = getPackageVersion()
 
-const cache: {
-  [name: string]: {
+interface NamespaceCacheForProvider {
+  [namespaceName: string]: {
     status: "pending" | "created"
     resource?: KubernetesServerResource<V1Namespace>
   }
-} = {}
+}
+
+// TODO: Provide a cache via the `PluginContext` instead. Let's think about that once we have 1-2 more
+// motivating use-cases before we settle on the shape.
+const nsCache = new BoundedCache<NamespaceCacheForProvider>(50)
 
 interface EnsureNamespaceResult {
   remoteResource?: KubernetesServerResource<V1Namespace>
   patched: boolean
   created: boolean
 }
+
+// To prevent race conditions when two `ensureNamespace` calls attempt to create the namespace simultaneously
+// (which can happen e.g. during deploys after a `delete namespace` command in an interactive session).
+const nsCreationLock = new AsyncLock()
 
 /**
  * Makes sure the given namespace exists and has the configured annotations and labels.
@@ -48,67 +56,80 @@ interface EnsureNamespaceResult {
  */
 export async function ensureNamespace(
   api: KubeApi,
+  ctx: KubernetesPluginContext,
   namespace: NamespaceConfig,
-  log: LogEntry
+  log: Log
 ): Promise<EnsureNamespaceResult> {
-  const result: EnsureNamespaceResult = { patched: false, created: false }
+  let result: EnsureNamespaceResult = { patched: false, created: false }
+  await nsCreationLock.acquire(namespace.name, async () => {
+    const providerUid = ctx.provider.uid
+    const cache = nsCache.get(providerUid) || {}
 
-  if (!cache[namespace.name] || namespaceNeedsUpdate(cache[namespace.name].resource!, namespace)) {
-    cache[namespace.name] = { status: "pending" }
+    if (!cache[namespace.name] || namespaceNeedsUpdate(cache[namespace.name].resource!, namespace)) {
+      cache[namespace.name] = { status: "pending" }
 
-    // Get the latest remote namespace list
-    const namespacesStatus = await api.core.listNamespace()
+      // Get the latest remote namespace list
+      const namespacesStatus = await api.core.listNamespace()
 
-    for (const n of namespacesStatus.items) {
-      if (n.status.phase === "Active") {
-        cache[n.metadata.name] = { status: "created", resource: n }
+      for (const n of namespacesStatus.items) {
+        if (n.status.phase === "Active") {
+          cache[n.metadata.name] = { status: "created", resource: n }
+        }
+        if (n.metadata.name === namespace.name) {
+          result.remoteResource = n
+          if (n.status.phase === "Terminating") {
+            throw new KubernetesError(
+              dedent`Namespace "${n.metadata.name}" is in "Terminating" state so Garden is unable to create it.
+            Please try again once the namespace has terminated.`,
+              {}
+            )
+          }
+        }
       }
-      if (n.metadata.name === namespace.name) {
-        result.remoteResource = n
-      }
-    }
 
-    if (cache[namespace.name].status !== "created") {
-      log.verbose("Creating namespace " + namespace.name)
-      try {
-        result.remoteResource = await api.core.createNamespace({
-          apiVersion: "v1",
-          kind: "Namespace",
-          metadata: {
-            name: namespace.name,
-            annotations: {
-              [gardenAnnotationKey("generated")]: "true",
-              [gardenAnnotationKey("version")]: GARDEN_VERSION,
-              ...(namespace.annotations || {}),
+      if (cache[namespace.name].status !== "created") {
+        log.verbose("Creating namespace " + namespace.name)
+        try {
+          result.remoteResource = await api.core.createNamespace({
+            apiVersion: "v1",
+            kind: "Namespace",
+            metadata: {
+              name: namespace.name,
+              annotations: {
+                [gardenAnnotationKey("generated")]: "true",
+                [gardenAnnotationKey("version")]: GARDEN_VERSION,
+                ...(namespace.annotations || {}),
+              },
+              labels: namespace.labels,
             },
-            labels: namespace.labels,
-          },
-        })
-        result.created = true
-      } catch (error) {
-        throw new KubernetesError(
-          `Namespace ${namespace.name} doesn't exist and Garden was unable to create it. You may need to create it manually or ask an administrator to do so.`,
-          { error }
-        )
+          })
+          result.created = true
+        } catch (error) {
+          throw new KubernetesError(
+            `Namespace ${namespace.name} doesn't exist and Garden was unable to create it. You may need to create it manually or ask an administrator to do so.`,
+            { error }
+          )
+        }
+      } else if (namespaceNeedsUpdate(result.remoteResource, namespace)) {
+        // Make sure annotations and labels are set correctly if the namespace already exists
+        log.verbose("Updating annotations and labels on namespace " + namespace.name)
+        try {
+          result.remoteResource = await api.core.patchNamespace(namespace.name, {
+            metadata: {
+              annotations: namespace.annotations,
+              labels: namespace.labels,
+            },
+          })
+          result.patched = true
+        } catch {
+          log.warn(chalk.yellow(`Unable to apply the configured annotations and labels on namespace ${namespace.name}`))
+        }
       }
-    } else if (namespaceNeedsUpdate(result.remoteResource, namespace)) {
-      // Make sure annotations and labels are set correctly if the namespace already exists
-      log.verbose("Updating annotations and labels on namespace " + namespace.name)
-      try {
-        result.remoteResource = await api.core.patchNamespace(namespace.name, {
-          metadata: {
-            annotations: namespace.annotations,
-            labels: namespace.labels,
-          },
-        })
-        result.patched = true
-      } catch {
-        log.warn(chalk.yellow(`Unable to apply the configured annotations and labels on namespace ${namespace.name}`))
-      }
-    }
 
-    cache[namespace.name] = { status: "created", resource: result.remoteResource }
-  }
+      cache[namespace.name] = { status: "created", resource: result.remoteResource }
+      nsCache.set(providerUid, cache)
+    }
+  })
 
   return result
 }
@@ -124,8 +145,9 @@ function namespaceNeedsUpdate(resource: KubernetesServerResource<V1Namespace> | 
 /**
  * Returns `true` if the namespace exists, `false` otherwise.
  */
-export async function namespaceExists(api: KubeApi, name: string): Promise<boolean> {
-  if (cache[name]) {
+export async function namespaceExists(api: KubeApi, ctx: KubernetesPluginContext, name: string): Promise<boolean> {
+  const cache = nsCache.get(ctx.provider.uid)
+  if (cache && cache[name]) {
     return true
   }
 
@@ -142,9 +164,9 @@ export async function namespaceExists(api: KubeApi, name: string): Promise<boole
 }
 
 interface GetNamespaceParams {
-  log: LogEntry
+  log: Log
   override?: NamespaceConfig
-  ctx: PluginContext
+  ctx: KubernetesPluginContext
   provider: KubernetesProvider
   skipCreate?: boolean
 }
@@ -154,6 +176,10 @@ interface GetNamespaceParams {
  * ensures it exists in the target cluster (unless skipCreate=true).
  *
  * Returns a namespace status (which includes the namespace's name).
+ *
+ * Also emits a `namespaceStatus` event on the provided plugin context's event bus. This means that the caller doesn't
+ * need to worry about remembering to emit namespace events (they are then caught by the base router and re-emitted on
+ * the Garden instance's event bus).
  */
 export async function getNamespaceStatus({
   log,
@@ -165,26 +191,29 @@ export async function getNamespaceStatus({
   const namespace = cloneDeep(override || provider.config.namespace)!
 
   const api = await KubeApi.factory(log, ctx, provider)
+  let status: NamespaceStatus
   if (!skipCreate) {
-    await ensureNamespace(api, namespace, log)
-    return {
+    await ensureNamespace(api, ctx, namespace, log)
+    status = {
       pluginName: provider.name,
       namespaceName: namespace.name,
       state: "ready",
     }
   } else {
-    return {
+    status = {
       pluginName: provider.name,
       namespaceName: namespace.name,
-      state: (await namespaceExists(api, namespace.name)) ? "ready" : "missing",
+      state: (await namespaceExists(api, ctx, namespace.name)) ? "ready" : "missing",
     }
   }
+  ctx.events.emit("namespaceStatus", status)
+  return status
 }
 
 export async function getSystemNamespace(
-  ctx: PluginContext,
+  ctx: KubernetesPluginContext,
   provider: KubernetesProvider,
-  log: LogEntry,
+  log: Log,
   api?: KubeApi
 ): Promise<string> {
   const namespace = { name: provider.config.gardenSystemNamespace }
@@ -192,14 +221,14 @@ export async function getSystemNamespace(
   if (!api) {
     api = await KubeApi.factory(log, ctx, provider)
   }
-  await ensureNamespace(api, namespace, log)
+  await ensureNamespace(api, ctx, namespace, log)
 
   return namespace.name
 }
 
 export async function getAppNamespace(
-  ctx: PluginContext,
-  log: LogEntry,
+  ctx: KubernetesPluginContext,
+  log: Log,
   provider: KubernetesProvider
 ): Promise<string> {
   const status = await getNamespaceStatus({
@@ -210,21 +239,13 @@ export async function getAppNamespace(
   return status.namespaceName
 }
 
-export async function getAppNamespaceStatus(
-  ctx: PluginContext,
-  log: LogEntry,
-  provider: KubernetesProvider
-): Promise<NamespaceStatus> {
-  return getNamespaceStatus({
-    log,
-    ctx,
-    provider,
-  })
-}
-
 export async function getAllNamespaces(api: KubeApi): Promise<string[]> {
   const allNamespaces = await api.core.listNamespace()
   return allNamespaces.items.map((n) => n.metadata.name)
+}
+
+export function clearNamespaceCache(provider: KubernetesProvider) {
+  nsCache.delete(provider.uid)
 }
 
 /**
@@ -237,7 +258,7 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     const api = await KubeApi.factory(log, ctx, ctx.provider as KubernetesProvider)
     await api.request({ path: "/version", log })
   } catch (err) {
-    log.setError("Error")
+    log.error("Error")
 
     throw new DeploymentError(
       dedent`
@@ -249,16 +270,14 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     )
   }
 
-  const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const ns = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
-  // Including the metadata-namespace key for backwards-compatibility in provider outputs
   return {
     "app-namespace": ns,
-    "metadata-namespace": ns,
   }
 }
 
-export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?: LogEntry) {
+export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?: Log) {
   for (const ns of namespaces) {
     try {
       // Note: Need to call the delete method with an empty object
@@ -280,7 +299,7 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
     const nsNames = await getAllNamespaces(api)
     if (intersection(nsNames, namespaces).length === 0) {
       if (log) {
-        log.setSuccess()
+        log.success("Done")
       }
       break
     }
@@ -294,46 +313,52 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
   }
 }
 
-export async function getModuleNamespace({
+export async function getActionNamespace({
   ctx,
   log,
-  module,
+  action,
   provider,
   skipCreate,
 }: {
   ctx: KubernetesPluginContext
-  log: LogEntry
-  module: HelmModule | KubernetesModule
+  log: Log
+  action: Resolved<SupportedRuntimeAction>
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<string> {
-  const status = await getModuleNamespaceStatus({
+  const status = await getActionNamespaceStatus({
     ctx,
     log,
-    module,
+    action,
     provider,
     skipCreate,
   })
   return status.namespaceName
 }
 
-export async function getModuleNamespaceStatus({
+export async function getActionNamespaceStatus({
   ctx,
   log,
-  module,
+  action,
   provider,
   skipCreate,
 }: {
   ctx: KubernetesPluginContext
-  log: LogEntry
-  module: HelmModule | KubernetesModule
+  log: Log
+  action: Resolved<SupportedRuntimeAction>
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<NamespaceStatus> {
+  let namespace: string | undefined
+
+  if (action.type !== "container") {
+    namespace = action.getSpec().namespace
+  }
+
   return getNamespaceStatus({
     log,
     ctx,
-    override: module.spec?.namespace ? { name: module.spec.namespace } : undefined,
+    override: namespace ? { name: namespace } : undefined,
     provider,
     skipCreate,
   })

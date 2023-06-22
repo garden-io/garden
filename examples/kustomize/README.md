@@ -1,8 +1,8 @@
-# `kubernetes` module type with kustomize
+# `kubernetes` deploy action type with kustomize
 
-This demonstrates how to use [kustomize](https://github.com/kubernetes-sigs/kustomize) with the `kubernetes` module type.
+This demonstrates how to use [kustomize](https://github.com/kubernetes-sigs/kustomize) with the `kubernetes` deploy action.
 
-The example includes two modules:
+The example includes two deployments:
 
 * `hello-world` copies kustomize's [helloWorld example](https://github.com/kubernetes-sigs/kustomize/blob/8f56f513075996723891e4781ff2e409a1ac169d/examples/helloWorld/README.md)
 * `ldap` copies kustomize's [ldap example](https://github.com/kubernetes-sigs/kustomize/blob/ee2228c5fcf79cc3a67984a9f583154e5ff12db1/examples/ldap/README.md), which showcases how to use _overlays_. The only modification is to change the names of the overlays to match the project environment names.
@@ -13,4 +13,4 @@ To run the example, simply run `garden deploy` with a local Kubernetes cluster r
 
 ## Further reading
 
-Check out the module type [reference](https://docs.garden.io/reference/module-types/kubernetes) for more details.
+Check out the [kubernetes deploy action reference](../../docs/reference/action-types/Deploy/kubernetes.md) for more details.

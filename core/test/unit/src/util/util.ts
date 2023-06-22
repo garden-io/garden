@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,21 +12,18 @@ import { includes } from "lodash"
 import {
   pickKeys,
   getEnvVarName,
-  deepOmitUndefined,
-  deepFilter,
-  splitLast,
   exec,
   createOutputStream,
   makeErrorMsg,
-  renderOutputStream,
   spawn,
   relationshipClasses,
-  safeDumpYaml,
+  isValidDateInstance,
 } from "../../../../src/util/util"
 import { expectError } from "../../../helpers"
-import { splitFirst } from "../../../../src/util/util"
-import { getLogger } from "../../../../src/logger/logger"
+import { splitLast, splitFirst } from "../../../../src/util/string"
+import { getRootLogger } from "../../../../src/logger/logger"
 import { dedent } from "../../../../src/util/string"
+import { safeDumpYaml } from "../../../../src/util/serialization"
 
 function isLinuxOrDarwin() {
   return process.platform === "darwin" || process.platform === "linux"
@@ -107,7 +104,7 @@ describe("util", () => {
     before(function () {
       // These tests depend the underlying OS and are only executed on macOS and linux
       if (!isLinuxOrDarwin()) {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         this.skip()
       }
     })
@@ -123,28 +120,30 @@ describe("util", () => {
     })
 
     it("should optionally pipe stdout to an output stream", async () => {
-      const logger = getLogger()
-      const entry = logger.placeholder()
+      const logger = getRootLogger()
+      logger.entries = []
+      const log = logger.createLog()
 
-      await exec("echo", ["hello"], { stdout: createOutputStream(entry) })
+      await exec("echo", ["hello"], { stdout: createOutputStream(log) })
 
-      expect(entry.getLatestMessage().msg).to.equal(renderOutputStream("hello"))
+      expect(logger.getLatestEntry().msg).to.equal("hello")
     })
 
     it("should optionally pipe stderr to an output stream", async () => {
-      const logger = getLogger()
-      const entry = logger.placeholder()
+      const logger = getRootLogger()
+      logger.entries = []
+      const log = logger.createLog()
 
-      await exec("sh", ["-c", "echo hello 1>&2"], { stderr: createOutputStream(entry) })
+      await exec("sh", ["-c", "echo hello 1>&2"], { stderr: createOutputStream(log) })
 
-      expect(entry.getLatestMessage().msg).to.equal(renderOutputStream("hello"))
+      expect(logger.getLatestEntry().msg).to.equal("hello")
     })
 
     it("should buffer outputs when piping to stream", async () => {
-      const logger = getLogger()
-      const entry = logger.placeholder()
+      const logger = getRootLogger()
+      const log = logger.createLog()
 
-      const res = await exec("echo", ["hello"], { stdout: createOutputStream(entry) })
+      const res = await exec("echo", ["hello"], { stdout: createOutputStream(log) })
 
       expect(res.stdout).to.equal("hello")
     })
@@ -171,7 +170,7 @@ describe("util", () => {
     before(function () {
       // These tests depend on the underlying OS and are only executed on macOS and linux
       if (!isLinuxOrDarwin()) {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         this.skip()
       }
     })
@@ -232,90 +231,9 @@ describe("util", () => {
 
     it("should use given description in error message", async () => {
       const obj = { a: 1, b: 2, c: 3 }
-      await expectError(
-        () => pickKeys(obj, <any>["a", "foo", "bar"], "banana"),
-        (err) => {
-          expect(err.message).to.equal("Could not find banana(s): foo, bar")
-        }
-      )
-    })
-  })
-
-  describe("deepFilter", () => {
-    const fn = (v) => v !== 99
-
-    it("should filter keys in a simple object", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: 99,
-      }
-      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2 })
-    })
-
-    it("should filter keys in a nested object", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: { d: 3, e: 99 },
-      }
-      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: { d: 3 } })
-    })
-
-    it("should filter values in lists", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: [3, 99],
-      }
-      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: [3] })
-    })
-
-    it("should filter keys in objects in lists", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: [{ d: 3, e: 99 }],
-      }
-      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: [{ d: 3 }] })
-    })
-  })
-
-  describe("deepOmitUndefined", () => {
-    it("should omit keys with undefined values in a simple object", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: undefined,
-      }
-      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2 })
-    })
-
-    it("should omit keys with undefined values in a nested object", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: { d: 3, e: undefined },
-      }
-      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: { d: 3 } })
-    })
-
-    it("should omit undefined values in lists", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: [3, undefined],
-      }
-      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: [3] })
-    })
-
-    it("should omit undefined values in objects in lists", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: [{ d: 3, e: undefined }],
-      }
-      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: [{ d: 3 }] })
+      await expectError(() => pickKeys(obj, <any>["a", "foo", "bar"], "banana"), {
+        contains: "Could not find banana(s): foo, bar",
+      })
     })
   })
 
@@ -385,6 +303,28 @@ describe("util", () => {
             c: c
         d: d\n
       `)
+    })
+  })
+  describe("isValidDateInstance", () => {
+    it("should validate a date instance and return the instance or undefined", () => {
+      const validA = new Date()
+      const validB = new Date("2023-02-01T19:46:42.266Z")
+      const validC = new Date(1675280826163)
+
+      // Tricking the compiler. We need to test for this because
+      // date strings can be created from runtime values that we don't validate.
+      const undef = undefined as any
+      const invalidA = new Date(undef)
+      const invalidB = new Date("foo")
+      const invalidC = new Date("")
+
+      expect(isValidDateInstance(validA)).to.be.true
+      expect(isValidDateInstance(validB)).to.be.true
+      expect(isValidDateInstance(validC)).to.be.true
+
+      expect(isValidDateInstance(invalidA)).to.be.false
+      expect(isValidDateInstance(invalidB)).to.be.false
+      expect(isValidDateInstance(invalidC)).to.be.false
     })
   })
 })

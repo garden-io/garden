@@ -22,7 +22,7 @@ manifests:
           containers:
             - name: busybox
               image: busybox:1.31.1
-              args: [sleep, "100"]
+              args: [sh, -c, "while :; do sleep 2073600; done"]
               env:
                 - name: FOO
                   value: banana
@@ -41,3 +41,29 @@ tests:
 tasks:
   - name: echo-task
     command: [sh, -c, "echo ok"]
+
+---
+
+kind: Run
+name: echo-run-exec
+type: kubernetes-exec
+dependencies:
+  - deploy.module-simple
+spec:
+  resource:
+    kind: Deployment
+    name: busybox-deployment
+  command: [echo, ok]
+
+---
+
+kind: Test
+name: echo-test-exec
+type: kubernetes-exec
+dependencies:
+  - deploy.module-simple
+spec:
+  resource:
+    kind: Deployment
+    name: busybox-deployment
+  command: [echo, ok]

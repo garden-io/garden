@@ -1,19 +1,25 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { exec, getPlatform, getArchitecture } from "../../../../../src/util/util"
-import { makeTempDir, TempDirectory, TestGarden, withDefaultGlobalOpts } from "../../../../helpers"
+import { getPlatform, getArchitecture } from "../../../../../src/util/util"
+import {
+  createProjectConfig,
+  makeTempDir,
+  makeTempGarden,
+  TempDirectory,
+  TestGarden,
+  withDefaultGlobalOpts,
+} from "../../../../helpers"
 import { FetchToolsCommand } from "../../../../../src/commands/util/fetch-tools"
 import { expect } from "chai"
-import { DEFAULT_API_VERSION, GARDEN_GLOBAL_PATH } from "../../../../../src/constants"
-import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
+import { GARDEN_GLOBAL_PATH } from "../../../../../src/constants"
+import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { join } from "path"
-import { defaultNamespace } from "../../../../../src/config/project"
 
 describe("FetchToolsCommand", () => {
   let tmpDir: TempDirectory
@@ -24,6 +30,7 @@ describe("FetchToolsCommand", () => {
     tools: [
       {
         name: "tool-a",
+        version: "0.11.14",
         description: "foo",
         type: "binary",
         _includeInGardenImage: true,
@@ -38,6 +45,7 @@ describe("FetchToolsCommand", () => {
       },
       {
         name: "tool-b",
+        version: "0.12.3",
         description: "foo",
         type: "binary",
         _includeInGardenImage: false,
@@ -57,109 +65,69 @@ describe("FetchToolsCommand", () => {
   const expectedPathB = join(GARDEN_GLOBAL_PATH, "tools", "tool-b", "a8601675b580d777", ".dockerignore")
 
   before(async () => {
-    tmpDir = await makeTempDir()
-    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
   })
 
   it("should fetch tools for configured providers", async () => {
-    const garden: any = await TestGarden.factory(tmpDir.path, {
+    const { garden } = await makeTempGarden({
       plugins: [plugin],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
-        path: tmpDir.path,
-        defaultEnvironment: "default",
-        dotIgnoreFiles: [],
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
+      config: createProjectConfig({
         providers: [{ name: "test" }],
-        variables: {},
-      },
+      }),
     })
-
-    garden.providerConfigs = [{ name: "test" }]
-    garden.registeredPlugins = [plugin]
 
     await garden.resolveProviders(garden.log)
 
     const log = garden.log
     const command = new FetchToolsCommand()
 
-    const result = await command.action({
+    const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "all": false, "garden-image-build": false }),
     })
 
-    expect(result).to.eql({
-      result: {
-        "test.tool-a": {
-          type: "binary",
-          path: expectedPathA,
-        },
-        "test.tool-b": {
-          type: "binary",
-          path: expectedPathB,
-        },
-      },
+    expect(result["test.tool-a"]).to.eql({
+      type: "binary",
+      path: expectedPathA,
+    })
+    expect(result["test.tool-b"]).to.eql({
+      type: "binary",
+      path: expectedPathB,
     })
   })
 
   it("should fetch no tools when no providers are configured", async () => {
-    const garden: any = await TestGarden.factory(tmpDir.path, {
+    const { garden } = await makeTempGarden({
       plugins: [plugin],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
-        path: tmpDir.path,
-        defaultEnvironment: "default",
-        dotIgnoreFiles: [],
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
-        providers: [{ name: "test" }],
-        variables: {},
-      },
+      config: createProjectConfig({
+        providers: [],
+      }),
     })
-
-    garden.providerConfigs = []
-    garden.registeredPlugins = [plugin]
 
     await garden.resolveProviders(garden.log)
 
     const log = garden.log
     const command = new FetchToolsCommand()
 
-    const result = await command.action({
+    const { result } = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "all": false, "garden-image-build": false }),
     })
 
-    expect(result).to.eql({
-      result: {},
-    })
+    expect(result["test.tool-a"]).to.not.exist
+    expect(result["test.tool-b"]).to.not.exist
   })
 
   it("should fetch tools for all providers with --all", async () => {
     const garden: any = await TestGarden.factory(tmpDir.path, {
       plugins: [plugin],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
+      config: createProjectConfig({
         path: tmpDir.path,
-        defaultEnvironment: "default",
-        dotIgnoreFiles: [],
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
-        providers: [],
-        variables: {},
-      },
+      }),
     })
 
     garden.providerConfigs = []
@@ -173,8 +141,6 @@ describe("FetchToolsCommand", () => {
     const result = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "all": true, "garden-image-build": false }),
     })
@@ -196,17 +162,9 @@ describe("FetchToolsCommand", () => {
   it("should fetch only tools marked for pre-fetch when --garden-image-build is set", async () => {
     const garden: any = await TestGarden.factory(tmpDir.path, {
       plugins: [plugin],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
+      config: createProjectConfig({
         path: tmpDir.path,
-        defaultEnvironment: "default",
-        dotIgnoreFiles: [],
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
-        providers: [],
-        variables: {},
-      },
+      }),
     })
 
     garden.providerConfigs = []
@@ -220,8 +178,6 @@ describe("FetchToolsCommand", () => {
     const result = await command.action({
       garden,
       log,
-      headerLog: log,
-      footerLog: log,
       args: {},
       opts: withDefaultGlobalOpts({ "all": true, "garden-image-build": true }),
     })

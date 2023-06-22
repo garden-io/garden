@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,14 +7,14 @@
  */
 
 import tmp from "tmp-promise"
-import { ProjectConfig, defaultNamespace } from "../../../../../../src/config/project"
+import { ProjectConfig } from "../../../../../../src/config/project"
 import execa = require("execa")
-import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants"
 import { expect } from "chai"
-import { TestGarden, makeTempDir } from "../../../../../helpers"
+import { TestGarden, makeTempDir, createProjectConfig } from "../../../../../helpers"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import { isSubset } from "../../../../../../src/util/is-subset"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("configmap module", () => {
   let tmpDir: tmp.DirectoryResult
@@ -25,17 +25,10 @@ describe("configmap module", () => {
 
     await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
-    projectConfigFoo = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
+    projectConfigFoo = createProjectConfig({
       path: tmpDir.path,
-      defaultEnvironment: "default",
-      dotIgnoreFiles: [],
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "local-kubernetes", namespace: "default" }],
-      variables: {},
-    }
+    })
   })
 
   after(async () => {
@@ -54,11 +47,11 @@ describe("configmap module", () => {
 
     garden.setModuleConfigs([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: GardenApiVersion.v0,
         name: "test",
         type: "configmap",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         path: tmpDir.path,
         serviceConfigs: [],
@@ -71,36 +64,28 @@ describe("configmap module", () => {
     ])
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const service = graph.getService("test")
+    const action = await garden.resolveAction({ action: graph.getDeploy("test"), log: garden.log })
 
     const deployTask = new DeployTask({
       garden,
       graph,
       log: garden.log,
-      service,
+      action,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
     })
 
-    await garden.processTasks([deployTask], { throwOnError: true })
+    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
     const actions = await garden.getActionRouter()
-    const status = await actions.getServiceStatus({
+    const status = await actions.getDeployStatuses({
       log: garden.log,
-      service,
       graph,
-      devMode: false,
-      hotReload: false,
-      localMode: false,
-      runtimeContext: emptyRuntimeContext,
     })
 
-    const remoteResources = status.detail["remoteResources"]
+    const remoteResources = status.test.detail?.detail.remoteResources
 
-    expect(status.state === "ready")
+    expect(status.test.state === "ready")
     expect(remoteResources.length).to.equal(1)
     expect(
       isSubset(remoteResources[0], {
@@ -111,6 +96,7 @@ describe("configmap module", () => {
       })
     ).to.be.true
 
-    await actions.deleteService({ log: garden.log, service, graph })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+    await actions.deploy.delete({ log: actionLog, action, graph })
   })
 })

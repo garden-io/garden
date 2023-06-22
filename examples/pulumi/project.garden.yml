@@ -1,5 +1,11 @@
+apiVersion: garden.io/v1
 kind: Project
 name: pulumi
+variables:
+   pulumiAppOrg: garden # <--- replace with your own org name
+environments:
+  - name: local
 providers:
   - name: pulumi
-    orgName: gordon-garden-bot # <--- replace with your own org
+    environments: [local]
+    orgName: ${var.pulumiAppOrg}

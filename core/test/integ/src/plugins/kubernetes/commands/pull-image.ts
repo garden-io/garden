@@ -1,22 +1,23 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { pullModule } from "../../../../../../src/plugins/kubernetes/commands/pull-image"
+import { pullBuild } from "../../../../../../src/plugins/kubernetes/commands/pull-image"
 import { Garden } from "../../../../../../src/garden"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { getContainerTestGarden } from "../container/container"
 import { k8sBuildContainer } from "../../../../../../src/plugins/kubernetes/container/build/build"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider, KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
-import { GardenModule } from "../../../../../../src/types/module"
 import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
 import { expect } from "chai"
 import { grouped } from "../../../../../helpers"
+import { BuildAction } from "../../../../../../src/actions/build"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("pull-image plugin command", () => {
   let garden: Garden
@@ -26,7 +27,7 @@ describe("pull-image plugin command", () => {
 
   after(async () => {
     if (garden) {
-      await garden.close()
+      garden.close()
     }
   })
 
@@ -34,11 +35,11 @@ describe("pull-image plugin command", () => {
     garden = await getContainerTestGarden(environmentName)
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
   }
 
-  async function removeImage(module: GardenModule) {
-    const imageId = module.outputs["local-image-id"]
+  async function removeImage(action: BuildAction) {
+    const imageId = action._staticOutputs["local-image-id"]
     try {
       await containerHelpers.dockerCli({
         cwd: "/tmp",
@@ -51,10 +52,10 @@ describe("pull-image plugin command", () => {
     }
   }
 
-  async function ensureImagePulled(module: GardenModule) {
-    const imageId = module.outputs["local-image-id"]
+  async function ensureImagePulled(action: BuildAction) {
+    const imageId = action._staticOutputs["local-image-id"]
     const imageHash = await containerHelpers.dockerCli({
-      cwd: module.buildPath,
+      cwd: action.getBuildPath(),
       args: ["run", imageId, "echo", "ok"],
       log: garden.log,
       ctx,
@@ -64,52 +65,72 @@ describe("pull-image plugin command", () => {
   }
 
   grouped("kaniko", "remote-only").context("using an external cluster registry with kaniko", () => {
-    let module: GardenModule
+    let action: BuildAction
 
     before(async () => {
-      await init("kaniko-remote-registry")
+      await init("kaniko")
 
-      module = graph.getModule("remote-registry-test")
+      action = graph.getBuild("remote-registry-test.build") as BuildAction
+      const resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
 
       // build the image
-      await garden.buildStaging.syncFromSrc(module, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
+      const actionLog = createActionLog({
+        log: garden.log,
+        actionName: resolvedAction.name,
+        actionKind: resolvedAction.kind,
+      })
 
       await k8sBuildContainer({
         ctx,
-        log: garden.log,
-        module,
+        log: actionLog,
+        action: resolvedAction,
       })
     })
 
     it("should pull the image", async () => {
-      await removeImage(module)
-      await pullModule(ctx as KubernetesPluginContext, module, garden.log)
-      await ensureImagePulled(module)
+      await removeImage(action)
+      await pullBuild({
+        localId: action._staticOutputs["local-image-id"],
+        remoteId: action._staticOutputs["deployment-image-id"],
+        ctx: ctx as KubernetesPluginContext,
+        action,
+        log: garden.log,
+      })
+      await ensureImagePulled(action)
     })
   })
 
   grouped("cluster-buildkit", "remote-only").context("using an external cluster registry with buildkit", () => {
-    let module: GardenModule
+    let action: BuildAction
 
     before(async () => {
-      await init("cluster-buildkit-remote-registry")
+      await init("cluster-buildkit")
 
-      module = graph.getModule("remote-registry-test")
+      action = graph.getBuild("remote-registry-test.build")
+      const resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
 
       // build the image
-      await garden.buildStaging.syncFromSrc(module, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
+      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
       await k8sBuildContainer({
         ctx,
-        log: garden.log,
-        module,
+        log: actionLog,
+        action: resolvedAction,
       })
     })
 
     it("should pull the image", async () => {
-      await removeImage(module)
-      await pullModule(ctx as KubernetesPluginContext, module, garden.log)
-      await ensureImagePulled(module)
+      await removeImage(action)
+      await pullBuild({
+        localId: action._staticOutputs["local-image-id"],
+        remoteId: action._staticOutputs["deployment-image-id"],
+        ctx: ctx as KubernetesPluginContext,
+        action,
+        log: garden.log,
+      })
+      await ensureImagePulled(action)
     })
   })
 })

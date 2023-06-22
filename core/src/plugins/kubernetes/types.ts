@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
+import type {
   KubernetesObject,
   V1DaemonSet,
   V1Deployment,
@@ -18,7 +18,15 @@ import {
   V1Ingress,
 } from "@kubernetes/client-node"
 
-import { Omit } from "../../util/util"
+import type { Omit } from "../../util/util"
+import type {
+  ContainerBuildAction,
+  ContainerDeployAction,
+  ContainerRunAction,
+  ContainerTestAction,
+} from "../container/config"
+import type { HelmDeployAction, HelmPodRunAction, HelmPodTestAction } from "./helm/config"
+import type { KubernetesDeployAction, KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config"
 
 export interface BaseResource {
   apiVersion: string
@@ -39,16 +47,15 @@ export type KubernetesResource<T extends BaseResource | KubernetesObject = BaseR
     metadata: Partial<V1ObjectMeta> & {
       name: string
     }
-  } & Omit<T, "apiVersion" | "kind" | "metadata"> &
-    // Make sure these are required if they're on the provided type
-    {
+  } & Omit<T, "apiVersion" | "kind" | "metadata"> & {
+      // Make sure these are required if they're on the provided type
       [P in Extract<keyof T, "spec">]: Exclude<T[P], undefined>
     }
 
 // Server-side resources always have some fields set if they're in the schema, e.g. status
-export type KubernetesServerResource<T extends BaseResource | KubernetesObject = BaseResource> = KubernetesResource<T> &
-  // Make sure these are required if they're on the provided type
-  {
+export type KubernetesServerResource<T extends BaseResource | KubernetesObject = BaseResource> =
+  KubernetesResource<T> & {
+    // Make sure these are required if they're on the provided type
     [P in Extract<keyof T, "status">]: Exclude<T[P], undefined>
   }
 
@@ -83,3 +90,21 @@ export type KubernetesIngress = KubernetesResource<V1Ingress>
 export function isPodResource(resource: KubernetesWorkload | KubernetesPod): resource is KubernetesPod {
   return resource.kind === "Pod"
 }
+
+export type SyncableResource = KubernetesWorkload | KubernetesPod
+export type SyncableKind = "Deployment" | "DaemonSet" | "StatefulSet"
+export const syncableKinds: string[] = ["Deployment", "DaemonSet", "StatefulSet"]
+
+export type SyncableRuntimeAction = ContainerDeployAction | KubernetesDeployAction | HelmDeployAction
+
+export type HelmRuntimeAction = HelmDeployAction | HelmPodRunAction | HelmPodTestAction
+
+export type SupportedRuntimeAction =
+  | ContainerBuildAction
+  | ContainerDeployAction
+  | ContainerTestAction
+  | ContainerRunAction
+  | HelmRuntimeAction
+  | KubernetesDeployAction
+  | KubernetesRunAction
+  | KubernetesTestAction

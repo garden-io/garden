@@ -1,74 +1,83 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandGroup } from "./base"
 import { BuildCommand } from "./build"
-import { CallCommand } from "./call"
+import { CloudCommand } from "./cloud/cloud"
+import { Command, CommandGroup } from "./base"
+import { CommunityCommand } from "./community"
+import { ConfigCommand } from "./config/config"
 import { CreateCommand } from "./create/create"
 import { DeleteCommand } from "./delete"
 import { DeployCommand } from "./deploy"
 import { DevCommand } from "./dev"
-import { GetCommand } from "./get/get"
-import { CloudCommand } from "./cloud/cloud"
-import { LinkCommand } from "./link/link"
-import { LogsCommand } from "./logs"
-import { MigrateCommand } from "./migrate"
-import { PublishCommand } from "./publish"
-import { RunCommand } from "./run/run"
-import { ScanCommand } from "./scan"
-import { SetCommand } from "./set"
-import { TestCommand } from "./test"
-import { UnlinkCommand } from "./unlink/unlink"
-import { UpdateRemoteCommand } from "./update-remote/update-remote"
-import { ValidateCommand } from "./validate"
 import { ExecCommand } from "./exec"
-import { DashboardCommand } from "./dashboard"
-import { OptionsCommand } from "./options"
-import { ConfigCommand } from "./config/config"
-import { PluginsCommand } from "./plugins"
+import { GetCommand } from "./get/get"
+import { LinkCommand } from "./link/link"
 import { LoginCommand } from "./login"
 import { LogOutCommand } from "./logout"
-import { ToolsCommand } from "./tools"
-import { UtilCommand } from "./util/util"
+import { LogsCommand } from "./logs"
+import { memoize } from "lodash"
+import { OptionsCommand } from "./options"
+import { PluginsCommand } from "./plugins"
+import { PublishCommand } from "./publish"
+import { RunCommand } from "./run"
+import { WorkflowCommand } from "./workflow"
 import { SelfUpdateCommand } from "./self-update"
+import { ServeCommand } from "./serve"
+import { SetCommand } from "./set"
+import { SyncCommand } from "./sync/sync"
+import { TestCommand } from "./test"
+import { ToolsCommand } from "./tools"
+import { UnlinkCommand } from "./unlink/unlink"
+import { UpdateRemoteCommand } from "./update-remote/update-remote"
+import { UtilCommand } from "./util/util"
+import { ValidateCommand } from "./validate"
+import { UpCommand } from "./up"
+import { VersionCommand } from "./version"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new BuildCommand(),
-  new CallCommand(),
+  new CloudCommand(),
+  new CommunityCommand(),
   new ConfigCommand(),
   new CreateCommand(),
   new DeleteCommand(),
   new DeployCommand(),
   new DevCommand(),
   new ExecCommand(),
-  new CloudCommand(),
   new GetCommand(),
   new LinkCommand(),
   new LoginCommand(),
   new LogOutCommand(),
   new LogsCommand(),
-  new MigrateCommand(),
   new OptionsCommand(),
   new PluginsCommand(),
   new PublishCommand(),
   new RunCommand(),
-  new ScanCommand(),
-  new DashboardCommand(),
+  new WorkflowCommand(),
   new SelfUpdateCommand(),
+  new ServeCommand(),
   new SetCommand(),
+  new SyncCommand(),
   new TestCommand(),
   new ToolsCommand(),
   new UnlinkCommand(),
+  new UpCommand(),
   new UpdateRemoteCommand(),
   new UtilCommand(),
   new ValidateCommand(),
+  new VersionCommand(),
 ]
 
-export function getBuiltinCommands() {
-  return getCoreCommands().flatMap((cmd) => (cmd instanceof CommandGroup ? [cmd, ...cmd.getSubCommands()] : [cmd]))
+export function flattenCommands(commands: (Command | CommandGroup)[]): Command[] {
+  return commands.flatMap((cmd) => (cmd instanceof CommandGroup ? [cmd, ...cmd.getSubCommands()] : [cmd]))
 }
+
+export const getBuiltinCommands = memoize(() => {
+  return flattenCommands(getCoreCommands())
+})
