@@ -7,11 +7,10 @@
  */
 
 import AsyncLock from "async-lock"
-import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { find } from "lodash"
-import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
-import { Writable } from "node:stream"
-import execa from "execa"
+import { PluginError } from "@garden-io/core/build/src/exceptions"
+import { BuildToolParams, runBuildTool, verifyBinaryPath, VerifyBinaryParams } from "./build-tool-base"
 
 const buildLock = new AsyncLock()
 
@@ -101,44 +100,13 @@ export function getMvndTool(ctx: PluginContext) {
   return tool
 }
 
-const baseErrorMessage = (mvnPath: string): string =>
-  `Maven Daemon binary path "${mvnPath}" is incorrect! Please check the \`mavendPath\` configuration option.`
-
-async function checkMavendVersion(mvndPath: string) {
-  try {
-    const res = await execa(mvndPath, ["--version"])
-    return res.stdout
-  } catch (err) {
-    const composeErrorMessage = (err: any): string => {
-      if (err.code === "EACCES") {
-        return `${baseErrorMessage(
-          mvndPath
-        )} It looks like the Maven Daemon path defined in the config is not an executable binary.`
-      } else if (err.code === "ENOENT") {
-        return `${baseErrorMessage(mvndPath)} The Maven Daemon path defined in the configuration does not exist.`
-      } else {
-        return baseErrorMessage(mvndPath)
-      }
-    }
-    throw new RuntimeError(composeErrorMessage(err), { mvndPath })
-  }
-}
-
 let mavendPathValid = false
 
-async function verifyMavendPath(mvndPath: string) {
+async function verifyMavendPath(params: VerifyBinaryParams) {
   if (mavendPathValid) {
     return
   }
-
-  const versionOutput = await checkMavendVersion(mvndPath)
-  const isMavend = versionOutput.toLowerCase().includes("mvnd")
-  if (!isMavend) {
-    throw new RuntimeError(
-      `${baseErrorMessage(mvndPath)} It looks like the Maven Daemon path points to a non-Maven executable binary.`,
-      { mvndPath }
-    )
-  }
+  await verifyBinaryPath(params)
   mavendPathValid = true
 }
 
@@ -151,42 +119,30 @@ export async function mvnd({
   cwd,
   log,
   openJdkPath,
-  mavendPath,
+  binaryPath,
   outputStream,
-}: {
-  ctx: PluginContext
-  args: string[]
-  cwd: string
-  log: Log
-  openJdkPath: string
-  mavendPath?: string
-  outputStream?: Writable
-}) {
+}: BuildToolParams) {
   let mvndPath: string
-  if (!!mavendPath) {
-    log.verbose(`Using explicitly specified Maven Daemon binary from ${mavendPath}`)
-    mvndPath = mavendPath
-    await verifyMavendPath(mvndPath)
+  if (!!binaryPath) {
+    log.verbose(`Using explicitly specified Maven Daemon binary from ${binaryPath}`)
+    mvndPath = binaryPath
+    await verifyMavendPath({
+      binaryPath,
+      toolName: "Maven Daemon",
+      configFieldName: "mavendPath",
+      outputVerificationString: "mvnd",
+    })
   } else {
-    log.verbose(`The Maven Daemon binary hasn't been specified explicitly. Maven ${mvndVersion} will be used by default.`)
+    log.verbose(
+      `The Maven Daemon binary hasn't been specified explicitly. Maven ${mvndVersion} will be used by default.`
+    )
     const tool = getMvndTool(ctx)
     mvndPath = await tool.ensurePath(log)
   }
+
+  log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
+  const params = { binaryPath: mvndPath, args, cwd, openJdkPath, outputStream }
   return buildLock.acquire("mvnd", async () => {
-    log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
-
-    const res = execa(mvndPath, args, {
-      cwd,
-      env: {
-        JAVA_HOME: openJdkPath,
-      },
-    })
-
-    if (outputStream) {
-      res.stdout?.pipe(outputStream)
-      res.stderr?.pipe(outputStream)
-    }
-
-    return res
+    return runBuildTool(params)
   })
 }
