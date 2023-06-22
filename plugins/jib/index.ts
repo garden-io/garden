@@ -12,7 +12,7 @@ import { dedent } from "@garden-io/sdk/util/string"
 
 import { openJdkSpecs } from "./openjdk"
 import { mavenSpec, mvn, mvnVersion } from "./maven"
-import { mavendSpec, mvnd } from "./mavend"
+import { mavendSpec, mvnd, mvndVersion } from "./mavend"
 import { gradle, gradleSpec, gradleVersion } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
@@ -118,6 +118,8 @@ const jibModuleSchema = () =>
         .description("Defines the Maven phases to be executed during the Garden build step."),
       mavendPath: joi.string().optional().description(dedent`
         Defines the location of the custom executable Maven Daemon binary.
+
+        If not provided, then Maven Daemon ${mvndVersion} will be downloaded and used.
 
         **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Maven Daemon.
         To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
