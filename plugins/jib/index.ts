@@ -265,7 +265,7 @@ export const gardenPlugin = () =>
                 cwd: module.path,
                 args: [...mavenPhases, ...args],
                 openJdkPath,
-                mavenPath: module.spec.build.mavenPath,
+                binaryPath: module.spec.build.mavenPath,
                 outputStream,
               })
             } else if (projectType === "mavend") {
@@ -275,7 +275,7 @@ export const gardenPlugin = () =>
                 cwd: module.path,
                 args: [...mavenPhases, ...args],
                 openJdkPath,
-                mavendPath: module.spec.build.mavendPath,
+                binaryPath: module.spec.build.mavendPath,
                 outputStream,
               })
             } else {
@@ -285,7 +285,7 @@ export const gardenPlugin = () =>
                 cwd: module.path,
                 args,
                 openJdkPath,
-                gradlePath: module.spec.build.gradlePath,
+                binaryPath: module.spec.build.gradlePath,
                 outputStream,
               })
             }
