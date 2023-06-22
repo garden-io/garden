@@ -7,11 +7,10 @@
  */
 
 import AsyncLock from "async-lock"
-import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { find } from "lodash"
-import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
-import { Writable } from "node:stream"
-import execa from "execa"
+import { PluginError } from "@garden-io/core/build/src/exceptions"
+import { BuildToolParams, runBuildTool, verifyBinaryPath, VerifyBinaryParams } from "./build-tool-base"
 
 const buildLock = new AsyncLock()
 
@@ -70,95 +69,41 @@ export function getMvnTool(ctx: PluginContext) {
   return tool
 }
 
-const baseErrorMessage = (mvnPath: string): string =>
-  `Maven binary path "${mvnPath}" is incorrect! Please check the \`mavenPath\` configuration option.`
-
-async function checkMavenVersion(mvnPath: string) {
-  try {
-    const res = await execa(mvnPath, ["--version"])
-    return res.stdout
-  } catch (err) {
-    const composeErrorMessage = (err: any): string => {
-      if (err.code === "EACCES") {
-        return `${baseErrorMessage(
-          mvnPath
-        )} It looks like the Maven path defined in the config is not an executable binary.`
-      } else if (err.code === "ENOENT") {
-        return `${baseErrorMessage(mvnPath)} The Maven path defined in the configuration does not exist.`
-      } else {
-        return baseErrorMessage(mvnPath)
-      }
-    }
-    throw new RuntimeError(composeErrorMessage(err), { mvnPath })
-  }
-}
-
 let mavenPathValid = false
 
-async function verifyMavenPath(mvnPath: string) {
+async function verifyMavenPath(params: VerifyBinaryParams) {
   if (mavenPathValid) {
     return
   }
-
-  const versionOutput = await checkMavenVersion(mvnPath)
-  const isMaven = versionOutput.toLowerCase().includes("maven")
-  if (!isMaven) {
-    throw new RuntimeError(
-      `${baseErrorMessage(mvnPath)} It looks like the Maven path points to a non-Maven executable binary.`,
-      { mvnPath }
-    )
-  }
+  await verifyBinaryPath(params)
   mavenPathValid = true
 }
 
 /**
  * Run maven with the specified args in the specified directory.
  */
-export async function mvn({
-  ctx,
-  args,
-  cwd,
-  log,
-  openJdkPath,
-  mavenPath,
-  outputStream,
-}: {
-  ctx: PluginContext
-  args: string[]
-  cwd: string
-  log: LogEntry
-  openJdkPath: string
-  mavenPath?: string
-  outputStream?: Writable
-}) {
+export async function mvn({ ctx, args, cwd, log, openJdkPath, binaryPath, outputStream }: BuildToolParams) {
   let mvnPath: string
-  if (!!mavenPath) {
-    log.verbose(`Using explicitly specified Maven binary from ${mavenPath}`)
-    mvnPath = mavenPath
-    await verifyMavenPath(mvnPath)
+  if (!!binaryPath) {
+    log.verbose(`Using explicitly specified Maven binary from ${binaryPath}`)
+    mvnPath = binaryPath
+    await verifyMavenPath({
+      binaryPath,
+      toolName: "Maven",
+      configFieldName: "mavenPath",
+      outputVerificationString: "maven",
+    })
   } else {
     log.verbose(`The Maven binary hasn't been specified explicitly. Maven ${mvnVersion} will be used by default.`)
     const tool = getMvnTool(ctx)
     mvnPath = await tool.getPath(log)
   }
 
+  log.debug(`Execing ${mvnPath} ${args.join(" ")}`)
+  const params = { binaryPath: mvnPath, args, cwd, openJdkPath, outputStream }
   // Maven has issues when running concurrent processes, so we're working around that with a lock.
   // TODO: http://takari.io/book/30-team-maven.html would be a more robust solution.
   return buildLock.acquire("mvn", async () => {
-    log.debug(`Execing ${mvnPath} ${args.join(" ")}`)
-
-    const res = execa(mvnPath, args, {
-      cwd,
-      env: {
-        JAVA_HOME: openJdkPath,
-      },
-    })
-
-    if (outputStream) {
-      res.stdout?.pipe(outputStream)
-      res.stderr?.pipe(outputStream)
-    }
-
-    return res
+    return runBuildTool(params)
   })
 }
