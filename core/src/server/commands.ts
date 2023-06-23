@@ -38,7 +38,7 @@ import { ActionStatusPayload } from "../events/action-status-events"
 import { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status"
 import { DeployStatusForEventPayload } from "../types/service"
 import { RunStatusForEventPayload } from "../plugin/plugin"
-import { getBuildStatusPayloads, getDeployStatusPayloads, getRunStatusPayload, getTestStatusPayloads } from "../actions/helpers"
+import { getBuildStatusPayloads, getDeployStatusPayloads, getRunStatusPayloads, getTestStatusPayloads } from "../actions/helpers"
 
 export interface CommandMap {
   [key: string]: {
@@ -287,7 +287,7 @@ export class _GetActionStatusesCommand extends ConsoleCommand {
       build: getBuildStatusPayloads(router, graph, log),
       deploy: getDeployStatusPayloads(router, graph, log),
       test: getTestStatusPayloads(router, graph, log),
-      run: getRunStatusPayload(router, graph, log),
+      run: getRunStatusPayloads(router, graph, log),
     })
 
 
