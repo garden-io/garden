@@ -16,11 +16,17 @@ export interface GardenError<D extends object = any> extends Error {
   message: string
   detail?: D
   stack?: string
+  wrappedErrors?: GardenError[]
 }
 
-export interface GardenErrorStackTrace {
+export type StackTraceMetadata = {
   functionName: string
   relativeFileName?: string
+}
+
+export type GardenErrorStackTrace = {
+  metadata: StackTraceMetadata[]
+  wrappedMetadata?: StackTraceMetadata[][]
 }
 
 export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
@@ -29,6 +35,7 @@ export abstract class GardenBaseError<D extends object = any> extends Error impl
   constructor(message: string, public readonly detail: D, public readonly wrappedErrors?: GardenError[]) {
     super(message)
     this.detail = detail
+    this.wrappedErrors = wrappedErrors
   }
 
   toString() {
@@ -187,17 +194,11 @@ export function formatGardenErrorWithDetail(error: GardenError) {
   return out
 }
 
-export function getStackTraceMetadata(error: GardenError): GardenErrorStackTrace | undefined {
-  if (!error.stack) {
-    return undefined
-  }
-
+function getStackTraceFromString(stack: string): StackTraceMetadata[] {
   // Care about the first line matching our code base
-  const lines = error.stack.split("\n").slice(1)
+  const lines = stack.split("\n").slice(1)
 
-  console.log(error.stack)
-
-  const metadata = lines.flatMap((l) => {
+  return lines.flatMap((l) => {
     const atLine = l.match(/at (?:(.+?)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/)
 
     if (!atLine || atLine[2] === undefined) {
@@ -213,6 +214,8 @@ export function getStackTraceMetadata(error: GardenError): GardenErrorStackTrace
       lastSrcFilePos = tmpPos + 4
     } else if ((tmpPos = filePath.lastIndexOf("node_modules")) > -1) {
       lastSrcFilePos = tmpPos + 13
+    } else if ((tmpPos = filePath.lastIndexOf("node:internal")) > -1) {
+      lastSrcFilePos = tmpPos + 14
     }
 
     let relativeFileName: string | undefined = undefined
@@ -228,8 +231,25 @@ export function getStackTraceMetadata(error: GardenError): GardenErrorStackTrace
       },
     ]
   })
+}
 
-  // returns the first line since its closest to
-  // the code where the exception was thrown
-  return metadata.at(0)
+export function getStackTraceMetadata(error: GardenError): GardenErrorStackTrace {
+  if (!error.stack && !error.wrappedErrors) {
+    return { metadata: [], wrappedMetadata: undefined }
+  }
+
+  const errorMetadata: StackTraceMetadata[] = error.stack ? getStackTraceFromString(error.stack) : []
+
+  const wrappedMetadata: StackTraceMetadata[][] | undefined = error.wrappedErrors?.map((wrappedError) => {
+    if (!wrappedError.stack) {
+      return []
+    }
+
+    return getStackTraceFromString(wrappedError.stack)
+  })
+
+  return {
+    metadata: errorMetadata,
+    wrappedMetadata,
+  }
 }

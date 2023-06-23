@@ -7,7 +7,14 @@
  */
 
 import { expect } from "chai"
-import { GardenBaseError, GardenErrorStackTrace, RuntimeError, getStackTraceMetadata } from "../../../src/exceptions"
+import {
+  ConfigurationError,
+  GardenBaseError,
+  GardenErrorStackTrace,
+  RuntimeError,
+  StackTraceMetadata,
+  getStackTraceMetadata,
+} from "../../../src/exceptions"
 
 describe("GardenError", () => {
   it("should return stack trace metadata", async () => {
@@ -19,21 +26,32 @@ describe("GardenError", () => {
       error = err
     }
 
-    const metadata = getStackTraceMetadata(error)
+    const stackTrace = getStackTraceMetadata(error)
 
-    const expected: GardenErrorStackTrace = { relativeFileName: "exceptions.ts", functionName: "Context.<anonymous>" }
-    expect(metadata).to.eql(expected)
+    const expectedSubset: StackTraceMetadata[] = [
+      {
+        relativeFileName: "exceptions.ts",
+        functionName: "Context.<anonymous>",
+      },
+      {
+        functionName: "Test.Runnable.run",
+        relativeFileName: "mocha/lib/runnable.js",
+      },
+    ]
+
+    expect(stackTrace).to.not.be.undefined
+    expect(stackTrace!.metadata).to.deep.include.members(expectedSubset)
   })
 
   it("should handle empty stack trace", async () => {
     const error = new RuntimeError("test exception", {})
 
     error.stack = ""
-    const metadataEmpty = getStackTraceMetadata(error)
-    expect(metadataEmpty).to.eql(undefined)
+    const stackTrace = getStackTraceMetadata(error)
+    expect(stackTrace).to.eql({ metadata: [], wrappedMetadata: undefined })
   })
 
-  it("should filter out source file in src path", async () => {
+  it("should return list of stack trace entries", async () => {
     const error = new RuntimeError("test exception", {})
 
     error.stack = `Error: test exception
@@ -41,28 +59,30 @@ describe("GardenError", () => {
     at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
     at processImmediate (node:internal/timers:471:21)`
 
-    const metadataSrc = getStackTraceMetadata(error)
-    expect(metadataSrc).to.eql({ relativeFileName: "utils/exceptions.ts", functionName: "Context.<anonymous>" })
+    const stackTrace = getStackTraceMetadata(error)
+    expect(stackTrace.metadata).to.eql([
+      { relativeFileName: "utils/exceptions.ts", functionName: "Context.<anonymous>" },
+      { relativeFileName: "mocha/lib/runnable.js", functionName: "Test.Runnable.run" },
+      { relativeFileName: "timers", functionName: "processImmediate" },
+    ])
   })
 
-  it("should filter out source file in node_modules path", async () => {
-    const error = new RuntimeError("test exception", {})
-
-    error.stack = `Error: test exception
+  it("should return wrapped stack trace metadata", async () => {
+    const wrappedError = new ConfigurationError("config exception", {})
+    wrappedError.stack = `Error: config exception
+    at Context.<anonymous> (/path/to/src/utils/exceptions.ts:17:13)
     at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
     at processImmediate (node:internal/timers:471:21)`
 
-    const metadataSrc = getStackTraceMetadata(error)
-    expect(metadataSrc).to.eql({ relativeFileName: "mocha/lib/runnable.js", functionName: "Test.Runnable.run" })
-  })
+    const error = new RuntimeError("test exception", {}, [wrappedError])
 
-  it("should exclude relative filename if there is not match", async () => {
-    const error = new RuntimeError("test exception", {})
+    const stackTrace = getStackTraceMetadata(error)
 
-    error.stack = `Error: test exception
-    at processImmediate (node:internal/timers:471:21)`
-
-    const metadataSrc = getStackTraceMetadata(error)
-    expect(metadataSrc).to.eql({ relativeFileName: undefined, functionName: "processImmediate" })
+    expect(stackTrace.wrappedMetadata).to.have.length(1)
+    expect(stackTrace.wrappedMetadata?.at(0)).to.eql([
+      { relativeFileName: "utils/exceptions.ts", functionName: "Context.<anonymous>" },
+      { relativeFileName: "mocha/lib/runnable.js", functionName: "Test.Runnable.run" },
+      { relativeFileName: "timers", functionName: "processImmediate" },
+    ])
   })
 })
