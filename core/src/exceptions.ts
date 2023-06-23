@@ -19,6 +19,10 @@ export interface GardenError<D extends object = any> extends Error {
   wrappedErrors?: GardenError[]
 }
 
+export function isGardenError(err: any): err is GardenError {
+  return "type" in err && "message" in err
+}
+
 export type StackTraceMetadata = {
   functionName: string
   relativeFileName?: string

@@ -10,7 +10,6 @@ import { expect } from "chai"
 import {
   ConfigurationError,
   GardenBaseError,
-  GardenErrorStackTrace,
   RuntimeError,
   StackTraceMetadata,
   getStackTraceMetadata,

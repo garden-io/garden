@@ -41,7 +41,7 @@ import {
   getCloudDistributionName,
   getCloudLogSectionName,
 } from "./util/util"
-import { ConfigurationError, InternalError, PluginError, RuntimeError } from "./exceptions"
+import { ConfigurationError, InternalError, isGardenError, GardenError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
@@ -767,11 +767,20 @@ export class Garden {
       if (failed.length) {
         const messages = failed.map((r) => `- ${r!.name}: ${r!.error!.message}`)
         const failedNames = failed.map((r) => r!.name)
-        throw new PluginError(`Failed resolving one or more providers:\n- ${failedNames.join("\n- ")}`, {
-          rawConfigs,
-          taskResults,
-          messages,
+
+        const wrappedErrors: GardenError[] = failed.flatMap((f) => {
+          return f && f.error && isGardenError(f.error) ? [f.error as GardenError] : []
         })
+
+        throw new PluginError(
+          `Failed resolving one or more providers:\n- ${failedNames.join("\n- ")}`,
+          {
+            rawConfigs,
+            taskResults,
+            messages,
+          },
+          wrappedErrors
+        )
       }
 
       providers = providerResults.map((result) => result!.result)

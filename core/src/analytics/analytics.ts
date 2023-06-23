@@ -23,7 +23,7 @@ import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
 import { uuidv4 } from "../util/random"
-import { GardenBaseError, GardenErrorStackTrace, getStackTraceMetadata } from "../exceptions"
+import { GardenBaseError, StackTraceMetadata, getStackTraceMetadata } from "../exceptions"
 import { ActionConfigMap } from "../actions/types"
 import { actionKinds } from "../actions/types"
 
@@ -152,9 +152,11 @@ interface CommandResultEvent extends EventBase {
     durationMsec: number
     result: AnalyticsCommandResult
     errors: string[] // list of GardenBaseError types
-    errorMetadata: GardenErrorStackTrace[]
+    errorMetadata: (StackTraceMetadata | undefined)[]
     lastError?: string
-    lastErrorMetadata?: GardenErrorStackTrace
+    lastErrorMetadata?: StackTraceMetadata
+    lastErrorWrapped?: string
+    lastErrorMetadataWrapped?: StackTraceMetadata
     exitCode?: number
   }
 }
@@ -611,11 +613,22 @@ export class AnalyticsHandler {
     const durationMsec = getDurationMsec(startTime, new Date())
 
     const allErrors = errors.map((e) => e.type)
-    const allErrorMetadata = errors.flatMap((e) => {
-      const metadata = getStackTraceMetadata(e)
-      return metadata ? [metadata] : []
+    const allWrappedErrorTypes = errors.map((e) => e.wrappedErrors?.at(0)?.type)
+
+    const allErrorMetadata = errors.map((e) => {
+      const stackTrace = getStackTraceMetadata(e)
+      const firstEntry = stackTrace.metadata.at(0)
+      return firstEntry
     })
 
+    const allWrappedErrorMetadata = errors.map((e) => {
+      const stackTrace = getStackTraceMetadata(e)
+      // get the first metadata entry of the first wrapped error
+      const firstEntry = stackTrace.wrappedMetadata?.at(0)?.at(0)
+      return firstEntry
+    })
+
+    // extract the
     return this.track({
       type: "Command Result",
       properties: {
@@ -626,6 +639,8 @@ export class AnalyticsHandler {
         errorMetadata: allErrorMetadata,
         lastError: allErrors.at(-1),
         lastErrorMetadata: allErrorMetadata.at(-1),
+        lastErrorWrapped: allWrappedErrorTypes.at(-1),
+        lastErrorMetadataWrapped: allWrappedErrorMetadata.at(-1),
         exitCode,
         ...this.getBasicAnalyticsProperties(parentSessionId),
       },

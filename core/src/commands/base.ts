@@ -20,7 +20,7 @@ import {
   joiStringMap,
   joiVariables,
 } from "../config/common"
-import { InternalError, RuntimeError, GardenBaseError, GardenError } from "../exceptions"
+import { InternalError, RuntimeError, GardenBaseError, GardenError, isGardenError } from "../exceptions"
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel, LogLevel } from "../logger/logger"
@@ -1057,8 +1057,9 @@ export async function handleProcessResults(
 
   if (!success) {
     const wrappedErrors: GardenError[] = flatMap(failed, (f) => {
-      return f && f.error instanceof GardenBaseError ? [f.error] : []
+      return f && f.error && isGardenError(f.error) ? [f.error as GardenError] : []
     })
+
     const error = new RuntimeError(`${failedCount} ${taskType} action(s) failed!`, { results: failed }, wrappedErrors)
     return { result, errors: [error] }
   }
