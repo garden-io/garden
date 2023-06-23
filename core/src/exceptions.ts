@@ -16,27 +16,42 @@ export interface GardenError<D extends object = any> extends Error {
   message: string
   detail?: D
   stack?: string
+  wrappedErrors?: GardenError[]
 }
 
-export interface GardenErrorStackTrace {
+export function isGardenError(err: any): err is GardenError {
+  return "type" in err && "message" in err
+}
+
+export type StackTraceMetadata = {
   functionName: string
-  relativeFileName: string
+  relativeFileName?: string
+}
+
+export type GardenErrorStackTrace = {
+  metadata: StackTraceMetadata[]
+  wrappedMetadata?: StackTraceMetadata[][]
 }
 
 export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
   abstract type: string
 
-  constructor(message: string, public readonly detail: D, public readonly wrappedError?: Error) {
+  constructor(message: string, public readonly detail: D, public readonly wrappedErrors?: GardenError[]) {
     super(message)
     this.detail = detail
+    this.wrappedErrors = wrappedErrors
   }
 
   toString() {
     if (testFlags.expandErrors) {
       let str = super.toString()
 
-      if (this.wrappedError) {
-        str += "\n\nWrapped error:\n\n" + this.wrappedError
+      if (this.wrappedErrors) {
+        str += "\n\nWrapped error:\n\n"
+
+        for (const wrappedError in this.wrappedErrors) {
+          str += wrappedError + "\n\n"
+        }
       }
 
       return str
@@ -183,29 +198,41 @@ export function formatGardenErrorWithDetail(error: GardenError) {
   return out
 }
 
-export function getStackTraceMetadata(error: GardenError): GardenErrorStackTrace | undefined {
-  if (!error.stack) {
-    return undefined
-  }
-
+function getStackTraceFromString(stack: string): StackTraceMetadata[] {
   // Care about the first line matching our code base
-  const lines = error.stack.split("\n").slice(1)
+  const lines = stack.split("\n").slice(1)
 
-  const metadata = lines.flatMap((l) => {
+  return lines.flatMap((l) => {
+    // match and extract any line from a stack trace with
+    // function, file path, line number, column number
+    // we are only interested in the first two for now
     const atLine = l.match(/at (?:(.+?)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/)
 
+    // ignore this if there is no regex match
     if (!atLine) {
       return []
     }
 
-    const functionName: string = atLine[1]
-    const lastSrcPos = atLine[2].lastIndexOf("src")
+    const functionName: string = atLine[1] || "<unknown>"
+    const filePath = atLine[2] || ""
+    let lastFilePos = -1
+    let tmpPos = -1
 
-    if (lastSrcPos === -1) {
-      return []
+    // Get the slice offset assuming the file path contains a known
+    // path component in the source file path.
+    if ((tmpPos = filePath.lastIndexOf("src")) > -1) {
+      lastFilePos = tmpPos + 4
+    } else if ((tmpPos = filePath.lastIndexOf("node_modules")) > -1) {
+      lastFilePos = tmpPos + 13
+    } else if ((tmpPos = filePath.lastIndexOf("node:internal")) > -1) {
+      lastFilePos = tmpPos + 14
     }
 
-    const relativeFileName = atLine[2].slice(lastSrcPos + 4)
+    let relativeFileName: string | undefined = undefined
+
+    if (lastFilePos > -1) {
+      relativeFileName = filePath.slice(lastFilePos)
+    }
 
     return [
       {
@@ -214,8 +241,25 @@ export function getStackTraceMetadata(error: GardenError): GardenErrorStackTrace
       },
     ]
   })
+}
 
-  // returns the first line since its closest to
-  // the code where the exception was thrown
-  return metadata.at(0)
+export function getStackTraceMetadata(error: GardenError): GardenErrorStackTrace {
+  if (!error.stack && !error.wrappedErrors) {
+    return { metadata: [], wrappedMetadata: undefined }
+  }
+
+  const errorMetadata: StackTraceMetadata[] = error.stack ? getStackTraceFromString(error.stack) : []
+
+  const wrappedMetadata: StackTraceMetadata[][] | undefined = error.wrappedErrors?.map((wrappedError) => {
+    if (!wrappedError.stack) {
+      return []
+    }
+
+    return getStackTraceFromString(wrappedError.stack)
+  })
+
+  return {
+    metadata: errorMetadata,
+    wrappedMetadata,
+  }
 }

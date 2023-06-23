@@ -10,7 +10,7 @@ import Joi from "@hapi/joi"
 import chalk from "chalk"
 import dedent from "dedent"
 import stripAnsi from "strip-ansi"
-import { fromPairs, mapValues, pickBy, size } from "lodash"
+import { flatMap, fromPairs, mapValues, pickBy, size } from "lodash"
 import {
   PrimitiveMap,
   createSchema,
@@ -20,7 +20,7 @@ import {
   joiStringMap,
   joiVariables,
 } from "../config/common"
-import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
+import { InternalError, RuntimeError, GardenBaseError, GardenError, isGardenError } from "../exceptions"
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel, LogLevel } from "../logger/logger"
@@ -303,7 +303,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
         localServerPort: server?.port,
         environment: garden.environmentName,
         namespace: garden.namespace,
-        isDevCommand: garden.commandInfo.name === "dev"
+        isDevCommand: garden.commandInfo.name === "dev",
       })
     }
 
@@ -1053,7 +1053,11 @@ export async function handleProcessResults(
   }
 
   if (!success) {
-    const error = new RuntimeError(`${failedCount} ${taskType} action(s) failed!`, { results: failed })
+    const wrappedErrors: GardenError[] = flatMap(failed, (f) => {
+      return f && f.error && isGardenError(f.error) ? [f.error as GardenError] : []
+    })
+
+    const error = new RuntimeError(`${failedCount} ${taskType} action(s) failed!`, { results: failed }, wrappedErrors)
     return { result, errors: [error] }
   }
 
