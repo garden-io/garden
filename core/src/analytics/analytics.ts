@@ -153,10 +153,12 @@ interface CommandResultEvent extends EventBase {
     result: AnalyticsCommandResult
     errors: string[] // list of GardenBaseError types
     errorMetadata: (StackTraceMetadata | undefined)[]
-    lastError?: string
-    lastErrorMetadata?: StackTraceMetadata
-    lastErrorWrapped?: string
-    lastErrorMetadataWrapped?: StackTraceMetadata
+    lastError?: {
+      errorType: string
+      stackTrace?: StackTraceMetadata
+      wrappedErrorType?: string
+      wrappedStackTrace?: StackTraceMetadata
+    }
     exitCode?: number
   }
 }
@@ -638,6 +640,15 @@ export class AnalyticsHandler {
       }
     })
 
+    const lastError = allErrors.at(-1)
+      ? {
+          errorType: allErrors.at(-1)!,
+          stackTrace: allErrorMetadata.at(-1),
+          wrappedErrorType: allWrappedErrorTypes.at(-1),
+          wrappedStackTrace: allWrappedErrorMetadata.at(-1),
+        }
+      : undefined
+
     return this.track({
       type: "Command Result",
       properties: {
@@ -646,10 +657,7 @@ export class AnalyticsHandler {
         result,
         errors: allErrors,
         errorMetadata: allErrorMetadata,
-        lastError: allErrors.at(-1),
-        lastErrorMetadata: allErrorMetadata.at(-1),
-        lastErrorWrapped: allWrappedErrorTypes.at(-1),
-        lastErrorMetadataWrapped: allWrappedErrorMetadata.at(-1),
+        lastError,
         exitCode,
         ...this.getBasicAnalyticsProperties(parentSessionId),
       },
