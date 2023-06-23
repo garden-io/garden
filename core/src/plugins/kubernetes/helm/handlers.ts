@@ -12,7 +12,7 @@ import { join } from "path"
 import { pathExists } from "fs-extra"
 import chalk = require("chalk")
 import { getBaseModule, helmChartYamlFilename } from "./common"
-import { ExecBuildConfig } from "../../exec/config"
+import { ExecBuildConfig } from "../../exec/build"
 import { HelmActionConfig, HelmDeployConfig, HelmPodTestConfig } from "./config"
 import { getServiceResourceSpec } from "../util"
 import { jsonMerge } from "../../../util/util"

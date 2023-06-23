@@ -34,6 +34,11 @@ export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
       this.allowedValues = ["null"]
     }
 
+    // FIXME: We only use the first type if there are multiple possible schemas
+    if (schema.oneOf) {
+      schema = schema.oneOf[0]
+    }
+
     this.schema = schema
     this.type = getType(schema)
 
@@ -106,11 +111,17 @@ export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
         // TODO: implement pattern schemas
       }
       return childDescriptions
-    } else if (this.type === "array" && this.schema.items[0]) {
-      // We only use the first array item
+    } else if (this.type === "array" && this.schema.items) {
+      // FIXME: We only use the first array item if items is an array
+      let itemsSchema = isArray(this.schema.items) ? this.schema.items[0] : this.schema.items
+
+      if (itemsSchema.oneOf) {
+        itemsSchema = itemsSchema.oneOf[0]
+      }
+
       return [
         new JsonKeyDescription({
-          schema: this.schema.items[0],
+          schema: itemsSchema,
           name: undefined,
           level: this.level + 2,
           parent: this,

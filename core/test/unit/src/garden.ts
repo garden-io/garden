@@ -159,6 +159,7 @@ describe("Garden", () => {
         },
         "templated": {
           name: "templated",
+          dependencies: [],
           path: projectRoot,
         },
         "test-plugin": testPluginProvider.config,
@@ -208,6 +209,7 @@ describe("Garden", () => {
         },
         "templated": {
           name: "templated",
+          dependencies: [],
           path: garden.projectRoot,
         },
         "test-plugin": {

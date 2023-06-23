@@ -19,8 +19,9 @@ import { expect } from "chai"
 import { EnvironmentStatus } from "../../../../src/plugin/handlers/Provider/getEnvironmentStatus"
 import { ModuleConfig } from "../../../../src/config/module"
 import { Log } from "../../../../src/logger/log-entry"
-import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 import { ActionStatus } from "../../../../src/actions/types"
+import { joi } from "../../../../src/config/common"
+import { execDeploySpecSchema } from "../../../../src/plugins/exec/deploy"
 
 const projectRootB = getDataDir("test-project-b")
 const moduleConfigs: ModuleConfig[] = [
@@ -71,6 +72,8 @@ const missingDeployStatus: ActionStatus = {
   detail: { state: "missing", forwardablePorts: [], outputs: {}, detail: {}, mode: "default" },
   outputs: {},
 }
+
+const execDeployActionSchema = () => joi.object().zodSchema(execDeploySpecSchema)
 
 describe("DeleteEnvironmentCommand", () => {
   let deletedServices: string[] = []

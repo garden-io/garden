@@ -5,6 +5,8 @@
     "test/*.ts",
     "test/e2e/*.ts",
     "test/e2e/**/*.ts",
+    "test/helpers/*.ts",
+    "test/helpers/**/*.ts",
     "test/integ/*.ts",
     "test/integ/src/**/*.ts",
     "test/unit/*.ts",

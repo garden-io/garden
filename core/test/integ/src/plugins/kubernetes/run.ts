@@ -1237,6 +1237,7 @@ describe("kubernetes Pod runner functions", () => {
           artifacts: [
             {
               source: "/report",
+              target: ".",
             },
           ],
           artifactsPath: tmpDir.path,

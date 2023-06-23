@@ -178,6 +178,8 @@ spec:
   # Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that
   # Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of
   # the Build action. If no `build` reference is set, the command is run from the source directory of this action.
+  #
+  # Example: `["npm","run","build"]`
   command:
 
   # Environment variables to set when running the command.
@@ -433,9 +435,9 @@ We recommend against using this option since it is:
 
 A list of artifacts to copy after the run.
 
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
+| Type    | Default | Required |
+| ------- | ------- | -------- |
+| `array` | `[]`    | No       |
 
 ### `spec.artifacts[].source`
 
@@ -443,9 +445,9 @@ A list of artifacts to copy after the run.
 
 A POSIX-style path or glob to copy, relative to the build root.
 
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `spec.artifacts[].target`
 
@@ -453,9 +455,9 @@ A POSIX-style path or glob to copy, relative to the build root.
 
 A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at `.garden/artifacts`.
 
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `"."`   | No       |
 
 ### `spec.command[]`
 
@@ -465,9 +467,11 @@ The command to run.
 
 Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | Yes      |
+Example: `["npm","run","build"]`
+
+| Type    | Required |
+| ------- | -------- |
+| `array` | Yes      |
 
 ### `spec.env`
 

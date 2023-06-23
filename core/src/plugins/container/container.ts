@@ -30,7 +30,7 @@ import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
 import { GetModuleOutputsParams } from "../../plugin/handlers/Module/get-outputs"
 import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
-import { ExecActionConfig, ExecBuildConfig } from "../exec/config"
+import { ExecActionConfig } from "../exec/config"
 import {
   containerBuildOutputsSchema,
   containerDeploySchema,
@@ -48,6 +48,7 @@ import { getDeployedImageId } from "../kubernetes/container/util"
 import { KubernetesProvider } from "../kubernetes/config"
 import { DeepPrimitiveMap } from "../../config/common"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants"
+import { ExecBuildConfig } from "../exec/build"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 
@@ -315,7 +316,7 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
     needsContainerBuild = true
   }
 
-  let buildAction: ContainerActionConfig | ExecActionConfig | undefined = undefined
+  let buildAction: ContainerBuildActionConfig | ExecBuildConfig | undefined = undefined
 
   if (needsContainerBuild) {
     buildAction = {
@@ -341,7 +342,7 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
     actions.push(buildAction)
   } else if (dummyBuild) {
     buildAction = dummyBuild
-    actions.push(buildAction)
+    actions.push(buildAction!)
   }
 
   const { actions: runtimeActions, volumeModulesReferenced } = convertContainerModuleRuntimeActions(

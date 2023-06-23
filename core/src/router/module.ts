@@ -16,7 +16,7 @@ import {
   ModuleActionOutputs,
   ModuleActionParams,
   ModuleActionHandlers,
-  GardenPlugin,
+  GardenPluginSpec,
   WrappedModuleActionHandler,
   ModuleTypeDefinition,
   getModuleHandlerNames,
@@ -168,7 +168,7 @@ export class ModuleRouter extends BaseRouter {
   }
 
   private addModuleHandler<T extends keyof ModuleActionHandlers>(
-    plugin: GardenPlugin,
+    plugin: GardenPluginSpec,
     handlerType: T,
     moduleType: string,
     handler: ModuleActionHandlers[T]

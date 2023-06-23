@@ -24,7 +24,7 @@ import type { BaseResource, KubernetesResource, KubernetesServerResource, Syncab
 import { convertServiceResource, gardenNamespaceAnnotationValue, getManifests } from "./common"
 import { configureKubernetesModule, KubernetesModule } from "./module-config"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
-import type { ExecBuildConfig } from "../../exec/config"
+import type { ExecBuildConfig } from "../../exec/build"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
 import type { DeployActionHandler } from "../../../plugin/action-types"
 import type { ActionLog } from "../../../logger/log-entry"

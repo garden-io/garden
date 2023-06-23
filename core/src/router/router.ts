@@ -10,7 +10,7 @@ import chalk from "chalk"
 
 import type { Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
-import { GardenPlugin, ModuleTypeDefinition, PluginActionContextParams } from "../plugin/plugin"
+import { GardenPluginSpec, ModuleTypeDefinition, PluginActionContextParams } from "../plugin/plugin"
 import { getDeployStatuses } from "../tasks/helpers"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-deploy"
 import { DeployTask } from "../tasks/deploy"
@@ -53,8 +53,8 @@ export class ActionRouter extends BaseRouter {
 
   constructor(
     garden: Garden,
-    configuredPlugins: GardenPlugin[],
-    loadedPlugins: GardenPlugin[],
+    configuredPlugins: GardenPluginSpec[],
+    loadedPlugins: GardenPluginSpec[],
     moduleTypes: { [name: string]: ModuleTypeDefinition }
   ) {
     const baseParams = { garden, configuredPlugins, loadedPlugins }

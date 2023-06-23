@@ -10,7 +10,7 @@ import tmp from "tmp-promise"
 import { expect } from "chai"
 import type { ProjectConfig } from "../../../../src/config/project"
 import { freezeTime, createProjectConfig, makeTempDir, TestGarden } from "../../../helpers"
-import { GardenPlugin, createGardenPlugin } from "../../../../src/plugin/plugin"
+import { GardenPluginSpec, createGardenPlugin } from "../../../../src/plugin/plugin"
 import { joi } from "../../../../src/config/common"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { BuildTask } from "../../../../src/tasks/build"
@@ -20,7 +20,7 @@ describe("BuildTask", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let config: ProjectConfig
-  let testPlugin: GardenPlugin
+  let testPlugin: GardenPluginSpec
 
   before(async () => {
     tmpDir = await makeTempDir({ git: true, initialCommit: false })

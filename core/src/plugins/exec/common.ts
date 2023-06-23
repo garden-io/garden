@@ -35,7 +35,7 @@ export function convertCommandSpec(command: string[], shell: boolean) {
   }
 }
 
-export async function execRun({
+export async function execRunCommand({
   command,
   action,
   ctx,

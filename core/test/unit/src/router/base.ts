@@ -12,7 +12,7 @@ import { ResolvedBuildAction } from "../../../../src/actions/build"
 import { joi } from "../../../../src/config/common"
 import { resolveAction } from "../../../../src/graph/actions"
 import { BuildActionDefinition } from "../../../../src/plugin/action-types"
-import { createGardenPlugin, GardenPlugin, PluginBuildActionParamsBase } from "../../../../src/plugin/plugin"
+import { createGardenPlugin, GardenPluginSpec, PluginBuildActionParamsBase } from "../../../../src/plugin/plugin"
 import { ActionKindRouter } from "../../../../src/router/base"
 import { expectError, TestGarden, getDefaultProjectConfig, makeTempGarden, TempDirectory } from "../../../helpers"
 import { getRouterTestData } from "./_helpers"
@@ -44,7 +44,7 @@ describe("BaseActionRouter", () => {
     },
   }
 
-  const createTestRouter = async (plugins: GardenPlugin[], garden?: TestGarden) => {
+  const createTestRouter = async (plugins: GardenPluginSpec[], garden?: TestGarden) => {
     if (!garden) {
       const res = await makeTempGarden({
         plugins,
@@ -622,7 +622,7 @@ describe("BaseActionRouter", () => {
 
   describe("validateActionOutputs", () => {
     let resolvedBuildAction: ResolvedBuildAction
-    let testPlugins: GardenPlugin[]
+    let testPlugins: GardenPluginSpec[]
 
     before(async () => {
       const data = await getRouterTestData()

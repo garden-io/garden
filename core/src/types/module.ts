@@ -24,7 +24,7 @@ import {
 import { moduleOutputsSchema } from "../plugin/handlers/Module/get-outputs"
 import type { Log } from "../logger/log-entry"
 import type { ModuleTypeDefinition } from "../plugin/module-types"
-import type { GardenPlugin } from "../plugin/plugin"
+import type { GardenPluginSpec } from "../plugin/plugin"
 import { join } from "path"
 import { RuntimeError } from "../exceptions"
 
@@ -34,7 +34,7 @@ export interface FileCopySpec {
 }
 
 export interface ModuleType<T extends GardenModule = GardenModule> extends ModuleTypeDefinition<T> {
-  plugin: GardenPlugin
+  plugin: GardenPluginSpec
   needsBuild: boolean
 }
 

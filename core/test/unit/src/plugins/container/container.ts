@@ -29,7 +29,7 @@ import {
   defaultDeploymentStrategy,
   defaultDockerfileName,
 } from "../../../../../src/plugins/container/moduleConfig"
-import { ExecBuildConfig } from "../../../../../src/plugins/exec/config"
+import { ExecBuildConfig } from "../../../../../src/plugins/exec/build"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,

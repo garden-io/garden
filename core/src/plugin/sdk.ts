@@ -7,17 +7,16 @@
  */
 
 import { z } from "zod"
-import { BaseAction } from "../actions/base"
-import { BuildAction } from "../actions/build"
-import { DeployAction } from "../actions/deploy"
-import { RunAction } from "../actions/run"
-import { TestAction } from "../actions/test"
-import { BaseActionConfig } from "../actions/types"
+import type { BaseAction } from "../actions/base"
+import type { BuildAction, BuildActionConfig } from "../actions/build"
+import type { DeployAction, DeployActionConfig } from "../actions/deploy"
+import type { RunAction, RunActionConfig } from "../actions/run"
+import type { TestAction, TestActionConfig } from "../actions/test"
 import { joi, zodObjectToJoi } from "../config/common"
 import { BaseProviderConfig, baseProviderConfigSchemaZod } from "../config/provider"
 import { s } from "../config/zod"
-import { ValidationError } from "../exceptions"
-import {
+import { GardenBaseError, ValidationError } from "../exceptions"
+import type {
   ActionKind,
   ActionTypeDefinition,
   ActionTypeHandler,
@@ -29,37 +28,49 @@ import {
   GetActionTypeParams,
   GetActionTypeResults,
 } from "./action-types"
-import { PluginCommand } from "./command"
-import { DashboardPage } from "./handlers/Provider/getDashboardPage"
+import type { PluginCommand } from "./command"
+import type { DashboardPage } from "./handlers/Provider/getDashboardPage"
 import type {
   ActionHandler,
   GardenPluginSpec,
+  PartialGardenPluginSpec,
   PluginActionParamsBase,
   PluginDependency,
   ProviderActionOutputs,
   ProviderActionParams,
   ProviderHandlers,
 } from "./plugin"
-import { PluginToolSpec } from "./tools"
+import type { PluginToolSpec } from "./tools"
+import { dedent } from "../util/string"
+import type { BuildStatus as _BuildStatus } from "./handlers/Build/get-status"
+import chalk from "chalk"
 
 type ObjectBaseZod = z.ZodObject<{}>
 
-type FilledPluginSpec = Required<GardenPluginSpec>
-
 type GardenSdkPluginSpec = Pick<
-  GardenPluginSpec,
-  "name" | "base" | "docs" | "dependencies" | "createModuleTypes" | "extendModuleTypes"
+  PartialGardenPluginSpec,
+  "name" | "docs" | "dependencies" | "createModuleTypes" | "extendModuleTypes"
 >
 
+class SdkError extends GardenBaseError {
+  type = "sdk"
+}
+
 export class GardenSdkPlugin {
-  private spec: FilledPluginSpec
+  public readonly name: string
+  private spec: GardenPluginSpec
 
   constructor(spec: GardenSdkPluginSpec) {
+    this.name = spec.name
+
     this.spec = {
       name: spec.name,
-      base: spec.base || null,
       docs: spec.docs || null,
 
+      // These are always set on the _provider_, not on the plugin.
+      // TODO: Move provider-specific fields in the plugin spec. We'll want to allow multiple providers per plugin.
+      // (Best to do this after moving all plugins to the new SDK.)
+      base: null,
       configSchema: joi.object(),
       outputsSchema: joi.object(),
 
@@ -73,22 +84,51 @@ export class GardenSdkPlugin {
       createModuleTypes: spec.createModuleTypes || [],
       extendModuleTypes: spec.extendModuleTypes || [],
 
-      createActionTypes: {},
-      extendActionTypes: {},
+      createActionTypes: {
+        Build: [],
+        Deploy: [],
+        Run: [],
+        Test: [],
+      },
+      extendActionTypes: {
+        Build: [],
+        Deploy: [],
+        Run: [],
+        Test: [],
+      },
     }
   }
 
-  getSpec(): Required<GardenPluginSpec> {
-    return this.spec
+  getSpec() {
+    return { ...this.spec }
   }
 
-  createProvider<C extends ObjectBaseZod, O extends ObjectBaseZod>(configSchema: C, outputsSchema: O) {
-    const provider = createProvider(this, configSchema, outputsSchema)
+  // TODO: support multiple providers per plugin
+  // TODO: infer schema types from base
+  /**
+   * Define a provider and its config+output schemas, and attach it to the plugin.
+   *
+   * If the provider has a base, you must make sure that both schemas are compatible with the base's schemas.
+   *
+   * Note: Currently only one provider is supported per plugin.
+   * Calling this a second time will overwrite previous calls.
+   */
+  createProvider<C extends ObjectBaseZod, O extends ObjectBaseZod>({
+    base,
+    configSchema,
+    outputsSchema,
+  }: {
+    base?: GardenSdkProvider<any, any, any>
+    configSchema: C
+    outputsSchema: O
+  }) {
+    const provider = createProvider(this, configSchema!, outputsSchema!, base)
     this.setProvider(provider)
     return provider
   }
 
-  setProvider(provider: GardenSdkProvider<any, any>) {
+  setProvider(provider: GardenSdkProvider<any, any, any>) {
+    this.spec.base = provider.base?.name || null
     this.spec.configSchema = zodObjectToJoi(provider.getConfigSchema())
     this.spec.outputsSchema = zodObjectToJoi(provider.getOutputsSchema())
   }
@@ -114,14 +154,20 @@ export class GardenSdkPlugin {
   }
 }
 
-class GardenSdkProvider<ProviderConfigType extends BaseProviderConfig, ProviderOutputsType extends {}> {
+export class GardenSdkProvider<
+  Base extends GardenSdkProvider<any, any, any> | undefined,
+  ProviderConfigType extends BaseProviderConfig,
+  ProviderOutputsType extends {}
+> {
   _configType: ProviderConfigType
   _outputsType: ProviderOutputsType
 
   constructor(
-    private readonly spec: FilledPluginSpec,
+    public readonly name: string,
+    private readonly spec: GardenPluginSpec,
     private readonly configSchema: ObjectBaseZod,
-    private readonly outputsSchema: ObjectBaseZod
+    private readonly outputsSchema: ObjectBaseZod,
+    public readonly base: Base | undefined
   ) {}
 
   getConfigSchema() {
@@ -160,7 +206,7 @@ class GardenSdkProvider<ProviderConfigType extends BaseProviderConfig, ProviderO
     staticOutputsSchema: StaticOutputsSchema
     runtimeOutputsSchema: RuntimeOutputsSchema
   }): GardenSdkActionDefinition<
-    GardenSdkProvider<ProviderConfigType, ProviderOutputsType>,
+    GardenSdkProvider<Base, ProviderConfigType, ProviderOutputsType>,
     K,
     z.infer<SpecSchema>,
     z.infer<StaticOutputsSchema>,
@@ -185,13 +231,13 @@ type GetActionType<
   StaticOutputsType extends {},
   RuntimeOutputsType extends {}
 > = K extends "Build"
-  ? BuildAction<BaseActionConfig<K, any, SpecType>, StaticOutputsType, RuntimeOutputsType>
+  ? BuildAction<BuildActionConfig<any, SpecType>, StaticOutputsType, RuntimeOutputsType>
   : K extends "Deploy"
-  ? DeployAction<BaseActionConfig<K, any, SpecType>, StaticOutputsType, RuntimeOutputsType>
+  ? DeployAction<DeployActionConfig<any, SpecType>, StaticOutputsType, RuntimeOutputsType>
   : K extends "Run"
-  ? RunAction<BaseActionConfig<K, any, SpecType>, StaticOutputsType, RuntimeOutputsType>
+  ? RunAction<RunActionConfig<any, SpecType>, StaticOutputsType, RuntimeOutputsType>
   : K extends "Test"
-  ? TestAction<BaseActionConfig<K, any, SpecType>, StaticOutputsType, RuntimeOutputsType>
+  ? TestAction<TestActionConfig<any, SpecType>, StaticOutputsType, RuntimeOutputsType>
   : never
 
 type GetActionTypeDescriptions<A extends BaseAction> = A extends BuildAction
@@ -205,12 +251,18 @@ type GetActionTypeDescriptions<A extends BaseAction> = A extends BuildAction
   : never
 
 export class GardenSdkActionDefinition<
-  P extends GardenSdkProvider<any, any>,
+  P extends GardenSdkProvider<any, any, any>,
   Kind extends ActionKind,
   SpecType extends {},
   StaticOutputsType extends {},
   RuntimeOutputsType extends {}
 > {
+  T: {
+    Action: GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>
+    Config: GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>["_config"]
+    Spec: SpecType
+  }
+
   constructor(
     protected provider: P,
     protected actionSpec: ActionTypeDefinition<ActionTypeHandlers[Kind]>,
@@ -244,20 +296,15 @@ export class GardenSdkActionDefinition<
     // TODO: work out how to lose any casts
     const handlers = <any>this.actionSpec.handlers
     handlers[type] = <any>handler
+    return handler
   }
 }
 
-interface CreateGardenPluginCallbackParams {
-  plugin: GardenSdkPlugin
-  s: typeof s
-}
-type CreateGardenPluginCallback = (params: CreateGardenPluginCallbackParams) => void
-
-function createProvider<C extends ObjectBaseZod, O extends ObjectBaseZod>(
-  plugin: GardenSdkPlugin,
-  configSchema: C,
-  outputsSchema: O
-) {
+function createProvider<
+  Base extends GardenSdkProvider<any, any, any> | undefined,
+  C extends ObjectBaseZod,
+  O extends ObjectBaseZod
+>(plugin: GardenSdkPlugin, configSchema: C, outputsSchema: O, base?: Base) {
   // Make sure base provider config properties are not overridden
   const baseKeys = Object.keys(baseProviderConfigSchemaZod.shape)
   for (const key of Object.keys(configSchema.shape)) {
@@ -268,18 +315,28 @@ function createProvider<C extends ObjectBaseZod, O extends ObjectBaseZod>(
       )
     }
   }
+
   const spec = plugin.getSpec()
-  const mergedProviderSchema = baseProviderConfigSchemaZod.merge(configSchema)
-  const provider = new GardenSdkProvider<BaseProviderConfig & z.infer<C>, z.infer<O>>(
+
+  if (base) {
+    // TODO: Make sure schemas are compatible with base
+  }
+
+  // Zod by default strips unknown keys. We want spec schemas to be strict (i.e. not allow unknown fields).
+  const mergedProviderSchema = baseProviderConfigSchemaZod.merge(configSchema).strict()
+
+  const provider = new GardenSdkProvider<Base, BaseProviderConfig & z.infer<C>, z.infer<O>>(
+    spec.name,
     spec,
     mergedProviderSchema,
-    outputsSchema
+    outputsSchema,
+    base
   )
   return provider
 }
 
 function createActionType<
-  P extends GardenSdkProvider<any, any>,
+  P extends GardenSdkProvider<any, any, any>,
   K extends ActionKind,
   SpecSchema extends ObjectBaseZod,
   StaticOutputsSchema extends ObjectBaseZod,
@@ -304,7 +361,8 @@ function createActionType<
   const actionSpec: ActionTypeDefinition<ActionTypeHandlers[K]> = {
     name,
     docs,
-    schema: zodObjectToJoi(specSchema),
+    // Zod by default strips unknown keys. We want spec schemas to be strict (i.e. not allow unknown fields).
+    schema: zodObjectToJoi(specSchema.strict()),
     staticOutputsSchema: zodObjectToJoi(staticOutputsSchema),
     runtimeOutputsSchema: zodObjectToJoi(runtimeOutputsSchema),
     handlers: {},
@@ -316,11 +374,21 @@ export const sdk = {
   schema: s,
   s, // Shorthand
 
-  createGardenPlugin(spec: GardenSdkPluginSpec, cb?: CreateGardenPluginCallback) {
-    const plugin = new GardenSdkPlugin(spec)
-    cb && cb({ plugin, s })
-    return plugin
+  createGardenPlugin(spec: GardenSdkPluginSpec) {
+    return new GardenSdkPlugin(spec)
   },
+
   createProvider,
   createActionType,
+
+  util: {
+    chalk,
+    dedent,
+  },
+}
+
+export namespace sdk {
+  export namespace types {
+    export type BuildStatus = _BuildStatus
+  }
 }

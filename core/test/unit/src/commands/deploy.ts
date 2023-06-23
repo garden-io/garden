@@ -22,6 +22,7 @@ import { getRootLogger } from "../../../../src/logger/logger"
 import { ActionStatus } from "../../../../src/actions/types"
 import { DeployStatus } from "../../../../src/plugin/handlers/Deploy/get-status"
 import { defaultServerPort } from "../../../../src/commands/serve"
+import { zodObjectToJoi } from "../../../../src/config/common"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 const placeholderTimestamp = new Date()
@@ -58,7 +59,7 @@ const testProvider = () => {
         {
           name: "test",
           docs: "Test Deploy action",
-          schema: testDeploySchema(),
+          schema: zodObjectToJoi(testDeploySchema),
           handlers: {
             deploy: async (params) => {
               const newStatus: DeployStatus = { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
@@ -85,7 +86,7 @@ const testProvider = () => {
         {
           name: "test",
           docs: "Test Run action",
-          schema: testTestSchema(),
+          schema: zodObjectToJoi(testTestSchema),
           handlers: {
             run: async ({}) => {
               return {

@@ -57,7 +57,7 @@ import { isRunning, killRecursive } from "../../../../../src/process"
 describe("exec plugin", () => {
   context("test-project based tests", () => {
     const testProjectRoot = getDataDir("test-project-exec")
-    const plugin = gardenPlugin()
+    const plugin = gardenPlugin
 
     let garden: Garden
     let ctx: PluginContext
@@ -949,7 +949,7 @@ describe("exec plugin", () => {
           providers: [{ name: "exec" }],
         })
 
-        return TestGarden.factory(tmpDirResult.path, { config, plugins: [gardenPlugin()] })
+        return TestGarden.factory(tmpDirResult.path, { config, plugins: [gardenPlugin] })
       }
 
       let tmpDir: tmp.DirectoryResult

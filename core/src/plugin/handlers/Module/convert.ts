@@ -20,7 +20,7 @@ import { BuildActionConfig, buildActionConfigSchema, BuildCopyFrom } from "../..
 import { GardenService, serviceSchema } from "../../../types/service"
 import { GardenTest, testSchema } from "../../../types/test"
 import { GardenTask, taskSchema } from "../../../types/task"
-import { ExecBuildConfig } from "../../../plugins/exec/config"
+import { ExecBuildConfig } from "../../../plugins/exec/build"
 
 export interface ConvertModuleParams<T extends GardenModule = GardenModule> extends PluginActionContextParams {
   ctx: PluginContext

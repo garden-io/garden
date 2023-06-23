@@ -474,9 +474,9 @@ The command to run to perform the deployment.
 
 Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | Yes      |
+| Type    | Required |
+| ------- | -------- |
+| `array` | Yes      |
 
 ### `spec.statusCommand[]`
 
@@ -490,9 +490,9 @@ If `persistent: true`, Garden will run this command at an interval until it retu
 
 Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type    | Required |
+| ------- | -------- |
+| `array` | No       |
 
 ### `spec.cleanupCommand[]`
 
@@ -502,9 +502,9 @@ Optionally set a command to clean the deployment up, e.g. when running `garden d
 
 Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type    | Required |
+| ------- | -------- |
+| `array` | No       |
 
 ### `spec.statusTimeout`
 
