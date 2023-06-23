@@ -203,29 +203,35 @@ function getStackTraceFromString(stack: string): StackTraceMetadata[] {
   const lines = stack.split("\n").slice(1)
 
   return lines.flatMap((l) => {
+    // match and extract any line from a stack trace with
+    // function, file path, line number, column number
+    // we are only interested in the first two for now
     const atLine = l.match(/at (?:(.+?)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/)
 
-    if (!atLine || atLine[2] === undefined) {
+    // ignore this if there is no regex match
+    if (!atLine) {
       return []
     }
 
     const functionName: string = atLine[1] || "<unknown>"
-    const filePath = atLine[2]
-    let lastSrcFilePos = -1
+    const filePath = atLine[2] || ""
+    let lastFilePos = -1
     let tmpPos = -1
 
+    // Get the slice offset assuming the file path contains a known
+    // path component in the source file path.
     if ((tmpPos = filePath.lastIndexOf("src")) > -1) {
-      lastSrcFilePos = tmpPos + 4
+      lastFilePos = tmpPos + 4
     } else if ((tmpPos = filePath.lastIndexOf("node_modules")) > -1) {
-      lastSrcFilePos = tmpPos + 13
+      lastFilePos = tmpPos + 13
     } else if ((tmpPos = filePath.lastIndexOf("node:internal")) > -1) {
-      lastSrcFilePos = tmpPos + 14
+      lastFilePos = tmpPos + 14
     }
 
     let relativeFileName: string | undefined = undefined
 
-    if (lastSrcFilePos > -1) {
-      relativeFileName = filePath.slice(lastSrcFilePos)
+    if (lastFilePos > -1) {
+      relativeFileName = filePath.slice(lastFilePos)
     }
 
     return [

@@ -616,19 +616,28 @@ export class AnalyticsHandler {
     const allWrappedErrorTypes = errors.map((e) => e.wrappedErrors?.at(0)?.type)
 
     const allErrorMetadata = errors.map((e) => {
-      const stackTrace = getStackTraceMetadata(e)
-      const firstEntry = stackTrace.metadata.at(0)
-      return firstEntry
+      try {
+        const stackTrace = getStackTraceMetadata(e)
+        const firstEntry = stackTrace.metadata.at(0)
+        return firstEntry
+      } catch (err) {
+        this.log.silly(`Failed to get stack trace metadata from ${e}, ${err}`)
+        return undefined
+      }
     })
 
     const allWrappedErrorMetadata = errors.map((e) => {
-      const stackTrace = getStackTraceMetadata(e)
-      // get the first metadata entry of the first wrapped error
-      const firstEntry = stackTrace.wrappedMetadata?.at(0)?.at(0)
-      return firstEntry
+      try {
+        const stackTrace = getStackTraceMetadata(e)
+        // get the first metadata entry of the first wrapped error
+        const firstEntry = stackTrace.wrappedMetadata?.at(0)?.at(0)
+        return firstEntry
+      } catch (err) {
+        this.log.silly(`Failed to get wrapped stack trace metadata from ${e}, ${err}`)
+        return undefined
+      }
     })
 
-    // extract the
     return this.track({
       type: "Command Result",
       properties: {
