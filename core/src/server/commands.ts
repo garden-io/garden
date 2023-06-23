@@ -11,7 +11,7 @@ import { getLogLevelChoices, LogLevel } from "../logger/logger"
 import stringArgv from "string-argv"
 import { Command, CommandParams, CommandResult, ConsoleCommand } from "../commands/base"
 import { createSchema, joi } from "../config/common"
-import type { Log } from "../logger/log-entry"
+import { type Log } from "../logger/log-entry"
 import { ParameterValues, ChoicesParameter, StringParameter, StringsParameter, GlobalOptions } from "../cli/params"
 import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
 import type { AutocompleteSuggestion } from "../cli/autocomplete"
@@ -28,11 +28,17 @@ import type { ParsedArgs } from "minimist"
 import type { ServeCommand } from "../commands/serve"
 import { uuidv4 } from "../util/random"
 import type { StatusCommandResult } from "../commands/get/get-status"
+import type { DeployStatus } from "../plugin/handlers/Deploy/get-status"
+import type { GetSyncStatusResult } from "../plugin/handlers/Deploy/get-sync-status"
 import { omit } from "lodash"
 import { sanitizeValue } from "../util/logging"
 import { getSyncStatuses } from "../commands/sync/sync-status"
-import type { DeployStatus } from "../plugin/handlers/Deploy/get-status"
-import type { GetSyncStatusResult } from "../plugin/handlers/Deploy/get-sync-status"
+import Bluebird from "bluebird"
+import { ActionStatusPayload } from "../events/action-status-events"
+import { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status"
+import { DeployStatusForEventPayload } from "../types/service"
+import { RunStatusForEventPayload } from "../plugin/plugin"
+import { getBuildStatusPayloads, getDeployStatusPayloads, getRunStatusPayload, getTestStatusPayloads } from "../actions/helpers"
 
 export interface CommandMap {
   [key: string]: {
@@ -250,7 +256,42 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
 
     const sanitized = sanitizeValue(deepFilter(result, (_, key) => key !== "executedAction"))
 
-    return { result: sanitized }
+    return { result: sanitized }
+  }
+}
+
+interface GetActionStatusesCommandResult {
+  actions: {
+    build: Record<string, ActionStatusPayload<BuildStatusForEventPayload>>
+    deploy: Record<string, ActionStatusPayload<DeployStatusForEventPayload>>
+    run: Record<string, ActionStatusPayload<RunStatusForEventPayload>>
+    test: Record<string, ActionStatusPayload<RunStatusForEventPayload>>
+  }
+}
+
+export class _GetActionStatusesCommand extends ConsoleCommand {
+  name = "_get-action-statuses"
+  help = "[Internal/Experimental] Retuns a map of all actions statuses."
+  hidden = true
+
+  streamEvents = false
+
+  outputsSchema = () => joi.object()
+
+  async action({ garden, log }: CommandParams): Promise<CommandResult<GetActionStatusesCommandResult>> {
+
+    const router = await garden.getActionRouter()
+    const graph = await garden.getResolvedConfigGraph({ log, emit: true })
+
+    const actions = await Bluebird.props({
+      build: getBuildStatusPayloads(router, graph, log),
+      deploy: getDeployStatusPayloads(router, graph, log),
+      test: getTestStatusPayloads(router, graph, log),
+      run: getRunStatusPayload(router, graph, log),
+    })
+
+
+    return { result: { actions } }
   }
 }
 

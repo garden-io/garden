@@ -6,8 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { ExecuteActionOutputs, ValidExecutionActionResultType } from "../tasks/base"
-import type { DeployAction } from "../actions/deploy"
+import type { ValidExecutionActionResultType } from "../tasks/base"
 import { type Action, type ActionState } from "../actions/types"
 import type { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import type { DeployStatusForEventPayload } from "../types/service"
@@ -155,7 +154,7 @@ export function makeActionCompletePayload<
   operation,
   startedAt,
 }: {
-  result: R & ExecuteActionOutputs<Action>
+  result: R
   action: Action
   force: boolean
   operation: "getStatus" | "process"
@@ -184,7 +183,7 @@ export function makeActionCompletePayload<
       } satisfies Events["buildStatus"]
 
     case "deploy":
-      const deployResult = result as DeployStatus & ExecuteActionOutputs<DeployAction>
+      const deployResult = result as DeployStatus
       let deployStatus: DeployStatusForEventPayload
       if (!deployResult.detail) {
         deployStatus = { state: "unknown" }
