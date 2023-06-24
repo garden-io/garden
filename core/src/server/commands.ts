@@ -18,7 +18,6 @@ import type { AutocompleteSuggestion } from "../cli/autocomplete"
 import { naturalList } from "../util/string"
 import { isMatch } from "micromatch"
 import type { GardenInstanceManager } from "./instance-manager"
-import { deepFilter } from "../util/objects"
 import { isDirectory } from "../util/fs"
 import { pathExists } from "fs-extra"
 import type { ProjectResource } from "../config/project"
@@ -27,11 +26,7 @@ import type { GlobalConfigStore } from "../config-store/global"
 import type { ParsedArgs } from "minimist"
 import type { ServeCommand } from "../commands/serve"
 import { uuidv4 } from "../util/random"
-import type { StatusCommandResult } from "../commands/get/get-status"
-import type { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import type { GetSyncStatusResult } from "../plugin/handlers/Deploy/get-sync-status"
-import { omit } from "lodash"
-import { sanitizeValue } from "../util/logging"
 import { getSyncStatuses } from "../commands/sync/sync-status"
 import Bluebird from "bluebird"
 import { ActionStatusPayload } from "../events/action-status-events"
@@ -210,7 +205,7 @@ export class HideCommand extends ConsoleCommand<HideArgs> {
 interface GetDeployStatusCommandResult {
   actions: {
     [actionName: string]: {
-      deployStatus: DeployStatus
+      deployStatus: ActionStatusPayload<DeployStatusForEventPayload>
       syncStatus: GetSyncStatusResult
     }
   }
@@ -230,16 +225,7 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
     const deployActions = graph.getDeploys({ includeDisabled: false }).sort((a, b) => (a.name > b.name ? 1 : -1))
-
-    const deployStatusesRaw = await router.getDeployStatuses({ log, graph })
-
-    const deployStatuses = Object.entries(deployStatusesRaw).reduce((acc, val) => {
-      const [name, status] = val
-      const statusWithOutDetail = omit(status, "detail.detail")
-      acc[name] = statusWithOutDetail
-
-      return acc
-    }, {} as StatusCommandResult["actions"]["Deploy"])
+    const deployStatuses = await getDeployStatusPayloads(router, graph, log)
 
     const commandLog = log.createLog({ fixLevel: LogLevel.silly })
     const syncStatuses = await getSyncStatuses({ garden, graph, deployActions, log: commandLog, skipDetail: true })
@@ -250,13 +236,9 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
         syncStatus: syncStatuses[val.name],
       }
       return acc
-    }, {} as { [key: string]: { deployStatus: DeployStatus; syncStatus: GetSyncStatusResult } })
+    }, {} as { [key: string]: { deployStatus: ActionStatusPayload<DeployStatusForEventPayload>; syncStatus: GetSyncStatusResult } })
 
-    const result = { actions }
-
-    const sanitized = sanitizeValue(deepFilter(result, (_, key) => key !== "executedAction"))
-
-    return { result: sanitized }
+    return { result: { actions} }
   }
 }
 
@@ -279,7 +261,6 @@ export class _GetActionStatusesCommand extends ConsoleCommand {
   outputsSchema = () => joi.object()
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<GetActionStatusesCommandResult>> {
-
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
 
