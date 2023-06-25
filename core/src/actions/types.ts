@@ -146,6 +146,10 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   baseBuildDirectory: string // <project>/.garden/build by default
   compatibleTypes: string[]
   config: C
+  // It's not ideal that we're passing this here, but since we reuse the params of the base action in
+  // `actionToResolved` and `resolvedActionToExecuted`, it's probably clearest and least magical to pass it in
+  // explicitly at action creation time (which only happens in a very few places in the code base anyway).
+  uid: string
   dependencies: ActionDependency[]
   graph: ConfigGraph
   linkedSource: LinkedSource | null

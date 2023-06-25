@@ -60,7 +60,6 @@ import { PickTypeByKind } from "../graph/config-graph"
 import { DeployAction } from "./deploy"
 import { TestAction } from "./test"
 import { RunAction } from "./run"
-import { uuidv4 } from "../util/random"
 import { createActionLog, Log } from "../logger/log-entry"
 import { joinWithPosix } from "../util/fs"
 import { LinkedSource } from "../config-store/local"
@@ -326,6 +325,7 @@ export abstract class BaseAction<
   public readonly kind: C["kind"]
   public readonly type: C["type"]
   public readonly name: string
+  public readonly uid: string
 
   protected resolved: boolean
   protected executed: boolean
@@ -353,6 +353,7 @@ export abstract class BaseAction<
     this.kind = params.config.kind
     this.type = params.config.type
     this.name = params.config.name
+    this.uid = params.uid
     this.baseBuildDirectory = params.baseBuildDirectory
     this.compatibleTypes = params.compatibleTypes
     this.dependencies = params.dependencies
@@ -547,14 +548,6 @@ export abstract class BaseAction<
   @Memoize()
   configVersion() {
     return versionStringPrefix + hashStrings([this.stringifyConfig()])
-  }
-
-  /**
-   * We use memoization to lazy-generate the uid to avoid unnecessary overhead when initializing every action.
-   */
-  @Memoize()
-  getUid() {
-    return uuidv4()
   }
 
   /**

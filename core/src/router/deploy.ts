@@ -19,7 +19,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
     deploy: async (params) => {
       const { router, action, garden } = params
 
-      const actionUid = action.getUid()
+      const actionUid = action.uid
       params.events = params.events || new PluginEventBroker(garden)
 
       const actionName = action.name

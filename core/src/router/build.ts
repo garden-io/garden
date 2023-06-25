@@ -32,7 +32,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
     build: async (params) => {
       const { action, garden, router } = params
 
-      const actionUid = action.getUid()
+      const actionUid = action.uid
       params.events = params.events || new PluginEventBroker(garden)
 
       const actionName = action.name

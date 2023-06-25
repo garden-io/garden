@@ -63,6 +63,7 @@ import { ConfigContext } from "../config/template-contexts/base"
 import { LinkedSource, LinkedSourceMap } from "../config-store/local"
 import { relative } from "path"
 import { profileAsync } from "../util/profiling"
+import { uuidv4 } from "../util/random"
 
 export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
   garden,
@@ -277,6 +278,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     baseBuildDirectory: garden.buildStaging.buildDirPath,
     compatibleTypes,
     config,
+    uid: uuidv4(),
     dependencies,
     graph,
     projectRoot: garden.projectRoot,

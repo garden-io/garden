@@ -20,7 +20,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
     run: async (params) => {
       const { garden, router, action } = params
 
-      const actionUid = action.getUid()
+      const actionUid = action.uid
       const tmpDir = await tmp.dir({ unsafeCleanup: true })
       const artifactsPath = normalizePath(await realpath(tmpDir.path))
 
