@@ -22,7 +22,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
 
       const tmpDir = await makeTempDir()
       const artifactsPath = normalizePath(await realpath(tmpDir.path))
-      const actionUid = action.getUid()
+      const actionUid = action.uid
 
       const actionName = action.name
       const actionType = API_ACTION_TYPE
