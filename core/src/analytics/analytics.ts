@@ -23,7 +23,13 @@ import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
 import { uuidv4 } from "../util/random"
-import { GardenBaseError, StackTraceMetadata, getStackTraceMetadata } from "../exceptions"
+import {
+  GardenBaseError,
+  GardenError,
+  GardenErrorContext,
+  StackTraceMetadata,
+  getStackTraceMetadata,
+} from "../exceptions"
 import { ActionConfigMap } from "../actions/types"
 import { actionKinds } from "../actions/types"
 
@@ -145,6 +151,18 @@ interface ApiEvent extends EventBase {
   }
 }
 
+type AnalyticsGardenErrorDetail = {
+  errorType: string
+  context?: GardenErrorContext
+  stackTrace?: StackTraceMetadata
+}
+
+type AnalyticsGardenError = {
+  error: AnalyticsGardenErrorDetail
+  wrapped?: AnalyticsGardenErrorDetail
+  leaf?: AnalyticsGardenErrorDetail
+}
+
 interface CommandResultEvent extends EventBase {
   type: "Command Result"
   properties: PropertiesBase & {
@@ -152,13 +170,7 @@ interface CommandResultEvent extends EventBase {
     durationMsec: number
     result: AnalyticsCommandResult
     errors: string[] // list of GardenBaseError types
-    errorMetadata: (StackTraceMetadata | undefined)[]
-    lastError?: {
-      errorType: string
-      stackTrace?: StackTraceMetadata
-      wrappedErrorType?: string
-      wrappedStackTrace?: StackTraceMetadata
-    }
+    lastError?: AnalyticsGardenError
     exitCode?: number
   }
 }
@@ -610,63 +622,66 @@ export class AnalyticsHandler {
     exitCode?: number,
     parentSessionId?: string
   ) {
-    try {
-      const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
+    const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
 
-      const durationMsec = getDurationMsec(startTime, new Date())
+    const durationMsec = getDurationMsec(startTime, new Date())
 
-      const allErrors = errors.map((e) => e.type)
-      const allWrappedErrorTypes = errors.map((e) => e.wrappedErrors?.at(0)?.type)
+    const getErrorDetail = (e: GardenError): AnalyticsGardenErrorDetail => {
+      const stackTrace = getStackTraceMetadata(e)
+      const firstEntry = stackTrace.metadata.at(0)
 
-      const allErrorMetadata = errors.map((e) => {
-        try {
-          const stackTrace = getStackTraceMetadata(e)
-          const firstEntry = stackTrace.metadata.at(0)
-          return firstEntry
-        } catch (err) {
-          this.log.silly(`Failed to get stack trace metadata from ${e}, ${err}`)
-          return undefined
-        }
-      })
-
-      const allWrappedErrorMetadata = errors.map((e) => {
-        try {
-          const stackTrace = getStackTraceMetadata(e)
-          // get the first metadata entry of the first wrapped error
-          const firstEntry = stackTrace.wrappedMetadata?.at(0)?.at(0)
-          return firstEntry
-        } catch (err) {
-          this.log.silly(`Failed to get wrapped stack trace metadata from ${e}, ${err}`)
-          return undefined
-        }
-      })
-
-      const lastError = allErrors.at(-1)
-        ? {
-            errorType: allErrors.at(-1)!,
-            stackTrace: allErrorMetadata.at(-1),
-            wrappedErrorType: allWrappedErrorTypes.at(-1),
-            wrappedStackTrace: allWrappedErrorMetadata.at(-1),
-          }
-        : undefined
-
-      return this.track({
-        type: "Command Result",
-        properties: {
-          name: commandName,
-          durationMsec,
-          result,
-          errors: allErrors,
-          errorMetadata: allErrorMetadata,
-          lastError,
-          exitCode,
-          ...this.getBasicAnalyticsProperties(parentSessionId),
-        },
-      })
-    } catch (error) {
-      this.log.silly(`Error in tracking command result: ${error}`)
-      return null
+      return {
+        errorType: e.type,
+        context: e.context,
+        stackTrace: firstEntry,
+      }
     }
+
+    const getLeafErrors = (e: GardenError): AnalyticsGardenErrorDetail[] => {
+      if (!e.wrappedErrors || e.wrappedErrors.length === 0) {
+        return [getErrorDetail(e)]
+      } else {
+        return e.wrappedErrors.flatMap(getLeafErrors)
+      }
+    }
+
+    const allErrorMetadata: AnalyticsGardenError[] = errors.flatMap((e) => {
+      try {
+        return {
+          // details of the root error
+          error: getErrorDetail(e),
+          // the first wrapped error
+          wrapped: e.wrappedErrors?.at(0) ? getErrorDetail(e.wrappedErrors?.at(0)!) : undefined,
+          // recursively get all the leaf errors and select the first one
+          leaf: getLeafErrors(e).at(0),
+        }
+      } catch (err) {
+        this.log.silly(`Failed to get analytics error detail from ${e}, ${e.wrappedErrors?.at(0)}, ${err}`)
+        return []
+      }
+    })
+
+    // capture the unique top level errors
+    const allErrors = [
+      ...new Set<string>(
+        allErrorMetadata.map((e) => {
+          return e.error.errorType
+        })
+      ),
+    ]
+
+    return this.track({
+      type: "Command Result",
+      properties: {
+        name: commandName,
+        durationMsec,
+        result,
+        errors: allErrors,
+        lastError: allErrorMetadata.at(-1),
+        exitCode,
+        ...this.getBasicAnalyticsProperties(parentSessionId),
+      },
+    })
   }
 
   /**
