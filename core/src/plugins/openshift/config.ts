@@ -7,9 +7,12 @@
  */
 
 import { joiProviderName } from "../../config/common"
-import { BaseProviderConfig, providerConfigBaseSchema } from "../../config/provider"
+import { BaseProviderConfig, Provider, providerConfigBaseSchema } from "../../config/provider"
+import { PluginContext } from "../../plugin-context"
 
 export interface OpenShiftConfig extends BaseProviderConfig {}
+export type OpenShiftProvider = Provider<OpenShiftConfig>
+export type OpenShiftPluginContext = PluginContext<OpenShiftConfig>
 
 export const openshiftConfigBase = () => providerConfigBaseSchema()
 

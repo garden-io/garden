@@ -107,26 +107,26 @@ const testProvider = () => {
   })
 }
 
+export const defaultDeployOpts = withDefaultGlobalOpts({
+  "sync": undefined,
+  "local-mode": undefined,
+  "watch": false,
+  "force": false,
+  "force-build": true, // <----
+  "skip": undefined,
+  "skip-dependencies": false,
+  "skip-watch": false,
+  "forward": false,
+  "logs": false,
+  "timestamps": false,
+  "port": defaultServerPort,
+  "cmd": undefined,
+  "disable-port-forwards": false,
+})
+
 describe("DeployCommand", () => {
   const projectRootB = getDataDir("test-project-b")
   const projectRootA = getDataDir("test-project-a")
-
-  const defaultDeployOpts = withDefaultGlobalOpts({
-    "sync": undefined,
-    "local-mode": undefined,
-    "watch": false,
-    "force": false,
-    "force-build": true, // <----
-    "skip": undefined,
-    "skip-dependencies": false,
-    "skip-watch": false,
-    "forward": false,
-    "logs": false,
-    "timestamps": false,
-    "port": defaultServerPort,
-    "cmd": undefined,
-    "disable-port-forwards": false,
-  })
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
 

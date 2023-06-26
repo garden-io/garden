@@ -471,6 +471,13 @@ export class KubeApi {
           // Then this resource version + kind is not available in the cluster.
           return []
         }
+        // FIXME: OpenShift: developers have more restrictions on what they can list
+        // Ugly workaround right now, basically just shoving the problem under the rug.
+        const openShiftForbiddenList = ["Namespace", "PersistentVolume"]
+        if (err.statusCode === 403 && openShiftForbiddenList.includes(kind)) {
+          log.warn(`No permissions to list resources of kind ${kind}. If you are using OpenShift, ignore this warning.`)
+          return []
+        }
         throw err
       }
     })

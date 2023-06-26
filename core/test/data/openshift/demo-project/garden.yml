@@ -6,3 +6,8 @@ environments:
 providers:
   - name: local-openshift
     environments: [local]
+    # NOTE: shorthand `namespace: demo-project` fails because we use `namespace.name` in code
+    namespace:
+      name: demo-project
+    context: demo-project/api-crc-testing:6443/developer
+    cluster: api-crc-testing:6443

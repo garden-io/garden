@@ -382,7 +382,7 @@ export async function createWorkloadManifest({
     workload.spec.revisionHistoryLimit = production ? REVISION_HISTORY_LIMIT_PROD : REVISION_HISTORY_LIMIT_DEFAULT
   }
 
-  if (provider.config.imagePullSecrets.length > 0) {
+  if (provider.config.imagePullSecrets?.length > 0) {
     // add any configured imagePullSecrets.
     const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
     workload.spec.template.spec!.imagePullSecrets = imagePullSecrets

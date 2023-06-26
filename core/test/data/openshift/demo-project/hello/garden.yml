@@ -1,0 +1,14 @@
+kind: Deploy
+type: container
+name: nginx-hello
+spec:
+  image: registry.access.redhat.com/ubi9/nginx-122:1-12
+  command: ["nginx", "-g", "daemon off;"]
+  ports:
+    - name: http
+      containerPort: 8080
+      localPort: 8080
+  ingresses:
+    - path: /
+      port: http
+      hostname: hello.local.demo.garden
