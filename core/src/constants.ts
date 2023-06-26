@@ -78,7 +78,6 @@ export const gardenEnv = {
   GARDEN_SERVER_HOSTNAME: env.get("GARDEN_SERVER_HOSTNAME").required(false).asUrlString(),
   GARDEN_SKIP_TESTS: env.get("GARDEN_SKIP_TESTS").required(false).default("").asString(),
   GARDEN_HARD_CONCURRENCY_LIMIT: env.get("GARDEN_HARD_CONCURRENCY_LIMIT").required(false).default(50).asInt(),
-  GARDEN_TASK_CONCURRENCY_LIMIT: env.get("GARDEN_TASK_CONCURRENCY_LIMIT").required(false).default(6).asInt(),
   GARDEN_WORKFLOW_RUN_UID: env.get("GARDEN_WORKFLOW_RUN_UID").required(false).asString(),
   // Allow users to fallback to "legacy" fancy writer render logic in case recent changes introduce
   // issues on terminals we haven't tested. We can remove again in v0.13.
