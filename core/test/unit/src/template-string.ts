@@ -16,7 +16,7 @@ import {
 import { ConfigContext } from "../../../src/config/template-contexts/base"
 import { expectError } from "../../helpers"
 import stripAnsi = require("strip-ansi")
-import { dedent } from "../../../src/util/string"
+import { dedent, deline } from "../../../src/util/string"
 
 /* tslint:disable:no-invalid-template-strings */
 
@@ -1137,12 +1137,16 @@ describe("resolveTemplateString", async () => {
       )
     })
 
-    it("does not apply helper function on unresolved template string and returns string as-is, when allowPartial=true", () => {
-      const res = resolveTemplateString("${base64Encode('${environment.namespace}')}", new TestContext({}), {
-        allowPartial: true,
-      })
-      expect(res).to.equal("${base64Encode('${environment.namespace}')}")
-    })
+    it(
+      deline`does not apply helper function on unresolved template string and
+        returns string as-is, when allowPartial=true`,
+      () => {
+        const res = resolveTemplateString("${base64Encode('${environment.namespace}')}", new TestContext({}), {
+          allowPartial: true,
+        })
+        expect(res).to.equal("${base64Encode('${environment.namespace}')}")
+      }
+    )
 
     context("concat", () => {
       it("allows empty strings", () => {
