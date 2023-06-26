@@ -372,6 +372,9 @@ describe("GardenServer", () => {
               expect(req).to.eql({
                 type: "commandResult",
                 requestId: id,
+                persistent: false,
+                commandRequest: "get config",
+                command: "get config",
                 result: deepOmitUndefined(config),
               })
               done()
@@ -457,7 +460,11 @@ describe("GardenServer", () => {
       onMessageAfterReady({
         cb: (msg) => {
           if (msg.type === "commandStart") {
-            expect(msg.args).to.eql({ names: ["module-a"] })
+            expect(msg.args).to.eql({
+              "$all": ["module-a", "--force"],
+              "--": [],
+              "names": ["module-a"],
+            })
             expect(msg.opts.force).to.be.true
           }
 
