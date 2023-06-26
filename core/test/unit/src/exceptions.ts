@@ -16,6 +16,17 @@ import {
 } from "../../../src/exceptions"
 
 describe("GardenError", () => {
+  // helper to avoid dealing with changing line numbers
+  const filterTrace = (metadata) => {
+    return metadata.map((m) => {
+      return {
+        functionName: m.functionName,
+        lineNumber: undefined,
+        relativeFileName: m.relativeFileName,
+      }
+    })
+  }
+
   it("should return stack trace metadata", async () => {
     let error: GardenBaseError
 
@@ -30,16 +41,24 @@ describe("GardenError", () => {
     const expectedSubset: StackTraceMetadata[] = [
       {
         relativeFileName: "exceptions.ts",
+        lineNumber: undefined,
         functionName: "Context.<anonymous>",
       },
       {
         functionName: "Test.Runnable.run",
+        lineNumber: undefined,
         relativeFileName: "mocha/lib/runnable.js",
       },
     ]
 
     expect(stackTrace).to.not.be.undefined
-    expect(stackTrace!.metadata).to.deep.include.members(expectedSubset)
+
+    // make sure we set line numbers
+    // we avoid testing them in deep equals since they are not reliable for tests
+    expect(stackTrace.metadata.at(0)).to.not.be.undefined
+    expect(stackTrace.metadata.at(0)?.lineNumber).to.not.be.undefined
+
+    expect(filterTrace(stackTrace.metadata)).to.deep.include.members(expectedSubset)
   })
 
   it("should handle empty stack trace", async () => {
@@ -59,10 +78,10 @@ describe("GardenError", () => {
     at processImmediate (node:internal/timers:471:21)`
 
     const stackTrace = getStackTraceMetadata(error)
-    expect(stackTrace.metadata).to.eql([
-      { relativeFileName: "utils/exceptions.ts", functionName: "Context.<anonymous>" },
-      { relativeFileName: "mocha/lib/runnable.js", functionName: "Test.Runnable.run" },
-      { relativeFileName: "timers", functionName: "processImmediate" },
+    expect(filterTrace(stackTrace.metadata)).to.eql([
+      { relativeFileName: "utils/exceptions.ts", lineNumber: undefined, functionName: "Context.<anonymous>" },
+      { relativeFileName: "mocha/lib/runnable.js", lineNumber: undefined, functionName: "Test.Runnable.run" },
+      { relativeFileName: "timers", lineNumber: undefined, functionName: "processImmediate" },
     ])
   })
 
@@ -78,10 +97,10 @@ describe("GardenError", () => {
     const stackTrace = getStackTraceMetadata(error)
 
     expect(stackTrace.wrappedMetadata).to.have.length(1)
-    expect(stackTrace.wrappedMetadata?.at(0)).to.eql([
-      { relativeFileName: "utils/exceptions.ts", functionName: "Context.<anonymous>" },
-      { relativeFileName: "mocha/lib/runnable.js", functionName: "Test.Runnable.run" },
-      { relativeFileName: "timers", functionName: "processImmediate" },
+    expect(filterTrace(stackTrace.wrappedMetadata?.at(0))).to.eql([
+      { relativeFileName: "utils/exceptions.ts", lineNumber: undefined, functionName: "Context.<anonymous>" },
+      { relativeFileName: "mocha/lib/runnable.js", lineNumber: undefined, functionName: "Test.Runnable.run" },
+      { relativeFileName: "timers", lineNumber: undefined, functionName: "processImmediate" },
     ])
   })
 })
