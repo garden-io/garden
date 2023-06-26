@@ -1137,6 +1137,13 @@ describe("resolveTemplateString", async () => {
       )
     })
 
+    it("does not apply helper function on unresolved template string and returns string as-is, when allowPartial=true", () => {
+      const res = resolveTemplateString("${base64Encode('${environment.namespace}')}", new TestContext({}), {
+        allowPartial: true,
+      })
+      expect(res).to.equal("${base64Encode('${environment.namespace}')}")
+    })
+
     context("concat", () => {
       it("allows empty strings", () => {
         const res = resolveTemplateString("${concat('', '')}", new TestContext({}))

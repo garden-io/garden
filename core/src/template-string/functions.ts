@@ -512,13 +512,13 @@ export function callHelperFunction({
 
       // do not apply helper function for an unresolved template string
       if (maybeTemplateString(value)) {
-        const _error = new TemplateStringError(`Function '${functionName}' cannot be applied on unresolved string`, {
-          functionName,
-          text,
-        })
         if (allowPartial) {
           return { resolved: "${" + text + "}" }
         } else {
+          const _error = new TemplateStringError(`Function '${functionName}' cannot be applied on unresolved string`, {
+            functionName,
+            text,
+          })
           return { _error }
         }
       }
