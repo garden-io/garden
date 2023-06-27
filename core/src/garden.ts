@@ -1266,7 +1266,7 @@ export class Garden {
         this.configPaths.add(path)
       }
 
-      const allResources = flatten(
+      let allResources = flatten(
         await Bluebird.map(configPaths, async (path) => (await this.loadResources(path)) || [])
       )
       const groupedResources = groupBy(allResources, "kind")

@@ -16,6 +16,7 @@ export const getSupportedPlugins = () => [
   { name: "openshift", callback: () => require("./openshift/openshift").gardenPlugin() },
   { name: "local-openshift", callback: () => require("./openshift/local/local").gardenPlugin() },
   { name: "octant", callback: () => require("./octant/octant").gardenPlugin() },
+  { name: "otel-collector", callback: () => require("./otel-collector/otel-collector").gardenPlugin.getSpec() },
 ]
 
 // These plugins are always registered
