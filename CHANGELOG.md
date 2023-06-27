@@ -1,19 +1,27 @@
 
-<a name="0.12.60"></a>
-## [0.12.60](https://github.com/garden-io/garden/compare/0.13.2...0.12.60) (2023-06-20)
+<a name="0.12.61"></a>
+## [0.12.61](https://github.com/garden-io/garden/compare/0.12.60...0.12.61) (2023-06-21)
+
+## Changelog
 
 ### Bug Fixes
 
-* escape rsync special characters in filenames on windows ([#4434](https://github.com/garden-io/garden/issues/4434)) ([#4438](https://github.com/garden-io/garden/issues/4438)) ([8247044a6](https://github.com/garden-io/garden/commit/8247044a6))
-* **k8s:** handle intermittent socket hang up errors ([51458c674](https://github.com/garden-io/garden/commit/51458c674))
-* **pulumi:** remove PULUMI_EXPERIMENTAL flag due to side effects ([#4617](https://github.com/garden-io/garden/issues/4617)) ([e02f9bf2b](https://github.com/garden-io/garden/commit/e02f9bf2b))
-* **pulumi:** fix pulumi stack tag rm error ([59a054036](https://github.com/garden-io/garden/commit/59a054036))
-* **self-update:** fix target release finding machinery ([9aed119c5](https://github.com/garden-io/garden/commit/9aed119c5))
-* **self-update:** fix list of the latest available versions ([8f4df701b](https://github.com/garden-io/garden/commit/8f4df701b))
+* update version hash if a file is renamed ([0c32af3da](https://github.com/garden-io/garden/commit/0c32af3da))
+* **jib:** fix sha256 hashes for `mvnd` binaries ([4e317efa6](https://github.com/garden-io/garden/commit/4e317efa6))
+* **template-strings:** do not apply helper functions on unresolved string ([#4710](https://github.com/garden-io/garden/issues/4710)) ([8d5180090](https://github.com/garden-io/garden/commit/8d5180090))
 
-### Features
+### Improvements
 
-* update helm to `3.12.0` ([64de8054f](https://github.com/garden-io/garden/commit/64de8054f))
+* **jib:** allow concurrent maven builds ([b34c0fe15](https://github.com/garden-io/garden/commit/b34c0fe15))
+* **jib:** support custom `mvnd` binaries ([00588911a](https://github.com/garden-io/garden/commit/00588911a))
+* * **k8s:** update default Kaniko version ([b0badbdbc](https://github.com/garden-io/garden/commit/b0badbdbc))
+*
+<a name="0.12.60"></a>
+## [0.12.60](https://github.com/garden-io/garden/compare/0.12.59...0.12.60) (2023-06-20)
+
+### Bug Fixes
+
+* **pulumi:** remove `PULUMI_EXPERIMENTAL` flag due to side effects ([#4617](https://github.com/garden-io/garden/issues/4617)) ([e02f9bf2b](https://github.com/garden-io/garden/commit/e02f9bf2b))
 
 ### Improvements
 
@@ -21,44 +29,34 @@
 * **jib:** upgrade Maven version to `3.8.8` ([ade1e43fa](https://github.com/garden-io/garden/commit/ade1e43fa))
 
 <a name="0.12.59"></a>
-## [0.12.59](https://github.com/garden-io/garden/compare/0.13.1...0.12.59) (2023-06-08)
+## [0.12.59](https://github.com/garden-io/garden/compare/0.12.58...0.12.59) (2023-06-08)
 
 ### Bug Fixes
 
-* escape rsync special characters in filenames on windows ([#4434](https://github.com/garden-io/garden/issues/4434)) ([#4438](https://github.com/garden-io/garden/issues/4438)) ([8247044a6](https://github.com/garden-io/garden/commit/8247044a6))
-* **k8s:** handle intermittent socket hang up errors ([51458c674](https://github.com/garden-io/garden/commit/51458c674))
-* **pulumi:** fix pulumi stack tag rm error ([59a054036](https://github.com/garden-io/garden/commit/59a054036))
 * **self-update:** fix target release finding machinery ([9aed119c5](https://github.com/garden-io/garden/commit/9aed119c5))
 * **self-update:** fix list of the latest available versions ([8f4df701b](https://github.com/garden-io/garden/commit/8f4df701b))
 
-### Features
-
-* update helm to `3.12.0` ([64de8054f](https://github.com/garden-io/garden/commit/64de8054f))
+### Other improvements
+* **dockerhub:** update AWS CLI, Google Cloud CLI and Azure CLI to the latest versions to resolve helm issue [#4571](https://github.com/garden-io/garden/issues/4571) ([708e76f](https://github.com/garden-io/garden/commit/708e76f78d71936089dffbc6cc0a9454eeff3270))
 
 <a name="0.12.58"></a>
-## [0.12.58](https://github.com/garden-io/garden/compare/0.13.1...0.12.58) (2023-05-30)
+## [0.12.58](https://github.com/garden-io/garden/compare/0.12.57...0.12.58) (2023-05-30)
 
 ### Bug Fixes
 
-* escape rsync special characters in filenames on windows ([#4434](https://github.com/garden-io/garden/issues/4434)) ([#4438](https://github.com/garden-io/garden/issues/4438)) ([8247044a6](https://github.com/garden-io/garden/commit/8247044a6))
 * **k8s:** handle intermittent socket hang up errors ([51458c674](https://github.com/garden-io/garden/commit/51458c674))
-* **pulumi:** fix pulumi stack tag rm error ([59a054036](https://github.com/garden-io/garden/commit/59a054036))
-
-### Features
-
-* update helm to `3.12.0` ([64de8054f](https://github.com/garden-io/garden/commit/64de8054f))
 
 <a name="0.12.57"></a>
-## [0.12.57](https://github.com/garden-io/garden/compare/0.13.0...0.12.57) (2023-06-06)
-
-### Bug Fixes
-
-* escape rsync special characters in filenames on windows ([#4434](https://github.com/garden-io/garden/issues/4434)) ([#4438](https://github.com/garden-io/garden/issues/4438)) ([8247044a6](https://github.com/garden-io/garden/commit/8247044a6))
-* **pulumi:** fix pulumi stack tag rm error ([59a054036](https://github.com/garden-io/garden/commit/59a054036))
+## [0.12.57](https://github.com/garden-io/garden/compare/0.12.56...0.12.57) (2023-06-06)
 
 ### Features
 
 * update helm to `3.12.0` ([64de8054f](https://github.com/garden-io/garden/commit/64de8054f))
+
+### Bug Fixes
+
+* escape rsync special characters in filenames on windows ([#4434](https://github.com/garden-io/garden/issues/4434)) ([8247044a6](https://github.com/garden-io/garden/commit/8247044a6)) fixes #4018
+* **pulumi:** fix pulumi stack tag rm error ([59a054036](https://github.com/garden-io/garden/commit/59a054036))
 
 <a name="0.12.56"></a>
 ## [0.12.56](https://github.com/garden-io/garden/compare/0.12.55...0.12.56) (2023-05-19)
