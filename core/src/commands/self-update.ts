@@ -511,8 +511,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
             tagSemVer.patch >= currentSemVer.patch
           )
         default: {
-          const _exhaustiveCheck: never = versionScope
-          return _exhaustiveCheck
+          return versionScope satisfies never
         }
       }
     }

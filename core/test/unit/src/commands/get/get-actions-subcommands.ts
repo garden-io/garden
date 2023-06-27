@@ -36,8 +36,7 @@ const getCommandInstance = (
     case "Test":
       return new GetTestsCommand()
     default:
-      const _exhaustiveCheck: never = kind
-      return _exhaustiveCheck
+      return kind satisfies never
   }
 }
 

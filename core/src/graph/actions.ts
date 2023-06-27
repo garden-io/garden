@@ -195,8 +195,6 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   mode: ActionMode
   linkedSources: LinkedSourceMap
 }) {
-  let action: Action
-
   // Call configure handler and validate
   const { config, supportedModes, templateContext } = await preprocessActionConfig({
     garden,
@@ -293,22 +291,16 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   }
 
   if (isBuildActionConfig(config)) {
-    action = new BuildAction(params)
+    return new BuildAction(params)
   } else if (isDeployActionConfig(config)) {
-    action = new DeployAction(params)
+    return new DeployAction(params)
   } else if (isRunActionConfig(config)) {
-    action = new RunAction(params)
+    return new RunAction(params)
   } else if (isTestActionConfig(config)) {
-    action = new TestAction(params)
+    return new TestAction(params)
   } else {
-    const _exhaustiveCheck: never = config
-    // This will be caught earlier
-    throw new InternalError(`Invalid kind '${config["kind"]}' encountered when resolving actions.`, {
-      config: _exhaustiveCheck,
-    })
+    return config satisfies never
   }
-
-  return action
 })
 
 export function actionNameConflictError(configA: ActionConfig, configB: ActionConfig, rootPath: string) {
@@ -449,9 +441,7 @@ function getActionSchema(kind: ActionKind) {
     case "Test":
       return testActionConfigSchema()
     default:
-      // this can be rewritten as `satisfies` with TypeScript 4.9+
-      const _exhaustiveCheck: never = kind
-      return _exhaustiveCheck
+      return kind satisfies never
   }
 }
 

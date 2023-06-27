@@ -1268,8 +1268,7 @@ export class PodRunner extends PodRunnerParams {
         case "kubernetes":
           return `Unable to start command execution. Failed to initiate a runner pod with error:\n${error.message}\n\nPlease check the cluster health and network connectivity.`
         default:
-          const _exhaustiveCheck: never = error.type
-          return _exhaustiveCheck
+          return error.type satisfies never
       }
     }
 

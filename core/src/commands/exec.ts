@@ -127,8 +127,7 @@ export class ExecCommand extends Command<Args, Opts> {
         break
       default:
         // To make sure this switch statement is not forgotten if the `DeployState` FSM gets modified.
-        const _exhaustiveCheck: never = deployState
-        return _exhaustiveCheck
+        return deployState satisfies never
     }
 
     const { result } = await router.deploy.exec({
