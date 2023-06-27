@@ -1,0 +1,8 @@
+apiVersion: garden.io/v1
+kind: Project
+name: otel-collector
+environments:
+  - name: local
+providers:
+  - name: otel-collector
+    configFilePath: otel-config.yaml
