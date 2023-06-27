@@ -1,4 +1,34 @@
 
+<a name="0.13.4"></a>
+## [0.13.4](https://github.com/garden-io/garden/compare/0.13.3...0.13.4) (2023-06-27)
+
+### Bug Fixes
+
+* update version hash if a file is renamed ([12bc08b84](https://github.com/garden-io/garden/commit/12bc08b84))
+* **cli:** print correct link to web dashboard ([#4685](https://github.com/garden-io/garden/issues/4685)) ([6d57b1f5c](https://github.com/garden-io/garden/commit/6d57b1f5c))
+* **cloud:** emit stable action uids across phases ([195a65123](https://github.com/garden-io/garden/commit/195a65123))
+* **cloud:** fix session registration flow for dev ([5f782884e](https://github.com/garden-io/garden/commit/5f782884e))
+* **core:** tweak output from internal _get-service-status command ([09228b819](https://github.com/garden-io/garden/commit/09228b819))
+* **dev:** running command status message could become inconsistent ([0cd29f9a4](https://github.com/garden-io/garden/commit/0cd29f9a4))
+* **jib:** fix sha256 hashes for `mvnd` binaries ([0ea5f7857](https://github.com/garden-io/garden/commit/0ea5f7857))
+* **k8s:** update default Kaniko version ([6584369d4](https://github.com/garden-io/garden/commit/6584369d4))
+* **k8s:** invalid session name error with e.g. underscore in username/path ([62e8a96ad](https://github.com/garden-io/garden/commit/62e8a96ad))
+* **template-strings:** do not apply helper functions on unresolved string ([#4692](https://github.com/garden-io/garden/issues/4692)) ([0b47cccc6](https://github.com/garden-io/garden/commit/0b47cccc6))
+
+### Features
+
+* **openshift:** container Deploy action ([#4652](https://github.com/garden-io/garden/issues/4652)) ([1b448886a](https://github.com/garden-io/garden/commit/1b448886a))
+* **server:** add internal/experimental cmd for getting action statuses ([#4680](https://github.com/garden-io/garden/issues/4680)) ([b7471fbba](https://github.com/garden-io/garden/commit/b7471fbba))
+
+### Improvements
+
+* **jib:** allow concurrent maven builds ([c9a6cf820](https://github.com/garden-io/garden/commit/c9a6cf820))
+* **jib:** support custom `mvnd` binaries ([d2d6f4df2](https://github.com/garden-io/garden/commit/d2d6f4df2))
+* **logs:** log resolve and statusOnly tasks at debug level ([#4691](https://github.com/garden-io/garden/issues/4691)) ([90577faad](https://github.com/garden-io/garden/commit/90577faad))
+* **sdk:** more iteration on the plugin SDK + migrate exec plugin ([#4654](https://github.com/garden-io/garden/issues/4654)) ([ac4cd75ca](https://github.com/garden-io/garden/commit/ac4cd75ca))
+* **server:** add more command info to ws responses ([4b01824bf](https://github.com/garden-io/garden/commit/4b01824bf))
+* **server:** better logging for loading config ([#4688](https://github.com/garden-io/garden/issues/4688)) ([c4f665917](https://github.com/garden-io/garden/commit/c4f665917))
+
 <a name="0.13.3"></a>
 ## [0.13.3](https://github.com/garden-io/garden/compare/0.13.2...0.13.3) (2023-06-21)
 
