@@ -41,8 +41,7 @@ export function actionToResolved<T extends Action>(action: T, params: ResolveAct
   } else if (isTestAction(action)) {
     return new ResolvedTestAction({ ...action["params"], ...params })
   } else {
-    const _exhaustiveCheck: never = action
-    return _exhaustiveCheck
+    return action satisfies never
   }
 }
 
@@ -62,8 +61,7 @@ export function resolvedActionToExecuted<T extends ResolvedAction>(
   } else if (isTestAction(action)) {
     return new ExecutedTestAction({ ...action["params"], ...params }) as Executed<T>
   } else {
-    const _exhaustiveCheck: never = action
-    return _exhaustiveCheck
+    return action satisfies never
   }
 }
 
@@ -134,8 +132,7 @@ export async function getActionState(
       return (await router.test.getResult({ action: action as ResolvedTestAction, log: actionLog, graph }))?.result
         ?.state
     default:
-      const _exhaustiveCheck: never = action
-      return _exhaustiveCheck
+      return action satisfies never
   }
 }
 

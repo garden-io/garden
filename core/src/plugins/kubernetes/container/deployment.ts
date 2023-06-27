@@ -375,8 +375,7 @@ export async function createWorkloadManifest({
         type: deploymentStrategy,
       }
     } else {
-      const _exhaustiveCheck: never = deploymentStrategy
-      return _exhaustiveCheck
+      return deploymentStrategy satisfies never
     }
 
     workload.spec.revisionHistoryLimit = production ? REVISION_HISTORY_LIMIT_PROD : REVISION_HISTORY_LIMIT_DEFAULT
