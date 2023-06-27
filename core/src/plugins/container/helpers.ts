@@ -170,8 +170,11 @@ const helpers = {
       // Otherwise, return the configured image ID.
       return moduleConfig.spec.image
     } else {
-      throw new ConfigurationError(`Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`, {
-        spec: moduleConfig.spec,
+      throw new ConfigurationError({
+        message: `Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`,
+        detail: {
+          spec: moduleConfig.spec,
+        },
       })
     }
   },
@@ -216,8 +219,11 @@ const helpers = {
         tag,
       }
     } else {
-      throw new ConfigurationError(`Invalid container image tag: ${imageId}`, {
-        imageId,
+      throw new ConfigurationError({
+        message: `Invalid container image tag: ${imageId}`,
+        detail: {
+          imageId,
+        },
       })
     }
   },
@@ -261,8 +267,11 @@ const helpers = {
       const output = res.stdout.trim()
 
       if (!output) {
-        throw new RuntimeError(`Unexpected docker version output: ${res.all.trim()}`, {
-          output,
+        throw new RuntimeError({
+          message: `Unexpected docker version output: ${res.all.trim()}`,
+          detail: {
+            output,
+          },
         })
       }
 
@@ -277,14 +286,14 @@ const helpers = {
    */
   checkDockerServerVersion(version: DockerVersion) {
     if (!version.server) {
-      throw new RuntimeError(`Docker server is not running or cannot be reached.`, version)
+      throw new RuntimeError({ message: `Docker server is not running or cannot be reached.`, detail: version })
     } else if (!checkMinDockerVersion(version.server, minDockerVersion.server!)) {
-      throw new RuntimeError(
-        `Docker server needs to be version ${minDockerVersion.server} or newer (got ${version.server})`,
-        {
+      throw new RuntimeError({
+        message: `Docker server needs to be version ${minDockerVersion.server} or newer (got ${version.server})`,
+        detail: {
           ...version,
-        }
-      )
+        },
+      })
     }
   },
 
@@ -322,10 +331,13 @@ const helpers = {
       })
       return res
     } catch (err) {
-      throw new RuntimeError(`Unable to run docker command: ${err.message}`, {
-        err,
-        args,
-        cwd,
+      throw new RuntimeError({
+        message: `Unable to run docker command: ${err.message}`,
+        detail: {
+          err,
+          args,
+          cwd,
+        },
       })
     }
   },

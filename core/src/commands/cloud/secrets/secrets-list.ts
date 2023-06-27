@@ -62,7 +62,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
 
     const api = garden.cloudApi
     if (!api) {
-      throw new ConfigurationError(noApiMsg("list", "secrets"), {})
+      throw new ConfigurationError({ message: noApiMsg("list", "secrets"), detail: {} })
     }
 
     let project: CloudProject | undefined
@@ -72,10 +72,10 @@ export class SecretsListCommand extends Command<{}, Opts> {
     }
 
     if (!project) {
-      throw new CloudApiError(
-        `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
-        {}
-      )
+      throw new CloudApiError({
+        message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
+        detail: {},
+      })
     }
 
     let page = 0

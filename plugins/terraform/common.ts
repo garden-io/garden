@@ -100,7 +100,7 @@ export async function tfValidate(params: TerraformParams) {
         errorMsg += dedent`\n\n${resultErrors.join("\n")}`
       }
 
-      throw new ConfigurationError(errorMsg, { failedResponse: retryRes || res, initError })
+      throw new ConfigurationError({ message: errorMsg, detail: { failedResponse: retryRes || res, initError } })
     }
   }
 }
@@ -178,10 +178,13 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
     return "outdated"
   } else {
     statusLog.error(`Failed running plan`)
-    throw new PluginError(`Unexpected exit code from \`terraform plan\`: ${plan.exitCode}`, {
-      exitCode: plan.exitCode,
-      stderr: plan.stderr,
-      stdout: plan.stdout,
+    throw new PluginError({
+      message: `Unexpected exit code from \`terraform plan\`: ${plan.exitCode}`,
+      detail: {
+        exitCode: plan.exitCode,
+        stderr: plan.stderr,
+        stdout: plan.stdout,
+      },
     })
   }
 }
@@ -225,10 +228,13 @@ export async function applyStack(params: TerraformParamsWithVariables) {
         _resolve()
       } else {
         reject(
-          new RuntimeError(`Error when applying Terraform stack:\n${stderr}`, {
-            stdout,
-            stderr,
-            code,
+          new RuntimeError({
+            message: `Error when applying Terraform stack:\n${stderr}`,
+            detail: {
+              stdout,
+              stderr,
+              code,
+            },
           })
         )
       }

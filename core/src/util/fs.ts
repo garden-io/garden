@@ -301,7 +301,7 @@ export async function getWorkingCopyId(gardenDirPath: string) {
  */
 export async function isDirectory(path: string) {
   if (!(await pathExists(path))) {
-    throw new FilesystemError(`Path ${path} does not exist`, { path })
+    throw new FilesystemError({ message: `Path ${path} does not exist`, detail: { path } })
   }
 
   const stat = await lstat(path)

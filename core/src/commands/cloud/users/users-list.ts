@@ -54,7 +54,7 @@ export class UsersListCommand extends Command<{}, Opts> {
 
     const api = garden.cloudApi
     if (!api) {
-      throw new ConfigurationError(noApiMsg("list", "users"), {})
+      throw new ConfigurationError({ message: noApiMsg("list", "users"), detail: {} })
     }
 
     let project: CloudProject | undefined
@@ -64,10 +64,10 @@ export class UsersListCommand extends Command<{}, Opts> {
     }
 
     if (!project) {
-      throw new CloudApiError(
-        `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
-        {}
-      )
+      throw new CloudApiError({
+        message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
+        detail: {},
+      })
     }
 
     // Make a best effort VCS provider guess. We should have an API endpoint for this or return with the response.

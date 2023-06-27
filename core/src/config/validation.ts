@@ -141,12 +141,15 @@ export const validateSchema = profile(function $validateSchema<T>(
       errorDescription += `. Available keys: ${Object.keys(schema.describe().keys).join(", ")})`
     }
 
-    throw new ErrorClass(`${msgPrefix}: ${errorDescription}`, {
-      value,
-      context,
-      schemaMetadata,
-      errorDescription,
-      errorDetails,
+    throw new ErrorClass({
+      message: `${msgPrefix}: ${errorDescription}`,
+      detail: {
+        value,
+        context,
+        schemaMetadata,
+        errorDescription,
+        errorDetails,
+      },
     })
   }
 

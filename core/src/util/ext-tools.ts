@@ -171,10 +171,13 @@ export class CliWrapper {
           // we use `stdout` for the error output instead (in case information relevant to the user is included there).
           const errOutput = stderr.length > 0 ? stderr : stdout
           reject(
-            new RuntimeError(`${errorPrefix}:\n${errOutput}`, {
-              stdout,
-              stderr,
-              code,
+            new RuntimeError({
+              message: `${errorPrefix}:\n${errOutput}`,
+              detail: {
+                stdout,
+                stderr,
+                code,
+              },
             })
           )
         }
@@ -249,15 +252,15 @@ export class PluginTool extends CliWrapper {
     }
 
     if (!buildSpec) {
-      throw new ConfigurationError(
-        `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture})`,
-        {
+      throw new ConfigurationError({
+        message: `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture})`,
+        detail: {
           spec,
           platform,
           architecture,
           darwinARM,
-        }
-      )
+        },
+      })
     }
 
     this.buildSpec = buildSpec
@@ -310,10 +313,10 @@ export class PluginTool extends CliWrapper {
         await this.fetch(tmpPath, log)
 
         if (this.buildSpec.extract && !(await pathExists(targetAbsPath))) {
-          throw new ConfigurationError(
-            `Archive ${this.buildSpec.url} does not contain a file or directory at ${this.targetSubpath}`,
-            { name: this.name, spec: this.spec }
-          )
+          throw new ConfigurationError({
+            message: `Archive ${this.buildSpec.url} does not contain a file or directory at ${this.targetSubpath}`,
+            detail: { name: this.name, spec: this.spec },
+          })
         }
 
         await move(tmpPath, this.versionPath, { overwrite: true })
@@ -363,10 +366,13 @@ export class PluginTool extends CliWrapper {
 
         if (this.buildSpec.sha256 && sha256 !== this.buildSpec.sha256) {
           reject(
-            new DownloadError(`Invalid checksum from ${this.buildSpec.url} (got ${sha256})`, {
-              name: this.name,
-              spec: this.spec,
-              sha256,
+            new DownloadError({
+              message: `Invalid checksum from ${this.buildSpec.url} (got ${sha256})`,
+              detail: {
+                name: this.name,
+                spec: this.spec,
+                sha256,
+              },
             })
           )
         }
@@ -393,9 +399,12 @@ export class PluginTool extends CliWrapper {
           extractor.on("close", () => resolve())
         } else {
           reject(
-            new ParameterError(`Invalid archive format: ${format}`, {
-              name: this.name,
-              spec: this.spec,
+            new ParameterError({
+              message: `Invalid archive format: ${format}`,
+              detail: {
+                name: this.name,
+                spec: this.spec,
+              },
             })
           )
           return

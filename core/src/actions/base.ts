@@ -729,10 +729,10 @@ export abstract class ResolvedRuntimeAction<
       const buildAction = this.getResolvedDependencies().find((a) => a.kind === "Build" && a.name === buildName)
 
       if (!buildAction) {
-        throw new InternalError(
-          `Could not find build dependency '${buildName}' specified on the build field on ${this.longDescription()}.`,
-          { action: this.key(), buildName }
-        )
+        throw new InternalError({
+          message: `Could not find build dependency '${buildName}' specified on the build field on ${this.longDescription()}.`,
+          detail: { action: this.key(), buildName },
+        })
       }
 
       return <T>buildAction

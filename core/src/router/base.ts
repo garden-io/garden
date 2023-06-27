@@ -228,7 +228,10 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
   async configure({ config, log }: { config: BaseActionConfig; log: Log }) {
     if (config.kind !== this.kind) {
-      throw new InternalError(`Attempted to call ${this.kind} handler for ${config.kind} action`, {})
+      throw new InternalError({
+        message: `Attempted to call ${this.kind} handler for ${config.kind} action`,
+        detail: {},
+      })
     }
 
     // TODO: work out why this cast is needed
@@ -273,7 +276,10 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     log.silly(`Getting '${String(handlerType)}' handler for ${action.longDescription()}`)
 
     if (action.kind !== this.kind) {
-      throw new InternalError(`Attempted to call ${this.kind} handler for ${action.kind} action`, {})
+      throw new InternalError({
+        message: `Attempted to call ${this.kind} handler for ${action.kind} action`,
+        detail: {},
+      })
     }
 
     const handler = await this.getHandler({
@@ -361,14 +367,14 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       <WrappedActionTypeHandler<ActionTypeClasses<K>[T], any>>(<unknown>(async (...args: any[]) => {
         const result = await handler["apply"](plugin, args)
         if (result === undefined) {
-          throw new PluginError(
-            `Got empty response from ${actionType}.${String(handlerType)} handler on ${pluginName} provider`,
-            {
+          throw new PluginError({
+            message: `Got empty response from ${actionType}.${String(handlerType)} handler on ${pluginName} provider`,
+            detail: {
               args,
               handlerType,
               pluginName,
-            }
-          )
+            },
+          })
         }
         const kind = this.kind
         return validateSchema(result, schema, {
@@ -459,11 +465,12 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         }
 
         // This should never happen
-        throw new InternalError(
-          `Unable to find any matching configuration when selecting ${actionType}/${String(handlerType)} handler ` +
+        throw new InternalError({
+          message:
+            `Unable to find any matching configuration when selecting ${actionType}/${String(handlerType)} handler ` +
             `(please report this as a bug).`,
-          { handlers, configs }
-        )
+          detail: { handlers, configs },
+        })
       } else {
         return filtered[0]
       }
@@ -487,16 +494,19 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       }
 
       if (pluginName) {
-        throw new PluginError(
-          `Plugin '${pluginName}' does not have a '${String(handlerType)}' handler for action type '${actionType}'.`,
-          errorDetails
-        )
+        throw new PluginError({
+          message: `Plugin '${pluginName}' does not have a '${String(
+            handlerType
+          )}' handler for action type '${actionType}'.`,
+          detail: errorDetails,
+        })
       } else {
-        throw new ParameterError(
-          `No '${String(handlerType)}' handler configured for ${this.kind} type '${actionType}' in environment ` +
+        throw new ParameterError({
+          message:
+            `No '${String(handlerType)}' handler configured for ${this.kind} type '${actionType}' in environment ` +
             `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
-          errorDetails
-        )
+          detail: errorDetails,
+        })
       }
     }
   }

@@ -80,11 +80,11 @@ export async function ensureNamespace(
         if (n.metadata.name === namespace.name) {
           result.remoteResource = n
           if (n.status.phase === "Terminating") {
-            throw new KubernetesError(
-              dedent`Namespace "${n.metadata.name}" is in "Terminating" state so Garden is unable to create it.
+            throw new KubernetesError({
+              message: dedent`Namespace "${n.metadata.name}" is in "Terminating" state so Garden is unable to create it.
             Please try again once the namespace has terminated.`,
-              {}
-            )
+              detail: {},
+            })
           }
         }
       }
@@ -113,10 +113,10 @@ export async function ensureNamespace(
           })
           result.created = true
         } catch (error) {
-          throw new KubernetesError(
-            `Namespace ${namespace.name} doesn't exist and Garden was unable to create it. You may need to create it manually or ask an administrator to do so.`,
-            { error }
-          )
+          throw new KubernetesError({
+            message: `Namespace ${namespace.name} doesn't exist and Garden was unable to create it. You may need to create it manually or ask an administrator to do so.`,
+            detail: { error },
+          })
         }
       } else if (namespaceNeedsUpdate(result.remoteResource, namespace)) {
         // Make sure annotations and labels are set correctly if the namespace already exists
@@ -268,14 +268,14 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
   } catch (err) {
     log.error("Error")
 
-    throw new DeploymentError(
-      dedent`
+    throw new DeploymentError({
+      message: dedent`
       Unable to connect to Kubernetes cluster. Got error:
 
       ${err.message}
     `,
-      { providerConfig: k8sCtx.provider.config }
-    )
+      detail: { providerConfig: k8sCtx.provider.config },
+    })
   }
 
   const ns = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
@@ -314,8 +314,11 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
 
     const now = new Date().getTime()
     if (now - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
-      throw new TimeoutError(`Timed out waiting for namespace ${namespaces.join(", ")} delete to complete`, {
-        namespaces,
+      throw new TimeoutError({
+        message: `Timed out waiting for namespace ${namespaces.join(", ")} delete to complete`,
+        detail: {
+          namespaces,
+        },
       })
     }
   }

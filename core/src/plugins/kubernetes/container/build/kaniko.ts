@@ -7,7 +7,12 @@
  */
 
 import { V1PodSpec } from "@kubernetes/client-node"
-import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName, defaultKanikoImageName } from "../../constants"
+import {
+  skopeoDaemonContainerName,
+  dockerAuthSecretKey,
+  k8sUtilImageName,
+  defaultKanikoImageName,
+} from "../../constants"
 import { KubeApi } from "../../api"
 import { Log } from "../../../../logger/log-entry"
 import { KubernetesProvider, KubernetesPluginContext } from "../../config"
@@ -159,7 +164,10 @@ export const kanikoBuild: BuildHandler = async (params) => {
   const buildLog = buildRes.log
 
   if (kanikoBuildFailed(buildRes)) {
-    throw new BuildError(`Failed building ${chalk.bold(action.name)}:\n\n${buildLog}`, { buildLog })
+    throw new BuildError({
+      message: `Failed building ${chalk.bold(action.name)}:\n\n${buildLog}`,
+      detail: { buildLog },
+    })
   }
 
   log.silly(buildLog)
@@ -183,7 +191,7 @@ export const getKanikoFlags = (flags?: string[], topLevelFlags?: string[]): stri
   const flagToKey = (flag: string) => {
     const found = flag.match(/--([a-zA-Z]*)/)
     if (found === null) {
-      throw new ConfigurationError(`Invalid format for a kaniko flag`, { flag })
+      throw new ConfigurationError({ message: `Invalid format for a kaniko flag`, detail: { flag } })
     }
     return found[0]
   }

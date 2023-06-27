@@ -110,16 +110,16 @@ export class ModuleGraph {
         if (this.serviceConfigs[serviceName]) {
           const [moduleA, moduleB] = [moduleKey, this.serviceConfigs[serviceName].moduleKey].sort()
 
-          throw new ConfigurationError(
-            deline`
+          throw new ConfigurationError({
+            message: deline`
             Service names must be unique - the service name '${serviceName}' is declared multiple times
             (in modules '${moduleA}' and '${moduleB}')`,
-            {
+            detail: {
               serviceName,
               moduleA,
               moduleB,
-            }
-          )
+            },
+          })
         }
 
         // Make sure service source modules are added as build dependencies for the module
@@ -145,16 +145,16 @@ export class ModuleGraph {
         if (this.taskConfigs[taskName]) {
           const [moduleA, moduleB] = [moduleKey, this.taskConfigs[taskName].moduleKey].sort()
 
-          throw new ConfigurationError(
-            deline`
+          throw new ConfigurationError({
+            message: deline`
             Task names must be unique - the task name '${taskName}' is declared multiple times (in modules
             '${moduleA}' and '${moduleB}')`,
-            {
+            detail: {
               taskName,
               moduleA,
               moduleB,
-            }
-          )
+            },
+          })
         }
 
         this.taskConfigs[taskName] = { type: "task", moduleKey, config: taskConfig }
@@ -269,7 +269,7 @@ export class ModuleGraph {
     if (cycles.length > 0) {
       const description = validationGraph.cyclesToString(cycles)
       const errMsg = `\nCircular dependencies detected: \n\n${description}\n`
-      throw new ConfigurationError(errMsg, { "circular-dependencies": description })
+      throw new ConfigurationError({ message: errMsg, detail: { "circular-dependencies": description } })
     }
   }
 
@@ -743,10 +743,13 @@ export function detectMissingDependencies(moduleConfigs: ModuleConfig[]) {
   if (missingDepDescriptions.length > 0) {
     const errMsg = "Unknown dependencies detected.\n\n" + indentString(missingDepDescriptions.join("\n\n"), 2) + "\n"
 
-    throw new ConfigurationError(errMsg, {
-      unknownDependencies: missingDepDescriptions,
-      availableModules: Array.from(moduleNames),
-      availableServicesAndTasks: Array.from(runtimeNames),
+    throw new ConfigurationError({
+      message: errMsg,
+      detail: {
+        unknownDependencies: missingDepDescriptions,
+        availableModules: Array.from(moduleNames),
+        availableServicesAndTasks: Array.from(runtimeNames),
+      },
     })
   }
 }
@@ -765,14 +768,14 @@ function parseTestKey(key: string) {
 }
 
 function serviceTaskConflict(conflictingName: string, moduleWithTask: string, moduleWithService: string) {
-  return new ConfigurationError(
-    deline`
+  return new ConfigurationError({
+    message: deline`
     Service and task names must be mutually unique - the name '${conflictingName}' is used for a task in
     '${moduleWithTask}' and for a service in '${moduleWithService}'`,
-    {
+    detail: {
       conflictingName,
       moduleWithTask,
       moduleWithService,
-    }
-  )
+    },
+  })
 }

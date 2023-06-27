@@ -41,16 +41,22 @@ export const pullImage: PluginCommand = {
     const provider = k8sCtx.provider
 
     if (provider.config.buildMode === "local-docker") {
-      throw new PluginError(`Cannot pull images with buildMode=local-docker`, {
-        provider,
+      throw new PluginError({
+        message: `Cannot pull images with buildMode=local-docker`,
+        detail: {
+          provider,
+        },
       })
     }
 
     const buildsToPull = graph.getBuilds({ names: args.length > 0 ? args : undefined }).filter((b) => {
       const valid = b.isCompatible("container")
       if (!valid && args.includes(b.name)) {
-        throw new ParameterError(chalk.red(`Build ${chalk.white(b.name)} is not a container build.`), {
-          name: b.name,
+        throw new ParameterError({
+          message: chalk.red(`Build ${chalk.white(b.name)} is not a container build.`),
+          detail: {
+            name: b.name,
+          },
         })
       }
       return valid
@@ -189,10 +195,13 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
     log.debug(`Loading image to local docker with ID ${localId}`)
     await loadImage({ ctx, runner, log })
   } catch (err) {
-    throw new RuntimeError(`Failed pulling image ${remoteId}: ${err.message}`, {
-      err,
-      remoteId,
-      localId,
+    throw new RuntimeError({
+      message: `Failed pulling image ${remoteId}: ${err.message}`,
+      detail: {
+        err,
+        remoteId,
+        localId,
+      },
     })
   } finally {
     await runner.stop()

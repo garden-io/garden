@@ -83,22 +83,25 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     let secrets: StringMap
 
     if (userId !== undefined && !envName) {
-      throw new CommandError(
-        `Got user ID but not environment name. Secrets scoped to users must be scoped to environments as well.`,
-        {
+      throw new CommandError({
+        message: `Got user ID but not environment name. Secrets scoped to users must be scoped to environments as well.`,
+        detail: {
           args,
           opts,
-        }
-      )
+        },
+      })
     }
 
     if (fromFile) {
       try {
         secrets = dotenv.parse(await readFile(fromFile))
       } catch (err) {
-        throw new CommandError(`Unable to read secrets from file at path ${fromFile}: ${err.message}`, {
-          args,
-          opts,
+        throw new CommandError({
+          message: `Unable to read secrets from file at path ${fromFile}: ${err.message}`,
+          detail: {
+            args,
+            opts,
+          },
         })
       }
     } else if (args.secrets) {
@@ -108,24 +111,27 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
           Object.assign(acc, secret)
           return acc
         } catch (err) {
-          throw new CommandError(`Unable to read secret from argument ${keyValPair}: ${err.message}`, {
-            args,
-            opts,
+          throw new CommandError({
+            message: `Unable to read secret from argument ${keyValPair}: ${err.message}`,
+            detail: {
+              args,
+              opts,
+            },
           })
         }
       }, {})
     } else {
-      throw new CommandError(
-        dedent`
+      throw new CommandError({
+        message: dedent`
         No secrets provided. Either provide secrets directly to the command or via the --from-file flag.
       `,
-        { args, opts }
-      )
+        detail: { args, opts },
+      })
     }
 
     const api = garden.cloudApi
     if (!api) {
-      throw new ConfigurationError(noApiMsg("create", "secrets"), {})
+      throw new ConfigurationError({ message: noApiMsg("create", "secrets"), detail: {} })
     }
 
     let project: CloudProject | undefined
@@ -135,10 +141,10 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     }
 
     if (!project) {
-      throw new CloudApiError(
-        `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
-        {}
-      )
+      throw new CloudApiError({
+        message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
+        detail: {},
+      })
     }
 
     let environmentId: string | undefined
@@ -146,9 +152,12 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     if (envName) {
       const environment = project.environments.find((e) => e.name === envName)
       if (!environment) {
-        throw new CloudApiError(`Environment with name ${envName} not found in project`, {
-          environmentName: envName,
-          availableEnvironmentNames: project.environments.map((e) => e.name),
+        throw new CloudApiError({
+          message: `Environment with name ${envName} not found in project`,
+          detail: {
+            environmentName: envName,
+            availableEnvironmentNames: project.environments.map((e) => e.name),
+          },
         })
       }
       environmentId = environment.id
@@ -158,8 +167,11 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     if (userId) {
       const user = await api.get(`/users/${userId}`)
       if (!user) {
-        throw new CloudApiError(`User with ID ${userId} not found.`, {
-          userId,
+        throw new CloudApiError({
+          message: `User with ID ${userId} not found.`,
+          detail: {
+            userId,
+          },
         })
       }
     }

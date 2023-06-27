@@ -45,8 +45,11 @@ export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>, pro
       provider.config.deploymentRegistry
     )
   } else {
-    throw new ConfigurationError(`${action.longDescription()} specifies neither a \`build\` nor \`spec.image\``, {
-      config: action.getConfig(),
+    throw new ConfigurationError({
+      message: `${action.longDescription()} specifies neither a \`build\` nor \`spec.image\``,
+      detail: {
+        config: action.getConfig(),
+      },
     })
   }
 }

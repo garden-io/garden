@@ -59,8 +59,11 @@ export async function getManifests({
         // at least the first manifest has a kind: seems to be a valid List
         return manifest.items as KubernetesResource[]
       } else {
-        throw new PluginError("Failed to read Kubernetes manifest: Encountered an invalid List manifest", {
-          manifest,
+        throw new PluginError({
+          message: "Failed to read Kubernetes manifest: Encountered an invalid List manifest",
+          detail: {
+            manifest,
+          },
         })
       }
     }
@@ -144,13 +147,13 @@ export async function readManifests(
 
     for (const arg of disallowedKustomizeArgs) {
       if (extraArgs.includes(arg)) {
-        throw new ConfigurationError(
-          `kustomize.extraArgs must not include any of ${disallowedKustomizeArgs.join(", ")}`,
-          {
+        throw new ConfigurationError({
+          message: `kustomize.extraArgs must not include any of ${disallowedKustomizeArgs.join(", ")}`,
+          detail: {
             spec,
             extraArgs,
-          }
-        )
+          },
+        })
       }
     }
 
@@ -162,9 +165,12 @@ export async function readManifests(
       })
       kustomizeManifests = loadAll(kustomizeOutput)
     } catch (error) {
-      throw new PluginError(`Failed resolving kustomize manifests: ${error.message}`, {
-        error,
-        spec,
+      throw new PluginError({
+        message: `Failed resolving kustomize manifests: ${error.message}`,
+        detail: {
+          error,
+          spec,
+        },
       })
     }
   }
@@ -182,7 +188,7 @@ export function gardenNamespaceAnnotationValue(namespaceName: string) {
 
 export function convertServiceResource(
   module: KubernetesModule | HelmModule,
-  serviceResourceSpec?: ServiceResourceSpec,
+  serviceResourceSpec?: ServiceResourceSpec
 ): KubernetesTargetResourceSpec | null {
   const s = serviceResourceSpec || module.spec.serviceResource
 
@@ -219,7 +225,10 @@ export async function runOrTestWithPod(
 
     if (!resourceSpec) {
       // Note: This will generally be caught in schema validation.
-      throw new ConfigurationError(`${action.longDescription()} specified neither podSpec nor resource.`, { spec })
+      throw new ConfigurationError({
+        message: `${action.longDescription()} specified neither podSpec nor resource.`,
+        detail: { spec },
+      })
     }
     const k8sCtx = <KubernetesPluginContext>ctx
     const provider = k8sCtx.provider
@@ -236,10 +245,10 @@ export async function runOrTestWithPod(
     podSpec = getResourcePodSpec(target)
     container = getResourceContainer(target, resourceSpec.containerName)
   } else if (!container) {
-    throw new ConfigurationError(
-      `${action.longDescription()} specified a podSpec without containers. Please make sure there is at least one container in the spec.`,
-      { spec }
-    )
+    throw new ConfigurationError({
+      message: `${action.longDescription()} specified a podSpec without containers. Please make sure there is at least one container in the spec.`,
+      detail: { spec },
+    })
   }
 
   return runAndCopy({

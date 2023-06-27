@@ -33,12 +33,23 @@ export type GardenErrorStackTrace = {
   wrappedMetadata?: StackTraceMetadata[][]
 }
 
+export interface GardenErrorParams<D extends object = any> {
+  message: string
+  readonly detail?: D
+  readonly stack?: string
+  readonly wrappedErrors?: GardenError[]
+}
+
 export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
   abstract type: string
+  public message: string
+  public detail?: D
+  public wrappedErrors?: GardenError<any>[]
 
-  constructor(message: string, public readonly detail: D, public readonly wrappedErrors?: GardenError[]) {
+  constructor({ message, detail, stack, wrappedErrors }: GardenErrorParams<D>) {
     super(message)
     this.detail = detail
+    this.stack = stack
     this.wrappedErrors = wrappedErrors
   }
 
@@ -125,8 +136,8 @@ export class RuntimeError extends GardenBaseError {
 export class InternalError extends GardenBaseError {
   type = "internal"
 
-  constructor(message: string, detail: any) {
-    super(message + "\nThis is a bug. Please report it!", detail)
+  constructor({ message, detail }: { message: string; detail: any }) {
+    super({ message: message + "\nThis is a bug. Please report it!", detail })
   }
 }
 
@@ -154,25 +165,27 @@ export class TemplateStringError extends GardenBaseError {
   type = "template-string"
 }
 
-interface ErrorEvent {
-  error: any
-  message: string
+export class WrappedNativeError extends GardenBaseError {
+  type = "wrapped-native-error"
+
+  constructor(error: Error) {
+    super({ message: error.message, stack: error.stack })
+  }
 }
 
-export function toGardenError(err: Error | ErrorEvent | GardenBaseError | string): GardenBaseError {
+export function toGardenError(err: Error | GardenBaseError | string): GardenBaseError {
   if (err instanceof GardenBaseError) {
     return err
   } else if (err instanceof Error) {
-    const out = new RuntimeError(err.message, err)
+    const wrappedError = new WrappedNativeError(err)
+    const out = new RuntimeError({ message: err.message, wrappedErrors: [wrappedError] })
     out.stack = err.stack
     return out
-  } else if (!isString(err) && err.message && err.error) {
-    return new RuntimeError(err.message, err)
   } else if (isString(err)) {
-    return new RuntimeError(err, {})
+    return new RuntimeError({ message: err })
   } else {
     const msg = err["message"]
-    return new RuntimeError(msg, err)
+    return new RuntimeError({ message: msg })
   }
 }
 

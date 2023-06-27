@@ -38,7 +38,7 @@ export async function getBuildToolVersion(params: CheckVersionParams) {
         return baseErrorMessage(params)
       }
     }
-    throw new RuntimeError(composeErrorMessage(error), { binaryPath })
+    throw new RuntimeError({ message: composeErrorMessage(error), detail: { binaryPath } })
   }
 }
 
@@ -51,10 +51,10 @@ export async function verifyBinaryPath(params: VerifyBinaryParams) {
   const versionOutput = await getBuildToolVersion(params)
   const isMaven = versionOutput.toLowerCase().includes(outputVerificationString)
   if (!isMaven) {
-    throw new RuntimeError(
-      `${baseErrorMessage(params)} It looks like the ${toolName} path points to a wrong executable binary.`,
-      { binaryPath }
-    )
+    throw new RuntimeError({
+      message: `${baseErrorMessage(params)} It looks like the ${toolName} path points to a wrong executable binary.`,
+      detail: { binaryPath },
+    })
   }
 }
 

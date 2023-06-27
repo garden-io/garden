@@ -51,12 +51,12 @@ export function getCommitIdFromRefList(refList: string[]): string {
 export function parseGitUrl(url: string) {
   const parts = splitLast(url, "#")
   if (!parts[0]) {
-    throw new ConfigurationError(
-      deline`
+    throw new ConfigurationError({
+      message: deline`
         Repository URLs must contain a hash part pointing to a specific branch or tag
         (e.g. https://github.com/org/repo.git#main)`,
-      { repositoryUrl: url }
-    )
+      detail: { repositoryUrl: url },
+    })
   }
   const parsed = { repositoryUrl: parts[0], hash: parts[1] }
   return parsed
@@ -191,7 +191,7 @@ export class GitHandler extends VcsHandler {
 
           return
         } else if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: not a git repository")) {
-          throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
+          throw new RuntimeError({ message: notInRepoRootErrorMessage(path), detail: { path } })
         } else {
           log.error(
             `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.exitCode}. Error message: ${err.stderr}`
@@ -229,14 +229,15 @@ export class GitHandler extends VcsHandler {
       } catch (err) {
         if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
           // Throw nice error when we detect that we're not in a repo root
-          throw new RuntimeError(
-            err.stderr +
+          throw new RuntimeError({
+            message:
+              err.stderr +
               `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
-            { path }
-          )
+            detail: { path },
+          })
         } else if (err.exitCode === 128) {
           // Throw nice error when we detect that we're not in a repo root
-          throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
+          throw new RuntimeError({ message: notInRepoRootErrorMessage(path), detail: { path } })
         } else {
           throw err
         }
@@ -556,14 +557,14 @@ export class GitHandler extends VcsHandler {
       await git("checkout", "FETCH_HEAD")
       return git("-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive")
     } catch (err) {
-      throw new RuntimeError(
-        dedent`Failed to shallow clone with error: \n\n${err}
+      throw new RuntimeError({
+        message: dedent`Failed to shallow clone with error: \n\n${err}
       Make sure both git client and server are newer than 2.5.0 and that \`uploadpack.allowReachableSHA1InWant=true\`
       is set on the server`,
-        {
+        detail: {
           message: err.message,
-        }
-      )
+        },
+      })
     }
   }
 
@@ -584,9 +585,12 @@ export class GitHandler extends VcsHandler {
           await this.cloneRemoteSource(log, repositoryUrl, hash, absPath, failOnPrompt)
         } catch (err) {
           gitLog.error(`Failed fetching from ${url}`)
-          throw new RuntimeError(`Downloading remote ${sourceType} failed with error: \n\n${err}`, {
-            repositoryUrl: url,
-            message: err.message,
+          throw new RuntimeError({
+            message: `Downloading remote ${sourceType} failed with error: \n\n${err}`,
+            detail: {
+              repositoryUrl: url,
+              message: err.message,
+            },
           })
         }
 
@@ -623,9 +627,12 @@ export class GitHandler extends VcsHandler {
           await git("-c", "protocol.file.allow=always", "submodule", "update", "--recursive")
         } catch (err) {
           gitLog.error(`Failed fetching from ${url}`)
-          throw new RuntimeError(`Updating remote ${sourceType} failed with error: \n\n${err}`, {
-            repositoryUrl: url,
-            message: err.message,
+          throw new RuntimeError({
+            message: `Updating remote ${sourceType} failed with error: \n\n${err}`,
+            detail: {
+              repositoryUrl: url,
+              message: err.message,
+            },
           })
         }
 

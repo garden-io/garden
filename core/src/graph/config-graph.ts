@@ -180,14 +180,20 @@ export abstract class BaseConfigGraph<
     const action = this.actions[kind][name]
 
     if (!action) {
-      throw new GraphError(`Could not find ${kind} action ${name}.`, {
-        available: this.getNamesByKind(),
+      throw new GraphError({
+        message: `Could not find ${kind} action ${name}.`,
+        detail: {
+          available: this.getNamesByKind(),
+        },
       })
     }
 
     if (action.isDisabled() && !opts.includeDisabled) {
-      throw new GraphError(`${action.longDescription()} is disabled.`, {
-        config: action.getConfig(),
+      throw new GraphError({
+        message: `${action.longDescription()} is disabled.`,
+        detail: {
+          config: action.getConfig(),
+        },
       })
     }
 
@@ -242,9 +248,12 @@ export abstract class BaseConfigGraph<
     if (!ignoreMissing && names && names.length > found.length) {
       const missing = difference(names, foundNames)
 
-      throw new GraphError(`Could not find one or more ${kind} actions: ${naturalList(missing)}`, {
-        names,
-        missing,
+      throw new GraphError({
+        message: `Could not find one or more ${kind} actions: ${naturalList(missing)}`,
+        detail: {
+          names,
+          missing,
+        },
       })
     }
 
@@ -287,7 +296,10 @@ export abstract class BaseConfigGraph<
     const group = this.groups[name]
 
     if (!group) {
-      throw new GraphError(`Could not find Group ${name}`, { availableGroups: Object.keys(this.groups) })
+      throw new GraphError({
+        message: `Could not find Group ${name}`,
+        detail: { availableGroups: Object.keys(this.groups) },
+      })
     }
 
     return group

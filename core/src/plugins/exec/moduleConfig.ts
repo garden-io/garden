@@ -61,17 +61,17 @@ export async function configureExecModule({
       .filter((d) => !!d.copy)
       .map((d) => d.name)
       .join(", ")
-    throw new ConfigurationError(
-      dedent`
+    throw new ConfigurationError({
+      message: dedent`
       Invalid exec module configuration: Module ${moduleConfig.name} copies ${buildDependenciesWithCopySpec}
 
       A local exec module cannot have a build dependency with a copy spec.
     `,
-      {
+      detail: {
         buildDependenciesWithCopySpec,
         buildConfig: moduleConfig.build,
-      }
-    )
+      },
+    })
   }
 
   // All the config keys that affect the build version

@@ -250,13 +250,13 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
       return loadPulumiVarfile({ action, ctx, log, varfilePath })
     })
   } catch (err) {
-    throw new FilesystemError(
-      `An error occurred while reading pulumi varfiles for action ${action.name}: ${err.message}`,
-      {
+    throw new FilesystemError({
+      message: `An error occurred while reading pulumi varfiles for action ${action.name}: ${err.message}`,
+      detail: {
         pulumiVarfiles: spec.pulumiVarfiles,
         actionName: action.name,
-      }
-    )
+      },
+    })
   }
 
   log.debug(`merging config for action ${action.name}`)
@@ -307,9 +307,12 @@ async function readPulumiPlan(module: PulumiDeploy, planPath: string): Promise<P
     return plan
   } catch (err) {
     const errMsg = `An error occurred while reading a pulumi plan file at ${planPath}: ${err.message}`
-    throw new FilesystemError(errMsg, {
-      planPath,
-      moduleName: module.name,
+    throw new FilesystemError({
+      message: errMsg,
+      detail: {
+        planPath,
+        moduleName: module.name,
+      },
     })
   }
 }
@@ -504,10 +507,13 @@ async function loadPulumiVarfile({
   if (!isYamlFile) {
     const errMsg = deline`
       Unable to load varfile at path ${resolvedPath}: Expected file extension to be .yml or .yaml, got ${ext}. Pulumi varfiles must be YAML files.`
-    throw new ConfigurationError(errMsg, {
-      actionName: action.name,
-      resolvedPath,
-      varfilePath,
+    throw new ConfigurationError({
+      message: errMsg,
+      detail: {
+        actionName: action.name,
+        resolvedPath,
+        varfilePath,
+      },
     })
   }
 
@@ -518,10 +524,13 @@ async function loadPulumiVarfile({
     return parsed as DeepPrimitiveMap
   } catch (error) {
     const errMsg = `Unable to load varfile at '${resolvedPath}': ${error}`
-    throw new ConfigurationError(errMsg, {
-      actionName: action.name,
-      error,
-      resolvedPath,
+    throw new ConfigurationError({
+      message: errMsg,
+      detail: {
+        actionName: action.name,
+        error,
+        resolvedPath,
+      },
     })
   }
 }

@@ -104,9 +104,12 @@ export async function updateRemoteActions({
       .filter((a) => a.hasRemoteSource())
       .sort()
 
-    throw new ParameterError(`Expected action(s) ${chalk.underline(diff.join(","))} to have a remote source.`, {
-      actionsWithRemoteSource,
-      input: keys ? keys.sort() : undefined,
+    throw new ParameterError({
+      message: `Expected action(s) ${chalk.underline(diff.join(","))} to have a remote source.`,
+      detail: {
+        actionsWithRemoteSource,
+        input: keys ? keys.sort() : undefined,
+      },
     })
   }
 

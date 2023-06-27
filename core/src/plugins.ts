@@ -75,19 +75,23 @@ export function resolvePlugins(
 
     if (plugin.base) {
       if (plugin.base === plugin.name) {
-        throw new PluginError(`Plugin '${plugin.name}' references itself as a base plugin.`, {
-          pluginName: plugin.name,
+        throw new PluginError({
+          message: `Plugin '${plugin.name}' references itself as a base plugin.`,
+          detail: {
+            pluginName: plugin.name,
+          },
         })
       }
 
       const base = validatePlugin(plugin.base)
 
       if (!base) {
-        throw new PluginError(
-          `Plugin '${plugin.name}' specifies plugin '${plugin.base}' as a base, ` +
+        throw new PluginError({
+          message:
+            `Plugin '${plugin.name}' specifies plugin '${plugin.base}' as a base, ` +
             `but that plugin has not been registered.`,
-          { loadedPlugins: Object.keys(loadedPlugins), base: plugin.base }
-        )
+          detail: { loadedPlugins: Object.keys(loadedPlugins), base: plugin.base },
+        })
       }
 
       // Inherit config schema for base if none is specified
@@ -100,11 +104,11 @@ export function resolvePlugins(
       const depPlugin = validatePlugin(dep.name)
 
       if (!depPlugin && !dep.optional) {
-        throw new PluginError(
-          `Plugin '${plugin.name}' lists plugin '${dep.name}' as a dependency,
+        throw new PluginError({
+          message: `Plugin '${plugin.name}' lists plugin '${dep.name}' as a dependency,
           but that plugin has not been registered.`,
-          { loadedPlugins: Object.keys(loadedPlugins), dependency: dep }
-        )
+          detail: { loadedPlugins: Object.keys(loadedPlugins), dependency: dep },
+        })
       }
     }
 
@@ -128,9 +132,12 @@ export function resolvePlugins(
     const plugin = validatePlugin(name)
 
     if (!plugin && configsByName[name]) {
-      throw new ConfigurationError(`Configured provider '${name}' has not been registered.`, {
-        name,
-        availablePlugins: Object.keys(loadedPlugins),
+      throw new ConfigurationError({
+        message: `Configured provider '${name}' has not been registered.`,
+        detail: {
+          name,
+          availablePlugins: Object.keys(loadedPlugins),
+        },
       })
     }
   }
@@ -155,17 +162,20 @@ function validateOutputSchemas(
 ) {
   const unknownFlagIsSet = staticOutputsSchema?.$_getFlag("unknown")
   if (unknownFlagIsSet) {
-    throw new PluginError(`Plugin '${plugin.name}' allows unknown keys in the staticOutputsSchema`, {})
+    throw new PluginError({
+      message: `Plugin '${plugin.name}' allows unknown keys in the staticOutputsSchema`,
+      detail: {},
+    })
   }
 
   const runtimeSchema = Object.keys(runtimeOutputsSchema?.describe().keys || {})
   const staticSchema = Object.keys(staticOutputsSchema?.describe().keys || {})
   const commonKeys = runtimeSchema.filter((value) => staticSchema.includes(value))
   if (commonKeys.length > 0) {
-    throw new PluginError(
-      `Plugin '${plugin.name}' has overlapping keys in staticOutputsSchema and runtimeOutputsSchema`,
-      { commonKeys }
-    )
+    throw new PluginError({
+      message: `Plugin '${plugin.name}' has overlapping keys in staticOutputsSchema and runtimeOutputsSchema`,
+      detail: { commonKeys },
+    })
   }
 }
 
@@ -185,13 +195,13 @@ export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: Re
     try {
       pluginModule = require(moduleNameOrLocation)
     } catch (error) {
-      throw new ConfigurationError(
-        `Unable to load plugin "${moduleNameOrLocation}" (could not load module: ${error.message})`,
-        {
+      throw new ConfigurationError({
+        message: `Unable to load plugin "${moduleNameOrLocation}" (could not load module: ${error.message})`,
+        detail: {
           message: error.message,
           moduleNameOrLocation,
-        }
-      )
+        },
+      })
     }
 
     try {
@@ -199,9 +209,12 @@ export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: Re
         context: `plugin module "${moduleNameOrLocation}"`,
       })
     } catch (err) {
-      throw new PluginError(`Unable to load plugin: ${err}`, {
-        moduleNameOrLocation,
-        err,
+      throw new PluginError({
+        message: `Unable to load plugin: ${err}`,
+        detail: {
+          moduleNameOrLocation,
+          err,
+        },
       })
     }
 
@@ -244,7 +257,10 @@ export function getDependencyOrder(loadedPlugins: PluginMap): string[] {
   if (cycles.length > 0) {
     const description = graph.cyclesToString(cycles)
     const detail = { "circular-dependencies": description }
-    throw new PluginError(`Found a circular dependency between registered plugins:\n\n${description}`, detail)
+    throw new PluginError({
+      message: `Found a circular dependency between registered plugins:\n\n${description}`,
+      detail,
+    })
   }
 
   return graph.overallOrder()
@@ -329,10 +345,10 @@ function resolvePlugin(
 
   for (const spec of base.createModuleTypes) {
     if (findByName(plugin.createModuleTypes, spec.name)) {
-      throw new PluginError(
-        `Plugin '${plugin.name}' redeclares the '${spec.name}' module type, already declared by its base.`,
-        { plugin, base }
-      )
+      throw new PluginError({
+        message: `Plugin '${plugin.name}' redeclares the '${spec.name}' module type, already declared by its base.`,
+        detail: { plugin, base },
+      })
     } else if (!baseIsConfigured) {
       // Base is not explicitly configured, so we pluck the module type definition
       resolved.createModuleTypes.push(spec)
@@ -356,10 +372,10 @@ function resolvePlugin(
   for (const kind of actionKinds) {
     for (const spec of base.createActionTypes[kind]) {
       if (findByName(<any>plugin.createActionTypes[kind], spec.name)) {
-        throw new PluginError(
-          `Plugin '${plugin.name}' redeclares the '${spec.name}' ${kind} type, already declared by its base.`,
-          { plugin, base }
-        )
+        throw new PluginError({
+          message: `Plugin '${plugin.name}' redeclares the '${spec.name}' ${kind} type, already declared by its base.`,
+          detail: { plugin, base },
+        })
       } else if (!baseIsConfigured) {
         // Base is not explicitly configured, so we pluck the action type definition
         resolved.createActionTypes[kind].push(<any>spec)
@@ -418,7 +434,10 @@ export function getPluginBases(plugin: GardenPluginSpec, loadedPlugins: PluginMa
   const base = loadedPlugins[plugin.base]
 
   if (!base) {
-    throw new RuntimeError(`Unable to find base plugin '${plugin.base}' for plugin '${plugin.name}'`, { plugin })
+    throw new RuntimeError({
+      message: `Unable to find base plugin '${plugin.base}' for plugin '${plugin.name}'`,
+      detail: { plugin },
+    })
   }
 
   return [base, ...getPluginBases(base, loadedPlugins)]
@@ -445,9 +464,12 @@ export function getActionTypeBases(
   const base = actionTypes[type.base]?.spec
 
   if (!base) {
-    throw new RuntimeError(`Unable to find base action type '${type.base}' for actionTypes type '${type.name}'`, {
-      name: type.name,
-      actionTypes,
+    throw new RuntimeError({
+      message: `Unable to find base action type '${type.base}' for actionTypes type '${type.name}'`,
+      detail: {
+        name: type.name,
+        actionTypes,
+      },
     })
   }
 
@@ -468,7 +490,10 @@ export function getPluginDependencies(plugin: GardenPluginSpec, loadedPlugins: P
         } else if (dep.optional) {
           return []
         } else {
-          throw new RuntimeError(`Unable to find dependency '${dep.name} for plugin '${plugin.name}'`, { plugin })
+          throw new RuntimeError({
+            message: `Unable to find dependency '${dep.name} for plugin '${plugin.name}'`,
+            detail: { plugin },
+          })
         }
       })
     )
@@ -549,9 +574,12 @@ function resolveActionTypeDefinitions<K extends ActionKind>({
     if (configured.length > 1) {
       const plugins = definitions.map((d) => d.plugin.name)
 
-      throw new ConfigurationError(`${kind} type '${type}' is declared in multiple plugins: ${plugins.join(", ")}.`, {
-        type,
-        plugins,
+      throw new ConfigurationError({
+        message: `${kind} type '${type}' is declared in multiple plugins: ${plugins.join(", ")}.`,
+        detail: {
+          type,
+          plugins,
+        },
       })
     }
   }
@@ -563,7 +591,7 @@ function resolveActionTypeDefinitions<K extends ActionKind>({
     const description = graph.cyclesToString(cycles)
     const detail = { "circular-dependencies": description }
     const msg = `Found circular dependency between ${kind} type bases:\n\n${description}`
-    throw new PluginError(msg, detail)
+    throw new PluginError({ message: msg, detail })
   }
 
   const ordered = graph.overallOrder().filter((name) => name in definitionMap)
@@ -677,14 +705,14 @@ function resolveActionDefinition<K extends ActionKind>({
   const baseDefinition = definitions[spec.base]
 
   if (!baseDefinition) {
-    throw new PluginError(
-      deline`
+    throw new PluginError({
+      message: deline`
       ${kind} type '${spec.name}', defined in plugin '${plugin.name}', specifies base type '${spec.base}'
       which cannot be found. The plugin is likely missing a dependency declaration.
       Please report an issue with the author.
       `,
-      { type: spec.name, baseName: spec.base, pluginName: plugin.name }
-    )
+      detail: { type: spec.name, baseName: spec.base, pluginName: plugin.name },
+    })
   }
 
   const declaredBy = baseDefinition.plugin.name
@@ -696,20 +724,20 @@ function resolveActionDefinition<K extends ActionKind>({
     !pluginBases.includes(declaredBy) &&
     !(plugin.dependencies && plugin.dependencies.find((d) => d.name === declaredBy))
   ) {
-    throw new PluginError(
-      deline`
+    throw new PluginError({
+      message: deline`
       ${kind} type '${type}', defined in plugin '${plugin.name}', specifies base type '${spec.base}'
       which is defined by '${declaredBy}' but '${plugin.name}' does not specify a dependency on that plugin.
       Plugins must explicitly declare dependencies on plugins that define types they reference.
       Please report an issue with the author.
       `,
-      {
+      detail: {
         type,
         pluginName: plugin.name,
         declaredByName: declaredBy,
         bases: pluginBases,
-      }
-    )
+      },
+    })
   }
 
   const resolved: ActionTypeDefinitions[K] = {
@@ -791,10 +819,10 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericPr
     if (configured.length > 1) {
       const plugins = definitions.map((d) => d.plugin.name)
 
-      throw new ConfigurationError(
-        `Module type '${moduleType}' is declared in multiple plugins: ${plugins.join(", ")}.`,
-        { moduleType, plugins }
-      )
+      throw new ConfigurationError({
+        message: `Module type '${moduleType}' is declared in multiple plugins: ${plugins.join(", ")}.`,
+        detail: { moduleType, plugins },
+      })
     }
   }
 
@@ -805,7 +833,7 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericPr
     const description = graph.cyclesToString(cycles)
     const detail = { "circular-dependencies": description }
     const msg = `Found circular dependency between module type bases:\n\n${description}`
-    throw new PluginError(msg, detail)
+    throw new PluginError({ message: msg, detail })
   }
 
   const ordered = graph.overallOrder().filter((name) => name in moduleDefinitionMap)
@@ -898,14 +926,14 @@ function resolveModuleDefinition(
   const baseDefinition = definitions[spec.base]
 
   if (!baseDefinition) {
-    throw new PluginError(
-      deline`
+    throw new PluginError({
+      message: deline`
       Module type '${spec.name}', defined in plugin '${plugin.name}', specifies base module type '${spec.base}'
       which cannot be found. The plugin is likely missing a dependency declaration.
       Please report an issue with the author.
       `,
-      { moduleType: spec.name, baseName: spec.base, pluginName: plugin.name }
-    )
+      detail: { moduleType: spec.name, baseName: spec.base, pluginName: plugin.name },
+    })
   }
 
   const declaredBy = baseDefinition.plugin.name
@@ -917,20 +945,20 @@ function resolveModuleDefinition(
     !pluginBases.includes(declaredBy) &&
     !(plugin.dependencies && plugin.dependencies.find((d) => d.name === declaredBy))
   ) {
-    throw new PluginError(
-      deline`
+    throw new PluginError({
+      message: deline`
       Module type '${moduleType}', defined in plugin '${plugin.name}', specifies base module type '${spec.base}'
       which is defined by '${declaredBy}' but '${plugin.name}' does not specify a dependency on that plugin.
       Plugins must explicitly declare dependencies on plugins that define module types they reference.
       Please report an issue with the author.
       `,
-      {
+      detail: {
         moduleType,
         pluginName: plugin.name,
         declaredByName: declaredBy,
         bases: pluginBases,
-      }
-    )
+      },
+    })
   }
 
   const resolved: ModuleTypeDefinition = {

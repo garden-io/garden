@@ -246,9 +246,12 @@ export async function waitForResources({
         }
 
         emitLog(msg)
-        throw new DeploymentError(msg, {
-          serviceName: actionName,
-          status,
+        throw new DeploymentError({
+          message: msg,
+          detail: {
+            serviceName: actionName,
+            status,
+          },
         })
       }
 
@@ -277,7 +280,7 @@ export async function waitForResources({
         Timed out waiting for ${actionName || "resources"} to deploy after ${timeoutSec} seconds
       `
       emitLog(deploymentErrMsg)
-      throw new DeploymentError(deploymentErrMsg, { statuses })
+      throw new DeploymentError({ message: deploymentErrMsg, detail: { statuses } })
     }
   }
 

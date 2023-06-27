@@ -243,7 +243,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     if (!actionType) {
       // This should be caught way earlier in normal usage, so it's an internal error
-      throw new InternalError(`Could not find type definition for ${description}.`, { kind, type })
+      throw new InternalError({ message: `Could not find type definition for ${description}.`, detail: { kind, type } })
     }
 
     const path = this.action.basePath()

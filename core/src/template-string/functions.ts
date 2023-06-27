@@ -108,10 +108,10 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       } else if (Array.isArray(arg1) && Array.isArray(arg2)) {
         return [...arg1, ...arg2]
       } else {
-        throw new TemplateStringError(
-          `Both terms need to be either arrays or strings (got ${typeof arg1} and ${typeof arg2}).`,
-          { arg1, arg2 }
-        )
+        throw new TemplateStringError({
+          message: `Both terms need to be either arrays or strings (got ${typeof arg1} and ${typeof arg2}).`,
+          detail: { arg1, arg2 },
+        })
       }
     },
   },
@@ -275,9 +275,12 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
 
         const result = Number.parseInt(value, 10)
         if (Number.isNaN(result)) {
-          throw new TemplateStringError(`${name} index must be a number or a numeric string (got "${value}")`, {
-            name,
-            value,
+          throw new TemplateStringError({
+            message: `${name} index must be a number or a numeric string (got "${value}")`,
+            detail: {
+              name,
+              value,
+            },
           })
         }
         return result
@@ -393,13 +396,13 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     fn: (value: any, multiDocument?: boolean) => {
       if (multiDocument) {
         if (!isArrayLike(value)) {
-          throw new TemplateStringError(
-            `yamlEncode: Set multiDocument=true but value is not an array (got ${typeof value})`,
-            {
+          throw new TemplateStringError({
+            message: `yamlEncode: Set multiDocument=true but value is not an array (got ${typeof value})`,
+            detail: {
               value,
               multiDocument,
-            }
-          )
+            },
+          })
         }
         return "---" + value.map(safeDumpYaml).join("---")
       } else {
@@ -466,10 +469,10 @@ export function callHelperFunction({
 
   if (!spec) {
     const availableFns = Object.keys(helperFunctions).join(", ")
-    const _error = new TemplateStringError(
-      `Could not find helper function '${functionName}'. Available helper functions: ${availableFns}`,
-      { functionName, text }
-    )
+    const _error = new TemplateStringError({
+      message: `Could not find helper function '${functionName}'. Available helper functions: ${availableFns}`,
+      detail: { functionName, text },
+    })
     return { _error }
   }
 
@@ -496,10 +499,13 @@ export function callHelperFunction({
 
     if (value === undefined && schemaDescription.flags?.presence === "required") {
       return {
-        _error: new TemplateStringError(`Missing argument '${argName}' for ${functionName} helper function.`, {
-          text,
-          missingArgumentName: argName,
-          missingArgumentIndex: i,
+        _error: new TemplateStringError({
+          message: `Missing argument '${argName}' for ${functionName} helper function.`,
+          detail: {
+            text,
+            missingArgumentName: argName,
+            missingArgumentIndex: i,
+          },
         }),
       }
     }
@@ -515,9 +521,12 @@ export function callHelperFunction({
         if (allowPartial) {
           return { resolved: "${" + text + "}" }
         } else {
-          const _error = new TemplateStringError(`Function '${functionName}' cannot be applied on unresolved string`, {
-            functionName,
-            text,
+          const _error = new TemplateStringError({
+            message: `Function '${functionName}' cannot be applied on unresolved string`,
+            detail: {
+              functionName,
+              text,
+            },
           })
           return { _error }
         }
@@ -537,9 +546,12 @@ export function callHelperFunction({
     const resolved = spec.fn(...resolvedArgs)
     return { resolved }
   } catch (error) {
-    const _error = new TemplateStringError(`Error from helper function ${functionName}: ${error.message}`, {
-      error,
-      text,
+    const _error = new TemplateStringError({
+      message: `Error from helper function ${functionName}: ${error.message}`,
+      detail: {
+        error,
+        text,
+      },
     })
     return { _error }
   }

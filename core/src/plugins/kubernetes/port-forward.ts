@@ -134,9 +134,12 @@ export async function getPortForward({
         }
         if (!resolved) {
           reject(
-            new RuntimeError(`Port forward exited with code ${code} before establishing connection:\n\n${output}`, {
-              code,
-              portForward,
+            new RuntimeError({
+              message: `Port forward exited with code ${code} before establishing connection:\n\n${output}`,
+              detail: {
+                code,
+                portForward,
+              },
             })
           )
         }

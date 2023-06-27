@@ -59,8 +59,11 @@ export async function registerWorkflowRun({
           CLI version is compatible with your version of Garden Cloud. See error.log for details
           on the failed registration request payload.
         `
-        throw new CloudApiError(errMsg, {
-          requestData,
+        throw new CloudApiError({
+          message: errMsg,
+          detail: {
+            requestData,
+          },
         })
       } else {
         log.error(`An error occurred while registering workflow run: ${err.message}`)
@@ -71,11 +74,14 @@ export async function registerWorkflowRun({
     if (res?.workflowRunUid && res?.status === "success") {
       return res.workflowRunUid
     } else {
-      throw new CloudApiError(`Error while registering workflow run: Request failed with status ${res?.status}`, {
-        status: res?.status,
-        workflowRunUid: res?.workflowRunUid,
+      throw new CloudApiError({
+        message: `Error while registering workflow run: Request failed with status ${res?.status}`,
+        detail: {
+          status: res?.status,
+          workflowRunUid: res?.workflowRunUid,
+        },
       })
     }
   }
-  throw new CloudApiError("Error while registering workflow run: Couldn't initialize API.", {})
+  throw new CloudApiError({ message: "Error while registering workflow run: Couldn't initialize API.", detail: {} })
 }

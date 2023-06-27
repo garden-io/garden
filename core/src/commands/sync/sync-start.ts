@@ -136,7 +136,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
     const actionKeys = actions.map((a) => a.key())
 
     if (actions.length === 0) {
-      throw new ParameterError(`No matched action supports syncing. Aborting.`, { actionKeys })
+      throw new ParameterError({ message: `No matched action supports syncing. Aborting.`, detail: { actionKeys } })
     }
 
     if (opts.deploy) {
@@ -190,7 +190,7 @@ export async function startSyncWithoutDeploy({
   command,
   log,
   monitor,
-  stopOnExit
+  stopOnExit,
 }: {
   actions: DeployAction[]
   graph: ConfigGraph
@@ -231,9 +231,7 @@ export async function startSyncWithoutDeploy({
     if (executedAction && (state === "outdated" || state === "ready")) {
       if (mode !== "sync") {
         actionLog.warn(
-          chalk.yellow(
-            `Not deployed in sync mode, cannot start sync. Try running this command with \`--deploy\` set.`
-          )
+          chalk.yellow(`Not deployed in sync mode, cannot start sync. Try running this command with \`--deploy\` set.`)
         )
         return
       }
@@ -261,8 +259,11 @@ export async function startSyncWithoutDeploy({
   })
 
   if (!someSyncStarted) {
-    throw new RuntimeError(`Could not start any sync. Aborting.`, {
-      actionKeys,
+    throw new RuntimeError({
+      message: `Could not start any sync. Aborting.`,
+      detail: {
+        actionKeys,
+      },
     })
   }
 }
