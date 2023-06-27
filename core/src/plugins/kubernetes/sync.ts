@@ -804,7 +804,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
 }
 
 function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
-  return `k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`
+  return kebabCase(`k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`)
 }
 
 /**
