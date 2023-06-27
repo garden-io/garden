@@ -1,4 +1,12 @@
 
+<a name="0.13.5"></a>
+## [0.13.5](https://github.com/garden-io/garden/compare/0.13.4...0.13.5) (2023-06-27)
+
+### Bug Fixes
+
+* **k8s:** fix regression in  sync stop logic ([e3349428d](https://github.com/garden-io/garden/commit/e3349428d))
+* **telemetry:** do not throw in case of any runtime error ([#4722](https://github.com/garden-io/garden/issues/4722)) ([485d25458](https://github.com/garden-io/garden/commit/485d25458))
+
 <a name="0.13.4"></a>
 ## [0.13.4](https://github.com/garden-io/garden/compare/0.13.3...0.13.4) (2023-06-27)
 
