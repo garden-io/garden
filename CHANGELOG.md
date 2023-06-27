@@ -15,11 +15,6 @@
 * **k8s:** invalid session name error with e.g. underscore in username/path ([62e8a96ad](https://github.com/garden-io/garden/commit/62e8a96ad))
 * **template-strings:** do not apply helper functions on unresolved string ([#4692](https://github.com/garden-io/garden/issues/4692)) ([0b47cccc6](https://github.com/garden-io/garden/commit/0b47cccc6))
 
-### Features
-
-* **openshift:** container Deploy action ([#4652](https://github.com/garden-io/garden/issues/4652)) ([1b448886a](https://github.com/garden-io/garden/commit/1b448886a))
-* **server:** add internal/experimental cmd for getting action statuses ([#4680](https://github.com/garden-io/garden/issues/4680)) ([b7471fbba](https://github.com/garden-io/garden/commit/b7471fbba))
-
 ### Improvements
 
 * **jib:** allow concurrent maven builds ([c9a6cf820](https://github.com/garden-io/garden/commit/c9a6cf820))
@@ -59,7 +54,6 @@
 ### Features
 
 * **cli:** add `get files` command to see files included in actions ([ee63d5fe5](https://github.com/garden-io/garden/commit/ee63d5fe5))
-* **openshift:** initial provider scaffolding ([#4612](https://github.com/garden-io/garden/issues/4612)) ([c20978eec](https://github.com/garden-io/garden/commit/c20978eec))
 * **template:** allow variable references in include/exclude config ([3773e2ed3](https://github.com/garden-io/garden/commit/3773e2ed3))
 * **template:** allow `this.name` and `this.mode` in action config ([#4646](https://github.com/garden-io/garden/issues/4646)) ([f3bf29ef5](https://github.com/garden-io/garden/commit/f3bf29ef5))
 
