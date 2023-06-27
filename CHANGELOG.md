@@ -1,4 +1,29 @@
 
+<a name="0.13.4"></a>
+## [0.13.4](https://github.com/garden-io/garden/compare/0.13.3...0.13.4) (2023-06-27)
+
+### Bug Fixes
+
+* update version hash if a file is renamed ([12bc08b84](https://github.com/garden-io/garden/commit/12bc08b84))
+* **cli:** print correct link to web dashboard ([#4685](https://github.com/garden-io/garden/issues/4685)) ([6d57b1f5c](https://github.com/garden-io/garden/commit/6d57b1f5c))
+* **cloud:** emit stable action uids across phases ([195a65123](https://github.com/garden-io/garden/commit/195a65123))
+* **cloud:** fix session registration flow for dev ([5f782884e](https://github.com/garden-io/garden/commit/5f782884e))
+* **core:** tweak output from internal _get-service-status command ([09228b819](https://github.com/garden-io/garden/commit/09228b819))
+* **dev:** running command status message could become inconsistent ([0cd29f9a4](https://github.com/garden-io/garden/commit/0cd29f9a4))
+* **jib:** fix sha256 hashes for `mvnd` binaries ([0ea5f7857](https://github.com/garden-io/garden/commit/0ea5f7857))
+* **k8s:** update default Kaniko version ([6584369d4](https://github.com/garden-io/garden/commit/6584369d4))
+* **k8s:** invalid session name error with e.g. underscore in username/path ([62e8a96ad](https://github.com/garden-io/garden/commit/62e8a96ad))
+* **template-strings:** do not apply helper functions on unresolved string ([#4692](https://github.com/garden-io/garden/issues/4692)) ([0b47cccc6](https://github.com/garden-io/garden/commit/0b47cccc6))
+
+### Improvements
+
+* **jib:** allow concurrent maven builds ([c9a6cf820](https://github.com/garden-io/garden/commit/c9a6cf820))
+* **jib:** support custom `mvnd` binaries ([d2d6f4df2](https://github.com/garden-io/garden/commit/d2d6f4df2))
+* **logs:** log resolve and statusOnly tasks at debug level ([#4691](https://github.com/garden-io/garden/issues/4691)) ([90577faad](https://github.com/garden-io/garden/commit/90577faad))
+* **sdk:** more iteration on the plugin SDK + migrate exec plugin ([#4654](https://github.com/garden-io/garden/issues/4654)) ([ac4cd75ca](https://github.com/garden-io/garden/commit/ac4cd75ca))
+* **server:** add more command info to ws responses ([4b01824bf](https://github.com/garden-io/garden/commit/4b01824bf))
+* **server:** better logging for loading config ([#4688](https://github.com/garden-io/garden/issues/4688)) ([c4f665917](https://github.com/garden-io/garden/commit/c4f665917))
+
 <a name="0.13.3"></a>
 ## [0.13.3](https://github.com/garden-io/garden/compare/0.13.2...0.13.3) (2023-06-21)
 
@@ -29,7 +54,6 @@
 ### Features
 
 * **cli:** add `get files` command to see files included in actions ([ee63d5fe5](https://github.com/garden-io/garden/commit/ee63d5fe5))
-* **openshift:** initial provider scaffolding ([#4612](https://github.com/garden-io/garden/issues/4612)) ([c20978eec](https://github.com/garden-io/garden/commit/c20978eec))
 * **template:** allow variable references in include/exclude config ([3773e2ed3](https://github.com/garden-io/garden/commit/3773e2ed3))
 * **template:** allow `this.name` and `this.mode` in action config ([#4646](https://github.com/garden-io/garden/issues/4646)) ([f3bf29ef5](https://github.com/garden-io/garden/commit/f3bf29ef5))
 
