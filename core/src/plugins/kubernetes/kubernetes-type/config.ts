@@ -46,6 +46,7 @@ export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySp
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
   localMode?: KubernetesLocalModeSpec
+  waitForJobs?: boolean
 }
 
 export type KubernetesDeployActionConfig = DeployActionConfig<"kubernetes", KubernetesDeployActionSpec>
@@ -84,6 +85,7 @@ export const kubernetesCommonDeploySpecKeys = () => ({
   namespace: namespaceNameSchema(),
   portForwards: portForwardsSchema(),
   timeout: k8sDeploymentTimeoutSchema(),
+  waitForJobs: joi.boolean().optional().default(false).description("Wait for batch/v1 jobs to succeed."),
 })
 
 export const kubernetesDeploySchema = () =>

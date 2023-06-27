@@ -52,6 +52,7 @@ export interface StatusHandlerParams<T extends BaseResource | KubernetesObject =
   resource: KubernetesServerResource<T>
   log: Log
   resourceVersion?: number
+  waitForJobs?: boolean
 }
 
 interface StatusHandler<T extends BaseResource | KubernetesObject = BaseResource> {
@@ -113,13 +114,13 @@ const objHandlers: { [kind: string]: StatusHandler } = {
     return { state: "ready", resource }
   },
 
-  Job: async ({ resource }: StatusHandlerParams<V1Job>) => {
+  Job: async ({ resource, waitForJobs }: StatusHandlerParams<V1Job>) => {
     if (
       resource.status?.failed &&
       resource.spec?.backoffLimit &&
       resource.status?.failed >= resource.spec?.backoffLimit
     ) {
-      // job is failed
+      // job has failed
       return { state: "unhealthy", resource }
     }
     if (
@@ -127,14 +128,21 @@ const objHandlers: { [kind: string]: StatusHandler } = {
       resource.status?.succeeded &&
       resource.status?.succeeded < resource.spec.completions
     ) {
-      // job is not completed
+      // job is not yet completed
       return { state: "deploying", resource }
     }
-    // if job is succeeded
+    // job has succeeded
     if (resource.status.succeeded) {
       return { state: "stopped", resource }
     }
-    return { state: "deploying", resource }
+
+    // wait for job only if waitForJobs is set, otherwise
+    // mark it as ready and proceed.
+    if (waitForJobs) {
+      return { state: "deploying", resource }
+    }
+
+    return { state: "ready", resource }
   },
 }
 
@@ -145,14 +153,21 @@ export async function checkResourceStatuses(
   api: KubeApi,
   namespace: string,
   manifests: KubernetesResource[],
-  log: Log
+  log: Log,
+  waitForJobs?: boolean
 ): Promise<ResourceStatus[]> {
   return Bluebird.map(manifests, async (manifest) => {
-    return checkResourceStatus(api, namespace, manifest, log)
+    return checkResourceStatus(api, namespace, manifest, log, waitForJobs)
   })
 }
 
-export async function checkResourceStatus(api: KubeApi, namespace: string, manifest: KubernetesResource, log: Log) {
+export async function checkResourceStatus(
+  api: KubeApi,
+  namespace: string,
+  manifest: KubernetesResource,
+  log: Log,
+  waitForJobs?: boolean
+) {
   const handler = objHandlers[manifest.kind]
 
   if (manifest.metadata?.namespace) {
@@ -175,7 +190,7 @@ export async function checkResourceStatus(api: KubeApi, namespace: string, manif
 
   let status: ResourceStatus
   if (handler) {
-    status = await handler({ api, namespace, resource, log, resourceVersion })
+    status = await handler({ api, namespace, resource, log, resourceVersion, waitForJobs })
   } else {
     // if there is no explicit handler to check the status, we assume there's no rollout phase to wait for
     status = { state: "ready", resource: manifest }
@@ -192,6 +207,7 @@ interface WaitParams {
   resources: KubernetesResource[]
   log: Log
   timeoutSec: number
+  waitForJobs?: boolean
 }
 
 /**
@@ -205,6 +221,7 @@ export async function waitForResources({
   resources,
   log,
   timeoutSec,
+  waitForJobs,
 }: WaitParams) {
   let loops = 0
   const startTime = new Date().getTime()
@@ -242,7 +259,7 @@ export async function waitForResources({
     await sleep(2000 + 500 * loops)
     loops += 1
 
-    const statuses = await checkResourceStatuses(api, namespace, Object.values(pendingResources), log)
+    const statuses = await checkResourceStatuses(api, namespace, Object.values(pendingResources), log, waitForJobs)
 
     for (const status of statuses) {
       const key = getResourceKey(status.resource)

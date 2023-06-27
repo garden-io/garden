@@ -213,6 +213,9 @@ spec:
   # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
   timeout: 300
 
+  # Wait for batch/v1 jobs to succeed.
+  waitForJobs: false
+
   # Specify a default resource in the deployment to use for syncs, local mode, and for the `garden exec` command.
   #
   # Specify either `kind` and `name`, or a `podSelector`. The resource should be one of the resources deployed by this
@@ -817,6 +820,16 @@ The maximum duration (in seconds) to wait for resources to deploy and become hea
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `number` | `300`   | No       |
+
+### `spec.waitForJobs`
+
+[spec](#spec) > waitForJobs
+
+Wait for batch/v1 jobs to succeed.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `spec.defaultTarget`
 
