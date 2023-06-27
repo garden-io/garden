@@ -85,7 +85,11 @@ export const kubernetesCommonDeploySpecKeys = () => ({
   namespace: namespaceNameSchema(),
   portForwards: portForwardsSchema(),
   timeout: k8sDeploymentTimeoutSchema(),
-  waitForJobs: joi.boolean().optional().default(false).description("Wait for batch/v1 jobs to succeed."),
+  waitForJobs: joi
+    .boolean()
+    .optional()
+    .default(false)
+    .description("Wait until the jobs have been completed. Garden will wait for as long as `timeout`."),
 })
 
 export const kubernetesDeploySchema = () =>

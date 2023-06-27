@@ -213,7 +213,7 @@ spec:
   # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
   timeout: 300
 
-  # Wait for batch/v1 jobs to succeed.
+  # Wait until the jobs have been completed. Garden will wait for as long as `timeout`.
   waitForJobs: false
 
   # Specify a default resource in the deployment to use for syncs, local mode, and for the `garden exec` command.
@@ -825,7 +825,7 @@ The maximum duration (in seconds) to wait for resources to deploy and become hea
 
 [spec](#spec) > waitForJobs
 
-Wait for batch/v1 jobs to succeed.
+Wait until the jobs have been completed. Garden will wait for as long as `timeout`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

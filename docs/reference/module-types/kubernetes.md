@@ -216,7 +216,7 @@ portForwards:
 # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
 timeout: 300
 
-# Wait for batch/v1 jobs to succeed.
+# Wait until the jobs have been completed. Garden will wait for as long as `timeout`.
 waitForJobs: false
 
 # The names of any services that this service depends on at runtime, and the names of any tasks that should be
@@ -1000,7 +1000,7 @@ The maximum duration (in seconds) to wait for resources to deploy and become hea
 
 ### `waitForJobs`
 
-Wait for batch/v1 jobs to succeed.
+Wait until the jobs have been completed. Garden will wait for as long as `timeout`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
