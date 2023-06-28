@@ -60,11 +60,13 @@ export function makeActionStatusPayloadBase({
   force,
   operation,
   startedAt,
+  sessionId,
 }: {
   action: Action
   force: boolean
   operation: "getStatus" | "process"
   startedAt: string
+  sessionId: string
 }) {
   return {
     actionName: action.name,
@@ -74,6 +76,7 @@ export function makeActionStatusPayloadBase({
     actionKind: action.kind.toLowerCase(),
     actionUid: action.uid,
     moduleName: action.moduleName(),
+    sessionId,
     startedAt,
     operation,
     force,
@@ -90,12 +93,14 @@ export function makeActionGetStatusPayload({
   action,
   force,
   startedAt,
+  sessionId,
 }: {
   action: Action
   force: boolean
   startedAt: string
+  sessionId: string
 }) {
-  const payloadAttrs = makeActionStatusPayloadBase({ action, force, startedAt, operation: "getStatus" })
+  const payloadAttrs = makeActionStatusPayloadBase({ action, force, startedAt, sessionId, operation: "getStatus" })
 
   const payload = {
     ...payloadAttrs,
@@ -115,12 +120,14 @@ export function makeActionProcessingPayload({
   action,
   force,
   startedAt,
+  sessionId,
 }: {
   action: Action
   force: boolean
   startedAt: string
+  sessionId: string
 }) {
-  const payloadAttrs = makeActionStatusPayloadBase({ action, force, startedAt, operation: "process" })
+  const payloadAttrs = makeActionStatusPayloadBase({ action, force, startedAt, sessionId, operation: "process" })
   const actionKind = action.kind.toLowerCase() as Lowercase<Action["kind"]>
 
   const payload = {
@@ -153,14 +160,16 @@ export function makeActionCompletePayload<
   force,
   operation,
   startedAt,
+  sessionId,
 }: {
   result: R
   action: Action
   force: boolean
   operation: "getStatus" | "process"
   startedAt: string
+  sessionId: string
 }) {
-  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt })
+  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt, sessionId })
   const actionKind = action.kind.toLowerCase() as Lowercase<Action["kind"]>
 
   // Map the result state to one of the allowed "complete" states.
@@ -231,13 +240,15 @@ export function makeActionFailedPayload({
   force,
   operation,
   startedAt,
+  sessionId,
 }: {
   action: Action
   force: boolean
   operation: "getStatus" | "process"
   startedAt: string
+  sessionId: string
 }) {
-  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt })
+  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt, sessionId })
 
   const payload = {
     ...payloadAttrs,

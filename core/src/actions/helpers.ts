@@ -144,7 +144,17 @@ export function getRelativeActionConfigPath(projectRoot: string, action: Action)
   return relPath.startsWith("..") ? relPath : "." + sep + relPath
 }
 
-export async function getDeployStatusPayloads(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
+export async function getDeployStatusPayloads({
+  router,
+  graph,
+  log,
+  sessionId,
+}: {
+  router: ActionRouter
+  graph: ResolvedConfigGraph
+  log: Log
+  sessionId: string
+}) {
   const actions = graph.getDeploys()
 
   return fromPairs(
@@ -159,6 +169,7 @@ export async function getDeployStatusPayloads(router: ActionRouter, graph: Resol
         startedAt,
         force: false,
         action,
+        sessionId,
       }) as ActionStatusPayload<DeployStatusForEventPayload>
 
       return [action.name, payload]
@@ -166,7 +177,17 @@ export async function getDeployStatusPayloads(router: ActionRouter, graph: Resol
   )
 }
 
-export async function getBuildStatusPayloads(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
+export async function getBuildStatusPayloads({
+  router,
+  graph,
+  log,
+  sessionId,
+}: {
+  router: ActionRouter
+  graph: ResolvedConfigGraph
+  log: Log
+  sessionId: string
+}) {
   const actions = graph.getBuilds()
 
   return fromPairs(
@@ -181,6 +202,7 @@ export async function getBuildStatusPayloads(router: ActionRouter, graph: Resolv
         startedAt,
         force: false,
         action,
+        sessionId,
       }) as ActionStatusPayload<BuildStatusForEventPayload>
 
       return [action.name, payload]
@@ -188,7 +210,17 @@ export async function getBuildStatusPayloads(router: ActionRouter, graph: Resolv
   )
 }
 
-export async function getTestStatusPayloads(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
+export async function getTestStatusPayloads({
+  router,
+  graph,
+  log,
+  sessionId,
+}: {
+  router: ActionRouter
+  graph: ResolvedConfigGraph
+  log: Log
+  sessionId: string
+}) {
   const actions = graph.getTests()
 
   return fromPairs(
@@ -202,13 +234,24 @@ export async function getTestStatusPayloads(router: ActionRouter, graph: Resolve
         startedAt,
         force: false,
         action,
+        sessionId,
       }) as ActionStatusPayload<RunStatusForEventPayload>
       return [action.name, payload]
     })
   )
 }
 
-export async function getRunStatusPayloads(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
+export async function getRunStatusPayloads({
+  router,
+  graph,
+  log,
+  sessionId,
+}: {
+  router: ActionRouter
+  graph: ResolvedConfigGraph
+  log: Log
+  sessionId: string
+}) {
   const actions = graph.getRuns()
 
   return fromPairs(
@@ -223,10 +266,10 @@ export async function getRunStatusPayloads(router: ActionRouter, graph: Resolved
         startedAt,
         force: false,
         action,
+        sessionId,
       }) as ActionStatusPayload<RunStatusForEventPayload>
 
       return [action.name, payload]
     })
   )
 }
-

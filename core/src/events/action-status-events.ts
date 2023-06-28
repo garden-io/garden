@@ -112,6 +112,10 @@ interface ActionStatusPayloadBase {
   startedAt: string
   state: ActionStateForEvent
   force: boolean
+  /**
+   * The session ID for the command run the action belongs to.
+   */
+  sessionId: string
 }
 
 type ActionIncompleteState = PickFromUnion<ActionStateForEvent, "getting-status" | "unknown">

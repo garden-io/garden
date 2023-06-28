@@ -33,7 +33,12 @@ import { ActionStatusPayload } from "../events/action-status-events"
 import { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status"
 import { DeployStatusForEventPayload } from "../types/service"
 import { RunStatusForEventPayload } from "../plugin/plugin"
-import { getBuildStatusPayloads, getDeployStatusPayloads, getRunStatusPayloads, getTestStatusPayloads } from "../actions/helpers"
+import {
+  getBuildStatusPayloads,
+  getDeployStatusPayloads,
+  getRunStatusPayloads,
+  getTestStatusPayloads,
+} from "../actions/helpers"
 
 export interface CommandMap {
   [key: string]: {
@@ -225,7 +230,7 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
     const deployActions = graph.getDeploys({ includeDisabled: false }).sort((a, b) => (a.name > b.name ? 1 : -1))
-    const deployStatuses = await getDeployStatusPayloads(router, graph, log)
+    const deployStatuses = await getDeployStatusPayloads({ router, graph, log, sessionId: garden.sessionId })
 
     const commandLog = log.createLog({ fixLevel: LogLevel.silly })
     const syncStatuses = await getSyncStatuses({ garden, graph, deployActions, log: commandLog, skipDetail: true })
@@ -238,7 +243,7 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
       return acc
     }, {} as { [key: string]: { deployStatus: ActionStatusPayload<DeployStatusForEventPayload>; syncStatus: GetSyncStatusResult } })
 
-    return { result: { actions} }
+    return { result: { actions } }
   }
 }
 
@@ -263,14 +268,14 @@ export class _GetActionStatusesCommand extends ConsoleCommand {
   async action({ garden, log }: CommandParams): Promise<CommandResult<GetActionStatusesCommandResult>> {
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
+    const sessionId = garden.sessionId
 
     const actions = await Bluebird.props({
-      build: getBuildStatusPayloads(router, graph, log),
-      deploy: getDeployStatusPayloads(router, graph, log),
-      test: getTestStatusPayloads(router, graph, log),
-      run: getRunStatusPayloads(router, graph, log),
+      build: getBuildStatusPayloads({ router, graph, log, sessionId }),
+      deploy: getDeployStatusPayloads({ router, graph, log, sessionId }),
+      test: getTestStatusPayloads({ router, graph, log, sessionId }),
+      run: getRunStatusPayloads({ router, graph, log, sessionId }),
     })
-
 
     return { result: { actions } }
   }

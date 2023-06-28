@@ -217,6 +217,7 @@ describe("DeployTask", () => {
             force: true,
             operation: "getStatus",
             state: "getting-status",
+            sessionId: garden.sessionId,
             status: { state: "unknown" },
           },
         },
@@ -234,6 +235,7 @@ describe("DeployTask", () => {
             force: true,
             operation: "getStatus",
             state: "cached",
+            sessionId: garden.sessionId,
             status: {
               forwardablePorts: [],
               mode: "default",
@@ -255,6 +257,7 @@ describe("DeployTask", () => {
             operation: "process",
             startedAt: now,
             state: "processing", // <--- Force is set to true so we deploy even if the previous status is cached
+            sessionId: garden.sessionId,
             status: { state: "deploying" },
           },
         },
@@ -272,6 +275,7 @@ describe("DeployTask", () => {
             startedAt: now,
             completedAt: now,
             state: "ready",
+            sessionId: garden.sessionId,
             status: {
               forwardablePorts: [],
               mode: "default",

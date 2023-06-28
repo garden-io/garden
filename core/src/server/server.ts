@@ -559,12 +559,15 @@ export class GardenServer extends EventEmitter {
         const isInternal = internal || skipLogsForCommands.includes(command.getFullName())
         const requestLog = this.log.createLog({ name: "garden-server" })
         const cmdNameStr = chalk.bold.white(command.getFullName())
+        const commandSessionId = requestId
 
         if (skipAnalyticsForCommands.includes(command.getFullName())) {
           command.enableAnalytics = false
         }
 
         const commandResponseBase = {
+          requestId,
+          sessionId: commandSessionId,
           command: command.getFullName(),
           persistent,
           commandRequest: request.command,
@@ -577,7 +580,6 @@ export class GardenServer extends EventEmitter {
             if (!isInternal) {
               send("commandStart", {
                 ...commandResponseBase,
-                requestId,
                 args,
                 opts,
               })
@@ -588,7 +590,6 @@ export class GardenServer extends EventEmitter {
               command.subscribe((data: any) => {
                 send("commandOutput", {
                   ...commandResponseBase,
-                  requestId,
                   data: sanitizeValue(data),
                 })
               })
@@ -601,7 +602,7 @@ export class GardenServer extends EventEmitter {
             return command.run({
               ...prepareParams,
               garden,
-              sessionId: requestId,
+              sessionId: commandSessionId,
               parentSessionId: this.sessionId,
               overrideLogLevel: internal ? LogLevel.silly : undefined,
             })
@@ -640,7 +641,6 @@ export class GardenServer extends EventEmitter {
               "commandResult",
               sanitizeValue({
                 ...commandResponseBase,
-                requestId,
                 result,
                 errors,
               })
@@ -766,6 +766,8 @@ export class GardenServer extends EventEmitter {
 }
 
 interface CommandResponseBase {
+  requestId: string
+  sessionId: string
   command: string
   /**
    * The command string originally requested by the caller if applicable.
@@ -776,22 +778,19 @@ interface CommandResponseBase {
 
 interface ServerWebsocketMessages {
   commandOutput: CommandResponseBase & {
-    requestId: string
     data: string
   }
   commandResult: CommandResponseBase & {
-    requestId: string
     result: CommandResult<any>
     errors?: GardenError[]
+  }
+  commandStart: CommandResponseBase & {
+    args: object
+    opts: object
   }
   commandStatus: {
     requestId: string
     status: "active" | "not found"
-  }
-  commandStart: CommandResponseBase & {
-    requestId: string
-    args: object
-    opts: object
   }
   error: {
     requestId?: string
