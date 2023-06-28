@@ -9,6 +9,7 @@
 import { joiProviderName } from "../../config/common"
 import { BaseProviderConfig, Provider, providerConfigBaseSchema } from "../../config/provider"
 import { PluginContext } from "../../plugin-context"
+import { resourcesSchema } from "../kubernetes/config"
 
 export interface OpenShiftConfig extends BaseProviderConfig {}
 export type OpenShiftProvider = Provider<OpenShiftConfig>
@@ -20,5 +21,6 @@ export const configSchema = () =>
   providerConfigBaseSchema()
     .keys({
       name: joiProviderName("openshift"),
+      resources: resourcesSchema(),
     })
     .description("The provider configuration for the openshift plugin")

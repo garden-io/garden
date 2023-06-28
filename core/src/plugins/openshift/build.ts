@@ -14,6 +14,7 @@ import { k8sGetContainerBuildActionOutputs } from "../kubernetes/container/handl
 import { k8sPublishContainerBuild } from "../kubernetes/container/publish"
 import { BuildHandler, BuildStatusHandler } from "../kubernetes/container/build/common"
 import { getLocalBuildStatus, localBuild } from "../kubernetes/container/build/local"
+import { getKanikoBuildStatus, kanikoBuild } from "../kubernetes/container/build/kaniko"
 
 export const openshiftContainerBuildExtension = (): BuildActionExtension<ContainerBuildAction> => ({
   name: "container",
@@ -55,11 +56,11 @@ const unimplemented = () => {
 const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } = {
   "local-docker": getLocalBuildStatus,
   "cluster-buildkit": unimplemented,
-  "kaniko": unimplemented,
+  "kaniko": getKanikoBuildStatus,
 }
 
 const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
   "local-docker": localBuild,
   "cluster-buildkit": unimplemented,
-  "kaniko": unimplemented,
+  "kaniko": kanikoBuild,
 }

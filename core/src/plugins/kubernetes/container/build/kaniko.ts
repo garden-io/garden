@@ -7,7 +7,12 @@
  */
 
 import { V1PodSpec } from "@kubernetes/client-node"
-import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName, defaultKanikoImageName } from "../../constants"
+import {
+  skopeoDaemonContainerName,
+  dockerAuthSecretKey,
+  k8sUtilImageName,
+  defaultKanikoImageName,
+} from "../../constants"
 import { KubeApi } from "../../api"
 import { Log } from "../../../../logger/log-entry"
 import { KubernetesProvider, KubernetesPluginContext } from "../../config"
@@ -138,7 +143,16 @@ export const kanikoBuild: BuildHandler = async (params) => {
     ...getKanikoFlags(spec.extraFlags, provider.config.kaniko?.extraFlags),
   ]
 
-  if (provider.config.deploymentRegistry?.insecure === true) {
+  const isOpenShiftLocal =
+    provider.config.deploymentRegistry?.hostname === "default-route-openshift-image-registry.apps-crc.testing"
+
+  if (isOpenShiftLocal) {
+    // The registry in OpenShift Local requires TLS and comes with a self-signed certificate
+    args.push("--skip-tls-verify")
+  }
+
+  // TODO: do we support the garden-provided in-cluster registry anymore, or could this be deleted?
+  if (provider.config.deploymentRegistry?.insecure === true && !isOpenShiftLocal) {
     // The in-cluster registry is not exposed, so we don't configure TLS on it.
     args.push("--insecure")
   }

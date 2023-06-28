@@ -627,37 +627,7 @@ export const kubernetesConfigBase = () =>
       imagePullSecrets: imagePullSecretsSchema(),
       copySecrets: copySecretsSchema(),
       // TODO: invert the resources and storage config schemas
-      resources: joi
-        .object()
-        .keys({
-          builder: resourceSchema(defaultResources.builder, false).description(dedent`
-            Resource requests and limits for the in-cluster builder. It's important to consider which build mode you're using when configuring this.
-
-            When \`buildMode\` is \`kaniko\`, this refers to _each Kaniko pod_, i.e. each individual build, so you'll want to consider the requirements for your individual image builds, with your most expensive/heavy images in mind.
-
-            When \`buildMode\` is \`cluster-buildkit\`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
-          `),
-          util: resourceSchema(defaultResources.util, false).description(dedent`
-            Resource requests and limits for the util pod for in-cluster builders.
-            This pod is used to get, start, stop and inquire the status of the builds.
-
-            This pod is created in each garden namespace.
-          `),
-          sync: resourceSchema(defaultResources.sync, true)
-            .description(
-              dedent`
-            Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
-            ahead of building images. This generally is not resource intensive, but you might want to adjust the
-            defaults if you have many concurrent users.
-          `
-            )
-            .meta({
-              deprecated: "The sync service is only used for the cluster-docker build mode, which is being deprecated.",
-            }),
-        })
-        .default(defaultResources).description(deline`
-        Resource requests and limits for the in-cluster builder..
-      `),
+      resources: resourcesSchema(),
       tlsCertificates: joiSparseArray(tlsCertificateSchema())
         .unique("name")
         .description("One or more certificates to use for ingress."),
@@ -1001,3 +971,36 @@ export const namespaceNameSchema = () =>
   joiIdentifier()
     .max(63) // Max length of a DNS label, and by extension max k8s namespace length
     .description("A valid Kubernetes namespace name. Must be a " + joiIdentifierDescription)
+
+export const resourcesSchema = () =>
+  joi
+    .object()
+    .keys({
+      builder: resourceSchema(defaultResources.builder, false).description(dedent`
+            Resource requests and limits for the in-cluster builder. It's important to consider which build mode you're using when configuring this.
+
+            When \`buildMode\` is \`kaniko\`, this refers to _each Kaniko pod_, i.e. each individual build, so you'll want to consider the requirements for your individual image builds, with your most expensive/heavy images in mind.
+
+            When \`buildMode\` is \`cluster-buildkit\`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
+          `),
+      util: resourceSchema(defaultResources.util, false).description(dedent`
+            Resource requests and limits for the util pod for in-cluster builders.
+            This pod is used to get, start, stop and inquire the status of the builds.
+
+            This pod is created in each garden namespace.
+          `),
+      sync: resourceSchema(defaultResources.sync, true)
+        .description(
+          dedent`
+            Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
+            ahead of building images. This generally is not resource intensive, but you might want to adjust the
+            defaults if you have many concurrent users.
+          `
+        )
+        .meta({
+          deprecated: "The sync service is only used for the cluster-docker build mode, which is being deprecated.",
+        }),
+    })
+    .default(defaultResources).description(deline`
+        Resource requests and limits for the in-cluster builder..
+      `)

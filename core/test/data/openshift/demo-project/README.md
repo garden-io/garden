@@ -6,6 +6,13 @@ There are no guarantees for feature support, correctness, stability, or ice crea
 
 This is mostly internal documentation while we work through adding support for OpenShift.
 
+This document has been written using the following:
+
+```
+CRC version: 2.20.0+f3a947
+OpenShift version: 4.13.0
+```
+
 ## Preparation
 
 If you are using Docker Desktop and its builtin Kubernetes support, you need to do the following cleanup steps first:
@@ -38,6 +45,36 @@ socat TCP6-LISTEN:6443,fork,reuseaddr TCP4:127.0.0.1:6443
 ```
 
 This needs to be kept running in the background.
+
+## Optional: enabling in-cluster builds
+
+Allow anyuid to enable `kaniko` builder to work on the cluster:
+
+_TODO: we should fix this properly by editing the `garden-util` image, and make this section obsolete_
+
+```bash
+oc login -u kubeadmin https://api.crc.testing:6443
+oc adm policy add-scc-to-user anyuid -z default --namespace demo-project
+oc logout
+oc login -u developer -p developer
+```
+
+Optionally, increase the resources on the VM to make sure the builder does not run into limits:
+
+```bash
+crc config set memory 10240
+crc config set cpus 4
+crc stop
+crc start
+```
+
+Configure the image pull secrets:
+
+```bash
+oc registry login --to auth.json
+oc create secret docker-registry imagepullsecrets --from-file=.dockerconfigjson=auth.json
+rm auth.json
+```
 
 ## Deploy
 
