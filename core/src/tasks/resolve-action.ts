@@ -18,6 +18,7 @@ import { merge } from "lodash"
 import { mergeVariables } from "../graph/common"
 import { actionToResolved } from "../actions/helpers"
 import { ResolvedConfigGraph } from "../graph/config-graph"
+import { OtelTraced } from "../util/tracing/decorators"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -69,6 +70,17 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     })
   }
 
+  @OtelTraced({
+    name(_params) {
+      return this.action.key() + ".resolveAction"
+    },
+    getAttributes(_params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   async process({
     dependencyResults,
   }: ActionTaskProcessParams<T, ResolveActionResults<T>>): Promise<ResolveActionResults<T>> {
@@ -214,6 +226,15 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     }
   }
 
+  @OtelTraced({
+    name: "validateAction",
+    getAttributes(_spec) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   private async validateSpec<S>(spec: S) {
     const actionTypes = await this.garden.getActionTypes()
     const { kind, type } = this.action
