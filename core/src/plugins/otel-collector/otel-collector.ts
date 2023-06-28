@@ -12,7 +12,8 @@ import { GenericProviderConfig, Provider } from "../../config/provider"
 import { dedent } from "../../util/string"
 import { STATIC_DIR } from "../../constants"
 import { sdk } from "../../plugin/sdk"
-import { registerCleanupFunction, sleep } from "../../util/util"
+import { registerCleanupFunction } from "../../util/util"
+import { configureOTLPHttpExporter } from "../../util/tracing/tracing"
 
 const defaultConfigPath = join(STATIC_DIR, "otel-collector", "otel-config.yaml")
 
@@ -132,15 +133,22 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
 
   const configPath = resolve(ctx.projectRoot, ctx.provider.config.configFilePath)
 
-  const result = await ctx.tools["otel-collector.otel-collector"].spawn({
+  const collectorProcess = await ctx.tools["otel-collector.otel-collector"].spawn({
     log,
     args: ["--config", configPath],
     ignoreError: false,
   })
 
-  registerCleanupFunction("kill-otel-collector", () => {
+  // collectorProcess.stdout?.pipe(process.stdout)
+  // collectorProcess.stderr?.pipe(process.stderr)
+
+  console.log("Process started, initializing collector")
+  // Automatically sends to localhost
+  configureOTLPHttpExporter()
+
+  registerCleanupFunction("kill-otel-collector", async () => {
     // TODO: force kill after timeout
-    result.kill()
+    collectorProcess.kill()
   })
 
   return { status: { ready: true, disableCache: true, outputs: {} } }
