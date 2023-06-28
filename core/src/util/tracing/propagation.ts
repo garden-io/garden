@@ -19,6 +19,12 @@ const TRACE_PARENT_REGEX = new RegExp(
   `^\\s?(${VERSION_PART})-(${TRACE_ID_PART})-(${PARENT_ID_PART})-(${FLAGS_PART})(-.*)?\\s?$`
 )
 
+/**
+ * Parses a traceparent value into the correct span context
+ * Taken from https://github.com/open-telemetry/opentelemetry-js/blob/10c3e934cc743211af9811037e6fa63bea2744ee/packages/opentelemetry-core/src/trace/W3CTraceContextPropagator.ts#L52
+ * @param traceParent
+ * @returns
+ */
 function parseTraceParent(traceParent: string): opentelemetry.api.SpanContext | null {
   const match = TRACE_PARENT_REGEX.exec(traceParent)
   if (!match) {
@@ -42,6 +48,11 @@ function parseTraceParent(traceParent: string): opentelemetry.api.SpanContext | 
 const TRACE_PARENT_ENV_VAR = "OTEL_TRACE_PARENT"
 const TRACE_STATE_ENV_VAR = "OTEL_TRACE_STATE"
 
+/**
+ * Gets the environment variables for the TraceParent and TraceState of the currently active context
+ * Used to propagate the trace context to other processes using environment variables.
+ * @returns Object containing `OTEL_TRACE_PARENT` and `OTEL_TRACE_STATE` strings
+ */
 export function getTracePropagationEnvVars() {
   const spanContext = opentelemetry.api.trace.getSpanContext(getActiveContext())
 
@@ -59,7 +70,13 @@ export function getTracePropagationEnvVars() {
   }
 }
 
-export function parsePropagationEnvVars() {
+/**
+ * Parses the `OTEL_TRACE_PARENT` and `OTEL_TRACE_STATE` environment variables
+ * into a SpanContext object that can be set as the active context to continue tracing
+ * across garden processes.
+ * @returns The SpanContext object derived from the environment variables or `undefined`
+ */
+export function parsePropagationEnvVars(): opentelemetry.api.SpanContext | undefined {
   const traceParentEnvVar = env.get(TRACE_PARENT_ENV_VAR).required(false).asString()
   const traceStateEnvVar = env.get(TRACE_STATE_ENV_VAR).required(false).asString()
 
@@ -77,6 +94,13 @@ export function parsePropagationEnvVars() {
   return traceParent
 }
 
+/**
+ * Executes the wrapped callback function using the `SpanContext` extracted via `parsePropagationEnvVars` as the active context.
+ * Best called before any spans are created so that all new spans contain the correct tracing context
+ * that continues as child spans from the parent process.
+ * @param fn The callback function which executes with the propagated parent context
+ * @returns A promise resolving with the callback's return value
+ */
 export function withContextFromEnv<T>(fn: () => Promise<T>): Promise<T> {
   const traceParent = parsePropagationEnvVars()
 

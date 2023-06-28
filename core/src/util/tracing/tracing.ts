@@ -20,6 +20,11 @@ export const tracer = opentelemetry.api.trace.getTracer("garden")
 // so that it can integrate its instrumentation before any other imports happened
 let otelSDK: opentelemetry.NodeSDK | undefined
 
+/**
+ * Gets the Node OTEL SDK singleton.
+ * Initializes it if it hasn't been initialized already.
+ * @returns The `NodeSDK`
+ */
 export const getOtelSDK: () => opentelemetry.NodeSDK = () => {
   if (!otelSDK) {
     return initTracing()
@@ -28,6 +33,12 @@ export const getOtelSDK: () => opentelemetry.NodeSDK = () => {
   }
 }
 
+/**
+ * Initializes the tracing and auto-instrumentations.
+ * Should be called as early as possible in the application initialization
+ * so that it can inject its instrumentations before other libraries may add their custom wrappers.
+ * @returns The `NodeSDK`
+ */
 export function initTracing(): opentelemetry.NodeSDK {
   if (otelSDK) {
     return otelSDK

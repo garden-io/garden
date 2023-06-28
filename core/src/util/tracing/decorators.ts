@@ -14,6 +14,20 @@ import { prefixWithGardenNamespace } from "./util"
 type GetAttributesCallback<T extends any[], C> = (this: C, ...args: T) => opentelemetry.api.Attributes
 type GetNameCallback<T extends any[], C> = (this: C, ...args: T) => string
 
+/**
+ * Class Method Decorator that automatically traces the method.
+ * Ensures to set the `SessionContext` and any additional attributes on the span.
+ * Automatically terminates the span and records an exception if the method throws.
+ *
+ * The name of the span can be static or derived from the `this` context and the call arguments to the function.
+ * The attributes of the span can be derived from the `this` context and the call arguments to the function.
+ *
+ * Note: Until https://github.com/microsoft/TypeScript/issues/54587 is resolved, the `getAttributes` callback
+ * always needs to define the method arguments even if unused.
+ *
+ * @param param0 `name` String or callback and `getAttributes` callback for the trace
+ * @returns The decorator function
+ */
 export function OtelTraced<T extends any[], C>({
   getAttributes,
   name,

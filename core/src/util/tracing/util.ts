@@ -8,6 +8,11 @@
 
 import * as opentelemetry from "@opentelemetry/sdk-node"
 
+/**
+ * Automatically prefixes any keys in the input object with `garden.` for attribute namespacing.
+ * @param data Input `Attributes` object
+ * @returns Prefixed `Attributes` object
+ */
 export function prefixWithGardenNamespace(data: opentelemetry.api.Attributes): opentelemetry.api.Attributes {
   const unprefixed = Object.entries(data)
 
