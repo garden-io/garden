@@ -93,9 +93,9 @@ FormatString
       }
 
       if (e && e.block && allowUndefined) {
-        const _error = new TemplateStringError("Cannot specify optional suffix in if-block.", {
+        const _error = new TemplateStringError({ message: "Cannot specify optional suffix in if-block.", detail: {
           text: text(),
-        })
+        }})
         return { _error }
       }
 
@@ -115,9 +115,9 @@ FormatString
         } else if (e && e._error) {
           return e
         } else {
-          const _error = new TemplateStringError(e.message || "Unable to resolve one or more keys.", {
+          const _error = new TemplateStringError({ message: e.message || "Unable to resolve one or more keys.", detail: {
             text: text(),
-          })
+          }})
           return { _error }
         }
       }
@@ -126,7 +126,7 @@ FormatString
 
 InvalidFormatString
   = Prefix? FormatStart .* {
-  	throw new TemplateStringError("Unable to parse as valid template string.", {})
+      throw new TemplateStringError({ message: "Unable to parse as valid template string.", detail: {}})
   }
 
 EscapeStart
@@ -170,8 +170,8 @@ MemberExpression
         "[" __ e:Expression __ "]" {
           if (e.resolved && !isPrimitive(e.resolved)) {
             const _error = new TemplateStringError(
-              `Expression in bracket must resolve to a primitive (got ${typeof e}).`,
-              { text: e.resolved }
+              { message: `Expression in bracket must resolve to a primitive (got ${typeof e}).`,
+              detail: { text: e.resolved }}
             )
             return { _error }
           }
@@ -290,10 +290,10 @@ ContainsExpression
 
       if (!isPrimitive(tail)) {
         return {
-          _error: new TemplateStringError(
-            `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof tail}).`,
-            {}
-          )
+          _error: new TemplateStringError({
+            message:`The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof tail}).`,
+            detail: {}
+          })
         }
       }
 
@@ -309,10 +309,10 @@ ContainsExpression
         return head.includes(tail.toString())
       } else {
         return {
-          _error: new TemplateStringError(
-            `The left-hand side of a 'contains' operator must be a string, array or object (got ${headType}).`,
-            {}
-          )
+          _error: new TemplateStringError({
+            message: `The left-hand side of a 'contains' operator must be a string, array or object (got ${headType}).`,
+            detail: {}
+          })
         }
       }
     }

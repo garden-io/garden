@@ -49,7 +49,7 @@ export abstract class GardenBaseError<D extends object = any> extends Error impl
   constructor({ message, detail, stack, wrappedErrors }: GardenErrorParams<D>) {
     super(message)
     this.detail = detail
-    this.stack = stack
+    this.stack = stack || this.stack
     this.wrappedErrors = wrappedErrors
   }
 
