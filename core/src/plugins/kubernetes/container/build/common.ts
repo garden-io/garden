@@ -348,7 +348,13 @@ export async function ensureUtilDeployment({
 
 export async function getManifestInspectArgs(remoteId: string, deploymentRegistry: ContainerRegistryConfig) {
   const dockerArgs = ["manifest", "inspect", remoteId]
-  if (isLocalHostname(deploymentRegistry.hostname)) {
+  const { hostname } = deploymentRegistry
+  // Allow insecure connections on local registry
+  if (
+    hostname === "localhost" ||
+    hostname.startsWith("127.") ||
+    hostname === "default-route-openshift-image-registry.apps-crc.testing"
+  ) {
     dockerArgs.push("--insecure")
   }
 
@@ -391,10 +397,6 @@ export async function ensureBuilderSecret({
   }
 
   return { authSecret, updated }
-}
-
-function isLocalHostname(hostname: string) {
-  return hostname === "localhost" || hostname.startsWith("127.")
 }
 
 export function getUtilContainer(authSecretName: string, provider: KubernetesProvider): V1Container {

@@ -11,3 +11,6 @@ providers:
       name: demo-project
     context: demo-project/api-crc-testing:6443/developer
     cluster: api-crc-testing:6443
+    deploymentRegistry:
+      hostname: default-route-openshift-image-registry.apps-crc.testing
+      namespace: demo-project

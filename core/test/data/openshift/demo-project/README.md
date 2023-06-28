@@ -6,6 +6,17 @@ There are no guarantees for feature support, correctness, stability, or ice crea
 
 This is mostly internal documentation while we work through adding support for OpenShift.
 
+## Preparation
+
+If you are using Docker Desktop and its builtin Kubernetes support, you need to do the following cleanup steps first:
+
+- Go to Docker Desktop settings, Kubernetes tab, and disable it with the checkbox
+- Quit Docker Desktop from the menu - using the Restart button is not enough
+- Start Docker Desktop
+- Verify that Docker Desktop is no longer binding the port for Kubernetes API server: `lsof -i :6443`
+- If the port is still active, you may need to quit and start Docker Desktop again
+- Move `~/.kube/config` to another location, both as a backup as well as to give OpenShift the room to create its own
+
 ## Setup
 
 - Download OpenShift Local from RedHat's website
@@ -26,13 +37,22 @@ brew install socat
 socat TCP6-LISTEN:6443,fork,reuseaddr TCP4:127.0.0.1:6443
 ```
 
+This needs to be kept running in the background.
+
 ## Deploy
+
+Let's make sure your terminal has fresh credentials in the environment:
+
+```bash
+oc login -u developer -p developer https://api.crc.testing:6443
+oc registry login --insecure=true
+```
 
 Ideally, at this point this should work:
 
 ```bash
 garden deploy
-open http://hello.local.demo.garden/ # NOTE: this will return 403 as there is no content in the served directory and directory listing is forbidden
+open http://hello.local.demo.garden/
 garden logs nginx-hello # NOTE: this will be empty due to https://github.com/sclorg/nginx-container/issues/94
 garden delete deploy
 ```
