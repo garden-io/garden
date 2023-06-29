@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, resolve } from "path"
+import { join, resolve as resolvePath } from "path"
 import { joi } from "../../config/common"
 import { GenericProviderConfig, Provider } from "../../config/provider"
 import { dedent } from "../../util/string"
@@ -14,6 +14,7 @@ import { STATIC_DIR } from "../../constants"
 import { sdk } from "../../plugin/sdk"
 import { registerCleanupFunction } from "../../util/util"
 import { configureOTLPHttpExporter } from "../../util/tracing/tracing"
+import { ChildProcess } from "child_process"
 
 const defaultConfigPath = join(STATIC_DIR, "otel-collector", "otel-config.yaml")
 
@@ -123,33 +124,83 @@ const providerConfigSchema = s.object({
 export const provider = gardenPlugin.createProvider({ configSchema: providerConfigSchema, outputsSchema: s.object({}) })
 
 provider.addHandler("getEnvironmentStatus", async ({ ctx }) => {
-  console.log(`Calling environment status`)
   return { ready: false, outputs: {} }
 })
 
+async function waitForLogLine({
+  successLog,
+  errorLog,
+  process
+}: {
+  successLog: string
+  errorLog: string
+  process: ChildProcess
+}): Promise<void> {
+  let stdOutString = ""
+  let stdErrString = ""
+
+  return new Promise((resolve, reject) => {
+    function hasError(string: string): boolean {
+      return stdOutString.includes(errorLog) || stdErrString.includes(errorLog)
+    }
+
+    function hasSuccess(string: string): boolean {
+      return stdOutString.includes(successLog) || stdErrString.includes(successLog)
+    }
+
+    process.stdout?.on("data", (chunk) => {
+      stdOutString = stdOutString + chunk
+      if (hasSuccess(stdOutString)) {
+        resolve()
+      } else if (hasError(stdOutString)) {
+        reject()
+      }
+    })
+
+    process.stderr?.on("data", (chunk) => {
+      stdErrString = stdErrString + chunk
+      if (hasSuccess(stdOutString)) {
+        resolve()
+      } else if (hasError(stdOutString)) {
+        reject()
+      }
+    })
+  })
+}
+
 provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
-  log.info("Preparing the environment for the otel-collector")
-  console.log(`Calling prepare env`)
+  const scopedLog = log.createLog({ name: "otel-collector" })
+  scopedLog.silly("Preparing the environment for the otel-collector")
 
-  const configPath = resolve(ctx.projectRoot, ctx.provider.config.configFilePath)
+  const configPath = resolvePath(ctx.projectRoot, ctx.provider.config.configFilePath)
 
+  scopedLog.silly("Starting collector process")
   const collectorProcess = await ctx.tools["otel-collector.otel-collector"].spawn({
     log,
     args: ["--config", configPath],
-    ignoreError: false,
   })
 
-  // collectorProcess.stdout?.pipe(process.stdout)
-  // collectorProcess.stderr?.pipe(process.stderr)
+  try {
+    scopedLog.silly("Waiting for collector process start")
+    await waitForLogLine({
+      successLog: "Everything is ready. Begin running and processing data.",
+      errorLog: "collector server run finished with error",
+      process: collectorProcess,
+    })
 
-  console.log("Process started, initializing collector")
-  // Automatically sends to localhost
-  configureOTLPHttpExporter()
+    scopedLog.silly("Collector process started. Switching exporter over to otel-collector.")
+    // Automatically sends to localhost
+    configureOTLPHttpExporter()
 
-  registerCleanupFunction("kill-otel-collector", async () => {
-    // TODO: force kill after timeout
-    collectorProcess.kill()
-  })
+    registerCleanupFunction("kill-otel-collector", async () => {
+      scopedLog.silly("Shutting down otel-collector.")
+      // TODO: force kill after timeout
+      collectorProcess.kill()
+    })
 
-  return { status: { ready: true, disableCache: true, outputs: {} } }
+    return { status: { ready: true, disableCache: true, outputs: {} } }
+  } catch (err) {
+    scopedLog.error("otel-collector failed to initialize")
+    return { status: { ready: false, disableCache: true, outputs: {} } }
+  }
 })
