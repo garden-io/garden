@@ -14,6 +14,8 @@ import pluralize from "pluralize"
 import { BuildStatus } from "../plugin/handlers/Build/get-status"
 import { resolvedActionToExecuted } from "../actions/helpers"
 import { renderDuration } from "../logger/util"
+import { OtelTraced } from "../util/tracing/decorators"
+import { wrapActiveSpan } from "../util/tracing/spans"
 
 @Profile()
 export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
@@ -25,7 +27,17 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     return this.action.longDescription()
   }
 
-
+  @OtelTraced({
+    name(_params) {
+      return `${this.action.key()}.getBuildStatus`
+    },
+    getAttributes(_params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   @emitGetStatusEvents<BuildAction>
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
@@ -42,6 +54,17 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 
+  @OtelTraced({
+    name(_params) {
+      return `${this.action.key()}.build`
+    },
+    getAttributes(_params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   @emitProcessingEvents<BuildAction>
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, BuildStatus>) {
     const router = await this.garden.getActionRouter()
@@ -57,11 +80,11 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     await this.buildStaging(action)
 
     try {
-      const { result } = await router.build.build({
+      const { result } = await wrapActiveSpan("build", () => router.build.build({
         graph: this.graph,
         action,
         log,
-      })
+      }))
       log.success(`Done`)
 
       return {
@@ -91,13 +114,20 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       log.verbose(`Syncing sources (${pluralize("file", files.length, true)})...`)
     }
 
-    await this.garden.buildStaging.syncFromSrc({
-      action,
-      log: log || this.log,
+    await wrapActiveSpan("syncSources", async (span) => {
+      span.setAttributes({
+        "garden.filesSynced": files.length
+      })
+      await this.garden.buildStaging.syncFromSrc({
+        action,
+        log: log || this.log,
+      })
     })
 
     log.verbose(chalk.green(`Done syncing sources ${renderDuration(log.getDuration(1))}`))
 
-    await this.garden.buildStaging.syncDependencyProducts(action, log)
+    await wrapActiveSpan("syncDependencyProducts", async () => {
+      await this.garden.buildStaging.syncDependencyProducts(action, log)
+    })
   }
 }

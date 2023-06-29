@@ -181,13 +181,13 @@ export function getProviderTemplateReferences(config: GenericProviderConfig) {
     if (key[0] === "providers") {
       const providerName = key[1] as string
       if (!providerName) {
-        throw new ConfigurationError(
-          deline`
+        throw new ConfigurationError({
+          message: deline`
           Invalid template key '${key.join(".")}' in configuration for provider '${config.name}'. You must
           specify a provider name as well (e.g. \${providers.my-provider}).
         `,
-          { config, key: key.join(".") }
-        )
+          detail: { config, key: key.join(".") },
+        })
       }
       deps.push(providerName)
     }

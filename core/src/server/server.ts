@@ -556,7 +556,7 @@ export class GardenServer extends EventEmitter {
 
         const persistent = command.maybePersistent(prepareParams)
         // We don't want to print logs on every request for some commands.
-        const printLogs = !internal && !skipLogsForCommands.includes(command.getFullName())
+        const isInternal = internal || skipLogsForCommands.includes(command.getFullName())
         const requestLog = this.log.createLog({ name: "garden-server" })
         const cmdNameStr = chalk.bold.white(command.getFullName())
 
@@ -564,29 +564,37 @@ export class GardenServer extends EventEmitter {
           command.enableAnalytics = false
         }
 
+        const commandResponseBase = {
+          command: command.getFullName(),
+          persistent,
+          commandRequest: request.command,
+        }
+
         // TODO: convert to async/await (this was previously in a sync method)
         command
           .prepare(prepareParams)
           .then(() => {
-            if (persistent) {
+            if (!isInternal) {
               send("commandStart", {
+                ...commandResponseBase,
                 requestId,
                 args,
                 opts,
               })
-
+            }
+            if (persistent) {
               this.activePersistentRequests[requestId] = { command, connection }
 
               command.subscribe((data: any) => {
                 send("commandOutput", {
+                  ...commandResponseBase,
                   requestId,
-                  command: command.getFullName(),
                   data: sanitizeValue(data),
                 })
               })
             }
 
-            if (printLogs) {
+            if (!isInternal) {
               requestLog.info(chalk.grey(`Running command ${cmdNameStr}`))
             }
 
@@ -631,12 +639,13 @@ export class GardenServer extends EventEmitter {
             send(
               "commandResult",
               sanitizeValue({
+                ...commandResponseBase,
                 requestId,
                 result,
                 errors,
               })
             )
-            if (printLogs) {
+            if (!isInternal) {
               if (errors?.length) {
                 renderCommandErrors(requestLog.root, errors, commandLog)
               } else {
@@ -647,7 +656,7 @@ export class GardenServer extends EventEmitter {
           })
           .catch((error) => {
             send("error", { message: error.message, requestId })
-            if (printLogs) {
+            if (!isInternal) {
               requestLog.error({ error: toGardenError(error) })
             }
             delete this.activePersistentRequests[requestId]
@@ -756,13 +765,21 @@ export class GardenServer extends EventEmitter {
   }
 }
 
+interface CommandResponseBase {
+  command: string
+  /**
+   * The command string originally requested by the caller if applicable.
+   */
+  commandRequest?: string
+  persistent: boolean
+}
+
 interface ServerWebsocketMessages {
-  commandOutput: {
+  commandOutput: CommandResponseBase & {
     requestId: string
-    command: string
     data: string
   }
-  commandResult: {
+  commandResult: CommandResponseBase & {
     requestId: string
     result: CommandResult<any>
     errors?: GardenError[]
@@ -771,7 +788,7 @@ interface ServerWebsocketMessages {
     requestId: string
     status: "active" | "not found"
   }
-  commandStart: {
+  commandStart: CommandResponseBase & {
     requestId: string
     args: object
     opts: object

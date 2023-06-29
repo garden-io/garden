@@ -32,6 +32,7 @@ import { environmentStatusSchema } from "../config/status"
 import { hashString, isNotNull } from "../util/util"
 import { gardenEnv } from "../constants"
 import { stableStringify } from "../util/string"
+import { OtelTraced } from "../util/tracing/decorators"
 
 interface Params extends CommonTaskParams {
   plugin: GardenPluginSpec
@@ -117,11 +118,12 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       const matched = matchDependencies(dep.name)
 
       if (matched.length === 0 && !dep.optional) {
-        throw new ConfigurationError(
-          `Provider '${this.config.name}' depends on provider '${dep.name}', which is not configured. ` +
+        throw new ConfigurationError({
+          message:
+            `Provider '${this.config.name}' depends on provider '${dep.name}', which is not configured. ` +
             `You need to add '${dep.name}' to your project configuration for the '${this.config.name}' to work.`,
-          { config: this.config, missingProviderName: dep.name }
-        )
+          detail: { config: this.config, missingProviderName: dep.name },
+        })
       }
     })
 
@@ -149,6 +151,16 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     return null
   }
 
+  @OtelTraced({
+    name(_params) {
+      return this.config.name + ".resolveProvider"
+    },
+    getAttributes(_spec) {
+      return {
+        name: this.config.name,
+      }
+    },
+  })
   async process({ dependencyResults }: TaskProcessParams) {
     const providerResults = dependencyResults.getResultsByType(this).filter(isNotNull)
     const resolvedProviders: ProviderMap = keyBy(providerResults.map((r) => r.result).filter(isNotNull), "name")
@@ -384,10 +396,10 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     }
 
     if (!status.ready) {
-      throw new PluginError(
-        `Provider ${pluginName} reports status as not ready and could not prepare the configured environment.`,
-        { name: pluginName, status, provider: tmpProvider }
-      )
+      throw new PluginError({
+        message: `Provider ${pluginName} reports status as not ready and could not prepare the configured environment.`,
+        detail: { name: pluginName, status, provider: tmpProvider },
+      })
     }
 
     if (!status.disableCache) {

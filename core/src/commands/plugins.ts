@@ -81,9 +81,12 @@ export class PluginsCommand extends Command<Args> {
     if (!command) {
       return {
         errors: [
-          new ParameterError(`Could not find command '${args.command}' on plugin ${args.plugin}`, {
-            args,
-            availableCommands: plugin.commands.map((c) => c.name),
+          new ParameterError({
+            message: `Could not find command '${args.command}' on plugin ${args.plugin}`,
+            detail: {
+              args,
+              availableCommands: plugin.commands.map((c) => c.name),
+            },
           }),
         ],
       }

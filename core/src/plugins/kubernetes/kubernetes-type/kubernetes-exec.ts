@@ -148,15 +148,15 @@ async function readAndExec({
     })
   } catch (err) {
     if (err.statusCode === 404) {
-      throw new ConfigurationError(
-        chalk.red(
+      throw new ConfigurationError({
+        message: chalk.red(
           deline`${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not
           be found in namespace ${namespace}. Hint: This action may be missing a dependency on a Deploy in this
           project that deploys the target resource. If so, adding that dependency will ensure that the Deploy is run
           before this action.`
         ),
-        { resource, namespace }
-      )
+        detail: { resource, namespace },
+      })
     } else {
       throw err
     }

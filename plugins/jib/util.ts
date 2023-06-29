@@ -29,6 +29,7 @@ interface JibBuildSpec {
   mavenPath?: string
   mavendPath?: string
   mavenPhases: string[]
+  concurrentMavenBuilds?: boolean
   gradlePath?: string
 }
 
@@ -83,7 +84,10 @@ export function detectProjectType(action: BuildAction): JibPluginType {
     }
   }
 
-  throw new ConfigurationError(`Could not detect a gradle or maven project to build ${action.name}`, {})
+  throw new ConfigurationError({
+    message: `Could not detect a gradle or maven project to build ${action.name}`,
+    detail: {},
+  })
 }
 
 export function getBuildFlags(action: Resolved<JibBuildAction>, projectType: JibModuleBuildSpec["projectType"]) {

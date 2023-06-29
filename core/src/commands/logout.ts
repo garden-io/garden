@@ -51,12 +51,12 @@ export class LogOutCommand extends Command<{}, Opts> {
 
       // Fail if this is not run within a garden project
       if (!projectConfig) {
-        throw new ConfigurationError(
-          `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-          {
+        throw new ConfigurationError({
+          message: `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+          detail: {
             root: garden.projectRoot,
-          }
-        )
+          },
+        })
       }
     }
 

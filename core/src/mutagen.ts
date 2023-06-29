@@ -797,11 +797,17 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
   try {
     parsed = JSON.parse(res.stdout)
   } catch (err) {
-    throw new MutagenError(`Could not parse response from mutagen sync list: ${res.stdout}`, { res })
+    throw new MutagenError({
+      message: `Could not parse response from mutagen sync list: ${res.stdout}`,
+      detail: { res },
+    })
   }
 
   if (!Array.isArray(parsed)) {
-    throw new MutagenError(`Unexpected response from mutagen sync list: ${parsed}`, { res, parsed })
+    throw new MutagenError({
+      message: `Unexpected response from mutagen sync list: ${parsed}`,
+      detail: { res, parsed },
+    })
   }
 
   return parsed
@@ -817,8 +823,7 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "amd64",
-      url:
-        "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_amd64_v0.15.0.tar.gz",
+      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_amd64_v0.15.0.tar.gz",
       sha256: "370bf71e28f94002453921fda83282280162df7192bd07042bf622bf54507e3f",
       extract: {
         format: "tar",
@@ -828,8 +833,7 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "arm64",
-      url:
-        "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_arm64_v0.15.0.tar.gz",
+      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_arm64_v0.15.0.tar.gz",
       sha256: "a0a7be8bb37266ea184cb580004e1741a17c8165b2032ce4b191f23fead821a0",
       extract: {
         format: "tar",

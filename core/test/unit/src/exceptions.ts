@@ -20,7 +20,7 @@ describe("GardenError", () => {
     let error: GardenBaseError
 
     try {
-      throw new RuntimeError("test exception", {})
+      throw new RuntimeError({ message: "test exception" })
     } catch (err) {
       error = err
     }
@@ -43,7 +43,7 @@ describe("GardenError", () => {
   })
 
   it("should handle empty stack trace", async () => {
-    const error = new RuntimeError("test exception", {})
+    const error = new RuntimeError({ message: "test exception" })
 
     error.stack = ""
     const stackTrace = getStackTraceMetadata(error)
@@ -51,7 +51,7 @@ describe("GardenError", () => {
   })
 
   it("should return list of stack trace entries", async () => {
-    const error = new RuntimeError("test exception", {})
+    const error = new RuntimeError({ message: "test exception" })
 
     error.stack = `Error: test exception
     at Context.<anonymous> (/path/to/src/utils/exceptions.ts:17:13)
@@ -67,13 +67,13 @@ describe("GardenError", () => {
   })
 
   it("should return wrapped stack trace metadata", async () => {
-    const wrappedError = new ConfigurationError("config exception", {})
+    const wrappedError = new ConfigurationError({ message: "test exception" })
     wrappedError.stack = `Error: config exception
     at Context.<anonymous> (/path/to/src/utils/exceptions.ts:17:13)
     at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
     at processImmediate (node:internal/timers:471:21)`
 
-    const error = new RuntimeError("test exception", {}, [wrappedError])
+    const error = new RuntimeError({ message: "test exception", wrappedErrors: [wrappedError] })
 
     const stackTrace = getStackTraceMetadata(error)
 

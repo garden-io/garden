@@ -271,12 +271,12 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
       if (dep.needsExecutedOutputs) {
         if (disabled && action.kind !== "Build") {
           // TODO-0.13.1: Need to handle conditional references, over in dependenciesFromAction()
-          throw new GraphError(
-            `${this.action.longDescription()} depends on one or more runtime outputs from action ${
+          throw new GraphError({
+            message: `${this.action.longDescription()} depends on one or more runtime outputs from action ${
               action.key
             }, which is disabled. Please either remove the reference or enable the action.`,
-            { dependant: this.action.key(), dependency: action.key() }
-          )
+            detail: { dependant: this.action.key(), dependency: action.key() },
+          })
         }
         return [this.getExecuteTask(action)]
       } else if (dep.explicit) {
@@ -323,10 +323,10 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
     const result = dependencyResults.getResult(resolveTask)
 
     if (!result) {
-      throw new InternalError(
-        `Could not find resolved action '${action.key()}' when processing task '${this.getBaseKey()}'.`,
-        { taskType: this.type, action: action.key() }
-      )
+      throw new InternalError({
+        message: `Could not find resolved action '${action.key()}' when processing task '${this.getBaseKey()}'.`,
+        detail: { taskType: this.type, action: action.key() },
+      })
     }
 
     return <Resolved<T>>result.outputs.resolvedAction
@@ -341,10 +341,10 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
     const result = dependencyResults.getResult(execTask)
 
     if (!result) {
-      throw new InternalError(
-        `Could not find executed action '${action.key()}' when processing task '${this.getBaseKey()}'.`,
-        { taskType: this.type, action: action.key() }
-      )
+      throw new InternalError({
+        message: `Could not find executed action '${action.key()}' when processing task '${this.getBaseKey()}'.`,
+        detail: { taskType: this.type, action: action.key() },
+      })
     }
 
     return <Executed<T>>result.result?.executedAction
@@ -404,7 +404,7 @@ export function emitGetStatusEvents<
   const method = descriptor.value
 
   if (!method) {
-    throw new RuntimeError("No method to decorate", {})
+    throw new RuntimeError({ message: "No method to decorate", detail: {} })
   }
 
   descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskStatusParams<A>]) {
@@ -479,7 +479,7 @@ export function emitProcessingEvents<
   const method = descriptor.value
 
   if (!method) {
-    throw new RuntimeError("No method to decorate", {})
+    throw new RuntimeError({ message: "No method to decorate", detail: {} })
   }
 
   descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskStatusParams<A>]) {

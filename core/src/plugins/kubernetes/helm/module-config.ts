@@ -215,14 +215,14 @@ export async function configureHelmModule({
 
   if (base) {
     if (containsSources) {
-      throw new ConfigurationError(
-        deline`
+      throw new ConfigurationError({
+        message: deline`
         Helm module '${moduleConfig.name}' both contains sources and specifies a base module.
         Since Helm charts cannot currently be merged, please either remove the sources or
         the \`base\` reference in your module config.
       `,
-        { moduleConfig }
-      )
+        detail: { moduleConfig },
+      })
     }
 
     // We copy the chart on build

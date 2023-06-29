@@ -132,7 +132,7 @@ export const validateActionSearchResults = ({
 
   names?.forEach((n) => {
     if (!isGlob(n) && !actions.find((a) => a.name === n)) {
-      throw new ParameterError(`${actionKind} action "${n}" was not found.`, { ...errData })
+      throw new ParameterError({ message: `${actionKind} action "${n}" was not found.`, detail: { ...errData } })
     }
   })
 
@@ -141,7 +141,7 @@ export const validateActionSearchResults = ({
     if (names) {
       argumentsMsg = ` (matching argument(s) ${naturalList(names.map((n) => `'${n}'`))})`
     }
-    throw new ParameterError(`No ${actionKind} actions were found${argumentsMsg}.`, { errData })
+    throw new ParameterError({ message: `No ${actionKind} actions were found${argumentsMsg}.`, detail: { errData } })
   }
   return { shouldAbort: false }
 }

@@ -175,7 +175,10 @@ async function getIngress(
 
   if (!hostname) {
     // this should be caught when parsing the module
-    throw new PluginError(`Missing hostname in ingress spec`, { deploySpec: action.getSpec(), ingressSpec: spec })
+    throw new PluginError({
+      message: `Missing hostname in ingress spec`,
+      detail: { deploySpec: action.getSpec(), ingressSpec: spec },
+    })
   }
 
   const certificate = await pickCertificate(action, api, provider, hostname)
@@ -232,10 +235,10 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
       secret = await api.core.readNamespacedSecret(cert.secretRef.name, cert.secretRef.namespace)
     } catch (err) {
       if (err.statusCode === 404) {
-        throw new ConfigurationError(
-          `Cannot find Secret ${cert.secretRef.name} configured for TLS certificate ${cert.name}`,
-          cert
-        )
+        throw new ConfigurationError({
+          message: `Cannot find Secret ${cert.secretRef.name} configured for TLS certificate ${cert.name}`,
+          detail: cert,
+        })
       } else {
         throw err
       }
@@ -244,10 +247,10 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
     const data = secret.data!
 
     if (!data["tls.crt"] || !data["tls.key"]) {
-      throw new ConfigurationError(
-        `Secret '${cert.secretRef.name}' is not a valid TLS secret (missing tls.crt and/or tls.key).`,
-        cert
-      )
+      throw new ConfigurationError({
+        message: `Secret '${cert.secretRef.name}' is not a valid TLS secret (missing tls.crt and/or tls.key).`,
+        detail: cert,
+      })
     }
 
     const crtData = Buffer.from(data["tls.crt"], "base64").toString()
@@ -255,9 +258,12 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
     try {
       return getHostnamesFromPem(crtData)
     } catch (error) {
-      throw new ConfigurationError(`Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate`, {
-        ...cert,
-        error,
+      throw new ConfigurationError({
+        message: `Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate`,
+        detail: {
+          ...cert,
+          error,
+        },
       })
     }
   }
@@ -281,14 +287,15 @@ async function pickCertificate(
   }
 
   if (provider.config.forceSsl) {
-    throw new ConfigurationError(
-      `Could not find certificate for hostname '${hostname}' ` +
+    throw new ConfigurationError({
+      message:
+        `Could not find certificate for hostname '${hostname}' ` +
         `configured on service '${action.name}' and forceSsl flag is set.`,
-      {
+      detail: {
         actionName: action.name,
         hostname,
-      }
-    )
+      },
+    })
   }
 
   return undefined

@@ -217,7 +217,10 @@ class Kubectl extends PluginTool {
       const exists = await pathExists(override)
 
       if (!exists) {
-        throw new ConfigurationError(`Could not find configured kubectlPath: ${override}`, { kubectlPath: override })
+        throw new ConfigurationError({
+          message: `Could not find configured kubectlPath: ${override}`,
+          detail: { kubectlPath: override },
+        })
       }
 
       return override

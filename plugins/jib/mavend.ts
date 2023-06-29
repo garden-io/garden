@@ -94,7 +94,7 @@ export function getMvndTool(ctx: PluginContext) {
   const tool = find(ctx.tools, (_, k) => k.endsWith(".mavend"))
 
   if (!tool) {
-    throw new PluginError(`Could not find configured maven daemon tool`, { tools: ctx.tools })
+    throw new PluginError({ message: `Could not find configured maven daemon tool`, detail: { tools: ctx.tools } })
   }
 
   return tool
@@ -120,6 +120,7 @@ export async function mvnd({
   log,
   openJdkPath,
   binaryPath,
+  concurrentMavenBuilds,
   outputStream,
 }: BuildToolParams) {
   let mvndPath: string
@@ -142,7 +143,11 @@ export async function mvnd({
 
   log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
   const params = { binaryPath: mvndPath, args, cwd, openJdkPath, outputStream }
-  return buildLock.acquire("mvnd", async () => {
+  if (concurrentMavenBuilds) {
     return runBuildTool(params)
-  })
+  } else {
+    return buildLock.acquire("mvnd", async () => {
+      return runBuildTool(params)
+    })
+  }
 }

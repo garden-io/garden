@@ -322,15 +322,15 @@ export async function prepareRunPodSpec({
 
   if (getArtifacts) {
     if (!command) {
-      throw new ConfigurationError(
-        deline`
+      throw new ConfigurationError({
+        message: deline`
         ${description} specifies artifacts to export, but doesn't
         explicitly set a \`command\`. The kubernetes provider currently requires an explicit command to be set for
         tests and tasks that export artifacts, because the image's entrypoint cannot be inferred in that execution
         mode. Please set the \`command\` field and try again.
         `,
-        errorMetadata
-      )
+        detail: errorMetadata,
+      })
     }
 
     // We start the container with a named pipe and tail that, to get the logs from the actual command
@@ -552,21 +552,21 @@ async function runWithArtifacts({
         const message = containerStatus?.state?.terminated?.message || containerStatus?.state?.waiting?.message
 
         if (message?.includes("not found")) {
-          throw new ConfigurationError(
-            deline`
+          throw new ConfigurationError({
+            message: deline`
               ${description} specifies artifacts to export, but the image doesn't
               contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need to
               be installed in the image.
 
               Original error message:
               ${message}`,
-            errorMetadata
-          )
+            detail: errorMetadata,
+          })
         } else {
-          throw new RuntimeError(
-            `Failed to start Pod ${runner.podName}: ${JSON.stringify(status.resource.status, null, 2)}`,
-            errorMetadata
-          )
+          throw new RuntimeError({
+            message: `Failed to start Pod ${runner.podName}: ${JSON.stringify(status.resource.status, null, 2)}`,
+            detail: errorMetadata,
+          })
         }
       }
     }
@@ -595,13 +595,13 @@ async function runWithArtifacts({
       //   stdout,
       //   stderr,
       // })
-      throw new ConfigurationError(
-        deline`
+      throw new ConfigurationError({
+        message: deline`
         ${description} specifies artifacts to export, but the image doesn't
         contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need to
         be installed in the image.`,
-        errorMetadata
-      )
+        detail: errorMetadata,
+      })
     }
 
     // Escape the command, so that we can safely pass it as a single string
@@ -739,7 +739,7 @@ function newExitCodePodRunnerError(podErrorDetails: PodErrorDetails): PodRunnerE
   const errorMessage = !!logs
     ? `Command exited with code ${exitCode}:\n${logs}`
     : `Command exited with code ${exitCode}.`
-  return new PodRunnerError(errorMessage, omit(podErrorDetails, "logs"))
+  return new PodRunnerError({ message: errorMessage, detail: omit(podErrorDetails, "logs") })
 }
 
 interface RunAndWaitResult {
@@ -772,8 +772,11 @@ export class PodRunner extends PodRunnerParams {
     const spec = params.pod.spec
 
     if (!spec.containers || spec.containers.length === 0) {
-      throw new PluginError(`Pod spec for PodRunner must contain at least one container`, {
-        spec,
+      throw new PluginError({
+        message: `Pod spec for PodRunner must contain at least one container`,
+        detail: {
+          spec,
+        },
       })
     }
 
@@ -923,10 +926,11 @@ export class PodRunner extends PodRunnerParams {
           // if the pod has been deleted during execution we might run into a 404 error.
           // Convert it to Garden NotFoundError and fetch the logs for more details.
           if (e.statusCode === 404) {
-            throw new NotFoundError(
-              "Could not find Pod while waiting for it to complete. The Pod might have been evicted or deleted.",
-              await notFoundErrorDetails()
-            )
+            throw new NotFoundError({
+              message:
+                "Could not find Pod while waiting for it to complete. The Pod might have been evicted or deleted.",
+              detail: await notFoundErrorDetails(),
+            })
           }
         }
 
@@ -951,7 +955,7 @@ export class PodRunner extends PodRunnerParams {
       // Garden computes is "stopped". However, in those instances the exitReason is still "OOMKilled"
       // and we handle that case specifically here.
       if (exitCode === 137 || exitReason === "OOMKilled") {
-        throw new OutOfMemoryError("Pod container was OOMKilled.", await podErrorDetails())
+        throw new OutOfMemoryError({ message: "Pod container was OOMKilled.", detail: await podErrorDetails() })
       }
 
       if (state === "unhealthy") {
@@ -969,7 +973,7 @@ export class PodRunner extends PodRunnerParams {
             return exitCode
           }
         } else {
-          throw new PodRunnerError(`Failed to start Pod ${podName}.`, await podErrorDetails())
+          throw new PodRunnerError({ message: `Failed to start Pod ${podName}.`, detail: await podErrorDetails() })
         }
       }
 
@@ -988,7 +992,10 @@ export class PodRunner extends PodRunnerParams {
       const elapsed = (new Date().getTime() - startedAt.getTime()) / 1000
 
       if (timeoutSec && elapsed > timeoutSec) {
-        throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, await podErrorDetails())
+        throw new TimeoutError({
+          message: `Command timed out after ${timeoutSec} seconds.`,
+          detail: await podErrorDetails(),
+        })
       }
 
       await sleep(800)
@@ -1061,7 +1068,7 @@ export class PodRunner extends PodRunnerParams {
 
     if (result.timedOut) {
       const errorDetails: PodErrorDetails = { logs: await collectLogs(), result }
-      throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, errorDetails)
+      throw new TimeoutError({ message: `Command timed out after ${timeoutSec} seconds.`, detail: errorDetails })
     }
 
     if (result.exitCode === 137) {
@@ -1070,7 +1077,7 @@ export class PodRunner extends PodRunnerParams {
         exitCode: result.exitCode,
         result,
       }
-      throw new OutOfMemoryError("Pod container was OOMKilled.", errorDetails)
+      throw new OutOfMemoryError({ message: "Pod container was OOMKilled.", detail: errorDetails })
     }
 
     // the Pod might have been killed – if the process exits with code zero when
@@ -1108,7 +1115,7 @@ export class PodRunner extends PodRunnerParams {
       some(events, (event) => event.reason === "Killing" && (!event.lastTimestamp || event.lastTimestamp > afterTime))
     ) {
       const details: PodErrorDetails = { podEvents: events }
-      throw new NotFoundError("Pod has been killed or evicted.", details)
+      throw new NotFoundError({ message: "Pod has been killed or evicted.", detail: details })
     }
   }
 
@@ -1187,7 +1194,7 @@ export class PodRunner extends PodRunnerParams {
   }) {
     // Some types and predicates to identify known errors
     const knownErrorTypes = ["out-of-memory", "not-found", "timeout", "pod-runner", "kubernetes"] as const
-    type KnownErrorType = typeof knownErrorTypes[number]
+    type KnownErrorType = (typeof knownErrorTypes)[number]
     // A known error is always an instance of a subclass of GardenBaseError
     type KnownError = Error & {
       message: string
@@ -1268,8 +1275,7 @@ export class PodRunner extends PodRunnerParams {
         case "kubernetes":
           return `Unable to start command execution. Failed to initiate a runner pod with error:\n${error.message}\n\nPlease check the cluster health and network connectivity.`
         default:
-          const _exhaustiveCheck: never = error.type
-          return _exhaustiveCheck
+          return error.type satisfies never
       }
     }
 

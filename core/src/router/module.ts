@@ -181,14 +181,14 @@ export class ModuleRouter extends BaseRouter {
       <WrappedModuleActionHandlers[T]>(async (...args: any[]) => {
         const result = await handler.apply(plugin, args)
         if (result === undefined) {
-          throw new PluginError(
-            `Got empty response from ${moduleType}.${handlerType} handler on ${pluginName} provider`,
-            {
+          throw new PluginError({
+            message: `Got empty response from ${moduleType}.${handlerType} handler on ${pluginName} provider`,
+            detail: {
               args,
               handlerType,
               pluginName,
-            }
-          )
+            },
+          })
         }
         return validateSchema(result, schema, {
           context: `${handlerType} handler output from provider ${pluginName} for module type ${moduleType} `,
@@ -293,11 +293,12 @@ export class ModuleRouter extends BaseRouter {
         }
 
         // This should never happen
-        throw new InternalError(
-          `Unable to find any matching configuration when selecting ${moduleType}/${handlerType} handler ` +
+        throw new InternalError({
+          message:
+            `Unable to find any matching configuration when selecting ${moduleType}/${handlerType} handler ` +
             `(please report this as a bug).`,
-          { handlers, configs }
-        )
+          detail: { handlers, configs },
+        })
       } else {
         return filtered[0]
       }
@@ -318,16 +319,17 @@ export class ModuleRouter extends BaseRouter {
       }
 
       if (pluginName) {
-        throw new PluginError(
-          `Plugin '${pluginName}' does not have a '${handlerType}' handler for module type '${moduleType}'.`,
-          errorDetails
-        )
+        throw new PluginError({
+          message: `Plugin '${pluginName}' does not have a '${handlerType}' handler for module type '${moduleType}'.`,
+          detail: errorDetails,
+        })
       } else {
-        throw new ParameterError(
-          `No '${handlerType}' handler configured for module type '${moduleType}' in environment ` +
+        throw new ParameterError({
+          message:
+            `No '${handlerType}' handler configured for module type '${moduleType}' in environment ` +
             `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
-          errorDetails
-        )
+          detail: errorDetails,
+        })
       }
     }
   }

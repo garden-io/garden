@@ -610,58 +610,63 @@ export class AnalyticsHandler {
     exitCode?: number,
     parentSessionId?: string
   ) {
-    const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
+    try {
+      const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
 
-    const durationMsec = getDurationMsec(startTime, new Date())
+      const durationMsec = getDurationMsec(startTime, new Date())
 
-    const allErrors = errors.map((e) => e.type)
-    const allWrappedErrorTypes = errors.map((e) => e.wrappedErrors?.at(0)?.type)
+      const allErrors = errors.map((e) => e.type)
+      const allWrappedErrorTypes = errors.map((e) => e.wrappedErrors?.at(0)?.type)
 
-    const allErrorMetadata = errors.map((e) => {
-      try {
-        const stackTrace = getStackTraceMetadata(e)
-        const firstEntry = stackTrace.metadata.at(0)
-        return firstEntry
-      } catch (err) {
-        this.log.silly(`Failed to get stack trace metadata from ${e}, ${err}`)
-        return undefined
-      }
-    })
-
-    const allWrappedErrorMetadata = errors.map((e) => {
-      try {
-        const stackTrace = getStackTraceMetadata(e)
-        // get the first metadata entry of the first wrapped error
-        const firstEntry = stackTrace.wrappedMetadata?.at(0)?.at(0)
-        return firstEntry
-      } catch (err) {
-        this.log.silly(`Failed to get wrapped stack trace metadata from ${e}, ${err}`)
-        return undefined
-      }
-    })
-
-    const lastError = allErrors.at(-1)
-      ? {
-          errorType: allErrors.at(-1)!,
-          stackTrace: allErrorMetadata.at(-1),
-          wrappedErrorType: allWrappedErrorTypes.at(-1),
-          wrappedStackTrace: allWrappedErrorMetadata.at(-1),
+      const allErrorMetadata = errors.map((e) => {
+        try {
+          const stackTrace = getStackTraceMetadata(e)
+          const firstEntry = stackTrace.metadata.at(0)
+          return firstEntry
+        } catch (err) {
+          this.log.silly(`Failed to get stack trace metadata from ${e}, ${err}`)
+          return undefined
         }
-      : undefined
+      })
 
-    return this.track({
-      type: "Command Result",
-      properties: {
-        name: commandName,
-        durationMsec,
-        result,
-        errors: allErrors,
-        errorMetadata: allErrorMetadata,
-        lastError,
-        exitCode,
-        ...this.getBasicAnalyticsProperties(parentSessionId),
-      },
-    })
+      const allWrappedErrorMetadata = errors.map((e) => {
+        try {
+          const stackTrace = getStackTraceMetadata(e)
+          // get the first metadata entry of the first wrapped error
+          const firstEntry = stackTrace.wrappedMetadata?.at(0)?.at(0)
+          return firstEntry
+        } catch (err) {
+          this.log.silly(`Failed to get wrapped stack trace metadata from ${e}, ${err}`)
+          return undefined
+        }
+      })
+
+      const lastError = allErrors.at(-1)
+        ? {
+            errorType: allErrors.at(-1)!,
+            stackTrace: allErrorMetadata.at(-1),
+            wrappedErrorType: allWrappedErrorTypes.at(-1),
+            wrappedStackTrace: allWrappedErrorMetadata.at(-1),
+          }
+        : undefined
+
+      return this.track({
+        type: "Command Result",
+        properties: {
+          name: commandName,
+          durationMsec,
+          result,
+          errors: allErrors,
+          errorMetadata: allErrorMetadata,
+          lastError,
+          exitCode,
+          ...this.getBasicAnalyticsProperties(parentSessionId),
+        },
+      })
+    } catch (error) {
+      this.log.silly(`Error in tracking command result: ${error}`)
+      return null
+    }
   }
 
   /**

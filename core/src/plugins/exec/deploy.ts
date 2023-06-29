@@ -36,6 +36,7 @@ import { convertCommandSpec, execRunCommand, getDefaultEnvVars } from "./common"
 import { isRunning, killRecursive } from "../../process"
 import { sdk } from "../../plugin/sdk"
 import { execProvider } from "./exec"
+import { getTracePropagationEnvVars } from "../../util/tracing/propagation"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -278,8 +279,8 @@ export async function deployPersistentExecService({
           }
         }
 
-        throw new TimeoutError(
-          dedent`Timed out waiting for local service ${deployName} to be ready.
+        throw new TimeoutError({
+          message: dedent`Timed out waiting for local service ${deployName} to be ready.
 
           Garden timed out waiting for the command ${chalk.gray(spec.statusCommand)}
           to return status code 0 (success) after waiting for ${spec.statusTimeout} seconds.
@@ -291,13 +292,13 @@ export async function deployPersistentExecService({
           In case the service just needs more time to become ready, you can adjust the ${chalk.gray("timeout")} value
           in your service definition to a value that is greater than the time needed for your service to become ready.
           `,
-          {
+          detail: {
             deployName,
             statusCommand: spec.statusCommand,
             pid: proc.pid,
             statusTimeout: spec.statusTimeout,
-          }
-        )
+          },
+        })
       }
 
       const result = await execRunCommand({
@@ -434,6 +435,7 @@ function runPersistent({
     env: {
       ...getDefaultEnvVars(action),
       ...(env ? mapValues(env, (v) => v + "") : {}),
+      ...getTracePropagationEnvVars(),
     },
     shell,
     cleanup: true,

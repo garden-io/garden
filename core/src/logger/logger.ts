@@ -51,10 +51,10 @@ export function parseLogLevel(level: string): LogLevel {
     lvl = LogLevel[level]
   }
   if (!getNumericLogLevels().includes(lvl)) {
-    throw new InternalError(
-      `Unexpected log level, expected one of ${getLogLevelChoices().join(", ")}, got ${level}`,
-      {}
-    )
+    throw new InternalError({
+      message: `Unexpected log level, expected one of ${getLogLevelChoices().join(", ")}, got ${level}`,
+      detail: {},
+    })
   }
   return lvl
 }
@@ -293,7 +293,7 @@ export abstract class LoggerBase implements Logger {
    */
   getLogEntries(): LogEntry[] {
     if (!this.storeEntries) {
-      throw new InternalError(`Cannot get entries when storeEntries=false`, {})
+      throw new InternalError({ message: `Cannot get entries when storeEntries=false`, detail: {} })
     }
     return this.entries
   }
@@ -305,7 +305,7 @@ export abstract class LoggerBase implements Logger {
    */
   getLatestEntry() {
     if (!this.storeEntries) {
-      throw new InternalError(`Cannot get entries when storeEntries=false`, {})
+      throw new InternalError({ message: `Cannot get entries when storeEntries=false`, detail: {} })
     }
     return this.entries.slice(-1)[0]
   }
@@ -341,7 +341,7 @@ export class RootLogger extends LoggerBase {
    */
   static getInstance() {
     if (!RootLogger.instance) {
-      throw new InternalError("Logger not initialized", {})
+      throw new InternalError({ message: "Logger not initialized", detail: {} })
     }
     return RootLogger.instance
   }
@@ -362,7 +362,7 @@ export class RootLogger extends LoggerBase {
       try {
         config.level = parseLogLevel(gardenEnv.GARDEN_LOG_LEVEL)
       } catch (err) {
-        throw new CommandError(`Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}`, {})
+        throw new CommandError({ message: `Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}`, detail: {} })
       }
     }
 
@@ -371,9 +371,12 @@ export class RootLogger extends LoggerBase {
       const loggerTypeFromEnv = <LoggerType>gardenEnv.GARDEN_LOGGER_TYPE
 
       if (!LOGGER_TYPES.has(loggerTypeFromEnv)) {
-        throw new ParameterError(`Invalid logger type specified: ${loggerTypeFromEnv}`, {
-          loggerType: gardenEnv.GARDEN_LOGGER_TYPE,
-          availableTypes: LOGGER_TYPES,
+        throw new ParameterError({
+          message: `Invalid logger type specified: ${loggerTypeFromEnv}`,
+          detail: {
+            loggerType: gardenEnv.GARDEN_LOGGER_TYPE,
+            availableTypes: LOGGER_TYPES,
+          },
         })
       }
 
@@ -475,7 +478,6 @@ export class ServerLogger extends LoggerBase {
 }
 
 export class VoidLogger extends LoggerBase {
-
   log() {
     // No op
   }

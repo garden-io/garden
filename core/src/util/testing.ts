@@ -130,14 +130,14 @@ export class TestEventBus extends EventBus {
       }
     }
 
-    throw new TestError(
-      dedent`
+    throw new TestError({
+      message: dedent`
       Expected event in log with name '${name}' and payload ${JSON.stringify(payload)}.
       Logged events:
       ${this.eventLog.map((e) => JSON.stringify(e)).join("\n")}
     `,
-      { name, payload }
-    )
+      detail: { name, payload },
+    })
   }
 }
 
@@ -344,7 +344,10 @@ export class TestGarden extends Garden {
     const config = findByName(modules, name)
 
     if (!config) {
-      throw new TestError(`Could not find module config ${name}`, { name, available: getNames(modules) })
+      throw new TestError({
+        message: `Could not find module config ${name}`,
+        detail: { name, available: getNames(modules) },
+      })
     }
 
     return config

@@ -20,13 +20,14 @@ export async function readSecret(api: KubeApi, secretRef: ProviderSecretRef) {
     return await api.core.readNamespacedSecret(secretRef.name, secretRef.namespace)
   } catch (err) {
     if (err.statusCode === 404) {
-      throw new ConfigurationError(
-        `Could not find secret '${secretRef.name}' in namespace '${secretRef.namespace}'. ` +
+      throw new ConfigurationError({
+        message:
+          `Could not find secret '${secretRef.name}' in namespace '${secretRef.namespace}'. ` +
           `Have you correctly configured your secrets?`,
-        {
+        detail: {
           secretRef,
-        }
-      )
+        },
+      })
     } else {
       throw err
     }

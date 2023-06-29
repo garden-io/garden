@@ -441,7 +441,7 @@ function validateTriggers(config: WorkflowConfig, environmentConfigs: Environmen
       ${environmentNames.join(", ")}
     `
 
-    throw new ConfigurationError(msg, { invalidTriggers })
+    throw new ConfigurationError({ message: msg, detail: { invalidTriggers } })
   }
 }
 
@@ -452,7 +452,10 @@ export function populateNamespaceForTriggers(config: WorkflowConfig, environment
       trigger.namespace = getNamespace(environmentConfigForTrigger!, trigger.namespace)
     }
   } catch (err) {
-    throw new ConfigurationError(`Invalid namespace in trigger for workflow ${config.name}: ${err.message}`, { err })
+    throw new ConfigurationError({
+      message: `Invalid namespace in trigger for workflow ${config.name}: ${err.message}`,
+      detail: { err },
+    })
   }
 }
 

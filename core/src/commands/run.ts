@@ -142,10 +142,10 @@ export class RunCommand extends Command<Args, Opts> {
     const skipRuntimeDependencies = opts["skip-dependencies"]
 
     if (!names && !opts.module) {
-      throw new ParameterError(
-        `A name argument or --module must be specified. If you really want to perform every Run in the project, please specify '*' as an argument.`,
-        { args, opts }
-      )
+      throw new ParameterError({
+        message: `A name argument or --module must be specified. If you really want to perform every Run in the project, please specify '*' as an argument.`,
+        detail: { args, opts },
+      })
     }
 
     // Validate module names if specified.
@@ -215,11 +215,11 @@ function maybeOldRunCommand(names: string[], args: any, opts: any, log: Log, par
   const firstArg = names[0]
   if (["module", "service", "task", "test", "workflow"].includes(firstArg)) {
     if (firstArg === "module" || firstArg === "service") {
-      throw new ParameterError(
-        `Error: The ${chalk.white("garden run " + firstArg)} command has been removed.
+      throw new ParameterError({
+        message: `Error: The ${chalk.white("garden run " + firstArg)} command has been removed.
       Please define a Run action instead, or use the underlying tools (e.g. Docker or Kubernetes) directly.`,
-        { args, opts }
-      )
+        detail: { args, opts },
+      })
     }
     if (firstArg === "task") {
       log.warn(

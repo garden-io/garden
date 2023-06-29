@@ -338,13 +338,13 @@ export async function configureSyncMode({
   for (const override of spec.overrides || []) {
     const target = override.target || defaultTarget
     if (!target) {
-      throw new ConfigurationError(
-        dedent`Sync override configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
+      throw new ConfigurationError({
+        message: dedent`Sync override configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
         Either specify a target via the \`spec.sync.overrides[].target\` or \`spec.defaultTarget\``,
-        {
+        detail: {
           override,
-        }
-      )
+        },
+      })
     }
     if (target.kind && target.name) {
       const key = targetKey(target)
@@ -357,10 +357,10 @@ export async function configureSyncMode({
     const target = sync.target || defaultTarget
 
     if (!target) {
-      throw new ConfigurationError(
-        `Sync configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.`,
-        { sync }
-      )
+      throw new ConfigurationError({
+        message: `Sync configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.`,
+        detail: { sync },
+      })
     }
 
     if (target.podSelector) {
@@ -804,7 +804,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
 }
 
 function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
-  return `k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`
+  return kebabCase(`k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`)
 }
 
 /**

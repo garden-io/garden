@@ -66,7 +66,9 @@ export function cloneFile({ from, to, allowDelete, statsHelper }: CloneFileParam
       }
 
       if (!sourceStats.isFile()) {
-        return done(new FilesystemError(`Attempted to copy non-file ${from}`, { from, to, sourceStats }))
+        return done(
+          new FilesystemError({ message: `Attempted to copy non-file ${from}`, detail: { from, to, sourceStats } })
+        )
       }
 
       if (targetStats) {
@@ -82,15 +84,15 @@ export function cloneFile({ from, to, allowDelete, statsHelper }: CloneFileParam
             })
           } else {
             return done(
-              new FilesystemError(
-                `Build staging: Failed copying file ${from} to ${to} because a directory exists at the target path`,
-                {
+              new FilesystemError({
+                message: `Build staging: Failed copying file ${from} to ${to} because a directory exists at the target path`,
+                detail: {
                   sourcePath: from,
                   targetPath: to,
                   sourceStats,
                   targetStats,
-                }
-              )
+                },
+              })
             )
           }
         }
@@ -368,7 +370,13 @@ export class FileStatsHelper {
         // Symlink target not found, so we ignore it
         return cb(null, null)
       } else if (readlinkErr) {
-        return cb(new InternalError(`Error reading symlink: ${readlinkErr.message}`, { path, readlinkErr }), null)
+        return cb(
+          new InternalError({
+            message: `Error reading symlink: ${readlinkErr.message}`,
+            detail: { path, readlinkErr },
+          }),
+          null
+        )
       }
 
       // Ignore absolute symlinks unless specifically allowed
@@ -409,7 +417,7 @@ export class FileStatsHelper {
 
   private assertAbsolute(path: string) {
     if (!isAbsolute(path)) {
-      throw new InternalError(`Must specify absolute path (got ${path})`, { path })
+      throw new InternalError({ message: `Must specify absolute path (got ${path})`, detail: { path } })
     }
   }
 }

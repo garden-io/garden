@@ -56,7 +56,7 @@ export type SelfUpdateArgs = typeof selfUpdateArgs
 export type SelfUpdateOpts = typeof selfUpdateOpts
 
 const versionScopes = ["major", "minor", "patch"] as const
-export type VersionScope = typeof versionScopes[number]
+export type VersionScope = (typeof versionScopes)[number]
 
 function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>): VersionScope {
   if (opts["major"]) {
@@ -160,8 +160,11 @@ export namespace GitHubReleaseApi {
     const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
     const latestVersion = latestVersionRes.tag_name
     if (!latestVersion) {
-      throw new RuntimeError(`Unable to detect the latest Garden version: ${latestVersionRes}`, {
-        response: latestVersionRes,
+      throw new RuntimeError({
+        message: `Unable to detect the latest Garden version: ${latestVersionRes}`,
+        detail: {
+          response: latestVersionRes,
+        },
       })
     }
 
@@ -452,10 +455,10 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     // The current version is necessary, it's not possible to proceed without its value
     if (!currentSemVer) {
-      throw new RuntimeError(
-        `Unexpected current version: ${currentVersion}. Please make sure it is either a valid (semver) release version.`,
-        {}
-      )
+      throw new RuntimeError({
+        message: `Unexpected current version: ${currentVersion}. Please make sure it is either a valid (semver) release version.`,
+        detail: {},
+      })
     }
 
     const targetVersionPredicate = this.getTargetVersionPredicate(currentSemVer, versionScope)
@@ -468,10 +471,10 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     })
 
     if (!targetRelease) {
-      throw new RuntimeError(
-        `Unable to find the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
-        {}
-      )
+      throw new RuntimeError({
+        message: `Unable to find the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
+        detail: {},
+      })
     }
 
     return targetRelease.tag_name
@@ -511,8 +514,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
             tagSemVer.patch >= currentSemVer.patch
           )
         default: {
-          const _exhaustiveCheck: never = versionScope
-          return _exhaustiveCheck
+          return versionScope satisfies never
         }
       }
     }

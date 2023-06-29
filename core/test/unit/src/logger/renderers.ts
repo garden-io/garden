@@ -55,7 +55,7 @@ describe("renderers", () => {
   })
   describe("renderError", () => {
     it("should render error object if present", () => {
-      const error: GardenError = {
+      const error: GardenError<{ foo: string; _internal: string }> = {
         name: "test",
         message: "hello error",
         type: "a",
@@ -145,7 +145,9 @@ describe("renderers", () => {
         const now = freezeTime()
         const entry = logger.createLog().info("hello world").getLatestEntry()
 
-        expect(formatForTerminal(entry, logger)).to.equal(`${chalk.gray(format(now, "HH:mm:ss"))} ${msgStyle("hello world")}\n`)
+        expect(formatForTerminal(entry, logger)).to.equal(
+          `${chalk.gray(format(now, "HH:mm:ss"))} ${msgStyle("hello world")}\n`
+        )
       })
       after(() => {
         logger.showTimestamps = false

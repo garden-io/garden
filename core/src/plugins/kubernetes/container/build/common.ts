@@ -184,7 +184,10 @@ export async function skopeoBuildStatus({
 
   if (!deploymentRegistry) {
     // This is validated in the provider configure handler, so this is an internal error if it happens
-    throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
+    throw new InternalError({
+      message: `Expected configured deploymentRegistry for remote build`,
+      detail: { config: provider.config },
+    })
   }
 
   const outputs = k8sGetContainerBuildActionOutputs({ action, provider })
@@ -232,9 +235,12 @@ export async function skopeoBuildStatus({
 
       // TODO: if a registry does not have an image with the name at all, we throw here
       // This isn't a great first-time-use experience (or after you've reset a registry)
-      throw new RuntimeError(`Unable to query registry for image status: ${output}`, {
-        command: skopeoCommand,
-        output,
+      throw new RuntimeError({
+        message: `Unable to query registry for image status: ${output}`,
+        detail: {
+          command: skopeoCommand,
+          output,
+        },
       })
     }
     return { state: "unknown", outputs, detail: {} }

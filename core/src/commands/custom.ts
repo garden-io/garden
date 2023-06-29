@@ -33,6 +33,7 @@ import { removeSlice } from "../util/util"
 import { join } from "path"
 import { getBuiltinCommands } from "./commands"
 import { Log } from "../logger/log-entry"
+import { getTracePropagationEnvVars } from "../util/tracing/propagation"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
@@ -49,7 +50,7 @@ function convertArgSpec(spec: CustomCommandOption) {
   } else if (spec.type === "boolean") {
     return new BooleanParameter(params)
   } else {
-    throw new ConfigurationError(`Unexpected parameter type '${spec.type}'`, { spec })
+    throw new ConfigurationError({ message: `Unexpected parameter type '${spec.type}'`, detail: { spec } })
   }
 }
 
@@ -141,6 +142,7 @@ export class CustomCommandWrapper extends Command {
           // Workaround for https://github.com/vercel/pkg/issues/897
           PKG_EXECPATH: "",
           ...(exec.env || {}),
+          ...getTracePropagationEnvVars(),
         },
         cwd: garden.projectRoot,
         reject: false,
@@ -150,7 +152,12 @@ export class CustomCommandWrapper extends Command {
       if (res.exitCode !== 0) {
         return {
           exitCode: res.exitCode,
-          errors: [new RuntimeError(`Command exited with code ${res.exitCode}`, { exitCode: res.exitCode, command })],
+          errors: [
+            new RuntimeError({
+              message: `Command exited with code ${res.exitCode}`,
+              detail: { exitCode: res.exitCode, command },
+            }),
+          ],
         }
       }
 
@@ -178,7 +185,7 @@ export class CustomCommandWrapper extends Command {
 
       // Doing runtime check to avoid updating hundreds of test invocations with a new required param, sorry. - JE
       if (!cli) {
-        throw new InternalError(`Missing cli argument in custom command wrapper.`, {})
+        throw new InternalError({ message: `Missing cli argument in custom command wrapperd.`, detail: {} })
       }
 
       // Pass explicitly set global opts with the command, if they're not set in the command itself.

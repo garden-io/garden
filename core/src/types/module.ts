@@ -200,9 +200,12 @@ export function getModuleTypeBases(
 
   if (!base) {
     const name = moduleType.name
-    throw new RuntimeError(`Unable to find base module type '${moduleType.base}' for module type '${name}'`, {
-      name,
-      moduleTypes,
+    throw new RuntimeError({
+      message: `Unable to find base module type '${moduleType.base}' for module type '${name}'`,
+      detail: {
+        name,
+        moduleTypes,
+      },
     })
   }
 

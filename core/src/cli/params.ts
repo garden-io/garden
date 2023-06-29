@@ -201,32 +201,35 @@ export class DurationParameter extends Parameter<string> {
       )} and length is an integer. For example '1d', '10m', '20s'.
     `
     if (parts.length !== 2) {
-      throw new ParameterError(`Could not parse "${input}" as duration`, {
-        expectedType,
-        input,
+      throw new ParameterError({
+        message: `Could not parse "${input}" as duration`,
+        detail: {
+          expectedType,
+          input,
+        },
       })
     }
     const length = parseInt(parts[0], 10)
     const unit = parts[1]
     if (isNaN(length)) {
-      throw new ParameterError(
-        `Could not parse "${input}" as duration, length must be an integer. Received ${length}`,
-        {
+      throw new ParameterError({
+        message: `Could not parse "${input}" as duration, length must be an integer. Received ${length}`,
+        detail: {
           expectedType,
           input,
-        }
-      )
+        },
+      })
     }
     if (!validDurationUnits.includes(unit)) {
-      throw new ParameterError(
-        `Could not parse "${input}" as duration, unit must be one of ${validDurationUnits.join(
+      throw new ParameterError({
+        message: `Could not parse "${input}" as duration, unit must be one of ${validDurationUnits.join(
           ", "
         )}. Received ${unit}`,
-        {
+        detail: {
           expectedType,
           input,
-        }
-      )
+        },
+      })
     }
     return input
   }
@@ -248,9 +251,12 @@ export class IntegerParameter extends Parameter<number> {
   coerce(input: string) {
     const output = parseInt(input, 10)
     if (isNaN(output)) {
-      throw new ParameterError(`Could not parse "${input}" as integer`, {
-        expectedType: "integer",
-        input,
+      throw new ParameterError({
+        message: `Could not parse "${input}" as integer`,
+        detail: {
+          expectedType: "integer",
+          input,
+        },
       })
     }
     return output
@@ -284,13 +290,15 @@ export class ChoicesParameter extends Parameter<string> {
     if (this.choices.includes(input)) {
       return input
     } else {
-      throw new ParameterError(
-        `"${input}" is not a valid argument (should be any of ${this.choices.map((c) => `"${c}"`).join(", ")})`,
-        {
+      throw new ParameterError({
+        message: `"${input}" is not a valid argument (should be any of ${this.choices
+          .map((c) => `"${c}"`)
+          .join(", ")})`,
+        detail: {
           expectedType: `One of: ${this.choices.join(", ")}`,
           input,
-        }
-      )
+        },
+      })
     }
   }
 
@@ -314,7 +322,7 @@ export class BooleanParameter extends Parameter<boolean> {
     } else if (input === false || input === "false" || input === "0" || input === "no" || input === 0) {
       return false
     } else {
-      throw new ParameterError(`Invalid boolean value: '${input}'`, { input })
+      throw new ParameterError({ message: `Invalid boolean value: '${input}'`, detail: { input } })
     }
   }
 }
