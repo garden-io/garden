@@ -64,7 +64,7 @@ export function getMvnTool(ctx: PluginContext) {
   const tool = find(ctx.tools, (_, k) => k.endsWith(".maven"))
 
   if (!tool) {
-    throw new PluginError(`Could not find configured maven tool`, { tools: ctx.tools })
+    throw new PluginError({ message: `Could not find configured maven tool`, detail: { tools: ctx.tools } })
   }
 
   return tool

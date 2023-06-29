@@ -45,10 +45,10 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   // Find project definition
   const projectConfig = await findProjectConfig({ log, path: root, allowInvalid: true })
   if (!projectConfig) {
-    throw new ValidationError(
-      "Couldn't find a Project definition. Please run this command from the root of your Garden project.",
-      {}
-    )
+    throw new ValidationError({
+      message: "Couldn't find a Project definition. Please run this command from the root of your Garden project.",
+      detail: {},
+    })
   }
 
   // Create temporary folder inside .garden/ at root of project

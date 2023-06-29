@@ -138,7 +138,12 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           results.setResult(request.task, result)
 
           if (throwOnError && result.error) {
-            cleanup({ error: new GraphError(`Failed to ${result.description}: ${result.error}`, { results }) })
+            cleanup({
+              error: new GraphError({
+                message: `Failed to ${result.description}: ${result.error}`,
+                detail: { results },
+              }),
+            })
             return
           }
 
@@ -167,7 +172,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
               msg += `\n ↳ ${r.description}: ${r?.error ? r.error.message : "[ABORTED]"}`
             }
 
-            error = new GraphError(msg, { results })
+            error = new GraphError({ message: msg, detail: { results } })
           }
 
           cleanup({ error: null })
@@ -495,7 +500,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const msg = renderMessageWithDivider({
       prefix: errMessagePrefix,
       msg: errorMessage,
-      isError: true
+      isError: true,
     })
     log.error({ msg, error, showDuration: false })
     const divider = renderDivider()

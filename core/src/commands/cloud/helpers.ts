@@ -153,7 +153,7 @@ export function handleBulkOperationResult<T>({
 
   // Ensure command exits with code 1.
   if (errors.length > 0) {
-    throw new CommandError("Command failed.", { errors })
+    throw new CommandError({ message: "Command failed.", detail: { errors } })
   }
 
   return { result: results }

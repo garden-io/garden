@@ -199,7 +199,7 @@ export class ModuleResolver {
 
         const msg = `Failed resolving one or more modules:\n\n${errorStr}`
 
-        const combined = new ConfigurationError(chalk.red(msg), { ...errors })
+        const combined = new ConfigurationError({ message: chalk.red(msg), detail: { ...errors } })
         combined.stack = errorStack
         throw combined
       }
@@ -210,14 +210,14 @@ export class ModuleResolver {
       try {
         batch = processingGraph.overallOrder(true).filter((n) => !inFlight.has(n))
       } catch (err) {
-        throw new ConfigurationError(
-          dedent`
+        throw new ConfigurationError({
+          message: dedent`
             Detected circular dependencies between module configurations:
 
             ${err.detail?.["circular-dependencies"] || err.message}
           `,
-          { cycles: err.detail?.cycles }
-        )
+          detail: { cycles: err.detail?.cycles },
+        })
       }
 
       this.log.silly(`ModuleResolver: Process ${batch.length} leaves`)
@@ -378,13 +378,13 @@ export class ModuleResolver {
     if (!description) {
       const configPath = relative(garden.projectRoot, config.configPath || config.path)
 
-      throw new ConfigurationError(
-        deline`
+      throw new ConfigurationError({
+        message: deline`
         Unrecognized module type '${config.type}' (defined at ${configPath}).
         Are you missing a provider configuration?
         `,
-        { config, configuredModuleTypes: Object.keys(moduleTypeDefinitions) }
-      )
+        detail: { config, configuredModuleTypes: Object.keys(moduleTypeDefinitions) },
+      })
     }
 
     // We allow specifying modules by name only as a shorthand:
@@ -509,12 +509,12 @@ export class ModuleResolver {
         try {
           contents = (await readFile(sourcePath)).toString()
         } catch (err) {
-          throw new ConfigurationError(
-            `Unable to read file at ${sourcePath}, specified under generateFiles in module ${resolvedConfig.name}: ${err}`,
-            {
+          throw new ConfigurationError({
+            message: `Unable to read file at ${sourcePath}, specified under generateFiles in module ${resolvedConfig.name}: ${err}`,
+            detail: {
               sourcePath,
-            }
-          )
+            },
+          })
         }
       }
 
@@ -544,13 +544,13 @@ export class ModuleResolver {
         await mkdirp(targetDir)
         await writeFile(targetPath, resolvedContents)
       } catch (error) {
-        throw new FilesystemError(
-          `Unable to write templated file ${fileSpec.targetPath} from ${resolvedConfig.name}: ${error.message}`,
-          {
+        throw new FilesystemError({
+          message: `Unable to write templated file ${fileSpec.targetPath} from ${resolvedConfig.name}: ${error.message}`,
+          detail: {
             fileSpec,
             error,
-          }
-        )
+          },
+        })
       }
     })
 
@@ -854,11 +854,11 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
 }
 
 function missingBuildDependency(moduleName: string, dependencyName: string) {
-  return new ConfigurationError(
-    chalk.red(
+  return new ConfigurationError({
+    message: chalk.red(
       `Could not find build dependency ${chalk.white(dependencyName)}, ` +
         `configured in module ${chalk.white(moduleName)}`
     ),
-    { moduleName, dependencyName }
-  )
+    detail: { moduleName, dependencyName },
+  })
 }

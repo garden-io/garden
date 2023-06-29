@@ -228,10 +228,10 @@ export const gardenPlugin = () =>
                 try {
                   files = ctx.resolveTemplateStrings(files)
                 } catch (error) {
-                  throw new ConfigurationError(
-                    `The spec.files field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
-                    { config, error }
-                  )
+                  throw new ConfigurationError({
+                    message: `The spec.files field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
+                    detail: { config, error },
+                  })
                 }
                 config.include = uniq([...config.include, ...files])
               }
@@ -256,21 +256,21 @@ export const gardenPlugin = () =>
               )
 
               if (!sourceAction) {
-                throw new ConfigurationError(
-                  `Must specify a helm Deploy action in the \`helmDeploy\` field. Could not find Deploy action '${spec.helmDeploy}'.`,
-                  {
+                throw new ConfigurationError({
+                  message: `Must specify a helm Deploy action in the \`helmDeploy\` field. Could not find Deploy action '${spec.helmDeploy}'.`,
+                  detail: {
                     helmDeployRef: spec.helmDeploy,
-                  }
-                )
+                  },
+                })
               }
               if (sourceAction.type !== "helm") {
-                throw new ConfigurationError(
-                  `Must specify a helm Deploy action in the \`helmDeploy\` field. Deploy action '${spec.helmDeploy}' has type '${sourceAction.type}'.`,
-                  {
+                throw new ConfigurationError({
+                  message: `Must specify a helm Deploy action in the \`helmDeploy\` field. Deploy action '${spec.helmDeploy}' has type '${sourceAction.type}'.`,
+                  detail: {
                     helmDeployRef: spec.helmDeploy,
                     foundDeployType: sourceAction.type,
-                  }
-                )
+                  },
+                })
               }
 
               const templates = await renderTemplates({
@@ -473,7 +473,7 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
   try {
     parsed = JSON.parse(result.stdout)
   } catch (err) {
-    throw new PluginError(`Error running conftest: ${result.all}`, { result })
+    throw new PluginError({ message: `Error running conftest: ${result.all}`, detail: { result } })
   }
 
   const allFailures = parsed.filter((p: any) => p.failures?.length > 0)

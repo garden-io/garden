@@ -144,8 +144,11 @@ export async function prepareTemplates({ ctx, action, log }: PrepareTemplatesPar
     }
   } else {
     // This will generally be caught at schema validation
-    throw new ConfigurationError(`${action.longDescription()} specifies none of chart.name, chart.path nor chart.url`, {
-      chartSpec: chart,
+    throw new ConfigurationError({
+      message: `${action.longDescription()} specifies none of chart.name, chart.path nor chart.url`,
+      detail: {
+        chartSpec: chart,
+      },
     })
   }
 
@@ -217,19 +220,19 @@ export function getBaseModule(module: HelmModule): HelmModule | undefined {
   const baseModule = module.buildDependencies[module.spec.base]
 
   if (!baseModule) {
-    throw new PluginError(
-      deline`Helm module '${module.name}' references base module '${module.spec.base}'
+    throw new PluginError({
+      message: deline`Helm module '${module.name}' references base module '${module.spec.base}'
       but it is missing from the module's build dependencies.`,
-      { moduleName: module.name, baseModuleName: module.spec.base }
-    )
+      detail: { moduleName: module.name, baseModuleName: module.spec.base },
+    })
   }
 
   if (baseModule.type !== "helm") {
-    throw new ConfigurationError(
-      deline`Helm module '${module.name}' references base module '${module.spec.base}'
+    throw new ConfigurationError({
+      message: deline`Helm module '${module.name}' references base module '${module.spec.base}'
       which is a '${baseModule.type}' module, but should be a helm module.`,
-      { moduleName: module.name, baseModuleName: module.spec.base, baseModuleType: baseModule.type }
-    )
+      detail: { moduleName: module.name, baseModuleName: module.spec.base, baseModuleType: baseModule.type },
+    })
   }
 
   return baseModule
@@ -248,10 +251,10 @@ export async function getChartPath(action: Resolved<HelmRuntimeAction>) {
   if (chartSpec.path) {
     // Path is explicitly specified
     if (!chartExists) {
-      throw new ConfigurationError(
-        `${action.longDescription()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
-        { spec: action.getSpec() }
-      )
+      throw new ConfigurationError({
+        message: `${action.longDescription()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
+        detail: { spec: action.getSpec() },
+      })
     }
     return chartDir
   } else if (chartSpec.name || chartSpec.url) {
@@ -261,10 +264,10 @@ export async function getChartPath(action: Resolved<HelmRuntimeAction>) {
     // Chart exists at the module build path
     return chartDir
   } else {
-    throw new ConfigurationError(
-      `${action.longDescription()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
-      { spec: action.getSpec() }
-    )
+    throw new ConfigurationError({
+      message: `${action.longDescription()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
+      detail: { spec: action.getSpec() },
+    })
   }
 }
 
@@ -322,10 +325,10 @@ export async function renderHelmTemplateString({
 }): Promise<string> {
   // TODO: see if we can lift this limitation
   if (!chartPath) {
-    throw new ConfigurationError(
-      `Referencing Helm template strings is currently only supported for local Helm charts`,
-      {}
-    )
+    throw new ConfigurationError({
+      message: `Referencing Helm template strings is currently only supported for local Helm charts`,
+      detail: {},
+    })
   }
 
   const relPath = join("templates", cryptoRandomString({ length: 16 }) + ".yaml")

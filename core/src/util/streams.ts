@@ -51,7 +51,7 @@ export class SortedStreamIntersection<T> extends Readable {
         this.lastValues[i] = value
 
         if (lastValue !== undefined && this.comparisonFn(lastValue, value) > 0) {
-          this.emit("error", new InternalError(`Received unordered stream`, { streamIndex: i }))
+          this.emit("error", new InternalError({ message: `Received unordered stream`, detail: { streamIndex: i } }))
           return
         }
 

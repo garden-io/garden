@@ -210,7 +210,10 @@ export const makeTestGarden = profileAsync(async function _makeTestGarden(
         opts.config.path = targetRoot
       }
       if (opts.config?.configPath) {
-        throw new ConfigurationError(`Please don't set the configPath here :) Messes with the temp dir business.`, {})
+        throw new ConfigurationError({
+          message: `Please don't set the configPath here :) Messes with the temp dir business.`,
+          detail: {},
+        })
       }
     }
     targetRoot = join(testProjectTempDirs[projectRoot].path, "project")

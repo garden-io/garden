@@ -100,10 +100,10 @@ export const gardenPlugin = () =>
           const exists = await pathExists(absRoot)
 
           if (!exists) {
-            throw new ConfigurationError(
-              `Terraform: configured initRoot config directory '${config.initRoot}' does not exist`,
-              { config, projectRoot }
-            )
+            throw new ConfigurationError({
+              message: `Terraform: configured initRoot config directory '${config.initRoot}' does not exist`,
+              detail: { config, projectRoot },
+            })
           }
         }
 
@@ -151,8 +151,11 @@ export const gardenPlugin = () =>
                 const exists = await pathExists(absRoot)
 
                 if (!exists) {
-                  throw new ConfigurationError(`Terraform: configured root directory '${root}' does not exist`, {
-                    root,
+                  throw new ConfigurationError({
+                    message: `Terraform: configured root directory '${root}' does not exist`,
+                    detail: {
+                      root,
+                    },
                   })
                 }
               }

@@ -29,9 +29,12 @@ export function pulumi(ctx: PluginContext, provider: PulumiProvider) {
     const cli = ctx.tools["pulumi.pulumi-" + version.replace(/\./g, "-")]
 
     if (!cli) {
-      throw new ConfigurationError(`Unsupported pulumi version: ${version}`, {
-        version,
-        supportedVersions,
+      throw new ConfigurationError({
+        message: `Unsupported pulumi version: ${version}`,
+        detail: {
+          version,
+          supportedVersions,
+        },
       })
     }
 
@@ -48,7 +51,10 @@ export class GlobalPulumi extends CliWrapper {
     try {
       return await which("pulumi")
     } catch (err) {
-      throw new RuntimeError(`Pulumi version is set to null, and pulumi CLI could not be found on PATH`, {})
+      throw new RuntimeError({
+        message: `Pulumi version is set to null, and pulumi CLI could not be found on PATH`,
+        detail: {},
+      })
     }
   }
 }

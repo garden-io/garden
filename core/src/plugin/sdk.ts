@@ -309,10 +309,10 @@ function createProvider<
   const baseKeys = Object.keys(baseProviderConfigSchemaZod.shape)
   for (const key of Object.keys(configSchema.shape)) {
     if (baseKeys.includes(key)) {
-      throw new ValidationError(
-        `Attempted to re-define built-in provider config field '${key}'. Built-in fields may not be overridden.`,
-        { key }
-      )
+      throw new ValidationError({
+        message: `Attempted to re-define built-in provider config field '${key}'. Built-in fields may not be overridden.`,
+        detail: { key },
+      })
     }
   }
 

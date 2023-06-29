@@ -61,7 +61,7 @@ export function getGradleTool(ctx: PluginContext) {
   const tool = find(ctx.tools, (_, k) => k.endsWith(".gradle"))
 
   if (!tool) {
-    throw new PluginError(`Could not find configured gradle tool`, { tools: ctx.tools })
+    throw new PluginError({ message: `Could not find configured gradle tool`, detail: { tools: ctx.tools } })
   }
 
   return tool

@@ -64,10 +64,10 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
       const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
 
       if (!projectRoot) {
-        throw new RuntimeError(
-          `Could not find project config in the current directory, or anywhere above. Please use the --all parameter if you'd like to fetch tools for all registered providers.`,
-          { root: garden.projectRoot }
-        )
+        throw new RuntimeError({
+          message: `Could not find project config in the current directory, or anywhere above. Please use the --all parameter if you'd like to fetch tools for all registered providers.`,
+          detail: { root: garden.projectRoot },
+        })
       }
 
       if (garden instanceof DummyGarden) {

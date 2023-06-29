@@ -30,7 +30,7 @@ describe("FileWriter", () => {
     it("should render error object if passed", () => {
       const entry = logger
         .createLog()
-        .error({ error: new RuntimeError("oh no", { foo: "bar" }) })
+        .error({ error: new RuntimeError({ message: "oh no", detail: { foo: "bar" } }) })
         .getLatestEntry()
       const expectedOutput = stripAnsi(renderError(entry))
       expect(render(LogLevel.info, entry)).to.equal(expectedOutput)

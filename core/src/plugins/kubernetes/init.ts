@@ -239,15 +239,15 @@ export async function prepareSystem({
       serviceStates.includes("unknown")
     ) {
       // If any of the services are not ready or missing, we throw, since builds and deployments are likely to fail.
-      throw new KubernetesError(
-        deline`
+      throw new KubernetesError({
+        message: deline`
         One or more cluster-wide system services are missing or not ready. You need to run ${initCommand}
         to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
       `,
-        {
+        detail: {
           status,
-        }
-      )
+        },
+      })
     } else {
       // If system services are outdated but none are *missing*, we warn instead of flagging as not ready here.
       // This avoids blocking users where there's variance in configuration between users of the same cluster,
@@ -385,28 +385,28 @@ export async function buildDockerAuthConfig(
     async (accumulator, secretRef) => {
       const secret = await readSecret(api, secretRef)
       if (secret.type !== dockerAuthSecretType) {
-        throw new ConfigurationError(
-          dedent`
+        throw new ConfigurationError({
+          message: dedent`
         Configured imagePullSecret '${secret.metadata.name}' does not appear to be a valid registry secret, because
         it does not have \`type: ${dockerAuthSecretType}\`.
         ${dockerAuthDocsLink}
         `,
-          { secretRef }
-        )
+          detail: { secretRef },
+        })
       }
 
       // Decode the secret
       const encoded = secret.data && secret.data![dockerAuthSecretKey]
 
       if (!encoded) {
-        throw new ConfigurationError(
-          dedent`
+        throw new ConfigurationError({
+          message: dedent`
         Configured imagePullSecret '${secret.metadata.name}' does not appear to be a valid registry secret, because
         it does not contain a ${dockerAuthSecretKey} key.
         ${dockerAuthDocsLink}
         `,
-          { secretRef }
-        )
+          detail: { secretRef },
+        })
       }
 
       let decoded: any
@@ -414,24 +414,24 @@ export async function buildDockerAuthConfig(
       try {
         decoded = JSON.parse(Buffer.from(encoded, "base64").toString())
       } catch (err) {
-        throw new ConfigurationError(
-          dedent`
+        throw new ConfigurationError({
+          message: dedent`
         Could not parse configured imagePullSecret '${secret.metadata.name}' as a JSON docker authentication file:
         ${err.message}.
         ${dockerAuthDocsLink}
         `,
-          { secretRef }
-        )
+          detail: { secretRef },
+        })
       }
       if (!decoded.auths && !decoded.credHelpers) {
-        throw new ConfigurationError(
-          dedent`
+        throw new ConfigurationError({
+          message: dedent`
         Could not parse configured imagePullSecret '${secret.metadata.name}' as a valid docker authentication file,
         because it is missing an "auths" or "credHelpers" key.
         ${dockerAuthDocsLink}
         `,
-          { secretRef }
-        )
+          detail: { secretRef },
+        })
       }
       return {
         ...accumulator,

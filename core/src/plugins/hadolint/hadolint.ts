@@ -264,10 +264,10 @@ hadolintTest.addHandler("configure", async ({ ctx, config }) => {
     try {
       dockerfilePath = ctx.resolveTemplateStrings(dockerfilePath)
     } catch (error) {
-      throw new ConfigurationError(
-        `The spec.dockerfilePath field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
-        { config, error }
-      )
+      throw new ConfigurationError({
+        message: `The spec.dockerfilePath field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
+        detail: { config, error },
+      })
     }
     config.include.push(dockerfilePath)
   }
@@ -284,9 +284,12 @@ hadolintTest.addHandler("run", async ({ ctx, log, action }) => {
   try {
     dockerfile = (await readFile(dockerfilePath)).toString()
   } catch {
-    throw new ConfigurationError(`hadolint: Could not find Dockerfile at ${spec.dockerfilePath}`, {
-      actionPath: action.basePath(),
-      ...spec,
+    throw new ConfigurationError({
+      message: `hadolint: Could not find Dockerfile at ${spec.dockerfilePath}`,
+      detail: {
+        actionPath: action.basePath(),
+        ...spec,
+      },
     })
   }
 

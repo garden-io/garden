@@ -356,11 +356,14 @@ export class Garden {
     const currentArch = arch() as NodeJS.Architecture
 
     if (!SUPPORTED_PLATFORMS.includes(currentPlatform)) {
-      throw new RuntimeError(`Unsupported platform: ${currentPlatform}`, { platform: currentPlatform })
+      throw new RuntimeError({
+        message: `Unsupported platform: ${currentPlatform}`,
+        detail: { platform: currentPlatform },
+      })
     }
 
     if (!SUPPORTED_ARCHITECTURES.includes(currentArch)) {
-      throw new RuntimeError(`Unsupported CPU architecture: ${currentArch}`, { arch: currentArch })
+      throw new RuntimeError({ message: `Unsupported CPU architecture: ${currentArch}`, detail: { arch: currentArch } })
     }
 
     this.state.configsScanned = false
@@ -564,14 +567,15 @@ export class Garden {
 
     if (!plugin) {
       const availablePlugins = getNames(plugins)
-      throw new PluginError(
-        `Could not find plugin '${pluginName}'. Are you missing a provider configuration? ` +
+      throw new PluginError({
+        message:
+          `Could not find plugin '${pluginName}'. Are you missing a provider configuration? ` +
           `Currently configured plugins: ${availablePlugins.join(", ")}`,
-        {
+        detail: {
           pluginName,
           availablePlugins,
-        }
-      )
+        },
+      })
     }
 
     return plugin
@@ -676,14 +680,15 @@ export class Garden {
 
     if (!provider) {
       const providerNames = Object.keys(providers)
-      throw new PluginError(
-        `Could not find provider '${name}' in environment '${this.environmentName}' ` +
+      throw new PluginError({
+        message:
+          `Could not find provider '${name}' in environment '${this.environmentName}' ` +
           `(configured providers: ${providerNames.join(", ") || "<none>"})`,
-        {
+        detail: {
           name,
           providers,
-        }
-      )
+        },
+      })
     }
 
     return provider
@@ -726,9 +731,12 @@ export class Garden {
         const plugin = plugins[config.name]
 
         if (!plugin) {
-          throw new ConfigurationError(`Configured provider '${config.name}' has not been registered.`, {
-            name: config.name,
-            availablePlugins: Object.keys(plugins),
+          throw new ConfigurationError({
+            message: `Configured provider '${config.name}' has not been registered.`,
+            detail: {
+              name: config.name,
+              availablePlugins: Object.keys(plugins),
+            },
           })
         }
 
@@ -744,10 +752,10 @@ export class Garden {
 
       if (cycles.length > 0) {
         const description = validationGraph.cyclesToString(cycles)
-        throw new PluginError(
-          `One or more circular dependencies found between providers or their configurations:\n\n${description}`,
-          { "circular-dependencies": description }
-        )
+        throw new PluginError({
+          message: `One or more circular dependencies found between providers or their configurations:\n\n${description}`,
+          detail: { "circular-dependencies": description },
+        })
       }
 
       const tasks = rawConfigs.map((config) => {
@@ -780,15 +788,15 @@ export class Garden {
           return f && f.error && isGardenError(f.error) ? [f.error as GardenError] : []
         })
 
-        throw new PluginError(
-          `Failed resolving one or more providers:\n- ${failedNames.join("\n- ")}`,
-          {
+        throw new PluginError({
+          message: `Failed resolving one or more providers:\n- ${failedNames.join("\n- ")}`,
+          detail: {
             rawConfigs,
             taskResults,
             messages,
           },
-          wrappedErrors
-        )
+          wrappedErrors,
+        })
       }
 
       providers = providerResults.map((result) => result!.result)
@@ -960,7 +968,7 @@ export class Garden {
     })
     if (overlaps.length > 0) {
       const { message, detail } = this.makeOverlapError(overlaps)
-      throw new ConfigurationError(message, detail)
+      throw new ConfigurationError({ message, detail })
     }
 
     // Convert modules to actions
@@ -988,10 +996,10 @@ export class Garden {
       if (existing) {
         const moduleActionPath = config.internal.configFilePath || config.internal.basePath
         const actionPath = existing.internal.configFilePath || existing.internal.basePath
-        throw new ConfigurationError(
-          `${existing.kind} action '${existing.name}' (in ${actionPath}) conflicts with ${config.kind} action with same name generated from Module ${config.internal?.moduleName} (in ${moduleActionPath}). Please rename either one.`,
-          { configFromModule: config, actionConfig: existing }
-        )
+        throw new ConfigurationError({
+          message: `${existing.kind} action '${existing.name}' (in ${actionPath}) conflicts with ${config.kind} action with same name generated from Module ${config.internal?.moduleName} (in ${moduleActionPath}). Please rename either one.`,
+          detail: { configFromModule: config, actionConfig: existing },
+        })
       }
 
       actionConfigs[key] = config
@@ -1076,15 +1084,15 @@ export class Garden {
           try {
             graph.getActionByRef(dependency[key])
           } catch (err) {
-            throw new PluginError(
-              deline`
+            throw new PluginError({
+              message: deline`
                 Provider '${provider.name}' added a dependency by action '${actionReferenceToString(
                 dependency.by
               )}' on '${actionReferenceToString(dependency.on)}'
                 but action '${actionReferenceToString(dependency[key])}' could not be found.
               `,
-              { provider, dependency }
-            )
+              detail: { provider, dependency },
+            })
           }
         }
 
@@ -1296,8 +1304,11 @@ export class Garden {
               )}`
           )
           .join("\n")
-        throw new ConfigurationError(`Found duplicate names of ${configTemplateKind}s:\n${messages}`, {
-          duplicateTemplates,
+        throw new ConfigurationError({
+          message: `Found duplicate names of ${configTemplateKind}s:\n${messages}`,
+          detail: {
+            duplicateTemplates,
+          },
         })
       }
 
@@ -1341,10 +1352,10 @@ export class Garden {
         // Verify that the project apiVersion is defined as compatible with action kinds
         // This is only available with apiVersion `garden.io/v1` or newer.
         if (actionConfigs.length && this.projectApiVersion !== GardenApiVersion.v1) {
-          throw new ConfigurationError(
-            `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}". A detailed migration guide is available at ${DOCS_BASE_URL}/tutorials/migrating-to-bonsai`,
-            {}
-          )
+          throw new ConfigurationError({
+            message: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}". A detailed migration guide is available at ${DOCS_BASE_URL}/tutorials/migrating-to-bonsai`,
+            detail: {},
+          })
         }
 
         for (const config of actionConfigs) {
@@ -1382,13 +1393,13 @@ export class Garden {
       ]
       const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
 
-      throw new ConfigurationError(
-        `${config.kind} action ${config.name} is declared multiple times (in '${pathA}' and '${pathB}')`,
-        {
+      throw new ConfigurationError({
+        message: `${config.kind} action ${config.name} is declared multiple times (in '${pathA}' and '${pathB}')`,
+        detail: {
           pathA,
           pathB,
-        }
-      )
+        },
+      })
     }
 
     this.actionConfigs[config.kind][config.name] = config
@@ -1406,9 +1417,12 @@ export class Garden {
       const paths = [existing.configPath || existing.path, config.configPath || config.path]
       const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
 
-      throw new ConfigurationError(`Module ${key} is declared multiple times (in '${pathA}' and '${pathB}')`, {
-        pathA,
-        pathB,
+      throw new ConfigurationError({
+        message: `Module ${key} is declared multiple times (in '${pathA}' and '${pathB}')`,
+        detail: {
+          pathA,
+          pathB,
+        },
       })
     }
 
@@ -1430,9 +1444,12 @@ export class Garden {
       const paths = [existing.internal.configFilePath || existing.internal.basePath, config.internal.basePath]
       const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
 
-      throw new ConfigurationError(`Workflow ${key} is declared multiple times (in '${pathA}' and '${pathB}')`, {
-        pathA,
-        pathB,
+      throw new ConfigurationError({
+        message: `Workflow ${key} is declared multiple times (in '${pathA}' and '${pathB}')`,
+        detail: {
+          pathA,
+          pathB,
+        },
       })
     }
 
@@ -1541,9 +1558,12 @@ export class Garden {
       }
     }
 
-    throw new InternalError(`Could not find environment config ${this.environmentName}`, {
-      environmentName: this.environmentName,
-      projectConfig: this.projectConfig,
+    throw new InternalError({
+      message: `Could not find environment config ${this.environmentName}`,
+      detail: {
+        environmentName: this.environmentName,
+        projectConfig: this.projectConfig,
+      },
     })
   }
 
@@ -1683,8 +1703,11 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     config = await findProjectConfig({ log, path: currentDirectory })
 
     if (!config) {
-      throw new ConfigurationError(`Not a project directory (or any of the parent directories): ${currentDirectory}`, {
-        currentDirectory,
+      throw new ConfigurationError({
+        message: `Not a project directory (or any of the parent directories): ${currentDirectory}`,
+        detail: {
+          currentDirectory,
+        },
       })
     }
   }

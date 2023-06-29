@@ -210,9 +210,12 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     if (this.arguments && this.options) {
       for (const key of Object.keys(this.options)) {
         if (key in this.arguments) {
-          throw new InternalError(`Key ${key} is defined in both options and arguments for command ${commandName}`, {
-            commandName,
-            key,
+          throw new InternalError({
+            message: `Key ${key} is defined in both options and arguments for command ${commandName}`,
+            detail: {
+              commandName,
+              key,
+            },
           })
         }
       }
@@ -226,18 +229,24 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
 
       // Make sure arguments don't have default values
       if (arg.defaultValue) {
-        throw new InternalError(`A positional argument cannot have a default value`, {
-          commandName,
-          arg,
+        throw new InternalError({
+          message: `A positional argument cannot have a default value`,
+          detail: {
+            commandName,
+            arg,
+          },
         })
       }
 
       if (arg.required) {
         // Make sure required arguments don't follow optional ones
         if (foundOptional) {
-          throw new InternalError(`A required argument cannot follow an optional one`, {
-            commandName,
-            arg,
+          throw new InternalError({
+            message: `A required argument cannot follow an optional one`,
+            detail: {
+              commandName,
+              arg,
+            },
           })
         }
       } else {
@@ -246,9 +255,12 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
 
       // Make sure only last argument is spread
       if (arg.spread && i < args.length - 1) {
-        throw new InternalError(`Only the last command argument can set spread to true`, {
-          commandName,
-          arg,
+        throw new InternalError({
+          message: `Only the last command argument can set spread to true`,
+          detail: {
+            commandName,
+            arg,
+          },
         })
       }
     }
@@ -297,7 +309,8 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
         // `deploy --sync`) are also not registered here, since the `dev` command will have been registered already,
         // and the `deploy --sync` command which is subsequently run interactively in the `dev` session will register
         // itself (it will have a parent command, so the last condition in this expression will not match).
-        const skipRegistration = !["dev", "serve"].includes(this.name) && this.maybePersistent(params) && !params.parentCommand
+        const skipRegistration =
+          !["dev", "serve"].includes(this.name) && this.maybePersistent(params) && !params.parentCommand
 
         if (!skipRegistration && garden.cloudApi && garden.projectId && this.streamEvents) {
           cloudSession = await garden.cloudApi.registerSession({
@@ -1064,7 +1077,11 @@ export async function handleProcessResults(
       return f && f.error && isGardenError(f.error) ? [f.error as GardenError] : []
     })
 
-    const error = new RuntimeError(`${failedCount} ${taskType} action(s) failed!`, { results: failed }, wrappedErrors)
+    const error = new RuntimeError({
+      message: `${failedCount} ${taskType} action(s) failed!`,
+      detail: { results: failed },
+      wrappedErrors,
+    })
     return { result, errors: [error] }
   }
 

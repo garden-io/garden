@@ -193,9 +193,12 @@ export class KubeApi {
     const cluster = this.config.getCurrentCluster()
 
     if (!cluster) {
-      throw new ConfigurationError(`Could not read cluster from kubeconfig for context ${context}`, {
-        context,
-        config,
+      throw new ConfigurationError({
+        message: `Could not read cluster from kubeconfig for context ${context}`,
+        detail: {
+          context,
+          config,
+        },
       })
     }
 
@@ -263,9 +266,12 @@ export class KubeApi {
     const group = apiInfo.groupMap[apiVersion]
 
     if (!group) {
-      throw new KubernetesError(`Unrecognized apiVersion: ${apiVersion}`, {
-        apiVersion,
-        resource,
+      throw new KubernetesError({
+        message: `Unrecognized apiVersion: ${apiVersion}`,
+        detail: {
+          apiVersion,
+          resource,
+        },
       })
     }
 
@@ -540,9 +546,12 @@ export class KubeApi {
     const resourceInfo = await this.getApiResourceInfo(log, apiVersion, kind)
 
     if (!resourceInfo) {
-      const err = new KubernetesError(`Unrecognized resource type ${apiVersion}/${kind}`, {
-        apiVersion,
-        kind,
+      const err = new KubernetesError({
+        message: `Unrecognized resource type ${apiVersion}/${kind}`,
+        detail: {
+          apiVersion,
+          kind,
+        },
       })
       err.statusCode = 404
       throw err
@@ -567,8 +576,11 @@ export class KubeApi {
     const apiVersion = manifest.apiVersion
 
     if (!apiVersion) {
-      throw new KubernetesError(`Missing apiVersion on resource`, {
-        manifest,
+      throw new KubernetesError({
+        message: `Missing apiVersion on resource`,
+        detail: {
+          manifest,
+        },
       })
     }
 
@@ -577,8 +589,11 @@ export class KubeApi {
     }
 
     if (!namespace) {
-      throw new KubernetesError(`Missing namespace on resource and no namespace specified`, {
-        manifest,
+      throw new KubernetesError({
+        message: `Missing namespace on resource and no namespace specified`,
+        detail: {
+          manifest,
+        },
       })
     }
 
@@ -861,7 +876,10 @@ export class KubeApi {
             return
           }
 
-          throw new KubernetesError(`Failed to create Pod ${pod.metadata.name}: ${error.message}`, { error })
+          throw new KubernetesError({
+            message: `Failed to create Pod ${pod.metadata.name}: ${error.message}`,
+            detail: { error },
+          })
         },
       }
     )
@@ -932,8 +950,11 @@ export async function getKubeConfig(log: Log, ctx: PluginContext, provider: Kube
     }
     return load(kubeConfigStr)!
   } catch (error) {
-    throw new RuntimeError(`Unable to load kubeconfig: ${error}`, {
-      error,
+    throw new RuntimeError({
+      message: `Unable to load kubeconfig: ${error}`,
+      detail: {
+        error,
+      },
     })
   }
 }
@@ -967,9 +988,12 @@ function wrapError(name: string, err: any) {
   if (!err.message || err.name === "HttpError") {
     const response = err.response || {}
     const body = response.body || err.body
-    const wrapped = new KubernetesError(`Got error from Kubernetes API (${name}) - ${body.message}`, {
-      body,
-      request: omitBy(response.request, (v, k) => isObject(v) || k[0] === "_"),
+    const wrapped = new KubernetesError({
+      message: `Got error from Kubernetes API (${name}) - ${body.message}`,
+      detail: {
+        body,
+        request: omitBy(response.request, (v, k) => isObject(v) || k[0] === "_"),
+      },
     })
     wrapped.statusCode = err.statusCode
     return wrapped
@@ -980,8 +1004,11 @@ function wrapError(name: string, err: any) {
 
 function handleRequestPromiseError(name: string, err: Error) {
   if (err instanceof requestErrors.StatusCodeError) {
-    const wrapped = new KubernetesError(`StatusCodeError from Kubernetes API (${name}) - ${err.message}`, {
-      body: err.error,
+    const wrapped = new KubernetesError({
+      message: `StatusCodeError from Kubernetes API (${name}) - ${err.message}`,
+      detail: {
+        body: err.error,
+      },
     })
     wrapped.statusCode = err.statusCode
 
@@ -1090,5 +1117,5 @@ const errorMessageRegexesForRetry = [
   // This can happen if etcd is overloaded
   // (rpc error: code = ResourceExhausted desc = etcdserver: throttle: too many requests)
   /too many requests/,
-  /Unable to connect to the server/
+  /Unable to connect to the server/,
 ]

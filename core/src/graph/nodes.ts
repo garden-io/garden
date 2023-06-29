@@ -260,8 +260,11 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
     const statusResult = this.getDependencyResult(statusTask) as GraphResultFromTask<T>
 
     if (statusResult === undefined) {
-      throw new InternalError(`Attempted to execute ${this.describe()} before resolving status.`, {
-        nodeKey: this.getKey(),
+      throw new InternalError({
+        message: `Attempted to execute ${this.describe()} before resolving status.`,
+        detail: {
+          nodeKey: this.getKey(),
+        },
       })
     }
 
@@ -361,7 +364,7 @@ export class GraphNodeError extends GardenBaseError<GraphNodeErrorDetail> {
           nextDep = null
         } else if (result?.aborted) {
           message += chalk.yellow(`\n↳ ${nextDep.describe()} [ABORTED]`)
-          if (result.error instanceof GraphNodeError && result.error.detail.failedDependency) {
+          if (result.error instanceof GraphNodeError && result.error.detail?.failedDependency) {
             nextDep = result.error.detail.failedDependency
           } else {
             nextDep = null
@@ -375,10 +378,10 @@ export class GraphNodeError extends GardenBaseError<GraphNodeErrorDetail> {
       message = `${node.describe()} failed: ${error}`
     }
 
-    super(message, params)
+    super({ message, detail: params })
   }
 
   aborted() {
-    return this.detail.aborted
+    return this.detail?.aborted
   }
 }

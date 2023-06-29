@@ -155,7 +155,7 @@ ${renderCommands(commands)}
 
     if (this.commands[fullName]) {
       // For now we don't allow multiple definitions of the same command. We may want to revisit this later.
-      throw new PluginError(`Multiple definitions of command "${fullName}"`, {})
+      throw new PluginError({ message: `Multiple definitions of command "${fullName}"`, detail: {} })
     }
 
     this.commands[fullName] = command
@@ -167,7 +167,7 @@ ${renderCommands(commands)}
     const dupKeys: string[] = intersection(optKeys, globalKeys)
 
     if (dupKeys.length > 0) {
-      throw new PluginError(`Global option(s) ${dupKeys.join(" ")} cannot be redefined`, {})
+      throw new PluginError({ message: `Global option(s) ${dupKeys.join(" ")} cannot be redefined`, detail: {} })
     }
   }
 

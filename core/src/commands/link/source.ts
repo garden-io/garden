@@ -74,14 +74,15 @@ export class LinkSourceCommand extends Command<Args> {
     if (!projectSourceToLink) {
       const availableRemoteSources = projectSources.map((s) => s.name).sort()
 
-      throw new ParameterError(
-        `Remote source ${chalk.underline(sourceName)} not found in project config.` +
+      throw new ParameterError({
+        message:
+          `Remote source ${chalk.underline(sourceName)} not found in project config.` +
           ` Did you mean to use the "link module" command?`,
-        {
+        detail: {
           availableRemoteSources,
           input: sourceName,
-        }
-      )
+        },
+      })
     }
 
     const absPath = resolve(garden.projectRoot, path)
