@@ -7,7 +7,6 @@
  */
 
 import { join, resolve as resolvePath } from "path"
-import { joi } from "../../config/common"
 import { GenericProviderConfig, Provider } from "../../config/provider"
 import { dedent } from "../../util/string"
 import { STATIC_DIR } from "../../constants"
@@ -32,34 +31,6 @@ export const gardenPlugin = sdk.createGardenPlugin({
   docs: dedent`
   Otel Collector
     `,
-
-  createModuleTypes: [
-    {
-      name: "otel-collector",
-      docs: dedent`
-        Start the otel-collector
-      `,
-      needsBuild: false,
-      schema: joi.object().keys({
-        configFilePath: joi
-          .posixPath()
-          .relativeOnly()
-          .subPathOnly()
-          .required()
-          .description("POSIX-style path to an otel collector config file."),
-      }),
-      handlers: {
-        configure: async ({ moduleConfig }) => {
-          moduleConfig.include = [moduleConfig.spec.configFilePath]
-          return { moduleConfig }
-        },
-
-        convert: async (params) => {
-          return { actions: [] }
-        },
-      },
-    },
-  ],
 })
 
 const s = sdk.schema
