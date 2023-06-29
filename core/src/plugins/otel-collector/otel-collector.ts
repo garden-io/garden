@@ -9,18 +9,17 @@
 import { join, resolve as resolvePath } from "path"
 import { GenericProviderConfig, Provider } from "../../config/provider"
 import { dedent } from "../../util/string"
-import { STATIC_DIR } from "../../constants"
 import { sdk } from "../../plugin/sdk"
 import { registerCleanupFunction } from "../../util/util"
 import { configureOTLPHttpExporter } from "../../util/tracing/tracing"
 import { ChildProcess } from "child_process"
+import { OTEL_CONFIG_FILE } from "./config"
+import YAML from "yaml"
+import { makeTempDir } from "../../util/fs"
+import { writeFile } from "fs-extra"
+import { DirectoryResult } from "tmp-promise"
 
-const defaultConfigPath = join(STATIC_DIR, "otel-collector", "otel-config.yaml")
-
-interface OtelCollectorSpec {
-  configPath: string
-}
-
+const OTEL_CONFIG_NAME = "otel-config.yaml"
 export interface OtelCollectorProviderConfig extends GenericProviderConfig {}
 
 export type OtelCollectorProvider = Provider<OtelCollectorProviderConfig>
@@ -87,9 +86,9 @@ gardenPlugin.addTool({
 })
 
 const providerConfigSchema = s.object({
-  configFilePath: s.string().describe(dedent`
-  Optional configuration file path.
-`),
+  configFilePath: s.string().optional().describe(dedent`
+    Optional configuration file path.
+  `),
 })
 
 export const provider = gardenPlugin.createProvider({ configSchema: providerConfigSchema, outputsSchema: s.object({}) })
@@ -143,7 +142,23 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   const scopedLog = log.createLog({ name: "otel-collector" })
   scopedLog.silly("Preparing the environment for the otel-collector")
 
-  const configPath = resolvePath(ctx.projectRoot, ctx.provider.config.configFilePath)
+  let configPath
+  let tempDir: DirectoryResult | undefined
+  if (ctx.provider.config.configFilePath) {
+    configPath = resolvePath(ctx.projectRoot, ctx.provider.config.configFilePath)
+    scopedLog.silly(`Config path provided, loading from ${configPath}`)
+  } else {
+    // If the config file path isn't given in the provider config
+    // we create one ourselves with a default
+    //
+    // TODO: Add code that fetches config from cloud here
+    // and then adds it to the config file
+    const configFileYaml = YAML.stringify(OTEL_CONFIG_FILE)
+    tempDir = await makeTempDir()
+    configPath = join(tempDir.path, OTEL_CONFIG_NAME)
+    scopedLog.silly(`Config path not provided, creating temporary one in ${configPath}`)
+    await writeFile(configPath, configFileYaml)
+  }
 
   scopedLog.silly("Starting collector process")
   const collectorProcess = await ctx.tools["otel-collector.otel-collector"].spawn({
@@ -159,9 +174,18 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
       process: collectorProcess,
     })
 
+    // Once the collector is started, the config is loaded and we can clean up the temporary directory
+    scopedLog.silly("Cleaning up config directory")
+    await tempDir?.cleanup()
+
     scopedLog.silly("Collector process started. Switching exporter over to otel-collector.")
-    // Automatically sends to localhost
-    configureOTLPHttpExporter()
+
+    // TODO: Currently set to 4319 to have Jaeger and the collector co-exist on the same machine
+    // This should be changed back to the default
+    // Automatically sends to localhost:4318 without config value
+    configureOTLPHttpExporter({
+      url: "http://0.0.0.0:4319/v1/traces",
+    })
 
     registerCleanupFunction("kill-otel-collector", async () => {
       scopedLog.silly("Shutting down otel-collector.")
@@ -171,6 +195,7 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
 
     return { status: { ready: true, disableCache: true, outputs: {} } }
   } catch (err) {
+    // TODO: We might not want to fail if the collector didn't initialize correctly
     scopedLog.error("otel-collector failed to initialize")
     return { status: { ready: false, disableCache: true, outputs: {} } }
   }
