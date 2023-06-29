@@ -32,8 +32,7 @@ If you are using Docker Desktop and its builtin Kubernetes support, you need to 
   - downloading/copying the pull secret
   - running `crc setup`
   - pasting the secret in when prompted
-  - save the kubeadmin password to your password manager
-  - add the kubeadmin password to your `.zshrc` or similar as `export OPENSHIFT_ADMIN_PASSWORD=password`
+  - take note of the generated kubeadmin password
 - Run `oc login -u developer -p developer https://api.crc.testing:6443` once and accept the certificate
 - Run `oc new-project demo-project` to create the project
 
@@ -93,3 +92,16 @@ open http://hello.local.demo.garden/
 garden logs nginx-hello # NOTE: this will be empty due to https://github.com/sclorg/nginx-container/issues/94
 garden delete deploy
 ```
+
+## Cleanup
+
+If you want to reset your environment, you can run:
+
+```bash
+crc delete
+```
+
+This will delete the VM running OpenShift, including any configuration done within it. Remember to also delete or move the `~/.kube.config` file.
+
+You can create a new one by running `crc start` and repeating setup steps for the project, permissions, registry, etc.
+Note that creating a new VM will generate a new kubeadmin password.
