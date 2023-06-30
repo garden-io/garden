@@ -133,16 +133,16 @@ const objHandlers: { [kind: string]: StatusHandler } = {
     }
     // job has succeeded
     if (resource.status.succeeded) {
-      return { state: "stopped", resource }
+      return { state: "ready", resource }
     }
 
     // wait for job only if waitForJobs is set, otherwise
     // mark it as ready and proceed.
     if (waitForJobs) {
       return { state: "deploying", resource }
+    } else {
+      return { state: "ready", resource }
     }
-
-    return { state: "ready", resource }
   },
 }
 

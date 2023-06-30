@@ -85,6 +85,8 @@ export const kubernetesCommonDeploySpecKeys = () => ({
   namespace: namespaceNameSchema(),
   portForwards: portForwardsSchema(),
   timeout: k8sDeploymentTimeoutSchema(),
+  // TODO-0.14: flip this to true and change default behavior to
+  // wait for the jobs
   waitForJobs: joi
     .boolean()
     .optional()
