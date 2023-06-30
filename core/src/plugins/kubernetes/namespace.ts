@@ -233,6 +233,11 @@ export async function getSystemNamespace(
   api?: KubeApi
 ): Promise<string> {
   const namespace = { name: provider.config.gardenSystemNamespace }
+  // HACK: in OpenShift, we work in only one namespace, the one assigned to the developer
+  if (!namespace.name) {
+    log.warn("No system namespace found, using the current namespace. If you are using OpenShift, ignore this warning.")
+    namespace.name = provider.config.namespace!.name
+  }
 
   if (!api) {
     api = await KubeApi.factory(log, ctx, provider)

@@ -14,6 +14,7 @@ import { ValidateCommand } from "../../../../../src/commands/validate"
 import { getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../helpers"
 import { defaultDeployOpts } from "../../../../unit/src/commands/deploy"
 import { BuildCommand } from "../../../../../src/commands/build"
+import { TestCommand } from "../../../../../src/commands/test"
 
 describe.skip("OpenShift", () => {
   const projectRoot = getDataDir("openshift", "demo-project")
@@ -83,6 +84,32 @@ describe.skip("OpenShift", () => {
     // the openshift nginx container image does not produce logs correctly,
     // but this should ensure the logs command at least runs successfully
     expect(result).to.deep.eq([])
+  })
+
+  it("should pass tests", async () => {
+    const command = new TestCommand()
+    const { result } = await command.action({
+      garden,
+      log,
+      args: {
+        names: [],
+      },
+      opts: withDefaultGlobalOpts({
+        "name": undefined,
+        "module": undefined,
+        "force": true,
+        "force-build": false,
+        "interactive": false,
+        "watch": false,
+        "skip": [],
+        "skip-dependencies": false,
+        "logger-type": "ink",
+        "log-level": "info",
+        "silent": false,
+        "skip-dependants": false,
+      }),
+    })
+    expect(result!.success)
   })
 
   it("should delete container deploy", async () => {
