@@ -13,6 +13,7 @@ import { LogsCommand } from "../../../../../src/commands/logs"
 import { ValidateCommand } from "../../../../../src/commands/validate"
 import { getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../helpers"
 import { defaultDeployOpts } from "../../../../unit/src/commands/deploy"
+import { BuildCommand } from "../../../../../src/commands/build"
 
 describe.skip("OpenShift", () => {
   const projectRoot = getDataDir("openshift", "demo-project")
@@ -34,13 +35,26 @@ describe.skip("OpenShift", () => {
     })
   })
 
+  it("should build a container", async () => {
+    const command = new BuildCommand()
+    const { result } = await command.action({
+      garden,
+      log,
+      args: {
+        names: ["openshift-nginx-hello"],
+      },
+      opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
+    })
+    expect(result!.success)
+  })
+
   it("should deploy a container", async () => {
     const command = new DeployCommand()
     const { result } = await command.action({
       garden,
       log,
       args: {
-        names: ["nginx-hello"],
+        names: ["openshift-nginx-hello"],
       },
       opts: defaultDeployOpts,
     })
@@ -53,7 +67,7 @@ describe.skip("OpenShift", () => {
       garden,
       log,
       args: {
-        names: ["nginx-hello"],
+        names: ["openshift-nginx-hello"],
       },
       opts: withDefaultGlobalOpts({
         "log-level": "info",
@@ -79,6 +93,6 @@ describe.skip("OpenShift", () => {
       args: {},
       opts: withDefaultGlobalOpts({ "dependants-first": false }),
     })
-    expect(result!.deployStatuses["nginx-hello"].state === "ready")
+    expect(result!.deployStatuses["openshift-nginx-hello"].state === "ready")
   })
 })

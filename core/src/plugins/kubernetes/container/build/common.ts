@@ -233,6 +233,8 @@ export async function skopeoBuildStatus({
     if (res.exitCode !== 0 && !skopeoManifestUnknown(res.stderr)) {
       const output = res.allLogs || err.message
 
+      // TODO: if a registry does not have an image with the name at all, we throw here
+      // This isn't a great first-time-use experience (or after you've reset a registry)
       throw new RuntimeError({
         message: `Unable to query registry for image status: ${output}`,
         detail: {
@@ -354,7 +356,13 @@ export async function ensureUtilDeployment({
 
 export async function getManifestInspectArgs(remoteId: string, deploymentRegistry: ContainerRegistryConfig) {
   const dockerArgs = ["manifest", "inspect", remoteId]
-  if (isLocalHostname(deploymentRegistry.hostname)) {
+  const { hostname } = deploymentRegistry
+  // Allow insecure connections on local registry
+  if (
+    hostname === "localhost" ||
+    hostname.startsWith("127.") ||
+    hostname === "default-route-openshift-image-registry.apps-crc.testing"
+  ) {
     dockerArgs.push("--insecure")
   }
 
@@ -397,10 +405,6 @@ export async function ensureBuilderSecret({
   }
 
   return { authSecret, updated }
-}
-
-function isLocalHostname(hostname: string) {
-  return hostname === "localhost" || hostname.startsWith("127.")
 }
 
 export function getUtilContainer(authSecretName: string, provider: KubernetesProvider): V1Container {
@@ -459,7 +463,7 @@ export function getUtilContainer(authSecretName: string, provider: KubernetesPro
         },
       },
     },
-    resources: stringifyResources(provider.config.resources.util),
+    resources: stringifyResources(provider.config?.resources?.util),
     securityContext: {
       runAsUser: 1000,
       runAsGroup: 1000,
@@ -477,6 +481,7 @@ export function getUtilManifests(
     builderToleration,
   ]
   const kanikoAnnotations = provider.config.kaniko?.util?.annotations || provider.config.kaniko?.annotations
+  const utilContainer = getUtilContainer(authSecretName, provider)
   const deployment: KubernetesDeployment = {
     apiVersion: "apps/v1",
     kind: "Deployment",
@@ -502,7 +507,7 @@ export function getUtilManifests(
           annotations: kanikoAnnotations,
         },
         spec: {
-          containers: [getUtilContainer(authSecretName, provider)],
+          containers: [utilContainer],
           imagePullSecrets,
           volumes: [
             {

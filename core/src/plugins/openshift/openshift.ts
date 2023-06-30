@@ -8,8 +8,9 @@
 
 import { ConfigureProviderParams } from "../../plugin/handlers/Provider/configureProvider"
 import { createGardenPlugin } from "../../plugin/plugin"
+import { openshiftContainerBuildExtension } from "./build"
 import { OpenShiftConfig, configSchema } from "./config"
-import { openshiftContainerDeployExtension } from "./container"
+import { openshiftContainerDeployExtension } from "./deploy"
 
 export async function configureProvider({ config }: ConfigureProviderParams<OpenShiftConfig>) {
   return { config }
@@ -26,6 +27,7 @@ export const gardenPlugin = () => {
 
     extendActionTypes: {
       Deploy: [openshiftContainerDeployExtension()],
+      Build: [openshiftContainerBuildExtension()],
     },
   })
 }

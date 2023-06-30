@@ -1,9 +1,17 @@
+kind: Build
+type: container
+name: openshift-nginx-hello
+# FIXME: currently this is required, otherwise you get an ENOENT when calling
+# containerHelpers.dockerCli({cwd: action.getBuildPath() ... })
+# because the .garden/build directory is not created
+buildAtSource: true
+
+---
 kind: Deploy
 type: container
-name: nginx-hello
+name: openshift-nginx-hello
+build: openshift-nginx-hello
 spec:
-  image: registry.access.redhat.com/ubi9/nginx-122:1-12
-  command: ["nginx", "-g", "daemon off;"]
   ports:
     - name: http
       containerPort: 8080

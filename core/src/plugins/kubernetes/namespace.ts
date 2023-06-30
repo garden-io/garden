@@ -71,9 +71,17 @@ export async function ensureNamespace(
       cache[namespace.name] = { status: "pending" }
 
       // Get the latest remote namespace list
-      const namespacesStatus = await api.core.listNamespace()
+      let namespaces: KubernetesServerResource<V1Namespace>[] = []
+      try {
+        const namespacesStatus = await api.core.listNamespace()
+        namespaces = namespacesStatus.items
+      } catch (error) {
+        log.warn("Unable to list all namespaces. If you are using OpenShift, ignore this warning.")
+        let namespaceStatus = await api.core.readNamespace(namespace.name)
+        namespaces = [namespaceStatus]
+      }
 
-      for (const n of namespacesStatus.items) {
+      for (const n of namespaces) {
         if (n.status.phase === "Active") {
           cache[n.metadata.name] = { status: "created", resource: n }
         }
