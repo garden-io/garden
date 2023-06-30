@@ -328,7 +328,7 @@ export class PluginTool extends CliWrapper {
       }
 
       debug && debug.success("Done")
-      downloadLog.success(`Fetched ${this.name}`)
+      downloadLog.success(`Fetched ${this.name} ${this.spec.version}`)
     })
   }
 
