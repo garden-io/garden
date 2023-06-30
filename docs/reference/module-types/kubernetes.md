@@ -216,6 +216,9 @@ portForwards:
 # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
 timeout: 300
 
+# Wait until the jobs have been completed. Garden will wait for as long as `timeout`.
+waitForJobs: false
+
 # The names of any services that this service depends on at runtime, and the names of any tasks that should be
 # executed before this service is deployed.
 dependencies: []
@@ -994,6 +997,14 @@ The maximum duration (in seconds) to wait for resources to deploy and become hea
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `number` | `300`   | No       |
+
+### `waitForJobs`
+
+Wait until the jobs have been completed. Garden will wait for as long as `timeout`.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `dependencies[]`
 

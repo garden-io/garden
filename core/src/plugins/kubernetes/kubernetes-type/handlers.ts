@@ -252,6 +252,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       resources: namespaceManifests,
       log,
       timeoutSec: action.getConfig("timeout"),
+      waitForJobs: spec.waitForJobs,
     })
   }
 
@@ -284,6 +285,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       resources: preparedManifests,
       log,
       timeoutSec: action.getConfig("timeout"),
+      waitForJobs: spec.waitForJobs,
     })
   }
 

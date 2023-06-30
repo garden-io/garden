@@ -73,6 +73,7 @@ describe("configureKubernetesModule", () => {
             dependencies: [],
             timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
+          waitForJobs: false,
           dependencies: [],
           files: [],
           manifests: [

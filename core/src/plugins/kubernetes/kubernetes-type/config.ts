@@ -46,6 +46,7 @@ export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySp
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
   localMode?: KubernetesLocalModeSpec
+  waitForJobs?: boolean
 }
 
 export type KubernetesDeployActionConfig = DeployActionConfig<"kubernetes", KubernetesDeployActionSpec>
@@ -84,6 +85,13 @@ export const kubernetesCommonDeploySpecKeys = () => ({
   namespace: namespaceNameSchema(),
   portForwards: portForwardsSchema(),
   timeout: k8sDeploymentTimeoutSchema(),
+  // TODO-0.14: flip this to true and change default behavior to
+  // wait for the jobs
+  waitForJobs: joi
+    .boolean()
+    .optional()
+    .default(false)
+    .description("Wait until the jobs have been completed. Garden will wait for as long as `timeout`."),
 })
 
 export const kubernetesDeploySchema = () =>

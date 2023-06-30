@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Bluebird from "bluebird"
 import { diffString } from "json-diff"
 import { DeploymentError } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
-import Bluebird from "bluebird"
 import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
 import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
@@ -25,6 +25,7 @@ import {
   V1Service,
   V1Container,
   KubernetesObject,
+  V1Job,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
 import { getPods, getResourceKey, hashManifest } from "../util"
@@ -51,6 +52,7 @@ export interface StatusHandlerParams<T extends BaseResource | KubernetesObject =
   resource: KubernetesServerResource<T>
   log: Log
   resourceVersion?: number
+  waitForJobs?: boolean
 }
 
 interface StatusHandler<T extends BaseResource | KubernetesObject = BaseResource> {
@@ -111,6 +113,37 @@ const objHandlers: { [kind: string]: StatusHandler } = {
 
     return { state: "ready", resource }
   },
+
+  Job: async ({ resource, waitForJobs }: StatusHandlerParams<V1Job>) => {
+    if (
+      resource.status?.failed &&
+      resource.spec?.backoffLimit &&
+      resource.status?.failed >= resource.spec?.backoffLimit
+    ) {
+      // job has failed
+      return { state: "unhealthy", resource }
+    }
+    if (
+      resource.spec?.completions &&
+      resource.status?.succeeded &&
+      resource.status?.succeeded < resource.spec.completions
+    ) {
+      // job is not yet completed
+      return { state: "deploying", resource }
+    }
+    // job has succeeded
+    if (resource.status.succeeded) {
+      return { state: "ready", resource }
+    }
+
+    // wait for job only if waitForJobs is set, otherwise
+    // mark it as ready and proceed.
+    if (waitForJobs) {
+      return { state: "deploying", resource }
+    } else {
+      return { state: "ready", resource }
+    }
+  },
 }
 
 /**
@@ -120,14 +153,21 @@ export async function checkResourceStatuses(
   api: KubeApi,
   namespace: string,
   manifests: KubernetesResource[],
-  log: Log
+  log: Log,
+  waitForJobs?: boolean
 ): Promise<ResourceStatus[]> {
   return Bluebird.map(manifests, async (manifest) => {
-    return checkResourceStatus(api, namespace, manifest, log)
+    return checkResourceStatus(api, namespace, manifest, log, waitForJobs)
   })
 }
 
-export async function checkResourceStatus(api: KubeApi, namespace: string, manifest: KubernetesResource, log: Log) {
+export async function checkResourceStatus(
+  api: KubeApi,
+  namespace: string,
+  manifest: KubernetesResource,
+  log: Log,
+  waitForJobs?: boolean
+) {
   const handler = objHandlers[manifest.kind]
 
   if (manifest.metadata?.namespace) {
@@ -150,7 +190,7 @@ export async function checkResourceStatus(api: KubeApi, namespace: string, manif
 
   let status: ResourceStatus
   if (handler) {
-    status = await handler({ api, namespace, resource, log, resourceVersion })
+    status = await handler({ api, namespace, resource, log, resourceVersion, waitForJobs })
   } else {
     // if there is no explicit handler to check the status, we assume there's no rollout phase to wait for
     status = { state: "ready", resource: manifest }
@@ -167,6 +207,7 @@ interface WaitParams {
   resources: KubernetesResource[]
   log: Log
   timeoutSec: number
+  waitForJobs?: boolean
 }
 
 /**
@@ -180,6 +221,7 @@ export async function waitForResources({
   resources,
   log,
   timeoutSec,
+  waitForJobs,
 }: WaitParams) {
   let loops = 0
   const startTime = new Date().getTime()
@@ -217,7 +259,7 @@ export async function waitForResources({
     await sleep(2000 + 500 * loops)
     loops += 1
 
-    const statuses = await checkResourceStatuses(api, namespace, Object.values(pendingResources), log)
+    const statuses = await checkResourceStatuses(api, namespace, Object.values(pendingResources), log, waitForJobs)
 
     for (const status of statuses) {
       const key = getResourceKey(status.resource)
