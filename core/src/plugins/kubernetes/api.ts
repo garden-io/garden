@@ -946,7 +946,16 @@ export async function getKubeConfig(log: Log, ctx: PluginContext, provider: Kube
       kubeConfigStr = (await readFile(provider.config.kubeconfig)).toString()
     } else {
       // We use kubectl for this, to support merging multiple paths in the KUBECONFIG env var
-      kubeConfigStr = await kubectl(ctx, provider).stdout({ log, args: ["config", "view", "--raw"] })
+      kubeConfigStr = await requestWithRetry(
+        log,
+        "",
+        () =>
+          kubectl(ctx, provider).stdout({
+            log,
+            args: ["config", "view", "--raw"],
+          }),
+        { forceRetry: true }
+      )
     }
     return load(kubeConfigStr)!
   } catch (error) {
@@ -1018,7 +1027,11 @@ function handleRequestPromiseError(name: string, err: Error) {
   }
 }
 
-type RetryOpts = { maxRetries?: number; minTimeoutMs?: number }
+/**
+ * The flag {@code forceRetry} can be used to avoid {@link shouldRetry} helper call in case if the error code
+ * or the error message pattern is unknown.
+ */
+type RetryOpts = { maxRetries?: number; minTimeoutMs?: number; forceRetry?: boolean }
 
 /**
  * Helper function for retrying failed k8s API requests, using exponential backoff.
@@ -1034,12 +1047,13 @@ type RetryOpts = { maxRetries?: number; minTimeoutMs?: number }
 async function requestWithRetry<R>(log: Log, description: string, req: () => Promise<R>, opts?: RetryOpts): Promise<R> {
   const maxRetries = opts?.maxRetries ?? 5
   const minTimeoutMs = opts?.minTimeoutMs ?? 500
+  const forceRetry = opts?.forceRetry ?? false
   let retryLog: Log | undefined = undefined
   const retry = async (usedRetries: number): Promise<R> => {
     try {
       return await req()
     } catch (err) {
-      if (shouldRetry(err)) {
+      if (forceRetry || shouldRetry(err)) {
         retryLog = retryLog || log.createLog({ fixLevel: LogLevel.debug })
         if (usedRetries <= maxRetries) {
           const sleepMsec = minTimeoutMs + usedRetries * minTimeoutMs
