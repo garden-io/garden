@@ -423,7 +423,12 @@ export function emitGetStatusEvents<
     // First we emit the "getting-status" event
     this.garden.events.emit(
       eventName,
-      makeActionGetStatusPayload({ action: this.action, force: this.force, startedAt })
+      makeActionGetStatusPayload({
+        action: this.action,
+        force: this.force,
+        startedAt,
+        sessionId: this.garden.sessionId,
+      })
     )
 
     try {
@@ -436,6 +441,7 @@ export function emitGetStatusEvents<
         action: this.action,
         operation: methodName,
         force: this.force,
+        sessionId: this.garden.sessionId,
       }) as Events[typeof eventName]
 
       this.garden.events.emit(eventName, donePayload)
@@ -445,7 +451,13 @@ export function emitGetStatusEvents<
       // ...otherwise we emit a "failed" event
       this.garden.events.emit(
         eventName,
-        makeActionFailedPayload({ startedAt, action: this.action, force: this.force, operation: methodName })
+        makeActionFailedPayload({
+          startedAt,
+          action: this.action,
+          force: this.force,
+          operation: methodName,
+          sessionId: this.garden.sessionId,
+        })
       )
 
       throw err
@@ -490,7 +502,12 @@ export function emitProcessingEvents<
     // First we emit the "processing" event
     this.garden.events.emit(
       eventName,
-      makeActionProcessingPayload({ startedAt, action: this.action, force: this.force })
+      makeActionProcessingPayload({
+        startedAt,
+        action: this.action,
+        force: this.force,
+        sessionId: this.garden.sessionId,
+      })
     )
 
     try {
@@ -503,6 +520,7 @@ export function emitProcessingEvents<
         action: this.action,
         force: this.force,
         operation: methodName,
+        sessionId: this.garden.sessionId,
       }) as Events[typeof eventName]
 
       this.garden.events.emit(eventName, donePayload)
@@ -512,7 +530,13 @@ export function emitProcessingEvents<
       // ...otherwise we emit a "failed" event
       this.garden.events.emit(
         eventName,
-        makeActionFailedPayload({ startedAt, action: this.action, force: this.force, operation: methodName })
+        makeActionFailedPayload({
+          startedAt,
+          action: this.action,
+          force: this.force,
+          operation: methodName,
+          sessionId: this.garden.sessionId,
+        })
       )
 
       throw err
