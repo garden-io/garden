@@ -8,12 +8,9 @@
 
 import { makeTestGardenA, taskResultOutputs, testPluginReferences } from "../../../helpers"
 import { Server } from "http"
-import { startServer, GardenServer } from "../../../../src/server/server"
+import { GardenServer, startServer } from "../../../../src/server/server"
 import { Garden } from "../../../../src/garden"
 import { expect } from "chai"
-import request = require("supertest")
-import getPort = require("get-port")
-import WebSocket = require("ws")
 import { authTokenHeader } from "../../../../src/cloud/auth"
 import { ServeCommand } from "../../../../src/commands/serve"
 import { gardenEnv } from "../../../../src/constants"
@@ -21,6 +18,9 @@ import { deepOmitUndefined } from "../../../../src/util/objects"
 import { uuidv4 } from "../../../../src/util/random"
 import { GardenInstanceManager } from "../../../../src/server/instance-manager"
 import { Command, CommandParams } from "../../../../src/commands/base"
+import request = require("supertest")
+import getPort = require("get-port")
+import WebSocket = require("ws")
 
 describe("GardenServer", () => {
   let garden: Garden
@@ -372,6 +372,7 @@ describe("GardenServer", () => {
               expect(req).to.eql({
                 type: "commandResult",
                 requestId: id,
+                sessionId: id,
                 persistent: false,
                 commandRequest: "get config",
                 command: "get config",
