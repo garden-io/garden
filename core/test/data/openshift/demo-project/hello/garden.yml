@@ -20,3 +20,45 @@ spec:
     - path: /
       port: http
       hostname: hello.local.demo.garden
+
+---
+kind: Run
+type: container
+name: ls
+description: Lists the contents of the web server directory
+build: openshift-nginx-hello
+spec:
+  command: ["ls"]
+
+---
+kind: Run
+type: kubernetes-exec
+name: nginx-reload
+description: Restarts the nginx worker processes. `ps aux` will report different times before/after running this
+dependencies: [deploy.openshift-nginx-hello]
+spec:
+  resource:
+    kind: Deployment
+    name: openshift-nginx-hello
+  command: ["kill", "-SIGHUP", "1"]
+
+---
+kind: Test
+type: container
+name: cat
+description: Verifies the existence of the index.html file
+build: openshift-nginx-hello
+spec:
+  command: ["cat", "index.html"]
+
+---
+kind: Test
+type: kubernetes-exec
+name: curl
+description: Verifies the index page is being served
+dependencies: [deploy.openshift-nginx-hello]
+spec:
+  resource:
+    kind: Deployment
+    name: openshift-nginx-hello
+  command: ["curl", "localhost:8080"]

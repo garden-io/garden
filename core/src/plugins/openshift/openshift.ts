@@ -8,6 +8,11 @@
 
 import { ConfigureProviderParams } from "../../plugin/handlers/Provider/configureProvider"
 import { createGardenPlugin } from "../../plugin/plugin"
+import { k8sContainerRunExtension, k8sContainerTestExtension } from "../kubernetes/container/extensions"
+import {
+  kubernetesExecRunDefinition,
+  kubernetesExecTestDefinition,
+} from "../kubernetes/kubernetes-type/kubernetes-exec"
 import { openshiftContainerBuildExtension } from "./build"
 import { OpenShiftConfig, configSchema } from "./config"
 import { openshiftContainerDeployExtension } from "./deploy"
@@ -25,9 +30,16 @@ export const gardenPlugin = () => {
       configureProvider,
     },
 
+    createActionTypes: {
+      Run: [kubernetesExecRunDefinition()],
+      Test: [kubernetesExecTestDefinition()],
+    },
+
     extendActionTypes: {
       Deploy: [openshiftContainerDeployExtension()],
       Build: [openshiftContainerBuildExtension()],
+      Run: [k8sContainerRunExtension()],
+      Test: [k8sContainerTestExtension()],
     },
   })
 }
