@@ -10,14 +10,16 @@ import { join, resolve as resolvePath } from "path"
 import { GenericProviderConfig, Provider } from "../../config/provider"
 import { dedent } from "../../util/string"
 import { sdk } from "../../plugin/sdk"
-import { registerCleanupFunction } from "../../util/util"
+import { registerCleanupFunction, sleep } from "../../util/util"
 import { configureOTLPHttpExporter } from "../../util/tracing/tracing"
-import { ChildProcess } from "child_process"
-import { OTEL_CONFIG_FILE } from "./config"
+import { getOtelCollectorConfigFile } from "./config"
 import YAML from "yaml"
 import { makeTempDir } from "../../util/fs"
 import { writeFile } from "fs-extra"
 import { DirectoryResult } from "tmp-promise"
+import { streamLogs, waitForLogLine } from "../../util/process"
+import getPort from "get-port"
+
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
 export interface OtelCollectorProviderConfig extends GenericProviderConfig {}
@@ -97,66 +99,56 @@ provider.addHandler("getEnvironmentStatus", async ({ ctx }) => {
   return { ready: false, outputs: {} }
 })
 
-async function waitForLogLine({
-  successLog,
-  errorLog,
-  process
-}: {
-  successLog: string
-  errorLog: string
-  process: ChildProcess
-}): Promise<void> {
-  let stdOutString = ""
-  let stdErrString = ""
-
-  return new Promise((resolve, reject) => {
-    function hasError(string: string): boolean {
-      return stdOutString.includes(errorLog) || stdErrString.includes(errorLog)
-    }
-
-    function hasSuccess(string: string): boolean {
-      return stdOutString.includes(successLog) || stdErrString.includes(successLog)
-    }
-
-    process.stdout?.on("data", (chunk) => {
-      stdOutString = stdOutString + chunk
-      if (hasSuccess(stdOutString)) {
-        resolve()
-      } else if (hasError(stdOutString)) {
-        reject()
-      }
-    })
-
-    process.stderr?.on("data", (chunk) => {
-      stdErrString = stdErrString + chunk
-      if (hasSuccess(stdOutString)) {
-        resolve()
-      } else if (hasError(stdOutString)) {
-        reject()
-      }
-    })
-  })
-}
-
 provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   const scopedLog = log.createLog({ name: "otel-collector" })
-  scopedLog.silly("Preparing the environment for the otel-collector")
+  scopedLog.debug("Preparing the environment for the otel-collector")
 
   let configPath
   let tempDir: DirectoryResult | undefined
+
+  // Find an open port for where we run the receiver
+  // By convention the default is 4318
+  // but in case that's occupied we use a random one
+  const otlpReceiverPort = await getPort({
+    port: 4318,
+  })
+
+  scopedLog.debug(`Using port ${otlpReceiverPort} for the receiver`)
+
   if (ctx.provider.config.configFilePath) {
+    // TODO: The config here might not use a matching port
+    // If we want to support custom configs then we might want to inspect the config file
+    // and either warn or update the port if we have a mismatch
+
     configPath = resolvePath(ctx.projectRoot, ctx.provider.config.configFilePath)
-    scopedLog.silly(`Config path provided, loading from ${configPath}`)
+    scopedLog.debug(`Config path provided, loading from ${configPath}`)
   } else {
     // If the config file path isn't given in the provider config
     // we create one ourselves with a default
     //
     // TODO: Add code that fetches config from cloud here
     // and then adds it to the config file
-    const configFileYaml = YAML.stringify(OTEL_CONFIG_FILE)
+    const configFile = getOtelCollectorConfigFile({
+      otlpReceiverPort,
+      exporters: [
+        // {
+        //   name: "otlphttp",
+        //   enabled: true,
+        //   endpoint: "http://localhost:4318",
+        // },
+        {
+          name: "datadog",
+          enabled: true,
+          site: "datadoghq.eu",
+          apiKey: "",
+        },
+      ],
+    })
+
+    const configFileYaml = YAML.stringify(configFile)
     tempDir = await makeTempDir()
     configPath = join(tempDir.path, OTEL_CONFIG_NAME)
-    scopedLog.silly(`Config path not provided, creating temporary one in ${configPath}`)
+    scopedLog.debug(`Config path not provided, creating temporary one in ${configPath}`)
     await writeFile(configPath, configFileYaml)
   }
 
@@ -166,8 +158,19 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
     args: ["--config", configPath],
   })
 
+  collectorProcess.stdout?.pipe(process.stdout)
+  collectorProcess.stderr?.pipe(process.stderr)
+
+  scopedLog.debug("Waiting for collector process start")
+
+  streamLogs({
+    ctx,
+    name: "otel-collector",
+    proc: collectorProcess
+  })
+
   try {
-    scopedLog.silly("Waiting for collector process start")
+
     await waitForLogLine({
       successLog: "Everything is ready. Begin running and processing data.",
       errorLog: "collector server run finished with error",
@@ -175,21 +178,20 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
     })
 
     // Once the collector is started, the config is loaded and we can clean up the temporary directory
-    scopedLog.silly("Cleaning up config directory")
+    scopedLog.debug("Cleaning up config directory")
     await tempDir?.cleanup()
 
-    scopedLog.silly("Collector process started. Switching exporter over to otel-collector.")
+    scopedLog.debug("Collector process started. Switching exporter over to otel-collector.")
 
-    // TODO: Currently set to 4319 to have Jaeger and the collector co-exist on the same machine
-    // This should be changed back to the default
-    // Automatically sends to localhost:4318 without config value
     configureOTLPHttpExporter({
-      url: "http://0.0.0.0:4319/v1/traces",
+      url: `http://localhost:${otlpReceiverPort}/v1/traces`,
     })
 
     registerCleanupFunction("kill-otel-collector", async () => {
-      scopedLog.silly("Shutting down otel-collector.")
+      scopedLog.debug("Shutting down otel-collector.")
       // TODO: force kill after timeout
+      await sleep(60000)
+      scopedLog.debug("Killing process")
       collectorProcess.kill()
     })
 

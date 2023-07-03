@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import split2 from "split2"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
-import { ConfigurationError, ParameterError, GardenBaseError, RuntimeError } from "../exceptions"
+import { ConfigurationError, ParameterError, GardenBaseError } from "../exceptions"
 import { join, dirname, basename, posix } from "path"
 import { hashString, exec, getPlatform, getArchitecture, isDarwinARM } from "./util"
 import tar from "tar"
@@ -25,6 +24,7 @@ import AsyncLock from "async-lock"
 import { PluginContext } from "../plugin-context"
 import { LogLevel } from "../logger/logger"
 import { uuidv4 } from "./random"
+import { streamLogs, waitForProcess } from "./process"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 const lock = new AsyncLock()
@@ -133,55 +133,15 @@ export class CliWrapper {
   }: SpawnParams & { errorPrefix: string; ctx: PluginContext; statusLine?: Log }) {
     const proc = await this.spawn({ args, cwd, env, log })
 
-    const logStream = split2()
-
-    let stdout: string = ""
-    let stderr: string = ""
-
-    if (proc.stderr) {
-      proc.stderr.pipe(logStream)
-      proc.stderr.on("data", (data) => {
-        stderr += data
-      })
-    }
-
-    if (proc.stdout) {
-      proc.stdout.pipe(logStream)
-      proc.stdout.on("data", (data) => {
-        stdout += data
-      })
-    }
-
-    const logEventContext = {
-      origin: this.name,
-      level: "verbose" as const,
-    }
-
-    logStream.on("data", (line: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
+    streamLogs({
+      proc,
+      name: this.name,
+      ctx
     })
 
-    await new Promise<void>((resolve, reject) => {
-      proc.on("error", reject)
-      proc.on("close", (code) => {
-        if (code === 0) {
-          resolve()
-        } else {
-          // Some commands (e.g. the pulumi CLI) don't log anything to stderr when an error occurs. To handle that,
-          // we use `stdout` for the error output instead (in case information relevant to the user is included there).
-          const errOutput = stderr.length > 0 ? stderr : stdout
-          reject(
-            new RuntimeError({
-              message: `${errorPrefix}:\n${errOutput}`,
-              detail: {
-                stdout,
-                stderr,
-                code,
-              },
-            })
-          )
-        }
-      })
+    await waitForProcess({
+      proc,
+      errorPrefix
     })
   }
 
