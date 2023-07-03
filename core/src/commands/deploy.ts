@@ -87,7 +87,7 @@ export const deployOpts = {
   }),
   "skip-dependencies": new BooleanParameter({
     help: deline`
-    Deploy the specified actions, but don't build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments.
+    Deploy the specified actions, but don't build, deploy or run any dependencies.
     This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
     `,
     aliases: ["nodeps"],
@@ -218,14 +218,6 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const skipRuntimeDependencies = opts["skip-dependencies"]
-    if (skipRuntimeDependencies && (!args.names || args.names.length === 0)) {
-      const errMsg = deline`
-        No names were provided as CLI arguments, but the --skip-dependencies option was used. Please provide a
-        list of names when using the --skip-dependencies option.
-      `
-      log.error({ msg: errMsg })
-      return { result: { aborted: true, success: false, ...emptyActionResults } }
-    }
 
     const force = opts.force
     const startSync = !!opts.sync
