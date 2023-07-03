@@ -462,10 +462,12 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   const description = describeActionConfig(config)
   const templateName = config.internal.templateName
 
+  // in pre-processing, only use varfiles that are not template strings
+  const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(f))
   const variables = await mergeVariables({
     basePath: config.internal.basePath,
     variables: config.variables,
-    varfiles: config.varfiles,
+    varfiles: resolvedVarFiles,
   })
   const resolvedVariables = resolveTemplateStrings(
     variables,
