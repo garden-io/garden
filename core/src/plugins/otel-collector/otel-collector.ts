@@ -12,18 +12,23 @@ import { dedent } from "../../util/string"
 import { sdk } from "../../plugin/sdk"
 import { registerCleanupFunction } from "../../util/util"
 import { configureOTLPHttpExporter } from "../../util/tracing/tracing"
-import { getOtelCollectorConfigFile } from "./config"
+import { OtelExportersConfig, getOtelCollectorConfigFile } from "./config"
 import YAML from "yaml"
 import { makeTempDir } from "../../util/fs"
 import { writeFile } from "fs-extra"
 import { DirectoryResult } from "tmp-promise"
 import { streamLogs, waitForLogLine } from "../../util/process"
 import getPort from "get-port"
-
+import { getSecrets } from "../../cloud/get-secrets"
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
-export interface OtelCollectorProviderConfig extends GenericProviderConfig {}
 
+// Keys in config that we're using to configure the exporter
+const DATADOG_EXPORTER_ENABLED_KEY = "DD_EXPORTER_ENABLED"
+const DATADOG_EXPORTER_SITE_KEY = "DD_EXPORTER_SITE"
+const DATADOG_EXPORTER_API_KEY_KEY = "DD_EXPORTER_API_KEY"
+
+export interface OtelCollectorProviderConfig extends GenericProviderConfig {}
 export type OtelCollectorProvider = Provider<OtelCollectorProviderConfig>
 
 export const gardenPlugin = sdk.createGardenPlugin({
@@ -114,7 +119,6 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   })
 
   scopedLog.debug(`Using port ${otlpReceiverPort} for the receiver`)
-
   if (ctx.provider.config.configFilePath) {
     // TODO: The config here might not use a matching port
     // If we want to support custom configs then we might want to inspect the config file
@@ -128,21 +132,41 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
     //
     // TODO: Add code that fetches config from cloud here
     // and then adds it to the config file
+    const exporters: OtelExportersConfig[] = [
+      {
+        name: "otlphttp",
+        enabled: false,
+        endpoint: "http://localhost:4318",
+      },
+    ]
+
+    if (ctx.projectId && ctx.cloudApi) {
+      // TODO: Do we need to refetch those or can we have those from the plugin SDK?
+      const secrets = await getSecrets({
+        cloudApi: ctx.cloudApi,
+        environmentName: ctx.environmentName,
+        projectId: ctx.projectId,
+        log,
+      })
+
+      // TODO: Make this not terrible
+      if (
+        secrets[DATADOG_EXPORTER_ENABLED_KEY] &&
+        secrets[DATADOG_EXPORTER_SITE_KEY] &&
+        secrets[DATADOG_EXPORTER_API_KEY_KEY]
+      ) {
+        exporters.push({
+          name: "datadog",
+          enabled: secrets[DATADOG_EXPORTER_ENABLED_KEY] === "true",
+          site: secrets[DATADOG_EXPORTER_SITE_KEY],
+          apiKey: secrets[DATADOG_EXPORTER_API_KEY_KEY],
+        })
+      }
+    }
+
     const configFile = getOtelCollectorConfigFile({
       otlpReceiverPort,
-      exporters: [
-        {
-          name: "otlphttp",
-          enabled: false,
-          endpoint: "http://localhost:4318",
-        },
-        {
-          name: "datadog",
-          enabled: true,
-          site: "datadoghq.eu",
-          apiKey: "",
-        },
-      ],
+      exporters
     })
 
     const configFileYaml = YAML.stringify(configFile)
@@ -163,11 +187,10 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   streamLogs({
     ctx,
     name: "otel-collector-process",
-    proc: collectorProcess
+    proc: collectorProcess,
   })
 
   try {
-
     await waitForLogLine({
       successLog: "Everything is ready. Begin running and processing data.",
       errorLog: "collector server run finished with error",

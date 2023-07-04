@@ -76,13 +76,15 @@ export type OtelCollectorOtlpHttpConfiguration = OtelExporter & {
   headers?: Record<string, string | number>
 }
 
-export type OtelCollectorConfigFileOptions = {
-  otlpReceiverPort: number
-  exporters: (
+export type OtelExportersConfig = (
     | OtelCollectorDatadogConfiguration
     | OtelCollectorNewRelicConfiguration
     | OtelCollectorOtlpHttpConfiguration
-  )[]
+)
+
+export type OtelCollectorConfigFileOptions = {
+  otlpReceiverPort: number
+  exporters: OtelExportersConfig[]
 }
 
 function makeDatadogPartialConfig(config: OtelCollectorDatadogConfiguration) {
