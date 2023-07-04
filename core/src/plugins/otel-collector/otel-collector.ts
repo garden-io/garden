@@ -138,6 +138,12 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
         enabled: false,
         endpoint: "http://localhost:4318",
       },
+      {
+        name: "newrelic",
+        enabled: false,
+        endpoint: "https://otlp.nr-data.net:4318",
+        apiKey: "",
+      },
     ]
 
     if (ctx.projectId && ctx.cloudApi) {
