@@ -1,80 +1,51 @@
-import { merge } from "lodash"
-import { hostname } from "os"
+import { mergeWith } from "lodash"
+import { MergeDeep } from "type-fest"
+import { OtlpHttpExporterConfigPartial, OtelCollectorOtlpHttpConfiguration, makeOtlpHttpPartialConfig } from "./config/otlphttp"
+import { DatadogExporterConfigPartial, OtelCollectorDatadogConfiguration, makeDatadogPartialConfig } from "./config/datadog"
+import { OtelCollectorNewRelicConfiguration, makeNewRelicPartialConfig } from "./config/newrelic"
 
-export type OtelConfigFile = {
-  receivers: {
-    otlp: {
-      protocols: {
-        http: {
-          endpoint: string
+export type OtelConfigFile = MergeDeep<
+  {
+    receivers: {
+      otlp: {
+        protocols: {
+          http: {
+            endpoint: string
+          }
         }
       }
     }
-  }
-  processors: {
-    batch: null | {
-      send_batch_max_size?: number
-      timeout?: string
-    }
-  }
-  exporters: {
-    otlphttp?: {
-      endpoint: string
-      headers?: Record<string, string | number>
-    }
-    datadog?: {
-      api: {
-        site: string
-        key: string
-        fail_on_invalid_key?: boolean
-      }
-      hostname?: string
-    }
-  }
-  extensions: {
-    health_check: null
-    pprof: null
-    zpages: null
-  }
-  service: {
-    extensions: ["health_check", "pprof", "zpages"]
-    pipelines: {
-      traces: {
-        receivers: ["otlp"]
-        processors: ["batch"]
-        exporters: ("otlphttp" | "datadog")[]
+    processors: {
+      batch: null | {
+        send_batch_max_size?: number
+        timeout?: string
       }
     }
-    telemetry: {
-      logs: {
-        level: string
+    exporters: {}
+    extensions: {
+      health_check: null
+      pprof: null
+      zpages: null
+    }
+    service: {
+      extensions: ["health_check", "pprof", "zpages"]
+      pipelines: {
+        traces: {
+          receivers: ["otlp"]
+          processors: ["batch"]
+          exporters: string[]
+        }
+      }
+      telemetry: {
+        logs: {
+          level: string
+        }
       }
     }
-  }
-}
-
-export type OtelExporter = {
-  enabled: boolean
-  name: "datadog" | "newrelic" | "otlphttp"
-}
-
-export type OtelCollectorDatadogConfiguration = OtelExporter & {
-  name: "datadog"
-  site: string
-  apiKey: string
-}
-
-export type OtelCollectorNewRelicConfiguration = OtelExporter & {
-  name: "newrelic"
-  endpoint: string
-  apiKey: string
-}
-
-export type OtelCollectorOtlpHttpConfiguration = OtelExporter & {
-  name: "otlphttp"
-  endpoint: string
-  headers?: Record<string, string | number>
-}
+  },
+  MergeDeep<OtlpHttpExporterConfigPartial, DatadogExporterConfigPartial, { arrayMergeMode: "spread" }>,
+  { arrayMergeMode: "spread" }
+>
 
 export type OtelExportersConfig = (
     | OtelCollectorDatadogConfiguration
@@ -87,58 +58,11 @@ export type OtelCollectorConfigFileOptions = {
   exporters: OtelExportersConfig[]
 }
 
-function makeDatadogPartialConfig(config: OtelCollectorDatadogConfiguration) {
-  return {
-    exporters: {
-      datadog: {
-        api: {
-          site: config.site,
-          key: config.apiKey,
-          fail_on_invalid_key: true,
-        },
-        // Hardcoded here due to performance problems with provider init
-        // See https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/16442
-        hostname: hostname(),
-      },
-    },
-    service: {
-      pipelines: {
-        traces: {
-          exporters: ["datadog"]
-        }
-      }
-    }
+function mergeArrays(objValue, srcValue) {
+  if (Array.isArray(objValue)) {
+    return objValue.concat(srcValue)
   }
-}
-
-function makeOtlpHttpPartialConfig(config: OtelCollectorOtlpHttpConfiguration) {
-  return {
-    exporters: {
-      otlphttp: {
-        endpoint: config.endpoint,
-        headers: config.headers,
-      },
-    },
-    service: {
-      pipelines: {
-        traces: {
-          exporters: ["otlphttp"],
-        },
-      },
-    },
-  }
-}
-
-function makeNewRelicPartialConfig(config: OtelCollectorNewRelicConfiguration) {
-  // TODO: Cleanup config types
-  return makeOtlpHttpPartialConfig({
-    name: "otlphttp",
-    enabled: config.enabled,
-    endpoint: config.endpoint,
-    headers: {
-      "api-key": config.apiKey,
-    },
-  })
+  return undefined
 }
 
 export function getOtelCollectorConfigFile({ otlpReceiverPort, exporters }: OtelCollectorConfigFileOptions) {
@@ -181,13 +105,13 @@ export function getOtelCollectorConfigFile({ otlpReceiverPort, exporters }: Otel
   for (const exporter of exporters) {
     if (exporter.enabled) {
       if (exporter.name === "datadog") {
-        config = merge(config, makeDatadogPartialConfig(exporter))
+        config = mergeWith(config, makeDatadogPartialConfig(exporter), mergeArrays)
       }
       if (exporter.name === "newrelic") {
-        config = merge(config, makeNewRelicPartialConfig(exporter))
+        config = mergeWith(config, makeNewRelicPartialConfig(exporter), mergeArrays)
       }
       if (exporter.name === "otlphttp") {
-        config = merge(config, makeOtlpHttpPartialConfig(exporter))
+        config = mergeWith(config, makeOtlpHttpPartialConfig(exporter), mergeArrays)
       }
     }
   }
