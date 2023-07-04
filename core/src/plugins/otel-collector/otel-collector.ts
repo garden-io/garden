@@ -131,11 +131,11 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
     const configFile = getOtelCollectorConfigFile({
       otlpReceiverPort,
       exporters: [
-        // {
-        //   name: "otlphttp",
-        //   enabled: true,
-        //   endpoint: "http://localhost:4318",
-        // },
+        {
+          name: "otlphttp",
+          enabled: false,
+          endpoint: "http://localhost:4318",
+        },
         {
           name: "datadog",
           enabled: true,
@@ -158,14 +158,11 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
     args: ["--config", configPath],
   })
 
-  collectorProcess.stdout?.pipe(process.stdout)
-  collectorProcess.stderr?.pipe(process.stderr)
-
   scopedLog.debug("Waiting for collector process start")
 
   streamLogs({
     ctx,
-    name: "otel-collector",
+    name: "otel-collector-process",
     proc: collectorProcess
   })
 
@@ -190,7 +187,7 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
     registerCleanupFunction("kill-otel-collector", async () => {
       scopedLog.debug("Shutting down otel-collector.")
       // TODO: force kill after timeout
-      await sleep(60000)
+      await sleep(5000)
       scopedLog.debug("Killing process")
       collectorProcess.kill()
     })

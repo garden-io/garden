@@ -20,6 +20,7 @@ export type OtelConfigFile = {
       api: {
         site: string
         key: string
+        fail_on_invalid_key?: boolean
       }
       hostname?: string
     }
@@ -33,16 +34,6 @@ export type OtelConfigFile = {
     extensions: ["health_check", "pprof", "zpages"]
     pipelines: {
       traces: {
-        receivers: ["otlp"]
-        processors: ["batch"]
-        exporters: ("otlphttp" | "datadog")[]
-      }
-      metrics: {
-        receivers: ["otlp"]
-        processors: ["batch"]
-        exporters: ("otlphttp" | "datadog")[]
-      }
-      logs: {
         receivers: ["otlp"]
         processors: ["batch"]
         exporters: ("otlphttp" | "datadog")[]
@@ -115,16 +106,6 @@ export function getOtelCollectorConfigFile({ otlpReceiverPort, exporters }: Otel
           processors: ["batch"],
           exporters: [],
         },
-        logs: {
-          receivers: ["otlp"],
-          processors: ["batch"],
-          exporters: [],
-        },
-        metrics: {
-          receivers: ["otlp"],
-          processors: ["batch"],
-          exporters: [],
-        },
       },
       telemetry: {
         logs: {
@@ -141,14 +122,13 @@ export function getOtelCollectorConfigFile({ otlpReceiverPort, exporters }: Otel
           api: {
             site: exporter.site,
             key: exporter.apiKey,
+            fail_on_invalid_key: true,
           },
           // Hardcoded here due to performance problems with provider init
           // See https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/16442
           hostname: "garden.local",
         }
         baseConfig.service.pipelines.traces.exporters.push("datadog")
-        baseConfig.service.pipelines.metrics.exporters.push("datadog")
-        baseConfig.service.pipelines.logs.exporters.push("datadog")
       }
       if (exporter.name === "newrelic") {
         baseConfig.exporters.otlphttp = {
