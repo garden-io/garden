@@ -54,7 +54,7 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
       renderMessageWithDivider({
         prefix,
         msg: outputLog,
-        isError: success,
+        isError: !success,
         color: chalk.gray,
       })
     )

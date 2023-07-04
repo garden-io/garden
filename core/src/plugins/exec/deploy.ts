@@ -200,7 +200,7 @@ execDeploy.addHandler("deploy", async (params) => {
         renderMessageWithDivider({
           prefix,
           msg: result.outputLog,
-          isError: result.success,
+          isError: !result.success,
           color: chalk.gray,
         })
       )

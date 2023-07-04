@@ -72,7 +72,7 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
       renderMessageWithDivider({
         prefix,
         msg: output.detail?.buildLog,
-        isError: success,
+        isError: !success,
         color: chalk.gray,
       })
     )
