@@ -19,9 +19,8 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   const localId = action.getOutput("localImageId")
   const remoteId = containerHelpers.getPublicImageId(action, tag)
 
-  log.info({ msg: `Publishing image ${remoteId}...` })
-
   if (localId !== remoteId) {
+    log.info({ msg: `Tagging image with ${localId} and ${remoteId}` })
     await containerHelpers.dockerCli({
       cwd: action.getBuildPath(),
       args: ["tag", localId, remoteId],
@@ -30,6 +29,7 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
     })
   }
 
+  log.info({ msg: `Publishing image ${remoteId}...` })
   // TODO: stream output to log if at debug log level
   await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteId], log, ctx })
 
