@@ -272,9 +272,8 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
         if (disabled && action.kind !== "Build") {
           // TODO-0.13.1: Need to handle conditional references, over in dependenciesFromAction()
           throw new GraphError({
-            message: `${this.action.longDescription()} depends on one or more runtime outputs from action ${
-              action.key
-            }, which is disabled. Please either remove the reference or enable the action.`,
+            message: `${this.action.longDescription()} depends on one or more runtime outputs from action
+             ${action.key}, which is disabled. Please either remove the reference or enable the action.`,
             detail: { dependant: this.action.key(), dependency: action.key() },
           })
         }
