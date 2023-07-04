@@ -86,7 +86,7 @@ export function waitForLogLine({
   process,
 }: {
   successLog: string
-  errorLog: string
+  errorLog?: string
   process: ChildProcess
 }): Promise<void> {
   let stdOutString = ""
@@ -94,7 +94,7 @@ export function waitForLogLine({
 
   return new Promise((resolve, reject) => {
     function hasError(string: string): boolean {
-      return stdOutString.includes(errorLog) || stdErrString.includes(errorLog)
+      return errorLog !== undefined && (stdOutString.includes(errorLog) || stdErrString.includes(errorLog))
     }
 
     function hasSuccess(string: string): boolean {
