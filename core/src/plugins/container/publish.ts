@@ -19,9 +19,8 @@ export async function publishContainerModule({ ctx, module, log, tag }: PublishM
   const localId = module.outputs["local-image-id"]
   const remoteId = containerHelpers.getPublicImageId(module, tag)
 
-  log.setState({ msg: `Publishing image ${remoteId}...` })
-
   if (localId !== remoteId) {
+    log.info({ msg: `Tagging image with ${localId} and ${remoteId}` })
     await containerHelpers.dockerCli({
       cwd: module.buildPath,
       args: ["tag", localId, remoteId],
@@ -30,6 +29,7 @@ export async function publishContainerModule({ ctx, module, log, tag }: PublishM
     })
   }
 
+  log.info({ msg: `Publishing image ${remoteId}...` })
   // TODO: stream output to log if at debug log level
   await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["push", remoteId], log, ctx })
 

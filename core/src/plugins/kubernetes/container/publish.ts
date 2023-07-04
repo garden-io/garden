@@ -10,13 +10,14 @@ import { ContainerModule } from "../../container/config"
 import { PublishModuleParams } from "../../../types/plugin/module/publishModule"
 import { containerHelpers } from "../../container/helpers"
 import { KubernetesPluginContext } from "../config"
-import { publishContainerModule } from "../../container/publish"
 import { pullModule } from "../commands/pull-image"
 
 export async function k8sPublishContainerModule(params: PublishModuleParams<ContainerModule>) {
   const { ctx, module, log } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
+
+  const remoteId = module.outputs["deployment-image-id"]
 
   if (!containerHelpers.hasDockerfile(module, module.version)) {
     log.setState({ msg: `Nothing to publish` })
@@ -30,9 +31,12 @@ export async function k8sPublishContainerModule(params: PublishModuleParams<Cont
     // user might be authenticating with their registries.
     // We also generally prefer this because the remote cluster very likely doesn't (and shouldn't) have
     // privileges to push to production registries.
-    log.setState(`Pulling from remote registry...`)
+    log.info(`Pulling from remote registry...`)
     await pullModule(k8sCtx, module, log)
   }
 
-  return publishContainerModule({ ...params, ctx: { ...ctx, provider: provider.dependencies.container } })
+  log.info({ msg: `Publishing image ${remoteId}...` })
+  // TODO: stream output to log if at debug log level
+  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["push", remoteId], log, ctx })
+  return { published: true, message: `Published ${remoteId}` }
 }
