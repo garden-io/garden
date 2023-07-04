@@ -20,6 +20,7 @@ import { DirectoryResult } from "tmp-promise"
 import { streamLogs, waitForLogLine } from "../../util/process"
 import getPort from "get-port"
 import { getSecrets } from "../../cloud/get-secrets"
+import { wrapActiveSpan } from "../../util/tracing/spans"
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
 
@@ -183,10 +184,10 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   }
 
   scopedLog.silly("Starting collector process")
-  const collectorProcess = await ctx.tools["otel-collector.otel-collector"].spawn({
+  const collectorProcess = await wrapActiveSpan("fetchAndRun", () => ctx.tools["otel-collector.otel-collector"].spawn({
     log,
     args: ["--config", configPath],
-  })
+  }))
 
   scopedLog.debug("Waiting for collector process start")
 
@@ -197,11 +198,11 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   })
 
   try {
-    await waitForLogLine({
+    await wrapActiveSpan("waitUntilReady", () => waitForLogLine({
       successLog: "Everything is ready. Begin running and processing data.",
       errorLog: "collector server run finished with error",
       process: collectorProcess,
-    })
+    }))
 
     // Once the collector is started, the config is loaded and we can clean up the temporary directory
     scopedLog.debug("Cleaning up config directory")
