@@ -1,3 +1,6 @@
+import { merge } from "lodash"
+import { hostname } from "os"
+
 export type OtelConfigFile = {
   receivers: {
     otlp: {
@@ -9,7 +12,10 @@ export type OtelConfigFile = {
     }
   }
   processors: {
-    batch: null
+    batch: null | {
+      send_batch_max_size?: number
+      timeout?: string
+    }
   }
   exporters: {
     otlphttp?: {
@@ -78,8 +84,63 @@ export type OtelCollectorConfigFileOptions = {
     | OtelCollectorOtlpHttpConfiguration
   )[]
 }
+
+function makeDatadogPartialConfig(config: OtelCollectorDatadogConfiguration) {
+  return {
+    exporters: {
+      datadog: {
+        api: {
+          site: config.site,
+          key: config.apiKey,
+          fail_on_invalid_key: true,
+        },
+        // Hardcoded here due to performance problems with provider init
+        // See https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/16442
+        hostname: hostname(),
+      },
+    },
+    service: {
+      pipelines: {
+        traces: {
+          exporters: ["datadog"]
+        }
+      }
+    }
+  }
+}
+
+function makeOtlpHttpPartialConfig(config: OtelCollectorOtlpHttpConfiguration) {
+  return {
+    exporters: {
+      otlphttp: {
+        endpoint: config.endpoint,
+        headers: config.headers,
+      },
+    },
+    service: {
+      pipelines: {
+        traces: {
+          exporters: ["otlphttp"],
+        },
+      },
+    },
+  }
+}
+
+function makeNewRelicPartialConfig(config: OtelCollectorNewRelicConfiguration) {
+  // TODO: Cleanup config types
+  return makeOtlpHttpPartialConfig({
+    name: "otlphttp",
+    enabled: config.enabled,
+    endpoint: config.endpoint,
+    headers: {
+      "api-key": config.apiKey,
+    },
+  })
+}
+
 export function getOtelCollectorConfigFile({ otlpReceiverPort, exporters }: OtelCollectorConfigFileOptions) {
-  const baseConfig: OtelConfigFile = {
+  let config: OtelConfigFile = {
     receivers: {
       otlp: {
         protocols: {
@@ -118,36 +179,16 @@ export function getOtelCollectorConfigFile({ otlpReceiverPort, exporters }: Otel
   for (const exporter of exporters) {
     if (exporter.enabled) {
       if (exporter.name === "datadog") {
-        baseConfig.exporters.datadog = {
-          api: {
-            site: exporter.site,
-            key: exporter.apiKey,
-            fail_on_invalid_key: true,
-          },
-          // Hardcoded here due to performance problems with provider init
-          // See https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/16442
-          hostname: "garden.local",
-        }
-        baseConfig.service.pipelines.traces.exporters.push("datadog")
+        config = merge(config, makeDatadogPartialConfig(exporter))
       }
       if (exporter.name === "newrelic") {
-        baseConfig.exporters.otlphttp = {
-          endpoint: exporter.endpoint,
-          headers: {
-            "api-key": exporter.apiKey,
-          },
-        }
-        baseConfig.service.pipelines.traces.exporters.push("otlphttp")
+        config = merge(config, makeNewRelicPartialConfig(exporter))
       }
       if (exporter.name === "otlphttp") {
-        baseConfig.exporters.otlphttp = {
-          endpoint: exporter.endpoint,
-          headers: exporter.headers,
-        }
-        baseConfig.service.pipelines.traces.exporters.push("otlphttp")
+        config = merge(config, makeOtlpHttpPartialConfig(exporter))
       }
     }
   }
 
-  return baseConfig
+  return config
 }
