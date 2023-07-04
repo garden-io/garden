@@ -1,4 +1,25 @@
 
+<a name="0.13.6"></a>
+## [0.13.6](https://github.com/garden-io/garden/compare/0.13.5...0.13.6) (2023-07-04)
+
+### Bug Fixes
+
+* respect deploymentRegistry in the garden publish command ([#4740](https://github.com/garden-io/garden/issues/4740)) ([aa7708ced](https://github.com/garden-io/garden/commit/aa7708ced))
+* **helm:** expose ingresses of resources deployed with helm ([339fe863e](https://github.com/garden-io/garden/commit/339fe863e))
+* **template:** don't use var file when path is unresolved ([#4737](https://github.com/garden-io/garden/issues/4737)) ([c323ccc92](https://github.com/garden-io/garden/commit/c323ccc92))
+
+### Features
+
+* open telemetry ([#4664](https://github.com/garden-io/garden/issues/4664)) ([10aee8b1b](https://github.com/garden-io/garden/commit/10aee8b1b))
+* **k8s:** introduce new flag waitForJobs to wait for k8s jobs ([#4611](https://github.com/garden-io/garden/issues/4611)) ([6eae3a652](https://github.com/garden-io/garden/commit/6eae3a652))
+* **openshift:** Run and Test actions ([#4730](https://github.com/garden-io/garden/issues/4730)) ([46ec532b4](https://github.com/garden-io/garden/commit/46ec532b4))
+* **openshift:** container Build action ([#4726](https://github.com/garden-io/garden/issues/4726)) ([bdf9e0fbc](https://github.com/garden-io/garden/commit/bdf9e0fbc))
+
+### Improvements
+
+* **k8s:** retry on config retrieval failure ([78669da98](https://github.com/garden-io/garden/commit/78669da98))
+* **server:** add some useful fields to ws event payload ([#4727](https://github.com/garden-io/garden/issues/4727)) ([3c2022c90](https://github.com/garden-io/garden/commit/3c2022c90))
+
 <a name="0.13.5"></a>
 ## [0.13.5](https://github.com/garden-io/garden/compare/0.13.4...0.13.5) (2023-06-27)
 
