@@ -24,7 +24,7 @@ import {
   uniqBy,
 } from "lodash"
 import type { ResolvableProps } from "bluebird"
-import exitHook from "async-exit-hook"
+import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
 import _spawn from "cross-spawn"
 import { readFile } from "fs-extra"
 import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
@@ -44,7 +44,7 @@ import { execSync } from "child_process"
 
 export { apply as jsonMerge } from "json-merge-patch"
 
-export type HookCallback = (callback?: () => void) => void
+export type HookCallback = (signal: number) => void | Promise<void>
 
 const exitHookNames: string[] = [] // For debugging/testing/inspection purposes
 
@@ -90,13 +90,18 @@ export async function shutdown(code?: number) {
       // eslint-disable-next-line no-console
       console.log(getDefaultProfiler().report())
     }
-    process.exit(code)
+    gracefulExit(code)
   }
 }
 
 export function registerCleanupFunction(name: string, func: HookCallback) {
   exitHookNames.push(name)
-  exitHook(func)
+  const callbackFunc = (signal: number) => {
+    return Promise.resolve(func(signal))
+  }
+  asyncExitHook(callbackFunc, {
+    minimumWait: 10000,
+  })
 }
 
 export function getPackageVersion(): string {
