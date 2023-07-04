@@ -28,8 +28,14 @@ export function streamLogs({ proc, name, ctx }: { proc: ChildProcess; name: stri
     level: "verbose" as const,
   }
 
+  const logger = ctx.log.createLog({
+    name
+  })
+
   logStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
+    const logLine = line.toString()
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: logLine, ...logEventContext })
+    logger.silly(logLine)
   })
 }
 
