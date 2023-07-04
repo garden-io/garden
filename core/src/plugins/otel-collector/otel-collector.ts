@@ -10,7 +10,7 @@ import { join, resolve as resolvePath } from "path"
 import { GenericProviderConfig, Provider } from "../../config/provider"
 import { dedent } from "../../util/string"
 import { sdk } from "../../plugin/sdk"
-import { registerCleanupFunction, sleep } from "../../util/util"
+import { registerCleanupFunction } from "../../util/util"
 import { configureOTLPHttpExporter } from "../../util/tracing/tracing"
 import { getOtelCollectorConfigFile } from "./config"
 import YAML from "yaml"
@@ -186,8 +186,11 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
 
     registerCleanupFunction("kill-otel-collector", async () => {
       scopedLog.debug("Shutting down otel-collector.")
-      // TODO: force kill after timeout
-      await sleep(5000)
+      // TODO: Only applicable for Datadog
+      await waitForLogLine({
+        process: collectorProcess,
+        successLog: "Flushed traces to the API",
+      })
       scopedLog.debug("Killing process")
       collectorProcess.kill()
     })
