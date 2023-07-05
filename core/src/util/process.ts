@@ -39,6 +39,18 @@ export function streamLogs({ proc, name, ctx }: { proc: ChildProcess; name: stri
   })
 }
 
+export function waitForProcessExit({ proc }: { proc: ChildProcess }): Promise<void> {
+  // If the process already exited, resolve right away
+  if (proc.exitCode !== null) {
+    return Promise.resolve()
+  }
+  return new Promise((resolve) => {
+    proc.on("exit", () => {
+      resolve()
+    })
+  })
+}
+
 export function waitForProcess({ proc, errorPrefix }: { proc: ChildProcess; errorPrefix: string }): Promise<void> {
   const logStream = split2()
 
