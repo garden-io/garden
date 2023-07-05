@@ -16,11 +16,12 @@ import { OtelExportersConfig, getOtelCollectorConfigFile } from "./config"
 import YAML from "yaml"
 import { makeTempDir } from "../../util/fs"
 import { writeFile } from "fs-extra"
-import { streamLogs, waitForLogLine } from "../../util/process"
+import { LogLineTimeoutError, streamLogs, waitForLogLine } from "../../util/process"
 import getPort from "get-port"
 import { wrapActiveSpan } from "../../util/tracing/spans"
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
+const WAIT_TIMEOUT_FOR_DATADOG_EXPORT = 3000
 
 export interface OtelCollectorProviderConfig extends GenericProviderConfig {}
 export type OtelCollectorProvider = Provider<OtelCollectorProviderConfig>
@@ -145,6 +146,8 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   // and then adds it to the config file
   const exporters: OtelExportersConfig[] = ctx.provider.config.exporters
 
+  const hasDatadogExporter = exporters.some((exporter) => exporter.name === "datadog")
+
   const configFile = getOtelCollectorConfigFile({
     otlpReceiverPort,
     exporters,
@@ -193,11 +196,20 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
 
     registerCleanupFunction("kill-otel-collector", async () => {
       scopedLog.debug("Shutting down otel-collector.")
-      // TODO: Only applicable for Datadog
-      await waitForLogLine({
-        process: collectorProcess,
-        successLog: "Flushed traces to the API",
-      })
+      if (hasDatadogExporter){
+        scopedLog.debug("Waiting for final datadog sync.")
+        try {
+          await waitForLogLine({
+            process: collectorProcess,
+            successLog: "Flushed traces to the API",
+            timeout: WAIT_TIMEOUT_FOR_DATADOG_EXPORT,
+          })
+        } catch (err) {
+          if (!(err instanceof LogLineTimeoutError)) {
+            throw err
+          }
+        }
+      }
       scopedLog.debug("Killing process")
       collectorProcess.kill()
     })
