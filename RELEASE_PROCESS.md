@@ -43,7 +43,7 @@ Once the release CI job is done, a draft release will appear in GitHub. That dra
 2. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
   - Run `./scripts/draft-release-notes.ts <previous-tag> <current-tag>`, the filename with the draft notes will be printed in the console
   - Open the draft file (it's named `release-notes-${version}-draft.md`, e.g. `release-notes-0.12.38-draft.md`) and resolve all suggested TODO items
-3. Click the **Publish release** button.
+3. Click the **Publish release** button. **Do not mark it as the latest release.** Make sure that **Set as the latest release** option is **disabled** (it is enabled by default).
 4. Make a pull request for the branch that was pushed by the script and make sure it's merged as soon as possible. **Use regular merge with the merge commit.**
 5. Make sure the `latest-release-0.12` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
 6. Check the `update-homebrew` GitHub Action run successfully and merge the relevant PR in the [homebrew repo](https://github.com/garden-io/homebrew-garden/pulls). **Use regular merge with the merge commit.**
