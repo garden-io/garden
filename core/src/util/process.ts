@@ -29,7 +29,7 @@ export function streamLogs({ proc, name, ctx }: { proc: ChildProcess; name: stri
   }
 
   const logger = ctx.log.createLog({
-    name
+    name,
   })
 
   logStream.on("data", (line: Buffer) => {
@@ -80,19 +80,73 @@ export function waitForProcess({ proc, errorPrefix }: { proc: ChildProcess; erro
   })
 }
 
+export class LogLineTimeoutError extends Error {
+  private stdout: string
+  private stderr: string
+
+  private successLog: string
+  private errorLog?: string
+
+  constructor({
+    stdout,
+    stderr,
+    successLog,
+    errorLog,
+  }: {
+    stdout: string
+    stderr: string
+    successLog: string
+    errorLog?: string
+  }) {
+    super(`Timed out after waiting for success log line "${successLog}" or error log line "${errorLog}"`)
+    this.stdout = stdout
+    this.stderr = stderr
+    this.successLog = successLog
+    this.errorLog = errorLog
+  }
+}
+
+export class ErrorLogLineSeenError extends Error {
+  private stdout: string
+  private stderr: string
+
+  private successLog: string
+  private errorLog: string
+
+  constructor({
+    stdout,
+    stderr,
+    successLog,
+    errorLog,
+  }: {
+    stdout: string
+    stderr: string
+    successLog: string
+    errorLog: string
+  }) {
+    super(`Error log line "${errorLog}" detected in output`)
+    this.stdout = stdout
+    this.stderr = stderr
+    this.successLog = successLog
+    this.errorLog = errorLog
+  }
+}
+
 export function waitForLogLine({
   successLog,
   errorLog,
   process,
+  timeout,
 }: {
   successLog: string
   errorLog?: string
   process: ChildProcess
+  timeout?: number
 }): Promise<void> {
   let stdOutString = ""
   let stdErrString = ""
 
-  return new Promise((resolve, reject) => {
+  const stringWasSeen = new Promise<void>((resolve, reject) => {
     function hasError(string: string): boolean {
       return errorLog !== undefined && (stdOutString.includes(errorLog) || stdErrString.includes(errorLog))
     }
@@ -106,7 +160,14 @@ export function waitForLogLine({
       if (hasSuccess(stdOutString)) {
         resolve()
       } else if (hasError(stdOutString)) {
-        reject()
+        reject(
+          new ErrorLogLineSeenError({
+            stdout: stdOutString,
+            stderr: stdErrString,
+            successLog,
+            errorLog: errorLog!,
+          })
+        )
       }
     })
 
@@ -115,8 +176,34 @@ export function waitForLogLine({
       if (hasSuccess(stdOutString)) {
         resolve()
       } else if (hasError(stdOutString)) {
-        reject()
+        reject(
+          new ErrorLogLineSeenError({
+            stdout: stdOutString,
+            stderr: stdErrString,
+            successLog,
+            errorLog: errorLog!,
+          })
+        )
       }
     })
   })
+
+  if (timeout !== undefined) {
+    const rejectWhenTimedOut = new Promise<void>((_resolve, reject) => {
+      const error = new LogLineTimeoutError({
+        stdout: stdOutString,
+        stderr: stdErrString,
+        successLog,
+        errorLog,
+      })
+
+      setTimeout(() => {
+        reject(error)
+      }, timeout)
+    })
+
+    return Promise.race([stringWasSeen, rejectWhenTimedOut])
+  }
+
+  return stringWasSeen
 }
