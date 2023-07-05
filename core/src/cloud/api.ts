@@ -700,8 +700,19 @@ export class CloudApi {
     return new URL(`/projects/${projectId}`, this.domain)
   }
 
-  getCommandResultUrl({ projectId, sessionId, userId }: { projectId: string; sessionId: string; userId: string }) {
-    const path = `/projects/${projectId}?sessionId=${sessionId}&userId=${userId}`
+  getCommandResultUrl({
+    projectId,
+    sessionId,
+    userId,
+    shortId,
+  }: {
+    projectId: string
+    sessionId: string
+    userId: string
+    shortId: string
+  }) {
+    // fallback to full url if shortid is missing
+    const path = shortId ? `/go/command/${shortId}` : `/projects/${projectId}/commands/${sessionId}`
     return new URL(path, this.domain)
   }
 
