@@ -11,9 +11,10 @@ import { HttpInstrumentation } from "@opentelemetry/instrumentation-http"
 import { gardenEnv } from "../../constants"
 import { getSessionContext } from "./context"
 import { prefixWithGardenNamespace } from "./util"
-import { ReconfigurableExporter } from "./reconfigurable-exporter"
+import { ReconfigurableExporter } from "./reconfigurable-span-exporter"
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
 import { OTLPExporterNodeConfigBase } from "@opentelemetry/otlp-exporter-base"
+import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base"
 
 export const tracer = opentelemetry.api.trace.getTracer("garden")
 
@@ -64,13 +65,17 @@ export function initTracing(): opentelemetry.NodeSDK {
           return Boolean(
             request.hostname?.includes("segment.io") ||
               (request.hostname?.includes("garden.io") &&
-                (request.path?.includes("/events") || request.path?.includes("/version")))
+                (request.path?.includes("/events") || request.path?.includes("/version"))) ||
+              request.path?.includes("/v1/logs") ||
+              request.path?.includes("/v1/traces")
           )
         },
       }),
     ],
-    traceExporter: reconfigurableExporter,
     autoDetectResources: false,
+    spanProcessor: new BatchSpanProcessor(reconfigurableExporter, {
+      scheduledDelayMillis: 100,
+    }),
   })
 
   otelSDK.start()

@@ -10,9 +10,9 @@ import { shutdown } from "@garden-io/core/build/src/util/util"
 import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
 import { GardenPluginReference } from "@garden-io/core/build/src/plugin/plugin"
 import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global"
-import { getOtelSDK } from "@garden-io/core/build/src/util/tracing/tracing"
-import { withContextFromEnv } from "@garden-io/core/build/src/util/tracing/propagation"
-import { wrapActiveSpan } from "@garden-io/core/build/src/util/tracing/spans"
+import { getOtelSDK } from "@garden-io/core/build/src/util/opentelemetry/tracing"
+import { withContextFromEnv } from "@garden-io/core/build/src/util/opentelemetry/propagation"
+import { wrapActiveSpan } from "@garden-io/core/build/src/util/opentelemetry/spans"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [

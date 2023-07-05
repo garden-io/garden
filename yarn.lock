@@ -685,7 +685,7 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@opentelemetry/api-logs@0.40.0":
+"@opentelemetry/api-logs@0.40.0", "@opentelemetry/api-logs@^0.40.0":
   version "0.40.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/api-logs/-/api-logs-0.40.0.tgz#24b75e6d3654c0612c376339daf025d36730fcfd"
   integrity sha512-8WRuvGnfnbeR9ifGjLN8kklk2fkd0gBT6aN7NHO9zeYF/6qacAViD3bwAKqGXKnJgl39l1EU41I9diqUjamEEQ==
@@ -718,6 +718,16 @@
     "@opentelemetry/sdk-trace-base" "1.14.0"
     "@opentelemetry/semantic-conventions" "1.14.0"
     jaeger-client "^3.15.0"
+
+"@opentelemetry/exporter-logs-otlp-http@^0.40.0":
+  version "0.40.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/exporter-logs-otlp-http/-/exporter-logs-otlp-http-0.40.0.tgz#c608c19af9c8280662dab43873b3c5cbba8f0b85"
+  integrity sha512-k1V4ofj7OdmViumKL7wvQQvIcvkc9D395y3A6xpuS76T1HSg+gRBt1A8L6MgZvDPdY4llny54X/wAfgG8U0XVQ==
+  dependencies:
+    "@opentelemetry/core" "1.14.0"
+    "@opentelemetry/otlp-exporter-base" "0.40.0"
+    "@opentelemetry/otlp-transformer" "0.40.0"
+    "@opentelemetry/sdk-logs" "0.40.0"
 
 "@opentelemetry/exporter-trace-otlp-grpc@0.40.0":
   version "0.40.0"
@@ -845,7 +855,7 @@
     "@opentelemetry/core" "1.14.0"
     "@opentelemetry/semantic-conventions" "1.14.0"
 
-"@opentelemetry/sdk-logs@0.40.0":
+"@opentelemetry/sdk-logs@0.40.0", "@opentelemetry/sdk-logs@^0.40.0":
   version "0.40.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/sdk-logs/-/sdk-logs-0.40.0.tgz#cc5d6da4e1ecb22a7e2425be7969b8e491999d7f"
   integrity sha512-/JG7DOLo/Y3VR9azPXlXNRGQff3gp7nQbWl5cFD2SmlYqUrzMq1OjbksZLVztDu1+ynbFunseUG11SxhoxvSRg==

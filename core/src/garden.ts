@@ -150,8 +150,8 @@ import { MonitorManager } from "./monitors/manager"
 import { AnalyticsHandler } from "./analytics/analytics"
 import { getGardenInstanceKey } from "./server/helpers"
 import { SuggestedCommand } from "./commands/base"
-import { OtelTraced } from "./util/tracing/decorators"
-import { wrapActiveSpan } from "./util/tracing/spans"
+import { OtelTraced } from "./util/opentelemetry/decorators"
+import { wrapActiveSpan } from "./util/opentelemetry/spans"
 
 const defaultLocalAddress = "localhost"
 

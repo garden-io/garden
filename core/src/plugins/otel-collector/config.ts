@@ -39,7 +39,10 @@ function mergeArrays(objValue, srcValue) {
 }
 
 export function getOtelCollectorConfigFile({ otlpReceiverPort, exporters }: OtelCollectorConfigFileOptions) {
-  let config: OtelConfigFile = getOtelCollectorBaseConfig(otlpReceiverPort)
+  const hasLogs = exporters.some((exporter) => exporter.types.includes("logs"))
+  const hasTraces = exporters.some((exporter) => exporter.types.includes("traces"))
+
+  let config: OtelConfigFile = getOtelCollectorBaseConfig({ otlpReceiverPort, hasLogs, hasTraces })
 
   for (const exporter of exporters) {
     if (exporter.enabled) {

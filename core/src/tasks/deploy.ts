@@ -24,7 +24,7 @@ import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import { displayState, resolvedActionToExecuted } from "../actions/helpers"
 import { PluginEventBroker } from "../plugin-context"
 import { ActionLog } from "../logger/log-entry"
-import { OtelTraced } from "../util/tracing/decorators"
+import { OtelTraced } from "../util/opentelemetry/decorators"
 
 export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {
   events?: PluginEventBroker

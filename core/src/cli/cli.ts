@@ -49,8 +49,8 @@ import { dedent } from "../util/string"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
-import { withSessionContext } from "../util/tracing/context"
-import { wrapActiveSpan } from "../util/tracing/spans"
+import { withSessionContext } from "../util/opentelemetry/context"
+import { wrapActiveSpan } from "../util/opentelemetry/spans"
 
 export interface RunOutput {
   argv: any

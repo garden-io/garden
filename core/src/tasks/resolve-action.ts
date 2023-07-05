@@ -18,7 +18,7 @@ import { merge } from "lodash"
 import { mergeVariables } from "../graph/common"
 import { actionToResolved } from "../actions/helpers"
 import { ResolvedConfigGraph } from "../graph/config-graph"
-import { OtelTraced } from "../util/tracing/decorators"
+import { OtelTraced } from "../util/opentelemetry/decorators"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState

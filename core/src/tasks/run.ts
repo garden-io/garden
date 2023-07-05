@@ -17,7 +17,7 @@ import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
 import { GetRunResult } from "../plugin/handlers/Run/get-result"
 import { resolvedActionToExecuted } from "../actions/helpers"
-import { OtelTraced } from "../util/tracing/decorators"
+import { OtelTraced } from "../util/opentelemetry/decorators"
 
 class RunTaskError extends Error {
   toString() {

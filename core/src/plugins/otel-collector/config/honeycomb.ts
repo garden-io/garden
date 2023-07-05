@@ -4,6 +4,7 @@ export type OtelCollectorHoneycombConfiguration = {
   name: "honeycomb"
   enabled: boolean
   endpoint: string
+  types: ("logs" | "traces")[]
   apiKey: string
   dataset?: string
 }
@@ -14,6 +15,7 @@ export function makeHoneycombPartialConfig(config: OtelCollectorHoneycombConfigu
     name: "otlphttp",
     enabled: config.enabled,
     endpoint: config.endpoint,
+    types: config.types,
     headers: {
       "x-honeycomb-team": config.apiKey,
       "x-honeycomb-dataset": config.dataset

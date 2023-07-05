@@ -33,7 +33,7 @@ import { removeSlice } from "../util/util"
 import { join } from "path"
 import { getBuiltinCommands } from "./commands"
 import { Log } from "../logger/log-entry"
-import { getTracePropagationEnvVars } from "../util/tracing/propagation"
+import { getTracePropagationEnvVars } from "../util/opentelemetry/propagation"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {

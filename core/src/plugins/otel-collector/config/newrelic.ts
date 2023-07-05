@@ -5,6 +5,7 @@ export type OtelCollectorNewRelicConfiguration = {
   enabled: boolean
   endpoint: string
   apiKey: string
+  types: ("logs" | "traces")[]
 }
 
 export function makeNewRelicPartialConfig(config: OtelCollectorNewRelicConfiguration): OtlpHttpExporterConfigPartial {
@@ -13,6 +14,7 @@ export function makeNewRelicPartialConfig(config: OtelCollectorNewRelicConfigura
     name: "otlphttp",
     enabled: config.enabled,
     endpoint: config.endpoint,
+    types: config.types,
     headers: {
       "api-key": config.apiKey,
     },

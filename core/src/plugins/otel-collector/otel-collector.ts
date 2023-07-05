@@ -11,14 +11,15 @@ import { GenericProviderConfig, Provider } from "../../config/provider"
 import { dedent } from "../../util/string"
 import { sdk } from "../../plugin/sdk"
 import { registerCleanupFunction } from "../../util/util"
-import { configureOTLPHttpExporter } from "../../util/tracing/tracing"
+import { configureOTLPHttpExporter } from "../../util/opentelemetry/tracing"
 import { OtelExportersConfig, getOtelCollectorConfigFile } from "./config"
 import YAML from "yaml"
 import { makeTempDir } from "../../util/fs"
 import { writeFile } from "fs-extra"
 import { streamLogs, waitForLogLine, waitForProcessExit } from "../../util/process"
 import getPort from "get-port"
-import { wrapActiveSpan } from "../../util/tracing/spans"
+import { wrapActiveSpan } from "../../util/opentelemetry/spans"
+import { configureOTLPHttpLogsExporter } from "../../util/opentelemetry/logs"
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
 
@@ -89,6 +90,7 @@ gardenPlugin.addTool({
 const baseValidator = s.object({
   name: s.string(),
   enabled: s.boolean(),
+  types: s.array(s.union([s.literal("traces"), s.literal("logs")])).default(["traces"])
 })
 
 const otlpHttpValidator = baseValidator.merge(
@@ -200,6 +202,10 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
 
     configureOTLPHttpExporter({
       url: `http://localhost:${otlpReceiverPort}/v1/traces`,
+    })
+
+    configureOTLPHttpLogsExporter({
+      url: `http://localhost:${otlpReceiverPort}/v1/logs`,
     })
 
     registerCleanupFunction("kill-otel-collector", async () => {

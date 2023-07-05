@@ -36,7 +36,7 @@ import { convertCommandSpec, execRunCommand, getDefaultEnvVars } from "./common"
 import { isRunning, killRecursive } from "../../process"
 import { sdk } from "../../plugin/sdk"
 import { execProvider } from "./exec"
-import { getTracePropagationEnvVars } from "../../util/tracing/propagation"
+import { getTracePropagationEnvVars } from "../../util/opentelemetry/propagation"
 
 const persistentLocalProcRetryIntervalMs = 2500
 

@@ -18,6 +18,9 @@ import { GardenError } from "../exceptions"
 import hasAnsi from "has-ansi"
 import { omitUndefined } from "../util/objects"
 import { renderDuration } from "./util"
+import { getLogger } from "../util/opentelemetry/logs"
+import { SeverityNumber } from "@opentelemetry/api-logs"
+import { getActiveContext } from "../util/opentelemetry/context"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
@@ -276,6 +279,15 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
 
   private log(params: CreateLogEntryParams) {
     const entry = this.createLogEntry(params) as LogEntry
+
+    const otelLogger = getLogger()
+
+    otelLogger?.emit({
+      severityNumber: SeverityNumber.INFO,
+      body: params.msg,
+      context: getActiveContext()
+    })
+
     if (this.root.storeEntries) {
       this.entries.push(entry)
     }

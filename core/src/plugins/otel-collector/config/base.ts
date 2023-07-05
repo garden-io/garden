@@ -15,17 +15,18 @@ export type OtelCollectorBaseConfig = {
     }
   }
   exporters: {}
-  extensions: {
-    health_check: null
-    pprof: null
-    zpages: null
-  }
+  extensions: Record<string, null>
   service: {
-    extensions: ["health_check", "pprof", "zpages"]
+    extensions: string[]
     pipelines: {
-      traces: {
+      traces?: {
         receivers: ["otlp"]
-        processors: ["batch"]
+        processors: string[]
+        exporters: string[]
+      }
+      logs?: {
+        receivers: ["otlp"]
+        processors: string[]
         exporters: string[]
       }
     }
@@ -37,7 +38,15 @@ export type OtelCollectorBaseConfig = {
   }
 }
 
-export function getOtelCollectorBaseConfig(otlpReceiverPort: string | number): OtelCollectorBaseConfig {
+export function getOtelCollectorBaseConfig({
+  otlpReceiverPort,
+  hasLogs,
+  hasTraces,
+}: {
+  otlpReceiverPort: string | number
+  hasLogs: boolean
+  hasTraces: boolean
+}): OtelCollectorBaseConfig {
   return {
     receivers: {
       otlp: {
@@ -48,23 +57,24 @@ export function getOtelCollectorBaseConfig(otlpReceiverPort: string | number): O
         },
       },
     },
+    exporters: {},
     processors: {
       batch: null,
     },
-    exporters: {},
-    extensions: {
-      health_check: null,
-      pprof: null,
-      zpages: null,
-    },
+    extensions: {},
     service: {
-      extensions: ["health_check", "pprof", "zpages"],
+      extensions: [],
       pipelines: {
-        traces: {
+        traces: hasTraces ? {
           receivers: ["otlp"],
           processors: ["batch"],
           exporters: [],
-        },
+        } : undefined,
+        logs: hasLogs ? {
+          receivers: ["otlp"],
+          processors: ["batch"],
+          exporters: [],
+        } : undefined,
       },
       telemetry: {
         logs: {

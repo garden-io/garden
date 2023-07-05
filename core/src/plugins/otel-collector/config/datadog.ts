@@ -13,7 +13,10 @@ export type DatadogExporterConfigPartial = {
   }
   service: {
     pipelines: {
-      traces: {
+      traces?: {
+        exporters: ["datadog"]
+      }
+      logs?: {
         exporters: ["datadog"]
       }
     }
@@ -25,6 +28,7 @@ export type OtelCollectorDatadogConfiguration = {
   enabled: boolean
   site: string
   apiKey: string
+  types: ("logs" | "traces")[]
 }
 
 
@@ -44,9 +48,12 @@ export function makeDatadogPartialConfig(config: OtelCollectorDatadogConfigurati
     },
     service: {
       pipelines: {
-        traces: {
+        traces: config.types.includes("traces") ? {
           exporters: ["datadog"],
-        },
+        } : undefined,
+        logs: config.types.includes("logs") ? {
+          exporters: ["datadog"]
+        } : undefined
       },
     },
   }

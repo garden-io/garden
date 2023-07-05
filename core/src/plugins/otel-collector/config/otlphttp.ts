@@ -11,7 +11,10 @@ export type OtlpHttpExporterConfigPartial = {
   }
   service: {
     pipelines: {
-      traces: {
+      traces?: {
+        exporters: OtlpHttpExporterName[]
+      }
+      logs?: {
         exporters: OtlpHttpExporterName[]
       }
     }
@@ -22,6 +25,7 @@ export type OtelCollectorOtlpHttpConfiguration = {
   name: "otlphttp"
   enabled: boolean
   endpoint: string
+  types: ("logs" | "traces")[]
   headers?: Record<string, string | number | undefined>
 }
 
@@ -41,9 +45,16 @@ export const makeOtlpHttpPartialConfig = (() => {
       },
       service: {
         pipelines: {
-          traces: {
-            exporters: [key],
-          },
+          traces: config.types.includes("traces")
+            ? {
+                exporters: [key],
+              }
+            : undefined,
+          logs: config.types.includes("logs")
+            ? {
+                exporters: [key],
+              }
+            : undefined,
         },
       },
     }

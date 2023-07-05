@@ -6,7 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { initTracing } from "./util/tracing/tracing"
+import { initTracing } from "./util/opentelemetry/tracing"
+import { initLogging } from "./util/opentelemetry/logs"
+
 initTracing()
+initLogging()
 
 export { Garden } from "./garden"
