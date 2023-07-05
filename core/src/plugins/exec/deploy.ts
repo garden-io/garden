@@ -209,7 +209,7 @@ execDeploy.addHandler("deploy", async (params) => {
     return {
       state: "ready",
       detail: { state: "ready", detail: { deployCommandOutput: result.all } },
-      outputs: {},
+      outputs: { log: outputLog },
     }
   }
 })
