@@ -5,7 +5,7 @@ export type OtlpHttpExporterConfigPartial = {
     [key: OtlpHttpExporterName]:
       | {
           endpoint: string
-          headers?: Record<string, string | number>
+          headers?: Record<string, string | number | undefined>
         }
       | undefined
   }
@@ -22,7 +22,7 @@ export type OtelCollectorOtlpHttpConfiguration = {
   name: "otlphttp"
   enabled: boolean
   endpoint: string
-  headers?: Record<string, string | number>
+  headers?: Record<string, string | number | undefined>
 }
 
 export const makeOtlpHttpPartialConfig = (() => {

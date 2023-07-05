@@ -12,6 +12,7 @@ import {
 } from "./config/datadog"
 import { OtelCollectorNewRelicConfiguration, makeNewRelicPartialConfig } from "./config/newrelic"
 import { OtelCollectorBaseConfig, getOtelCollectorBaseConfig } from "./config/base"
+import { OtelCollectorHoneycombConfiguration, makeHoneycombPartialConfig } from "./config/honeycomb"
 
 export type OtelConfigFile = MergeDeep<
   OtelCollectorBaseConfig,
@@ -23,6 +24,7 @@ export type OtelExportersConfig =
   | OtelCollectorDatadogConfiguration
   | OtelCollectorNewRelicConfiguration
   | OtelCollectorOtlpHttpConfiguration
+  | OtelCollectorHoneycombConfiguration
 
 export type OtelCollectorConfigFileOptions = {
   otlpReceiverPort: number
@@ -49,6 +51,9 @@ export function getOtelCollectorConfigFile({ otlpReceiverPort, exporters }: Otel
       }
       if (exporter.name === "otlphttp") {
         config = mergeWith(config, makeOtlpHttpPartialConfig(exporter), mergeArrays)
+      }
+      if (exporter.name === "honeycomb") {
+        config = mergeWith(config, makeHoneycombPartialConfig(exporter), mergeArrays)
       }
     }
   }

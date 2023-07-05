@@ -107,6 +107,15 @@ const newRelicValidator = baseValidator.merge(
   })
 )
 
+const honeycombValidator = baseValidator.merge(
+  s.object({
+    name: s.literal("honeycomb"),
+    endpoint: s.string().url().default("https://api.honeycomb.io"),
+    apiKey: s.string().min(1),
+    dataset: s.string().optional()
+  })
+)
+
 const dataDogValidator = baseValidator.merge(
   s.object({
     name: s.literal("datadog"),
@@ -116,7 +125,7 @@ const dataDogValidator = baseValidator.merge(
 )
 
 const providerConfigSchema = s.object({
-  exporters: s.array(s.union([otlpHttpValidator, newRelicValidator, dataDogValidator])),
+  exporters: s.array(s.union([otlpHttpValidator, newRelicValidator, dataDogValidator, honeycombValidator ])),
 })
 
 export const provider = gardenPlugin.createProvider({ configSchema: providerConfigSchema, outputsSchema: s.object({}) })
