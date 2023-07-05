@@ -18,6 +18,7 @@ import { PluginContext } from "../../plugin-context"
 import { KubeApi } from "./api"
 import { pathExists } from "fs-extra"
 import { ConfigurationError } from "../../exceptions"
+import { requestWithRetry, RetryOpts } from "./retry"
 
 // Corresponds to the default prune whitelist in `kubectl`.
 // See: https://github.com/kubernetes/kubectl/blob/master/pkg/cmd/apply/prune.go#L176-L192
@@ -52,9 +53,12 @@ export interface ApplyParams {
   dryRun?: boolean
   pruneLabels?: { [label: string]: string }
   validate?: boolean
+  retryOpts?: RetryOpts
 }
 
 export const KUBECTL_DEFAULT_TIMEOUT = 300
+
+const KUBECTL_DEFAULT_RETRY_OPTS: RetryOpts = { maxRetries: 3, minTimeoutMs: 300 }
 
 export async function apply({
   log,
@@ -112,7 +116,18 @@ export async function apply({
   args.push("--output=json", "-f", "-")
   !validate && args.push("--validate=false")
 
-  const result = await kubectl(ctx, provider).stdout({ log, namespace, args, input })
+  const result = await requestWithRetry(
+    log,
+    `kubectl ${args.join(" ")}`,
+    () =>
+      kubectl(ctx, provider).stdout({
+        log,
+        namespace,
+        args,
+        input,
+      }),
+    KUBECTL_DEFAULT_RETRY_OPTS
+  )
 
   if (namespace && resourcesToPrune.length > 0) {
     await deleteResources({
@@ -162,7 +177,12 @@ export async function deleteResourceKeys({
 
   includeUninitialized && args.push("--include-uninitialized")
 
-  return kubectl(ctx, provider).stdout({ namespace, args, log })
+  return await requestWithRetry(
+    log,
+    `kubectl ${args.join(" ")}`,
+    () => kubectl(ctx, provider).stdout({ namespace, args, log }),
+    KUBECTL_DEFAULT_RETRY_OPTS
+  )
 }
 
 export async function deleteObjectsBySelector({
@@ -186,7 +206,12 @@ export async function deleteObjectsBySelector({
 
   includeUninitialized && args.push("--include-uninitialized")
 
-  return kubectl(ctx, provider).stdout({ namespace, args, log })
+  return await requestWithRetry(
+    log,
+    `kubectl ${args.join(" ")}`,
+    () => kubectl(ctx, provider).stdout({ namespace, args, log }),
+    KUBECTL_DEFAULT_RETRY_OPTS
+  )
 }
 
 interface KubectlParams extends ExecParams {
