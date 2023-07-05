@@ -332,11 +332,11 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
             sessionId: garden.sessionId,
             projectId: cloudSession.projectId,
             userId,
+            shortId: cloudSession.shortId,
           }).href
           const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
-          // FIXME: We need a shortened URL for this
-          cloudLog.info(`View command results at:\n${chalk.cyan(commandResultUrl)}\n`)
+          cloudLog.info(`View command results at: ${chalk.cyan(commandResultUrl)}\n`)
         }
 
         let analytics: AnalyticsHandler | undefined
