@@ -27,6 +27,7 @@ import { namespaceExists } from "../kubernetes/namespace"
 import { killPortForwards } from "../kubernetes/port-forward"
 import { compareDeployedResources, waitForResources } from "../kubernetes/status/status"
 import { streamK8sLogs } from "../kubernetes/logs"
+import { k8sContainerStartSync, k8sContainerStopSync, k8sContainerGetSyncStatus } from "../kubernetes/container/sync"
 
 export const openshiftGetContainerDeployStatus: DeployActionHandler<"getStatus", ContainerDeployAction> = async (
   params
@@ -83,9 +84,9 @@ export const openshiftContainerDeployExtension = (): DeployActionExtension<Conta
     // },
     getStatus: openshiftGetContainerDeployStatus,
 
-    // startSync: k8sContainerStartSync,
-    // stopSync: k8sContainerStopSync,
-    // getSyncStatus: k8sContainerGetSyncStatus,
+    startSync: k8sContainerStartSync,
+    stopSync: k8sContainerStopSync,
+    getSyncStatus: k8sContainerGetSyncStatus,
 
     validate: async ({ ctx, action }) => {
       validateDeploySpec(action.name, <KubernetesProvider>ctx.provider, action.getSpec())
