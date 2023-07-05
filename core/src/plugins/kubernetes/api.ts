@@ -942,14 +942,15 @@ export async function getKubeConfig(log: Log, ctx: PluginContext, provider: Kube
     if (provider.config.kubeconfig) {
       kubeConfigStr = (await readFile(provider.config.kubeconfig)).toString()
     } else {
+      const args = ["config", "view", "--raw"]
       // We use kubectl for this, to support merging multiple paths in the KUBECONFIG env var
       kubeConfigStr = await requestWithRetry(
         log,
-        "",
+        `kubectl ${args.join(" ")}`,
         () =>
           kubectl(ctx, provider).stdout({
             log,
-            args: ["config", "view", "--raw"],
+            args,
           }),
         { forceRetry: true }
       )
