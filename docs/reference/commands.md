@@ -994,7 +994,7 @@ the command stays running until explicitly aborted.
 
 This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of Deploys you&#x27;d like to skip.
-  | `--skip-dependencies` |  | boolean | Skip deploy and run dependencies. Build dependencies and runtime output reference dependencies are not skipped. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without deploying or running dependencies that may have changed since you last deployed.
+  | `--skip-dependencies` |  | boolean | Skip deploy, test and run dependencies. Build dependencies and runtime output reference dependencies are not skipped. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without deploying or running dependencies that may have changed since you last deployed.
   | `--disable-port-forwards` |  | boolean | Disable automatic port forwarding when running persistently. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS&#x3D;true in your environment.
   | `--forward` |  | boolean | Create port forwards and leave process running after deploying. This is implied if any of --sync / --local or --logs are set.
   | `--logs` |  | boolean | Stream logs from the requested Deploy(s) (or services if using modules) during deployment, and leave the log streaming process running after deploying. Note: This option implies the --forward option.
