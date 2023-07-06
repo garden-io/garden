@@ -321,9 +321,6 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
     const result: GetActionTypeResults<ActionTypeClasses<K>[T]> = await handler(handlerParams)
 
-    // Validate result
-    // TODO-0.13.0
-
     return { ctx: handlerParams.ctx, result }
   }
 
