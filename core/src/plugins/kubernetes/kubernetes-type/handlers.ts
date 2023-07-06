@@ -90,6 +90,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         kind: "Run",
         type: "kubernetes-pod",
         name: task.name,
+        description: task.spec.description,
         ...params.baseFields,
         disabled: task.disabled,
 
@@ -98,7 +99,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         timeout: task.spec.timeout,
 
         spec: {
-          ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
+          ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
           resource,
           files,
           manifests,

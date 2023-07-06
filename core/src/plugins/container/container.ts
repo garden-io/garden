@@ -269,6 +269,7 @@ function convertContainerModuleRuntimeActions(
       kind: "Run",
       type: "container",
       name: task.name,
+      description: task.spec.description,
       ...convertParams.baseFields,
 
       disabled: task.disabled,
@@ -277,7 +278,7 @@ function convertContainerModuleRuntimeActions(
       timeout: task.spec.timeout,
 
       spec: {
-        ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
+        ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
         image: needsContainerBuild ? undefined : module.spec.image,
         volumes: [],
       },

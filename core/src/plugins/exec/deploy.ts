@@ -31,12 +31,13 @@ import {
   execStaticOutputsSchema,
 } from "./config"
 import { deployStateToActionState, DeployStatus } from "../../plugin/handlers/Deploy/get-status"
-import { Resolved } from "../../actions/types"
+import { ActionState, Resolved } from "../../actions/types"
 import { convertCommandSpec, execRunCommand, getDefaultEnvVars } from "./common"
 import { isRunning, killRecursive } from "../../process"
 import { sdk } from "../../plugin/sdk"
 import { execProvider } from "./exec"
 import { getTracePropagationEnvVars } from "../../util/tracing/propagation"
+import { DeployState } from "../../types/service"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -193,23 +194,25 @@ execDeploy.addHandler("deploy", async (params) => {
       opts: { reject: true },
     })
 
-    const outputLog = (result.stdout + result.stderr).trim()
-    if (outputLog) {
+    if (result.outputLog) {
       const prefix = `Finished deploying service ${chalk.white(action.name)}. Here is the output:`
       log.verbose(
         renderMessageWithDivider({
           prefix,
-          msg: outputLog,
-          isError: false,
+          msg: result.outputLog,
+          isError: !result.success,
           color: chalk.gray,
         })
       )
     }
 
+    const deployState: DeployState = result.success ? "ready" : "unhealthy"
+    const actionState: ActionState = result.success ? "ready" : "failed"
+
     return {
-      state: "ready",
-      detail: { state: "ready", detail: { deployCommandOutput: result.all } },
-      outputs: { log: outputLog },
+      state: actionState,
+      detail: { state: deployState, detail: { deployCommandOutput: result.all } },
+      outputs: {},
     }
   }
 })

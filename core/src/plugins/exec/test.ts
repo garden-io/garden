@@ -42,14 +42,13 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
 
   const { chalk } = sdk.util
 
-  const outputLog = result.all?.trim() || ""
-  if (outputLog) {
+  if (result.outputLog) {
     const prefix = `Finished executing ${chalk.white(action.key())}. Here is the full output:`
     log.verbose(
       renderMessageWithDivider({
         prefix,
-        msg: outputLog,
-        isError: false,
+        msg: result.outputLog,
+        isError: !result.success,
         color: chalk.gray,
       })
     )
@@ -60,17 +59,17 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
     command,
     testName: action.name,
     version: action.versionString(),
-    success: result.exitCode === 0,
+    success: result.success,
     startedAt,
-    completedAt: new Date(),
-    log: outputLog,
+    completedAt: result.completedAt,
+    log: result.outputLog,
   }
 
   return {
     state: runResultToActionState(detail),
     detail,
     outputs: {
-      log: outputLog,
+      log: result.outputLog,
     },
   }
 })

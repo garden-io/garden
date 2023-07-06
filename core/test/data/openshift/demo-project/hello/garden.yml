@@ -20,6 +20,11 @@ spec:
     - path: /
       port: http
       hostname: hello.local.demo.garden
+  sync:
+    paths:
+      - source: index.html
+        target: /opt/app-root/src/index.html
+        mode: one-way-replica
 
 ---
 kind: Run

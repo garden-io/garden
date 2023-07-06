@@ -50,6 +50,7 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
   const command = action.getSpec("command")
 
   const { chalk } = sdk.util
+  let success = true
 
   if (command?.length) {
     const result = await execRunCommand({ command, action, ctx, log })
@@ -59,7 +60,8 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
     }
 
     output.detail.fresh = true
-    output.detail.buildLog = result.all || result.stdout + result.stderr
+    output.detail.buildLog = result.outputLog
+    success = result.success
   }
 
   if (output.detail?.buildLog) {
@@ -70,11 +72,11 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
       renderMessageWithDivider({
         prefix,
         msg: output.detail?.buildLog,
-        isError: false,
+        isError: !success,
         color: chalk.gray,
       })
     )
   }
 
-  return output
+  return { ...output, state: success ? "ready" : "failed" }
 })
