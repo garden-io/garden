@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogMetadata, LogEntry } from "../log-entry"
+import stringify from "json-stringify-safe"
+import { LogEntry, LogMetadata } from "../log-entry"
 import { Logger } from "../logger"
 import { Writer } from "./base"
 import { formatForJson } from "../renderers"
@@ -29,7 +30,7 @@ export class JsonTerminalWriter extends Writer {
     if (level >= entry.level) {
       const jsonEntry = formatForJson(entry)
       const empty = !(jsonEntry.msg || jsonEntry.data)
-      return empty ? null : JSON.stringify(jsonEntry)
+      return empty ? null : stringify(jsonEntry)
     }
     return null
   }

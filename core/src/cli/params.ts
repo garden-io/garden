@@ -29,7 +29,7 @@ export const OUTPUT_RENDERERS = {
   },
   yaml: (data: DeepPrimitiveMap) => {
     // Convert data to JSON object so that `safeDumpYaml` renders any errors.
-    return safeDumpYaml(JSON.parse(JSON.stringify(data)), { noRefs: true })
+    return safeDumpYaml(JSON.parse(stringify(data)), { noRefs: true })
   },
 }
 

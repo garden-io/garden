@@ -44,6 +44,7 @@ import { V1PodSpec, V1Container, V1Pod, V1ContainerStatus, V1PodStatus } from "@
 import { RunResult } from "../../plugin/base"
 import { LogLevel } from "../../logger/logger"
 import { getResourceEvents } from "./status/events"
+import stringify from "json-stringify-safe"
 
 /**
  * When a `podSpec` is passed to `runAndCopy`, only these fields will be used for the runner's pod spec
@@ -564,7 +565,7 @@ async function runWithArtifacts({
           })
         } else {
           throw new RuntimeError({
-            message: `Failed to start Pod ${runner.podName}: ${JSON.stringify(status.resource.status, null, 2)}`,
+            message: `Failed to start Pod ${runner.podName}: ${stringify(status.resource.status, null, 2)}`,
             detail: errorMetadata,
           })
         }
@@ -1248,7 +1249,7 @@ export class PodRunner extends PodRunnerParams {
           // Print Pod status if case of too generic and non-informative error in the terminated state
           if (!terminatedContainerState?.message && terminatedContainerState?.reason === "Error") {
             if (!!podStatus) {
-              const podStatusDesc = "PodStatus:\n" + JSON.stringify(podStatus, null, 2)
+              const podStatusDesc = "PodStatus:\n" + stringify(podStatus, null, 2)
               errorDesc += podStatusDesc + "\n\n"
             }
           }

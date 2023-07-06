@@ -7,6 +7,7 @@
  */
 
 import Bluebird from "bluebird"
+import stringify from "json-stringify-safe"
 
 import { Events, EventName, GardenEventAnyListener, shouldStreamEvent } from "../events/events"
 import { LogMetadata, Log, LogEntry, LogContext } from "../logger/log-entry"
@@ -318,7 +319,7 @@ export class BufferedEventStream {
         const targetUrl = `${target.host}/${path}`
         this.log.silly(`Flushing ${description} to ${targetUrl}`)
         this.log.silly(`--------`)
-        this.log.silly(`data: ${JSON.stringify(data)}`)
+        this.log.silly(`data: ${stringify(data)}`)
         this.log.silly(`--------`)
 
         const headers = makeAuthHeader(target.clientAuthToken || "")
@@ -387,11 +388,11 @@ export class BufferedEventStream {
     const batch: B[] = []
     let batchBytes = 0
     while (batchBytes < this.maxBatchBytes && buffered.length > 0) {
-      let nextRecordBytes = Buffer.from(JSON.stringify(buffered[0])).length
+      let nextRecordBytes = Buffer.from(stringify(buffered[0])).length
       if (nextRecordBytes > this.maxBatchBytes) {
         this.log.error(`Event or log entry too large to flush (${nextRecordBytes} bytes), dropping it.`)
         // Note: This must be a silly log to avoid recursion
-        this.log.silly(JSON.stringify(buffered[0]))
+        this.log.silly(stringify(buffered[0]))
         buffered.shift() // Drop first record.
         continue
       }
