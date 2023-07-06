@@ -1,13 +1,4 @@
 export type OtelCollectorBaseConfig = {
-  receivers: {
-    otlp: {
-      protocols: {
-        http: {
-          endpoint: string
-        }
-      }
-    }
-  }
   processors: {
     batch: null | {
       send_batch_max_size?: number
@@ -37,17 +28,8 @@ export type OtelCollectorBaseConfig = {
   }
 }
 
-export function getOtelCollectorBaseConfig(otlpReceiverPort: string | number): OtelCollectorBaseConfig {
+export function getOtelCollectorBaseConfig(): OtelCollectorBaseConfig {
   return {
-    receivers: {
-      otlp: {
-        protocols: {
-          http: {
-            endpoint: `:${otlpReceiverPort}`,
-          },
-        },
-      },
-    },
     processors: {
       batch: null,
     },

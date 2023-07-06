@@ -42,7 +42,6 @@ gardenPlugin.addTool({
   type: "binary",
   _includeInGardenImage: false,
   builds: [
-    // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
     {
       platform: "darwin",
       architecture: "amd64",
@@ -112,7 +111,7 @@ const honeycombValidator = baseValidator.merge(
     name: s.literal("honeycomb"),
     endpoint: s.string().url().default("https://api.honeycomb.io"),
     apiKey: s.string().min(1),
-    dataset: s.string().optional()
+    dataset: s.string().optional(),
   })
 )
 
@@ -125,7 +124,7 @@ const dataDogValidator = baseValidator.merge(
 )
 
 const providerConfigSchema = s.object({
-  exporters: s.array(s.union([otlpHttpValidator, newRelicValidator, dataDogValidator, honeycombValidator ])),
+  exporters: s.array(s.union([otlpHttpValidator, newRelicValidator, dataDogValidator, honeycombValidator])),
 })
 
 export const provider = gardenPlugin.createProvider({ configSchema: providerConfigSchema, outputsSchema: s.object({}) })
@@ -138,6 +137,13 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   const scopedLog = log.createLog({ name: "otel-collector" })
   scopedLog.debug("Preparing the environment for the otel-collector")
 
+  const exporters: OtelExportersConfig[] = ctx.provider.config.exporters
+
+  if (!exporters.some((exporter) => exporter.enabled)) {
+    scopedLog.debug("No OTEL exporters are enabled, otel-collector is not needed.")
+    return { status: { ready: true, disableCache: true, outputs: {} } }
+  }
+
   // Find an open port for where we run the receiver
   // By convention the default is 4318
   // but in case that's occupied we use a random one
@@ -145,17 +151,13 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
     port: 4318,
   })
 
-  scopedLog.debug(`Using port ${otlpReceiverPort} for the receiver`)
-
-  // If the config file path isn't given in the provider config
-  // we create one ourselves with a default
-  //
-  // TODO: Add code that fetches config from cloud here
-  // and then adds it to the config file
-  const exporters: OtelExportersConfig[] = ctx.provider.config.exporters
+  // NOTE: we explicitly use IPv4 localhost to make sure the external
+  // otel-collector binds to the same localhost as the exporter uses
+  const localhost = "127.0.0.1"
+  const receiverEndpoint = `${localhost}:${otlpReceiverPort}`
+  scopedLog.debug(`Using endpoint ${receiverEndpoint} for the receiver`)
 
   const configFile = getOtelCollectorConfigFile({
-    otlpReceiverPort,
     exporters,
   })
 
@@ -169,7 +171,7 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   const collectorProcess = await wrapActiveSpan("fetchAndRun", () =>
     ctx.tools["otel-collector.otel-collector"].spawn({
       log,
-      args: ["--config", configPath],
+      args: ["--config", configPath, "--set", `receivers.otlp.protocols.http.endpoint=${receiverEndpoint}`],
     })
   )
 
@@ -199,7 +201,7 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
     scopedLog.debug("Collector process started. Switching exporter over to otel-collector.")
 
     configureOTLPHttpExporter({
-      url: `http://localhost:${otlpReceiverPort}/v1/traces`,
+      url: `http://${localhost}:${otlpReceiverPort}/v1/traces`,
     })
 
     registerCleanupFunction("kill-otel-collector", async () => {

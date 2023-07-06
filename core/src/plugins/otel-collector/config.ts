@@ -27,7 +27,6 @@ export type OtelExportersConfig =
   | OtelCollectorHoneycombConfiguration
 
 export type OtelCollectorConfigFileOptions = {
-  otlpReceiverPort: number
   exporters: OtelExportersConfig[]
 }
 
@@ -38,8 +37,8 @@ function mergeArrays(objValue, srcValue) {
   return undefined
 }
 
-export function getOtelCollectorConfigFile({ otlpReceiverPort, exporters }: OtelCollectorConfigFileOptions) {
-  let config: OtelConfigFile = getOtelCollectorBaseConfig(otlpReceiverPort)
+export function getOtelCollectorConfigFile({ exporters }: OtelCollectorConfigFileOptions) {
+  let config: OtelConfigFile = getOtelCollectorBaseConfig()
 
   for (const exporter of exporters) {
     if (exporter.enabled) {
