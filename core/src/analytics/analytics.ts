@@ -643,7 +643,7 @@ export class AnalyticsHandler {
           // the first wrapped error
           wrapped: e.wrappedErrors?.at(0) ? getErrorDetail(e.wrappedErrors?.at(0)!) : undefined,
           // recursively get all the leaf errors and select the first one
-          leaf: getLeafErrors(e).at(0),
+          leaf: e.wrappedErrors ? getLeafErrors(e).at(0) : undefined,
         }
       } catch (err) {
         this.log.silly(`Failed to get analytics error detail from ${e}, ${e.wrappedErrors?.at(0)}, ${err}`)

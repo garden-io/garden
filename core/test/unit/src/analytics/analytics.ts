@@ -23,6 +23,8 @@ import {
 import { LogLevel, RootLogger } from "../../../../src/logger/logger"
 import { AnalyticsGlobalConfig } from "../../../../src/config-store/global"
 import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
+import timekeeper from "timekeeper"
+import { ConfigurationError, DeploymentError, RuntimeError } from "../../../../src/exceptions"
 
 const host = "https://api.segment.io"
 // The codenamize version + the sha512 hash of "test-project-a"
@@ -662,6 +664,269 @@ describe("AnalyticsHandler", () => {
             buildActionCount: 1,
             testActionCount: 1,
             deployActionCount: 1,
+            runActionCount: 0,
+          },
+        },
+      })
+    })
+  })
+
+  describe("trackCommandResult", () => {
+    beforeEach(async () => {
+      garden = await makeTestGardenA()
+      garden.vcsInfo.originUrl = remoteOriginUrl
+      await enableAnalytics(garden)
+    })
+
+    afterEach(async () => {
+      // Flush so queued events don't leak between tests
+      await analytics.flush()
+      AnalyticsHandler.clearInstance()
+    })
+
+    it("should return the event as a success", async () => {
+      scope.post(`/v1/batch`).reply(200)
+
+      await garden.globalConfigStore.set("analytics", basicConfig)
+
+      const startTime = new Date()
+      timekeeper.freeze(startTime)
+
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
+
+      timekeeper.travel(startTime.getTime() + 60000)
+      const event = analytics.trackCommandResult("testCommand", [], startTime, 0)
+
+      expect(event).to.eql({
+        type: "Command Result",
+        properties: {
+          name: "testCommand",
+          result: "success",
+          exitCode: 0,
+          durationMsec: 60000,
+          errors: [],
+          lastError: undefined,
+          projectId: AnalyticsHandler.hash(remoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
+          projectName,
+          projectNameV2,
+          enterpriseProjectId: undefined,
+          enterpriseProjectIdV2: undefined,
+          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          isLoggedIn: false,
+          customer: undefined,
+          ciName: analytics["ciName"],
+          system: analytics["systemConfig"],
+          isCI: analytics["isCI"],
+          sessionId: analytics["sessionId"],
+          parentSessionId: analytics["sessionId"],
+          firstRunAt: basicConfig.firstRunAt,
+          latestRunAt: startTime,
+          isRecurringUser: false,
+          projectMetadata: {
+            modulesCount: 3,
+            moduleTypes: ["test"],
+            tasksCount: 4,
+            servicesCount: 3,
+            testsCount: 5,
+            actionsCount: 0,
+            buildActionCount: 0,
+            testActionCount: 0,
+            deployActionCount: 0,
+            runActionCount: 0,
+          },
+        },
+      })
+    })
+    it("should return the event as a failure with nested error metadata", async () => {
+      scope.post(`/v1/batch`).reply(200)
+
+      await garden.globalConfigStore.set("analytics", basicConfig)
+
+      const startTime = new Date()
+      timekeeper.freeze(startTime)
+
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
+
+      timekeeper.travel(startTime.getTime() + 60000)
+      const errors = [
+        new RuntimeError({
+          message: "Testing Runtime",
+          stack: `Error: Testing Runtime
+          at Testing.runtime (/path/to/src/utils/exec.ts:17:13)
+          at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
+          at processImmediate (node:internal/timers:471:21)`,
+          wrappedErrors: [
+            new ConfigurationError({
+              message: "Testing Configuration",
+              stack: `Error: Testing Configuration
+              at Testing.configuration (/path/to/src/garden.ts:42:13)
+              at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
+              at processImmediate (node:internal/timers:471:21)`,
+              wrappedErrors: [
+                new DeploymentError({
+                  message: "Testing Deployment",
+                  stack: `Error: Testing Deployment
+                  at Testing.deployment (/path/to/src/plugins/kubernetes.ts:12:13)
+                  at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
+                  at processImmediate (node:internal/timers:471:21)`,
+                }),
+              ],
+            }),
+          ],
+        }),
+      ]
+      const event = analytics.trackCommandResult("testCommand", errors, startTime, 0)
+
+      expect(event).to.eql({
+        type: "Command Result",
+        properties: {
+          name: "testCommand",
+          result: "failure",
+          exitCode: 0,
+          durationMsec: 60000,
+          errors: ["runtime"],
+          lastError: {
+            error: {
+              errorType: "runtime",
+              context: undefined,
+              stackTrace: {
+                functionName: "Testing.runtime",
+                relativeFileName: "utils/exec.ts",
+                lineNumber: 17,
+              },
+            },
+            wrapped: {
+              errorType: "configuration",
+              context: undefined,
+              stackTrace: {
+                functionName: "Testing.configuration",
+                relativeFileName: "garden.ts",
+                lineNumber: 42,
+              },
+            },
+            leaf: {
+              errorType: "deployment",
+              context: undefined,
+              stackTrace: {
+                functionName: "Testing.deployment",
+                relativeFileName: "plugins/kubernetes.ts",
+                lineNumber: 12,
+              },
+            },
+          },
+          projectId: AnalyticsHandler.hash(remoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
+          projectName,
+          projectNameV2,
+          enterpriseProjectId: undefined,
+          enterpriseProjectIdV2: undefined,
+          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          isLoggedIn: false,
+          customer: undefined,
+          ciName: analytics["ciName"],
+          system: analytics["systemConfig"],
+          isCI: analytics["isCI"],
+          sessionId: analytics["sessionId"],
+          parentSessionId: analytics["sessionId"],
+          firstRunAt: basicConfig.firstRunAt,
+          latestRunAt: startTime,
+          isRecurringUser: false,
+          projectMetadata: {
+            modulesCount: 3,
+            moduleTypes: ["test"],
+            tasksCount: 4,
+            servicesCount: 3,
+            testsCount: 5,
+            actionsCount: 0,
+            buildActionCount: 0,
+            testActionCount: 0,
+            deployActionCount: 0,
+            runActionCount: 0,
+          },
+        },
+      })
+    })
+    it("should return the event as a failure with multiple errors", async () => {
+      scope.post(`/v1/batch`).reply(200)
+
+      await garden.globalConfigStore.set("analytics", basicConfig)
+
+      const startTime = new Date()
+      timekeeper.freeze(startTime)
+
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
+
+      timekeeper.travel(startTime.getTime() + 60000)
+      const errors = [
+        new RuntimeError({
+          message: "Testing Runtime",
+          stack: `Error: Testing Runtime
+          at Testing.runtime (/path/to/src/utils/exec.ts:17:13)
+          at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
+          at processImmediate (node:internal/timers:471:21)`,
+        }),
+        new ConfigurationError({
+          message: "Testing Configuration",
+          stack: `Error: Testing Configuration
+          at Testing.configuration (/path/to/src/garden.ts:42:13)
+          at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
+          at processImmediate (node:internal/timers:471:21)`,
+        }),
+      ]
+      const event = analytics.trackCommandResult("testCommand", errors, startTime, 0)
+
+      expect(event).to.eql({
+        type: "Command Result",
+        properties: {
+          name: "testCommand",
+          result: "failure",
+          exitCode: 0,
+          durationMsec: 60000,
+          errors: ["runtime", "configuration"],
+          lastError: {
+            error: {
+              errorType: "configuration",
+              context: undefined,
+              stackTrace: {
+                functionName: "Testing.configuration",
+                relativeFileName: "garden.ts",
+                lineNumber: 42,
+              },
+            },
+            leaf: undefined,
+            wrapped: undefined,
+          },
+          projectId: AnalyticsHandler.hash(remoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
+          projectName,
+          projectNameV2,
+          enterpriseProjectId: undefined,
+          enterpriseProjectIdV2: undefined,
+          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          isLoggedIn: false,
+          customer: undefined,
+          ciName: analytics["ciName"],
+          system: analytics["systemConfig"],
+          isCI: analytics["isCI"],
+          sessionId: analytics["sessionId"],
+          parentSessionId: analytics["sessionId"],
+          firstRunAt: basicConfig.firstRunAt,
+          latestRunAt: startTime,
+          isRecurringUser: false,
+          projectMetadata: {
+            modulesCount: 3,
+            moduleTypes: ["test"],
+            tasksCount: 4,
+            servicesCount: 3,
+            testsCount: 5,
+            actionsCount: 0,
+            buildActionCount: 0,
+            testActionCount: 0,
+            deployActionCount: 0,
             runActionCount: 0,
           },
         },
