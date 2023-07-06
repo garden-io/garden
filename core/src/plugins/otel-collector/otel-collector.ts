@@ -19,6 +19,7 @@ import { writeFile } from "fs-extra"
 import { streamLogs, waitForLogLine, waitForProcessExit } from "../../util/process"
 import getPort from "get-port"
 import { wrapActiveSpan } from "../../util/tracing/spans"
+import { LoggingExporterVerbosityLevel, LoggingExporterVerbosityLevelEnum } from "./config/logging"
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
 
@@ -90,6 +91,13 @@ const baseValidator = s.object({
   enabled: s.boolean(),
 })
 
+const loggingValidator = baseValidator.merge(
+  s.object({
+    name: s.literal("logging"),
+    verbosity: s.enum(LoggingExporterVerbosityLevelEnum).default("normal"),
+  })
+)
+
 const otlpHttpValidator = baseValidator.merge(
   s.object({
     name: s.literal("otlphttp"),
@@ -124,7 +132,9 @@ const dataDogValidator = baseValidator.merge(
 )
 
 const providerConfigSchema = s.object({
-  exporters: s.array(s.union([otlpHttpValidator, newRelicValidator, dataDogValidator, honeycombValidator])),
+  exporters: s.array(
+    s.union([loggingValidator, otlpHttpValidator, newRelicValidator, dataDogValidator, honeycombValidator])
+  ),
 })
 
 export const provider = gardenPlugin.createProvider({ configSchema: providerConfigSchema, outputsSchema: s.object({}) })
@@ -137,9 +147,10 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   const scopedLog = log.createLog({ name: "otel-collector" })
   scopedLog.debug("Preparing the environment for the otel-collector")
 
-  const exporters: OtelExportersConfig[] = ctx.provider.config.exporters
+  const allExporters: OtelExportersConfig[] = ctx.provider.config.exporters
+  const exporters: OtelExportersConfig[] = allExporters.filter((exporter) => exporter.enabled)
 
-  if (!exporters.some((exporter) => exporter.enabled)) {
+  if (!exporters) {
     scopedLog.debug("No OTEL exporters are enabled, otel-collector is not needed.")
     return { status: { ready: true, disableCache: true, outputs: {} } }
   }

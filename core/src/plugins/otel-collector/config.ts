@@ -13,6 +13,7 @@ import {
 import { OtelCollectorNewRelicConfiguration, makeNewRelicPartialConfig } from "./config/newrelic"
 import { OtelCollectorBaseConfig, getOtelCollectorBaseConfig } from "./config/base"
 import { OtelCollectorHoneycombConfiguration, makeHoneycombPartialConfig } from "./config/honeycomb"
+import { OtelCollectorLoggingConfiguration, makeLoggingPartialConfig } from "./config/logging"
 
 export type OtelConfigFile = MergeDeep<
   OtelCollectorBaseConfig,
@@ -21,6 +22,7 @@ export type OtelConfigFile = MergeDeep<
 >
 
 export type OtelExportersConfig =
+  | OtelCollectorLoggingConfiguration
   | OtelCollectorDatadogConfiguration
   | OtelCollectorNewRelicConfiguration
   | OtelCollectorOtlpHttpConfiguration
@@ -53,6 +55,9 @@ export function getOtelCollectorConfigFile({ exporters }: OtelCollectorConfigFil
       }
       if (exporter.name === "honeycomb") {
         config = mergeWith(config, makeHoneycombPartialConfig(exporter), mergeArrays)
+      }
+      if (exporter.name === "logging") {
+        config = mergeWith(config, makeLoggingPartialConfig(exporter), mergeArrays)
       }
     }
   }

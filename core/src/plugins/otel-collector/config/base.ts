@@ -6,13 +6,9 @@ export type OtelCollectorBaseConfig = {
     }
   }
   exporters: {}
-  extensions: {
-    health_check: null
-    pprof: null
-    zpages: null
-  }
+  extensions: Record<string, null>
   service: {
-    extensions: ["health_check", "pprof", "zpages"]
+    extensions: string[]
     pipelines: {
       traces: {
         receivers: ["otlp"]
@@ -40,7 +36,7 @@ export function getOtelCollectorBaseConfig(): OtelCollectorBaseConfig {
       zpages: null,
     },
     service: {
-      extensions: ["health_check", "pprof", "zpages"],
+      extensions: [],
       pipelines: {
         traces: {
           receivers: ["otlp"],

@@ -5,4 +5,6 @@ environments:
   - name: local
 providers:
   - name: otel-collector
-    configFilePath: otel-config.yaml
+    exporters:
+    - name: logging
+      enabled: true
