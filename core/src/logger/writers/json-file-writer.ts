@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import stringify from "json-stringify-safe"
 import winston from "winston"
 import { LogEntry } from "../log-entry"
 import { LogLevel } from "../logger"
@@ -16,7 +17,7 @@ export function renderAsJson(level: LogLevel, entry: LogEntry): string | null {
   if (level >= entry.level) {
     const jsonEntry = formatForJson(entry)
     const empty = !(jsonEntry.msg || jsonEntry.data)
-    return empty ? null : JSON.stringify(jsonEntry)
+    return empty ? null : stringify(jsonEntry)
   }
   return null
 }

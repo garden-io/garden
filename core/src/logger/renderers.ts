@@ -8,6 +8,7 @@
 
 import logSymbols from "log-symbols"
 import chalk from "chalk"
+import stringify from "json-stringify-safe"
 import stripAnsi from "strip-ansi"
 import { isArray, repeat, trim } from "lodash"
 import stringWidth = require("string-width")
@@ -119,7 +120,7 @@ export function renderData(entry: LogEntry): string {
     const asYaml = safeDumpYaml(data, { noRefs: true })
     return highlightYaml(asYaml)
   }
-  return JSON.stringify(data, null, 2)
+  return stringify(data, null, 2)
 }
 
 export function renderSection(entry: LogEntry): string {
