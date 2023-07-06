@@ -38,9 +38,9 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
   if (command && command.length) {
     const commandResult = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
 
-    completedAt = new Date()
-    outputLog = commandResult.all?.trim() || ""
-    success = commandResult.exitCode === 0
+    completedAt = commandResult.completedAt
+    outputLog = commandResult.outputLog
+    success = commandResult.success
   } else {
     completedAt = startedAt
     outputLog = ""
@@ -54,7 +54,7 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
       renderMessageWithDivider({
         prefix,
         msg: outputLog,
-        isError: false,
+        isError: !success,
         color: chalk.gray,
       })
     )
