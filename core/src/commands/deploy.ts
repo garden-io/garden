@@ -87,7 +87,7 @@ export const deployOpts = {
   }),
   "skip-dependencies": new BooleanParameter({
     help: deline`
-    Skip deploy and run dependencies. Build dependencies and runtime output reference dependencies are not skipped.
+    Skip deploy, test and run dependencies. Build dependencies and runtime output reference dependencies are not skipped.
     This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without deploying or running dependencies that may have changed since you last deployed.
     `,
     aliases: ["nodeps"],
