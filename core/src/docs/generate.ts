@@ -92,7 +92,7 @@ export async function writeConfigReferenceDocs(
   const providerDir = resolve(docsRoot, "reference", "providers")
   makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH = "../../"
   const allPlugins = await (await getFreshGarden()).getAllPlugins()
-  const skippedPlugins = ["templated", "local-openshift", "openshift"]
+  const skippedPlugins = ["templated", "openshift"]
   const pluginsByName = keyBy(allPlugins, "name")
   const providersReadme = ["---", "order: 1", "title: Providers", "---", "", "# Providers", ""]
 
