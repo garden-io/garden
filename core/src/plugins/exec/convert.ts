@@ -122,6 +122,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       kind: "Run",
       type: "exec",
       name: task.name,
+      description: task.spec.description,
       ...params.baseFields,
 
       disabled: task.disabled,
