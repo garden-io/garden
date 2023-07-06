@@ -612,20 +612,10 @@ export class AnalyticsHandler {
     })
   }
 
-  /**
-   * Track a command result.
-   */
-  trackCommandResult(
-    commandName: string,
-    errors: GardenBaseError[],
-    startTime: Date,
-    exitCode?: number,
-    parentSessionId?: string
-  ) {
-    const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
-
-    const durationMsec = getDurationMsec(startTime, new Date())
-
+  resultErrorProperties(errors: GardenBaseError[]): {
+    errors: string[]
+    lastError?: AnalyticsGardenError
+  } {
     const getErrorDetail = (e: GardenError): AnalyticsGardenErrorDetail => {
       const stackTrace = getStackTraceMetadata(e)
       const firstEntry = stackTrace.metadata.at(0)
@@ -670,14 +660,40 @@ export class AnalyticsHandler {
       ),
     ]
 
+    return {
+      errors: allErrors,
+      lastError: allErrorMetadata.at(-1),
+    }
+  }
+  /**
+   * Track a command result.
+   */
+  trackCommandResult(
+    commandName: string,
+    errors: GardenBaseError[],
+    startTime: Date,
+    exitCode?: number,
+    parentSessionId?: string
+  ) {
+    const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
+
+    const durationMsec = getDurationMsec(startTime, new Date())
+
+    let errorProperties
+
+    try {
+      errorProperties = this.resultErrorProperties(errors)
+    } catch (err) {
+      this.log.debug(`Failed to extract command result error properties, ${err.toString()}`)
+    }
+
     return this.track({
       type: "Command Result",
       properties: {
+        ...errorProperties,
+        result,
         name: commandName,
         durationMsec,
-        result,
-        errors: allErrors,
-        lastError: allErrorMetadata.at(-1),
         exitCode,
         ...this.getBasicAnalyticsProperties(parentSessionId),
       },
