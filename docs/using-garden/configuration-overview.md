@@ -59,8 +59,9 @@ The `scan.exclude` field is also used to limit the number of files and directori
 
 ### .ignore file
 
-{% hint style="warning" %}
-Prior to Garden 0.12.0, `.gitignore` files were also respected by default. The default is now to only respect `.gardenignore` files. See below how you can revert to the previous behavior.
+{% hint style="info" %}
+Generally, using .gardenignore files is far more performant than exclude config statements and will decrease
+graph resolution time.
 {% endhint %}
 
 By default, Garden respects `.gardenignore` files and excludes any patterns matched in those files. You can place the ignore files anywhere in your repository, much like `.gitignore` files, and they will follow the same semantics.

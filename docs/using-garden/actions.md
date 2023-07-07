@@ -165,6 +165,12 @@ exclude:
 ...
 ```
 
+{% hint style="info" %}
+Generally, using `.gardenignore` files is far more performant than exclude config statements and will decrease
+graph resolution time. Read more about `.gardenignore` files in the 
+[configuration-overview documentation](./configuration-overview.md#includingexcluding-files-and-directories)
+{% endhint %}
+
 Here we only include the `Dockerfile` and all the `.py` files under `my-sources/`, but exclude the `my-sources/tmp`
 directory.
 
