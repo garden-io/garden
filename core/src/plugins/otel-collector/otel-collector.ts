@@ -19,7 +19,7 @@ import { writeFile } from "fs-extra"
 import { streamLogs, waitForLogLine, waitForProcessExit } from "../../util/process"
 import getPort from "get-port"
 import { wrapActiveSpan } from "../../util/tracing/spans"
-import { LoggingExporterVerbosityLevel, LoggingExporterVerbosityLevelEnum } from "./config/logging"
+import { LoggingExporterVerbosityLevelEnum } from "./config/logging"
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
 
