@@ -394,7 +394,7 @@ export function emitGetStatusEvents<
     outputs: A["_runtimeOutputs"]
     detail: any
     version: string
-  }
+  },
 >(
   _target: ExecuteActionTask<A>,
   methodName: "getStatus",
@@ -479,7 +479,7 @@ export function emitProcessingEvents<
     outputs: A["_runtimeOutputs"]
     detail: any
     version: string
-  }
+  },
 >(
   _target: ExecuteActionTask<A>,
   methodName: "process",
@@ -552,7 +552,7 @@ export abstract class ExecuteActionTask<
     outputs: T["_runtimeOutputs"]
     detail: any
     version: string
-  }
+  },
 > extends BaseActionTask<T, O & ExecuteActionOutputs<T>> {
   executeTask = true
   abstract type: Lowercase<T["kind"]>

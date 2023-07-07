@@ -153,7 +153,7 @@ export function makeActionCompletePayload<
     outputs: A["_runtimeOutputs"]
     detail: any
     version: string
-  }
+  },
 >({
   result,
   action,

@@ -288,7 +288,10 @@ export interface Events {
 
 export type EventName = keyof Events
 
-export type ActionStatusEventName = PickFromUnion<EventName, "buildStatus" | "deployStatus" | "testStatus" | "runStatus">
+export type ActionStatusEventName = PickFromUnion<
+  EventName,
+  "buildStatus" | "deployStatus" | "testStatus" | "runStatus"
+>
 type GraphEventName = Extract<EventName, "taskCancelled" | "taskComplete" | "taskError" | "taskProcessing">
 type ConfigEventName = Extract<EventName, "configChanged" | "configsScanned" | "autocompleterUpdated">
 
@@ -320,7 +323,12 @@ const pipedEventNamesSet = new Set<EventName>([
 ])
 
 // We send graph and config events over a websocket connection via the Garden server
-const actionStatusEventNames = new Set<ActionStatusEventName>(["buildStatus", "deployStatus", "runStatus", "testStatus"])
+const actionStatusEventNames = new Set<ActionStatusEventName>([
+  "buildStatus",
+  "deployStatus",
+  "runStatus",
+  "testStatus",
+])
 const configEventNames = new Set<ConfigEventName>(["configsScanned", "configChanged", "autocompleterUpdated"])
 
 const isPipedEvent = (name: string, _payload: any): _payload is Events[EventName] => {

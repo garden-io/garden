@@ -46,7 +46,10 @@ export class BuildStaging {
 
   private createdPaths: Set<string>
 
-  constructor(protected projectRoot: string, gardenDirPath: string) {
+  constructor(
+    protected projectRoot: string,
+    gardenDirPath: string
+  ) {
     this.buildDirPath = join(gardenDirPath, "build")
     this.createdPaths = new Set()
   }

@@ -36,7 +36,7 @@ export const testActionConfigSchema = memoize(() =>
 export class TestAction<
   C extends TestActionConfig = any,
   StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any
+  RuntimeOutputs extends {} = any,
 > extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Test"
 }
@@ -44,7 +44,7 @@ export class TestAction<
 export class ResolvedTestAction<
   C extends TestActionConfig = any,
   StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any
+  RuntimeOutputs extends {} = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Test"
 }
@@ -52,7 +52,7 @@ export class ResolvedTestAction<
 export class ExecutedTestAction<
   C extends TestActionConfig = any,
   StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any
+  RuntimeOutputs extends {} = any,
 > extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Test"
 }

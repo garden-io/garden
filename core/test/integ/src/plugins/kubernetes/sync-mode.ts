@@ -68,7 +68,7 @@ describe("sync mode deployments and sync behavior", () => {
   })
 
   const init = async (environmentName: string) => {
-    garden = await getContainerTestGarden(environmentName, { noTempDir: true})
+    garden = await getContainerTestGarden(environmentName, { noTempDir: true })
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,

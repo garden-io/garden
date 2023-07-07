@@ -432,8 +432,5 @@ export function renderTemplateStringReference({
 }
 
 export function renderProjectConfigReference(opts: RenderConfigOpts = {}) {
-  return renderConfigReference(
-    projectSchema(),
-    opts
-  )
+  return renderConfigReference(projectSchema(), opts)
 }

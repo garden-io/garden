@@ -19,21 +19,14 @@ const locationId = "global"
 async function encrypt(filename: string, plaintext: Buffer) {
   const client = new kms.KeyManagementServiceClient()
 
-  const name = client.cryptoKeyPath(
-    projectId,
-    locationId,
-    keyRingId,
-    cryptoKeyId
-  )
+  const name = client.cryptoKeyPath(projectId, locationId, keyRingId, cryptoKeyId)
 
   const [result] = await client.encrypt({ name, plaintext })
 
   const outputPath = resolve(__dirname, "..", "secrets", filename)
   await writeFile(outputPath, result.ciphertext)
 
-  console.log(
-    `Encrypted input, result saved to ${outputPath}`
-  )
+  console.log(`Encrypted input, result saved to ${outputPath}`)
 }
 
 const args = process.argv.slice(2)
@@ -48,7 +41,7 @@ if (require.main === module) {
     data = Buffer.concat([data, chunk])
   })
 
-  process.stdin.on("end", function() {
+  process.stdin.on("end", function () {
     encrypt(filename, data).catch((err) => {
       console.error(err)
       process.exit(1)

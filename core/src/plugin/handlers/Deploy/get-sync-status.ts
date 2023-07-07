@@ -39,7 +39,7 @@ export const syncStates = [
   "failed",
   "unknown",
   "outdated",
-  "not-configured"
+  "not-configured",
 ] as const
 export type SyncState = (typeof syncStates)[number]
 
@@ -59,26 +59,37 @@ export const getSyncStatusResultSchema = createSchema({
       .only()
       .required()
       .description("The Deploy-level sync status, based on the cumulative individual sync statuses."),
-    syncs: joi.array().items(
-      joi.object().keys({
-        source: joi.string().required().description("The sync source as defined in the sync spec."),
-        target: joi
-          .string()
-          .required()
-          .description(
-            "A description of the sync target. This can include plugin specific information about the target to help accurately descibe it."
-          ),
-        state: joi
-          .string()
-          .required()
-          .allow(...syncStates)
-          .description("Whether the specific sync is active."),
-        lastSyncAt: joi.string().description("ISO format date string for the last successful sync event. May not be availabe for all plugins."),
-        syncCount: joi.number().description("The number of successful syncs. May not be availabe for all plugins."),
-        mode: syncModeSchema(),
-        message: joi.string().description("An optional message describing the latest status or error relating to this sync.")
-      })
-    ).description("Should include an entry for every configured sync, also when their target isn't deployed in sync mode."),
+    syncs: joi
+      .array()
+      .items(
+        joi.object().keys({
+          source: joi.string().required().description("The sync source as defined in the sync spec."),
+          target: joi
+            .string()
+            .required()
+            .description(
+              "A description of the sync target. This can include plugin specific information about the target to help accurately descibe it."
+            ),
+          state: joi
+            .string()
+            .required()
+            .allow(...syncStates)
+            .description("Whether the specific sync is active."),
+          lastSyncAt: joi
+            .string()
+            .description(
+              "ISO format date string for the last successful sync event. May not be availabe for all plugins."
+            ),
+          syncCount: joi.number().description("The number of successful syncs. May not be availabe for all plugins."),
+          mode: syncModeSchema(),
+          message: joi
+            .string()
+            .description("An optional message describing the latest status or error relating to this sync."),
+        })
+      )
+      .description(
+        "Should include an entry for every configured sync, also when their target isn't deployed in sync mode."
+      ),
     error: joi.string().description("Set to an error message if the sync is failed."),
     detail: joiVariables().description("Any additional detail to be included and printed with status checks."),
   }),

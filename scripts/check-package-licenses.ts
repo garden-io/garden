@@ -18,14 +18,7 @@ import { writeFile } from "fs-extra"
 
 const gardenRoot = resolve(__dirname, "..")
 
-const disallowedLicenses = [
-  /^AGPL/,
-  /^copyleft/,
-  "CC-BY-NC",
-  "CC-BY-SA",
-  /^FAL/,
-  /^GPL/,
-]
+const disallowedLicenses = [/^AGPL/, /^copyleft/, "CC-BY-NC", "CC-BY-SA", /^FAL/, /^GPL/]
 
 interface LicenseDump {
   [name: string]: {

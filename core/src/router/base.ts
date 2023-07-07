@@ -196,7 +196,10 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
   protected readonly handlerDescriptions: { [N in keyof ActionTypeClasses<K>]: ResolvedActionHandlerDescription }
   protected readonly definitions: { [name: string]: MaybeUndefined<ActionTypeDefinition<any>> }
 
-  constructor(protected readonly kind: K, params: BaseRouterParams) {
+  constructor(
+    protected readonly kind: K,
+    params: BaseRouterParams
+  ) {
     super(params)
     const { garden } = params
 

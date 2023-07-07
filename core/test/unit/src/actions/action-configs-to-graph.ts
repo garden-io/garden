@@ -771,13 +771,7 @@ describe("actionConfigsToGraph", () => {
   })
 
   describe("file inclusion-exclusion", () => {
-    const getBaseParams = ({
-      include,
-      exclude,
-    }: {
-      include?: string[]
-      exclude?: string[]
-    }) => ({
+    const getBaseParams = ({ include, exclude }: { include?: string[]; exclude?: string[] }) => ({
       garden,
       log,
       groupConfigs: [],

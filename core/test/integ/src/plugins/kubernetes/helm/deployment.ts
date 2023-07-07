@@ -138,10 +138,9 @@ describe("helmDeploy", () => {
     })
     const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
-
     // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
     let namespaceStatus: NamespaceStatus | null = null
-    ctx.events.once("namespaceStatus", (status) => namespaceStatus = status)
+    ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
     await helmDeploy({
       ctx,
       log: actionLog,
@@ -177,10 +176,9 @@ describe("helmDeploy", () => {
     })
     const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
-
     // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
     let namespaceStatus: NamespaceStatus | null = null
-    ctx.events.once("namespaceStatus", (status) => namespaceStatus = status)
+    ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
     await helmDeploy({
       ctx,
       log: actionLog,
@@ -306,7 +304,7 @@ describe("helmDeploy", () => {
     })
     const actionLog = createActionLog({ log: gardenWithCloudApi.log, actionName: action.name, actionKind: action.kind })
 
-     await helmDeploy({
+    await helmDeploy({
       ctx: ctxWithCloudApi,
       log: actionLog,
       action,

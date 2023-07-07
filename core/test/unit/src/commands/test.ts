@@ -313,7 +313,11 @@ describe("TestCommand", () => {
       }),
     })
 
-    expect(Object.keys(result!.graphResults).sort()).to.eql(["test.module-a-unit", "test.module-b-unit", "test.module-c-unit"])
+    expect(Object.keys(result!.graphResults).sort()).to.eql([
+      "test.module-a-unit",
+      "test.module-b-unit",
+      "test.module-c-unit",
+    ])
   })
 
   it("throws if --module filter specifies module that does not exist", async () => {

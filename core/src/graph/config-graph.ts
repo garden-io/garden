@@ -64,7 +64,7 @@ export type PickTypeByKind<
   B extends BuildAction,
   D extends DeployAction,
   R extends RunAction,
-  T extends TestAction
+  T extends TestAction,
 > = K extends "Build" ? B : K extends "Deploy" ? D : K extends "Run" ? R : T
 
 /**
@@ -78,7 +78,7 @@ export abstract class BaseConfigGraph<
   B extends BuildAction,
   D extends DeployAction,
   R extends RunAction,
-  T extends TestAction
+  T extends TestAction,
 > {
   protected dependencyGraph: GraphNodes
 
@@ -556,7 +556,11 @@ export class ConfigGraphNode {
   dependencies: ConfigGraphNode[]
   dependants: ConfigGraphNode[]
 
-  constructor(public kind: ActionKind, public name: string, public disabled: boolean) {
+  constructor(
+    public kind: ActionKind,
+    public name: string,
+    public disabled: boolean
+  ) {
     this.dependencies = []
     this.dependants = []
   }

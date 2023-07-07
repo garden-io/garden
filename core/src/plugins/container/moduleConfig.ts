@@ -181,5 +181,5 @@ export interface ContainerModule<
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
   W extends ContainerTaskSpec = ContainerTaskSpec,
-  O extends ContainerModuleOutputs = ContainerModuleOutputs
+  O extends ContainerModuleOutputs = ContainerModuleOutputs,
 > extends GardenModule<M, S, T, W, O> {}

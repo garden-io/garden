@@ -92,7 +92,7 @@ async function draftReleaseNotes() {
   console.log("Done!")
 }
 
-(async () => {
+;(async () => {
   try {
     await draftReleaseNotes()
     process.exit(0)

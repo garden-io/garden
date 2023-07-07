@@ -59,7 +59,7 @@ async function release() {
    * This is to make references to internal packages (e.g. "@garden-io/core@*") work during the build process in CI.
    */
   const packageReleaseTypeMap = { preminor: "minor", prepatch: "patch" }
-  const incrementedPackageVersion = semver.inc(prevVersion, packageReleaseTypeMap[releaseType] || releaseType)
+  const incrementedPackageVersion = semver.inc(prevVersion, packageReleaseTypeMap[releaseType] || releaseType)
   const parsed = semver.parse(incrementedPackageVersion)
 
   // We omit the prerelease suffix from `incrementedPackageVersion` (if there is one).
@@ -93,11 +93,9 @@ async function release() {
   // Check if branch already exists remotely
   let remoteBranch
   try {
-    remoteBranch = (await execa(
-      "git",
-      ["ls-remote", "--exit-code", "--heads", "origin", branchName],
-      { cwd: gardenRoot },
-    )).stdout
+    remoteBranch = (
+      await execa("git", ["ls-remote", "--exit-code", "--heads", "origin", branchName], { cwd: gardenRoot })
+    ).stdout
   } catch (_) {
     // no op
   } finally {
@@ -138,17 +136,13 @@ async function release() {
 
   // Add and commit changes
   console.log("Committing changes...")
-  await execa("git", [
-    "add",
-    "CHANGELOG.md",
-    rootPackageJsonPath,
-    ...packageJsonPaths.map((p) => relative(gardenRoot, p)),
-  ], { cwd: gardenRoot })
+  await execa(
+    "git",
+    ["add", "CHANGELOG.md", rootPackageJsonPath, ...packageJsonPaths.map((p) => relative(gardenRoot, p))],
+    { cwd: gardenRoot }
+  )
 
-  await execa("git", [
-    "commit",
-    "-m", `chore(release): bump version to ${version}`,
-  ], { cwd: gardenRoot })
+  await execa("git", ["commit", "-m", `chore(release): bump version to ${version}`], { cwd: gardenRoot })
 
   // Tag the commit and push the tag
   if (!dryRun) {
@@ -168,10 +162,7 @@ async function release() {
     await updateExampleLinks(version)
 
     // Add and commit changes to example links
-    await execa("git", [
-      "add",
-      "README.md", "docs",
-    ], { cwd: gardenRoot })
+    await execa("git", ["add", "README.md", "docs"], { cwd: gardenRoot })
     await execa("git", ["commit", "--amend", "--no-edit"], { cwd: gardenRoot })
 
     // Tag the commit and force push the tag after updating the links (this triggers another CI build)
@@ -207,12 +198,9 @@ async function release() {
     Alternatively, you can undo the commit created by the dry-run and run the script
     again without the --dry-run flag. This will perform all the steps automatically.
     `)
-
   } else {
     console.log(deline`
-    \nRelease ${chalk.bold.cyan(version)} has been ${chalk.bold(
-      "tagged"
-    )}, ${chalk.bold("committed")},
+    \nRelease ${chalk.bold.cyan(version)} has been ${chalk.bold("tagged")}, ${chalk.bold("committed")},
     and ${chalk.bold("pushed")} to Github! 🎉\n
 
     A CI job that creates the release artifacts is currently in process: https://circleci.com/gh/garden-io/garden\n
@@ -222,7 +210,7 @@ async function release() {
 
     Please refer to our contributing docs for the next steps:
     https://github.com/garden-io/garden/blob/main/CONTRIBUTING.md
-  `);
+  `)
   }
 }
 
@@ -255,7 +243,13 @@ async function updateExampleLinks(version: string) {
     to: `github.com/garden-io/garden/tree/${version}/examples`,
   }
   const results = await replace(options)
-  console.log("Modified files:", results.filter(r => r.hasChanged).map(r => r.file).join("\n"))
+  console.log(
+    "Modified files:",
+    results
+      .filter((r) => r.hasChanged)
+      .map((r) => r.file)
+      .join("\n")
+  )
 }
 
 async function rollBack() {
@@ -282,7 +276,7 @@ async function prompt(version: string): Promise<boolean> {
  * Update CHANGELOG.md. We need to get the latest entry and prepend it to the current CHANGELOG.md
  */
 async function updateChangelog(version: string) {
-  const changelogPath = "./CHANGELOG.md";
+  const changelogPath = "./CHANGELOG.md"
   // TODO: Use readStream and pipe
   const changelog = await readFile(changelogPath)
   const nextChangelogEntry = (
@@ -299,11 +293,11 @@ async function updateChangelog(version: string) {
     writeStream.close()
     writeStream.on("close", () => {
       resolve(null)
-    });
-    writeStream.on("error", error => {
+    })
+    writeStream.on("error", (error) => {
       reject(error)
-    });
-  });
+    })
+  })
 }
 
 /**
@@ -314,7 +308,7 @@ async function updateChangelog(version: string) {
  * between v0.9.0 and v0.9.1.
  */
 async function stripPrereleaseTags(tags: string[], version: string) {
-  const prereleaseTags = tags.filter(t => !!semver.prerelease(t))
+  const prereleaseTags = tags.filter((t) => !!semver.prerelease(t))
 
   for (const tag of prereleaseTags) {
     // If we're not releasing a pre-release, we remove the tag. Or,
@@ -330,7 +324,7 @@ async function stripPrereleaseTags(tags: string[], version: string) {
   await execa("git", ["tag", "-d", "edge-bonsai"])
 }
 
-(async () => {
+;(async () => {
   try {
     await release()
     process.exit(0)
@@ -338,4 +332,4 @@ async function stripPrereleaseTags(tags: string[], version: string) {
     console.log(err)
     process.exit(1)
   }
-})().catch(() => { })
+})().catch(() => {})

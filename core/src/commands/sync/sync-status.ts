@@ -127,11 +127,12 @@ export class SyncStatusCommand extends Command<Args, Opts> {
 }
 
 function stateStyle(state: SyncState, msg: string) {
-  const styleFn = {
-    "active": chalk.green,
-    "failed": chalk.red,
-    "not-active": chalk.yellow,
-  }[state] || chalk.bold.dim
+  const styleFn =
+    {
+      "active": chalk.green,
+      "failed": chalk.red,
+      "not-active": chalk.yellow,
+    }[state] || chalk.bold.dim
   return styleFn(msg)
 }
 

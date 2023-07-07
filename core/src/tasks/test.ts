@@ -9,7 +9,14 @@
 import { find } from "lodash"
 import minimatch from "minimatch"
 
-import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams, emitGetStatusEvents, emitProcessingEvents } from "../tasks/base"
+import {
+  BaseActionTaskParams,
+  ActionTaskProcessParams,
+  ExecuteActionTask,
+  ActionTaskStatusParams,
+  emitGetStatusEvents,
+  emitProcessingEvents,
+} from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { resolvedActionToExecuted } from "../actions/helpers"
@@ -62,7 +69,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       }
     },
   })
-  @emitGetStatusEvents<TestAction>
+  @(emitGetStatusEvents<TestAction>)
   async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
     this.log.verbose("Checking status...")
     const action = this.getResolvedAction(this.action, dependencyResults)
@@ -109,7 +116,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       }
     },
   })
-  @emitProcessingEvents<TestAction>
+  @(emitProcessingEvents<TestAction>)
   async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
 

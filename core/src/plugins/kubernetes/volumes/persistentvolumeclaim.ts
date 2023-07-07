@@ -60,13 +60,15 @@ const getPVCJsonSchema = memoize(() => {
   return jsonSchema
 })
 
-const kubernetesPVCSchema = memoize(() => joi
-  .object()
-  .jsonSchema(getPVCJsonSchema())
-  .required()
-  .description(
-    "The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec schema may include (or even require) additional fields, depending on the used `storageClass`. See the [PersistentVolumeClaim docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details."
-  ))
+const kubernetesPVCSchema = memoize(() =>
+  joi
+    .object()
+    .jsonSchema(getPVCJsonSchema())
+    .required()
+    .description(
+      "The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec schema may include (or even require) additional fields, depending on the used `storageClass`. See the [PersistentVolumeClaim docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details."
+    )
+)
 
 export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<PersistentVolumeClaimAction> => ({
   name: "persistentvolumeclaim",

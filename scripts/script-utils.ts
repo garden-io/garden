@@ -1,7 +1,7 @@
 // This file contains functions that are being used in multiple different scripts.
 
-import execa from "execa";
-import { mapValues, pickBy } from "lodash";
+import execa from "execa"
+import { mapValues, pickBy } from "lodash"
 import minimatch from "minimatch"
 import { resolve } from "path"
 

@@ -23,7 +23,10 @@ export class SortedStreamIntersection<T> extends Readable {
   private done: boolean
   private started: boolean
 
-  constructor(private streams: Readable[], private comparisonFn: (a: T, b: T) => number) {
+  constructor(
+    private streams: Readable[],
+    private comparisonFn: (a: T, b: T) => number
+  ) {
     super({ objectMode: true })
     this.lastValues = []
     this.ended = []

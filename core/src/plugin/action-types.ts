@@ -46,7 +46,7 @@ export type ActionTypeHandler<
   K extends ActionKind,
   N, // Name of handler
   P extends {}, // Params type
-  R extends {} // Result type
+  R extends {}, // Result type
 > = ((params: P) => Promise<R>) & {
   handlerType?: N
   actionType?: string
@@ -142,17 +142,17 @@ export type BuildActionDescriptions<C extends BuildAction = BuildAction> = BaseH
 
 export type BuildActionHandler<
   N extends keyof BuildActionDescriptions,
-  T extends BuildAction = BuildAction
+  T extends BuildAction = BuildAction,
 > = GetActionTypeHandler<BuildActionDescriptions<T>[N], N>
 
 export type BuildActionParams<
   N extends keyof BuildActionDescriptions,
-  T extends BuildAction = BuildAction
+  T extends BuildAction = BuildAction,
 > = GetActionTypeParams<BuildActionDescriptions<T>[N]>
 
 export type BuildActionResults<
   N extends keyof BuildActionDescriptions,
-  T extends BuildAction = BuildAction
+  T extends BuildAction = BuildAction,
 > = GetActionTypeResults<BuildActionDescriptions<T>[N]>
 
 export type BuildActionHandlers<C extends BuildAction = BuildAction> = {
@@ -179,12 +179,12 @@ export type DeployActionDescriptions<C extends DeployAction = DeployAction> = Ba
 
 export type DeployActionHandler<
   N extends keyof DeployActionDescriptions,
-  T extends DeployAction = DeployAction
+  T extends DeployAction = DeployAction,
 > = GetActionTypeHandler<DeployActionDescriptions<T>[N], N>
 
 export type DeployActionParams<
   N extends keyof DeployActionDescriptions,
-  C extends DeployAction = DeployAction
+  C extends DeployAction = DeployAction,
 > = GetActionTypeParams<DeployActionDescriptions<C>[N]>
 
 export type DeployActionHandlers<C extends DeployAction = DeployAction> = {
@@ -205,7 +205,7 @@ export type RunActionDescriptions<C extends RunAction = RunAction> = BaseHandler
 
 export type RunActionHandler<
   N extends keyof RunActionDescriptions,
-  C extends RunAction = RunAction
+  C extends RunAction = RunAction,
 > = GetActionTypeHandler<RunActionDescriptions<C>[N], N>
 
 export type RunActionHandlers<C extends RunAction = RunAction> = {
@@ -228,7 +228,7 @@ export type TestActionHandlers<C extends TestAction = TestAction> = {
 
 export type TestActionHandler<
   N extends keyof TestActionDescriptions,
-  C extends TestAction = TestAction
+  C extends TestAction = TestAction,
 > = GetActionTypeHandler<TestActionDescriptions<C>[N], N>
 
 export type TestActionExtension<C extends TestAction = TestAction> = ActionTypeExtension<TestActionHandlers<C>>

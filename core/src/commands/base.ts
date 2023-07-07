@@ -590,8 +590,8 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     if (!opts.yes && this.protected && garden.production) {
       const defaultMessage = chalk.yellow(dedent`
         Warning: you are trying to run "garden ${this.getFullName()}" against a production environment ([${
-        garden.environmentName
-      }])!
+          garden.environmentName
+        }])!
           Are you sure you want to continue? (run the command with the "--yes" flag to skip this check).
 
       `)

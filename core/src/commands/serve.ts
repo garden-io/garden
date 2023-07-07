@@ -39,7 +39,7 @@ export type ServeCommandOpts = typeof serveOpts
 export class ServeCommand<
   A extends ServeCommandArgs = ServeCommandArgs,
   O extends ServeCommandOpts = ServeCommandOpts,
-  R = any
+  R = any,
 > extends Command<A, O, R> {
   name = "serve"
   help = "Starts the Garden Core API server for the current project and environment."
@@ -173,9 +173,9 @@ export class ServeCommand<
             const livePageUrl = cloudApi.getLivePageUrl({ shortId: session.shortId })
             const msg = dedent`${printEmoji("🌸", log)}Connected to ${distroName} ${printEmoji("🌸", log)}
               Follow the link below to stream logs, run commands, and more from your web dashboard ${printEmoji(
-              "👇",
-              log
-            )} \n\n${chalk.cyan(livePageUrl)}\n`
+                "👇",
+                log
+              )} \n\n${chalk.cyan(livePageUrl)}\n`
             log.info(chalk.white(msg))
           }
         }

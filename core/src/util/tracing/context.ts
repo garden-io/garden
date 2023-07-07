@@ -61,10 +61,7 @@ export function bindActiveContext<T>(target: T): T {
  * @param fn The callback function which executes with the new context
  * @returns A promise resolving with the callback's return value
  */
-export function withSessionContext<T>(
-  sessionContextOptions: SessionContextOptions,
-  fn: () => Promise<T>
-): Promise<T> {
+export function withSessionContext<T>(sessionContextOptions: SessionContextOptions, fn: () => Promise<T>): Promise<T> {
   const { sessionId, parentSessionId } = sessionContextOptions
   const activeContext = getActiveContext()
 
