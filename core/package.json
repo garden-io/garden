@@ -230,7 +230,7 @@
     "nyc": "^15.1.0",
     "p-event": "^4.2.0",
     "pegjs": "^0.10.0",
-    "prettier": "^2.8.4",
+    "prettier": "3.0.0",
     "ps-tree": "^1.2.0",
     "replace-in-file": "^6.3.5",
     "serve-static": "^1.15.0",
