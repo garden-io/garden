@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-const nodetree = require("nodetree")
 import readdir from "@jsdevtools/readdir-enhanced"
 import { join, basename } from "path"
 import { pathExists, createFile, realpath, readFile, ensureFile, writeFile, ensureDir } from "fs-extra"
@@ -343,50 +342,44 @@ function commonSyncTests(legacyBuildSync: boolean) {
   }
 
   it("should sync dependency products to their specified destinations", async () => {
-    try {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const buildActions = graph.getBuilds()
-      const buildTasks = buildActions.map(
-        (action) =>
-          new BuildTask({
-            garden,
-            log,
-            graph,
-            action,
-            force: true,
-            forceBuild: false,
-          })
-      )
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const buildActions = graph.getBuilds()
+    const buildTasks = buildActions.map(
+      (action) =>
+        new BuildTask({
+          garden,
+          log,
+          graph,
+          action,
+          force: true,
+          forceBuild: false,
+        })
+    )
 
-      await garden.processTasks({ tasks: buildTasks })
+    await garden.processTasks({ tasks: buildTasks })
 
-      const buildActionD = await graph.getBuild("module-d")
-      const buildActionF = await graph.getBuild("module-f")
-      const buildDirD = buildStaging.getBuildPath(buildActionD.getConfig())
-      const buildDirF = buildStaging.getBuildPath(buildActionF.getConfig())
+    const buildActionD = graph.getBuild("module-d")
+    const buildActionF = graph.getBuild("module-f")
+    const buildDirD = buildStaging.getBuildPath(buildActionD.getConfig())
+    const buildDirF = buildStaging.getBuildPath(buildActionF.getConfig())
 
-      // All these destinations should be populated now.
-      const buildProductDestinations = [
-        join(buildDirD, "a", "a.txt"),
-        join(buildDirD, "b", "build", "b1.txt"),
-        join(buildDirD, "b", "build_subdir", "b2.txt"),
-        join(buildDirF, "d", "build", "d.txt"),
-        join(buildDirF, "e", "e1.txt"),
-        join(buildDirF, "e", "build", "e2.txt"),
-      ]
+    // All these destinations should be populated now.
+    const buildProductDestinations = [
+      join(buildDirD, "a", "a.txt"),
+      join(buildDirD, "b", "build", "b1.txt"),
+      join(buildDirD, "b", "build_subdir", "b2.txt"),
+      join(buildDirF, "d", "build", "d.txt"),
+      join(buildDirF, "e", "e1.txt"),
+      join(buildDirF, "e", "build", "e2.txt"),
+    ]
 
-      for (const p of buildProductDestinations) {
-        expect(await pathExists(p)).to.eql(true, `${p} not found`)
-      }
-
-      // This file was not requested by module-d's garden.yml's copy directive for module-b.
-      const notCopiedPath = join(buildDirD, "B", "build", "unused.txt")
-      expect(await pathExists(notCopiedPath)).to.eql(false)
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(nodetree(buildStaging.buildDirPath))
-      throw e
+    for (const p of buildProductDestinations) {
+      expect(await pathExists(p)).to.eql(true, `${p} not found`)
     }
+
+    // This file was not requested by module-d's garden.yml's copy directive for module-b.
+    const notCopiedPath = join(buildDirD, "B", "build", "unused.txt")
+    expect(await pathExists(notCopiedPath)).to.eql(false)
   })
 
   describe("ensureBuildPath", () => {
@@ -433,7 +426,7 @@ function commonSyncTests(legacyBuildSync: boolean) {
 
   it("should ensure that a module's build subdir exists before returning from buildPath", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const buildActionA = await graph.getBuild("module-a")
+    const buildActionA = graph.getBuild("module-a")
     const buildPath = await buildStaging.ensureBuildPath(buildActionA.getConfig())
     expect(await pathExists(buildPath)).to.eql(true)
   })

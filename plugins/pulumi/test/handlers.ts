@@ -40,7 +40,7 @@ const ensureNodeModules = async () => {
 // Note: By default, this test suite assumes that PULUMI_ACCESS_TOKEN is present in the environment (which is the case
 // in CI). To run this test suite with your own pulumi org, replace the `orgName` variable in
 // `test-project-k8s/project.garden.yml` with your own org's name and make sure you've logged in via `pulumi login`.
-describe.skip("pulumi plugin handlers", () => {
+describe("pulumi plugin handlers", () => {
   let garden: TestGarden
   let graph: ResolvedConfigGraph
   let ctx: PluginContext
@@ -60,7 +60,7 @@ describe.skip("pulumi plugin handlers", () => {
   after(async () => {
     const destroyCmd = getPulumiCommands().find((cmd) => cmd.name === "destroy")!
     // // We don't want to wait for the stacks to be deleted (since it takes a while)
-    destroyCmd.handler({ garden, ctx, args: [], graph, log })
+    void destroyCmd.handler({ garden, ctx, args: [], graph, log })
   })
 
   describe("deployPulumiService", () => {
@@ -92,7 +92,8 @@ describe.skip("pulumi plugin handlers", () => {
         log: action.createLog(log),
         action,
       })
-      expect(status.state).to.eql("outdated")
+      expect(status.state).to.eql("not-ready")
+      expect(status.detail?.state).to.eql("outdated")
     })
 
     it("should return a 'ready' state when the stack has already been deployed", async () => {

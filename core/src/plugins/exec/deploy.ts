@@ -23,21 +23,102 @@ import { ensureFile, readFile, remove, writeFile } from "fs-extra"
 import { Transform } from "stream"
 import { ExecLogsFollower } from "./logs"
 import { PluginContext } from "../../plugin-context"
-import { ExecDeploy } from "./config"
-import { DeployActionHandler } from "../../plugin/action-types"
+import {
+  defaultStatusTimeout,
+  execCommonSchema,
+  execPathDoc,
+  execRuntimeOutputsSchema,
+  execStaticOutputsSchema,
+} from "./config"
 import { deployStateToActionState, DeployStatus } from "../../plugin/handlers/Deploy/get-status"
-import { Resolved } from "../../actions/types"
-import { convertCommandSpec, execRun, getDefaultEnvVars } from "./common"
+import { ActionState, Resolved } from "../../actions/types"
+import { convertCommandSpec, execRunCommand, getDefaultEnvVars } from "./common"
 import { isRunning, killRecursive } from "../../process"
+import { sdk } from "../../plugin/sdk"
+import { execProvider } from "./exec"
+import { getTracePropagationEnvVars } from "../../util/tracing/propagation"
+import { DeployState } from "../../types/service"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
-export const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> = async (params) => {
+const s = sdk.schema
+
+export const execDeployCommandSchema = s.sparseArray(s.string()).describe(
+  dedent`
+    The command to run to perform the deployment.
+
+    ${execPathDoc}
+  `
+)
+
+export const execDeploySpecSchema = execCommonSchema.extend({
+  persistent: s
+    .boolean()
+    .default(false)
+    .describe(
+      dedent`
+      Set this to true if the \`deployCommand\` is not expected to return, and should run until the Garden command is manually terminated.
+
+      This replaces the previously supported \`devMode\` from \`exec\` actions.
+
+      If this is set to true, it is highly recommended to also define \`statusCommand\` if possible. Otherwise the Deploy is considered to be immediately ready once the \`deployCommand\` is started.
+      `
+    ),
+  deployCommand: execDeployCommandSchema,
+  statusCommand: s
+    .sparseArray(s.string())
+    .optional()
+    .describe(
+      dedent`
+      Optionally set a command to check the status of the deployment. If this is specified, it is run before the \`deployCommand\`. If the command runs successfully and returns exit code of 0, the deployment is considered already deployed and the \`deployCommand\` is not run.
+
+      If this is not specified, the deployment is always reported as "unknown", so it's highly recommended to specify this command if possible.
+
+      If \`persistent: true\`, Garden will run this command at an interval until it returns a zero exit code or times out.
+
+      ${execPathDoc}
+      `
+    ),
+  cleanupCommand: s
+    .sparseArray(s.string())
+    .optional()
+    .describe(
+      dedent`
+      Optionally set a command to clean the deployment up, e.g. when running \`garden delete env\`.
+
+      ${execPathDoc}
+      `
+    ),
+  statusTimeout: s.number().default(defaultStatusTimeout).describe(dedent`
+    The maximum duration (in seconds) to wait for a for the \`statusCommand\` to return a zero exit code. Ignored if no \`statusCommand\` is set.
+  `),
+  env: s.envVars().default({}).describe("Environment variables to set when running the deploy and status commands."),
+})
+
+export const execDeploy = execProvider.createActionType({
+  kind: "Deploy",
+  name: "exec",
+  docs: sdk.util.dedent`
+    Run and manage a persistent process or service with shell commands.
+  `,
+  specSchema: execDeploySpecSchema,
+  staticOutputsSchema: execStaticOutputsSchema,
+  runtimeOutputsSchema: execRuntimeOutputsSchema,
+})
+
+export type ExecDeployConfig = typeof execDeploy.T.Config
+export type ExecDeploy = typeof execDeploy.T.Action
+
+execDeploy.addHandler("configure", async ({ config }) => {
+  return { config, supportedModes: { sync: !!config.spec.persistent } }
+})
+
+execDeploy.addHandler("getStatus", async (params) => {
   const { action, log, ctx } = params
   const { env, statusCommand } = action.getSpec()
 
   if (statusCommand) {
-    const result = await execRun({
+    const result = await execRunCommand({
       command: statusCommand,
       action,
       ctx,
@@ -46,7 +127,7 @@ export const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> =
       opts: { reject: false },
     })
 
-    const state = result.exitCode === 0 ? "ready" : "outdated"
+    const state = result.exitCode === 0 ? ("ready" as const) : ("outdated" as const)
 
     return {
       state: deployStateToActionState(state),
@@ -60,7 +141,7 @@ export const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> =
       },
     }
   } else {
-    const state = "unknown"
+    const state = "unknown" as const
 
     return {
       state: deployStateToActionState(state),
@@ -70,9 +151,9 @@ export const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> =
       },
     }
   }
-}
+})
 
-export const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = async (params) => {
+execDeploy.addHandler("getLogs", async (params) => {
   const { action, stream, follow, ctx, log } = params
 
   const logFilePath = getLogFilePath({ ctx, deployName: action.name })
@@ -90,9 +171,9 @@ export const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = asy
   }
 
   return {}
-}
+})
 
-export const deployExec: DeployActionHandler<"deploy", ExecDeploy> = async (params) => {
+execDeploy.addHandler("deploy", async (params) => {
   const { action, log, ctx } = params
   const spec = action.getSpec()
 
@@ -104,7 +185,7 @@ export const deployExec: DeployActionHandler<"deploy", ExecDeploy> = async (para
   } else if (spec.persistent) {
     return deployPersistentExecService({ action, log, ctx, env, deployName: action.name })
   } else {
-    const result = await execRun({
+    const result = await execRunCommand({
       command: spec.deployCommand,
       action,
       ctx,
@@ -113,24 +194,28 @@ export const deployExec: DeployActionHandler<"deploy", ExecDeploy> = async (para
       opts: { reject: true },
     })
 
-    const outputLog = (result.stdout + result.stderr).trim()
-    if (outputLog) {
+    if (result.outputLog) {
       const prefix = `Finished deploying service ${chalk.white(action.name)}. Here is the output:`
-      log.verbose(renderMessageWithDivider({
-        prefix,
-        msg: outputLog,
-        isError: false,
-        color: chalk.gray
-      }))
+      log.verbose(
+        renderMessageWithDivider({
+          prefix,
+          msg: result.outputLog,
+          isError: !result.success,
+          color: chalk.gray,
+        })
+      )
     }
 
+    const deployState: DeployState = result.success ? "ready" : "unhealthy"
+    const actionState: ActionState = result.success ? "ready" : "failed"
+
     return {
-      state: "ready",
-      detail: { state: "ready", detail: { deployCommandOutput: result.all } },
+      state: actionState,
+      detail: { state: deployState, detail: { deployCommandOutput: result.all } },
       outputs: {},
     }
   }
-}
+})
 
 export async function deployPersistentExecService({
   ctx,
@@ -197,8 +282,8 @@ export async function deployPersistentExecService({
           }
         }
 
-        throw new TimeoutError(
-          dedent`Timed out waiting for local service ${deployName} to be ready.
+        throw new TimeoutError({
+          message: dedent`Timed out waiting for local service ${deployName} to be ready.
 
           Garden timed out waiting for the command ${chalk.gray(spec.statusCommand)}
           to return status code 0 (success) after waiting for ${spec.statusTimeout} seconds.
@@ -210,16 +295,16 @@ export async function deployPersistentExecService({
           In case the service just needs more time to become ready, you can adjust the ${chalk.gray("timeout")} value
           in your service definition to a value that is greater than the time needed for your service to become ready.
           `,
-          {
+          detail: {
             deployName,
             statusCommand: spec.statusCommand,
             pid: proc.pid,
             statusTimeout: spec.statusTimeout,
-          }
-        )
+          },
+        })
       }
 
-      const result = await execRun({
+      const result = await execRunCommand({
         command: spec.statusCommand,
         action,
         ctx,
@@ -240,7 +325,7 @@ export async function deployPersistentExecService({
   }
 }
 
-export const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async (params) => {
+execDeploy.addHandler("delete", async (params) => {
   const { action, log, ctx } = params
   const { cleanupCommand, env } = action.getSpec()
 
@@ -248,7 +333,7 @@ export const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async
   await killProcess(log, pidFilePath, action.name)
 
   if (cleanupCommand) {
-    const result = await execRun({
+    const result = await execRunCommand({
       command: cleanupCommand,
       action,
       ctx,
@@ -264,9 +349,9 @@ export const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async
     }
   } else {
     log.warn(`Missing cleanupCommand, unable to clean up service`)
-    return { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
+    return { state: "unknown", detail: { state: "unknown" as const, detail: {} }, outputs: {} }
   }
-}
+})
 
 function getExecMetadataPath(ctx: PluginContext) {
   return join(ctx.gardenDirPath, "exec")
@@ -287,8 +372,8 @@ async function killProcess(log: Log, pidFilePath: string, deployName: string) {
       const oldPid = parseInt(pidString, 10)
       if (isRunning(oldPid)) {
         try {
-          await killRecursive("INT", oldPid)
-          log.debug(`Sent SIGINT to existing ${deployName} process (PID ${oldPid})`)
+          await killRecursive("SIGTERM", oldPid)
+          log.debug(`Sent SIGTERM to existing ${deployName} process (PID ${oldPid})`)
         } catch (err) {
           // This most likely means that the process had already been terminated, which is fine for our purposes here.
           log.debug(`An error occurred while deleting existing ${deployName} process (PID ${oldPid}): ${err.message}`)
@@ -311,6 +396,7 @@ async function resetLogFile(logFilePath: string) {
 
 function runPersistent({
   action,
+  log,
   env,
   deployName,
   logFilePath,
@@ -345,11 +431,14 @@ function runPersistent({
   const shell = !!action.getSpec().shell
   const { cmd, args } = convertCommandSpec(action.getSpec("deployCommand"), shell)
 
+  log.debug(`Starting command '${cmd} ${args.join(" ")}'`)
+
   const proc = execa(cmd, args, {
     cwd: action.getBuildPath(),
     env: {
       ...getDefaultEnvVars(action),
       ...(env ? mapValues(env, (v) => v + "") : {}),
+      ...getTracePropagationEnvVars(),
     },
     shell,
     cleanup: true,

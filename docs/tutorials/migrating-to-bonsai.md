@@ -41,6 +41,7 @@ Here is the list of breaking changes from Garden Acorn (0.12) to Bonsai (0.13). 
 It is possible to use both module and action configs in the same project. This should make it easier to convert projects piece by piece.
 
 Internally, Garden converts modules into actions:
+
 - The build step of a module (if any) becomes a Build action.
 - Services become Deploy actions.
 - Tests become Test actions.
@@ -59,6 +60,14 @@ However, there are some caveats:
 - Modules cannot depend on actions
 - Modules cannot reference actions
 - Actions can reference and depend on modules, by referencing the actions that are generated from modules.
+
+## Updating the CLI
+
+If you have installed `garden` via Homebrew, running `brew upgrade garden-cli` will update you to Bonsai (0.13.x).
+
+Alternatively, you can use the built-in update mechanism to update in-place: `garden self-update --major`. You can run `garden self-update --help` for more details.
+
+Lastly, you can manually download any version on our [releases page](https://github.com/garden-io/garden/releases).
 
 ## Opt in to the new format
 
@@ -325,7 +334,7 @@ spec:
 
 ## Mixed use of Garden Acorn (0.12) and Bonsai (0.13)
 
-For backwards compatibility, Garden Bonsai will default to `apiVersion: garden.io/v0` in your project configuration  (`kind: Project`).
+For backwards compatibility, Garden Bonsai will default to `apiVersion: garden.io/v0` in your project configuration (`kind: Project`).
 
 Using `apiVersion: garden.io/v0` enables teams to gradually move to Bonsai, one team member at a time, because members can already choose to use Bonsai, while still being able to use Acorn (`0.12`) when necessary.
 
@@ -352,7 +361,7 @@ set to true if the relative mode is requested for the `api` service/deploy.
 
 ```yml
 variables:
-  sync-mode: ${command.params contains 'sync' && (command.params.sync contains 'api' || isEmpty(command.params.sync))} 
+  sync-mode: ${command.params contains 'sync' && (command.params.sync contains 'api' || isEmpty(command.params.sync))}
   dev-mode: ${command.name == 'dev' || (command.params contains 'dev-mode' && (command.params.dev-mode contains 'api' || isEmpty(command.params.dev-mode)))}
 ```
 

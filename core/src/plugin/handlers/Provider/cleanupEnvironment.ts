@@ -9,13 +9,11 @@
 import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
-import { NamespaceStatus, namespaceStatusesSchema } from "../../../types/namespace"
+import type { BaseProviderConfig } from "../../../config/provider"
 
-export interface CleanupEnvironmentParams extends PluginActionParamsBase {}
+export interface CleanupEnvironmentParams<C extends BaseProviderConfig = any> extends PluginActionParamsBase<C> {}
 
-export interface CleanupEnvironmentResult {
-  namespaceStatuses?: NamespaceStatus[]
-}
+export interface CleanupEnvironmentResult {}
 
 export const cleanupEnvironment = () => ({
   description: dedent`
@@ -27,5 +25,5 @@ export const cleanupEnvironment = () => ({
     Called by the \`garden delete environment\` command.
   `,
   paramsSchema: projectActionParamsSchema(),
-  resultSchema: joi.object().keys({ namespaceStatuses: namespaceStatusesSchema().optional() }),
+  resultSchema: joi.object(),
 })

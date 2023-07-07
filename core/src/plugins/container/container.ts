@@ -16,6 +16,8 @@ import {
   ContainerActionConfig,
   ContainerBuildActionConfig,
   ContainerModule,
+  ContainerModuleVolumeSpec,
+  ContainerRuntimeActionConfig,
   containerModuleOutputsSchema,
   containerModuleSpecSchema,
   defaultDockerfileName,
@@ -28,7 +30,7 @@ import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
 import { GetModuleOutputsParams } from "../../plugin/handlers/Module/get-outputs"
 import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
-import { ExecActionConfig, ExecBuildConfig } from "../exec/config"
+import { ExecActionConfig } from "../exec/config"
 import {
   containerBuildOutputsSchema,
   containerDeploySchema,
@@ -46,6 +48,7 @@ import { getDeployedImageId } from "../kubernetes/container/util"
 import { KubernetesProvider } from "../kubernetes/config"
 import { DeepPrimitiveMap } from "../../config/common"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants"
+import { ExecBuildConfig } from "../exec/build"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 
@@ -64,9 +67,12 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
       const ingressPort = ingress.port
 
       if (!portsByName[ingressPort]) {
-        throw new ConfigurationError(`Service ${name} does not define port ${ingressPort} defined in ingress`, {
-          definedPorts,
-          ingressPort,
+        throw new ConfigurationError({
+          message: `Service ${name} does not define port ${ingressPort} defined in ingress`,
+          detail: {
+            definedPorts,
+            ingressPort,
+          },
         })
       }
     }
@@ -75,10 +81,10 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
       const healthCheckHttpPort = spec.healthCheck.httpGet.port
 
       if (!portsByName[healthCheckHttpPort]) {
-        throw new ConfigurationError(
-          `Service ${name} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
-          { definedPorts, healthCheckHttpPort }
-        )
+        throw new ConfigurationError({
+          message: `Service ${name} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
+          detail: { definedPorts, healthCheckHttpPort },
+        })
       }
     }
 
@@ -86,10 +92,10 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
       const healthCheckTcpPort = spec.healthCheck.tcpPort
 
       if (!portsByName[healthCheckTcpPort]) {
-        throw new ConfigurationError(
-          `Service ${name} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
-          { definedPorts, healthCheckTcpPort }
-        )
+        throw new ConfigurationError({
+          message: `Service ${name} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
+          detail: { definedPorts, healthCheckTcpPort },
+        })
       }
     }
 
@@ -209,7 +215,7 @@ function convertContainerModuleRuntimeActions(
   convertParams: ConvertModuleParams<ContainerModule>,
   buildAction: ContainerBuildActionConfig | ExecBuildConfig | undefined,
   needsContainerBuild: boolean
-): ContainerActionConfig[] {
+) {
   const { module, services, tasks, tests, prepareRuntimeDependencies } = convertParams
   const actions: ContainerActionConfig[] = []
 
@@ -217,6 +223,24 @@ function convertContainerModuleRuntimeActions(
   if (deploymentImageId) {
     // If `module.spec.image` is set, but the image id is missing a tag, we need to add the module version as the tag.
     deploymentImageId = containerHelpers.getModuleDeploymentImageId(module, module.version, undefined)
+  }
+
+  const volumeModulesReferenced: string[] = []
+  function configureActionVolumes(action: ContainerRuntimeActionConfig, volumeSpec: ContainerModuleVolumeSpec[]) {
+    volumeSpec.forEach((v) => {
+      const referencedPvcAction = v.module ? { kind: <"Deploy">"Deploy", name: v.module } : undefined
+      action.spec.volumes.push({
+        ...omit(v, "module"),
+        action: referencedPvcAction,
+      })
+      if (referencedPvcAction) {
+        action.dependencies?.push(referencedPvcAction)
+      }
+      if (v.module) {
+        volumeModulesReferenced.push(v.module)
+      }
+    })
+    return action
   }
 
   for (const service of services) {
@@ -234,21 +258,18 @@ function convertContainerModuleRuntimeActions(
       spec: {
         ...omit(service.spec, ["name", "dependencies", "disabled"]),
         image: deploymentImageId,
-        volumes: [], // added later
+        volumes: [],
       },
     }
-    action.spec.volumes = service.config.spec.volumes.map((v) => ({
-      ...omit(v, "module"),
-      action: v.module ? { kind: "Deploy", name: v.module } : undefined,
-    }))
-    actions.push(action)
+    actions.push(configureActionVolumes(action, service.config.spec.volumes))
   }
 
   for (const task of tasks) {
-    actions.push({
+    const action: ContainerActionConfig = {
       kind: "Run",
       type: "container",
       name: task.name,
+      description: task.spec.description,
       ...convertParams.baseFields,
 
       disabled: task.disabled,
@@ -257,14 +278,16 @@ function convertContainerModuleRuntimeActions(
       timeout: task.spec.timeout,
 
       spec: {
-        ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
+        ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
         image: needsContainerBuild ? undefined : module.spec.image,
+        volumes: [],
       },
-    })
+    }
+    actions.push(configureActionVolumes(action, task.config.spec.volumes))
   }
 
   for (const test of tests) {
-    actions.push({
+    const action: ContainerActionConfig = {
       kind: "Test",
       type: "container",
       name: module.name + "-" + test.name,
@@ -278,11 +301,13 @@ function convertContainerModuleRuntimeActions(
       spec: {
         ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
         image: needsContainerBuild ? undefined : module.spec.image,
+        volumes: [],
       },
-    })
+    }
+    actions.push(configureActionVolumes(action, test.config.spec.volumes))
   }
 
-  return actions
+  return { actions, volumeModulesReferenced }
 }
 
 export async function convertContainerModule(params: ConvertModuleParams<ContainerModule>) {
@@ -295,7 +320,7 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
     needsContainerBuild = true
   }
 
-  let buildAction: ContainerActionConfig | ExecActionConfig | undefined = undefined
+  let buildAction: ContainerBuildActionConfig | ExecBuildConfig | undefined = undefined
 
   if (needsContainerBuild) {
     buildAction = {
@@ -321,11 +346,18 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
     actions.push(buildAction)
   } else if (dummyBuild) {
     buildAction = dummyBuild
-    actions.push(buildAction)
+    actions.push(buildAction!)
   }
 
-  const runtimeActions = convertContainerModuleRuntimeActions(params, buildAction, needsContainerBuild)
+  const { actions: runtimeActions, volumeModulesReferenced } = convertContainerModuleRuntimeActions(
+    params,
+    buildAction,
+    needsContainerBuild
+  )
   actions.push(...runtimeActions)
+  if (buildAction) {
+    buildAction.dependencies = buildAction?.dependencies?.filter((d) => !volumeModulesReferenced.includes(d.name))
+  }
 
   return {
     group: {
@@ -360,7 +392,7 @@ export const gardenPlugin = () =>
             async getOutputs({ action }) {
               // TODO: figure out why this cast is needed here
               return {
-                outputs: (getContainerBuildActionOutputs(action) as unknown) as DeepPrimitiveMap,
+                outputs: getContainerBuildActionOutputs(action) as unknown as DeepPrimitiveMap,
               }
             },
 
@@ -397,13 +429,13 @@ export const gardenPlugin = () =>
                 const ingressPort = ingress.port
 
                 if (!portsByName[ingressPort]) {
-                  throw new ConfigurationError(
-                    `${action.longDescription()} does not define port ${ingressPort} defined in ingress`,
-                    {
+                  throw new ConfigurationError({
+                    message: `${action.longDescription()} does not define port ${ingressPort} defined in ingress`,
+                    detail: {
                       definedPorts,
                       ingressPort,
-                    }
-                  )
+                    },
+                  })
                 }
               }
 
@@ -411,10 +443,10 @@ export const gardenPlugin = () =>
                 const healthCheckHttpPort = spec.healthCheck.httpGet.port
 
                 if (!portsByName[healthCheckHttpPort]) {
-                  throw new ConfigurationError(
-                    `${action.longDescription()} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
-                    { definedPorts, healthCheckHttpPort }
-                  )
+                  throw new ConfigurationError({
+                    message: `${action.longDescription()} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
+                    detail: { definedPorts, healthCheckHttpPort },
+                  })
                 }
               }
 
@@ -422,21 +454,10 @@ export const gardenPlugin = () =>
                 const healthCheckTcpPort = spec.healthCheck.tcpPort
 
                 if (!portsByName[healthCheckTcpPort]) {
-                  throw new ConfigurationError(
-                    `${action.longDescription()} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
-                    { definedPorts, healthCheckTcpPort }
-                  )
-                }
-              }
-
-              for (const volume of spec.volumes) {
-                if (volume.action && !action.hasDependency(volume.action)) {
-                  throw new ConfigurationError(
-                    `${action.longDescription()} references action ${
-                      volume.action
-                    } under \`spec.volumes\` but does not declare a dependency on it. Please add an explicit dependency on the volume action.`,
-                    { spec }
-                  )
+                  throw new ConfigurationError({
+                    message: `${action.longDescription()} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
+                    detail: { definedPorts, healthCheckTcpPort },
+                  })
                 }
               }
 
@@ -521,6 +542,7 @@ export const gardenPlugin = () =>
     tools: [
       {
         name: "docker",
+        version: "20.10.9",
         description: "The official Docker CLI.",
         type: "binary",
         _includeInGardenImage: true,
@@ -558,8 +580,7 @@ export const gardenPlugin = () =>
           {
             platform: "windows",
             architecture: "amd64",
-            url:
-              "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v20.10.9/docker-20.10.9.zip",
+            url: "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v20.10.9/docker-20.10.9.zip",
             sha256: "360ca42101d453022eea17747ae0328709c7512e71553b497b88b7242b9b0ee4",
             extract: {
               format: "zip",
@@ -573,29 +594,43 @@ export const gardenPlugin = () =>
 
 function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
   const { build } = action.getConfig()
-  const { image } = action.getSpec()
+  const { image, volumes } = action.getSpec()
 
   if (!build && !image) {
-    throw new ConfigurationError(`${action.longDescription()} must specify one of \`build\` or \`spec.image\``, {
-      actionKey: action.key(),
+    throw new ConfigurationError({
+      message: `${action.longDescription()} must specify one of \`build\` or \`spec.image\``,
+      detail: {
+        actionKey: action.key(),
+      },
     })
   } else if (build && image) {
-    throw new ConfigurationError(
-      `${action.longDescription()} specifies both \`build\` and \`spec.image\`. Only one may be specified.`,
-      {
+    throw new ConfigurationError({
+      message: `${action.longDescription()} specifies both \`build\` and \`spec.image\`. Only one may be specified.`,
+      detail: {
         actionKey: action.key(),
-      }
-    )
+      },
+    })
   } else if (build) {
     const buildAction = action.getDependency({ kind: "Build", name: build }, { includeDisabled: true })
     if (buildAction && !buildAction?.isCompatible("container")) {
-      throw new ConfigurationError(
-        `${action.longDescription()} build field must specify a container Build, or a compatible type.`,
-        {
+      throw new ConfigurationError({
+        message: `${action.longDescription()} build field must specify a container Build, or a compatible type.`,
+        detail: {
           actionKey: action.key(),
           buildActionName: build,
-        }
-      )
+        },
+      })
+    }
+  }
+
+  for (const volume of volumes) {
+    if (volume.action && !action.hasDependency(volume.action)) {
+      throw new ConfigurationError({
+        message: `${action.longDescription()} references action ${
+          volume.action
+        } under \`spec.volumes\` but does not declare a dependency on it. Please add an explicit dependency on the volume action.`,
+        detail: { volume },
+      })
     }
   }
 }

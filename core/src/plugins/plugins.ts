@@ -9,10 +9,12 @@
 // These plugins are always registered and the providers documented
 export const getSupportedPlugins = () => [
   { name: "container", callback: () => require("./container/container").gardenPlugin() },
-  { name: "exec", callback: () => require("./exec/exec").gardenPlugin() },
-  { name: "hadolint", callback: () => require("./hadolint/hadolint").gardenPlugin() },
+  { name: "exec", callback: () => require("./exec/exec").gardenPlugin.getSpec() },
+  { name: "hadolint", callback: () => require("./hadolint/hadolint").gardenPlugin.getSpec() },
   { name: "kubernetes", callback: () => require("./kubernetes/kubernetes").gardenPlugin() },
   { name: "local-kubernetes", callback: () => require("./kubernetes/local/local").gardenPlugin() },
+  { name: "openshift", callback: () => require("./openshift/openshift").gardenPlugin() },
+  { name: "local-openshift", callback: () => require("./openshift/local/local").gardenPlugin() },
   { name: "octant", callback: () => require("./octant/octant").gardenPlugin() },
 ]
 

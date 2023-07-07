@@ -58,12 +58,13 @@ export function helpTextMaxWidth() {
 
 export async function checkForStaticDir() {
   if (!(await pathExists(STATIC_DIR))) {
-    throw new InternalError(
-      `Could not find the static data directory. Garden is packaged with a data directory ` +
+    throw new InternalError({
+      message:
+        `Could not find the static data directory. Garden is packaged with a data directory ` +
         `called 'static', which should be located next to your garden binary. Please try reinstalling, ` +
         `and make sure the release archive is fully extracted to the target directory.`,
-      {}
-    )
+      detail: {},
+    })
   }
 }
 
@@ -282,9 +283,12 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
     } else {
       const expected = argKeys.length > 0 ? "only " + naturalList(argKeys.map((key) => chalk.white.bold(key))) : "none"
 
-      throw new ParameterError(`Unexpected positional argument "${argVal}" (expected ${expected})`, {
-        expectedKeys: argKeys,
-        extraValue: argVal,
+      throw new ParameterError({
+        message: `Unexpected positional argument "${argVal}" (expected ${expected})`,
+        detail: {
+          expectedKeys: argKeys,
+          extraValue: argVal,
+        },
       })
     }
 
@@ -300,10 +304,13 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
         processedArgs[argKey] = validated
       }
     } catch (error) {
-      throw new ParameterError(`Invalid value for argument ${chalk.white.bold(argKey)}: ${error.message}`, {
-        error,
-        key: argKey,
-        value: argVal,
+      throw new ParameterError({
+        message: `Invalid value for argument ${chalk.white.bold(argKey)}: ${error.message}`,
+        detail: {
+          error,
+          key: argKey,
+          value: argVal,
+        },
       })
     }
   }
@@ -331,7 +338,7 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
 
     if (!spec) {
       if (command.allowUndefinedArguments && value !== undefined) {
-        processedOpts[key] = value
+        processedOpts[key as keyof typeof optSpec] = value
       } else {
         errors.push(`Unrecognized option flag ${flagStr}`)
         continue
@@ -356,7 +363,7 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
     if (value !== undefined) {
       try {
         value = spec.validate(spec.coerce(value))
-        processedOpts[key] = value
+        processedOpts[key as keyof typeof optSpec] = value
       } catch (err) {
         errors.push(`Invalid value for option ${flagStr}: ${err.message}`)
       }
@@ -364,7 +371,10 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
   }
 
   if (errors.length > 0) {
-    throw new ParameterError(chalk.red.bold(errors.join("\n")), { parsedArgs, processedArgs, processedOpts, errors })
+    throw new ParameterError({
+      message: chalk.red.bold(errors.join("\n")),
+      detail: { parsedArgs, processedArgs, processedOpts, errors },
+    })
   }
 
   // To ensure that `command.params` behaves intuitively in template strings, we don't want to add option keys with

@@ -17,11 +17,12 @@ import { Command, CommandParams } from "../base"
 import { createActionLog, Log } from "../../logger/log-entry"
 import { PluginEventBroker } from "../../plugin-context"
 import { resolvedActionToExecuted } from "../../actions/helpers"
-import { GetSyncStatusResult } from "../../plugin/handlers/Deploy/get-sync-status"
+import { GetSyncStatusResult, SyncState } from "../../plugin/handlers/Deploy/get-sync-status"
 import { isEmpty, omit } from "lodash"
 import { Garden } from "../.."
 import { ResolvedDeployAction } from "../../actions/deploy"
 import { ResolvedConfigGraph } from "../../graph/config-graph"
+import { DOCS_BASE_URL } from "../../constants"
 
 const syncStatusArgs = {
   names: new StringsParameter({
@@ -118,11 +119,24 @@ export class SyncStatusCommand extends Command<Args, Opts> {
         Follow the link below to learn how to enable live code syncing with Garden:
       `)
       log.info("")
-      log.info(chalk.cyan.underline("https://docs.garden.io/guides/code-synchronization"))
+      log.info(chalk.cyan.underline(`${DOCS_BASE_URL}/guides/code-synchronization`))
     }
 
     return { result: { actions: syncStatuses } }
   }
+}
+
+function stateStyle(state: SyncState, msg: string) {
+  const styleFn = {
+    "active": chalk.green,
+    "failed": chalk.red,
+    "not-active": chalk.yellow,
+  }[state] || chalk.bold.dim
+  return styleFn(msg)
+}
+
+function describeState(state: SyncState) {
+  return state.replace("-", " ")
 }
 
 export async function getSyncStatuses({
@@ -130,7 +144,7 @@ export async function getSyncStatuses({
   skipDetail,
   garden,
   log,
-  graph
+  graph,
 }: {
   log: Log
   deployActions: ResolvedDeployAction[]
@@ -181,30 +195,28 @@ export async function getSyncStatuses({
       })
       syncStatus["syncs"] = sorted
 
-      const styleFn =
-        {
-          "active": chalk.green,
-          "failed": chalk.red,
-          "not-active": chalk.yellow,
-        }[syncStatus.state] || chalk.bold.dim
-
       const verbMap = {
         "active": "is",
         "failed": "has",
         "not-active": "is",
       }
 
-      log.info(`The ${chalk.cyan(action.name)} Deploy has ${chalk.cyan(syncStatus.syncs.length)} syncs(s) configured:`)
+      const syncCount = syncStatus.syncs.length
+      const pluralizedSyncs = syncCount === 1 ? "sync" : "syncs"
+      log.info(
+        `The ${chalk.cyan(action.name)} Deploy action has ${chalk.cyan(syncCount)} ${pluralizedSyncs} configured:`
+      )
       const leftPad = "  →"
       syncs.forEach((sync, idx) => {
         const state = sync.state
         log.info(
-          `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.target)} ${verbMap[state]} ${styleFn(
-            state
+          `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.target)} ${verbMap[state]} ${stateStyle(
+            state,
+            describeState(state)
           )}`
         )
         sync.mode && log.info(chalk.bold(`${leftPad} Mode: ${sync.mode}`))
-        sync.syncCount && log.info(chalk.bold(`${leftPad} Sync count: ${sync.syncCount}`))
+        sync.syncCount && log.info(chalk.bold(`${leftPad} Number of completed syncs: ${sync.syncCount}`))
         if (state === "failed" && sync.message) {
           log.info(`${chalk.bold(leftPad)} ${chalk.yellow(sync.message)}`)
         }

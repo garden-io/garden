@@ -6,13 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa from "execa"
 import { find } from "lodash"
-import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
-import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
+import { PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { PluginError } from "@garden-io/core/build/src/exceptions"
 import { resolve } from "path"
 import { pathExists } from "fs-extra"
-import { Writable } from "stream"
+import { runBuildTool, BuildToolParams, verifyBinaryPath, VerifyBinaryParams } from "./build-tool-base"
 
 export const gradleVersion = "7.5.1"
 
@@ -27,6 +26,7 @@ const spec = {
 
 export const gradleSpec: PluginToolSpec = {
   name: "gradle",
+  version: gradleVersion,
   description: "The gradle CLI.",
   type: "binary",
   builds: [
@@ -61,50 +61,19 @@ export function getGradleTool(ctx: PluginContext) {
   const tool = find(ctx.tools, (_, k) => k.endsWith(".gradle"))
 
   if (!tool) {
-    throw new PluginError(`Could not find configured gradle tool`, { tools: ctx.tools })
+    throw new PluginError({ message: `Could not find configured gradle tool`, detail: { tools: ctx.tools } })
   }
 
   return tool
 }
 
-const baseErrorMessage = (gradlePath: string): string =>
-  `Gradle binary path "${gradlePath}" is incorrect! Please check the \`gradlePath\` configuration option.`
-
-async function checkGradleVersion(gradlePath: string) {
-  try {
-    const res = await execa(gradlePath, ["--version"])
-    return res.stdout
-  } catch (error) {
-    const composeErrorMessage = (err: any): string => {
-      if (err.code === "EACCES") {
-        return `${baseErrorMessage(
-          gradlePath
-        )} It looks like the Gradle path defined in the config is not an executable binary.`
-      } else if (err.code === "ENOENT") {
-        return `${baseErrorMessage(gradlePath)} The Gradle path defined in the configuration does not exist.`
-      } else {
-        return baseErrorMessage(gradlePath)
-      }
-    }
-    throw new RuntimeError(composeErrorMessage(error), { gradlePath })
-  }
-}
-
 let gradlePathValid = false
 
-async function verifyGradlePath(gradlePath: string) {
+async function verifyGradlePath(params: VerifyBinaryParams) {
   if (gradlePathValid) {
     return
   }
-
-  const versionOutput = await checkGradleVersion(gradlePath)
-  const isGradle = versionOutput.toLowerCase().includes("gradle")
-  if (!isGradle) {
-    throw new RuntimeError(
-      `${baseErrorMessage(gradlePath)} It looks like the Gradle path points to a non-Gradle executable binary.`,
-      { gradlePath }
-    )
-  }
+  await verifyBinaryPath(params)
   gradlePathValid = true
 }
 
@@ -115,29 +84,17 @@ async function verifyGradlePath(gradlePath: string) {
  * If no explicit binary specific, then a `./gradlew` script will be used if it's available in the specified directory.
  * Otherwise, the Gradle distribution will be downloaded and used.
  */
-export async function gradle({
-  ctx,
-  args,
-  cwd,
-  log,
-  openJdkPath,
-  gradlePath,
-  outputStream,
-}: {
-  ctx: PluginContext
-  args: string[]
-  cwd: string
-  log: Log
-  openJdkPath: string
-  gradlePath?: string
-  outputStream: Writable
-}) {
+export async function gradle({ ctx, args, cwd, log, openJdkPath, binaryPath, outputStream }: BuildToolParams) {
   let effectiveGradlePath: string
-
-  if (!!gradlePath) {
-    log.verbose(`Using explicitly specified Gradle binary from ${gradlePath}`)
-    effectiveGradlePath = gradlePath
-    await verifyGradlePath(effectiveGradlePath)
+  if (!!binaryPath) {
+    log.verbose(`Using explicitly specified Gradle binary from ${binaryPath}`)
+    effectiveGradlePath = binaryPath
+    await verifyGradlePath({
+      binaryPath,
+      toolName: "Gradle",
+      configFieldName: "gradlePath",
+      outputVerificationString: "gradle",
+    })
   } else {
     const gradlewPath = resolve(cwd, process.platform === "win32" ? "gradlew.bat" : "gradlew")
     if (await pathExists(gradlewPath)) {
@@ -150,21 +107,10 @@ export async function gradle({
         `The Gradle binary hasn't been specified explicitly. Gradle ${gradleVersion} will be used by default.`
       )
       const tool = getGradleTool(ctx)
-      effectiveGradlePath = await tool.getPath(log)
+      effectiveGradlePath = await tool.ensurePath(log)
     }
   }
 
   log.debug(`Execing ${effectiveGradlePath} ${args.join(" ")}`)
-
-  const res = execa(effectiveGradlePath, args, {
-    cwd,
-    env: {
-      JAVA_HOME: openJdkPath,
-    },
-  })
-
-  res.stdout?.pipe(outputStream)
-  res.stderr?.pipe(outputStream)
-
-  return res
+  return runBuildTool({ binaryPath: effectiveGradlePath, args, cwd, openJdkPath, outputStream })
 }

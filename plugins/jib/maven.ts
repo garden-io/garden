@@ -7,19 +7,18 @@
  */
 
 import AsyncLock from "async-lock"
-import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { find } from "lodash"
-import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
-import { Writable } from "node:stream"
-import execa from "execa"
+import { PluginError } from "@garden-io/core/build/src/exceptions"
+import { BuildToolParams, runBuildTool, verifyBinaryPath, VerifyBinaryParams } from "./build-tool-base"
 
 const buildLock = new AsyncLock()
 
-export const mvnVersion = "3.8.5"
+export const mvnVersion = "3.8.8"
 
 const spec = {
   url: `https://archive.apache.org/dist/maven/maven-3/${mvnVersion}/binaries/apache-maven-${mvnVersion}-bin.tar.gz`,
-  sha256: "88e30700f32a3f60e0d28d0f12a3525d29b7c20c72d130153df5b5d6d890c673",
+  sha256: "17811e108701af5985bf5167abbd47c06e92c6c6bd1c13a1a1c095c9b4ecc32a",
   extract: {
     format: "tar",
     targetPath: `apache-maven-${mvnVersion}/bin/mvn`,
@@ -28,6 +27,7 @@ const spec = {
 
 export const mavenSpec: PluginToolSpec = {
   name: "maven",
+  version: mvnVersion,
   description: "The Maven CLI.",
   type: "binary",
   builds: [
@@ -51,7 +51,7 @@ export const mavenSpec: PluginToolSpec = {
       architecture: "amd64",
       ...spec,
       url: `https://archive.apache.org/dist/maven/maven-3/${mvnVersion}/binaries/apache-maven-${mvnVersion}-bin.zip`,
-      sha256: "d53e045bc5c02aad179fae2fbc565d953354880db6661a8fab31f3a718d7b62c",
+      sha256: "2e181515ce8ae14b7a904c40bb4794831f5fd1d9641107a13b916af15af4001a",
       extract: {
         format: "zip",
         targetPath: spec.extract.targetPath + ".cmd",
@@ -64,50 +64,19 @@ export function getMvnTool(ctx: PluginContext) {
   const tool = find(ctx.tools, (_, k) => k.endsWith(".maven"))
 
   if (!tool) {
-    throw new PluginError(`Could not find configured maven tool`, { tools: ctx.tools })
+    throw new PluginError({ message: `Could not find configured maven tool`, detail: { tools: ctx.tools } })
   }
 
   return tool
 }
 
-const baseErrorMessage = (mvnPath: string): string =>
-  `Maven binary path "${mvnPath}" is incorrect! Please check the \`mavenPath\` configuration option.`
-
-async function checkMavenVersion(mvnPath: string) {
-  try {
-    const res = await execa(mvnPath, ["--version"])
-    return res.stdout
-  } catch (error) {
-    const composeErrorMessage = (err: any): string => {
-      if (err.code === "EACCES") {
-        return `${baseErrorMessage(
-          mvnPath
-        )} It looks like the Maven path defined in the config is not an executable binary.`
-      } else if (err.code === "ENOENT") {
-        return `${baseErrorMessage(mvnPath)} The Maven path defined in the configuration does not exist.`
-      } else {
-        return baseErrorMessage(mvnPath)
-      }
-    }
-    throw new RuntimeError(composeErrorMessage(error), { mvnPath })
-  }
-}
-
 let mavenPathValid = false
 
-async function verifyMavenPath(mvnPath: string) {
+async function verifyMavenPath(params: VerifyBinaryParams) {
   if (mavenPathValid) {
     return
   }
-
-  const versionOutput = await checkMavenVersion(mvnPath)
-  const isMaven = versionOutput.toLowerCase().includes("maven")
-  if (!isMaven) {
-    throw new RuntimeError(
-      `${baseErrorMessage(mvnPath)} It looks like the Maven path points to a non-Maven executable binary.`,
-      { mvnPath }
-    )
-  }
+  await verifyBinaryPath(params)
   mavenPathValid = true
 }
 
@@ -120,45 +89,35 @@ export async function mvn({
   cwd,
   log,
   openJdkPath,
-  mavenPath,
+  binaryPath,
+  concurrentMavenBuilds,
   outputStream,
-}: {
-  ctx: PluginContext
-  args: string[]
-  cwd: string
-  log: Log
-  openJdkPath: string
-  mavenPath?: string
-  outputStream?: Writable
-}) {
+}: BuildToolParams) {
   let mvnPath: string
-  if (!!mavenPath) {
-    log.verbose(`Using explicitly specified Maven binary from ${mavenPath}`)
-    mvnPath = mavenPath
-    await verifyMavenPath(mvnPath)
+  if (!!binaryPath) {
+    log.verbose(`Using explicitly specified Maven binary from ${binaryPath}`)
+    mvnPath = binaryPath
+    await verifyMavenPath({
+      binaryPath,
+      toolName: "Maven",
+      configFieldName: "mavenPath",
+      outputVerificationString: "maven",
+    })
   } else {
     log.verbose(`The Maven binary hasn't been specified explicitly. Maven ${mvnVersion} will be used by default.`)
     const tool = getMvnTool(ctx)
-    mvnPath = await tool.getPath(log)
+    mvnPath = await tool.ensurePath(log)
   }
 
-  // Maven has issues when running concurrent processes, so we're working around that with a lock.
-  // TODO: http://takari.io/book/30-team-maven.html would be a more robust solution.
-  return buildLock.acquire("mvn", async () => {
-    log.debug(`Execing ${mvnPath} ${args.join(" ")}`)
-
-    const res = execa(mvnPath, args, {
-      cwd,
-      env: {
-        JAVA_HOME: openJdkPath,
-      },
+  log.debug(`Execing ${mvnPath} ${args.join(" ")}`)
+  const params = { binaryPath: mvnPath, args, cwd, openJdkPath, outputStream }
+  if (concurrentMavenBuilds) {
+    return runBuildTool(params)
+  } else {
+    // Maven has issues when running concurrent processes, so we're working around that with a lock.
+    // TODO: http://takari.io/book/30-team-maven.html would be a more robust solution.
+    return buildLock.acquire("mvn", async () => {
+      return runBuildTool(params)
     })
-
-    if (outputStream) {
-      res.stdout?.pipe(outputStream)
-      res.stderr?.pipe(outputStream)
-    }
-
-    return res
-  })
+  }
 }

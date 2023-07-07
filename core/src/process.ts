@@ -11,7 +11,7 @@ import Bluebird from "bluebird"
 import { Garden } from "./garden"
 import { Log } from "./logger/log-entry"
 import { GardenProcess, GlobalConfigStore } from "./config-store/global"
-import { SpawnOutput, sleep, spawn } from "./util/util"
+import { sleep } from "./util/util"
 import psTree from "ps-tree"
 
 export async function waitForExitEvent(garden: Garden, log: Log) {
@@ -77,21 +77,24 @@ export async function registerProcess(
 /**
  * Kills the process with the provided pid, and any of its child processes.
  *
- * `signalName` should be a POSIX kill signal, e.g. + `INT` or `KILL`
+ * `signalName` should be a POSIX kill signal, e.g. `SIGINT` or `SIGKILL`
  *
  * See: https://github.com/sindresorhus/execa/issues/96#issuecomment-776280798
  */
-export async function killRecursive(signalName: string, pid: number) {
-  return new Promise<SpawnOutput>((resolve, reject) => {
+export async function killRecursive(signalName: "SIGINT" | "SIGTERM" | "SIGKILL", pid: number) {
+  return new Promise<void>((resolve) => {
     psTree(pid, function (_err, children) {
-      const killArgs = ["-s", signalName, "" + pid].concat(
-          children.map(function (p) {
-            return p.PID
-          })
-        )
-      spawn("kill", killArgs)
-        .then(resolve)
-        .catch(reject)
+      for (const p of children) {
+        try {
+          process.kill(parseInt(p.PID, 10), signalName)
+        } catch {
+          continue
+        }
+      }
+      try {
+        process.kill(pid, signalName)
+      } catch {}
+      resolve()
     })
   })
 }
@@ -109,5 +112,5 @@ export function isRunning(pid: number) {
 // Note: Circumvents an issue where the process exits before the output is fully flushed.
 // Needed for output renderers and Winston (see: https://github.com/winstonjs/winston/issues/228)
 export async function waitForOutputFlush() {
-  await sleep(100)
+  return sleep(50)
 }

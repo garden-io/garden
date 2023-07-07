@@ -21,9 +21,12 @@ export function terraform(ctx: PluginContext, provider: TerraformProvider) {
     const cli = ctx.tools["terraform.terraform-" + version.replace(/\./g, "-")]
 
     if (!cli) {
-      throw new ConfigurationError(`Unsupported Terraform version: ${version}`, {
-        version,
-        supportedVersions,
+      throw new ConfigurationError({
+        message: `Unsupported Terraform version: ${version}`,
+        detail: {
+          version,
+          supportedVersions,
+        },
       })
     }
 
@@ -40,14 +43,18 @@ export class GlobalTerraform extends CliWrapper {
     try {
       return await which("terraform")
     } catch (err) {
-      throw new RuntimeError(`Terraform version is set to null, and terraform CLI could not be found on PATH`, {})
+      throw new RuntimeError({
+        message: `Terraform version is set to null, and terraform CLI could not be found on PATH`,
+        detail: {},
+      })
     }
   }
 }
 
-export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
-  "0.12.26": {
+export const terraformCliSpecs: PluginToolSpec[] = [
+  {
     name: "terraform-0-12-26",
+    version: "0.12.26",
     description: "The terraform CLI, v0.12.26",
     type: "binary",
     builds: [
@@ -83,8 +90,9 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "0.13.3": {
+  {
     name: "terraform-0-13-3",
+    version: "0.13.3",
     description: "The terraform CLI, v0.13.3",
     type: "binary",
     builds: [
@@ -120,8 +128,9 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "0.14.7": {
+  {
     name: "terraform-0-14-7",
+    version: "0.14.7",
     description: "The terraform CLI, v0.14.7",
     type: "binary",
     builds: [
@@ -157,8 +166,9 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "1.0.5": {
+  {
     name: "terraform-1-0-5",
+    version: "1.0.5",
     description: "The terraform CLI, v1.0.5",
     type: "binary",
     builds: [
@@ -204,8 +214,9 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "1.2.9": {
+  {
     name: "terraform-1-2-9",
+    version: "1.2.9",
     description: "The terraform CLI, v1.2.9",
     type: "binary",
     builds: [
@@ -251,8 +262,9 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-  "1.4.6": {
+  {
     name: "terraform-1-4-6",
+    version: "1.4.6",
     description: "The terraform CLI, v1.4.6",
     type: "binary",
     _includeInGardenImage: true,
@@ -299,9 +311,9 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
-}
+]
 
-export const supportedVersions = Object.keys(terraformCliSpecs)
+export const supportedVersions = terraformCliSpecs.map((s) => s.version)
 
 // Default to latest Terraform version
 export const defaultTerraformVersion = "1.4.6"

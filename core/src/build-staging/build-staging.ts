@@ -73,6 +73,11 @@ export class BuildStaging {
     })
   }
 
+  async actionBuildPathExists(action: BuildAction) {
+    const buildPath = action.getBuildPath()
+    return this.createdPaths.has(buildPath) || pathExists(buildPath)
+  }
+
   async syncDependencyProducts(action: BuildAction, log: Log) {
     const buildPath = action.getBuildPath()
 
@@ -80,21 +85,29 @@ export class BuildStaging {
       const sourceBuild = action.getDependency({ kind: "Build", name: copy.build })
 
       if (!sourceBuild) {
-        throw new ConfigurationError(
-          `${action.longDescription()} specifies build '${copy.build}' in \`copyFrom\` which could not be found.`,
-          { actionKey: action.key(), copy }
-        )
+        throw new ConfigurationError({
+          message: `${action.longDescription()} specifies build '${
+            copy.build
+          }' in \`copyFrom\` which could not be found.`,
+          detail: { actionKey: action.key(), copy },
+        })
       }
 
       if (isAbsolute(copy.sourcePath)) {
-        throw new ConfigurationError(`Source path in build dependency copy spec must be a relative path`, {
-          copySpec: copy,
+        throw new ConfigurationError({
+          message: `Source path in build dependency copy spec must be a relative path`,
+          detail: {
+            copySpec: copy,
+          },
         })
       }
 
       if (isAbsolute(copy.targetPath)) {
-        throw new ConfigurationError(`Target path in build dependency copy spec must be a relative path`, {
-          copySpec: copy,
+        throw new ConfigurationError({
+          message: `Target path in build dependency copy spec must be a relative path`,
+          detail: {
+            copySpec: copy,
+          },
         })
       }
 
@@ -157,29 +170,38 @@ export class BuildStaging {
     let { sourceRoot, targetRoot, sourceRelPath, targetRelPath, withDelete, log, files } = params
 
     if (targetRelPath && hasMagic(targetRelPath)) {
-      throw new ConfigurationError(`Build staging: Target path (${targetRelPath}) must not contain wildcards`, {
-        sourceRoot,
-        targetRoot,
-        sourceRelPath,
-        targetRelPath,
+      throw new ConfigurationError({
+        message: `Build staging: Target path (${targetRelPath}) must not contain wildcards`,
+        detail: {
+          sourceRoot,
+          targetRoot,
+          sourceRelPath,
+          targetRelPath,
+        },
       })
     }
 
     if (sourceRelPath && isAbsolute(sourceRelPath)) {
-      throw new InternalError(`Build staging: Got absolute path for sourceRelPath`, {
-        sourceRoot,
-        targetRoot,
-        sourceRelPath,
-        targetRelPath,
+      throw new InternalError({
+        message: `Build staging: Got absolute path for sourceRelPath`,
+        detail: {
+          sourceRoot,
+          targetRoot,
+          sourceRelPath,
+          targetRelPath,
+        },
       })
     }
 
     if (targetRelPath && isAbsolute(targetRelPath)) {
-      throw new InternalError(`Build staging: Got absolute path for targetRelPath`, {
-        sourceRoot,
-        targetRoot,
-        sourceRelPath,
-        targetRelPath,
+      throw new InternalError({
+        message: `Build staging: Got absolute path for targetRelPath`,
+        detail: {
+          sourceRoot,
+          targetRoot,
+          sourceRelPath,
+          targetRelPath,
+        },
       })
     }
 
@@ -188,12 +210,15 @@ export class BuildStaging {
     // Source root must exist and be a directory
     let sourceStat = await statsHelper.extendedStat({ path: sourceRoot })
     if (!sourceStat || !(sourceStat.isDirectory() || sourceStat.target?.isDirectory())) {
-      throw new InternalError(`Build staging: Source root ${sourceRoot} must exist and be a directory`, {
-        sourceRoot,
-        sourceStat,
-        targetRoot,
-        sourceRelPath,
-        targetRelPath,
+      throw new InternalError({
+        message: `Build staging: Source root ${sourceRoot} must exist and be a directory`,
+        detail: {
+          sourceRoot,
+          sourceStat,
+          targetRoot,
+          sourceRelPath,
+          targetRelPath,
+        },
       })
     }
 
@@ -245,8 +270,11 @@ export class BuildStaging {
 
     // Throw if source path ends with a slash but is not a directory
     if (sourceShouldBeDirectory && !sourceIsDirectory) {
-      throw new ConfigurationError(`Build staging: Expected source path ${sourceRoot + "/"} to be a directory`, {
-        sourcePath: sourceRoot + "/",
+      throw new ConfigurationError({
+        message: `Build staging: Expected source path ${sourceRoot + "/"} to be a directory`,
+        detail: {
+          sourcePath: sourceRoot + "/",
+        },
       })
     }
 
@@ -255,21 +283,24 @@ export class BuildStaging {
 
     // Throw if target path ends with a slash but is not a directory
     if (targetShouldBeDirectory && targetStat && !targetStat.isDirectory()) {
-      throw new ConfigurationError(
-        `Build staging: Expected target path ${targetPath + "/"} to not exist or be a directory`,
-        {
+      throw new ConfigurationError({
+        message: `Build staging: Expected target path ${targetPath + "/"} to not exist or be a directory`,
+        detail: {
           targetPath: targetPath + "/",
-        }
-      )
+        },
+      })
     }
 
     // Throw if file list is specified and source+target are not both directories
     if (files && (!sourceStat?.isDirectory() || !targetStat?.isDirectory())) {
-      throw new InternalError(`Build staging: Both source and target must be directories when specifying a file list`, {
-        sourceRoot,
-        sourceStat,
-        targetPath,
-        targetStat,
+      throw new InternalError({
+        message: `Build staging: Both source and target must be directories when specifying a file list`,
+        detail: {
+          sourceRoot,
+          sourceStat,
+          targetPath,
+          targetStat,
+        },
       })
     }
 
@@ -292,19 +323,19 @@ export class BuildStaging {
     // If source is not a file but target exists as a file, we need to handle that specifically
     if (targetIsFile) {
       if (sourceContainsWildcard) {
-        throw new ConfigurationError(
-          `Build staging: Attempting to copy multiple files from ${sourceRoot} to ${targetPath}, but a file exists at target path`,
-          { sourcePath: sourceRoot, sourceStat, targetPath, targetStat }
-        )
+        throw new ConfigurationError({
+          message: `Build staging: Attempting to copy multiple files from ${sourceRoot} to ${targetPath}, but a file exists at target path`,
+          detail: { sourcePath: sourceRoot, sourceStat, targetPath, targetStat },
+        })
       } else if (withDelete) {
         // Source is a directory, delete file at target and create directory in its place before continuing
         await remove(targetPath)
         await ensureDir(targetPath)
       } else {
-        throw new ConfigurationError(
-          `Build staging: Attempting to copy directory from ${sourceRoot} to ${targetPath}, but a file exists at target path`,
-          { sourcePath: sourceRoot, sourceStat, targetPath, targetStat }
-        )
+        throw new ConfigurationError({
+          message: `Build staging: Attempting to copy directory from ${sourceRoot} to ${targetPath}, but a file exists at target path`,
+          detail: { sourcePath: sourceRoot, sourceStat, targetPath, targetStat },
+        })
       }
     }
 

@@ -51,6 +51,7 @@ import {
   BaseActionConfig,
   ExecutedAction,
   ExecutedActionWrapperParams,
+  GetOutputValueType,
   ResolvedAction,
   ResolvedActionWrapperParams,
 } from "./types"
@@ -59,7 +60,6 @@ import { PickTypeByKind } from "../graph/config-graph"
 import { DeployAction } from "./deploy"
 import { TestAction } from "./test"
 import { RunAction } from "./run"
-import { uuidv4 } from "../util/random"
 import { createActionLog, Log } from "../logger/log-entry"
 import { joinWithPosix } from "../util/fs"
 import { LinkedSource } from "../config-store/local"
@@ -316,20 +316,24 @@ export interface ActionDescriptionMap {
   [key: string]: ActionDescription
 }
 
-export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, Outputs extends {} = any> {
+export abstract class BaseAction<
+  C extends BaseActionConfig = BaseActionConfig,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> {
   // TODO: figure out why kind and type come out as any types on Action type
   public readonly kind: C["kind"]
   public readonly type: C["type"]
   public readonly name: string
+  public readonly uid: string
 
   protected resolved: boolean
   protected executed: boolean
 
   // Note: These need to be public because we need to reference the types (a current TS limitation)
   _config: C
-  // TODO: split the typing here
-  _outputs: Outputs
-  protected _staticOutputs: Outputs
+  _staticOutputs: StaticOutputs
+  _runtimeOutputs: RuntimeOutputs
 
   protected readonly baseBuildDirectory: string
   protected readonly compatibleTypes: string[]
@@ -349,6 +353,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     this.kind = params.config.kind
     this.type = params.config.type
     this.name = params.config.name
+    this.uid = params.uid
     this.baseBuildDirectory = params.baseBuildDirectory
     this.compatibleTypes = params.compatibleTypes
     this.dependencies = params.dependencies
@@ -546,14 +551,6 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   /**
-   * We use memoization to lazy-generate the uid to avoid unnecessary overhead when initializing every action.
-   */
-  @Memoize()
-  getUid() {
-    return uuidv4()
-  }
-
-  /**
    * Returns a map of commonly used environment variables for the action.
    */
   getEnvVars() {
@@ -565,6 +562,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
       // leave the old env var name in for backwards compatibility
       GARDEN_MODULE_VERSION: GARDEN_ACTION_VERSION,
     }
+  }
+
+  getVariables(): DeepPrimitiveMap {
+    return this.variables
   }
 
   versionString(): string {
@@ -640,8 +641,9 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
 
 export abstract class RuntimeAction<
   C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-  Outputs extends {} = any
-> extends BaseAction<C, Outputs> {
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
   /**
    * Return the Build action specified on the `build` field if defined, otherwise null
    */
@@ -669,7 +671,8 @@ export abstract class RuntimeAction<
 // FIXME: Might be possible to remove in a later TypeScript version or through some hacks.
 export interface ResolvedActionExtension<
   C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-  Outputs extends {} = any
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
 > {
   getDependencyResult(ref: ActionReference | Action): GraphResult | null
 
@@ -681,9 +684,9 @@ export interface ResolvedActionExtension<
 
   getSpec<K extends keyof C["spec"]>(key: K): C["spec"][K]
 
-  getOutput<K extends keyof Outputs>(key: K): Outputs[K] | undefined
+  getOutput<K extends keyof StaticOutputs>(key: K): GetOutputValueType<K, StaticOutputs, RuntimeOutputs>
 
-  getOutputs(): Outputs
+  getOutputs(): StaticOutputs
 
   getVariables(): DeepPrimitiveMap
 }
@@ -691,10 +694,12 @@ export interface ResolvedActionExtension<
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
 export abstract class ResolvedRuntimeAction<
     Config extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-    Outputs extends {} = any
+    StaticOutputs extends {} = any,
+    RuntimeOutputs extends {} = any
   >
-  extends RuntimeAction<Config, Outputs>
-  implements ResolvedActionExtension<Config, Outputs> {
+  extends RuntimeAction<Config, StaticOutputs, RuntimeOutputs>
+  implements ResolvedActionExtension<Config, StaticOutputs, RuntimeOutputs>
+{
   protected graph: ResolvedConfigGraph
   protected readonly params: ResolvedActionWrapperParams<Config>
   protected readonly resolved: true
@@ -724,10 +729,10 @@ export abstract class ResolvedRuntimeAction<
       const buildAction = this.getResolvedDependencies().find((a) => a.kind === "Build" && a.name === buildName)
 
       if (!buildAction) {
-        throw new InternalError(
-          `Could not find build dependency '${buildName}' specified on the build field on ${this.longDescription()}.`,
-          { action: this.key(), buildName }
-        )
+        throw new InternalError({
+          message: `Could not find build dependency '${buildName}' specified on the build field on ${this.longDescription()}.`,
+          detail: { action: this.key(), buildName },
+        })
       }
 
       return <T>buildAction
@@ -755,34 +760,38 @@ export abstract class ResolvedRuntimeAction<
     return cloneDeep(key ? this._config.spec[key] : this._config.spec)
   }
 
-  getOutput<K extends keyof Outputs>(key: K) {
-    return this._staticOutputs[key]
+  getOutput<K extends keyof StaticOutputs>(key: K): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {
+    return <any>this._staticOutputs[<keyof StaticOutputs>key]
   }
 
   getOutputs() {
     return this._staticOutputs
   }
-
-  getVariables() {
-    return this.variables
-  }
 }
 
 export interface ExecutedActionExtension<
   _ extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-  _Outputs extends {} = any
-> {}
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> {
+  getOutput<K extends keyof (StaticOutputs & RuntimeOutputs)>(
+    key: K
+  ): GetOutputValueType<K, StaticOutputs, RuntimeOutputs>
+  getOutputs(): StaticOutputs & RuntimeOutputs
+}
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
 export abstract class ExecutedRuntimeAction<
     C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-    O extends {} = any
+    StaticOutputs extends {} = any,
+    RuntimeOutputs extends {} = any
   >
-  extends ResolvedRuntimeAction<C, O>
-  implements ExecutedActionExtension<C, O> {
-  private readonly status: ActionStatus<this, any, O>
+  extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs>
+  implements ExecutedActionExtension<C, StaticOutputs, RuntimeOutputs>
+{
+  private readonly status: ActionStatus<this, any, RuntimeOutputs>
 
-  constructor(params: ExecutedActionWrapperParams<C, O>) {
+  constructor(params: ExecutedActionWrapperParams<C, StaticOutputs, RuntimeOutputs>) {
     super(params)
     this.status = params.status
   }
@@ -791,12 +800,15 @@ export abstract class ExecutedRuntimeAction<
     return this.status
   }
 
-  getOutput<K extends keyof O>(key: K) {
-    return this.status.outputs[key] || this._staticOutputs[key]
+  getOutput<K extends keyof (StaticOutputs & RuntimeOutputs)>(
+    key: K
+  ): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {
+    // FIXME: unsure how to avoid the any cast here, but usage is unaffected
+    return <any>(this.status.outputs[<keyof RuntimeOutputs>key] || this._staticOutputs[<keyof StaticOutputs>key])
   }
 
   getOutputs() {
-    return this.status.outputs
+    return { ...this._staticOutputs, ...this.status.outputs }
   }
 }
 

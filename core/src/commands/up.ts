@@ -11,8 +11,8 @@ import { Command, CommandParams, CommandResult } from "./base"
 import { dedent } from "../util/string"
 import { deployArgs, DeployCommand, deployOpts } from "./deploy"
 import { serveOpts } from "./serve"
-import { DevCommand } from "./dev"
 import type { LoggerType } from "../logger/logger"
+import { runAsDevCommand } from "./helpers"
 
 const upArgs = {
   ...deployArgs,
@@ -44,15 +44,14 @@ export class UpCommand extends Command<UpArgs, UpOpts> {
   }
 
   async action(params: CommandParams<UpArgs, UpOpts>): Promise<CommandResult> {
-    let cmd: Command = new DevCommand()
-
-    if (params.commandLine) {
-      // We're already in the dev command
-      cmd = new DeployCommand()
-      params.opts.logs = true
-    } else {
-      params.opts.cmd = ["deploy --logs " + params.args.$all!.join(" ")]
+    if (!params.commandLine) {
+      // Then we start a dev command and run `deploy --logs` as the first interactive command.
+      return runAsDevCommand("deploy --logs", params)
     }
+
+    params.opts.logs = true
+    // Else, we're already in the dev command.
+    const cmd = new DeployCommand()
 
     cmd.printHeader(params)
     await cmd.prepare(params)

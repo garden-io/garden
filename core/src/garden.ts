@@ -41,13 +41,13 @@ import {
   getCloudDistributionName,
   getCloudLogSectionName,
 } from "./util/util"
-import { ConfigurationError, InternalError, PluginError, RuntimeError } from "./exceptions"
+import { ConfigurationError, InternalError, isGardenError, GardenError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph, ResolvedConfigGraph } from "./graph/config-graph"
 import { getRootLogger } from "./logger/logger"
-import { GardenPlugin } from "./plugin/plugin"
+import { GardenPluginSpec } from "./plugin/plugin"
 import {
   loadConfigResources,
   findProjectConfig,
@@ -69,9 +69,10 @@ import {
   gardenEnv,
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
+  DOCS_BASE_URL,
 } from "./constants"
 import { Log } from "./logger/log-entry"
-import { EventBus } from "./events"
+import { EventBus } from "./events/events"
 import { Watcher } from "./watch"
 import {
   findConfigPathsInPath,
@@ -123,7 +124,6 @@ import {
 import { CloudApi, CloudProject, CloudApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
-import { getSecrets } from "./cloud/get-secrets"
 import type { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
@@ -148,6 +148,10 @@ import { convertTemplatedModuleToRender, RenderTemplateConfig, renderConfigTempl
 import { MonitorManager } from "./monitors/manager"
 import { AnalyticsHandler } from "./analytics/analytics"
 import { getGardenInstanceKey } from "./server/helpers"
+import { SuggestedCommand } from "./commands/base"
+import { OtelTraced } from "./util/tracing/decorators"
+import { wrapActiveSpan } from "./util/tracing/spans"
+import { GitRepoHandler } from "./vcs/git-repo"
 
 const defaultLocalAddress = "localhost"
 
@@ -178,6 +182,7 @@ export interface GardenParams {
   dotIgnoreFile: string
   proxy: ProxyConfig
   environmentName: string
+  resolvedDefaultNamespace: string | null
   namespace: string
   gardenDirPath: string
   globalConfigStore?: GlobalConfigStore
@@ -214,7 +219,7 @@ interface GardenInstanceState {
 @Profile()
 export class Garden {
   public log: Log
-  private loadedPlugins: GardenPlugin[]
+  private loadedPlugins: GardenPluginSpec[]
   protected actionConfigs: ActionConfigMap
   protected moduleConfigs: ModuleConfigMap
   protected workflowConfigs: WorkflowConfigMap
@@ -243,6 +248,14 @@ export class Garden {
   public readonly projectName: string
   public readonly projectApiVersion: string
   public readonly environmentName: string
+  /**
+   * The resolved default namespace as defined in the Project config for the current environment.
+   */
+  public readonly resolvedDefaultNamespace: string | null
+  /**
+   * The actual namespace for the Garden instance. This is by default the namespace defined in the Project config
+   * for the current environment but can be overwritten with the `--env` flag.
+   */
   public readonly namespace: string
   public readonly variables: DeepPrimitiveMap
   // Any variables passed via the `--var` CLI option (maintained here so that they can be used during module resolution
@@ -279,6 +292,7 @@ export class Garden {
     this.cloudDomain = params.cloudDomain
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
+    this.resolvedDefaultNamespace = params.resolvedDefaultNamespace
     this.namespace = params.namespace
     this.gardenDirPath = params.gardenDirPath
     this.log = params.log
@@ -315,7 +329,10 @@ export class Garden {
 
     this.asyncLock = new AsyncLock()
 
-    this.vcs = new GitHandler({
+    const gitMode = gardenEnv.GARDEN_GIT_SCAN_MODE || params.projectConfig.scan?.git?.mode
+    const handlerCls = gitMode === "repo" ? GitRepoHandler : GitHandler
+
+    this.vcs = new handlerCls({
       garden: this,
       projectRoot: params.projectRoot,
       gardenDirPath: params.gardenDirPath,
@@ -342,11 +359,14 @@ export class Garden {
     const currentArch = arch() as NodeJS.Architecture
 
     if (!SUPPORTED_PLATFORMS.includes(currentPlatform)) {
-      throw new RuntimeError(`Unsupported platform: ${currentPlatform}`, { platform: currentPlatform })
+      throw new RuntimeError({
+        message: `Unsupported platform: ${currentPlatform}`,
+        detail: { platform: currentPlatform },
+      })
     }
 
     if (!SUPPORTED_ARCHITECTURES.includes(currentArch)) {
-      throw new RuntimeError(`Unsupported CPU architecture: ${currentArch}`, { arch: currentArch })
+      throw new RuntimeError({ message: `Unsupported CPU architecture: ${currentArch}`, detail: { arch: currentArch } })
     }
 
     this.state.configsScanned = false
@@ -539,25 +559,26 @@ export class Garden {
     return this.projectConfig
   }
 
-  async getRegisteredPlugins(): Promise<GardenPlugin[]> {
+  async getRegisteredPlugins(): Promise<GardenPluginSpec[]> {
     return Bluebird.map(this.registeredPlugins, (p) => loadPlugin(this.log, this.projectRoot, p))
   }
 
   @pMemoizeDecorator()
-  async getPlugin(pluginName: string): Promise<GardenPlugin> {
+  async getPlugin(pluginName: string): Promise<GardenPluginSpec> {
     const plugins = await this.getAllPlugins()
     const plugin = findByName(plugins, pluginName)
 
     if (!plugin) {
       const availablePlugins = getNames(plugins)
-      throw new PluginError(
-        `Could not find plugin '${pluginName}'. Are you missing a provider configuration? ` +
+      throw new PluginError({
+        message:
+          `Could not find plugin '${pluginName}'. Are you missing a provider configuration? ` +
           `Currently configured plugins: ${availablePlugins.join(", ")}`,
-        {
+        detail: {
           pluginName,
           availablePlugins,
-        }
-      )
+        },
+      })
     }
 
     return plugin
@@ -567,6 +588,9 @@ export class Garden {
    * Returns all registered plugins, loading them if necessary.
    */
   @pMemoizeDecorator()
+  @OtelTraced({
+    name: "loadPlugins",
+  })
   async getAllPlugins() {
     // The duplicated check is a small optimization to avoid the async lock when possible,
     // since this is called quite frequently.
@@ -637,8 +661,10 @@ export class Garden {
     return this.actionTypeBases[kind][type] || []
   }
 
-  getRawProviderConfigs(names?: string[]) {
-    return names ? findByNames(names, this.providerConfigs, "provider") : this.providerConfigs
+  getRawProviderConfigs({ names, allowMissing = false }: { names?: string[]; allowMissing?: boolean } = {}) {
+    return names
+      ? findByNames({ names, entries: this.providerConfigs, description: "provider", allowMissing })
+      : this.providerConfigs
   }
 
   async resolveProvider(log: Log, name: string) {
@@ -657,25 +683,29 @@ export class Garden {
 
     if (!provider) {
       const providerNames = Object.keys(providers)
-      throw new PluginError(
-        `Could not find provider '${name}' in environment '${this.environmentName}' ` +
+      throw new PluginError({
+        message:
+          `Could not find provider '${name}' in environment '${this.environmentName}' ` +
           `(configured providers: ${providerNames.join(", ") || "<none>"})`,
-        {
+        detail: {
           name,
           providers,
-        }
-      )
+        },
+      })
     }
 
     return provider
   }
 
+  @OtelTraced({
+    name: "resolveProviders",
+  })
   async resolveProviders(log: Log, forceInit = false, names?: string[]): Promise<ProviderMap> {
     // TODO: split this out of the Garden class
     let providers: Provider[] = []
 
     await this.asyncLock.acquire("resolve-providers", async () => {
-      const rawConfigs = this.getRawProviderConfigs(names)
+      const rawConfigs = this.getRawProviderConfigs({ names })
 
       if (!names) {
         names = getNames(rawConfigs)
@@ -704,9 +734,12 @@ export class Garden {
         const plugin = plugins[config.name]
 
         if (!plugin) {
-          throw new ConfigurationError(`Configured provider '${config.name}' has not been registered.`, {
-            name: config.name,
-            availablePlugins: Object.keys(plugins),
+          throw new ConfigurationError({
+            message: `Configured provider '${config.name}' has not been registered.`,
+            detail: {
+              name: config.name,
+              availablePlugins: Object.keys(plugins),
+            },
           })
         }
 
@@ -722,10 +755,10 @@ export class Garden {
 
       if (cycles.length > 0) {
         const description = validationGraph.cyclesToString(cycles)
-        throw new PluginError(
-          `One or more circular dependencies found between providers or their configurations:\n\n${description}`,
-          { "circular-dependencies": description }
-        )
+        throw new PluginError({
+          message: `One or more circular dependencies found between providers or their configurations:\n\n${description}`,
+          detail: { "circular-dependencies": description },
+        })
       }
 
       const tasks = rawConfigs.map((config) => {
@@ -753,10 +786,19 @@ export class Garden {
       if (failed.length) {
         const messages = failed.map((r) => `- ${r!.name}: ${r!.error!.message}`)
         const failedNames = failed.map((r) => r!.name)
-        throw new PluginError(`Failed resolving one or more providers:\n- ${failedNames.join("\n- ")}`, {
-          rawConfigs,
-          taskResults,
-          messages,
+
+        const wrappedErrors: GardenError[] = failed.flatMap((f) => {
+          return f && f.error && isGardenError(f.error) ? [f.error as GardenError] : []
+        })
+
+        throw new PluginError({
+          message: `Failed resolving one or more providers:\n- ${failedNames.join("\n- ")}`,
+          detail: {
+            rawConfigs,
+            taskResults,
+            messages,
+          },
+          wrappedErrors,
         })
       }
 
@@ -893,6 +935,9 @@ export class Garden {
    * When implementing a new command that calls this method and also streams events, make sure that the first
    * call to `getConfigGraph` in the command uses `emit = true` to ensure that the graph event gets streamed.
    */
+  @OtelTraced({
+    name: "getConfigGraph",
+  })
   async getConfigGraph({ log, graphResults, emit, actionModes = {} }: GetConfigGraphParams): Promise<ConfigGraph> {
     // TODO: split this out of the Garden class
     await this.scanAndAddConfigs()
@@ -926,7 +971,7 @@ export class Garden {
     })
     if (overlaps.length > 0) {
       const { message, detail } = this.makeOverlapError(overlaps)
-      throw new ConfigurationError(message, detail)
+      throw new ConfigurationError({ message, detail })
     }
 
     // Convert modules to actions
@@ -954,10 +999,10 @@ export class Garden {
       if (existing) {
         const moduleActionPath = config.internal.configFilePath || config.internal.basePath
         const actionPath = existing.internal.configFilePath || existing.internal.basePath
-        throw new ConfigurationError(
-          `${existing.kind} action '${existing.name}' (in ${actionPath}) conflicts with ${config.kind} action with same name generated from Module ${config.internal?.moduleName} (in ${moduleActionPath}). Please rename either one.`,
-          { configFromModule: config, actionConfig: existing }
-        )
+        throw new ConfigurationError({
+          message: `${existing.kind} action '${existing.name}' (in ${actionPath}) conflicts with ${config.kind} action with same name generated from Module ${config.internal?.moduleName} (in ${moduleActionPath}). Please rename either one.`,
+          detail: { configFromModule: config, actionConfig: existing },
+        })
       }
 
       actionConfigs[key] = config
@@ -1009,7 +1054,7 @@ export class Garden {
 
       let updated = false
 
-      // Resolve modules from specs and add to the list
+      // Resolve actions from augmentGraph specs and add to the list
       await Bluebird.map(addActions || [], async (config) => {
         // There is no actual config file for plugin modules (which the prepare function assumes)
         delete config.internal?.configFilePath
@@ -1029,6 +1074,7 @@ export class Garden {
           configsByKey: actionConfigs,
           mode: actionModes[key] || "default",
           linkedSources,
+          scanRoot: config.internal.basePath,
         })
 
         graph.addAction(action)
@@ -1042,15 +1088,15 @@ export class Garden {
           try {
             graph.getActionByRef(dependency[key])
           } catch (err) {
-            throw new PluginError(
-              deline`
+            throw new PluginError({
+              message: deline`
                 Provider '${provider.name}' added a dependency by action '${actionReferenceToString(
                 dependency.by
               )}' on '${actionReferenceToString(dependency.on)}'
                 but action '${actionReferenceToString(dependency[key])}' could not be found.
               `,
-              { provider, dependency }
-            )
+              detail: { provider, dependency },
+            })
           }
         }
 
@@ -1094,39 +1140,43 @@ export class Garden {
     })
   }
 
-  async resolveAction<T extends Action>({ action, graph, log }: { action: T; log: Log; graph?: ConfigGraph }) {
-    if (!graph) {
-      graph = await this.getConfigGraph({ log, emit: false })
-    }
-
+  @OtelTraced({
+    name: "resolveAction",
+  })
+  async resolveAction<T extends Action>({ action, graph, log }: { action: T; log: Log; graph: ConfigGraph }) {
     return resolveAction({ garden: this, action, graph, log })
   }
 
-  async resolveActions<T extends Action>({ actions, graph, log }: { actions: T[]; log: Log; graph?: ConfigGraph }) {
-    if (!graph) {
-      graph = await this.getConfigGraph({ log, emit: false })
-    }
-
+  @OtelTraced({
+    name: "resolveActions",
+  })
+  async resolveActions<T extends Action>({ actions, graph, log }: { actions: T[]; log: Log; graph: ConfigGraph }) {
     return resolveActions({ garden: this, actions, graph, log })
   }
 
-  async executeAction<T extends Action>({ action, graph, log }: { action: T; log: Log; graph?: ConfigGraph }) {
-    if (!graph) {
-      graph = await this.getConfigGraph({ log, emit: false })
-    }
-
+  @OtelTraced({
+    name: "executeAction",
+  })
+  async executeAction<T extends Action>({ action, graph, log }: { action: T; log: Log; graph: ConfigGraph }) {
     return executeAction({ garden: this, action, graph, log })
   }
 
   /**
    * Resolves the module version (i.e. build version) for the given module configuration and its build dependencies.
    */
-  async resolveModuleVersion(
-    log: Log,
-    moduleConfig: ModuleConfig,
-    moduleDependencies: GardenModule[],
-    force = false
-  ): Promise<ModuleVersion> {
+  async resolveModuleVersion({
+    log,
+    moduleConfig,
+    moduleDependencies,
+    force = false,
+    scanRoot,
+  }: {
+    log: Log
+    moduleConfig: ModuleConfig
+    moduleDependencies: GardenModule[]
+    force?: boolean
+    scanRoot?: string
+  }): Promise<ModuleVersion> {
     const moduleName = moduleConfig.name
     const depModuleNames = moduleDependencies.map((m) => m.name)
     depModuleNames.sort()
@@ -1144,7 +1194,12 @@ export class Garden {
 
     const cacheContexts = [...moduleDependencies, moduleConfig].map((c: ModuleConfig) => getModuleCacheContext(c))
 
-    const treeVersion = await this.vcs.getTreeVersion(log, this.projectName, moduleConfig)
+    const treeVersion = await this.vcs.getTreeVersion({
+      log,
+      projectName: this.projectName,
+      config: moduleConfig,
+      scanRoot,
+    })
 
     validateSchema(treeVersion, treeVersionSchema(), {
       context: `${this.vcs.name} tree version for module at ${moduleConfig.path}`,
@@ -1171,6 +1226,9 @@ export class Garden {
   /**
    * Scans the specified directories for Garden config files and returns a list of paths.
    */
+  @OtelTraced({
+    name: "scanForConfigs",
+  })
   async scanForConfigs(log: Log, path: string) {
     log.silly(`Scanning for configs in ${path}`)
 
@@ -1186,6 +1244,9 @@ export class Garden {
   /*
     Scans the project root for modules and workflows and adds them to the context.
    */
+  @OtelTraced({
+    name: "scanAndAddConfigs",
+  })
   async scanAndAddConfigs(force = false) {
     if (this.state.configsScanned && !force) {
       return
@@ -1247,8 +1308,11 @@ export class Garden {
               )}`
           )
           .join("\n")
-        throw new ConfigurationError(`Found duplicate names of ${configTemplateKind}s:\n${messages}`, {
-          duplicateTemplates,
+        throw new ConfigurationError({
+          message: `Found duplicate names of ${configTemplateKind}s:\n${messages}`,
+          detail: {
+            duplicateTemplates,
+          },
         })
       }
 
@@ -1292,14 +1356,14 @@ export class Garden {
         // Verify that the project apiVersion is defined as compatible with action kinds
         // This is only available with apiVersion `garden.io/v1` or newer.
         if (actionConfigs.length && this.projectApiVersion !== GardenApiVersion.v1) {
-          throw new ConfigurationError(
-            `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}". A detailed migration guide is available at https://docs.garden.io/tutorials/migrating-to-bonsai`,
-            {}
-          )
+          throw new ConfigurationError({
+            message: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}". A detailed migration guide is available at ${DOCS_BASE_URL}/tutorials/migrating-to-bonsai`,
+            detail: {},
+          })
         }
 
         for (const config of actionConfigs) {
-          this.addActionConfig((config as unknown) as BaseActionConfig)
+          this.addActionConfig(config as unknown as BaseActionConfig)
           actionsCount++
         }
       }
@@ -1333,13 +1397,13 @@ export class Garden {
       ]
       const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
 
-      throw new ConfigurationError(
-        `${config.kind} action ${config.name} is declared multiple times (in '${pathA}' and '${pathB}')`,
-        {
+      throw new ConfigurationError({
+        message: `${config.kind} action ${config.name} is declared multiple times (in '${pathA}' and '${pathB}')`,
+        detail: {
           pathA,
           pathB,
-        }
-      )
+        },
+      })
     }
 
     this.actionConfigs[config.kind][config.name] = config
@@ -1357,9 +1421,12 @@ export class Garden {
       const paths = [existing.configPath || existing.path, config.configPath || config.path]
       const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
 
-      throw new ConfigurationError(`Module ${key} is declared multiple times (in '${pathA}' and '${pathB}')`, {
-        pathA,
-        pathB,
+      throw new ConfigurationError({
+        message: `Module ${key} is declared multiple times (in '${pathA}' and '${pathB}')`,
+        detail: {
+          pathA,
+          pathB,
+        },
       })
     }
 
@@ -1381,9 +1448,12 @@ export class Garden {
       const paths = [existing.internal.configFilePath || existing.internal.basePath, config.internal.basePath]
       const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
 
-      throw new ConfigurationError(`Workflow ${key} is declared multiple times (in '${pathA}' and '${pathB}')`, {
-        pathA,
-        pathB,
+      throw new ConfigurationError({
+        message: `Workflow ${key} is declared multiple times (in '${pathA}' and '${pathB}')`,
+        detail: {
+          pathA,
+          pathB,
+        },
       })
     }
 
@@ -1395,6 +1465,9 @@ export class Garden {
    *
    * @param configPath Path to a garden config file
    */
+  @OtelTraced({
+    name: "loadResources",
+  })
   private async loadResources(configPath: string): Promise<(GardenResource | ModuleConfig)[]> {
     configPath = resolve(this.projectRoot, configPath)
     this.log.silly(`Load configs from ${configPath}`)
@@ -1489,9 +1562,12 @@ export class Garden {
       }
     }
 
-    throw new InternalError(`Could not find environment config ${this.environmentName}`, {
-      environmentName: this.environmentName,
-      projectConfig: this.projectConfig,
+    throw new InternalError({
+      message: `Could not find environment config ${this.environmentName}`,
+      detail: {
+        environmentName: this.environmentName,
+        projectConfig: this.projectConfig,
+      },
     })
   }
 
@@ -1502,12 +1578,12 @@ export class Garden {
   public getInstanceKeyParams() {
     let namespace: string | undefined
 
-    let defaultNs = this.getEnvironmentConfig().defaultNamespace
+    // This is either the default namespace defined in the Project config for the current environment or, as a fall back,
+    // the hard coded "default" value.
+    const defaultNs = this.resolvedDefaultNamespace || defaultNamespace
 
-    if (defaultNs === undefined) {
-      defaultNs = defaultNamespace
-    }
-
+    // this.namespace is the actual namespace for this Garden instance, and is either set
+    // via the `--env` flag or defined in the Project config.
     if (this.namespace !== defaultNs) {
       namespace = this.namespace
     }
@@ -1595,7 +1671,22 @@ export class Garden {
       projectId: this.projectId,
       domain: this.cloudDomain,
       sources: this.projectSources,
+      suggestedCommands: await this.getSuggestedCommands(),
     }
+  }
+
+  public async getSuggestedCommands(): Promise<SuggestedCommand[]> {
+    const suggestions: SuggestedCommand[] = [
+      {
+        name: "deploy",
+        description: "Deploy the whole project",
+        gardenCommand: "deploy",
+      },
+    ]
+
+    // TODO: call plugin handlers to get plugin-specific suggestions
+
+    return suggestions
   }
 
   /** Returns whether the user is logged in to the Garden Cloud */
@@ -1616,8 +1707,11 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     config = await findProjectConfig({ log, path: currentDirectory })
 
     if (!config) {
-      throw new ConfigurationError(`Not a project directory (or any of the parent directories): ${currentDirectory}`, {
-        currentDirectory,
+      throw new ConfigurationError({
+        message: `Not a project directory (or any of the parent directories): ${currentDirectory}`,
+        detail: {
+          currentDirectory,
+        },
       })
     }
   }
@@ -1701,198 +1795,204 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   currentDirectory: string,
   opts: GardenOpts
 ): Promise<GardenParams> {
-  let {
-    artifactsPath,
-    commandInfo,
-    config,
-    configDefaultEnvironment,
-    environmentName,
-    environmentStr,
-    namespace,
-    gardenDirPath,
-    localConfigStore,
-    log,
-    projectName,
-    projectRoot,
-    treeCache,
-    username: _username,
-    vcsInfo,
-  } = await resolveGardenParamsPartial(currentDirectory, opts)
+  return wrapActiveSpan("resolveGardenParams", async () => {
+    let {
+      artifactsPath,
+      commandInfo,
+      config,
+      configDefaultEnvironment,
+      environmentName,
+      environmentStr,
+      namespace,
+      gardenDirPath,
+      localConfigStore,
+      log,
+      projectName,
+      projectRoot,
+      treeCache,
+      username: _username,
+      vcsInfo,
+    } = await resolveGardenParamsPartial(currentDirectory, opts)
 
-  await ensureDir(gardenDirPath)
-  await ensureDir(artifactsPath)
+    await ensureDir(gardenDirPath)
+    await ensureDir(artifactsPath)
 
-  const projectApiVersion = config.apiVersion
+    const projectApiVersion = config.apiVersion
 
-  const sessionId = opts.sessionId || uuidv4()
+    const sessionId = opts.sessionId || uuidv4()
 
-  let secrets: StringMap = {}
-  const cloudApi = opts.cloudApi || null
-  // fall back to get the domain from config if the cloudApi instance failed
-  // to login or was not defined.
-  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
+    let secrets: StringMap = {}
+    const cloudApi = opts.cloudApi || null
+    // fall back to get the domain from config if the cloudApi instance failed
+    // to login or was not defined.
+    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
 
-  // The cloudApi instance only has a project ID when the configured ID has
-  // been verified against the cloud instance.
-  let cloudProjectId: string | undefined = config.id
+    // The cloudApi instance only has a project ID when the configured ID has
+    // been verified against the cloud instance.
+    let cloudProjectId: string | undefined = config.id
 
-  if (!opts.noEnterprise && cloudApi) {
-    const distroName = getCloudDistributionName(cloudDomain || "")
-    const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
-    cloudLog.verbose(`Connecting to ${distroName}...`)
+    if (!opts.noEnterprise && cloudApi) {
+      const distroName = getCloudDistributionName(cloudDomain || "")
+      const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
+      cloudLog.verbose(`Connecting to ${distroName}...`)
 
-    let cloudProject: CloudProject | undefined
+      let cloudProject: CloudProject | undefined
 
-    if (cloudProjectId) {
-      // Ensure that the current projectId exists in the remote project
-      try {
-        cloudProject = await cloudApi.getProjectById(cloudProjectId)
-      } catch (err) {
-        cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
-      }
-    }
-
-    if (!cloudProject && !cloudProjectId && !config.domain) {
-      // Create a new project in case the project does not exist
-      // and the user is logged in to a default domain.
-      // Note: excluding projects with a domain is for backwards compatibility
-      cloudLog.debug(`Creating or retrieving a ${distroName} project called ${projectName}.`)
-
-      try {
-        cloudProject = await cloudApi.getOrCreateProjectByName(projectName)
-      } catch (err) {
-        if (err instanceof CloudApiDuplicateProjectsError) {
-          cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
-        } else {
-          cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)
+      if (cloudProjectId) {
+        // Ensure that the current projectId exists in the remote project
+        try {
+          cloudProject = await cloudApi.getProjectById(cloudProjectId)
+        } catch (err) {
+          cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
         }
       }
-    }
 
-    if (cloudProject) {
-      // ensure we use the fetched/created project ID
-      cloudProjectId = cloudProject.id
+      if (!cloudProject && !cloudProjectId && !config.domain) {
+        // Create a new project in case the project does not exist
+        // and the user is logged in to a default domain.
+        // Note: excluding projects with a domain is for backwards compatibility
+        cloudLog.debug(`Creating or retrieving a ${distroName} project called ${projectName}.`)
 
-      // Only fetch secrets if the projectId exists in the cloud API instance
-      try {
-        secrets = await getSecrets({ log: cloudLog, projectId: cloudProject.id, environmentName, cloudApi })
-        cloudLog.verbose(chalk.green("Ready"))
-        cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
-      } catch (err) {
-        cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
+        try {
+          cloudProject = await cloudApi.getOrCreateProjectByName(projectName)
+        } catch (err) {
+          if (err instanceof CloudApiDuplicateProjectsError) {
+            cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
+          } else {
+            cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)
+          }
+        }
       }
-    } else {
-      cloudLog.info(
-        chalk.yellow(
-          wordWrap(
-            deline`Logged in to ${cloudDomain}, but could not find the project '${projectName}'.
-            Command results for this command run will not be available in ${distroName}.`,
-            120
+
+      if (cloudProject) {
+        // ensure we use the fetched/created project ID
+        cloudProjectId = cloudProject.id
+
+        // Only fetch secrets if the projectId exists in the cloud API instance
+        try {
+          secrets = await wrapActiveSpan(
+            "getSecrets",
+            async () => await cloudApi.getSecrets({ log: cloudLog, projectId: cloudProject!.id, environmentName })
+          )
+          cloudLog.verbose(chalk.green("Ready"))
+          cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
+        } catch (err) {
+          cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
+        }
+      } else {
+        cloudLog.info(
+          chalk.yellow(
+            wordWrap(
+              deline`Logged in to ${cloudDomain}, but could not find the project '${projectName}'.
+              Command results for this command run will not be available in ${distroName}.`,
+              120
+            )
           )
         )
-      )
+      }
     }
-  }
 
-  const loggedIn = !!cloudApi
+    const loggedIn = !!cloudApi
 
-  config = resolveProjectConfig({
-    log,
-    defaultEnvironmentName: configDefaultEnvironment,
-    config,
-    artifactsPath,
-    vcsInfo,
-    username: _username,
-    loggedIn,
-    enterpriseDomain: cloudDomain,
-    secrets,
-    commandInfo,
+    config = resolveProjectConfig({
+      log,
+      defaultEnvironmentName: configDefaultEnvironment,
+      config,
+      artifactsPath,
+      vcsInfo,
+      username: _username,
+      loggedIn,
+      enterpriseDomain: cloudDomain,
+      secrets,
+      commandInfo,
+    })
+
+    const pickedEnv = await pickEnvironment({
+      projectConfig: config,
+      envString: environmentStr,
+      artifactsPath,
+      vcsInfo,
+      username: _username,
+      loggedIn,
+      enterpriseDomain: cloudDomain,
+      secrets,
+      commandInfo,
+    })
+
+    let { providers, variables, production } = pickedEnv
+
+    // Allow overriding variables
+    const variableOverrides = opts.variableOverrides || {}
+    variables = { ...variables, ...variableOverrides }
+
+    // Update the log context
+    log.context.gardenKey = getGardenInstanceKey({ environmentName, namespace, projectRoot, variableOverrides })
+    log.context.sessionId = sessionId
+
+    // Setting this after resolving the gardenKey above because we don't want the default namespace resolved there
+    namespace = pickedEnv.namespace
+
+    const workingCopyId = await getWorkingCopyId(gardenDirPath)
+
+    // We always exclude the garden dir
+    const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
+
+    const moduleExcludePatterns = [
+      ...((config.scan || {}).exclude || []),
+      gardenDirExcludePattern,
+      ...fixedProjectExcludes,
+    ]
+
+    // Set proxy hostname with the following order of precedence: env var > config > default value ("localhost")
+    let proxyHostname: string
+    if (gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS) {
+      proxyHostname = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
+    } else if (config.proxy?.hostname) {
+      proxyHostname = config.proxy.hostname
+    } else {
+      proxyHostname = defaultLocalAddress
+    }
+    const proxy = {
+      hostname: proxyHostname,
+    }
+
+    return {
+      artifactsPath,
+      vcsInfo,
+      sessionId,
+      projectId: cloudProjectId,
+      cloudDomain,
+      projectConfig: config,
+      projectRoot,
+      projectName,
+      environmentName,
+      resolvedDefaultNamespace: pickedEnv.defaultNamespace,
+      namespace,
+      variables,
+      variableOverrides,
+      secrets,
+      projectSources: config.sources,
+      production,
+      gardenDirPath,
+      globalConfigStore: opts.globalConfigStore,
+      localConfigStore,
+      opts,
+      outputs: config.outputs || [],
+      plugins: opts.plugins || [],
+      providerConfigs: providers,
+      moduleExcludePatterns,
+      workingCopyId,
+      dotIgnoreFile: config.dotIgnoreFile,
+      proxy,
+      log,
+      moduleIncludePatterns: (config.scan || {}).include,
+      username: _username,
+      forceRefresh: opts.forceRefresh,
+      cloudApi,
+      cache: treeCache,
+      projectApiVersion,
+    }
   })
-
-  const pickedEnv = await pickEnvironment({
-    projectConfig: config,
-    envString: environmentStr,
-    artifactsPath,
-    vcsInfo,
-    username: _username,
-    loggedIn,
-    enterpriseDomain: cloudDomain,
-    secrets,
-    commandInfo,
-  })
-
-  let { providers, variables, production } = pickedEnv
-
-  // Allow overriding variables
-  const variableOverrides = opts.variableOverrides || {}
-  variables = { ...variables, ...variableOverrides }
-
-  // Update the log context
-  log.context.gardenKey = getGardenInstanceKey({ environmentName, namespace, projectRoot, variableOverrides })
-  log.context.sessionId = sessionId
-
-  // Setting this after resolving the gardenKey above because we don't want the default namespace resolved there
-  namespace = pickedEnv.namespace
-
-  const workingCopyId = await getWorkingCopyId(gardenDirPath)
-
-  // We always exclude the garden dir
-  const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
-
-  const moduleExcludePatterns = [
-    ...((config.scan || {}).exclude || []),
-    gardenDirExcludePattern,
-    ...fixedProjectExcludes,
-  ]
-
-  // Set proxy hostname with the following order of precedence: env var > config > default value ("localhost")
-  let proxyHostname: string
-  if (gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS) {
-    proxyHostname = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
-  } else if (config.proxy?.hostname) {
-    proxyHostname = config.proxy.hostname
-  } else {
-    proxyHostname = defaultLocalAddress
-  }
-  const proxy = {
-    hostname: proxyHostname,
-  }
-
-  return {
-    artifactsPath,
-    vcsInfo,
-    sessionId,
-    projectId: cloudProjectId,
-    cloudDomain,
-    projectConfig: config,
-    projectRoot,
-    projectName,
-    environmentName,
-    namespace,
-    variables,
-    variableOverrides,
-    secrets,
-    projectSources: config.sources,
-    production,
-    gardenDirPath,
-    globalConfigStore: opts.globalConfigStore,
-    localConfigStore,
-    opts,
-    outputs: config.outputs || [],
-    plugins: opts.plugins || [],
-    providerConfigs: providers,
-    moduleExcludePatterns,
-    workingCopyId,
-    dotIgnoreFile: config.dotIgnoreFile,
-    proxy,
-    log,
-    moduleIncludePatterns: (config.scan || {}).include,
-    username: _username,
-    forceRefresh: opts.forceRefresh,
-    cloudApi,
-    cache: treeCache,
-    projectApiVersion,
-  }
 })
 
 /**
@@ -1951,6 +2051,7 @@ export interface ConfigDump {
   projectId?: string
   domain?: string
   sources: SourceConfig[]
+  suggestedCommands: SuggestedCommand[]
 }
 
 export interface GetConfigGraphParams {

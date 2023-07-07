@@ -78,16 +78,22 @@ export class TreeCache {
 
   set(log: Log, key: CacheKey, value: CacheValue, ...contexts: CacheContext[]) {
     if (key.length === 0) {
-      throw new ParameterError(`Cache key must have at least one part`, {
-        key,
-        contexts,
+      throw new ParameterError({
+        message: `Cache key must have at least one part`,
+        detail: {
+          key,
+          contexts,
+        },
       })
     }
 
     if (contexts.length === 0) {
-      throw new ParameterError(`Must specify at least one context`, {
-        key,
-        contexts,
+      throw new ParameterError({
+        message: `Must specify at least one context`,
+        detail: {
+          key,
+          contexts,
+        },
       })
     }
 
@@ -111,9 +117,12 @@ export class TreeCache {
       let node = this.contextTree
 
       if (context.length === 0) {
-        throw new ParameterError(`Context key must have at least one part`, {
-          key,
-          context,
+        throw new ParameterError({
+          message: `Context key must have at least one part`,
+          detail: {
+            key,
+            context,
+          },
         })
       }
 
@@ -149,7 +158,7 @@ export class TreeCache {
   getOrThrow(log: Log, key: CacheKey): CacheValue {
     const value = this.get(log, key)
     if (value === undefined) {
-      throw new NotFoundError(`Could not find key ${key} in cache`, { key })
+      throw new NotFoundError({ message: `Could not find key ${key} in cache`, detail: { key } })
     }
     return value
   }
@@ -163,7 +172,7 @@ export class TreeCache {
       pairs = Array.from(node.entries).map((stringKey) => {
         const entry = this.cache.get(stringKey)
         if (!entry) {
-          throw new InternalError(`Invalid reference found in cache: ${stringKey}`, { stringKey })
+          throw new InternalError({ message: `Invalid reference found in cache: ${stringKey}`, detail: { stringKey } })
         }
         return <[CacheKey, CacheValue]>[entry.key, entry.value]
       })

@@ -9,7 +9,21 @@ order: 1
 A visual quickstart is also available by logging in to the Garden Dashboard. The Dashboard can show you the status of your builds, deployments and stream logs from your services in real-time. To get started, click [Dashboard Quickstart](https://app.garden.io).
 {% endhint %}
 
-Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow. In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
+Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow.
+
+## Interactive environments
+
+Preview Garden with our new interactive and install-free cloud-based playgrounds ✨.
+
+Click a button to start your Killercoda or Google Cloud Shell environment 👇🏼.
+
+<a href="https://go.garden.io/killercoda"><img src="https://raw.githubusercontent.com/garden-io/garden-interactive-environments/main/resources/img/killercoda-54px.png" alt="Killercoda logo in black and white." height="54px"></a> [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://go.garden.io/cloudshell)
+
+If you find any bugs 🐛 or have suggestions to improve our labs please don't hesitate to reach out by creating an [issue here](https://github.com/garden-io/garden-interactive-environments) or by asking in our [Discord Community](https://go.garden.io/discord)🌸
+
+## Quickstart
+
+In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
 
 In just 3 steps, we'll:
 
@@ -17,7 +31,7 @@ In just 3 steps, we'll:
 * Run a local, [supported flavor](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes
 * Deploy an example application
 
-## Step 1 — Install Garden
+### Step 1 — Install Garden
 
 Install the Garden CLI for your platform:
 
@@ -64,7 +78,7 @@ This will significantly speed up the first Garden build of large projects on Win
 
 For more detailed installation instructions, please see our [Installation guide](../guides/installation.md).
 
-## Step 2 — Install Kubernetes locally
+### Step 2 — Install Kubernetes locally
 
 {% hint style="info" %}
 If you already have [a supported version](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes installed locally you can skip this section.
@@ -83,7 +97,7 @@ Then enable Kubernetes in Docker Desktop:
 
 See the [official Docker docs](https://docs.docker.com/desktop/kubernetes/) for more.
 
-## Step 3 — Deploy the example application
+### Step 3 — Deploy the example application
 
 Now that we have Garden installed and Kubernetes running locally, we can deploy our example application.
 
@@ -119,7 +133,7 @@ If the page doesn't load, you'll need to go to step 4 and update your hostfile. 
 
 The project itself doubles as an interactive guide that walks you through some common Garden commands and workflows. We encourage you to give it a spin!
 
-## Step 4 — Update hostfile (only if needed)
+### Step 4 — Update hostfile (only if needed)
 
 {% hint style="info" %}
 The `*.local.demo.garden` domain resolves to 127.0.0.1 via our DNS provider. This means that when you go to [http://vote.local.demo.garden](http://vote.local.demo.garden), you _should_ be redirected to the app that you have running locally. However, some routers will prevent redirects to 127.0.0.1 and you'll need to update your hostfile instead.
@@ -171,7 +185,7 @@ If you'd like to better understand how a Garden project is configured, we recomm
 through our [first project tutorial](../tutorials/your-first-project/README.md) which walks you through configuring a Garden project step-by-step.
 
 If you like to dive right in and configure your own project for Garden, we recommend referencing our [example
-projects on GitHub](https://github.com/garden-io/garden/tree/0.13.0/examples) and the section of our docs title [Using Garden](../using-garden/configuration-overview.md), which covers all parts of Garden in detail.
+projects on GitHub](https://github.com/garden-io/garden/tree/0.13.6/examples) and the section of our docs title [Using Garden](../using-garden/configuration-overview.md), which covers all parts of Garden in detail.
 
 
 If you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://go.garden.io/discord)!

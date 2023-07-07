@@ -260,8 +260,11 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
     const statusResult = this.getDependencyResult(statusTask) as GraphResultFromTask<T>
 
     if (statusResult === undefined) {
-      throw new InternalError(`Attempted to execute ${this.describe()} before resolving status.`, {
-        nodeKey: this.getKey(),
+      throw new InternalError({
+        message: `Attempted to execute ${this.describe()} before resolving status.`,
+        detail: {
+          nodeKey: this.getKey(),
+        },
       })
     }
 
@@ -277,7 +280,8 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
       const processResult: T["_resultType"] = await this.task.process({ status, dependencyResults, statusOnly: false })
       this.task.emit("processed", { result: processResult })
       if (processResult.state === "ready") {
-        this.task.log.verbose(`${this.task.getDescription()} is ready.`)
+        const msg = `${this.task.getDescription()} is ready.`
+        this.statusOnly || this.task.type === "resolve-action" ? this.task.log.debug(msg) : this.task.log.verbose(msg)
       }
       return processResult
     } catch (error) {
@@ -309,7 +313,8 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
       const result: T["_resultType"] = await this.task.getStatus({ statusOnly: this.statusOnly, dependencyResults })
       this.task.emit("statusResolved", { result })
       if (!this.task.force && result?.state === "ready") {
-        this.task.log.verbose(`${this.task.getDescription()} status is ready.`)
+        const msg = `${this.task.getDescription()} status is ready.`
+        this.statusOnly || this.task.type === "resolve-action" ? this.task.log.debug(msg) : this.task.log.verbose(msg)
       }
       return result
     } catch (error) {
@@ -359,7 +364,7 @@ export class GraphNodeError extends GardenBaseError<GraphNodeErrorDetail> {
           nextDep = null
         } else if (result?.aborted) {
           message += chalk.yellow(`\n↳ ${nextDep.describe()} [ABORTED]`)
-          if (result.error instanceof GraphNodeError && result.error.detail.failedDependency) {
+          if (result.error instanceof GraphNodeError && result.error.detail?.failedDependency) {
             nextDep = result.error.detail.failedDependency
           } else {
             nextDep = null
@@ -373,10 +378,10 @@ export class GraphNodeError extends GardenBaseError<GraphNodeErrorDetail> {
       message = `${node.describe()} failed: ${error}`
     }
 
-    super(message, params)
+    super({ message, detail: params })
   }
 
   aborted() {
-    return this.detail.aborted
+    return this.detail?.aborted
   }
 }

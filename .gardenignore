@@ -1,3 +1,7 @@
+.garden/
+.history/
+.vscode/
+.gradle/
 node_modules/
 tmp/
 core/tmp/

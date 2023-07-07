@@ -20,13 +20,13 @@ import { addConfig } from "./helpers"
 import { wordWrap } from "../../util/string"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
 import { userPrompt } from "../../util/util"
-import { GardenApiVersion } from "../../constants"
+import { DOCS_BASE_URL, GardenApiVersion } from "../../constants"
 
 const ignorefileName = ".gardenignore"
 const defaultIgnorefile = dedent`
 # Add paths here that you would like Garden to ignore when building modules and computing versions,
 # using the same syntax as .gitignore files.
-# For more info, see https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories
+# For more info, see ${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories
 `
 
 export const defaultProjectConfigFilename = "project.garden.yml"
@@ -107,7 +107,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     const configDir = resolve(process.cwd(), opts.dir)
 
     if (!(await isDirectory(configDir))) {
-      throw new ParameterError(`${configDir} is not a directory`, { configDir })
+      throw new ParameterError({ message: `${configDir} is not a directory`, detail: { configDir } })
     }
 
     const configPath = join(configDir, opts.filename)
@@ -117,7 +117,10 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
       const configs = await loadConfigResources(log, configDir, configPath)
 
       if (configs.filter((c) => c.kind === "Project").length > 0) {
-        throw new CreateError(`A Garden project already exists in ${configPath}`, { configDir, configPath })
+        throw new CreateError({
+          message: `A Garden project already exists in ${configPath}`,
+          detail: { configDir, configPath },
+        })
       }
     }
 
@@ -153,8 +156,8 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
       },
     })
 
-    const projectDocURL = "https://docs.garden.io/using-garden/projects"
-    const projectReferenceURL = "https://docs.garden.io/reference/project-config"
+    const projectDocURL = `${DOCS_BASE_URL}/using-garden/projects`
+    const projectReferenceURL = `${DOCS_BASE_URL}/reference/project-config`
     yaml =
       dedent`
     # Documentation about Garden projects can be found at ${projectDocURL}
@@ -194,7 +197,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     log.info("")
 
     // This is to avoid `prettier` messing with the string formatting...
-    const configFilesUrl = chalk.cyan.underline("https://docs.garden.io/using-garden/configuration-overview")
+    const configFilesUrl = chalk.cyan.underline(`${DOCS_BASE_URL}/using-garden/configuration-overview`)
     const referenceUrl = chalk.cyan.underline(projectReferenceURL)
 
     log.info(

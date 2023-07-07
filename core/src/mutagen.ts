@@ -28,6 +28,7 @@ import split2 from "split2"
 import { TypedEventEmitter } from "./util/events"
 import pMemoize from "./lib/p-memoize"
 import { deline } from "./util/string"
+import { emitNonRepeatableWarning } from "./warnings"
 
 const maxRestarts = 10
 const mutagenLogSection = "<mutagen>"
@@ -60,9 +61,15 @@ const restartInstructions = (description: string) => deline`
 
 export const mutagenStatusDescriptions = {
   "disconnected": "Sync disconnected",
-  "halted-on-root-emptied": `Sync halted because either the source or target directory was emptied. ${restartInstructions("made sure they're not empty")}`,
-  "halted-on-root-deletion": `Sync halted because either the source or target was deleted. ${restartInstructions("made sure they exist")}`,
-  "halted-on-root-type-change": `Sync halted because either the source or target changed type (e.g. from a directory to a file or vice versa). ${restartInstructions("made sure their type is what it should be")}`,
+  "halted-on-root-emptied": `Sync halted because either the source or target directory was emptied. ${restartInstructions(
+    "made sure they're not empty"
+  )}`,
+  "halted-on-root-deletion": `Sync halted because either the source or target was deleted. ${restartInstructions(
+    "made sure they exist"
+  )}`,
+  "halted-on-root-type-change": `Sync halted because either the source or target changed type (e.g. from a directory to a file or vice versa). ${restartInstructions(
+    "made sure their type is what it should be"
+  )}`,
   "connecting-alpha": "Sync connected to source",
   "connecting-beta": "Sync connected to target",
   "watching": "Watching for changes",
@@ -89,7 +96,7 @@ type MutagenStatus = keyof typeof mutagenStatusDescriptions
 export const haltedStatuses: MutagenStatus[] = [
   "halted-on-root-emptied",
   "halted-on-root-deletion",
-  "halted-on-root-type-change"
+  "halted-on-root-type-change",
 ]
 
 export interface SyncConfig {
@@ -195,7 +202,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
       const log = this.log.createLog({ name: mutagenLogSection })
 
-      const mutagenPath = await mutagenCli.getPath(log)
+      const mutagenPath = await mutagenCli.ensurePath(log)
       const dataDir = this.dataDir
 
       await ensureDataDir(dataDir)
@@ -622,7 +629,7 @@ export class Mutagen {
           cwd: this.dataDir,
           args,
           log: this.log,
-          env: getMutagenEnv(this.dataDir),
+          env: getMutagenEnv({ dataDir: this.dataDir, log: this.log }),
         })
       } catch (err) {
         const unableToConnect = err.message.match(/unable to connect to daemon/)
@@ -632,6 +639,10 @@ export class Mutagen {
           await this.ensureDaemon()
           await sleep(2000 + loops * 500)
         } else {
+          emitNonRepeatableWarning(
+            this.log,
+            `Consider making your Garden project path shorter. Syncing could fail because of Unix socket path length limitations. It's recommended that the Garden project path does not exceed ${MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT} characters. The actual value depends on the platform and the mutagen version.`
+          )
           throw err
         }
       }
@@ -758,7 +769,22 @@ export interface SyncSession {
   excludedConflicts?: number
 }
 
-export function getMutagenEnv(dataDir: string) {
+/**
+ * Exceeding this limit may cause mutagen daemon failures because of the Unix socket path length limitations.
+ * See
+ * https://github.com/garden-io/garden/issues/4527#issuecomment-1584286590
+ * https://github.com/mutagen-io/mutagen/issues/433#issuecomment-1440352501
+ * https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars/367012#367012
+ */
+const MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT = 70
+
+export function getMutagenEnv({ dataDir, log }: { dataDir: string; log: Log }) {
+  if (dataDir.length > MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT) {
+    emitNonRepeatableWarning(
+      log,
+      `Your Garden project path looks too long, that might cause errors while starting the syncs. Consider using a shorter path (no longer than ${MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT} characters).`
+    )
+  }
   return {
     MUTAGEN_DATA_DIRECTORY: dataDir,
   }
@@ -771,11 +797,17 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
   try {
     parsed = JSON.parse(res.stdout)
   } catch (err) {
-    throw new MutagenError(`Could not parse response from mutagen sync list: ${res.stdout}`, { res })
+    throw new MutagenError({
+      message: `Could not parse response from mutagen sync list: ${res.stdout}`,
+      detail: { res },
+    })
   }
 
   if (!Array.isArray(parsed)) {
-    throw new MutagenError(`Unexpected response from mutagen sync list: ${parsed}`, { res, parsed })
+    throw new MutagenError({
+      message: `Unexpected response from mutagen sync list: ${parsed}`,
+      detail: { res, parsed },
+    })
   }
 
   return parsed
@@ -783,6 +815,7 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
 
 export const mutagenCliSpec: PluginToolSpec = {
   name: "mutagen",
+  version: "0.15.0",
   description: "The mutagen synchronization tool.",
   type: "binary",
   _includeInGardenImage: false,

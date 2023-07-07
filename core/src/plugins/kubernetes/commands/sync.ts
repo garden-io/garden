@@ -84,7 +84,12 @@ export const syncPause: PluginCommand = {
       log.info(`Pausing ${activeSyncSessionNames.length} syncs.`)
       for (const sessionName of activeSyncSessionNames) {
         log.debug(`Pausing sync session ${sessionName}`)
-        await mutagen.exec({ cwd: dataDir, log, env: getMutagenEnv(dataDir), args: ["sync", "pause", sessionName] })
+        await mutagen.exec({
+          cwd: dataDir,
+          log,
+          env: getMutagenEnv({ dataDir, log }),
+          args: ["sync", "pause", sessionName],
+        })
       }
     }
 
@@ -125,7 +130,12 @@ export const syncResume: PluginCommand = {
       log.info(`Resuming ${pausedSyncSessionNames.length} syncs.`)
       for (const sessionName of pausedSyncSessionNames) {
         log.debug(`Resuming sync session ${sessionName}`)
-        await mutagen.exec({ cwd: dataDir, log, env: getMutagenEnv(dataDir), args: ["sync", "resume", sessionName] })
+        await mutagen.exec({
+          cwd: dataDir,
+          log,
+          env: getMutagenEnv({ dataDir, log }),
+          args: ["sync", "resume", sessionName],
+        })
       }
     }
 
@@ -138,7 +148,7 @@ async function getMutagenSyncSessions({ mutagen, dataDir, log }: { mutagen: Plug
   const res = await mutagen.exec({
     cwd: dataDir,
     log,
-    env: getMutagenEnv(dataDir),
+    env: getMutagenEnv({ dataDir, log }),
     args: ["sync", "list", "--template={{ json . }}"],
   })
   return parseSyncListResult(res)

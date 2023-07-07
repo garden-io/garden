@@ -163,7 +163,10 @@ export class WorkflowCommand extends Command<Args, {}> {
           stepResult = await runStepScript(stepParams)
         } else {
           garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
-          throw new ConfigurationError(`Workflow steps must specify either a command or a script.`, { step })
+          throw new ConfigurationError({
+            message: `Workflow steps must specify either a command or a script.`,
+            detail: { step },
+          })
         }
       } catch (err) {
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
@@ -327,8 +330,11 @@ export async function runStepCommand(params: RunStepCommandParams): Promise<Comm
   }
 
   if (!command) {
-    throw new ConfigurationError(`Could not find Garden command '${rawArgs.join(" ")}`, {
-      step,
+    throw new ConfigurationError({
+      message: `Could not find Garden command '${rawArgs.join(" ")}`,
+      detail: {
+        step,
+      },
     })
   }
 
@@ -355,12 +361,12 @@ export async function runStepCommand(params: RunStepCommandParams): Promise<Comm
   const persistent = command.maybePersistent(commandParams)
 
   if (persistent) {
-    throw new ConfigurationError(
-      `Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, interactive commands, commands with monitor flags set etc.)`,
-      {
+    throw new ConfigurationError({
+      message: `Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, interactive commands, commands with monitor flags set etc.)`,
+      detail: {
         step,
-      }
-    )
+      },
+    })
   }
 
   return await command.action(commandParams)
@@ -378,11 +384,14 @@ export async function runStepScript({ garden, bodyLog, step }: RunStepParams): P
       throw error
     }
 
-    const scriptError = new WorkflowScriptError(`Script exited with code ${error.exitCode}`, {
-      message: error.stderr,
-      exitCode: error.exitCode,
-      stdout: error.stdout,
-      stderr: error.stderr,
+    const scriptError = new WorkflowScriptError({
+      message: `Script exited with code ${error.exitCode}`,
+      detail: {
+        message: error.stderr,
+        exitCode: error.exitCode,
+        stdout: error.stdout,
+        stderr: error.stderr,
+      },
     })
 
     bodyLog.error("")
@@ -455,8 +464,8 @@ export function logErrors(
       const scriptErrMsg = renderMessageWithDivider({
         prefix: `Script exited with code ${error.detail.exitCode} ${renderDuration(log.getDuration())}`,
         msg: error.detail.stderr,
-        isError: true
-    })
+        isError: true,
+      })
       log.error(scriptErrMsg)
     } else {
       // Error comes from a command step.
@@ -492,16 +501,19 @@ async function writeWorkflowFile(garden: Garden, file: WorkflowFileSpec) {
     data = garden.secrets[file.secretName]
 
     if (data === undefined) {
-      throw new ConfigurationError(
-        `File '${file.path}' requires secret '${file.secretName}' which could not be found.`,
-        {
+      throw new ConfigurationError({
+        message: `File '${file.path}' requires secret '${file.secretName}' which could not be found.`,
+        detail: {
           file,
           availableSecrets: Object.keys(garden.secrets),
-        }
-      )
+        },
+      })
     }
   } else {
-    throw new ConfigurationError(`File '${file.path}' specifies neither string data nor a secret name.`, { file })
+    throw new ConfigurationError({
+      message: `File '${file.path}' specifies neither string data nor a secret name.`,
+      detail: { file },
+    })
   }
 
   const fullPath = join(garden.projectRoot, ...file.path.split(posix.sep))
@@ -511,7 +523,10 @@ async function writeWorkflowFile(garden: Garden, file: WorkflowFileSpec) {
     await ensureDir(parsedPath.dir)
     await writeFile(fullPath, data)
   } catch (error) {
-    throw new FilesystemError(`Unable to write file '${file.path}': ${error.message}`, { error, file })
+    throw new FilesystemError({
+      message: `Unable to write file '${file.path}': ${error.message}`,
+      detail: { error, file },
+    })
   }
 }
 

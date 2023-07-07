@@ -6,53 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { keyBy, sortBy } from "lodash"
-import { Command, CommandResult, CommandParams } from "../base"
-import { printHeader } from "../../logger/util"
-import { StringsParameter } from "../../cli/params"
-import { makeGetTestOrTaskLog } from "../helpers"
-import { ActionDescriptionMap } from "../../actions/base"
+import { GetActionsSubCommand } from "./get-actions-subcommand"
 
-const getTestsArgs = {
-  names: new StringsParameter({
-    help: "Specify tests(s) to list. You may specify multiple test names, separated by spaces.",
-    spread: true,
-    getSuggestions: ({ configDump }) => {
-      return Object.keys(configDump.actionConfigs.Test)
-    },
-  }),
-}
-
-type Args = typeof getTestsArgs
-
-export class GetTestsCommand extends Command<Args, {}, ActionDescriptionMap> {
-  name = "tests"
-  help = "Lists the tests defined in your project."
-
-  // TODO-0.13.0: add output schema
-
-  arguments = getTestsArgs
-
-  printHeader({ log }) {
-    printHeader(log, "Tests", "📖")
-  }
-
-  async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult<ActionDescriptionMap>> {
-    const graph = await garden.getConfigGraph({ log, emit: false })
-    const actions = sortBy(graph.getTests({ names: args.names }), "name")
-
-    if (actions.length > 0) {
-      const logStr = makeGetTestOrTaskLog(actions)
-      log.info(logStr.trim())
-    } else {
-      log.info(`No Test actions defined for project ${garden.projectName}`)
-    }
-
-    return {
-      result: keyBy(
-        actions.map((t) => t.describe()),
-        "key"
-      ),
-    }
+export class GetTestsCommand extends GetActionsSubCommand {
+  constructor() {
+    super("Test")
   }
 }

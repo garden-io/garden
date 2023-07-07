@@ -93,13 +93,15 @@ export async function updateRemoteSources({
   // TODO: Make external modules a cli type to avoid validation repetition
   const diff = difference(sources, names)
   if (diff.length > 0) {
-    throw new ParameterError(
-      `Expected source(s) ${chalk.underline(diff.join(","))} to be specified in the project garden.yml config.`,
-      {
+    throw new ParameterError({
+      message: `Expected source(s) ${chalk.underline(
+        diff.join(",")
+      )} to be specified in the project garden.yml config.`,
+      detail: {
         remoteSources: projectSources.map((s) => s.name).sort(),
         input: sources ? sources.sort() : undefined,
-      }
-    )
+      },
+    })
   }
 
   const promises: Promise<void>[] = []

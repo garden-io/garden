@@ -90,27 +90,64 @@ interface SelfUpdateResult {
 /**
  * Utilities and wrappers on top of GitHub REST API.
  */
-namespace GitHubReleaseApi {
+export namespace GitHubReleaseApi {
+  export type Pagination = { pageNumber: number; pageSize: number }
+
+  export async function fetchReleases({ pageNumber, pageSize }: Pagination) {
+    const results: any[] = await got(
+      `https://api.github.com/repos/garden-io/garden/releases?page=${pageNumber}&per_page=${[pageSize]}`
+    ).json()
+    return results
+  }
+
   /**
    * Traverse the Garden releases on GitHub and get the first one matching the given predicate.
    *
-   * @param predicate the predicate to identify the wanted release
+   * @param primaryPredicate the primary predicate to identify the wanted release
+   * @param fallbackPredicates the list of fallback predicates to be used if the primary one returns no result
+   * @param fetcher the optional function to override the default release fetching machinery
    */
-  export async function findRelease(predicate: (any: any) => boolean) {
-    const releasesPerPage = 100
-    let page = 1
+  export async function findRelease({
+    primaryPredicate,
+    fallbackPredicates = [],
+    fetcher = fetchReleases,
+  }: {
+    primaryPredicate: (any: any) => boolean
+    fallbackPredicates?: ((any: any) => boolean)[]
+    fetcher?: (pagination: Pagination) => Promise<any[]>
+  }) {
+    const pageSize = 100
+    let pageNumber = 1
     let fetchedReleases: any[]
+    /*
+    Stores already fetched releases. This will be used with the fallback predicates.
+    It is a memory consumer, but also a trade-off to avoid GitHub API rate limit errors.
+    This will not eat gigs of RAM.
+    */
+    let allReleases: any[] = []
     do {
-      fetchedReleases = await got(
-        `https://api.github.com/repos/garden-io/garden/releases?page=${page}&per_page=${releasesPerPage}`
-      ).json()
+      /*
+      This returns the releases ordered by 'published_at' field.
+      It means that there are 2 ordered subsequences of 0.12.x and 0.13.x releases in the result list,
+      but the list itself is not properly ordered.
+      */
+      fetchedReleases = await fetcher({ pageNumber, pageSize })
       for (const release of fetchedReleases) {
-        if (predicate(release)) {
+        if (primaryPredicate(release)) {
           return release
         }
       }
-      page++
+      allReleases.push(...fetchedReleases)
+      pageNumber++
     } while (fetchedReleases.length > 0)
+
+    for (const fallbackPredicate of fallbackPredicates) {
+      for (const release of allReleases) {
+        if (fallbackPredicate(release)) {
+          return release
+        }
+      }
+    }
 
     return undefined
   }
@@ -123,8 +160,11 @@ namespace GitHubReleaseApi {
     const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
     const latestVersion = latestVersionRes.tag_name
     if (!latestVersion) {
-      throw new RuntimeError(`Unable to detect the latest Garden version: ${latestVersionRes}`, {
-        response: latestVersionRes,
+      throw new RuntimeError({
+        message: `Unable to detect the latest Garden version: ${latestVersionRes}`,
+        detail: {
+          response: latestVersionRes,
+        },
       })
     }
 
@@ -135,7 +175,8 @@ namespace GitHubReleaseApi {
     const res: any = await got("https://api.github.com/repos/garden-io/garden/releases?per_page=100").json()
 
     return [
-      chalk.cyan("edge"),
+      chalk.cyan("edge-acorn"),
+      chalk.cyan("edge-bonsai"),
       ...res
         .filter((r: any) => !r.prerelease && !r.draft)
         .map((r: any) => chalk.cyan(r.name))
@@ -161,7 +202,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     Examples:
 
        garden self-update               # update to the latest minor Garden CLI version
-       garden self-update edge          # switch to the latest edge build of garden 0.12 (which is created anytime a PR is merged to the 0.12 branch)
+       garden self-update edge-acorn    # switch to the latest edge build of garden 0.12 (which is created anytime a PR is merged to the 0.12 branch)
        garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13) (which is created anytime a PR is merged to main)
        garden self-update 0.12.24       # switch to the exact version 0.12.24 of the CLI
        garden self-update --major       # install the latest version, even if it's a major bump
@@ -198,6 +239,13 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     if (!installationDirectory) {
       installationDirectory = dirname(process.execPath)
+      log.info(
+        chalk.white(
+          "No installation directory specified via --install-dir option. Garden will be re-installed to the current installation directory: "
+        ) + chalk.cyan(installationDirectory)
+      )
+    } else {
+      log.info(chalk.white("Installation directory: ") + chalk.cyan(installationDirectory))
     }
 
     installationDirectory = resolve(installationDirectory)
@@ -210,7 +258,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       desiredVersion = await this.findTargetVersion(currentVersion, versionScope)
     }
 
-    log.info(chalk.white("Installation directory: ") + chalk.cyan(installationDirectory))
     log.info(chalk.white("Current Garden version: ") + chalk.cyan(currentVersion))
     log.info(chalk.white("Target Garden version to be installed: ") + chalk.cyan(desiredVersion))
     log.info(chalk.white("Latest release version: ") + chalk.cyan(latestVersion))
@@ -408,20 +455,26 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     // The current version is necessary, it's not possible to proceed without its value
     if (!currentSemVer) {
-      throw new RuntimeError(
-        `Unexpected current version: ${currentVersion}. Please make sure it is either a valid (semver) release version.`,
-        {}
-      )
+      throw new RuntimeError({
+        message: `Unexpected current version: ${currentVersion}. Please make sure it is either a valid (semver) release version.`,
+        detail: {},
+      })
     }
 
     const targetVersionPredicate = this.getTargetVersionPredicate(currentSemVer, versionScope)
-    const targetRelease = await GitHubReleaseApi.findRelease(targetVersionPredicate)
+    const fallbackVersionPredicate = this.getTargetVersionPredicate(currentSemVer, "patch")
+    // Currently we support only semver minor and patch versions, so we use patch as a fallback predicate.
+    // TODO Core 1.0 implement proper fallback predicates for all semver version parts.
+    const targetRelease = await GitHubReleaseApi.findRelease({
+      primaryPredicate: targetVersionPredicate,
+      fallbackPredicates: [fallbackVersionPredicate],
+    })
 
     if (!targetRelease) {
-      throw new RuntimeError(
-        `Unable to find the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
-        {}
-      )
+      throw new RuntimeError({
+        message: `Unable to find the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
+        detail: {},
+      })
     }
 
     return targetRelease.tag_name
@@ -441,24 +494,27 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       }
 
       switch (versionScope) {
+        // TODO Core 1.0: review these semantics and make tjhe necessary corrections
         case "major": {
-          // TODO Core 1.0 major release: remove this check
           if (tagSemVer.major === currentSemVer.major) {
-            return tagSemVer.minor >= currentSemVer.minor
+            return tagSemVer.minor > currentSemVer.minor
           }
           return tagSemVer.major >= currentSemVer.major
         }
         case "minor":
-          return tagSemVer.major === currentSemVer.major && tagSemVer.minor >= currentSemVer.minor
+          return tagSemVer.major === currentSemVer.major && tagSemVer.minor > currentSemVer.minor
         case "patch":
           return (
             tagSemVer.major === currentSemVer.major &&
             tagSemVer.minor === currentSemVer.minor &&
+            /*
+            On the patch level of the same major.minor version the version history is linear and properly sorted.
+            So, we can use the >= condition here.
+            */
             tagSemVer.patch >= currentSemVer.patch
           )
         default: {
-          const _exhaustiveCheck: never = versionScope
-          return _exhaustiveCheck
+          return versionScope satisfies never
         }
       }
     }

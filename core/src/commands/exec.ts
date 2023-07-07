@@ -98,37 +98,39 @@ export class ExecCommand extends Command<Args, Opts> {
           )}. If this command fails, you may need to re-deploy it with the ${chalk.whiteBright("deploy")} command.`
         )
         break
-        case "outdated":
-          // check if deployment is in sync mode
-          const syncStatus = (
-            await router.deploy.getSyncStatus({
-              log: actionLog,
-              action: executed,
-              monitor: false,
-              graph,
-            })
-          ).result
-          const deploySync = syncStatus?.syncs?.[0]
-          // if there is an active sync, the state is likely to be outdated so do not display this warning
-          if (!(deploySync?.syncCount && deploySync?.syncCount > 0 && deploySync?.state === "active" )) {
-            log.warn(
-              `The current state of ${action.key()} is ${chalk.whiteBright(
-                deployState
-              )}. If this command fails, you may need to re-deploy it with the ${chalk.whiteBright("deploy")} command.`
-            )
-          }
-          break
+      case "outdated":
+        // check if deployment is in sync mode
+        const syncStatus = (
+          await router.deploy.getSyncStatus({
+            log: actionLog,
+            action: executed,
+            monitor: false,
+            graph,
+          })
+        ).result
+        const deploySync = syncStatus?.syncs?.[0]
+        // if there is an active sync, the state is likely to be outdated so do not display this warning
+        if (!(deploySync?.syncCount && deploySync?.syncCount > 0 && deploySync?.state === "active")) {
+          log.warn(
+            `The current state of ${action.key()} is ${chalk.whiteBright(
+              deployState
+            )}. If this command fails, you may need to re-deploy it with the ${chalk.whiteBright("deploy")} command.`
+          )
+        }
+        break
       // Only fail if the deployment is missing or stopped.
       case "missing":
       case "stopped":
-        throw new NotFoundError(`${action.key()} status is ${deployState}. Cannot execute command.`, { deployState })
+        throw new NotFoundError({
+          message: `${action.key()} status is ${deployState}. Cannot execute command.`,
+          detail: { deployState },
+        })
       case "ready":
         // Nothing to report/throw, the deployment is ready
         break
       default:
         // To make sure this switch statement is not forgotten if the `DeployState` FSM gets modified.
-        const _exhaustiveCheck: never = deployState
-        return _exhaustiveCheck
+        return deployState satisfies never
     }
 
     const { result } = await router.deploy.exec({

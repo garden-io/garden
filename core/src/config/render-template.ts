@@ -149,13 +149,13 @@ export async function renderConfigTemplate({
 
   if (!template) {
     const availableTemplates = Object.keys(templates)
-    throw new ConfigurationError(
-      deline`
+    throw new ConfigurationError({
+      message: deline`
       Render ${resolved.name} references template ${resolved.template},
       which cannot be found. Available templates: ${availableTemplates.join(", ")}
       `,
-      { availableTemplates }
-    )
+      detail: { availableTemplates },
+    })
   }
 
   // Prepare modules and resolve templated names
@@ -206,14 +206,14 @@ async function renderModules({
           ". Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
       }
 
-      throw new ConfigurationError(
-        `${configTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${renderConfig.name}: ${msg}`,
-        {
+      throw new ConfigurationError({
+        message: `${configTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${renderConfig.name}: ${msg}`,
+        detail: {
           moduleSpec: spec,
           parent: renderConfig,
           error,
-        }
-      )
+        },
+      })
     }
 
     // Resolve the file source path to an absolute path, so that it can be used during module resolution
@@ -259,39 +259,39 @@ async function renderConfigs({
     try {
       resolvedName = resolveTemplateString(m.name, context, { allowPartial: false })
     } catch (error) {
-      throw new ConfigurationError(
-        `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error.message}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
-        {
+      throw new ConfigurationError({
+        message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error.message}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
+        detail: {
           spec: m,
           renderConfig,
           error,
-        }
-      )
+        },
+      })
     }
 
     // TODO: validate this before?
     for (const field of templateNoTemplateFields) {
       if (maybeTemplateString(m[field])) {
-        throw new ConfigurationError(
-          `${templateDescription} contains an invalid resource: Found a template string in '${field}' field (${m[field]}).`,
-          {
+        throw new ConfigurationError({
+          message: `${templateDescription} contains an invalid resource: Found a template string in '${field}' field (${m[field]}).`,
+          detail: {
             spec: m,
             renderConfig,
-          }
-        )
+          },
+        })
       }
     }
 
     if (!templatableKinds.includes(m.kind)) {
-      throw new ConfigurationError(
-        `Unexpected kind '${m.kind}' found in ${templateDescription}. Supported kinds are: ${naturalList(
+      throw new ConfigurationError({
+        message: `Unexpected kind '${m.kind}' found in ${templateDescription}. Supported kinds are: ${naturalList(
           templatableKinds
         )}`,
-        {
+        detail: {
           spec: m,
           renderConfig,
-        }
-      )
+        },
+      })
     }
 
     const spec = { ...m, name: resolvedName }
@@ -309,14 +309,14 @@ async function renderConfigs({
         allowInvalid: false,
       })!
     } catch (error) {
-      throw new ConfigurationError(
-        `${templateDescription} returned an invalid config (named ${spec.name}) for Render ${renderConfig.name}: ${error.message}`,
-        {
+      throw new ConfigurationError({
+        message: `${templateDescription} returned an invalid config (named ${spec.name}) for Render ${renderConfig.name}: ${error.message}`,
+        detail: {
           spec,
           renderConfig,
         },
-        error
-      )
+        wrappedErrors: [error],
+      })
     }
 
     // If a path is set, resolve the path and ensure that directory exists

@@ -36,10 +36,11 @@ import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/util/cl
 import { copy, emptyDir } from "fs-extra"
 import { join } from "path"
 import { isDeployAction } from "@garden-io/core/build/src/actions/deploy"
-import { ActionConfigContext } from "@garden-io/core/build/src/config/template-contexts/actions"
+import { TemplatableConfigContext } from "@garden-io/core/build/src/config/template-contexts/project"
 import { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base"
 import { deletePulumiDeploy } from "./handlers"
 import { ActionLog, createActionLog, Log } from "@garden-io/core/build/src/logger/log-entry"
+import { ActionConfigContext } from "@garden-io/core/build/src/config/template-contexts/actions"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 
@@ -171,7 +172,15 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
 
 const makePluginContextForDeploy = async (params: PulumiParams & { garden: Garden; graph: ConfigGraph }) => {
   const { garden, provider, ctx, action } = params
-  const templateContext = new ActionConfigContext(garden, action.getConfig())
+  const templateContext = new ActionConfigContext({
+    garden,
+    config: action.getConfig(),
+    thisContextParams: {
+      name: action.name,
+      mode: action.mode(),
+    },
+    variables: action.getVariables(),
+  })
   const ctxForDeploy = await garden.getPluginContext({ provider, templateContext, events: ctx.events })
   return ctxForDeploy
 }
@@ -334,7 +343,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
       const actions = graph.getDeploys({ names }).filter((a) => a.type === "pulumi")
 
       const tasks = await Bluebird.map(actions, async (action) => {
-        const templateContext = new ActionConfigContext(garden, action.getConfig())
+        const templateContext = new TemplatableConfigContext(garden, action.getConfig())
         const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
         const pulumiParams: PulumiBaseParams = {

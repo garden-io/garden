@@ -5,5 +5,8 @@ environments:
   - name: local
 providers:
   # Note: the exec provider is loaded by default
+  - name: exec
+    initScript: "echo hello ${local.username}, this is a provider output message"
   - name: container
+    dependencies: [exec]
   - name: local-kubernetes

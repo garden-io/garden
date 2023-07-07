@@ -9,57 +9,55 @@
 import { IncomingMessage } from "http"
 import { ReadStream } from "tty"
 import Bluebird from "bluebird"
-import chalk from "chalk"
-import httpStatusCodes from "http-status-codes"
 import {
-  KubeConfig,
-  V1Secret,
-  CoreApi,
+  ApiextensionsV1Api,
   ApisApi,
-  V1APIGroup,
-  V1APIVersions,
-  V1APIResource,
-  CoreV1Api,
-  RbacAuthorizationV1Api,
   AppsV1Api,
-  PolicyV1beta1Api,
-  KubernetesObject,
+  CoreApi,
+  CoreV1Api,
   Exec,
-  V1Deployment,
-  V1Service,
+  KubeConfig,
+  KubernetesObject,
   Log as K8sLog,
   NetworkingV1Api,
-  ApiextensionsV1Api,
-  HttpError,
+  PolicyV1beta1Api,
+  RbacAuthorizationV1Api,
+  V1APIGroup,
+  V1APIResource,
+  V1APIVersions,
+  V1Deployment,
+  V1Secret,
+  V1Service,
 } from "@kubernetes/client-node"
-import AsyncLock = require("async-lock")
-import request = require("request-promise")
-import requestErrors = require("request-promise/errors")
-import { safeLoad } from "js-yaml"
+import { load } from "js-yaml"
 import { readFile } from "fs-extra"
 import WebSocket from "isomorphic-ws"
-
-import { Omit, StringCollector, sleep } from "../../util/util"
-import { omitBy, isObject, isPlainObject, keyBy, flatten } from "lodash"
-import { GardenBaseError, RuntimeError, ConfigurationError } from "../../exceptions"
+import pRetry from "p-retry"
+import { Omit, StringCollector } from "../../util/util"
+import { flatten, isObject, isPlainObject, keyBy, omitBy } from "lodash"
+import { ConfigurationError, GardenBaseError, RuntimeError } from "../../exceptions"
 import {
-  KubernetesResource,
-  KubernetesServerResource,
-  KubernetesServerList,
+  BaseResource,
   KubernetesList,
   KubernetesPod,
+  KubernetesResource,
+  KubernetesServerList,
+  KubernetesServerResource,
 } from "./types"
 import { Log } from "../../logger/log-entry"
 import { kubectl } from "./kubectl"
-import { deline, urlJoin } from "../../util/string"
+import { urlJoin } from "../../util/string"
 import { KubernetesProvider } from "./config"
 import { StringMap } from "../../config/common"
 import { PluginContext } from "../../plugin-context"
-import { Writable, Readable, PassThrough } from "stream"
+import { PassThrough, Readable, Writable } from "stream"
 import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
-import { LogLevel } from "../../logger/logger"
 import { safeDumpYaml } from "../../util/serialization"
+import AsyncLock from "async-lock"
+import { requestWithRetry, RetryOpts } from "./retry"
+import request = require("request-promise")
+import requestErrors = require("request-promise/errors")
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -147,7 +145,9 @@ interface List {
   items?: Array<any>
 }
 
-type WrappedList<T extends List> = T["items"] extends Array<infer V> ? KubernetesServerList<V> : KubernetesServerList
+type WrappedList<T extends List> = T["items"] extends Array<infer V extends BaseResource | KubernetesObject>
+  ? KubernetesServerList<V>
+  : KubernetesServerList
 
 // This describes the API classes on KubeApi after they've been wrapped with KubeApi.wrapApi()
 // prettier-ignore
@@ -155,17 +155,17 @@ type WrappedApi<T> = {
   // Wrap each API method
   [P in keyof T]:
   T[P] extends (...args: infer A) => Promise<{ response: IncomingMessage; body: infer U }>
-  ? (
-    // If so we wrap it and return the `body` part of the output directly and...
-    // If it's a list, we cast to a KubernetesServerList, which in turn wraps the array type
-    U extends List ? (...args: A) => Promise<WrappedList<U>> :
-    // If it's a resource, we wrap it as a KubernetesResource which makes some attributes required
-    // (as they should be)
-    U extends KubernetesObject ? (...args: A) => Promise<KubernetesServerResource<U>> :
-    // Otherwise we keep the body output type as-is
-    (...args: A) => Promise<U>
-  ) :
-  T[P]
+    ? (
+      // If so we wrap it and return the `body` part of the output directly and...
+      // If it's a list, we cast to a KubernetesServerList, which in turn wraps the array type
+      U extends List ? (...args: A) => Promise<WrappedList<U>> :
+        // If it's a resource, we wrap it as a KubernetesResource which makes some attributes required
+        // (as they should be)
+        U extends KubernetesObject ? (...args: A) => Promise<KubernetesServerResource<U>> :
+          // Otherwise we keep the body output type as-is
+          (...args: A) => Promise<U>
+      ) :
+    T[P]
 }
 
 export interface ExecInPodResult {
@@ -198,9 +198,12 @@ export class KubeApi {
     const cluster = this.config.getCurrentCluster()
 
     if (!cluster) {
-      throw new ConfigurationError(`Could not read cluster from kubeconfig for context ${context}`, {
-        context,
-        config,
+      throw new ConfigurationError({
+        message: `Could not read cluster from kubeconfig for context ${context}`,
+        detail: {
+          context,
+          config,
+        },
       })
     }
 
@@ -255,13 +258,7 @@ export class KubeApi {
           }
         }
 
-        const info = {
-          coreApi,
-          groups,
-          groupMap,
-        }
-
-        cachedApiInfo[this.context] = info
+        cachedApiInfo[this.context] = { coreApi, groups, groupMap }
       }
 
       return cachedApiInfo[this.context]
@@ -274,9 +271,12 @@ export class KubeApi {
     const group = apiInfo.groupMap[apiVersion]
 
     if (!group) {
-      throw new KubernetesError(`Unrecognized apiVersion: ${apiVersion}`, {
-        apiVersion,
-        resource,
+      throw new KubernetesError({
+        message: `Unrecognized apiVersion: ${apiVersion}`,
+        detail: {
+          apiVersion,
+          resource,
+        },
       })
     }
 
@@ -325,10 +325,12 @@ export class KubeApi {
     log,
     path,
     opts = {},
+    retryOpts,
   }: {
     log: Log
     path: string
     opts?: Omit<request.OptionsWithUrl, "url">
+    retryOpts?: RetryOpts
   }): Promise<any> {
     const baseUrl = this.config.getCurrentCluster()!.server
     const url = urlJoin(baseUrl, path)
@@ -345,14 +347,19 @@ export class KubeApi {
     // apply auth
     await this.config.applyToRequest(requestOpts)
 
-    return await requestWithRetry(log, `Kubernetes API: ${path}`, async () => {
-      try {
-        log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
-        return await request(requestOpts)
-      } catch (err) {
-        throw handleRequestPromiseError(path, err)
-      }
-    })
+    return await requestWithRetry(
+      log,
+      `Kubernetes API: ${path}`,
+      async () => {
+        try {
+          log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
+          return await request(requestOpts)
+        } catch (err) {
+          throw handleRequestPromiseError(path, err)
+        }
+      },
+      retryOpts
+    )
   }
 
   /**
@@ -476,6 +483,13 @@ export class KubeApi {
           // Then this resource version + kind is not available in the cluster.
           return []
         }
+        // FIXME: OpenShift: developers have more restrictions on what they can list
+        // Ugly workaround right now, basically just shoving the problem under the rug.
+        const openShiftForbiddenList = ["Namespace", "PersistentVolume"]
+        if (err.statusCode === 403 && openShiftForbiddenList.includes(kind)) {
+          log.warn(`No permissions to list resources of kind ${kind}. If you are using OpenShift, ignore this warning.`)
+          return []
+        }
         throw err
       }
     })
@@ -538,9 +552,12 @@ export class KubeApi {
     const resourceInfo = await this.getApiResourceInfo(log, apiVersion, kind)
 
     if (!resourceInfo) {
-      const err = new KubernetesError(`Unrecognized resource type ${apiVersion}/${kind}`, {
-        apiVersion,
-        kind,
+      const err = new KubernetesError({
+        message: `Unrecognized resource type ${apiVersion}/${kind}`,
+        detail: {
+          apiVersion,
+          kind,
+        },
       })
       err.statusCode = 404
       throw err
@@ -565,8 +582,11 @@ export class KubeApi {
     const apiVersion = manifest.apiVersion
 
     if (!apiVersion) {
-      throw new KubernetesError(`Missing apiVersion on resource`, {
-        manifest,
+      throw new KubernetesError({
+        message: `Missing apiVersion on resource`,
+        detail: {
+          manifest,
+        },
       })
     }
 
@@ -575,8 +595,11 @@ export class KubeApi {
     }
 
     if (!namespace) {
-      throw new KubernetesError(`Missing namespace on resource and no namespace specified`, {
-        manifest,
+      throw new KubernetesError({
+        message: `Missing namespace on resource and no namespace specified`,
+        detail: {
+          manifest,
+        },
       })
     }
 
@@ -844,17 +867,28 @@ export class KubeApi {
    * @throws {KubernetesError}
    */
   async createPod(namespace: string, pod: KubernetesPod) {
-    try {
-      await this.core.createNamespacedPod(namespace, pod)
-    } catch (error) {
-      // This can occur in laggy environments, just need to retry
-      if (error.message.includes("No API token found for service account")) {
-        await sleep(500)
-        return this.createPod(namespace, pod)
-      } else {
-        throw new KubernetesError(`Failed to create Pod ${pod.metadata.name}: ${error.message}`, { error })
+    await pRetry(
+      async () => {
+        await this.core.createNamespacedPod(namespace, pod)
+      },
+      {
+        retries: 3,
+        minTimeout: 500,
+        onFailedAttempt(error) {
+          // This can occur in laggy environments, just need to retry
+          if (error.message.includes("No API token found for service account")) {
+            return
+          } else if (error.message.includes("error looking up service account")) {
+            return
+          }
+
+          throw new KubernetesError({
+            message: `Failed to create Pod ${pod.metadata.name}: ${error.message}`,
+            detail: { error },
+          })
+        },
       }
-    }
+    )
   }
 }
 
@@ -917,13 +951,26 @@ export async function getKubeConfig(log: Log, ctx: PluginContext, provider: Kube
     if (provider.config.kubeconfig) {
       kubeConfigStr = (await readFile(provider.config.kubeconfig)).toString()
     } else {
+      const args = ["config", "view", "--raw"]
       // We use kubectl for this, to support merging multiple paths in the KUBECONFIG env var
-      kubeConfigStr = await kubectl(ctx, provider).stdout({ log, args: ["config", "view", "--raw"] })
+      kubeConfigStr = await requestWithRetry(
+        log,
+        `kubectl ${args.join(" ")}`,
+        () =>
+          kubectl(ctx, provider).stdout({
+            log,
+            args,
+          }),
+        { forceRetry: true }
+      )
     }
-    return safeLoad(kubeConfigStr)!
+    return load(kubeConfigStr)!
   } catch (error) {
-    throw new RuntimeError(`Unable to load kubeconfig: ${error}`, {
-      error,
+    throw new RuntimeError({
+      message: `Unable to load kubeconfig: ${error}`,
+      detail: {
+        error,
+      },
     })
   }
 }
@@ -957,9 +1004,12 @@ function wrapError(name: string, err: any) {
   if (!err.message || err.name === "HttpError") {
     const response = err.response || {}
     const body = response.body || err.body
-    const wrapped = new KubernetesError(`Got error from Kubernetes API (${name}) - ${body.message}`, {
-      body,
-      request: omitBy(response.request, (v, k) => isObject(v) || k[0] === "_"),
+    const wrapped = new KubernetesError({
+      message: `Got error from Kubernetes API (${name}) - ${body.message}`,
+      detail: {
+        body,
+        request: omitBy(response.request, (v, k) => isObject(v) || k[0] === "_"),
+      },
     })
     wrapped.statusCode = err.statusCode
     return wrapped
@@ -970,8 +1020,11 @@ function wrapError(name: string, err: any) {
 
 function handleRequestPromiseError(name: string, err: Error) {
   if (err instanceof requestErrors.StatusCodeError) {
-    const wrapped = new KubernetesError(`StatusCodeError from Kubernetes API (${name}) - ${err.message}`, {
-      body: err.error,
+    const wrapped = new KubernetesError({
+      message: `StatusCodeError from Kubernetes API (${name}) - ${err.message}`,
+      detail: {
+        body: err.error,
+      },
     })
     wrapped.statusCode = err.statusCode
 
@@ -980,101 +1033,3 @@ function handleRequestPromiseError(name: string, err: Error) {
     return wrapError(name, err)
   }
 }
-
-/**
- * Helper function for retrying failed k8s API requests, using exponential backoff.
- *
- * Note: When using the Got library, don't use this helper, but instead rely on Got's built-in retry functionality.
- *
- * Only retries the request when it fails with an error that matches certain status codes and/or error
- * message contents (see the `shouldRetry` helper for details).
- *
- * The rationale here is that some errors occur because of network issues, intermittent timeouts etc.
- * and should be retried automatically.
- */
-async function requestWithRetry<R>(
-  log: Log,
-  description: string,
-  req: () => Promise<R>,
-  opts?: { maxRetries?: number; minTimeoutMs?: number }
-): Promise<R> {
-  const maxRetries = opts?.maxRetries || 5
-  const minTimeoutMs = opts?.minTimeoutMs || 500
-  let retryLog: Log | undefined = undefined
-  const retry = async (usedRetries: number): Promise<R> => {
-    try {
-      return await req()
-    } catch (err) {
-      if (shouldRetry(err)) {
-        retryLog = retryLog || log.createLog({ fixLevel: LogLevel.debug })
-        if (usedRetries <= maxRetries) {
-          const sleepMsec = minTimeoutMs + usedRetries * minTimeoutMs
-          retryLog.info(deline`
-            ${description} failed with error '${err.message}', retrying in ${sleepMsec}ms
-            (${usedRetries}/${maxRetries})
-          `)
-          await sleep(sleepMsec)
-          return await retry(usedRetries + 1)
-        } else {
-          if (usedRetries === maxRetries) {
-            retryLog.info(chalk.red(`Kubernetes API: Maximum retry count exceeded`))
-          }
-          throw err
-        }
-      } else {
-        throw err
-      }
-    }
-  }
-  const result = await retry(1)
-  return result
-}
-
-/**
- * This helper determines whether an error thrown by a k8s API request should result in the request being retried.
- *
- * Looks for a list of matching error messages. Also checks for status codes for the following error classes:
- * - `KubernetesError` (when handling wrapped k8s API errors)
- * - `requestErrors.StatusCodeError` (when using the `request` library)
- *
- * Add more error codes / regexes / filters etc. here as needed.
- */
-function shouldRetry(err: any): boolean {
-  const msg = err.message || ""
-  let code: number | undefined = undefined
-
-  if (err instanceof requestErrors.StatusCodeError || err instanceof KubernetesError || err instanceof HttpError) {
-    code = err.statusCode
-  }
-
-  return (code && statusCodesForRetry.includes(code)) || !!errorMessageRegexesForRetry.find((regex) => msg.match(regex))
-}
-
-const statusCodesForRetry: number[] = [
-  httpStatusCodes.REQUEST_TIMEOUT,
-  httpStatusCodes.TOO_MANY_REQUESTS,
-
-  httpStatusCodes.INTERNAL_SERVER_ERROR,
-  httpStatusCodes.BAD_GATEWAY,
-  httpStatusCodes.SERVICE_UNAVAILABLE,
-  httpStatusCodes.GATEWAY_TIMEOUT,
-
-  // Cloudflare-specific status codes
-  521, // Web Server Is Down
-  522, // Connection Timed Out
-  524, // A Timeout Occurred
-]
-
-const errorMessageRegexesForRetry = [
-  /ETIMEDOUT/,
-  /ENOTFOUND/,
-  /EAI_AGAIN/,
-  // This usually isn't retryable
-  // However on github actions there seems to be flakiness
-  // And connections get refused temporarily only
-  // So we retry those as well
-  /ECONNREFUSED/,
-  // This can happen if etcd is overloaded
-  // (rpc error: code = ResourceExhausted desc = etcdserver: throttle: too many requests)
-  /too many requests/,
-]

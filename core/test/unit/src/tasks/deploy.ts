@@ -10,10 +10,10 @@ import tmp from "tmp-promise"
 
 import { ProjectConfig } from "../../../../src/config/project"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
+import { createGardenPlugin, GardenPluginSpec } from "../../../../src/plugin/plugin"
 import { DeployTask } from "../../../../src/tasks/deploy"
 import { expect } from "chai"
-import { createProjectConfig, makeTempDir, TestGarden } from "../../../helpers"
+import { createProjectConfig, freezeTime, makeTempDir, TestGarden } from "../../../helpers"
 import { joi } from "../../../../src/config/common"
 
 describe("DeployTask", () => {
@@ -21,7 +21,7 @@ describe("DeployTask", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let config: ProjectConfig
-  let testPlugin: GardenPlugin
+  let testPlugin: GardenPluginSpec
 
   before(async () => {
     tmpDir = await makeTempDir({ git: true, initialCommit: false })
@@ -99,9 +99,12 @@ describe("DeployTask", () => {
         type: "test",
         kind: "Deploy",
         internal: {
-          basePath: "foo",
+          basePath: garden.projectRoot,
         },
-        dependencies: ["deploy.dep-deploy", "run.test-run"],
+        dependencies: [
+          { kind: "Deploy", name: "dep-deploy" },
+          { kind: "Run", name: "test-run" },
+        ],
         disabled: false,
 
         spec: {
@@ -113,7 +116,7 @@ describe("DeployTask", () => {
         type: "test",
         kind: "Deploy",
         internal: {
-          basePath: "foo",
+          basePath: garden.projectRoot,
         },
         dependencies: [],
         disabled: false,
@@ -129,7 +132,7 @@ describe("DeployTask", () => {
         disabled: false,
         timeout: 10,
         internal: {
-          basePath: "./",
+          basePath: garden.projectRoot,
         },
         spec: {
           log: "test output",
@@ -173,6 +176,133 @@ describe("DeployTask", () => {
 
       expect(unforcedDeployTask.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force)
         .to.be.false
+    })
+  })
+
+  describe("process", () => {
+    it("should emit deployStatus events", async () => {
+      garden.events.eventLog = []
+      const action = graph.getDeploy("test-deploy")
+
+      const deployTask = new DeployTask({
+        garden,
+        log: garden.log,
+        graph,
+        action,
+        force: true,
+        forceBuild: false,
+      })
+
+      const now = freezeTime().toISOString()
+      await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+
+      const deployStatusEvents = garden.events.eventLog
+        .filter((e) => e.name === "deployStatus")
+        // We ignore status events for dependencies since it works the same.
+        .filter((e) => e.payload.actionName === "test-deploy")
+      const actionVersion = deployStatusEvents[0].payload.actionVersion
+      const actionUid = deployStatusEvents[0].payload.actionUid
+
+      expect(deployStatusEvents).to.eql([
+        {
+          name: "deployStatus",
+          payload: {
+            actionName: "test-deploy",
+            actionVersion,
+            actionType: "deploy",
+            actionKind: "deploy",
+            actionUid,
+            moduleName: null,
+            startedAt: now,
+            force: true,
+            operation: "getStatus",
+            state: "getting-status",
+            sessionId: garden.sessionId,
+            status: { state: "unknown" },
+          },
+        },
+        {
+          name: "deployStatus",
+          payload: {
+            actionName: "test-deploy",
+            actionVersion,
+            actionType: "deploy",
+            actionKind: "deploy",
+            actionUid,
+            moduleName: null,
+            startedAt: now,
+            completedAt: now,
+            force: true,
+            operation: "getStatus",
+            state: "cached",
+            sessionId: garden.sessionId,
+            status: {
+              forwardablePorts: [],
+              mode: "default",
+              outputs: {},
+              state: "ready",
+            },
+          },
+        },
+        {
+          name: "deployStatus",
+          payload: {
+            actionName: "test-deploy",
+            actionVersion,
+            actionType: "deploy",
+            actionKind: "deploy",
+            actionUid,
+            moduleName: null,
+            force: true,
+            operation: "process",
+            startedAt: now,
+            state: "processing", // <--- Force is set to true so we deploy even if the previous status is cached
+            sessionId: garden.sessionId,
+            status: { state: "deploying" },
+          },
+        },
+        {
+          name: "deployStatus",
+          payload: {
+            actionName: "test-deploy",
+            actionVersion,
+            actionType: "deploy",
+            actionKind: "deploy",
+            actionUid,
+            moduleName: null,
+            force: true,
+            operation: "process",
+            startedAt: now,
+            completedAt: now,
+            state: "ready",
+            sessionId: garden.sessionId,
+            status: {
+              forwardablePorts: [],
+              mode: "default",
+              outputs: {},
+              state: "ready",
+            },
+          },
+        },
+      ])
+    })
+    it("should NOT emit deployStatus events if statusOnly=true", async () => {
+      garden.events.eventLog = []
+      const action = graph.getDeploy("test-deploy")
+
+      const deployTask = new DeployTask({
+        garden,
+        log: garden.log,
+        graph,
+        action,
+        force: true,
+        forceBuild: false,
+      })
+
+      await garden.processTasks({ tasks: [deployTask], throwOnError: true, statusOnly: true })
+
+      const deployStatusEvents = garden.events.eventLog.filter((e) => e.name === "deployStatus")
+      expect(deployStatusEvents).to.eql([])
     })
   })
 })

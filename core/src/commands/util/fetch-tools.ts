@@ -9,7 +9,7 @@
 import { Command, CommandParams } from "../base"
 import { RuntimeError } from "../../exceptions"
 import dedent from "dedent"
-import { GardenPlugin } from "../../plugin/plugin"
+import { GardenPluginSpec } from "../../plugin/plugin"
 import { findProjectConfig } from "../../config/base"
 import { Garden, DummyGarden } from "../../garden"
 import Bluebird from "bluebird"
@@ -55,7 +55,7 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
   printHeader() {}
 
   async action({ garden, log, opts }: CommandParams<{}, FetchToolsOpts>) {
-    let plugins: GardenPlugin[]
+    let plugins: GardenPluginSpec[]
 
     if (opts.all) {
       plugins = await garden.getAllPlugins()
@@ -64,14 +64,18 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
       const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
 
       if (!projectRoot) {
-        throw new RuntimeError(
-          `Could not find project config in the current directory, or anywhere above. Please use the --all parameter if you'd like to fetch tools for all registered providers.`,
-          { root: garden.projectRoot }
-        )
+        throw new RuntimeError({
+          message: `Could not find project config in the current directory, or anywhere above. Please use the --all parameter if you'd like to fetch tools for all registered providers.`,
+          detail: { root: garden.projectRoot },
+        })
       }
 
       if (garden instanceof DummyGarden) {
-        garden = await Garden.factory(garden.projectRoot, { ...omit(garden.opts, "config"), log })
+        garden = await Garden.factory(garden.projectRoot, {
+          ...omit(garden.opts, "config", "environmentString"),
+          log,
+          environmentString: opts.env,
+        })
       }
 
       plugins = await garden.getConfiguredPlugins()
@@ -90,10 +94,24 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
     // No need to fetch the same tools multiple times, if they're used in multiple providers
     const deduplicated = uniqBy(tools, ({ tool }) => tool["versionPath"])
 
+    const versionedConfigs = garden.getRawProviderConfigs({ names: ["pulumi", "terraform"], allowMissing: true })
+
+    // If the version of the tool is configured on the provider,
+    // download only that version of the tool.
+    const toolsNeeded = deduplicated.filter((tool) => {
+      const pluginToolVersion = versionedConfigs.find((p) => p.name === tool.plugin.name)?.version
+      const pluginHasVersionConfigured = !!pluginToolVersion
+      if (!pluginHasVersionConfigured) {
+        return true
+      } else {
+        return pluginToolVersion === tool.tool.spec.version
+      }
+    })
+
     const paths = fromPairs(
-      await Bluebird.map(deduplicated, async ({ plugin, tool }) => {
+      await Bluebird.map(toolsNeeded, async ({ plugin, tool }) => {
         const fullName = `${plugin.name}.${tool.name}`
-        const path = await tool.getPath(log)
+        const path = await tool.ensurePath(log)
         return [fullName, { type: tool.type, path }]
       })
     )

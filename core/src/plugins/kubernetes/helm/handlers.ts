@@ -12,7 +12,7 @@ import { join } from "path"
 import { pathExists } from "fs-extra"
 import chalk = require("chalk")
 import { getBaseModule, helmChartYamlFilename } from "./common"
-import { ExecBuildConfig } from "../../exec/config"
+import { ExecBuildConfig } from "../../exec/build"
 import { HelmActionConfig, HelmDeployConfig, HelmPodTestConfig } from "./config"
 import { getServiceResourceSpec } from "../util"
 import { jsonMerge } from "../../../util/util"
@@ -49,7 +49,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     }
 
     // There's one service on helm modules expect when skipDeploy = true
-    const service: typeof services[0] | undefined = services[0]
+    const service: (typeof services)[0] | undefined = services[0]
 
     // The helm Deploy type does not support the `base` field. We handle the field here during conversion,
     // for compatibility.
@@ -73,7 +73,8 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
       actions.push(deployAction)
     }
 
-    const { namespace, releaseName, timeout, values, valueFiles } = module.spec
+    const { namespace, values, valueFiles } = module.spec
+    const releaseName = module.spec.releaseName || module.name
     const chart = {
       name: module.spec.chart,
       path: module.spec.chart ? undefined : module.spec.chartPath,
@@ -82,7 +83,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     }
 
     for (const task of tasks) {
-      const resource = convertServiceResource(module, task.spec.resource, task.name)
+      const resource = convertServiceResource(module, task.spec.resource)
 
       if (!resource) {
         continue
@@ -92,13 +93,14 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         kind: "Run",
         type: "helm-pod",
         name: task.name,
+        description: task.spec.description,
         ...params.baseFields,
         disabled: task.disabled,
         build: dummyBuild?.name,
         dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
         timeout: task.spec.timeout,
         spec: {
-          ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
+          ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
           resource,
           namespace,
           releaseName,
@@ -111,7 +113,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
 
     for (const test of tests) {
       const testName = module.name + "-" + test.name
-      const resource = convertServiceResource(module, test.spec.resource, testName)
+      const resource = convertServiceResource(module, test.spec.resource)
 
       if (!resource) {
         continue
@@ -211,7 +213,7 @@ function prepareDeployAction({
       atomic: module.spec.atomicInstall,
       portForwards: module.spec.portForwards,
       namespace: module.spec.namespace,
-      releaseName: module.spec.releaseName,
+      releaseName: module.spec.releaseName || module.name,
       values: module.spec.values,
       valueFiles: module.spec.valueFiles,
 
@@ -231,13 +233,16 @@ function prepareDeployAction({
     deployAction.spec.chart!.path = baseModule.spec.chartPath
   }
 
-  if (serviceResource) {
-    if (serviceResource.containerModule) {
-      const build = convertBuildDependency(serviceResource.containerModule)
-      deployAction.dependencies?.push(build)
+  const containerModules = module.build.dependencies.map(convertBuildDependency) || []
+  if (serviceResource?.containerModule) {
+    const containerModuleSpecDep = convertBuildDependency(serviceResource.containerModule)
+    if (!containerModules.find((m) => m.name === containerModuleSpecDep.name)) {
+      containerModules.push(containerModuleSpecDep)
     }
-    deployAction.spec.defaultTarget = convertServiceResource(module, serviceResource) || undefined
   }
+
+  deployAction.dependencies?.push(...containerModules)
+  deployAction.spec.defaultTarget = convertServiceResource(module, serviceResource) || undefined
 
   return deployAction
 }

@@ -57,7 +57,7 @@ import { isRunning, killRecursive } from "../../../../../src/process"
 describe("exec plugin", () => {
   context("test-project based tests", () => {
     const testProjectRoot = getDataDir("test-project-exec")
-    const plugin = gardenPlugin()
+    const plugin = gardenPlugin
 
     let garden: Garden
     let ctx: PluginContext
@@ -311,30 +311,6 @@ describe("exec plugin", () => {
         },
       ])
       expect(moduleLocal.testConfigs).to.eql([])
-    })
-
-    it("should propagate task logs to runtime outputs", async () => {
-      const _garden = await makeTestGarden(getDataDir("test-projects", "exec-task-outputs"))
-      const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
-      const taskB = _graph.getRun("task-b")
-
-      const taskTask = new RunTask({
-        garden: _garden,
-        graph: _graph,
-        action: taskB,
-
-        log: _garden.log,
-        force: false,
-        forceBuild: false,
-      })
-      const result = await _garden.processTask(taskTask, _garden.log, { throwOnError: true })
-
-      // Task A echoes "task-a-output" and Task B echoes the output from Task A
-      expect(result).to.exist
-      expect(result!.result!).to.have.property("outputs")
-      expect(result!.result!.detail?.log).to.equal("task-a-output")
-      expect(result!.result!).to.have.property("outputs")
-      expect(result!.result!.outputs.log).to.equal("task-a-output")
     })
 
     it("should copy artifacts after task runs", async () => {
@@ -757,7 +733,7 @@ describe("exec plugin", () => {
         afterEach(async () => {
           if (pid > 1) {
             try {
-              await killRecursive("KILL", pid)
+              await killRecursive("SIGKILL", pid)
             } catch (_err) {}
           }
         })
@@ -973,7 +949,7 @@ describe("exec plugin", () => {
           providers: [{ name: "exec" }],
         })
 
-        return TestGarden.factory(tmpDirResult.path, { config, plugins: [gardenPlugin()] })
+        return TestGarden.factory(tmpDirResult.path, { config, plugins: [gardenPlugin] })
       }
 
       let tmpDir: tmp.DirectoryResult

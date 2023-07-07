@@ -2,7 +2,7 @@ kind: Build
 name: frontend
 description: Frontend service container image
 type: container
-include: [ "." ]
+include: ["."]
 
 ---
 kind: Deploy
@@ -45,7 +45,7 @@ dependencies:
   - deploy.frontend
 
 spec:
-  args: [ npm, test ]
+  args: [npm, test]
   env: ${actions.deploy.frontend.var.env}
 
 ---
@@ -59,7 +59,7 @@ dependencies:
   - deploy.frontend
 
 spec:
-  args: [ npm, run, integ ]
+  args: [npm, run, integ]
   env: ${actions.deploy.frontend.var.env}
 
 ---
@@ -67,7 +67,7 @@ kind: Build
 name: frontend-local
 type: exec
 buildAtSource: true
-include: [ ]
+include: []
 
 ---
 kind: Deploy
@@ -78,6 +78,6 @@ build: frontend-local
 
 spec:
   persistent: true
-  deployCommand: [ "yarn", "run", "dev" ]
-  statusCommand: [ ./check-local-status.sh ]
+  deployCommand: ["yarn", "run", "dev"]
+  statusCommand: [./check-local-status.sh]
   env: ${actions.deploy.frontend.var.env}

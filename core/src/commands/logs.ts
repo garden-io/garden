@@ -139,13 +139,13 @@ export class LogsCommand extends Command<Args, Opts> {
           return tagGroup.split(",").map((t: string) => {
             const parsed = Object.entries(dotenv.parse(t))[0]
             if (!parsed) {
-              throw new ParameterError(parameterErrorMsg, { tags: tag })
+              throw new ParameterError({ message: parameterErrorMsg, detail: { tags: tag } })
             }
             return parsed
           })
         })
       } catch {
-        throw new ParameterError(parameterErrorMsg, { tags: tag })
+        throw new ParameterError({ message: parameterErrorMsg, detail: { tags: tag } })
       }
     }
 
@@ -161,12 +161,12 @@ export class LogsCommand extends Command<Args, Opts> {
       let msg: string
       if (args.names) {
         msg = `Deploy(s) ${naturalList(args.names.map((s) => `"${s}"`))} not found. Available Deploys: ${naturalList(
-          allDeploys.map((s) => `"${s}"`)
+          allDeploys.map((s) => `"${s.name}"`)
         )}.`
       } else {
         msg = "No Deploys found in project."
       }
-      throw new CommandError(msg, { args, opts, availableDeploys: allDeployNames })
+      throw new CommandError({ message: msg, detail: { args, opts, availableDeploys: allDeployNames } })
     }
 
     let details: string = ""

@@ -27,7 +27,9 @@ interface JibBuildSpec {
   tarOnly?: boolean
   tarFormat: "docker" | "oci"
   mavenPath?: string
+  mavendPath?: string
   mavenPhases: string[]
+  concurrentMavenBuilds?: boolean
   gradlePath?: string
 }
 
@@ -39,10 +41,10 @@ interface JibModuleSpec extends ContainerModuleSpec {
 
 export type JibBuildActionSpec = ContainerBuildActionSpec & JibBuildSpec
 export type JibBuildConfig = BuildActionConfig<"jib-container", JibBuildActionSpec>
-export type JibBuildAction = BuildAction<JibBuildConfig, ContainerBuildOutputs>
+export type JibBuildAction = BuildAction<JibBuildConfig, ContainerBuildOutputs, {}>
 
 export type JibContainerModule = GardenModule<JibModuleSpec>
-export type JibPluginType = "gradle" | "maven"
+export type JibPluginType = "gradle" | "maven" | "mavend"
 
 const gradlePaths = [
   "build.gradle",
@@ -54,6 +56,7 @@ const gradlePaths = [
   "gradlew.cmd",
 ]
 const mavenPaths = ["pom.xml", ".mvn"]
+const mavendPaths = ["pom.xml", ".mvnd"]
 
 export function detectProjectType(action: BuildAction): JibPluginType {
   const actionFiles = action.getFullVersion().files
@@ -74,7 +77,17 @@ export function detectProjectType(action: BuildAction): JibPluginType {
     }
   }
 
-  throw new ConfigurationError(`Could not detect a gradle or maven project to build ${action.name}`, {})
+  for (const filename of mavendPaths) {
+    const path = resolve(module.path, filename)
+    if (actionFiles.includes(path)) {
+      return "mavend"
+    }
+  }
+
+  throw new ConfigurationError({
+    message: `Could not detect a gradle or maven project to build ${action.name}`,
+    detail: {},
+  })
 }
 
 export function getBuildFlags(action: Resolved<JibBuildAction>, projectType: JibModuleBuildSpec["projectType"]) {

@@ -21,7 +21,7 @@ import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
 import { toGardenError, GardenError, GardenBaseError } from "../exceptions"
-import { EventName, Events, EventBus, shouldStreamWsEvent } from "../events"
+import { EventName, Events, EventBus, shouldStreamWsEvent } from "../events/events"
 import type { ValueOf } from "../util/util"
 import { joi } from "../config/common"
 import { randomString } from "../util/string"
@@ -422,8 +422,7 @@ export class GardenServer extends EventEmitter {
       const subscribedGardenKeys: Set<string> = new Set()
 
       const eventListener: EventPipeListener = (name, payload) => {
-        const gardenKey = payload?.$context?.gardenKey
-        if (shouldStreamWsEvent(name, payload) && gardenKey) {
+        if (shouldStreamWsEvent(name, payload)) {
           send("event", { name, payload })
         }
       }
@@ -557,45 +556,55 @@ export class GardenServer extends EventEmitter {
 
         const persistent = command.maybePersistent(prepareParams)
         // We don't want to print logs on every request for some commands.
-        const printLogs = !internal && !skipLogsForCommands.includes(command.getFullName())
+        const isInternal = internal || skipLogsForCommands.includes(command.getFullName())
         const requestLog = this.log.createLog({ name: "garden-server" })
         const cmdNameStr = chalk.bold.white(command.getFullName())
+        const commandSessionId = requestId
 
         if (skipAnalyticsForCommands.includes(command.getFullName())) {
           command.enableAnalytics = false
+        }
+
+        const commandResponseBase = {
+          requestId,
+          sessionId: commandSessionId,
+          command: command.getFullName(),
+          persistent,
+          commandRequest: request.command,
         }
 
         // TODO: convert to async/await (this was previously in a sync method)
         command
           .prepare(prepareParams)
           .then(() => {
-            if (persistent) {
+            if (!isInternal) {
               send("commandStart", {
-                requestId,
+                ...commandResponseBase,
                 args,
                 opts,
               })
-
+            }
+            if (persistent) {
               this.activePersistentRequests[requestId] = { command, connection }
 
               command.subscribe((data: any) => {
                 send("commandOutput", {
-                  requestId,
-                  command: command.getFullName(),
+                  ...commandResponseBase,
                   data: sanitizeValue(data),
                 })
               })
             }
 
-            if (printLogs) {
+            if (!isInternal) {
               requestLog.info(chalk.grey(`Running command ${cmdNameStr}`))
             }
 
             return command.run({
               ...prepareParams,
               garden,
-              sessionId: requestId,
+              sessionId: commandSessionId,
               parentSessionId: this.sessionId,
+              overrideLogLevel: internal ? LogLevel.silly : undefined,
             })
           })
           // Here we check if the command has active monitors and if so,
@@ -631,12 +640,12 @@ export class GardenServer extends EventEmitter {
             send(
               "commandResult",
               sanitizeValue({
-                requestId,
+                ...commandResponseBase,
                 result,
                 errors,
               })
             )
-            if (printLogs) {
+            if (!isInternal) {
               if (errors?.length) {
                 renderCommandErrors(requestLog.root, errors, commandLog)
               } else {
@@ -647,7 +656,7 @@ export class GardenServer extends EventEmitter {
           })
           .catch((error) => {
             send("error", { message: error.message, requestId })
-            if (printLogs) {
+            if (!isInternal) {
               requestLog.error({ error: toGardenError(error) })
             }
             delete this.activePersistentRequests[requestId]
@@ -677,7 +686,11 @@ export class GardenServer extends EventEmitter {
     } else if (requestType === "loadConfig") {
       // Emit the config graph for the project (used for the Cloud dashboard)
       const resolved = await this.resolveRequest(ctx, omit(request, "type"))
-      let { garden, log } = resolved
+      let { garden, log: _log } = resolved
+      const log = _log.createLog({ fixLevel: LogLevel.silly })
+
+      const loadConfigLog = this.log.createLog({ name: "garden-server", showDuration: true })
+      loadConfigLog.info("Loading config for Live page...")
 
       const cloudApi = await this.manager.getCloudApi({
         log,
@@ -705,9 +718,11 @@ export class GardenServer extends EventEmitter {
 
       try {
         graph = await garden.getConfigGraph({ log, emit: true })
+        loadConfigLog.success("Config loaded")
       } catch (error) {
         errors.push(toGardenError(error))
       } finally {
+        loadConfigLog.success(`Loading config failed with error: ${errors[0].message}`)
         await cloudEventStream.close() // Note: This also flushes events
         send(
           "commandResult",
@@ -734,7 +749,7 @@ export class GardenServer extends EventEmitter {
       try {
         const suggestions = this.manager.getAutocompleteSuggestions({
           log: this.log,
-          projectRoot: projectRoot || this.manager.defaultProjectRoot,
+          projectRoot: projectRoot || this.defaultProjectRoot,
           input,
         })
         return send("autocompleteResult", { requestId, suggestions })
@@ -750,25 +765,32 @@ export class GardenServer extends EventEmitter {
   }
 }
 
+interface CommandResponseBase {
+  requestId: string
+  sessionId: string
+  command: string
+  /**
+   * The command string originally requested by the caller if applicable.
+   */
+  commandRequest?: string
+  persistent: boolean
+}
+
 interface ServerWebsocketMessages {
-  commandOutput: {
-    requestId: string
-    command: string
+  commandOutput: CommandResponseBase & {
     data: string
   }
-  commandResult: {
-    requestId: string
+  commandResult: CommandResponseBase & {
     result: CommandResult<any>
     errors?: GardenError[]
+  }
+  commandStart: CommandResponseBase & {
+    args: object
+    opts: object
   }
   commandStatus: {
     requestId: string
     status: "active" | "not found"
-  }
-  commandStart: {
-    requestId: string
-    args: object
-    opts: object
   }
   error: {
     requestId?: string

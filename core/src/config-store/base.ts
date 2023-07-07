@@ -95,10 +95,12 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
       const record = config[section]?.[key]
 
       if (!record) {
-        throw new InternalError(
-          `The config store does not contain a record for key '${String(section)}.${String(key)}. Cannot update.'`,
-          { section, key, value }
-        )
+        throw new InternalError({
+          message: `The config store does not contain a record for key '${String(section)}.${String(
+            key
+          )}. Cannot update.'`,
+          detail: { section, key, value },
+        })
       }
 
       if (value) {
@@ -142,14 +144,14 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
       return this.schema.parse(data)
     } catch (error) {
       const configPath = this.getConfigPath()
-      throw new InternalError(
-        `Validation error(s) when ${context} configuration file at ${configPath}:\n${dump(error.message)}`,
-        {
+      throw new InternalError({
+        message: `Validation error(s) when ${context} configuration file at ${configPath}:\n${dump(error.message)}`,
+        detail: {
           error,
           configPath,
           data,
-        }
-      )
+        },
+      })
     }
   }
 

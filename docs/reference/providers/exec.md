@@ -27,10 +27,14 @@ providers:
     name:
 
     # List other providers that should be resolved before this one.
+    #
+    # Example: `["exec"]`
     dependencies: []
 
     # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
     # disables the provider. To use a provider in all environments, omit this field.
+    #
+    # Example: `["dev","stage"]`
     environments:
 
     # An optional script to run in the project root when initializing providers. This is handy for running an
@@ -57,30 +61,17 @@ The name of the provider plugin to use.
 | -------- | -------- |
 | `string` | Yes      |
 
-Example:
-
-```yaml
-providers:
-  - name: "local-kubernetes"
-```
-
 ### `providers[].dependencies[]`
 
 [providers](#providers) > dependencies
 
 List other providers that should be resolved before this one.
 
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
+Example: `["exec"]`
 
-Example:
-
-```yaml
-providers:
-  - dependencies:
-      - exec
-```
+| Type    | Default | Required |
+| ------- | ------- | -------- |
+| `array` | `[]`    | No       |
 
 ### `providers[].environments[]`
 
@@ -88,18 +79,11 @@ providers:
 
 If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+Example: `["dev","stage"]`
 
-Example:
-
-```yaml
-providers:
-  - environments:
-      - dev
-      - stage
-```
+| Type    | Required |
+| ------- | -------- |
+| `array` | No       |
 
 ### `providers[].initScript`
 
@@ -113,3 +97,15 @@ this script runs before resolving that provider.
 | -------- | -------- |
 | `string` | No       |
 
+
+## Outputs
+
+The following keys are available via the `${providers.<provider-name>}` template string key for `exec` providers.
+
+### `${providers.<provider-name>.outputs.initScript.log}`
+
+The log output from the initScript specified in the provider configuration, if any.
+
+| Type     | Default |
+| -------- | ------- |
+| `string` | `""`    |

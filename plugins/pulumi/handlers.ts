@@ -45,8 +45,11 @@ export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({
     const exists = await pathExists(absRoot)
 
     if (!exists) {
-      throw new ConfigurationError(`Pulumi: configured working directory '${root}' does not exist`, {
-        moduleConfig,
+      throw new ConfigurationError({
+        message: `Pulumi: configured working directory '${root}' does not exist`,
+        detail: {
+          moduleConfig,
+        },
       })
     }
   }
@@ -59,16 +62,22 @@ export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({
   // Check to avoid using `orgName` or `cacheStatus: true` with non-pulumi managed backends
   if (!backendUrl.startsWith("https://")) {
     if (orgName) {
-      throw new ConfigurationError("Pulumi: orgName is not supported for self-managed backends", {
-        moduleConfig,
-        providerConfig: provider.config,
+      throw new ConfigurationError({
+        message: "Pulumi: orgName is not supported for self-managed backends",
+        detail: {
+          moduleConfig,
+          providerConfig: provider.config,
+        },
       })
     }
 
     if (moduleConfig.spec.cacheStatus) {
-      throw new ConfigurationError("Pulumi: `cacheStatus: true` is not supported for self-managed backends", {
-        moduleConfig,
-        providerConfig: provider.config,
+      throw new ConfigurationError({
+        message: "Pulumi: `cacheStatus: true` is not supported for self-managed backends",
+        detail: {
+          moduleConfig,
+          providerConfig: provider.config,
+        },
       })
     }
   }
@@ -119,8 +128,7 @@ export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatu
 export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async ({ ctx, log, action }) => {
   const provider = ctx.provider as PulumiProvider
   const pulumiParams = { log, ctx, provider, action }
-  const { autoApply, deployFromPreview } = action.getSpec()
-  const { cacheStatus } = action.getSpec()
+  const { autoApply, deployFromPreview, cacheStatus } = action.getSpec()
 
   if (!autoApply && !deployFromPreview) {
     log.info(`${action.longDescription()} has autoApply = false, but no planPath was provided. Skipping deploy.`)

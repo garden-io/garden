@@ -13,7 +13,7 @@ import { AuthTokenResponse, CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { Log } from "../logger/log-entry"
 import { ConfigurationError, InternalError, TimeoutError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
-import { EventBus } from "../events"
+import { EventBus } from "../events/events"
 import { getCloudDistributionName } from "../util/util"
 import { ProjectResource } from "../config/project"
 import { findProjectConfig } from "../config/base"
@@ -64,12 +64,12 @@ export class LoginCommand extends Command<{}, Opts> {
 
       // Fail if this is not run within a garden project
       if (!projectConfig) {
-        throw new ConfigurationError(
-          `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-          {
+        throw new ConfigurationError({
+          message: `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+          detail: {
             root: garden.projectRoot,
-          }
-        )
+          },
+        })
       }
     }
 
@@ -131,7 +131,12 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
 
     const timeout = setTimeout(() => {
       timedOut = true
-      reject(new TimeoutError(`Timed out after ${loginTimeoutSec} seconds, waiting for web login response.`, {}))
+      reject(
+        new TimeoutError({
+          message: `Timed out after ${loginTimeoutSec} seconds, waiting for web login response.`,
+          detail: {},
+        })
+      )
     }, loginTimeoutSec * 1000)
 
     events.once("receivedToken", (tokenResponse: AuthTokenResponse) => {
@@ -145,7 +150,7 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
   })
   await server.close()
   if (!response) {
-    throw new InternalError(`Error: Did not receive an auth token after logging in.`, {})
+    throw new InternalError({ message: `Error: Did not receive an auth token after logging in.`, detail: {} })
   }
 
   return response

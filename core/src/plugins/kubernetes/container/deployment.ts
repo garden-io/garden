@@ -14,7 +14,7 @@ import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources } from "../status/status"
 import { apply, deleteObjectsBySelector, deleteResourceKeys, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
-import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
+import { getAppNamespace, getNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
@@ -60,7 +60,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   const status = await k8sGetContainerDeployStatus(params)
   const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []
   if (specChangedResourceKeys.length > 0) {
-    const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+    const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
     await handleChangedSelector({
       action,
       specChangedResourceKeys,
@@ -135,7 +135,7 @@ export const deployContainerServiceRolling = async (
   const { ctx, api, action, log, imageId } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
-  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
   const namespace = namespaceStatus.namespaceName
 
   const { manifests } = await createContainerManifests({
@@ -375,14 +375,13 @@ export async function createWorkloadManifest({
         type: deploymentStrategy,
       }
     } else {
-      const _exhaustiveCheck: never = deploymentStrategy
-      return _exhaustiveCheck
+      return deploymentStrategy satisfies never
     }
 
     workload.spec.revisionHistoryLimit = production ? REVISION_HISTORY_LIMIT_PROD : REVISION_HISTORY_LIMIT_DEFAULT
   }
 
-  if (provider.config.imagePullSecrets.length > 0) {
+  if (provider.config.imagePullSecrets?.length > 0) {
     // add any configured imagePullSecrets.
     const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
     workload.spec.template.spec!.imagePullSecrets = imagePullSecrets
@@ -616,12 +615,12 @@ export function configureVolumes(
       const volumeAction = action.getDependency(volume.action)
 
       if (!volumeAction) {
-        throw new ConfigurationError(
-          `${action.longDescription()} specifies action '${
+        throw new ConfigurationError({
+          message: `${action.longDescription()} specifies action '${
             volume.action.name
           }' on volume '${volumeName}' but the Deploy action could not be found. Please make sure it is specified as a dependency on the action.`,
-          { volume }
-        )
+          detail: { volume },
+        })
       }
 
       if (volumeAction.isCompatible("persistentvolumeclaim")) {
@@ -639,13 +638,13 @@ export function configureVolumes(
           },
         })
       } else {
-        throw new ConfigurationError(
-          chalk.red(deline`${action.longDescription()} specifies a unsupported config
+        throw new ConfigurationError({
+          message: chalk.red(deline`${action.longDescription()} specifies a unsupported config
           ${chalk.white(volumeAction.name)} for volume mount ${chalk.white(volumeName)}. Only \`persistentvolumeclaim\`
           and \`configmap\` action are supported at this time.
           `),
-          { volumeSpec: volume }
-        )
+          detail: { volumeSpec: volume },
+        })
       }
     } else {
       volumes.push({
@@ -706,16 +705,16 @@ export async function handleChangedSelector({
     "spec.selector"
   )} and needs to be deleted before redeploying.`
   if (production && !force) {
-    throw new DeploymentError(
-      `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${chalk.white(
+    throw new DeploymentError({
+      message: `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${chalk.white(
         "--force"
       )} flag when deploying e.g. with the ${chalk.white(
         "garden deploy"
       )} command. You can also delete the resource from your cluster manually and try again.`,
-      {
+      detail: {
         deployName: action.name,
-      }
-    )
+      },
+    })
   } else {
     if (production && force) {
       log.warn(

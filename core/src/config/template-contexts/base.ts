@@ -95,14 +95,14 @@ export abstract class ConfigContext {
     opts.stack = [...(opts.stack || [])]
 
     if (opts.stack.includes(fullPath)) {
-      throw new ConfigurationError(
-        `Circular reference detected when resolving key ${path} (${opts.stack.join(" -> ")})`,
-        {
+      throw new ConfigurationError({
+        message: `Circular reference detected when resolving key ${path} (${opts.stack.join(" -> ")})`,
+        detail: {
           nodePath,
           fullPath,
           opts,
-        }
-      )
+        },
+      })
     }
 
     // keep track of which resolvers have been called, in order to detect circular references
@@ -125,11 +125,14 @@ export abstract class ConfigContext {
       if (typeof nextKey === "string" && nextKey.startsWith("_")) {
         value = undefined
       } else if (isPrimitive(value)) {
-        throw new ConfigurationError(`Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof value}.`, {
-          value,
-          nodePath,
-          fullPath,
-          opts,
+        throw new ConfigurationError({
+          message: `Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof value}.`,
+          detail: {
+            value,
+            nodePath,
+            fullPath,
+            opts,
+          },
         })
       } else if (value instanceof Map) {
         available = [...value.keys()]
@@ -142,14 +145,14 @@ export abstract class ConfigContext {
       if (typeof value === "function") {
         // call the function to resolve the value, then continue
         if (opts.stack.includes(stackEntry)) {
-          throw new ConfigurationError(
-            `Circular reference detected when resolving key ${stackEntry} (from ${opts.stack.join(" -> ")})`,
-            {
+          throw new ConfigurationError({
+            message: `Circular reference detected when resolving key ${stackEntry} (from ${opts.stack.join(" -> ")})`,
+            detail: {
               nodePath,
               fullPath,
               opts,
-            }
-          )
+            },
+          })
         }
 
         opts.stack.push(stackEntry)
@@ -202,16 +205,22 @@ export abstract class ConfigContext {
       if (this._alwaysAllowPartial) {
         // We use a separate exception type when contexts are specifically indicating that unresolvable keys should
         // be passed through. This is caught in the template parser code.
-        throw new TemplateStringPassthroughException(message, {
-          nodePath,
-          fullPath,
-          opts,
+        throw new TemplateStringPassthroughException({
+          message,
+          detail: {
+            nodePath,
+            fullPath,
+            opts,
+          },
         })
       } else if (opts.allowPartial) {
-        throw new TemplateStringMissingKeyException(message, {
-          nodePath,
-          fullPath,
-          opts,
+        throw new TemplateStringMissingKeyException({
+          message,
+          detail: {
+            nodePath,
+            fullPath,
+            opts,
+          },
         })
       } else {
         // Otherwise we return the undefined value, so that any logical expressions can be evaluated appropriately.
@@ -300,7 +309,7 @@ export class ErrorContext extends ConfigContext {
   }
 
   resolve({}): ContextResolveOutput {
-    throw new ConfigurationError(this.message, {})
+    throw new ConfigurationError({ message: this.message, detail: {} })
   }
 }
 

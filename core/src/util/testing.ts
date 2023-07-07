@@ -16,7 +16,7 @@ import { Log, LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
 import { findByName, getNames } from "./util"
 import { GardenBaseError, GardenError, InternalError } from "../exceptions"
-import { EventBus, EventName, Events } from "../events"
+import { EventBus, EventName, Events } from "../events/events"
 import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
@@ -130,19 +130,19 @@ export class TestEventBus extends EventBus {
       }
     }
 
-    throw new TestError(
-      dedent`
+    throw new TestError({
+      message: dedent`
       Expected event in log with name '${name}' and payload ${JSON.stringify(payload)}.
       Logged events:
       ${this.eventLog.map((e) => JSON.stringify(e)).join("\n")}
     `,
-      { name, payload }
-    )
+      detail: { name, payload },
+    })
   }
 }
 
 const defaultCommandinfo = { name: "test", args: {}, opts: {} }
-const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
+export const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
 
 const paramCache: { [key: string]: GardenParams } = {}
 // const configGraphCache: { [key: string]: ConfigGraph } = {}
@@ -344,7 +344,10 @@ export class TestGarden extends Garden {
     const config = findByName(modules, name)
 
     if (!config) {
-      throw new TestError(`Could not find module config ${name}`, { name, available: getNames(modules) })
+      throw new TestError({
+        message: `Could not find module config ${name}`,
+        detail: { name, available: getNames(modules) },
+      })
     }
 
     return config

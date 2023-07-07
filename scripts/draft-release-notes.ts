@@ -9,12 +9,12 @@ import parseArgs = require("minimist")
 
 const gardenRoot = resolve(__dirname, "..")
 
-async function getChangelog(prevReleaseTag: string, curReleaseTag: string) {
+async function getChangelog(curReleaseTag: string) {
   try {
     return (
       await execa(
         "git-chglog",
-        ["--tag-filter-pattern", "^\\d+\\.\\d+\\.\\d+$", "--sort", "semver", `${prevReleaseTag}..${curReleaseTag}`],
+        ["--tag-filter-pattern", "^\\d+\\.\\d+\\.\\d+$", "--sort", "semver", `${curReleaseTag}..${curReleaseTag}`],
         { cwd: gardenRoot }
       )
     ).stdout
@@ -37,9 +37,10 @@ const releaseNotesDraft = (version: string, changelog: string, contributors: str
   dedent(`
 # Garden ${version} is out! :tada:
 
-[TODO: INSERT BRIEF RELEASE DESCRIPTION HERE. Give an overview of the release and mention all relevant features.]
+[TODO: amend the release description below in necessary.]
+This is a maintenance release that includes some bug fixes, features, and improvements.
 
-[TODO: prepare the list of **external** contributors, replace the list in [[]] with the comma-separated list of @github_names, and remove surrounding [[]] characters. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on Github as well.]
+[TODO: prepare the list of **external** contributors, replace the list in [[]] with the comma-separated list of @github_names.]
 Many thanks to [[${contributors}]] for the contributions to this release!
 
 ## Assets
@@ -55,10 +56,13 @@ Download the Garden binary for your platform from below or simply run \`garden s
 [TODO: Remember to put the list of features on top of the list of bug fixes.]
 [TODO: Remove all garbage entries from the changelog below.]
 ${changelog}
+
+## Fixed Issues
+[TODO: compose the list of the fixed issues here.]
 `)
 
 // todo: for better automation, consider calling this from ./release.ts when RELEASE_TYPE arg is minor|patch
-//       and remember to update CONTRIBUTING.msd guide
+//       and remember to update CONTRIBUTING.md guide
 async function draftReleaseNotes() {
   // Parse arguments
   const argv = parseArgs(process.argv.slice(2))
@@ -69,7 +73,7 @@ async function draftReleaseNotes() {
   // Generate changelog
   // todo: ensure that the list of features on top of the list of bug fixes
   console.log("Generating changelog...")
-  const changelog = await getChangelog(prevReleaseTag, curReleaseTag)
+  const changelog = await getChangelog(curReleaseTag)
 
   console.log("Generating list of contributors...")
   const contributors = getContributors(prevReleaseTag, curReleaseTag)

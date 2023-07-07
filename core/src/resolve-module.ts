@@ -30,12 +30,12 @@ import {
 import { BuildDependencyConfig, ModuleConfig, moduleConfigSchema } from "./config/module"
 import { Profile, profileAsync } from "./util/profiling"
 import { getLinkedSources } from "./util/ext-source-util"
-import { allowUnknown, DeepPrimitiveMap } from "./config/common"
+import { ActionReference, allowUnknown, DeepPrimitiveMap } from "./config/common"
 import type { ProviderMap } from "./config/provider"
 import chalk from "chalk"
 import { DependencyGraph } from "./graph/common"
 import Bluebird from "bluebird"
-import { readFile, mkdirp, writeFile } from "fs-extra"
+import { readFile, mkdirp } from "fs-extra"
 import type { Log } from "./logger/log-entry"
 import { ModuleConfigContext, ModuleConfigContextParams } from "./config/template-contexts/module"
 import { pathToCacheContext } from "./cache"
@@ -51,7 +51,7 @@ import type { GroupConfig } from "./config/group"
 import type { ActionConfig, ActionKind, BaseActionConfig } from "./actions/types"
 import type { ModuleGraph } from "./graph/modules"
 import type { GraphResults } from "./graph/results"
-import type { ExecBuildConfig } from "./plugins/exec/config"
+import type { ExecBuildConfig } from "./plugins/exec/build"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
@@ -100,14 +100,17 @@ export class ModuleResolver {
     // remove nodes from as we complete the processing.
     const fullGraph = new DependencyGraph()
     const processingGraph = new DependencyGraph()
+    const allPaths: string[] = []
 
     for (const key of Object.keys(this.rawConfigsByKey)) {
       for (const graph of [fullGraph, processingGraph]) {
         graph.addNode(key)
       }
     }
+
     for (const [key, rawConfig] of Object.entries(this.rawConfigsByKey)) {
       const buildPath = this.garden.buildStaging.getBuildPath(rawConfig)
+      allPaths.push(rawConfig.path)
       const deps = this.getModuleDependenciesFromConfig(rawConfig, buildPath)
       for (const graph of [fullGraph, processingGraph]) {
         for (const dep of deps) {
@@ -117,6 +120,8 @@ export class ModuleResolver {
         }
       }
     }
+
+    const minimalRoots = await this.garden.vcs.getMinimalRoots(this.log, allPaths)
 
     const resolvedConfigs: ModuleConfigMap = {}
     const resolvedModules: ModuleMap = {}
@@ -175,7 +180,12 @@ export class ModuleResolver {
         // dependencies.
         if (!foundNewDependency) {
           const buildPath = this.garden.buildStaging.getBuildPath(resolvedConfig)
-          resolvedModules[moduleKey] = await this.resolveModule(resolvedConfig, buildPath, resolvedDependencies)
+          resolvedModules[moduleKey] = await this.resolveModule({
+            resolvedConfig,
+            buildPath,
+            dependencies: resolvedDependencies,
+            repoRoot: minimalRoots[resolvedConfig.path],
+          })
           this.log.silly(`ModuleResolver: Module ${moduleKey} resolved`)
           processingGraph.removeNode(moduleKey)
         }
@@ -199,7 +209,7 @@ export class ModuleResolver {
 
         const msg = `Failed resolving one or more modules:\n\n${errorStr}`
 
-        const combined = new ConfigurationError(chalk.red(msg), { ...errors })
+        const combined = new ConfigurationError({ message: chalk.red(msg), detail: { ...errors } })
         combined.stack = errorStack
         throw combined
       }
@@ -210,14 +220,14 @@ export class ModuleResolver {
       try {
         batch = processingGraph.overallOrder(true).filter((n) => !inFlight.has(n))
       } catch (err) {
-        throw new ConfigurationError(
-          dedent`
+        throw new ConfigurationError({
+          message: dedent`
             Detected circular dependencies between module configurations:
 
             ${err.detail?.["circular-dependencies"] || err.message}
           `,
-          { cycles: err.detail?.cycles }
-        )
+          detail: { cycles: err.detail?.cycles },
+        })
       }
 
       this.log.silly(`ModuleResolver: Process ${batch.length} leaves`)
@@ -378,13 +388,13 @@ export class ModuleResolver {
     if (!description) {
       const configPath = relative(garden.projectRoot, config.configPath || config.path)
 
-      throw new ConfigurationError(
-        deline`
+      throw new ConfigurationError({
+        message: deline`
         Unrecognized module type '${config.type}' (defined at ${configPath}).
         Are you missing a provider configuration?
         `,
-        { config, configuredModuleTypes: Object.keys(moduleTypeDefinitions) }
-      )
+        detail: { config, configuredModuleTypes: Object.keys(moduleTypeDefinitions) },
+      })
     }
 
     // We allow specifying modules by name only as a shorthand:
@@ -478,7 +488,17 @@ export class ModuleResolver {
     return this.bases[type]
   }
 
-  private async resolveModule(resolvedConfig: ModuleConfig, buildPath: string, dependencies: GardenModule[]) {
+  private async resolveModule({
+    resolvedConfig,
+    buildPath,
+    dependencies,
+    repoRoot,
+  }: {
+    resolvedConfig: ModuleConfig
+    buildPath: string
+    dependencies: GardenModule[]
+    repoRoot: string
+  }) {
     this.log.silly(`Resolving module ${resolvedConfig.name}`)
 
     // Write module files
@@ -509,12 +529,12 @@ export class ModuleResolver {
         try {
           contents = (await readFile(sourcePath)).toString()
         } catch (err) {
-          throw new ConfigurationError(
-            `Unable to read file at ${sourcePath}, specified under generateFiles in module ${resolvedConfig.name}: ${err}`,
-            {
+          throw new ConfigurationError({
+            message: `Unable to read file at ${sourcePath}, specified under generateFiles in module ${resolvedConfig.name}: ${err}`,
+            detail: {
               sourcePath,
-            }
-          )
+            },
+          })
         }
       }
 
@@ -542,15 +562,16 @@ export class ModuleResolver {
 
       try {
         await mkdirp(targetDir)
-        await writeFile(targetPath, resolvedContents)
+        // Use VcsHandler.writeFile() to make sure version is re-computed after writing new/updated files
+        await this.garden.vcs.writeFile(this.log, targetPath, resolvedContents)
       } catch (error) {
-        throw new FilesystemError(
-          `Unable to write templated file ${fileSpec.targetPath} from ${resolvedConfig.name}: ${error.message}`,
-          {
+        throw new FilesystemError({
+          message: `Unable to write templated file ${fileSpec.targetPath} from ${resolvedConfig.name}: ${error.message}`,
+          detail: {
             fileSpec,
             error,
-          }
-        )
+          },
+        })
       }
     })
 
@@ -565,6 +586,7 @@ export class ModuleResolver {
       log: this.log,
       config: resolvedConfig,
       buildDependencies: dependencies,
+      scanRoot: repoRoot,
     })
 
     const moduleTypeDefinitions = await this.garden.getModuleTypes()
@@ -677,22 +699,22 @@ export const convertModules = profileAsync(async function convertModules(
       }
     }
 
-    const convertBuildDependency = (d: string | BuildDependencyConfig) => {
+    const convertBuildDependency = (d: string | BuildDependencyConfig): ActionReference => {
       if (typeof d === "string") {
-        return "build." + d
+        return { kind: "Build", name: d }
       } else {
-        return "build." + d.name
+        return { kind: "Build", name: d.name }
       }
     }
 
-    const convertRuntimeDependencies = (deps: string[]): string[] => {
-      const resolved: string[] = []
+    const convertRuntimeDependencies = (deps: string[]): ActionReference[] => {
+      const resolved: ActionReference[] = []
 
       for (const d of deps || []) {
         if (allServices[d]) {
-          resolved.push("deploy." + d)
+          resolved.push({ kind: "Deploy", name: d })
         } else if (allTasks[d]) {
-          resolved.push("run." + d)
+          resolved.push({ kind: "Run", name: d })
         }
       }
 
@@ -735,9 +757,9 @@ export const convertModules = profileAsync(async function convertModules(
 
       convertRuntimeDependencies,
       prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig<string, any>) {
-        const resolved: string[] = convertRuntimeDependencies(deps)
+        const resolved: ActionReference[] = convertRuntimeDependencies(deps)
         if (build) {
-          resolved.push("build." + build.name)
+          resolved.push({ kind: "Build", name: build.name })
         }
         return resolved
       },
@@ -745,7 +767,7 @@ export const convertModules = profileAsync(async function convertModules(
 
     const totalReturned = (result.actions?.length || 0) + (result.group?.actions.length || 0)
 
-    log.debug(`Module ${module.name} converted to ${totalReturned} actions`)
+    log.debug(`Module ${module.name} converted to ${totalReturned} action(s)`)
 
     if (result.group) {
       for (const action of result.group.actions) {
@@ -782,7 +804,7 @@ export function makeDummyBuild({
   // To make it clear at the call site that we're not inferring `copyFrom` or `dependencies` from `module`, we  ask the
   // caller to explicitly provide `undefined` instead of making the param optional.
   copyFrom: BuildCopyFrom[] | undefined
-  dependencies: string[] | undefined
+  dependencies: ActionReference[] | undefined
 }): ExecBuildConfig {
   return {
     kind: "Build",
@@ -801,6 +823,7 @@ export function makeDummyBuild({
 
     timeout: module.build.timeout,
     spec: {
+      command: [],
       env: {},
     },
   }
@@ -853,11 +876,11 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
 }
 
 function missingBuildDependency(moduleName: string, dependencyName: string) {
-  return new ConfigurationError(
-    chalk.red(
+  return new ConfigurationError({
+    message: chalk.red(
       `Could not find build dependency ${chalk.white(dependencyName)}, ` +
         `configured in module ${chalk.white(moduleName)}`
     ),
-    { moduleName, dependencyName }
-  )
+    detail: { moduleName, dependencyName },
+  })
 }

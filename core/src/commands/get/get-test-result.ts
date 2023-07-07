@@ -111,22 +111,25 @@ export function getTestActionFromArgs(graph: ConfigGraph, args: ParameterValues<
     try {
       module = graph.getModule(args.name, true)
     } catch (err) {
-      throw new ParameterError(
-        `Two arguments were provided, so we looked for a Module named '${moduleName}, but could not find it.`,
-        {
+      throw new ParameterError({
+        message: `Two arguments were provided, so we looked for a Module named '${moduleName}, but could not find it.`,
+        detail: {
           moduleName,
           testName,
-        }
-      )
+        },
+      })
     }
 
     const testConfig = findByName(module.testConfigs, args.moduleTestName)
 
     if (!testConfig) {
-      throw new ParameterError(`Could not find test "${testName}" in module ${moduleName}`, {
-        moduleName,
-        testName,
-        availableTests: getNames(module.testConfigs),
+      throw new ParameterError({
+        message: `Could not find test "${testName}" in module ${moduleName}`,
+        detail: {
+          moduleName,
+          testName,
+          availableTests: getNames(module.testConfigs),
+        },
       })
     }
 

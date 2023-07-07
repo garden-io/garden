@@ -28,6 +28,7 @@ import { ConfigurationError } from "../exceptions"
 import { EnvironmentConfig, getNamespace } from "./project"
 import { omitUndefined } from "../util/objects"
 import { BaseGardenResource, GardenResource } from "./base"
+import { DOCS_BASE_URL } from "../constants"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu
@@ -259,7 +260,7 @@ export const workflowStepSchema = createSchema({
 
       \`never\`: This step will always be ignored.
 
-      See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
+      See the [workflows guide](${DOCS_BASE_URL}/using-garden/workflows#the-skip-and-when-options) for details
       and examples.
       `),
   }),
@@ -440,7 +441,7 @@ function validateTriggers(config: WorkflowConfig, environmentConfigs: Environmen
       ${environmentNames.join(", ")}
     `
 
-    throw new ConfigurationError(msg, { invalidTriggers })
+    throw new ConfigurationError({ message: msg, detail: { invalidTriggers } })
   }
 }
 
@@ -451,7 +452,10 @@ export function populateNamespaceForTriggers(config: WorkflowConfig, environment
       trigger.namespace = getNamespace(environmentConfigForTrigger!, trigger.namespace)
     }
   } catch (err) {
-    throw new ConfigurationError(`Invalid namespace in trigger for workflow ${config.name}: ${err.message}`, { err })
+    throw new ConfigurationError({
+      message: `Invalid namespace in trigger for workflow ${config.name}: ${err.message}`,
+      detail: { err },
+    })
   }
 }
 

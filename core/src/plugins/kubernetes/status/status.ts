@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Bluebird from "bluebird"
 import { diffString } from "json-diff"
 import { DeploymentError } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
-import Bluebird from "bluebird"
 import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
 import { isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
@@ -25,6 +25,7 @@ import {
   V1Service,
   V1Container,
   KubernetesObject,
+  V1Job,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
 import { getPods, getResourceKey, hashManifest } from "../util"
@@ -35,9 +36,9 @@ import { SyncableResource } from "../types"
 import { ActionMode } from "../../../actions/types"
 import { deepMap } from "../../../util/objects"
 import { DeployState, combineStates } from "../../../types/service"
-import { sleep } from "../../../util/util"
+import { isTruthy, sleep } from "../../../util/util"
 
-export interface ResourceStatus<T = BaseResource> {
+export interface ResourceStatus<T extends BaseResource | KubernetesObject = BaseResource> {
   state: DeployState
   resource: KubernetesServerResource<T>
   lastMessage?: string
@@ -45,15 +46,16 @@ export interface ResourceStatus<T = BaseResource> {
   logs?: string
 }
 
-export interface StatusHandlerParams<T = BaseResource> {
+export interface StatusHandlerParams<T extends BaseResource | KubernetesObject = BaseResource> {
   api: KubeApi
   namespace: string
   resource: KubernetesServerResource<T>
   log: Log
   resourceVersion?: number
+  waitForJobs?: boolean
 }
 
-interface StatusHandler<T = BaseResource> {
+interface StatusHandler<T extends BaseResource | KubernetesObject = BaseResource> {
   (params: StatusHandlerParams<T>): Promise<ResourceStatus<T>>
 }
 
@@ -111,6 +113,37 @@ const objHandlers: { [kind: string]: StatusHandler } = {
 
     return { state: "ready", resource }
   },
+
+  Job: async ({ resource, waitForJobs }: StatusHandlerParams<V1Job>) => {
+    if (
+      resource.status?.failed &&
+      resource.spec?.backoffLimit &&
+      resource.status?.failed >= resource.spec?.backoffLimit
+    ) {
+      // job has failed
+      return { state: "unhealthy", resource }
+    }
+    if (
+      resource.spec?.completions &&
+      resource.status?.succeeded &&
+      resource.status?.succeeded < resource.spec.completions
+    ) {
+      // job is not yet completed
+      return { state: "deploying", resource }
+    }
+    // job has succeeded
+    if (resource.status.succeeded) {
+      return { state: "ready", resource }
+    }
+
+    // wait for job only if waitForJobs is set, otherwise
+    // mark it as ready and proceed.
+    if (waitForJobs) {
+      return { state: "deploying", resource }
+    } else {
+      return { state: "ready", resource }
+    }
+  },
 }
 
 /**
@@ -120,10 +153,11 @@ export async function checkResourceStatuses(
   api: KubeApi,
   namespace: string,
   manifests: KubernetesResource[],
-  log: Log
+  log: Log,
+  waitForJobs?: boolean
 ): Promise<ResourceStatus[]> {
   return Bluebird.map(manifests, async (manifest) => {
-    return checkResourceStatus({ api, namespace, manifest, log })
+    return checkResourceStatus({ api, namespace, manifest, log, waitForJobs })
   })
 }
 
@@ -132,11 +166,13 @@ export async function checkResourceStatus({
   namespace,
   manifest,
   log,
+  waitForJobs,
 }: {
   api: KubeApi
   namespace: string
   manifest: KubernetesResource
   log: Log
+  waitForJobs?: boolean
 }) {
   if (manifest.metadata?.namespace) {
     namespace = manifest.metadata.namespace
@@ -154,7 +190,7 @@ export async function checkResourceStatus({
     }
   }
 
-  return resolveResourceStatus({ api, namespace, resource, log })
+  return resolveResourceStatus({ api, namespace, resource, log, waitForJobs })
 }
 
 export async function resolveResourceStatus(
@@ -199,6 +235,7 @@ interface WaitParams {
   resources: KubernetesResource[]
   log: Log
   timeoutSec: number
+  waitForJobs?: boolean
 }
 
 /**
@@ -212,6 +249,7 @@ export async function waitForResources({
   resources,
   log,
   timeoutSec,
+  waitForJobs,
 }: WaitParams) {
   let loops = 0
   const startTime = new Date().getTime()
@@ -249,7 +287,7 @@ export async function waitForResources({
     await sleep(2000 + 500 * loops)
     loops += 1
 
-    const statuses = await checkResourceStatuses(api, namespace, Object.values(pendingResources), log)
+    const statuses = await checkResourceStatuses(api, namespace, Object.values(pendingResources), log, waitForJobs)
 
     for (const status of statuses) {
       const key = getResourceKey(status.resource)
@@ -278,9 +316,12 @@ export async function waitForResources({
         }
 
         emitLog(msg)
-        throw new DeploymentError(msg, {
-          serviceName: actionName,
-          status,
+        throw new DeploymentError({
+          message: msg,
+          detail: {
+            serviceName: actionName,
+            status,
+          },
         })
       }
 
@@ -309,7 +350,7 @@ export async function waitForResources({
         Timed out waiting for ${actionName || "resources"} to deploy after ${timeoutSec} seconds
       `
       emitLog(deploymentErrMsg)
-      throw new DeploymentError(deploymentErrMsg, { statuses })
+      throw new DeploymentError({ message: deploymentErrMsg, detail: { statuses } })
     }
   }
 
@@ -543,15 +584,15 @@ function detectChangedSpecSelector(manifestsMap: KubernetesResourceMap, deployed
 export async function getDeployedResource<ResourceKind extends KubernetesObject>(
   ctx: PluginContext,
   provider: KubernetesProvider,
-  resource: KubernetesResource<ResourceKind>,
+  manifest: KubernetesResource<ResourceKind>,
   log: Log
 ): Promise<KubernetesResource<ResourceKind> | null> {
   const api = await KubeApi.factory(log, ctx, provider)
   const k8sCtx = ctx as KubernetesPluginContext
-  const namespace = resource.metadata?.namespace || (await getAppNamespace(k8sCtx, log, provider))
+  const namespace = manifest.metadata?.namespace || (await getAppNamespace(k8sCtx, log, provider))
 
   try {
-    const res = await api.readBySpec({ namespace, manifest: resource, log })
+    const res = await api.readBySpec({ namespace, manifest, log })
     return <KubernetesResource<ResourceKind>>res
   } catch (err) {
     if (err.statusCode === 404) {
@@ -560,6 +601,40 @@ export async function getDeployedResource<ResourceKind extends KubernetesObject>
       throw err
     }
   }
+}
+
+/**
+ * Fetches matching deployed resources from the cluster for the provided array of manifests.
+ */
+export async function getDeployedResources<ResourceKind extends KubernetesObject>({
+  ctx,
+  provider,
+  manifests,
+  log,
+}: {
+  ctx: PluginContext
+  provider: KubernetesProvider
+  manifests: KubernetesResource<ResourceKind>[]
+  log: Log
+}): Promise<KubernetesResource<ResourceKind>[]> {
+  const api = await KubeApi.factory(log, ctx, provider)
+  const k8sCtx = ctx as KubernetesPluginContext
+  const appNamespace = await getAppNamespace(k8sCtx, log, provider)
+
+  const deployed = await Bluebird.map(manifests, async (resource: KubernetesResource) => {
+    const namespace = resource.metadata?.namespace || appNamespace
+    try {
+      const res = await api.readBySpec({ namespace, manifest: resource, log })
+      return <KubernetesResource<ResourceKind>>res
+    } catch (err) {
+      if (err.statusCode === 404) {
+        return null
+      } else {
+        throw err
+      }
+    }
+  })
+  return deployed.filter(isTruthy)
 }
 
 export async function getDeployedResources(ctx: KubernetesPluginContext, log: Log, manifests: KubernetesResource[]) {

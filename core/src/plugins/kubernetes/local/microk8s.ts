@@ -42,9 +42,12 @@ export async function configureMicrok8sAddons(log: Log, addons: string[]) {
   }
 
   if (!status.includes("microk8s is running")) {
-    throw new RuntimeError(`Unable to get microk8s status. Is the cluster installed and running?`, {
-      status,
-      statusCommandResult,
+    throw new RuntimeError({
+      message: `Unable to get microk8s status. Is the cluster installed and running?`,
+      detail: {
+        status,
+        statusCommandResult,
+      },
     })
   }
 
@@ -138,8 +141,11 @@ export async function loadImageToMicrok8s({
       }
     })
   } catch (err) {
-    throw new RuntimeError(`An attempt to load image ${imageId} into the microk8s cluster failed: ${err.message}`, {
-      err,
+    throw new RuntimeError({
+      message: `An attempt to load image ${imageId} into the microk8s cluster failed: ${err.message}`,
+      detail: {
+        err,
+      },
     })
   }
 }

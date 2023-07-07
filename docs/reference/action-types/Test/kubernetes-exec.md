@@ -453,7 +453,7 @@ spec:
   command:
     - npm
     - run
-    - 'test:integ'
+    - test:integ
 ```
 
 ### `spec.resource`

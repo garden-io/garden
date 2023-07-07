@@ -10,6 +10,7 @@ import { DeployActionHandler } from "../../../plugin/action-types"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext } from "../config"
 import { getActionNamespace } from "../namespace"
+import { getDeployedResources } from "../status/status"
 import { getSyncStatus, startSyncs } from "../sync"
 import { getManifests } from "./common"
 import { KubernetesDeployAction } from "./config"
@@ -35,6 +36,7 @@ export const kubernetesStartSync: DeployActionHandler<"startSync", KubernetesDep
   })
 
   const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
+  const deployedResources = await getDeployedResources({ ctx, provider, manifests, log })
 
   await startSyncs({
     ctx: k8sCtx,
@@ -44,7 +46,7 @@ export const kubernetesStartSync: DeployActionHandler<"startSync", KubernetesDep
     defaultTarget: spec.defaultTarget,
     basePath: action.basePath(),
     defaultNamespace: namespace,
-    manifests,
+    deployedResources,
     syncs: spec.sync.paths,
   })
 
@@ -74,6 +76,7 @@ export const kubernetesGetSyncStatus: DeployActionHandler<"getSyncStatus", Kuber
   })
 
   const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
+  const deployedResources = await getDeployedResources({ ctx, provider, manifests, log })
 
   return getSyncStatus({
     ctx: k8sCtx,
@@ -83,7 +86,7 @@ export const kubernetesGetSyncStatus: DeployActionHandler<"getSyncStatus", Kuber
     defaultTarget: spec.defaultTarget,
     basePath: action.basePath(),
     defaultNamespace: namespace,
-    manifests,
+    deployedResources,
     syncs: spec.sync.paths,
     monitor,
   })

@@ -720,15 +720,6 @@ providerStatuses:
     # Use this to include additional information that is specific to the provider.
     detail:
 
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
-
     # Output variables that modules and other variables can reference.
     outputs:
       <name>:
@@ -760,15 +751,6 @@ deployStatuses:
 
       # The mode the action is deployed in.
       mode:
-
-      namespaceStatuses:
-        - pluginName:
-
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
-
-          state:
 
       # The ID used for the service by the provider (if not the same as the service name).
       externalId:
@@ -892,15 +874,6 @@ When this flag is not used, all services in the project are cleaned up simultane
     # The mode the action is deployed in.
     mode:
 
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
-
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
 
@@ -1021,7 +994,7 @@ the command stays running until explicitly aborted.
 
 This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of Deploys you&#x27;d like to skip.
-  | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
+  | `--skip-dependencies` |  | boolean | Skip deploy, test and run dependencies. Build dependencies and runtime output reference dependencies are not skipped. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without deploying or running dependencies that may have changed since you last deployed.
   | `--disable-port-forwards` |  | boolean | Disable automatic port forwarding when running persistently. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS&#x3D;true in your environment.
   | `--forward` |  | boolean | Create port forwards and leave process running after deploying. This is implied if any of --sync / --local or --logs are set.
   | `--logs` |  | boolean | Stream logs from the requested Deploy(s) (or services if using modules) during deployment, and leave the log streaming process running after deploying. Note: This option implies the --forward option.
@@ -1719,15 +1692,6 @@ providers:
 
       # Use this to include additional information that is specific to the provider.
       detail:
-
-      namespaceStatuses:
-        - pluginName:
-
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
-
-          state:
 
       # Output variables that modules and other variables can reference.
       outputs:
@@ -2781,6 +2745,65 @@ sources:
     # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
     # branch or tag, with the format: <git remote url>#<branch|tag>
     repositoryUrl:
+
+# A list of suggested commands to run in the project.
+suggestedCommands:
+  - # Name of the command
+    name:
+
+    # Short description of what the command does.
+    description:
+
+    # The source of the suggestion, e.g. a plugin name.
+    source:
+
+    # A Garden command to run (including arguments).
+    gardenCommand:
+
+    # A shell command to run.
+    shellCommand:
+      # The shell command to run (without arguments).
+      command:
+
+      # Arguments to pass to the command.
+      args:
+
+      # Absolute path to run the shell command in.
+      cwd:
+
+    # A URL to open in a browser window.
+    openUrl:
+
+    # The icon to display next to the command, where applicable (e.g. in dashboard or Garden Desktop).
+    icon:
+      # A string reference (and alt text) for the icon.
+      name:
+
+      # A URI for the image. May be a data URI.
+      src:
+```
+
+### garden get files
+
+**List all files from all or specified actions.**
+
+This is useful to diagnose issues with ignores, include and exclude for a given action.
+
+#### Usage
+
+    garden get files [keys] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `keys` | No | One or more action keys (e.g. deploy.api), separated by spaces. If omitted, all actions are queried.
+
+
+#### Outputs
+
+```yaml
+<name>:
 ```
 
 ### garden get linked-repos
@@ -3170,15 +3193,6 @@ providers:
     # Use this to include additional information that is specific to the provider.
     detail:
 
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
-
     # Output variables that modules and other variables can reference.
     outputs:
       <name>:
@@ -3229,15 +3243,6 @@ actions:
 
         # The mode the action is deployed in.
         mode:
-
-        namespaceStatuses:
-          - pluginName:
-
-            # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-            # letter, and cannot end with a dash) and must not be longer than 63 characters.
-            namespaceName:
-
-            state:
 
         # The ID used for the service by the provider (if not the same as the service name).
         externalId:
@@ -3333,15 +3338,6 @@ actions:
         # The output log from the run.
         log:
 
-        namespaceStatus:
-          pluginName:
-
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
-
-          state:
-
   # A map of statuses for each configured Test.
   Test:
     <name>:
@@ -3372,50 +3368,325 @@ actions:
 
         # The output log from the run.
         log:
+```
 
-        namespaceStatus:
-          pluginName:
+### garden get actions
 
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
+**Outputs all or specified actions.**
 
-          state:
+Outputs all or specified actions. Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get actions                                         # list all actions in the project
+  garden get actions --include-state                         # list all actions in the project with state in output
+  garden get actions --detail                                # list all actions in project with detailed info
+  garden get actions --kind deploy                           # only list the actions of kind 'Deploy'
+  garden get actions A B --kind build --sort type            # list  actions A and B of kind 'Build' sorted by type
+  garden get actions --include-state -o=json                 # get json output
+
+#### Usage
+
+    garden get actions [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | Specify name(s) of the action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all actions.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each action, including path, dependencies, dependents, associated module and if the action is disabled.
+  | `--include-state` |  | boolean | Include state of action(s) in output.
+  | `--sort` |  | `name` `kind` `type`  | Sort the actions result by action name, kind or type. By default action results are sorted by name.
+  | `--kind` |  | `build` `deploy` `run` `test`  | Choose actions of specific kind only. By default all actions are shown.
+
+#### Outputs
+
+```yaml
+# A list of the actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
+
+### garden get deploys
+
+**Lists the deploy actions defined in your project.**
+
+Lists all or specified deploy action(s). Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get deploys                      # list all deploy actions in the project
+  garden get deploys --include-state      # list all deploy actions in the project including action state in output
+  garden get deploys --detail             # list all deploy actions in project with detailed info
+  garden get deploys A B --sort type      # list only deploy actions A and B sorted by type
+
+#### Usage
+
+    garden get deploys [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | Specify name(s) of the deploy action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all deploy actions.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each deploy action, including path, dependencies, dependents, associated module and if the deploy action is disabled.
+  | `--include-state` |  | boolean | Include state of deploy(s) in output.
+  | `--sort` |  | `name` `type`  | Sort the deploy actions result by action name or type. By default deploy action results are sorted by name.
+
+#### Outputs
+
+```yaml
+# A list of the deploy actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
+
+### garden get builds
+
+**Lists the build actions defined in your project.**
+
+Lists all or specified build action(s). Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get builds                      # list all build actions in the project
+  garden get builds --include-state      # list all build actions in the project including action state in output
+  garden get builds --detail             # list all build actions in project with detailed info
+  garden get builds A B --sort type      # list only build actions A and B sorted by type
+
+#### Usage
+
+    garden get builds [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | Specify name(s) of the build action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all build actions.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each build action, including path, dependencies, dependents, associated module and if the build action is disabled.
+  | `--include-state` |  | boolean | Include state of build(s) in output.
+  | `--sort` |  | `name` `type`  | Sort the build actions result by action name or type. By default build action results are sorted by name.
+
+#### Outputs
+
+```yaml
+# A list of the build actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
 ```
 
 ### garden get runs
 
-**Lists the Runs (or tasks, if using modules) defined in your project.**
+**Lists the run actions defined in your project.**
 
+Lists all or specified run action(s). Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get runs                      # list all run actions in the project
+  garden get runs --include-state      # list all run actions in the project including action state in output
+  garden get runs --detail             # list all run actions in project with detailed info
+  garden get runs A B --sort type      # list only run actions A and B sorted by type
 
 #### Usage
 
-    garden get runs [names] 
+    garden get runs [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify run(s)/task(s) to list. You may specify multiple names, separated by spaces.
+  | `names` | No | Specify name(s) of the run action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all run actions.
 
+#### Options
 
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each run action, including path, dependencies, dependents, associated module and if the run action is disabled.
+  | `--include-state` |  | boolean | Include state of run(s) in output.
+  | `--sort` |  | `name` `type`  | Sort the run actions result by action name or type. By default run action results are sorted by name.
+
+#### Outputs
+
+```yaml
+# A list of the run actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
 
 ### garden get tests
 
-**Lists the tests defined in your project.**
+**Lists the test actions defined in your project.**
 
+Lists all or specified test action(s). Use with --output=json and jq to extract specific fields.
+
+Examples:
+
+  garden get tests                      # list all test actions in the project
+  garden get tests --include-state      # list all test actions in the project including action state in output
+  garden get tests --detail             # list all test actions in project with detailed info
+  garden get tests A B --sort type      # list only test actions A and B sorted by type
 
 #### Usage
 
-    garden get tests [names] 
+    garden get tests [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify tests(s) to list. You may specify multiple test names, separated by spaces.
+  | `names` | No | Specify name(s) of the test action(s) to list. You may specify multiple actions, separated by spaces. Skip to return all test actions.
 
+#### Options
 
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--detail` |  | boolean | Show the detailed info for each test action, including path, dependencies, dependents, associated module and if the test action is disabled.
+  | `--include-state` |  | boolean | Include state of test(s) in output.
+  | `--sort` |  | `name` `type`  | Sort the test actions result by action name or type. By default test action results are sorted by name.
+
+#### Outputs
+
+```yaml
+# A list of the test actions.
+actions:
+  - name:
+
+    # Action kind (e.g. Build).
+    kind:
+
+    # Action Type (e.g. 'container').
+    type:
+
+    # The state of the action.
+    state:
+
+    # The relative path of the action config file.
+    path:
+
+    # Flag to identify if action is disabled.
+    disabled:
+
+    # The name of the module the action is derived from. Only available for converted actions.
+    moduleName:
+
+    # List of references of all dependencies of the action.
+    dependencies:
+
+    # List of references of all the dependents of the action.
+    dependents:
+```
 
 ### garden get run-result
 
@@ -3463,15 +3734,6 @@ detail:
 
   # The output log from the run.
   log:
-
-  namespaceStatus:
-    pluginName:
-
-    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-    # and cannot end with a dash) and must not be longer than 63 characters.
-    namespaceName:
-
-    state:
 
 # Local file paths to any exported artifacts from the Run's execution.
 artifacts:
@@ -3524,15 +3786,6 @@ detail:
 
   # The output log from the run.
   log:
-
-  namespaceStatus:
-    pluginName:
-
-    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-    # and cannot end with a dash) and must not be longer than 63 characters.
-    namespaceName:
-
-    state:
 
 # Local file paths to any exported artifacts from the test run.
 artifacts:
@@ -4616,7 +4869,7 @@ Defaults to the latest minor release version, but you can also request a specifi
 Examples:
 
    garden self-update               # update to the latest minor Garden CLI version
-   garden self-update edge          # switch to the latest edge build of garden 0.12 (which is created anytime a PR is merged to the 0.12 branch)
+   garden self-update edge-acorn    # switch to the latest edge build of garden 0.12 (which is created anytime a PR is merged to the 0.12 branch)
    garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13) (which is created anytime a PR is merged to main)
    garden self-update 0.12.24       # switch to the exact version 0.12.24 of the CLI
    garden self-update --major       # install the latest version, even if it's a major bump
@@ -5561,6 +5814,17 @@ Throws an error and exits with code 1 if something's not right in your garden co
 #### Usage
 
     garden validate 
+
+
+
+### garden version
+
+**Shows the current garden version.**
+
+
+#### Usage
+
+    garden version 
 
 
 

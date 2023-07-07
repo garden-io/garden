@@ -63,7 +63,7 @@ export class GroupsListCommand extends Command<{}, Opts> {
 
     const api = garden.cloudApi
     if (!api) {
-      throw new ConfigurationError(noApiMsg("list", "users"), {})
+      throw new ConfigurationError({ message: noApiMsg("list", "users"), detail: {} })
     }
 
     const res = await api.get<ListGroupsResponse>(`/groups`)

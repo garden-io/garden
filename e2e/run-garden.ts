@@ -281,9 +281,12 @@ export class GardenWatch {
       const now = new Date().getTime()
       if (now - startTime > timeout * 1000) {
         const log = this.renderLog()
-        error = new TimeoutError(`Timed out waiting for test steps. Logs:\n${log}`, {
-          logEntries: this.logEntries,
-          log,
+        error = new TimeoutError({
+          message: `Timed out waiting for test steps. Logs:\n${log}`,
+          detail: {
+            logEntries: this.logEntries,
+            log,
+          },
         })
         break
       }
@@ -361,9 +364,12 @@ export class GardenWatch {
       const now = new Date().getTime()
       if (now - startTime > 10 * DEFAULT_CHECK_INTERVAL_MS) {
         const log = this.renderLog()
-        throw new TimeoutError(`Timed out waiting for garden command to terminate. Log:\n${log}`, {
-          logEntries: this.logEntries,
-          log,
+        throw new TimeoutError({
+          message: `Timed out waiting for garden command to terminate. Log:\n${log}`,
+          detail: {
+            logEntries: this.logEntries,
+            log,
+          },
         })
       }
     }
@@ -374,37 +380,37 @@ export class GardenWatch {
       const hasCondition = !!condition
       const hasAction = !!action
       if (!hasCondition && !hasAction) {
-        throw new ParameterError(
-          deline`
+        throw new ParameterError({
+          message: deline`
           GardenWatch: step ${description} in testSteps defines neither a condition nor an action.
           Steps must define either a condition or an action.`,
-          { testSteps }
-        )
+          detail: { testSteps },
+        })
       }
       if (hasCondition && hasAction) {
-        throw new ParameterError(
-          deline`
+        throw new ParameterError({
+          message: deline`
           GardenWatch: step ${description} in testSteps defines both a condition and an action.
           Steps must define either a condition or an action, but not both.`,
-          { testSteps }
-        )
+          detail: { testSteps },
+        })
       }
     }
 
     if (testSteps.length === 0) {
-      throw new ParameterError(
-        deline`
+      throw new ParameterError({
+        message: deline`
         GardenWatch: run method called with an empty testSteps array. At least one test step must be provided.`,
-        {}
-      )
+        detail: {},
+      })
     }
 
     if (!testSteps[testSteps.length - 1].condition) {
-      throw new ParameterError(
-        deline`
+      throw new ParameterError({
+        message: deline`
         GardenWatch: The last element of testSteps must be a condition, not an action.`,
-        { testSteps }
-      )
+        detail: { testSteps },
+      })
     }
   }
 }

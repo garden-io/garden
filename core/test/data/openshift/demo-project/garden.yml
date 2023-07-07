@@ -1,0 +1,31 @@
+apiVersion: garden.io/v1
+kind: Project
+name: demo-project
+environments:
+  - name: local
+providers:
+  - name: local-openshift
+    environments: [local]
+    # NOTE: shorthand `namespace: demo-project` fails because we use `namespace.name` in code
+    namespace:
+      name: demo-project
+    context: demo-project/api-crc-testing:6443/developer
+    cluster: api-crc-testing:6443
+    deploymentRegistry:
+      hostname: default-route-openshift-image-registry.apps-crc.testing
+      namespace: demo-project
+      # FIXME: this config option is overloaded
+      # in different places, it is used for both force HTTP as well as skip TLS verify on HTTPS
+      insecure: true
+    imagePullSecrets:
+      - name: imagepullsecrets
+        namespace: demo-project
+    buildMode:
+      local-docker
+      # kaniko
+    kaniko:
+      extraFlags:
+        # TODO: possibly figure out better non-user-facing workarounds?
+        - "--ignore-path=/usr/bin/newuidmap"
+        - "--ignore-path=/usr/bin/newgidmap"
+        - "--ignore-path=/usr/sbin/suexec"

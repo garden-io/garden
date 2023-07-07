@@ -14,20 +14,40 @@ import {
   joi,
   joiIdentifierMap,
   joiSparseArray,
-  PrimitiveMap,
   createSchema,
 } from "./common"
 import { collectTemplateReferences } from "../template-string/template-string"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig, moduleConfigSchema } from "./module"
 import { memoize, uniq } from "lodash"
-import { GardenPlugin } from "../plugin/plugin"
+import { GardenPluginSpec } from "../plugin/plugin"
 import { EnvironmentStatus } from "../plugin/handlers/Provider/getEnvironmentStatus"
 import { environmentStatusSchema } from "./status"
 import { DashboardPage, dashboardPagesSchema } from "../plugin/handlers/Provider/getDashboardPage"
 import type { ActionState } from "../actions/types"
 import { ValidResultType } from "../tasks/base"
 import { uuidv4 } from "../util/random"
+import { s } from "./zod"
+
+// TODO: dedupe from the joi schema below
+export const baseProviderConfigSchemaZod = s.object({
+  name: s.identifier().describe("The name of the provider plugin to use."),
+  dependencies: s
+    .sparseArray(s.identifier())
+    .default([])
+    .describe("List other providers that should be resolved before this one.")
+    .example(["exec"]),
+  environments: s
+    .sparseArray(s.userIdentifier())
+    .optional()
+    .describe(
+      deline`
+        If specified, this provider will only be used in the listed environments. Note that an empty array effectively
+        disables the provider. To use a provider in all environments, omit this field.
+      `
+    )
+    .example(["dev", "stage"]),
+})
 
 export interface BaseProviderConfig {
   name: string
@@ -65,7 +85,7 @@ export const providerConfigBaseSchema = memoize(() =>
 
 export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> extends ValidResultType {
   name: string
-  uid: string // This is generated at creatinon time, and is intended for use by plugins e.g. for caching purposes.
+  uid: string // This is generated at creation time, and is intended for use by plugins e.g. for caching purposes.
   dependencies: { [name: string]: Provider }
   environments?: string[]
   moduleConfigs: ModuleConfig[]
@@ -73,7 +93,7 @@ export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> ext
   state: ActionState
   status: EnvironmentStatus
   dashboardPages: DashboardPage[]
-  outputs: PrimitiveMap
+  outputs: any
 }
 
 export const providerSchema = createSchema({
@@ -119,7 +139,7 @@ export function providerFromConfig({
   moduleConfigs,
   status,
 }: {
-  plugin: GardenPlugin
+  plugin: GardenPluginSpec
   config: GenericProviderConfig
   dependencies: ProviderMap
   moduleConfigs: ModuleConfig[]
@@ -142,7 +162,7 @@ export function providerFromConfig({
  * Given a plugin and its provider config, return a list of dependency names based on declared dependencies,
  * as well as implicit dependencies based on template strings.
  */
-export async function getAllProviderDependencyNames(plugin: GardenPlugin, config: GenericProviderConfig) {
+export async function getAllProviderDependencyNames(plugin: GardenPluginSpec, config: GenericProviderConfig) {
   return uniq([
     ...(plugin.dependencies || []).map((d) => d.name),
     ...(config.dependencies || []),
@@ -161,13 +181,13 @@ export function getProviderTemplateReferences(config: GenericProviderConfig) {
     if (key[0] === "providers") {
       const providerName = key[1] as string
       if (!providerName) {
-        throw new ConfigurationError(
-          deline`
+        throw new ConfigurationError({
+          message: deline`
           Invalid template key '${key.join(".")}' in configuration for provider '${config.name}'. You must
           specify a provider name as well (e.g. \${providers.my-provider}).
         `,
-          { config, key: key.join(".") }
-        )
+          detail: { config, key: key.join(".") },
+        })
       }
       deps.push(providerName)
     }

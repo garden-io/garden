@@ -8,7 +8,6 @@
 
 import Bluebird from "bluebird"
 import { isEmpty, omit, partition, uniq } from "lodash"
-import type { NamespaceStatus } from "../../../types/namespace"
 import type { ModuleActionHandlers } from "../../../plugin/plugin"
 import { DeployState, ForwardablePort, ServiceStatus } from "../../../types/service"
 import { gardenAnnotationKey } from "../../../util/string"
@@ -37,7 +36,7 @@ import {
 } from "./common"
 import { configureKubernetesModule, KubernetesModule } from "./module-config"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
-import type { ExecBuildConfig } from "../../exec/config"
+import type { ExecBuildConfig } from "../../exec/build"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
 import type { DeployActionHandler } from "../../../plugin/action-types"
 import type { ActionLog } from "../../../logger/log-entry"
@@ -80,14 +79,16 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       },
     }
 
-    if (serviceResource) {
-      if (serviceResource.containerModule) {
-        const build = convertBuildDependency(serviceResource.containerModule)
-        deployAction.dependencies?.push(build)
+    const containerModules = module.build.dependencies.map(convertBuildDependency) || []
+    if (serviceResource?.containerModule) {
+      const containerModuleSpecDep = convertBuildDependency(serviceResource.containerModule)
+      if (!containerModules.find((m) => m.name === containerModuleSpecDep.name)) {
+        containerModules.push(containerModuleSpecDep)
       }
-      deployAction.spec.defaultTarget = convertServiceResource(module, serviceResource) || undefined
     }
 
+    deployAction.dependencies?.push(...containerModules)
+    deployAction.spec.defaultTarget = convertServiceResource(module, serviceResource) || undefined
     actions.push(deployAction)
 
     for (const task of tasks) {
@@ -101,6 +102,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         kind: "Run",
         type: "kubernetes-pod",
         name: task.name,
+        description: task.spec.description,
         ...params.baseFields,
         disabled: task.disabled,
 
@@ -109,7 +111,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         timeout: task.spec.timeout,
 
         spec: {
-          ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
+          ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
           resource,
           files,
           manifests,
@@ -253,7 +255,6 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       version: state === "ready" ? action.versionString() : undefined,
       detail: { remoteResources },
       mode: deployedMode,
-      namespaceStatuses: [namespaceStatus],
       ingresses: getK8sIngresses(remoteResources || []),
     },
     // TODO-0.13.1
@@ -297,6 +298,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       resources: namespaceManifests,
       log,
       timeoutSec: action.getConfig("timeout"),
+      waitForJobs: spec.waitForJobs,
     })
   }
 
@@ -329,6 +331,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       resources: preparedManifests,
       log,
       timeoutSec: action.getConfig("timeout"),
+      waitForJobs: spec.waitForJobs,
     })
   }
 
@@ -343,7 +346,6 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       await startServiceInLocalMode({
         ctx,
         spec: spec.localMode,
-        // TODO-0.13.0: Support multiple processes+targets.
         targetResource: modifiedResources[0],
         manifests: preparedManifests,
         action,
@@ -354,27 +356,21 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
     }
   }
 
-  const namespaceStatuses = [namespaceStatus]
+  ctx.events.emit("namespaceStatus", namespaceStatus)
 
   if (namespaceManifests.length > 0) {
-    namespaceStatuses.push(
-      ...namespaceManifests.map(
-        (m) =>
-          ({
-            pluginName: provider.name,
-            namespaceName: m.metadata.name,
-            state: "ready",
-          } as NamespaceStatus)
-      )
-    )
+    for (const ns of namespaceManifests) {
+      ctx.events.emit("namespaceStatus", {
+        pluginName: provider.name,
+        namespaceName: ns.metadata.name,
+        state: "ready",
+      })
+    }
   }
 
   return {
     ...status,
-    detail: {
-      ...status.detail!,
-      namespaceStatuses,
-    },
+    detail: status.detail!,
     // Tell the framework that the mutagen process is attached, if applicable
     attached,
   }
@@ -430,11 +426,13 @@ export const deleteKubernetesDeploy: DeployActionHandler<"delete", KubernetesDep
   const status: KubernetesServiceStatus = { state: "missing", detail: { remoteResources: [] } }
 
   if (namespaceManifests.length > 0) {
-    status.namespaceStatuses = namespaceManifests.map((m) => ({
-      namespaceName: m.metadata.name,
-      state: "missing",
-      pluginName: provider.name,
-    }))
+    for (const ns of namespaceManifests) {
+      ctx.events.emit("namespaceStatus", {
+        namespaceName: ns.metadata.name,
+        state: "missing",
+        pluginName: provider.name,
+      })
+    }
   }
 
   return {

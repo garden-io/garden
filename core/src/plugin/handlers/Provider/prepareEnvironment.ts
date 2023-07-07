@@ -11,15 +11,18 @@ import { EnvironmentStatus } from "./getEnvironmentStatus"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 import { environmentStatusSchema } from "../../../config/status"
+import type { GenericProviderConfig } from "../../../config/provider"
 
-export interface PrepareEnvironmentParams<T extends EnvironmentStatus = EnvironmentStatus>
-  extends PluginActionParamsBase {
+export interface PrepareEnvironmentParams<
+  C extends GenericProviderConfig = any,
+  T extends EnvironmentStatus = EnvironmentStatus
+> extends PluginActionParamsBase<C> {
   status: T
   force: boolean
 }
 
-export interface PrepareEnvironmentResult {
-  status: EnvironmentStatus
+export interface PrepareEnvironmentResult<O extends {} = any, D extends {} = any> {
+  status: EnvironmentStatus<O, D>
 }
 
 export const prepareEnvironment = () => ({

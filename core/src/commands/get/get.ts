@@ -21,6 +21,10 @@ import { GetDoddiCommand } from "./get-doddi"
 import { GetModulesCommand } from "./get-modules"
 import { GetTestsCommand } from "./get-tests"
 import { GetWorkflowsCommand } from "./get-workflows"
+import { GetActionsCommand } from "./get-actions"
+import { GetDeploysCommand } from "./get-deploys"
+import { GetBuildsCommand } from "./get-builds"
+import { GetFilesCommand } from "./get-files"
 
 export class GetCommand extends CommandGroup {
   name = "get"
@@ -31,10 +35,14 @@ export class GetCommand extends CommandGroup {
     GetConfigCommand,
     GetDoddiCommand,
     GetEysiCommand,
+    GetFilesCommand,
     GetLinkedReposCommand,
     GetOutputsCommand,
     GetModulesCommand,
     GetStatusCommand,
+    GetActionsCommand,
+    GetDeploysCommand,
+    GetBuildsCommand,
     GetRunsCommand,
     GetTestsCommand,
     GetRunResultCommand,

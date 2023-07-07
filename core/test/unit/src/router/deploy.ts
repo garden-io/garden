@@ -56,34 +56,6 @@ describe("deploy actions", () => {
       })
     })
 
-    it("should emit serviceStatus events", async () => {
-      garden.events.eventLog = []
-      await actionRouter.deploy.getStatus({
-        log,
-        action: resolvedDeployAction,
-        graph,
-      })
-      const event1 = garden.events.eventLog[0]
-      const event2 = garden.events.eventLog[1]
-
-      expect(event1).to.exist
-      expect(event2).to.exist
-
-      expect(event1.name).to.eql("deployStatus")
-      expect(event1.payload.actionVersion).to.eql(resolvedDeployAction.versionString())
-      expect(event1.payload.moduleName).to.eql("module-a")
-      expect(event1.payload.actionUid).to.be.ok
-      expect(event1.payload.state).to.eql("getting-status")
-      expect(event1.payload.status.state).to.eql("unknown")
-
-      expect(event2.name).to.eql("deployStatus")
-      expect(event2.payload.actionVersion).to.eql(resolvedDeployAction.versionString())
-      expect(event2.payload.moduleName).to.eql("module-a")
-      expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
-      expect(event2.payload.state).to.eql("cached")
-      expect(event2.payload.status.state).to.eql("ready")
-    })
-
     it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
       resolvedDeployAction._config[returnWrongOutputsCfgKey] = true
       await expectError(
@@ -111,30 +83,6 @@ describe("deploy actions", () => {
         outputs: { base: "ok", foo: "ok" },
         state: "ready",
       })
-    })
-
-    it("should emit serviceStatus events", async () => {
-      garden.events.eventLog = []
-      await actionRouter.deploy.deploy({
-        log,
-        action: resolvedDeployAction,
-        graph,
-        force: true,
-      })
-      const event1 = garden.events.eventLog[0]
-      const event2 = garden.events.eventLog[1]
-      expect(event1).to.exist
-      expect(event1.name).to.eql("deployStatus")
-      expect(event1.payload.moduleName).to.eql("module-a")
-      expect(event1.payload.actionUid).to.be.ok
-      expect(event1.payload.state).to.eql("processing")
-      expect(event1.payload.status.state).to.eql("deploying")
-      expect(event2).to.exist
-      expect(event2.name).to.eql("deployStatus")
-      expect(event2.payload.moduleName).to.eql("module-a")
-      expect(event2.payload.actionUid).to.eql(event2.payload.actionUid)
-      expect(event2.payload.state).to.eql("ready")
-      expect(event2.payload.status.state).to.eql("ready")
     })
 
     it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {

@@ -108,8 +108,11 @@ export function getSelectorFromResource(resource: KubernetesWorkload): { [key: s
   }
 
   // No selector found.
-  throw new ConfigurationError(`No selector found for ${resource.metadata.name} while retrieving pods.`, {
-    resource,
+  throw new ConfigurationError({
+    message: `No selector found for ${resource.metadata.name} while retrieving pods.`,
+    detail: {
+      resource,
+    },
   })
 }
 
@@ -268,8 +271,11 @@ export async function execInWorkload({
 
   if (!pod) {
     // This should not happen because of the prior status check, but checking to be sure
-    throw new DeploymentError(`Could not find running pod for ${getResourceKey(workload)}`, {
-      workload,
+    throw new DeploymentError({
+      message: `Could not find running pod for ${getResourceKey(workload)}`,
+      detail: {
+        workload,
+      },
     })
   }
 
@@ -294,6 +300,7 @@ export async function execInWorkload({
       // For some reason, we're getting extra newlines for each line here, so we trim them.
       const msg = line.toString().trimEnd()
       ctx.events.emit("log", { timestamp: new Date().toISOString(), msg, ...logEventContext })
+      log.verbose(msg)
     })
     execParams.stdout = outputStream
     execParams.stderr = outputStream
@@ -394,11 +401,14 @@ export async function upsertConfigMap({
   const serializedData = serializeValues(data)
 
   if (base64(JSON.stringify(serializedData)).length > MAX_CONFIGMAP_DATA_SIZE) {
-    throw new KubernetesError(`Attempting to store too much data in ConfigMap ${key}`, {
-      key,
-      namespace,
-      labels,
-      data,
+    throw new KubernetesError({
+      message: `Attempting to store too much data in ConfigMap ${key}`,
+      detail: {
+        key,
+        namespace,
+        labels,
+        data,
+      },
     })
   }
 
@@ -454,9 +464,12 @@ export function prepareEnvVars(env: ContainerEnvVars): V1EnvVar[] {
         return { name, value: "null" }
       } else if (typeof value === "object") {
         if (!value.secretRef.key) {
-          throw new ConfigurationError(`kubernetes: Must specify \`key\` on secretRef for env variable ${name}`, {
-            name,
-            value,
+          throw new ConfigurationError({
+            message: `kubernetes: Must specify \`key\` on secretRef for env variable ${name}`,
+            detail: {
+              name,
+              value,
+            },
           })
         }
         return {
@@ -490,9 +503,12 @@ export async function getRunningDeploymentPod({
   const pods = await getWorkloadPods(api, namespace, resource)
   const pod = sample(pods.filter((p) => checkPodStatus(p) === "ready"))
   if (!pod) {
-    throw new PluginError(`Could not find a running Pod in Deployment ${deploymentName}`, {
-      deploymentName,
-      namespace,
+    throw new PluginError({
+      message: `Could not find a running Pod in Deployment ${deploymentName}`,
+      detail: {
+        deploymentName,
+        namespace,
+      },
     })
   }
 
@@ -583,13 +599,13 @@ export async function getTargetResource({
     const pod = sample(pods)
     if (!pod) {
       const selectorStr = getSelectorString(query.podSelector)
-      throw new ConfigurationError(
-        chalk.red(
+      throw new ConfigurationError({
+        message: chalk.red(
           `Could not find any Pod matching provided podSelector (${selectorStr}) for target in ` +
             `${action.longDescription()}`
         ),
-        { query }
-      )
+        detail: { query },
+      })
     }
     return pod
   }
@@ -600,7 +616,7 @@ export async function getTargetResource({
 
   if (!targetKind) {
     // This should be caught in config/schema validation
-    throw new InternalError(`Neither kind nor podSelector set in resource query`, { query })
+    throw new InternalError({ message: `Neither kind nor podSelector set in resource query`, detail: { query } })
   }
 
   // Look in the specified manifests, if provided
@@ -627,31 +643,34 @@ export async function getTargetResource({
       target = find(<SyncableResource[]>applicableChartResources, (o) => o.metadata.name === targetName)!
 
       if (!target) {
-        throw new ConfigurationError(
-          chalk.red(
+        throw new ConfigurationError({
+          message: chalk.red(
             deline`${action.longDescription()} does not contain specified ${targetKind}
             ${chalk.white(targetName)}`
           ),
-          { query, chartResourceNames }
-        )
+          detail: { query, chartResourceNames },
+        })
       }
     } else {
       if (applicableChartResources.length === 0) {
-        throw new ConfigurationError(`${action.longDescription()} contains no ${targetKind}s.`, {
-          query,
-          chartResourceNames,
+        throw new ConfigurationError({
+          message: `${action.longDescription()} contains no ${targetKind}s.`,
+          detail: {
+            query,
+            chartResourceNames,
+          },
         })
       }
 
       if (applicableChartResources.length > 1) {
-        throw new ConfigurationError(
-          chalk.red(
+        throw new ConfigurationError({
+          message: chalk.red(
             deline`${action.longDescription()} contains multiple ${targetKind}s.
             You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
             to use.`
           ),
-          { query, chartResourceNames }
-        )
+          detail: { query, chartResourceNames },
+        })
       }
 
       target = <SyncableResource>applicableChartResources[0]
@@ -666,12 +685,12 @@ export async function getTargetResource({
     return target
   } catch (err) {
     if (err.statusCode === 404) {
-      throw new ConfigurationError(
-        chalk.red(
+      throw new ConfigurationError({
+        message: chalk.red(
           deline`${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.`
         ),
-        { query, namespace }
-      )
+        detail: { query, namespace },
+      })
     } else {
       throw err
     }
@@ -692,7 +711,7 @@ export async function readTargetResource({
 
   if (!targetName) {
     // This should be caught in config/schema validation
-    throw new InternalError(`Must specify name in resource/target query`, { query })
+    throw new InternalError({ message: `Must specify name in resource/target query`, detail: { query } })
   }
 
   if (targetKind === "Deployment") {
@@ -703,7 +722,7 @@ export async function readTargetResource({
     return api.apps.readNamespacedStatefulSet(targetName, namespace)
   } else {
     // This should be caught in config/schema validation
-    throw new InternalError(`Unsupported kind specified in resource/target query`, { query })
+    throw new InternalError({ message: `Unsupported kind specified in resource/target query`, detail: { query } })
   }
 }
 
@@ -718,15 +737,21 @@ export function getResourceContainer(resource: SyncableResource, containerName?:
   const containers = getResourcePodSpec(resource)?.containers || []
 
   if (containers.length === 0) {
-    throw new ConfigurationError(`${kind} ${resource.metadata.name} has no containers configured.`, { resource })
+    throw new ConfigurationError({
+      message: `${kind} ${resource.metadata.name} has no containers configured.`,
+      detail: { resource },
+    })
   }
 
   const container = containerName ? findByName(containers, containerName) : containers[0]
 
   if (!container) {
-    throw new ConfigurationError(`Could not find container '${containerName}' in ${kind} '${name}'`, {
-      resource,
-      containerName,
+    throw new ConfigurationError({
+      message: `Could not find container '${containerName}' in ${kind} '${name}'`,
+      detail: {
+        resource,
+        containerName,
+      },
     })
   }
 
@@ -768,8 +793,11 @@ export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
   const provider = Object.values(providers).find((p) => p.name === "kubernetes" || p.name === "local-kubernetes")
 
   if (!provider) {
-    throw new ConfigurationError(`Could not find a configured kubernetes (or local-kubernetes) provider`, {
-      configuredProviders: Object.keys(providers),
+    throw new ConfigurationError({
+      message: `Could not find a configured kubernetes (or local-kubernetes) provider`,
+      detail: {
+        configuredProviders: Object.keys(providers),
+      },
     })
   }
 

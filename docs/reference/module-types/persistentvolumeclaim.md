@@ -199,6 +199,17 @@ spec:
   selector:
     # matchExpressions is a list of label selector requirements. The requirements are ANDed.
     matchExpressions:
+      - # key is the label key that the selector applies to.
+        key:
+
+        # operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and
+        # DoesNotExist.
+        operator:
+
+        # values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If
+        # the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a
+        # strategic merge patch.
+        values:
 
     # matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an
     # element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only
@@ -620,6 +631,36 @@ A label selector is a label query over a set of resources. The result of matchLa
 [spec](#spec) > [selector](#specselector) > matchExpressions
 
 matchExpressions is a list of label selector requirements. The requirements are ANDed.
+
+| Type    | Required |
+| ------- | -------- |
+| `array` | No       |
+
+### `spec.selector.matchExpressions[].key`
+
+[spec](#spec) > [selector](#specselector) > [matchExpressions](#specselectormatchexpressions) > key
+
+key is the label key that the selector applies to.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `spec.selector.matchExpressions[].operator`
+
+[spec](#spec) > [selector](#specselector) > [matchExpressions](#specselectormatchexpressions) > operator
+
+operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `spec.selector.matchExpressions[].values[]`
+
+[spec](#spec) > [selector](#specselector) > [matchExpressions](#specselectormatchexpressions) > values
+
+values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
 
 | Type    | Required |
 | ------- | -------- |

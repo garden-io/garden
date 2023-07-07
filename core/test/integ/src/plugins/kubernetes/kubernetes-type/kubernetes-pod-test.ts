@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 
-import { TestGarden, expectError } from "../../../../../helpers"
+import { TestGarden, expectError, findNamespaceStatusEvent } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { getKubernetesTestGarden } from "./common"
 import { TestTask } from "../../../../../../src/tasks/test"
@@ -41,8 +41,10 @@ describe("kubernetes-type pod Test", () => {
       forceBuild: false,
     })
 
+    garden.events.eventLog = []
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
     const result = results.results.getResult(testTask)
+    expect(findNamespaceStatusEvent(garden.events.eventLog, "kubernetes-module-test-default")).to.exist
 
     expect(result!.result).to.exist
     expect(result!.outputs).to.exist

@@ -12,7 +12,7 @@ import { dedent } from "@garden-io/sdk/util/string"
 
 import { openJdkSpecs } from "./openjdk"
 import { mavenSpec, mvn, mvnVersion } from "./maven"
-import { mavendSpec, mvnd } from "./mavend"
+import { mavendSpec, mvnd, mvndVersion } from "./mavend"
 import { gradle, gradleSpec, gradleVersion } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
@@ -113,6 +113,26 @@ const jibBuildSchemaKeys = () => ({
     .items(joi.string())
     .default(["compile"])
     .description("Defines the Maven phases to be executed during the Garden build step."),
+  mavendPath: joi.string().optional().description(dedent`
+        Defines the location of the custom executable Maven Daemon binary.
+
+        If not provided, then Maven Daemon ${mvndVersion} will be downloaded and used.
+
+        **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Maven Daemon.
+        To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
+      `),
+  concurrentMavenBuilds: joi
+    .boolean()
+    .optional()
+    .default(false)
+    .description(
+      dedent`
+      [EXPERIMENTAL] Enable/disable concurrent Maven and Maven Daemon builds.
+
+      Note! Concurrent builds can be unstable. This option is disabled by default.
+      This option must be configured for each Build action individually.`
+    )
+    .meta({ experimental: true }),
   extraFlags: joi
     .sparseArray()
     .items(joi.string())
@@ -166,8 +186,16 @@ export const gardenPlugin = () =>
           handlers: {
             build: async (params) => {
               const { ctx, log, action } = params
-              const spec = action.getSpec()
-              const { jdkVersion, jdkPath, mavenPhases, mavenPath, gradlePath } = spec
+              const spec = action.getSpec() as JibBuildActionSpec
+              const {
+                jdkVersion,
+                jdkPath,
+                mavenPhases,
+                mavenPath,
+                mavendPath,
+                concurrentMavenBuilds,
+                gradlePath,
+              } = spec
 
               let openJdkPath: string
               if (!!jdkPath) {
@@ -176,7 +204,7 @@ export const gardenPlugin = () =>
               } else {
                 log.verbose(`The JDK path hasn't been specified explicitly. JDK ${jdkVersion} will be used by default.`)
                 const openJdk = ctx.tools["jib.openjdk-" + jdkVersion]
-                openJdkPath = await openJdk.getPath(log)
+                openJdkPath = await openJdk.ensurePath(log)
               }
 
               const statusLine = log.createLog({ fixLevel: LogLevel.verbose })
@@ -217,7 +245,8 @@ export const gardenPlugin = () =>
                   cwd: action.basePath(),
                   args: [...mavenPhases, ...args],
                   openJdkPath,
-                  mavenPath,
+                  binaryPath: mavenPath,
+                  concurrentMavenBuilds,
                   outputStream,
                 })
               } else if (projectType === "mavend") {
@@ -227,6 +256,8 @@ export const gardenPlugin = () =>
                   cwd: action.basePath(),
                   args: [...mavenPhases, ...args],
                   openJdkPath,
+                  binaryPath: mavendPath,
+                  concurrentMavenBuilds,
                   outputStream,
                 })
               } else {
@@ -236,7 +267,7 @@ export const gardenPlugin = () =>
                   cwd: action.basePath(),
                   args,
                   openJdkPath,
-                  gradlePath,
+                  binaryPath: gradlePath,
                   outputStream,
                 })
               }
@@ -338,7 +369,7 @@ export const gardenPlugin = () =>
                 if (!action.dependencies) {
                   action.dependencies = []
                 }
-                action.dependencies.push("build." + buildAction.name)
+                action.dependencies.push({ kind: "Build", name: buildAction.name })
               }
             }
 

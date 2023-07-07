@@ -36,6 +36,7 @@ describe("ToolsCommand", () => {
     tools: [
       {
         name: "tool",
+        version: "foo",
         description: "foo",
         type: "binary",
         _includeInGardenImage: false,
@@ -50,6 +51,7 @@ describe("ToolsCommand", () => {
       },
       {
         name: "lib",
+        version: "foo",
         description: "foo",
         type: "library",
         _includeInGardenImage: false,
@@ -71,6 +73,7 @@ describe("ToolsCommand", () => {
     tools: [
       {
         name: "tool",
+        version: "foo",
         description: "foo",
         type: "binary",
         _includeInGardenImage: false,
@@ -140,6 +143,7 @@ describe("ToolsCommand", () => {
         type: "binary",
         builds: pluginA.tools![0].builds,
         pluginName: "test-a",
+        version: "foo",
       },
       {
         name: "lib",
@@ -147,6 +151,7 @@ describe("ToolsCommand", () => {
         type: "library",
         builds: pluginA.tools![0].builds,
         pluginName: "test-a",
+        version: "foo",
       },
       {
         name: "tool",
@@ -154,6 +159,7 @@ describe("ToolsCommand", () => {
         type: "binary",
         builds: pluginB.tools![0].builds,
         pluginName: "test-b",
+        version: "foo",
       },
     ])
   })

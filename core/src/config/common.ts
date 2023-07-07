@@ -12,19 +12,27 @@ import addFormats from "ajv-formats"
 import { splitLast, deline, dedent, naturalList, titleize } from "../util/string"
 import { cloneDeep, isArray, isPlainObject, isString, mapValues, memoize } from "lodash"
 import { joiPathPlaceholder } from "./validation"
-import { GardenApiVersion } from "../constants"
+import { DOCS_BASE_URL, GardenApiVersion } from "../constants"
 import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
 import { ConfigurationError, InternalError } from "../exceptions"
 import type { ConfigContextType } from "./template-contexts/base"
+import { z } from "zod"
+import {
+  gitUrlRegex,
+  objectSpreadKey,
+  arrayConcatKey,
+  arrayForEachKey,
+  arrayForEachFilterKey,
+  arrayForEachReturnKey,
+  identifierRegex,
+  joiIdentifierDescription,
+  userIdentifierRegex,
+  variableNameRegex,
+  envVarRegex,
+} from "./constants"
 
-export const objectSpreadKey = "$merge"
-export const conditionalKey = "$if"
-export const conditionalThenKey = "$then"
-export const conditionalElseKey = "$else"
-export const arrayConcatKey = "$concat"
-export const arrayForEachKey = "$forEach"
-export const arrayForEachReturnKey = "$return"
-export const arrayForEachFilterKey = "$filter"
+// Avoid chasing moved references
+export * from "./constants"
 
 const ajv = new Ajv({ allErrors: true, useDefaults: true, strict: false })
 addFormats(ajv)
@@ -34,9 +42,11 @@ export type Primitive = string | number | boolean | null
 export interface StringMap {
   [key: string]: string
 }
+
 export interface PrimitiveMap {
   [key: string]: Primitive
 }
+
 export interface DeepPrimitiveMap {
   [key: string]: Primitive | DeepPrimitiveMap | Primitive[] | DeepPrimitiveMap[]
 }
@@ -45,8 +55,7 @@ export interface DeepPrimitiveMap {
 //   spec: Omit<T, keyof S> & Partial<S>
 // }
 
-export const includeGuideLink =
-  "https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories"
+export const includeGuideLink = `${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories`
 
 export const enumToArray = (Enum: any) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
 
@@ -140,7 +149,9 @@ declare module "@hapi/joi" {
 
 export interface CustomObjectSchema extends Joi.ObjectSchema {
   concat(schema: object): this
+
   jsonSchema(schema: object): this
+  zodSchema(schema: z.ZodObject<any>): this
 }
 
 export interface GitUrlSchema extends Joi.StringSchema {
@@ -149,14 +160,19 @@ export interface GitUrlSchema extends Joi.StringSchema {
 
 export interface PosixPathSchema extends Joi.StringSchema {
   absoluteOnly(): this
+
   allowGlobs(): this
+
   filenameOnly(): this
+
   relativeOnly(): this
+
   subPathOnly(): this
 }
 
 interface ActionReferenceSchema extends Joi.AnySchema {
   kind(kind: ActionKind): this
+
   name(type: string): this
 }
 
@@ -416,6 +432,37 @@ joi = joi.extend({
         }
       },
     },
+
+    zodSchema: {
+      method(zodSchema: z.ZodObject<any>) {
+        // eslint-disable-next-line no-invalid-this
+        this.$_setFlag("zodSchema", zodSchema)
+        // eslint-disable-next-line no-invalid-this
+        return this.$_addRule(<any>{ name: "zodSchema", args: { zodSchema } })
+      },
+      args: [
+        {
+          name: "zodSchema",
+          assert: (value) => {
+            return !!value
+          },
+          message: "must be a valid Zod object schema",
+        },
+      ],
+      validate(value, helpers, args) {
+        const schema = args.zodSchema as z.ZodObject<any>
+
+        try {
+          return schema.parse(value)
+        } catch (error) {
+          // TODO: customize the error output here to make it a bit nicer
+          const outputError = helpers.error("validation")
+          outputError.message = error.message
+          outputError.zodError = error
+          return outputError
+        }
+      },
+    },
   },
 })
 
@@ -467,15 +514,16 @@ const actionRefParseError = (reference: any) => {
 
   const refStr = JSON.stringify(reference)
 
-  return new ConfigurationError(
-    `Could not parse ${refStr} as a valid action reference. An action reference should be a "<kind>.<name>" string, where <kind> is one of ${validActionKinds} and <name> is a valid name of an action. You may also specify an object with separate kind and name fields.`,
-    { reference }
-  )
+  return new ConfigurationError({
+    message: `Could not parse ${refStr} as a valid action reference. An action reference should be a "<kind>.<name>" string, where <kind> is one of ${validActionKinds} and <name> is a valid name of an action. You may also specify an object with separate kind and name fields.`,
+    detail: { reference },
+  })
 }
 
 interface SchemaKeys {
   [key: string]: SchemaLike | SchemaLike[] | SchemaCallback
 }
+
 type SchemaCallback = () => Joi.Schema
 
 export interface CreateSchemaParams {
@@ -511,7 +559,7 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
   let { name } = spec
 
   if (schemaRegistry[name]) {
-    throw new InternalError(`Object schema ${name} defined multiple times`, { name })
+    throw new InternalError({ message: `Object schema ${name} defined multiple times`, detail: { name } })
   }
 
   schemaRegistry[name] = { spec }
@@ -644,18 +692,6 @@ export const joiPrimitive = () =>
     .try(joi.string().allow("").allow(null), joi.number(), joi.boolean())
     .description("Number, string or boolean")
 
-export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash
-// from https://stackoverflow.com/a/12311250/3290965
-export const identifierRegex = /^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$/
-export const userIdentifierRegex = /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/
-export const envVarRegex = /^(?!garden)[a-z_][a-z0-9_\.]*$/i
-export const gitUrlRegex = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\/?|\#[-\d\w._\/]+?)$/
-export const variableNameRegex = /[a-zA-Z][a-zA-Z0-9_\-]*/i
-
-export const joiIdentifierDescription =
-  "valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
-  "and cannot end with a dash) and must not be longer than 63 characters."
-
 /**
  * Add a joi.actionReference() type, wrapping the parseActionReference() function and returning it as a parsed object.
  */
@@ -760,7 +796,8 @@ export const joiModuleIncludeDirective = (extraDescription?: string) =>
   joi.array().items(joi.posixPath().allowGlobs().subPathOnly()).description(moduleIncludeDescription(extraDescription))
 
 export const joiProviderName = memoize((name: string) =>
-  joiIdentifier().required().description("The name of the provider plugin to use.").default(name).example(name))
+  joiIdentifier().required().description("The name of the provider plugin to use.").default(name).example(name)
+)
 
 export const joiStringMap = memoize((valueSchema: Joi.Schema) => joi.object().pattern(/.+/, valueSchema))
 
@@ -772,14 +809,16 @@ export const joiUserIdentifier = memoize(() =>
       deline`
         Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with \`garden\`, or be longer than 63 characters.
       `
-    ))
+    )
+)
 
 export const joiIdentifierMap = memoize((valueSchema: Joi.Schema) =>
   joi
     .object()
     .pattern(identifierRegex, valueSchema)
     .default(() => ({}))
-    .description("Key/value map. Keys must be valid identifiers."))
+    .description("Key/value map. Keys must be valid identifiers.")
+)
 
 export const joiVariablesDescription =
   "Keys may contain letters and numbers. Any values are permitted, including arrays and objects of any nesting."
@@ -792,7 +831,8 @@ export const joiVariables = memoize(() =>
     .pattern(variableNameRegex, joi.alternatives(joiPrimitive(), joi.link("..."), joi.array().items(joi.link("..."))))
     .default(() => ({}))
     .unknown(true)
-    .description("Key/value map. " + joiVariablesDescription))
+    .description("Key/value map. " + joiVariablesDescription)
+)
 
 export const joiEnvVars = memoize(() =>
   joi
@@ -803,7 +843,8 @@ export const joiEnvVars = memoize(() =>
     .description(
       "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
         "(must not start with `GARDEN`) and values must be primitives."
-    ))
+    )
+)
 
 export const joiArray = memoize((schema: Joi.Schema) => joi.array().items(schema).default([]))
 
@@ -936,4 +977,21 @@ export function describeSchema(schema: Joi.ObjectSchema): SchemaDescription {
     keys: Object.keys(desc.keys || {}),
     metadata: metadataFromDescription(desc),
   }
+}
+
+export function zodObjectToJoi(schema: z.ZodObject<any>): Joi.ObjectSchema {
+  let wrapped = joi.object().zodSchema(schema)
+
+  let description = schema.description || ""
+
+  const example = schema.getExample()
+  if (example) {
+    wrapped = wrapped.example(example)
+  }
+
+  if (description) {
+    wrapped = wrapped.description(description)
+  }
+
+  return wrapped
 }

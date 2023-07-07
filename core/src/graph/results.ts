@@ -9,7 +9,7 @@
 import { BaseTask, Task, ValidResultType } from "../tasks/base"
 import { InternalError } from "../exceptions"
 import { fromPairs, omit, pick } from "lodash"
-import { toGraphResultEventPayload } from "../events"
+import { toGraphResultEventPayload } from "../events/events"
 import CircularJSON from "circular-json"
 
 export interface TaskEventBase {
@@ -109,13 +109,13 @@ export class GraphResults<B extends Task = Task> {
   private checkKey(key: string) {
     if (!this.tasks.has(key)) {
       const taskKeys = Array.from(this.tasks.keys())
-      throw new InternalError(
-        `GraphResults object does not have task ${key}. Available keys: [${taskKeys.join(", ")}]`,
-        {
+      throw new InternalError({
+        message: `GraphResults object does not have task ${key}. Available keys: [${taskKeys.join(", ")}]`,
+        detail: {
           key,
           taskKeys,
-        }
-      )
+        },
+      })
     }
   }
 }
@@ -197,7 +197,6 @@ function filterResultForExport(result: any) {
       "mode",
       "syncMode",
       "localMode",
-      "namespaceStatuses",
       "externalId",
       "externalVersion",
       "forwardablePorts",
@@ -218,8 +217,7 @@ function filterResultForExport(result: any) {
       "success",
       "exitCode",
       "startedAt",
-      "completedAt",
-      "namespaceStatus"
+      "completedAt"
     ),
     detail: filteredDetail,
   }

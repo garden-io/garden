@@ -62,7 +62,7 @@ export class DependencyGraph<T> extends DepGraph<T> {
       const cycles = this.detectMinimalCircularDependencies()
       const description = cyclesToString(cycles)
       const errMsg = `\nCircular dependencies detected: \n\n${description}\n`
-      throw new ConfigurationError(errMsg, { "circular-dependencies": description, cycles })
+      throw new ConfigurationError({ message: errMsg, detail: { "circular-dependencies": description, cycles } })
     }
   }
 
@@ -118,7 +118,7 @@ interface CycleGraph {
   }
 }
 
-export async function resolveVariables({
+export async function mergeVariables({
   basePath,
   variables,
   varfiles,

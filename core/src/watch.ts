@@ -10,9 +10,10 @@ import { watch, FSWatcher } from "chokidar"
 import { Log } from "./logger/log-entry"
 import { InternalError } from "./exceptions"
 import EventEmitter2 from "eventemitter2"
-import { EventBus } from "./events"
+import { EventBus } from "./events/events"
 import { Stats } from "fs"
 import { join } from "path"
+import stringify from "json-stringify-safe"
 
 let watcher: Watcher | undefined
 
@@ -55,8 +56,11 @@ export class Watcher extends EventEmitter2 {
       try {
         require("fsevents")
       } catch (error) {
-        throw new InternalError(`Unable to load fsevents module: ${error}`, {
-          error,
+        throw new InternalError({
+          message: `Unable to load fsevents module: ${error}`,
+          detail: {
+            error,
+          },
         })
       }
     }
@@ -83,7 +87,7 @@ export class Watcher extends EventEmitter2 {
         this.ready = true
       })
       .on("all", (name, path, payload) => {
-        this.log.silly(`FSWatcher event: ${name} ${path} ${JSON.stringify(payload)}`)
+        this.log.silly(`FSWatcher event: ${name} ${path} ${stringify(payload)}`)
         this.routeEvent(name, path, payload)
       })
   }

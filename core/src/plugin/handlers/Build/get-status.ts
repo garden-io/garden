@@ -21,7 +21,7 @@ import { createSchema, joi } from "../../../config/common"
  * - `built`: The build was completed successfully.
  * - `failed`: An error occurred while fetching or building.
  */
-export type BuildState = "fetching" | "fetched" | "outdated" | "building" | "built" | "failed"
+export type BuildState = "fetching" | "fetched" | "outdated" | "building" | "built" | "failed" | "unknown"
 
 export interface BuildStatusForEventPayload {
   state: BuildState
@@ -48,7 +48,7 @@ export const buildResultSchema = createSchema({
   }),
 })
 
-export interface BuildStatus<T extends BuildAction = BuildAction, D = BuildResult> extends ActionStatus<T, D> {}
+export interface BuildStatus<T extends BuildAction = BuildAction, D extends {} = BuildResult> extends ActionStatus<T, D> {}
 
 export interface BuildStatusMap extends ActionStatusMap<BuildAction> {
   [key: string]: BuildStatus

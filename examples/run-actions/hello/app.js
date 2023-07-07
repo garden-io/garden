@@ -10,17 +10,19 @@ const knex = require("knex")({
   },
   pool: {
     min: 4,
-    max: 10
+    max: 10,
   },
 })
 
-const app = express();
+const app = express()
 
 app.get("/hello", (req, res) => {
-  knex.select("name").from("users")
+  knex
+    .select("name")
+    .from("users")
     .then((rows) => {
-      res.send(`Hello from Node! Usernames: ${rows.map(r => r.name).join(', ')}`)
+      res.send(`Hello from Node! Usernames: ${rows.map((r) => r.name).join(", ")}`)
     })
-});
+})
 
 module.exports = { app }

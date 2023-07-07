@@ -41,14 +41,14 @@ export class MutagenCommand extends Command<{}, {}> {
     const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
 
     if (!projectRoot) {
-      throw new RuntimeError(
-        `Could not find project config in the current directory, or anywhere above. Please run this command within a Garden project directory.`,
-        { root: garden.projectRoot }
-      )
+      throw new RuntimeError({
+        message: `Could not find project config in the current directory, or anywhere above. Please run this command within a Garden project directory.`,
+        detail: { root: garden.projectRoot },
+      })
     }
 
     const mutagenDir = join(projectRoot.path, DEFAULT_GARDEN_DIR_NAME, MUTAGEN_DIR_NAME)
-    const mutagenPath = await mutagenCli.getPath(log)
+    const mutagenPath = await mutagenCli.ensurePath(log)
 
     await mkdirp(mutagenDir)
 

@@ -19,7 +19,7 @@ import { writeFileSync, readFile, writeFile, mkdirp } from "fs-extra"
 import { renderModuleTypeReference, moduleTypes } from "./module-type"
 import { renderProviderReference } from "./provider"
 import { defaultEnvironment, defaultNamespace } from "../config/project"
-import { GardenPlugin, GardenPluginReference } from "../plugin/plugin"
+import { GardenPluginSpec, GardenPluginReference } from "../plugin/plugin"
 import { workflowConfigSchema } from "../config/workflow"
 import { configTemplateSchema } from "../config/config-template"
 import { renderActionTypeReference } from "./action-type"
@@ -28,10 +28,11 @@ import { renderTemplateConfigSchema } from "../config/render-template"
 import { pMemoizeClearAll } from "../lib/p-memoize"
 import { makeDocsLinkOpts } from "./common"
 import { GardenApiVersion } from "../constants"
+import { actionKinds } from "../actions/types"
 
 /* eslint-disable no-console */
 
-export async function generateDocs(targetDir: string, getPlugins: () => (GardenPlugin | GardenPluginReference)[]) {
+export async function generateDocs(targetDir: string, getPlugins: () => (GardenPluginSpec | GardenPluginReference)[]) {
   const docsRoot = resolve(process.cwd(), targetDir)
 
   console.log("Updating command references...")
@@ -46,7 +47,7 @@ export async function generateDocs(targetDir: string, getPlugins: () => (GardenP
 
 export async function writeConfigReferenceDocs(
   docsRoot: string,
-  getPlugins: () => (GardenPlugin | GardenPluginReference)[]
+  getPlugins: () => (GardenPluginSpec | GardenPluginReference)[]
 ) {
   const referenceDir = resolve(docsRoot, "reference")
 
@@ -91,13 +92,14 @@ export async function writeConfigReferenceDocs(
   const providerDir = resolve(docsRoot, "reference", "providers")
   makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH = "../../"
   const allPlugins = await (await getFreshGarden()).getAllPlugins()
+  const skippedPlugins = ["templated", "local-openshift", "openshift"]
   const pluginsByName = keyBy(allPlugins, "name")
   const providersReadme = ["---", "order: 1", "title: Providers", "---", "", "# Providers", ""]
 
   for (const plugin of allPlugins) {
     const name = plugin.name
 
-    if (plugin.name === "templated") {
+    if (skippedPlugins.includes(plugin.name)) {
       continue
     }
 
@@ -121,7 +123,7 @@ export async function writeConfigReferenceDocs(
   const actionTypeDefinitions = await (await getFreshGarden()).getActionTypes()
 
   for (const [kind, types] of Object.entries(actionTypeDefinitions)) {
-    actionsReadme.push(`* ${kind}`)
+    actionsReadme.push(`* [${kind}](./${kind}/README.md)`)
     for (const [type, definition] of Object.entries(types)) {
       const dir = resolve(actionTypeDir, kind)
       await mkdirp(dir)
@@ -135,6 +137,17 @@ export async function writeConfigReferenceDocs(
       actionsReadme.push(`  * [\`${type}\`](./${kind}/${type}.md)`)
     }
   }
+
+  // Render action-kind readmes
+  actionKinds.forEach(async (kind, i) => {
+    const dir = resolve(actionTypeDir, kind)
+    const actionTypeReadme = ["---", `order: ${i + 1}`, `title: ${kind}`, "---", "", `# ${kind} Actions`, ""]
+    for (const [type] of Object.entries(actionTypeDefinitions[kind])) {
+      actionTypeReadme.push(`  * [\`${type}\`](./${type}.md)`)
+    }
+    actionTypeReadme.push("")
+    await writeFile(resolve(dir, `README.md`), actionTypeReadme.join("\n"))
+  })
 
   await writeFile(resolve(actionTypeDir, `README.md`), actionsReadme.join("\n"))
   pMemoizeClearAll()

@@ -51,7 +51,7 @@ describe("ExecLogsFollower", () => {
   let log: Log
 
   before(async () => {
-    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
+    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin] })
     log = garden.log
     tmpDir = await tmp.dir({ unsafeCleanup: true })
   })

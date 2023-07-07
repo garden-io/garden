@@ -12,7 +12,7 @@ import { GARDEN_GLOBAL_PATH } from "../constants"
 import { ConfigStore } from "./base"
 import { z } from "zod"
 import { readFile } from "fs-extra"
-import { safeLoad } from "js-yaml"
+import { load } from "js-yaml"
 import { cloneDeep, omit } from "lodash"
 
 export const legacyGlobalConfigFilename = "global-config.yml"
@@ -103,7 +103,7 @@ export class GlobalConfigStore extends ConfigStore<typeof globalConfigSchema> {
     // Try to migrate part of the legacy config, if it's there
     try {
       const legacyData = await readFile(join(this.configDir, legacyGlobalConfigFilename))
-      const parsed: any = safeLoad(legacyData.toString())
+      const parsed: any = load(legacyData.toString())
 
       if (parsed?.analytics) {
         config.analytics = {

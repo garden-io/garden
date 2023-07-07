@@ -427,3 +427,33 @@ The name of the template.
 | -------- |
 | `string` |
 
+### `${this.*}`
+
+Information about the action currently being resolved.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${this.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${this.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${this.mode}
+```
+

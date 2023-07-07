@@ -7,7 +7,7 @@
  */
 
 import { projectNameSchema, projectRootSchema } from "../../../config/project"
-import { GenericProviderConfig, providerConfigBaseSchema, providerSchema, ProviderMap } from "../../../config/provider"
+import { BaseProviderConfig, providerConfigBaseSchema, providerSchema, ProviderMap } from "../../../config/provider"
 import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { joiArray, joi, joiIdentifier, joiIdentifierMap } from "../../../config/common"
 import { moduleConfigSchema, ModuleConfig } from "../../../config/module"
@@ -17,7 +17,7 @@ import { Log } from "../../../logger/log-entry"
 import { configStoreSchema, LocalConfigStore } from "../../../config-store/local"
 
 // Note: These are the only plugin handler params that don't inherit from PluginActionParamsBase
-export interface ConfigureProviderParams<T extends GenericProviderConfig = any> extends PluginActionParamsBase {
+export interface ConfigureProviderParams<T extends BaseProviderConfig = any> extends PluginActionParamsBase {
   config: T
   configStore: LocalConfigStore
   dependencies: ProviderMap
@@ -29,7 +29,7 @@ export interface ConfigureProviderParams<T extends GenericProviderConfig = any> 
   base?: ActionHandler<ConfigureProviderParams<T>, ConfigureProviderResult<T>>
 }
 
-export interface ConfigureProviderResult<T extends GenericProviderConfig = GenericProviderConfig> {
+export interface ConfigureProviderResult<T extends BaseProviderConfig = any> {
   config: T
   moduleConfigs?: ModuleConfig[]
 }

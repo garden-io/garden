@@ -21,7 +21,7 @@ import {
   emptyActionResults,
 } from "./base"
 import { printEmoji, printHeader } from "../logger/util"
-import { watchParameter, watchRemovedWarning } from "./helpers"
+import { runAsDevCommand, watchParameter, watchRemovedWarning } from "./helpers"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
@@ -35,7 +35,6 @@ import { PortForwardMonitor } from "../monitors/port-forward"
 import { LogMonitor } from "../monitors/logs"
 import { LoggerType, parseLogLevel } from "../logger/logger"
 import { serveOpts } from "./serve"
-import { DevCommand } from "./dev"
 import { gardenEnv } from "../constants"
 
 export const deployArgs = {
@@ -88,8 +87,8 @@ export const deployOpts = {
   }),
   "skip-dependencies": new BooleanParameter({
     help: deline`
-    Deploy the specified actions, but don't build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments.
-    This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
+    Skip deploy, test and run dependencies. Build dependencies and runtime output reference dependencies are not skipped.
+    This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without deploying or running dependencies that may have changed since you last deployed.
     `,
     aliases: ["nodeps"],
   }),
@@ -104,6 +103,10 @@ export const deployOpts = {
   }),
   "timestamps": new BooleanParameter({
     help: "Show timestamps with log output. Should be used with the `--logs` option (has no effect if that option is not used).",
+  }),
+  "skip-watch": new BooleanParameter({
+    help: "(keeping for backwards compatibility with 0.12.x)",
+    hidden: true,
   }),
   ...serveOpts,
 }
@@ -178,13 +181,7 @@ export class DeployCommand extends Command<Args, Opts> {
     const monitor = this.maybePersistent(params)
     if (monitor && !params.parentCommand) {
       // Then we're not in the dev command yet, so we call that instead with the appropriate initial command.
-      // TODO: Abstract this delegation process into a helper if we write more commands that do this sort of thing.
-      params.opts.cmd = ["deploy " + params.args.$all!.join(" ")]
-      const devCmd = new DevCommand()
-      devCmd.printHeader(params)
-      await devCmd.prepare(params)
-
-      return devCmd.action(params)
+      return runAsDevCommand("deploy", params)
     }
 
     const disablePortForwards = gardenEnv.GARDEN_DISABLE_PORT_FORWARDS || opts["disable-port-forwards"] || false
@@ -221,14 +218,6 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const skipRuntimeDependencies = opts["skip-dependencies"]
-    if (skipRuntimeDependencies && (!args.names || args.names.length === 0)) {
-      const errMsg = deline`
-        No names were provided as CLI arguments, but the --skip-dependencies option was used. Please provide a
-        list of names when using the --skip-dependencies option.
-      `
-      log.error({ msg: errMsg })
-      return { result: { aborted: true, success: false, ...emptyActionResults } }
-    }
 
     const force = opts.force
     const startSync = !!opts.sync

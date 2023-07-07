@@ -1,4 +1,4 @@
-FROM node:12.22.6-alpine
+FROM node:18-alpine
 
 ENV PORT=8080
 EXPOSE ${PORT}

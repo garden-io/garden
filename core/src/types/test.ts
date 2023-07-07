@@ -74,7 +74,10 @@ export function testFromModule<M extends GardenModule = GardenModule>(
   const config = findByName(module.testConfigs, name)
 
   if (!config) {
-    throw new NotFoundError(`Could not find test ${name} in module ${module.name}`, { module, name })
+    throw new NotFoundError({
+      message: `Could not find test ${name} in module ${module.name}`,
+      detail: { module, name },
+    })
   }
 
   return testFromConfig(module, config, graph)

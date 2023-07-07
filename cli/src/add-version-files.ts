@@ -39,7 +39,7 @@ async function addVersionFiles() {
       ignoreFile: garden.dotIgnoreFile,
       cache: new TreeCache(),
     })
-    const treeVersion = await vcsHandler.getTreeVersion(garden.log, garden.projectName, config)
+    const treeVersion = await vcsHandler.getTreeVersion({ log: garden.log, projectName: garden.projectName, config })
 
     // eslint-disable-next-line no-console
     console.log(`${config.name} -> ${relative(STATIC_DIR, versionFilePath)}`)

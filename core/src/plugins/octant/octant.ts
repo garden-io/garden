@@ -36,7 +36,7 @@ export const gardenPlugin = () =>
         if (!octantProc) {
           const tool = ctx.tools["octant.octant"]
           const k8sProvider = getK8sProvider(ctx.provider.dependencies)
-          const path = await tool.getPath(log)
+          const path = await tool.ensurePath(log)
 
           octantPort = await getPort()
           const host = "127.0.0.1:" + octantPort
@@ -83,6 +83,7 @@ export const gardenPlugin = () =>
     tools: [
       {
         name: "octant",
+        version: "0.15.0",
         description: "A web admin UI for Kubernetes.",
         type: "binary",
         _includeInGardenImage: false,

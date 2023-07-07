@@ -54,10 +54,10 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
         try {
           files = ctx.resolveTemplateStrings(files)
         } catch (error) {
-          throw new ConfigurationError(
-            `The spec.files field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
-            { config, error }
-          )
+          throw new ConfigurationError({
+            message: `The spec.files field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
+            detail: { config, error },
+          })
         }
         config.include = uniq([...config.include, ...files])
       }
