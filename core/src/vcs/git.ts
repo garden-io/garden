@@ -260,7 +260,8 @@ export class GitHandler extends VcsHandler {
     if (!exclude) {
       exclude = []
     }
-    exclude.push("**/.garden/**/*")
+    // Make sure action config is not mutated
+    exclude = [...exclude, "**/.garden/**/*"]
 
     const gitLog = log
       .createLog({})

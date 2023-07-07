@@ -250,8 +250,9 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     }
   }
 
+  const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
+
   if (!actionTypes[config.kind][config.type]) {
-    const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
     const availableKinds: ActionKind[] = []
     actionKinds.forEach((actionKind) => {
       if (actionTypes[actionKind][config.type]) {
@@ -281,6 +282,18 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   }
 
   const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
+
+  if (config.exclude?.includes("**/*")) {
+    if (config.include && config.include.length !== 0) {
+      throw new ConfigurationError({
+        message: deline`Action ${config.kind}.${config.name} (defined at ${configPath})
+        tries to include files but excludes all files via "**/*".
+        Read about including and excluding files and directories here:
+        https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories`,
+      })
+    }
+    config.include = []
+  }
 
   const treeVersion =
     config.internal.treeVersion ||
