@@ -437,15 +437,31 @@ describe("Garden", () => {
         path: pathFoo,
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
-        variables: { foo: "default", bar: "something" },
+        variables: {
+          "foo": "default",
+          "bar": "something",
+          "nested": {
+            nestedKey1: "somevalue1",
+            nestedKey2: "someValue2",
+          },
+          "key.withdot": "somevalue3",
+        },
       })
       const garden = await TestGarden.factory(pathFoo, {
         config,
         environmentString: "default",
-        variableOverrides: { foo: "override" },
+        variableOverrides: { "foo": "override", "nested.nestedKey2": "somevalue2new", "key.withdot": "somevalue3new" },
       })
 
-      expect(garden.variables).to.eql({ foo: "override", bar: "something" })
+      expect(garden.variables).to.eql({
+        "foo": "override",
+        "bar": "something",
+        "nested": {
+          nestedKey1: "somevalue1",
+          nestedKey2: "somevalue2new",
+        },
+        "key.withdot": "somevalue3new",
+      })
     })
 
     it("should set the default proxy config if non is specified", async () => {
