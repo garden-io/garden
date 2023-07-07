@@ -12,31 +12,36 @@ import { DeploymentError } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
-import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
-import { isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
-import { KubernetesProvider, KubernetesPluginContext } from "../config"
+import {
+  BaseResource,
+  KubernetesResource,
+  KubernetesServerResource,
+  KubernetesWorkload,
+  SyncableResource,
+} from "../types"
+import { cloneDeep, flatten, isArray, isEqual, isPlainObject, keyBy, mapValues, omit, pickBy } from "lodash"
+import { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { isSubset } from "../../../util/is-subset"
 import { Log } from "../../../logger/log-entry"
 import {
-  V1ReplicationController,
-  V1ReplicaSet,
-  V1Pod,
-  V1PersistentVolumeClaim,
-  V1Service,
-  V1Container,
   KubernetesObject,
+  V1Container,
   V1Job,
+  V1PersistentVolumeClaim,
+  V1Pod,
+  V1ReplicaSet,
+  V1ReplicationController,
+  V1Service,
 } from "@kubernetes/client-node"
-import dedent = require("dedent")
 import { getPods, getResourceKey, hashManifest } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
 import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
-import { SyncableResource } from "../types"
 import { ActionMode } from "../../../actions/types"
 import { deepMap } from "../../../util/objects"
-import { DeployState, combineStates } from "../../../types/service"
+import { combineStates, DeployState } from "../../../types/service"
 import { isTruthy, sleep } from "../../../util/util"
+import dedent = require("dedent")
 
 export interface ResourceStatus<T extends BaseResource | KubernetesObject = BaseResource> {
   state: DeployState
@@ -392,7 +397,7 @@ export async function compareDeployedResources({
   manifests = flatten(manifests.map((r: any) => (r.apiVersion === "v1" && r.kind === "List" ? r.items : [r])))
 
   // Check if any resources are missing from the cluster.
-  const deployedResources = await getDeployedResources(ctx, log, manifests)
+  const deployedResources = await getDeployedResources({ ctx, log, manifests })
   const manifestsMap = keyBy(manifests, (m) => getResourceKey(m))
   const manifestKeys = Object.keys(manifestsMap)
   const deployedMap = keyBy(deployedResources, (m) => getResourceKey(m))
@@ -603,45 +608,19 @@ export async function getDeployedResource<ResourceKind extends KubernetesObject>
   }
 }
 
-/**
- * Fetches matching deployed resources from the cluster for the provided array of manifests.
- */
-export async function getDeployedResources<ResourceKind extends KubernetesObject>({
+export async function getDeployedResources({
   ctx,
-  provider,
-  manifests,
   log,
+  manifests,
 }: {
-  ctx: PluginContext
-  provider: KubernetesProvider
-  manifests: KubernetesResource<ResourceKind>[]
+  ctx: KubernetesPluginContext
   log: Log
-}): Promise<KubernetesResource<ResourceKind>[]> {
-  const api = await KubeApi.factory(log, ctx, provider)
-  const k8sCtx = ctx as KubernetesPluginContext
-  const appNamespace = await getAppNamespace(k8sCtx, log, provider)
-
-  const deployed = await Bluebird.map(manifests, async (resource: KubernetesResource) => {
-    const namespace = resource.metadata?.namespace || appNamespace
-    try {
-      const res = await api.readBySpec({ namespace, manifest: resource, log })
-      return <KubernetesResource<ResourceKind>>res
-    } catch (err) {
-      if (err.statusCode === 404) {
-        return null
-      } else {
-        throw err
-      }
-    }
-  })
-  return deployed.filter(isTruthy)
-}
-
-export async function getDeployedResources(ctx: KubernetesPluginContext, log: Log, manifests: KubernetesResource[]) {
+  manifests: KubernetesResource[]
+}) {
   const maybeDeployedObjects = await Bluebird.map(manifests, (resource) =>
     getDeployedResource(ctx, ctx.provider, resource, log)
   )
-  return <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
+  return <KubernetesResource[]>maybeDeployedObjects.filter(isTruthy)
 }
 
 /**

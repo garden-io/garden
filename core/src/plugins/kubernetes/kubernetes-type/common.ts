@@ -47,7 +47,7 @@ export async function getManifests({
   action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>
   defaultNamespace: string
 }): Promise<KubernetesResource[]> {
-  const rawManifests = (await readManifests(ctx, action, log, readFromSrcDir)) as KubernetesResource[]
+  const rawManifests = (await readManifests(ctx, action, log)) as KubernetesResource[]
 
   // remove *List objects
   const manifests = rawManifests.flatMap((manifest) => {

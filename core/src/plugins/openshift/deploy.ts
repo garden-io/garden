@@ -57,7 +57,7 @@ export const openshiftGetContainerDeployStatus: DeployActionHandler<"getStatus",
     remoteResources,
     mode: deployedMode,
     selectorChangedResourceKeys,
-  } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
+  } = await compareDeployedResources({ ctx: k8sCtx, api, namespace, manifests, log })
   const ingresses = await getIngresses(action, api, provider)
 
   return prepareContainerDeployStatus({
