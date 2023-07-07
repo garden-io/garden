@@ -142,8 +142,8 @@ providers:
           #
           # `auto` is the same as `max` for some registries that are known to support it. Garden will fall back to
           # `inline` for all other registries.
-          #  See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the
-          # detection mechanism.
+          #  See the [clusterBuildkit cache option](#providersclusterbuildkitcache) for a description of the detection
+          # mechanism.
           #
           # See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
           mode: auto
@@ -218,7 +218,7 @@ providers:
 
       # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
       image: >-
-  gcr.io/kaniko-project/executor:v1.8.1-debug@sha256:3bc3f3a05f803cac29164ce12617a7be64931748c944f6c419565f500b65e8db
+  gcr.io/kaniko-project/executor:v1.11.0-debug@sha256:32ba2214921892c2fa7b5f9c4ae6f8f026538ce6b2105a93a36a8b5ee50fe517
 
       # Choose the namespace where the Kaniko pods will be run. Defaults to the project namespace.
       namespace:
@@ -757,7 +757,7 @@ The values `min` and `max` ensure that garden passes the `mode=max` or `mode=min
 stored stored in the configured `tag`.
 
 `auto` is the same as `max` for some registries that are known to support it. Garden will fall back to `inline` for all other registries.
- See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the detection mechanism.
+ See the [clusterBuildkit cache option](#providersclusterbuildkitcache) for a description of the detection mechanism.
 
 See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
 
@@ -954,9 +954,9 @@ Specify extra flags to use when building the container image with kaniko. Flags 
 
 Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
 
-| Type     | Default                                                                                                                 | Required |
-| -------- | ----------------------------------------------------------------------------------------------------------------------- | -------- |
-| `string` | `"gcr.io/kaniko-project/executor:v1.8.1-debug@sha256:3bc3f3a05f803cac29164ce12617a7be64931748c944f6c419565f500b65e8db"` | No       |
+| Type     | Default                                                                                                                  | Required |
+| -------- | ------------------------------------------------------------------------------------------------------------------------ | -------- |
+| `string` | `"gcr.io/kaniko-project/executor:v1.11.0-debug@sha256:32ba2214921892c2fa7b5f9c4ae6f8f026538ce6b2105a93a36a8b5ee50fe517"` | No       |
 
 ### `providers[].kaniko.namespace`
 

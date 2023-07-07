@@ -1,0 +1,6 @@
+.garden/
+.history/
+.vscode/
+.gradle/
+tmp/
+core/tmp/

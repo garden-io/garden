@@ -7,36 +7,36 @@
  */
 
 import AsyncLock from "async-lock"
-import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { find } from "lodash"
 import { PluginError } from "@garden-io/core/build/src/exceptions"
-import { Writable } from "node:stream"
-import execa from "execa"
+import { BuildToolParams, runBuildTool, verifyBinaryPath, VerifyBinaryParams } from "./build-tool-base"
 
 const buildLock = new AsyncLock()
 
-const mvndVersion = "0.8.2"
+export const mvndVersion = "0.9.0"
+
 const mvndSpec = {
   description: "The Maven Daemon CLI.",
   baseUrl: `https://github.com/apache/maven-mvnd/releases/download/${mvndVersion}/`,
   linux: {
     filename: `maven-mvnd-${mvndVersion}-linux-amd64.tar.gz`,
-    sha256: "5bcd4c3e45b767d562aa8d81583461abeb4fd6626ea1b8a1d961f34ef472f115",
+    sha256: "64acc68f2a3e25a0662eb62bf87cf2641706245505572ca1d20f933c7190f148",
     targetPath: `maven-mvnd-${mvndVersion}-linux-amd64/bin/mvnd`,
   },
   darwin_aarch64: {
     filename: `maven-mvnd-${mvndVersion}-darwin-aarch64.tar.gz`,
-    sha256: "b3fab0126188072ea80784c4bcc726bf398e0115ed37f3e243e14c84a2fe7e45",
+    sha256: "bca67a44cc3716a7da46926acff41b3864d62e5da6982b9e998eca42d2f9bfac",
     targetPath: `maven-mvnd-${mvndVersion}-darwin-aarch64/bin/mvnd`,
   },
   darwin_amd64: {
     filename: `maven-mvnd-${mvndVersion}-darwin-amd64.tar.gz`,
-    sha256: "889278f2e2a88450dcb074558a136fe06f9874db9b8d224674a5163a92ef2b69",
+    sha256: "b94fb24d92cd971b6368df14f44bf77b5614a422dfe9f6f115b32b11860c1d6b",
     targetPath: `maven-mvnd-${mvndVersion}-darwin-amd64/bin/mvnd`,
   },
   windows: {
     filename: `maven-mvnd-${mvndVersion}-windows-amd64.zip`,
-    sha256: "bfe6115b643ecb54b52a46df9e5b790035e54e67e21c10f964c7d58f633b7f22",
+    sha256: "7ddf8204f39ba72e55618cac31cae2ac917ea4f9b74ee3bc808bf5d210139420",
     targetPath: `maven-mvnd-${mvndVersion}-windows-amd64/bin/mvnd.cmd`,
   },
 }
@@ -60,7 +60,7 @@ export const mavendSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "amd64",
-      sha256: mvndSpec.linux.sha256,
+      sha256: mvndSpec.darwin_amd64.sha256,
       url: `${mvndSpec.baseUrl}${mvndSpec.darwin_amd64.filename}`,
       extract: {
         format: "tar",
@@ -70,7 +70,7 @@ export const mavendSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "aarch64",
-      sha256: mvndSpec.linux.sha256,
+      sha256: mvndSpec.darwin_aarch64.sha256,
       url: `${mvndSpec.baseUrl}${mvndSpec.darwin_aarch64.filename}`,
       extract: {
         format: "tar",
@@ -81,7 +81,7 @@ export const mavendSpec: PluginToolSpec = {
       platform: "windows",
       architecture: "amd64",
       url: `${mvndSpec.baseUrl}${mvndSpec.windows.filename}`,
-      sha256: "d53e045bc5c02aad179fae2fbc565d953354880db6661a8fab31f3a718d7b62c",
+      sha256: mvndSpec.windows.sha256,
       extract: {
         format: "zip",
         targetPath: mvndSpec.windows.targetPath,
@@ -94,10 +94,20 @@ export function getMvndTool(ctx: PluginContext) {
   const tool = find(ctx.tools, (_, k) => k.endsWith(".mavend"))
 
   if (!tool) {
-    throw new PluginError(`Could not find configured maven daemon tool`, { tools: ctx.tools })
+    throw new PluginError({ message: `Could not find configured maven daemon tool`, detail: { tools: ctx.tools } })
   }
 
   return tool
+}
+
+let mavendPathValid = false
+
+async function verifyMavendPath(params: VerifyBinaryParams) {
+  if (mavendPathValid) {
+    return
+  }
+  await verifyBinaryPath(params)
+  mavendPathValid = true
 }
 
 /**
@@ -109,36 +119,35 @@ export async function mvnd({
   cwd,
   log,
   openJdkPath,
+  binaryPath,
+  concurrentMavenBuilds,
   outputStream,
-}: {
-  ctx: PluginContext
-  args: string[]
-  cwd: string
-  log: Log
-  openJdkPath: string
-  outputStream?: Writable
-}) {
+}: BuildToolParams) {
   let mvndPath: string
-  log.verbose(`The Maven Daemon binary hasn't been specified explicitly. Maven ${mvndVersion} will be used by default.`)
-
-  const tool = getMvndTool(ctx)
-  mvndPath = await tool.ensurePath(log)
-
-  return buildLock.acquire("mvnd", async () => {
-    log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
-
-    const res = execa(mvndPath, args, {
-      cwd,
-      env: {
-        JAVA_HOME: openJdkPath,
-      },
+  if (!!binaryPath) {
+    log.verbose(`Using explicitly specified Maven Daemon binary from ${binaryPath}`)
+    mvndPath = binaryPath
+    await verifyMavendPath({
+      binaryPath,
+      toolName: "Maven Daemon",
+      configFieldName: "mavendPath",
+      outputVerificationString: "mvnd",
     })
+  } else {
+    log.verbose(
+      `The Maven Daemon binary hasn't been specified explicitly. Maven ${mvndVersion} will be used by default.`
+    )
+    const tool = getMvndTool(ctx)
+    mvndPath = await tool.ensurePath(log)
+  }
 
-    if (outputStream) {
-      res.stdout?.pipe(outputStream)
-      res.stderr?.pipe(outputStream)
-    }
-
-    return res
-  })
+  log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
+  const params = { binaryPath: mvndPath, args, cwd, openJdkPath, outputStream }
+  if (concurrentMavenBuilds) {
+    return runBuildTool(params)
+  } else {
+    return buildLock.acquire("mvnd", async () => {
+      return runBuildTool(params)
+    })
+  }
 }

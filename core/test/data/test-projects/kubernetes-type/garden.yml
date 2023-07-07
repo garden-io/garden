@@ -1,6 +1,6 @@
 apiVersion: garden.io/v1
 kind: Project
-name: kubernetes-module-test
+name: kubernetes-type-test
 environments:
   - name: local
 providers:

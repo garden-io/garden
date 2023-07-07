@@ -120,7 +120,10 @@ export class KeyPair {
     try {
       return (await readFile(filePath)).toString()
     } catch (err) {
-      throw new ConfigurationError(`Could not read public key file from path ${filePath}; cause: ${err}`, err)
+      throw new ConfigurationError({
+        message: `Could not read public key file from path ${filePath}; cause: ${err}`,
+        detail: err,
+      })
     }
   }
 
@@ -145,7 +148,7 @@ export class ProxySshKeystore {
 
   private constructor() {
     if (!!ProxySshKeystore.instance) {
-      throw new RuntimeError("Cannot init singleton twice, use ProxySshKeystore.getInstance()", {})
+      throw new RuntimeError({ message: "Cannot init singleton twice, use ProxySshKeystore.getInstance()", detail: {} })
     }
     this.serviceKeyPairs = new Map<string, KeyPair>()
     this.localSshPorts = new Set<number>()
@@ -265,7 +268,10 @@ export class LocalModeProcessRegistry {
 
   private constructor() {
     if (!!LocalModeProcessRegistry.instance) {
-      throw new RuntimeError("Cannot init singleton twice, use LocalModeProcessRegistry.getInstance()", {})
+      throw new RuntimeError({
+        message: "Cannot init singleton twice, use LocalModeProcessRegistry.getInstance()",
+        detail: {},
+      })
     }
     this.recoverableProcesses = []
     this.state = "ready"
@@ -308,19 +314,19 @@ export class LocalModeProcessRegistry {
 
 function validateContainerPorts(container: V1Container, spec: ContainerLocalModeSpec): V1ContainerPort[] {
   if (!container.ports || container.ports.length === 0) {
-    throw new ConfigurationError(
-      `Cannot configure the local mode for container ${container.name}: it does not expose any ports.`,
-      { container }
-    )
+    throw new ConfigurationError({
+      message: `Cannot configure the local mode for container ${container.name}: it does not expose any ports.`,
+      detail: { container },
+    })
   }
 
   const remotePorts = new Set<number>(spec.ports.map((p) => p.remote))
   const matchingPorts = container.ports.filter((portSpec) => remotePorts.has(portSpec.containerPort))
   if (!matchingPorts || matchingPorts.length === 0) {
-    throw new ConfigurationError(
-      `Cannot configure the local mode for container ${container.name}: it does not expose any ports that match local mode port-forward configuration.`,
-      { container, remotePorts }
-    )
+    throw new ConfigurationError({
+      message: `Cannot configure the local mode for container ${container.name}: it does not expose any ports that match local mode port-forward configuration.`,
+      detail: { container, remotePorts },
+    })
   }
   return matchingPorts
 }
@@ -820,7 +826,10 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
 
   // Validate the target
   if (!isConfiguredForLocalMode(targetResource)) {
-    throw new ConfigurationError(`Resource ${targetResourceId} is not deployed in local mode`, { targetResource })
+    throw new ConfigurationError({
+      message: `Resource ${targetResourceId} is not deployed in local mode`,
+      detail: { targetResource },
+    })
   }
 
   log.info({

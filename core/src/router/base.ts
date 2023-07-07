@@ -16,7 +16,7 @@ import type {
   ResolvedActionHandlerDescription,
   WrappedActionHandler,
 } from "../plugin/base"
-import type { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
+import type { GardenPluginSpec, ActionHandler, PluginMap } from "../plugin/plugin"
 import type { PluginContext, PluginEventBroker } from "../plugin-context"
 import type { ConfigContext } from "../config/template-contexts/base"
 import type { BaseAction } from "../actions/base"
@@ -39,14 +39,15 @@ import { defaultProvider } from "../config/provider"
 import type { ConfigGraph } from "../graph/config-graph"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import type { NamespaceStatus } from "../types/namespace"
+import { TemplatableConfigContext } from "../config/template-contexts/project"
 
 export type CommonParams = keyof PluginActionContextParams
 export type RequirePluginName<T> = T & { pluginName: string }
 
 export interface BaseRouterParams {
   garden: Garden
-  configuredPlugins: GardenPlugin[]
-  loadedPlugins: GardenPlugin[]
+  configuredPlugins: GardenPluginSpec[]
+  loadedPlugins: GardenPluginSpec[]
 }
 
 /**
@@ -54,28 +55,13 @@ export interface BaseRouterParams {
  */
 export abstract class BaseRouter {
   protected readonly garden: Garden
-  protected readonly configuredPlugins: GardenPlugin[]
+  protected readonly configuredPlugins: GardenPluginSpec[]
   protected readonly loadedPlugins: PluginMap
 
   constructor(params: BaseRouterParams) {
     this.garden = params.garden
     this.configuredPlugins = params.configuredPlugins
     this.loadedPlugins = keyBy(params.loadedPlugins, "name")
-  }
-
-  emitNamespaceEvents(namespaceStatuses: NamespaceStatus[] | undefined) {
-    if (namespaceStatuses && namespaceStatuses.length > 0) {
-      for (const status of namespaceStatuses) {
-        this.emitNamespaceEvent(status)
-      }
-    }
-  }
-
-  emitNamespaceEvent(namespaceStatus: NamespaceStatus | undefined) {
-    if (namespaceStatus) {
-      const { pluginName, state, namespaceName } = namespaceStatus
-      this.garden.events.emit("namespaceStatus", { pluginName, state, namespaceName })
-    }
   }
 
   protected async commonParams(
@@ -86,8 +72,13 @@ export abstract class BaseRouter {
   ): Promise<PluginActionParamsBase> {
     const provider = await this.garden.resolveProvider(log, handler.pluginName)
 
+    const ctx = await this.garden.getPluginContext({ provider, templateContext, events })
+
+    // Forward plugin events that don't need any action-specific metadata (currently just `namespaceStatus` events).
+    ctx.events.on("namespaceStatus", (status: NamespaceStatus) => this.garden.events.emit("namespaceStatus", status))
+
     return {
-      ctx: await this.garden.getPluginContext({ provider, templateContext, events }),
+      ctx,
       log,
       base: handler.base,
     }
@@ -237,7 +228,10 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
   async configure({ config, log }: { config: BaseActionConfig; log: Log }) {
     if (config.kind !== this.kind) {
-      throw new InternalError(`Attempted to call ${this.kind} handler for ${config.kind} action`, {})
+      throw new InternalError({
+        message: `Attempted to call ${this.kind} handler for ${config.kind} action`,
+        detail: {},
+      })
     }
 
     // TODO: work out why this cast is needed
@@ -251,7 +245,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       defaultHandler,
     })
 
-    const templateContext = new ActionConfigContext(this.garden, config)
+    const templateContext = new TemplatableConfigContext(this.garden, config)
 
     const commonParams = await this.commonParams(handler, log, templateContext, undefined)
 
@@ -282,7 +276,10 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     log.silly(`Getting '${String(handlerType)}' handler for ${action.longDescription()}`)
 
     if (action.kind !== this.kind) {
-      throw new InternalError(`Attempted to call ${this.kind} handler for ${action.kind} action`, {})
+      throw new InternalError({
+        message: `Attempted to call ${this.kind} handler for ${action.kind} action`,
+        detail: {},
+      })
     }
 
     const handler = await this.getHandler({
@@ -305,7 +302,15 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           inputs: action.getInternal().inputs || {},
           variables: action.getVariables(),
         })
-      : new ActionConfigContext(this.garden, action.getConfig())
+      : new ActionConfigContext({
+          garden: this.garden,
+          config: action.getConfig(),
+          thisContextParams: {
+            mode: action.mode(),
+            name: action.name,
+          },
+          variables: action.getVariables(),
+        })
 
     const handlerParams = {
       ...(await this.commonParams(handler, params.log, templateContext, params.events)),
@@ -315,9 +320,6 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     log.silly(`Calling ${String(handlerType)} handler for action ${action.longDescription()}`)
 
     const result: GetActionTypeResults<ActionTypeClasses<K>[T]> = await handler(handlerParams)
-
-    // Validate result
-    // TODO-0.13.0
 
     return { ctx: handlerParams.ctx, result }
   }
@@ -349,7 +351,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
   }
 
   private addHandler<T extends keyof ActionTypeClasses<K>>(
-    plugin: GardenPlugin,
+    plugin: GardenPluginSpec,
     handlerType: T,
     actionType: string,
     handler: GetActionTypeHandler<ActionTypeClasses<K>[T], any>
@@ -362,14 +364,14 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       <WrappedActionTypeHandler<ActionTypeClasses<K>[T], any>>(<unknown>(async (...args: any[]) => {
         const result = await handler["apply"](plugin, args)
         if (result === undefined) {
-          throw new PluginError(
-            `Got empty response from ${actionType}.${String(handlerType)} handler on ${pluginName} provider`,
-            {
+          throw new PluginError({
+            message: `Got empty response from ${actionType}.${String(handlerType)} handler on ${pluginName} provider`,
+            detail: {
               args,
               handlerType,
               pluginName,
-            }
-          )
+            },
+          })
         }
         const kind = this.kind
         return validateSchema(result, schema, {
@@ -460,11 +462,12 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         }
 
         // This should never happen
-        throw new InternalError(
-          `Unable to find any matching configuration when selecting ${actionType}/${String(handlerType)} handler ` +
+        throw new InternalError({
+          message:
+            `Unable to find any matching configuration when selecting ${actionType}/${String(handlerType)} handler ` +
             `(please report this as a bug).`,
-          { handlers, configs }
-        )
+          detail: { handlers, configs },
+        })
       } else {
         return filtered[0]
       }
@@ -488,16 +491,19 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       }
 
       if (pluginName) {
-        throw new PluginError(
-          `Plugin '${pluginName}' does not have a '${String(handlerType)}' handler for action type '${actionType}'.`,
-          errorDetails
-        )
+        throw new PluginError({
+          message: `Plugin '${pluginName}' does not have a '${String(
+            handlerType
+          )}' handler for action type '${actionType}'.`,
+          detail: errorDetails,
+        })
       } else {
-        throw new ParameterError(
-          `No '${String(handlerType)}' handler configured for ${this.kind} type '${actionType}' in environment ` +
+        throw new ParameterError({
+          message:
+            `No '${String(handlerType)}' handler configured for ${this.kind} type '${actionType}' in environment ` +
             `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
-          errorDetails
-        )
+          detail: errorDetails,
+        })
       }
     }
   }

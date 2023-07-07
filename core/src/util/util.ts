@@ -28,7 +28,7 @@ import exitHook from "async-exit-hook"
 import _spawn from "cross-spawn"
 import { readFile } from "fs-extra"
 import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
-import { safeLoad } from "js-yaml"
+import { load } from "js-yaml"
 import { createHash } from "crypto"
 import { dedent, tailString } from "./string"
 import { Readable, Writable } from "stream"
@@ -223,16 +223,16 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
     return res
   } catch (err) {
     if (err.code === "EMFILE" || err.errno === "EMFILE") {
-      throw new RuntimeError(
-        dedent`
+      throw new RuntimeError({
+        message: dedent`
         Received EMFILE (Too many open files) error when running ${cmd}.
 
         This may mean there are too many files in the project, and that you need to exclude large dependency directories. Please see ${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories for information on how to do that.
 
         This can also be due to limits on open file descriptors being too low. Here is one guide on how to configure those limits for different platforms: https://docs.riak.com/riak/kv/latest/using/performance/open-files-limit/index.html
         `,
-        { error: err }
-      )
+        detail: { error: err },
+      })
     }
 
     const error = <execa.ExecaError>err
@@ -304,7 +304,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 
   if (tty) {
     if (data) {
-      throw new ParameterError(`Cannot pipe to stdin when tty=true`, { cmd, args, opts })
+      throw new ParameterError({ message: `Cannot pipe to stdin when tty=true`, detail: { cmd, args, opts } })
     }
     _process.stdin.setEncoding("utf8")
     // raw mode is not available if we're running without a TTY
@@ -350,7 +350,9 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
     if (timeout > 0) {
       _timeout = setTimeout(() => {
         proc.kill("SIGKILL")
-        _reject(new TimeoutError(`${cmd} timed out after ${timeout} seconds.`, { cmd, args, opts }))
+        _reject(
+          new TimeoutError({ message: `${cmd} timed out after ${timeout} seconds.`, detail: { cmd, args, opts } })
+        )
       }, timeout * 1000)
     }
 
@@ -359,7 +361,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
       if ((<any>err).code === "ENOENT") {
         msg = `${msg} Please make sure '${cmd}' is installed and in the $PATH.`
       }
-      _reject(new RuntimeError(msg, { cmd, args, opts, result, err }))
+      _reject(new RuntimeError({ message: msg, detail: { cmd, args, opts, result, err } }))
     })
 
     proc.on("close", (code) => {
@@ -376,7 +378,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
           output: result.all || result.stdout || result.stderr || "",
           error: result.stderr || "",
         })
-        _reject(new RuntimeError(msg, { cmd, args, opts, result }))
+        _reject(new RuntimeError({ message: msg, detail: { cmd, args, opts, result } }))
       }
     })
   })
@@ -432,7 +434,7 @@ export function getEnumKeys(Enum) {
 
 export async function loadYamlFile(path: string): Promise<any> {
   const fileData = await readFile(path)
-  return safeLoad(fileData.toString())
+  return load(fileData.toString())
 }
 
 export interface ObjectWithName {
@@ -515,9 +517,12 @@ export function pickKeys<T extends object, U extends keyof T>(obj: T, keys: U[],
   const missing = difference(<string[]>keys, Object.keys(picked))
 
   if (missing.length) {
-    throw new ParameterError(`Could not find ${description}(s): ${missing.map((k, _) => k).join(", ")}`, {
-      missing,
-      available: Object.keys(obj),
+    throw new ParameterError({
+      message: `Could not find ${description}(s): ${missing.map((k, _) => k).join(", ")}`,
+      detail: {
+        missing,
+        available: Object.keys(obj),
+      },
     })
   }
 
@@ -539,7 +544,10 @@ export function findByNames<T extends ObjectWithName>({
   const missing = difference(names, available)
 
   if (missing.length && !allowMissing) {
-    throw new ParameterError(`Could not find ${description}(s): ${missing.join(", ")}`, { available, missing })
+    throw new ParameterError({
+      message: `Could not find ${description}(s): ${missing.join(", ")}`,
+      detail: { available, missing },
+    })
   }
 
   return entries.filter(({ name }) => names.includes(name))
@@ -558,9 +566,12 @@ export function hashString(s: string, length?: number): string {
 export function pushToKey(obj: object, key: string, value: any) {
   if (obj[key]) {
     if (!isArray(obj[key])) {
-      throw new RuntimeError(`Value at '${key}' is not an array`, {
-        obj,
-        key,
+      throw new RuntimeError({
+        message: `Value at '${key}' is not an array`,
+        detail: {
+          obj,
+          key,
+        },
       })
     }
     obj[key].push(value)

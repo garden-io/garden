@@ -720,15 +720,6 @@ providerStatuses:
     # Use this to include additional information that is specific to the provider.
     detail:
 
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
-
     # Output variables that modules and other variables can reference.
     outputs:
       <name>:
@@ -760,15 +751,6 @@ deployStatuses:
 
       # The mode the action is deployed in.
       mode:
-
-      namespaceStatuses:
-        - pluginName:
-
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
-
-          state:
 
       # The ID used for the service by the provider (if not the same as the service name).
       externalId:
@@ -892,15 +874,6 @@ When this flag is not used, all services in the project are cleaned up simultane
     # The mode the action is deployed in.
     mode:
 
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
-
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
 
@@ -1021,7 +994,7 @@ the command stays running until explicitly aborted.
 
 This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of Deploys you&#x27;d like to skip.
-  | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
+  | `--skip-dependencies` |  | boolean | Skip deploy, test and run dependencies. Build dependencies and runtime output reference dependencies are not skipped. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without deploying or running dependencies that may have changed since you last deployed.
   | `--disable-port-forwards` |  | boolean | Disable automatic port forwarding when running persistently. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS&#x3D;true in your environment.
   | `--forward` |  | boolean | Create port forwards and leave process running after deploying. This is implied if any of --sync / --local or --logs are set.
   | `--logs` |  | boolean | Stream logs from the requested Deploy(s) (or services if using modules) during deployment, and leave the log streaming process running after deploying. Note: This option implies the --forward option.
@@ -1719,15 +1692,6 @@ providers:
 
       # Use this to include additional information that is specific to the provider.
       detail:
-
-      namespaceStatuses:
-        - pluginName:
-
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
-
-          state:
 
       # Output variables that modules and other variables can reference.
       outputs:
@@ -2819,6 +2783,29 @@ suggestedCommands:
       src:
 ```
 
+### garden get files
+
+**List all files from all or specified actions.**
+
+This is useful to diagnose issues with ignores, include and exclude for a given action.
+
+#### Usage
+
+    garden get files [keys] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `keys` | No | One or more action keys (e.g. deploy.api), separated by spaces. If omitted, all actions are queried.
+
+
+#### Outputs
+
+```yaml
+<name>:
+```
+
 ### garden get linked-repos
 
 **Outputs a list of all linked remote sources, actions and modules for this project.**
@@ -3206,15 +3193,6 @@ providers:
     # Use this to include additional information that is specific to the provider.
     detail:
 
-    namespaceStatuses:
-      - pluginName:
-
-        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-        # letter, and cannot end with a dash) and must not be longer than 63 characters.
-        namespaceName:
-
-        state:
-
     # Output variables that modules and other variables can reference.
     outputs:
       <name>:
@@ -3265,15 +3243,6 @@ actions:
 
         # The mode the action is deployed in.
         mode:
-
-        namespaceStatuses:
-          - pluginName:
-
-            # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-            # letter, and cannot end with a dash) and must not be longer than 63 characters.
-            namespaceName:
-
-            state:
 
         # The ID used for the service by the provider (if not the same as the service name).
         externalId:
@@ -3369,15 +3338,6 @@ actions:
         # The output log from the run.
         log:
 
-        namespaceStatus:
-          pluginName:
-
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
-
-          state:
-
   # A map of statuses for each configured Test.
   Test:
     <name>:
@@ -3408,15 +3368,6 @@ actions:
 
         # The output log from the run.
         log:
-
-        namespaceStatus:
-          pluginName:
-
-          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-          # letter, and cannot end with a dash) and must not be longer than 63 characters.
-          namespaceName:
-
-          state:
 ```
 
 ### garden get actions
@@ -3784,15 +3735,6 @@ detail:
   # The output log from the run.
   log:
 
-  namespaceStatus:
-    pluginName:
-
-    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-    # and cannot end with a dash) and must not be longer than 63 characters.
-    namespaceName:
-
-    state:
-
 # Local file paths to any exported artifacts from the Run's execution.
 artifacts:
 ```
@@ -3844,15 +3786,6 @@ detail:
 
   # The output log from the run.
   log:
-
-  namespaceStatus:
-    pluginName:
-
-    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-    # and cannot end with a dash) and must not be longer than 63 characters.
-    namespaceName:
-
-    state:
 
 # Local file paths to any exported artifacts from the test run.
 artifacts:
@@ -5881,6 +5814,17 @@ Throws an error and exits with code 1 if something's not right in your garden co
 #### Usage
 
     garden validate 
+
+
+
+### garden version
+
+**Shows the current garden version.**
+
+
+#### Usage
+
+    garden version 
 
 
 

@@ -20,6 +20,7 @@ import {
   GetProfileResponse,
   CreateProjectsForRepoResponse,
   ListProjectsResponse,
+  BaseResponse,
 } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
@@ -27,6 +28,7 @@ import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
 import { add } from "date-fns"
 import { LogLevel } from "../logger/logger"
 import { makeAuthHeader } from "./auth"
+import { StringMap } from "../config/common"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -117,6 +119,12 @@ export interface CloudProject {
   environments: CloudEnvironment[]
 }
 
+export interface GetSecretsParams {
+  log: Log
+  projectId: string
+  environmentName: string
+}
+
 function toCloudProject(
   project: GetProjectResponse["data"] | ListProjectsResponse["data"][0] | CreateProjectsForRepoResponse["data"][0]
 ): CloudProject {
@@ -156,6 +164,8 @@ export interface CloudApiFactoryParams {
   globalConfigStore: GlobalConfigStore
   skipLogging?: boolean
 }
+
+export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<CloudApi | undefined>
 
 /**
  * The Enterprise API client.
@@ -219,12 +229,12 @@ export class CloudApi {
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
       // Throw if using an invalid "CI" access token
       if (!tokenIsValid) {
-        throw new CloudApiError(
-          deline`
+        throw new CloudApiError({
+          message: deline`
             The provided access token is expired or has been revoked, please create a new
             one from the ${distroName} UI.`,
-          {}
-        )
+          detail: {},
+        })
       }
     } else {
       // Refresh the token if it's invalid.
@@ -257,7 +267,7 @@ export class CloudApi {
         yet been created in ${distroName}, or that there's a problem with your account's VCS username / login
         credentials.
       `
-      throw new CloudApiError(errMsg, { tokenResponse })
+      throw new CloudApiError({ message: errMsg, detail: { tokenResponse } })
     }
     try {
       const validityMs = tokenResponse.tokenValidity || 604800000
@@ -268,10 +278,10 @@ export class CloudApi {
       })
       log.debug("Saved client auth token to config store")
     } catch (error) {
-      throw new CloudApiError(
-        `An error occurred while saving client auth token to local config db:\n${error.message}`,
-        { tokenResponse }
-      )
+      throw new CloudApiError({
+        message: `An error occurred while saving client auth token to local config db:\n${error.message}`,
+        detail: { tokenResponse },
+      })
     }
   }
 
@@ -362,12 +372,12 @@ export class CloudApi {
 
     // Expect a single project, otherwise we fail with an error
     if (projects.length > 1) {
-      throw new CloudApiDuplicateProjectsError(
-        deline`Found an unexpected state with multiple projects using the same name, ${projectName}.
+      throw new CloudApiDuplicateProjectsError({
+        message: deline`Found an unexpected state with multiple projects using the same name, ${projectName}.
         Please make sure there is only one project with the given name.
         Projects can be deleted through the Garden Cloud UI at ${this.domain}`,
-        {}
-      )
+        detail: {},
+      })
     }
 
     return projects[0]
@@ -446,12 +456,12 @@ export class CloudApi {
     } catch (err) {
       this.log.debug({ msg: `Failed to refresh the token.` })
       const detail = is401Error(err) ? { statusCode: err.response.statusCode } : {}
-      throw new CloudApiTokenRefreshError(
-        `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
+      throw new CloudApiTokenRefreshError({
+        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
           err.message
         }`,
-        detail
-      )
+        detail,
+      })
     }
   }
 
@@ -532,9 +542,12 @@ export class CloudApi {
     const res = await got<T>(url.href, requestOptions)
 
     if (!isObject(res.body)) {
-      throw new CloudApiError(`Unexpected API response`, {
-        path,
-        body: res?.body,
+      throw new CloudApiError({
+        message: `Unexpected API response`,
+        detail: {
+          path,
+          body: res?.body,
+        },
       })
     }
 
@@ -586,6 +599,7 @@ export class CloudApi {
     localServerPort,
     environment,
     namespace,
+    isDevCommand,
   }: {
     parentSessionId: string | undefined
     sessionId: string
@@ -594,6 +608,7 @@ export class CloudApi {
     localServerPort?: number
     environment: string
     namespace: string
+    isDevCommand: boolean
   }): Promise<CloudSession | undefined> {
     let session = this.registeredSessions.get(sessionId)
 
@@ -610,6 +625,7 @@ export class CloudApi {
         projectUid: projectId,
         environment,
         namespace,
+        isDevCommand,
       }
       this.log.debug(`Registering session with ${this.distroName} for ${projectId} in ${environment}/${namespace}.`)
       const res: CloudSessionResponse = await this.post("sessions", {
@@ -678,12 +694,12 @@ export class CloudApi {
       valid = true
     } catch (err) {
       if (!is401Error(err)) {
-        throw new CloudApiError(
-          `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
-            err.message
-          }`,
-          {}
-        )
+        throw new CloudApiError({
+          message: `An error occurred while verifying client auth token with ${getCloudDistributionName(
+            this.domain
+          )}: ${err.message}`,
+          detail: {},
+        })
       }
     }
     this.log.debug(`Checked client auth token with ${getCloudDistributionName(this.domain)} - valid: ${valid}`)
@@ -703,16 +719,55 @@ export class CloudApi {
     projectId: string
     sessionId: string
     userId: string
-    shortId?: string
+    shortId: string
   }) {
-    let path = `/projects/${projectId}?sessionId=${sessionId}&userId=${userId}`
-    if (shortId) {
-      path = `/go/${shortId}`
-    }
+    // fallback to full url if shortid is missing
+    const path = shortId ? `/go/command/${shortId}` : `/projects/${projectId}/commands/${sessionId}`
+    return new URL(path, this.domain)
+  }
+
+  getLivePageUrl({ shortId }: { shortId: string }) {
+    const path = `/go/${shortId}`
     return new URL(path, this.domain)
   }
 
   getRegisteredSession(sessionId: string) {
     return this.registeredSessions.get(sessionId)
+  }
+
+  async getSecrets({ log, projectId, environmentName }: GetSecretsParams): Promise<StringMap> {
+    let secrets: StringMap = {}
+    const distroName = getCloudDistributionName(this.domain)
+
+    try {
+      const res = await this.get<BaseResponse>(`/secrets/projectUid/${projectId}/env/${environmentName}`)
+      secrets = res.data
+    } catch (err) {
+      if (isGotError(err, 404)) {
+        log.debug(`No secrets were received from ${distroName}.`)
+        log.debug("")
+        log.debug(deline`
+          Either the environment ${environmentName} does not exist in ${distroName}, or no project
+          with the id in your project configuration exists in ${distroName}.
+        `)
+        log.debug("")
+        log.debug(deline`
+          Please visit ${this.domain} to review the environments and projects currently
+          in the system.
+        `)
+      } else {
+        throw err
+      }
+    }
+
+    const emptyKeys = Object.keys(secrets).filter((key) => !secrets[key])
+    if (emptyKeys.length > 0) {
+      const prefix =
+        emptyKeys.length === 1
+          ? "The following secret key has an empty value"
+          : "The following secret keys have empty values"
+      log.error(`${prefix}: ${emptyKeys.sort().join(", ")}`)
+    }
+    return secrets
   }
 }

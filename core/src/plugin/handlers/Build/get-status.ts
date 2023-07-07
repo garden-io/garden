@@ -21,7 +21,7 @@ import { createSchema, joi } from "../../../config/common"
  * - `built`: The build was completed successfully.
  * - `failed`: An error occurred while fetching or building.
  */
-export type BuildState = "fetching" | "fetched" | "outdated" | "building" | "built" | "failed"
+export type BuildState = "fetching" | "fetched" | "outdated" | "building" | "built" | "failed" | "unknown"
 
 export interface BuildStatusForEventPayload {
   state: BuildState

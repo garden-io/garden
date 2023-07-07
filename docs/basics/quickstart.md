@@ -17,7 +17,7 @@ Preview Garden with our new interactive and install-free cloud-based playgrounds
 
 Click a button to start your Killercoda or Google Cloud Shell environment 👇🏼.
 
-<a href="https://go.garden.io/killercoda"><img src="https://raw.githubusercontent.com/garden-io/garden-interactive-environments/main/resources/img/killercoda-logo.png" alt="Killercoda logo in black and white." height="55px"/></a> [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://go.garden.io/cloudshell)
+<a href="https://go.garden.io/killercoda"><img src="https://raw.githubusercontent.com/garden-io/garden-interactive-environments/main/resources/img/killercoda-54px.png" alt="Killercoda logo in black and white." height="54px"></a> [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://go.garden.io/cloudshell)
 
 If you find any bugs 🐛 or have suggestions to improve our labs please don't hesitate to reach out by creating an [issue here](https://github.com/garden-io/garden-interactive-environments) or by asking in our [Discord Community](https://go.garden.io/discord)🌸
 
@@ -185,7 +185,7 @@ If you'd like to better understand how a Garden project is configured, we recomm
 through our [first project tutorial](../tutorials/your-first-project/README.md) which walks you through configuring a Garden project step-by-step.
 
 If you like to dive right in and configure your own project for Garden, we recommend referencing our [example
-projects on GitHub](https://github.com/garden-io/garden/tree/0.13.2/examples) and the section of our docs title [Using Garden](../using-garden/configuration-overview.md), which covers all parts of Garden in detail.
+projects on GitHub](https://github.com/garden-io/garden/tree/0.13.6/examples) and the section of our docs title [Using Garden](../using-garden/configuration-overview.md), which covers all parts of Garden in detail.
 
 
 If you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://go.garden.io/discord)!

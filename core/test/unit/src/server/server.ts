@@ -8,12 +8,9 @@
 
 import { makeTestGardenA, taskResultOutputs, testPluginReferences } from "../../../helpers"
 import { Server } from "http"
-import { startServer, GardenServer } from "../../../../src/server/server"
+import { GardenServer, startServer } from "../../../../src/server/server"
 import { Garden } from "../../../../src/garden"
 import { expect } from "chai"
-import request = require("supertest")
-import getPort = require("get-port")
-import WebSocket = require("ws")
 import { authTokenHeader } from "../../../../src/cloud/auth"
 import { ServeCommand } from "../../../../src/commands/serve"
 import { gardenEnv } from "../../../../src/constants"
@@ -21,6 +18,10 @@ import { deepOmitUndefined } from "../../../../src/util/objects"
 import { uuidv4 } from "../../../../src/util/random"
 import { GardenInstanceManager } from "../../../../src/server/instance-manager"
 import { Command, CommandParams } from "../../../../src/commands/base"
+import request = require("supertest")
+import getPort = require("get-port")
+import WebSocket = require("ws")
+import { FakeCloudApi } from "../../../helpers/api"
 
 describe("GardenServer", () => {
   let garden: Garden
@@ -59,6 +60,7 @@ describe("GardenServer", () => {
       extraCommands: [new TestCommand()],
       force: true,
       plugins: testPluginReferences(),
+      cloudApiFactory: FakeCloudApi.factory,
     })
     manager.set(garden.log, garden)
     gardenEnv.GARDEN_SERVER_HOSTNAME = hostname
@@ -372,6 +374,10 @@ describe("GardenServer", () => {
               expect(req).to.eql({
                 type: "commandResult",
                 requestId: id,
+                sessionId: id,
+                persistent: false,
+                commandRequest: "get config",
+                command: "get config",
                 result: deepOmitUndefined(config),
               })
               done()
@@ -457,7 +463,11 @@ describe("GardenServer", () => {
       onMessageAfterReady({
         cb: (msg) => {
           if (msg.type === "commandStart") {
-            expect(msg.args).to.eql({ names: ["module-a"] })
+            expect(msg.args).to.eql({
+              "$all": ["module-a", "--force"],
+              "--": [],
+              "names": ["module-a"],
+            })
             expect(msg.opts.force).to.be.true
           }
 
@@ -578,6 +588,157 @@ describe("GardenServer", () => {
           command: "get config",
         })
       )
+    })
+
+    context("requestType=autocomplete", () => {
+      it("returns suggestions", (done) => {
+        const id = uuidv4()
+        const input = "_tes"
+
+        onMessageAfterReady({
+          cb: (msg) => {
+            if (msg.type !== "autocompleteResult") {
+              return
+            }
+            try {
+              expect(msg.requestId).to.equal(id)
+              expect(msg.suggestions).to.eql([
+                {
+                  type: "command",
+                  line: "_test",
+                  command: { name: ["_test"], cliOnly: false, stringArguments: [] },
+                  priority: 1,
+                },
+              ])
+              done()
+            } catch (error) {
+              done(error)
+            }
+          },
+          skipType: "logEntry",
+        })
+        ws.send(
+          JSON.stringify({
+            type: "autocomplete",
+            id,
+            input,
+          })
+        )
+      })
+
+      it("returns project-specific suggestions", (done) => {
+        const id = uuidv4()
+        const input = "deploy service-"
+        let updated = false
+
+        onMessageAfterReady({
+          cb: (msg) => {
+            if (!updated && msg.type === "event" && msg.name === "autocompleterUpdated") {
+              // Ask for suggestions after command is done
+              updated = true
+              ws.send(
+                JSON.stringify({
+                  type: "autocomplete",
+                  id,
+                  input,
+                })
+              )
+              return
+            }
+            if (msg.type !== "autocompleteResult") {
+              return
+            }
+            try {
+              expect(msg.requestId).to.equal(id)
+              const suggestions = msg.suggestions.map((s) => s.line)
+              expect(suggestions).to.eql(["deploy service-a", "deploy service-b", "deploy service-c"])
+              done()
+            } catch (error) {
+              done(error)
+            }
+          },
+          skipType: "logEntry",
+        })
+        // Make sure the graph is resolved
+        ws.send(
+          JSON.stringify({
+            type: "loadConfig",
+            id,
+          })
+        )
+      })
+
+      it("works with projectRoot set", (done) => {
+        const id = uuidv4()
+        const input = "_tes"
+
+        onMessageAfterReady({
+          cb: (msg) => {
+            if (msg.type !== "autocompleteResult") {
+              return
+            }
+            try {
+              expect(msg.requestId).to.equal(id)
+              expect(msg.suggestions).to.eql([
+                {
+                  type: "command",
+                  line: "_test",
+                  command: { name: ["_test"], cliOnly: false, stringArguments: [] },
+                  priority: 1,
+                },
+              ])
+              done()
+            } catch (error) {
+              done(error)
+            }
+          },
+          skipType: "logEntry",
+        })
+        ws.send(
+          JSON.stringify({
+            type: "autocomplete",
+            id,
+            input,
+            projectRoot: garden.projectRoot,
+          })
+        )
+      })
+
+      it("works with projectRoot set to a an empty directory", (done) => {
+        const id = uuidv4()
+        const input = "_tes"
+
+        onMessageAfterReady({
+          cb: (msg) => {
+            if (msg.type !== "autocompleteResult") {
+              return
+            }
+            try {
+              expect(msg.requestId).to.equal(id)
+              expect(msg.suggestions).to.eql([
+                {
+                  type: "command",
+                  line: "_test",
+                  command: { name: ["_test"], cliOnly: false, stringArguments: [] },
+                  priority: 1,
+                },
+              ])
+              done()
+            } catch (error) {
+              done(error)
+            }
+          },
+          skipType: "logEntry",
+        })
+        ws.send(
+          JSON.stringify({
+            type: "autocomplete",
+            id,
+            input,
+            projectRoot: "/tmp/foo",
+          })
+        )
+      })
     })
   })
 })

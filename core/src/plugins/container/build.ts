@@ -42,13 +42,13 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
 
   // make sure we can build the thing
   if (!hasDockerfile) {
-    throw new ConfigurationError(
-      dedent`
+    throw new ConfigurationError({
+      message: dedent`
       Dockerfile not found at ${spec.dockerfile || defaultDockerfileName} for build ${action.name}.
       Please make sure the file exists, and is not excluded by include/exclude fields or .gardenignore files.
     `,
-      { spec }
-    )
+      detail: { spec },
+    })
   }
 
   const outputs = action.getOutputs()

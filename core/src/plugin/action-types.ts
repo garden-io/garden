@@ -54,8 +54,8 @@ export type ActionTypeHandler<
   base?: ActionTypeHandler<K, N, P, R>
 }
 
-export type GetActionTypeParams<T> = T extends ActionTypeHandlerSpec<any, any, any> ? T["_paramsType"] : null
-export type GetActionTypeResults<T> = T extends ActionTypeHandlerSpec<any, any, any> ? T["_resultType"] : null
+export type GetActionTypeParams<T> = T extends ActionTypeHandlerSpec<any, any, any> ? T["_paramsType"] : {}
+export type GetActionTypeResults<T> = T extends ActionTypeHandlerSpec<any, any, any> ? T["_resultType"] : {}
 export type GetActionTypeHandler<T, N> = T extends ActionTypeHandlerSpec<any, any, any>
   ? ActionTypeHandler<T["_kindType"], N, T["_paramsType"], T["_resultType"]>
   : ActionTypeHandler<any, N, any, any>
@@ -164,7 +164,7 @@ export type BuildActionDefinition<C extends BuildAction = BuildAction> = ActionT
 
 // DEPLOY //
 
-type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandlers<C> & {
+export type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandlers<C> & {
   delete: DeleteDeploy<C>
   deploy: DoDeployAction<C>
   exec: ExecInDeploy<C>
@@ -198,7 +198,7 @@ export type DeployActionDefinition<C extends DeployAction = DeployAction> = Acti
 
 // RUN //
 
-type RunActionDescriptions<C extends RunAction = RunAction> = BaseHandlers<C> & {
+export type RunActionDescriptions<C extends RunAction = RunAction> = BaseHandlers<C> & {
   getResult: GetRunActionResult<C>
   run: RunRunAction<C>
 }
@@ -217,7 +217,7 @@ export type RunActionDefinition<C extends RunAction = RunAction> = ActionTypeDef
 
 // TEST //
 
-type TestActionDescriptions<C extends TestAction = TestAction> = BaseHandlers<C> & {
+export type TestActionDescriptions<C extends TestAction = TestAction> = BaseHandlers<C> & {
   getResult: GetTestActionResult<C>
   run: RunTestAction<C>
 }
@@ -248,18 +248,6 @@ export interface ActionClassMap {
   Deploy: DeployAction
   Run: RunAction
   Test: TestAction
-}
-
-export type ActionTypeParams = {
-  [K in ActionKind]: {
-    [H in keyof ActionTypeDescriptions[K]]: GetActionTypeParams<ActionTypeDescriptions[K][H]>
-  }
-}
-
-export type ActionTypeResults = {
-  [K in ActionKind]: {
-    [H in keyof ActionTypeDescriptions[K]]: GetActionTypeResults<ActionTypeDescriptions[K][H]>
-  }
 }
 
 export type ActionTypeHandlers = {

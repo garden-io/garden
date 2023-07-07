@@ -12,7 +12,7 @@ import {
   prepareNamespaces,
   deleteNamespaces,
   getSystemNamespace,
-  getAppNamespaceStatus,
+  getNamespaceStatus,
   clearNamespaceCache,
 } from "./namespace"
 import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config"
@@ -119,7 +119,13 @@ export async function getEnvironmentStatus({
 
   if (provider.config.buildMode !== "local-docker") {
     const authSecret = await prepareDockerAuth(api, provider, systemNamespace)
-    const comparison = await compareDeployedResources(k8sCtx, api, systemNamespace, [authSecret], log)
+    const comparison = await compareDeployedResources({
+      ctx: k8sCtx,
+      api,
+      namespace: systemNamespace,
+      manifests: [authSecret],
+      log,
+    })
     secretsUpToDate = comparison.state === "ready"
   }
 
@@ -180,16 +186,16 @@ export async function getIngressMisconfigurationWarnings(
  * Deploys system services (if any)
  */
 export async function prepareEnvironment(
-  params: PrepareEnvironmentParams<KubernetesEnvironmentStatus>
+  params: PrepareEnvironmentParams<KubernetesConfig, KubernetesEnvironmentStatus>
 ): Promise<PrepareEnvironmentResult> {
   const { ctx, log, status } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   // Prepare system services
   await prepareSystem({ ...params, clusterInit: false })
-  const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
-
-  return { status: { namespaceStatuses: [ns], ready: true, outputs: status.outputs } }
+  const nsStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
+  ctx.events.emit("namespaceStatus", nsStatus)
+  return { status: { ready: true, outputs: status.outputs } }
 }
 
 export async function prepareSystem({
@@ -198,7 +204,7 @@ export async function prepareSystem({
   force,
   status,
   clusterInit,
-}: PrepareEnvironmentParams<KubernetesEnvironmentStatus> & { clusterInit: boolean }) {
+}: PrepareEnvironmentParams<KubernetesConfig, KubernetesEnvironmentStatus> & { clusterInit: boolean }) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const variables = getKubernetesSystemVariables(provider.config)
@@ -239,15 +245,15 @@ export async function prepareSystem({
       serviceStates.includes("unknown")
     ) {
       // If any of the services are not ready or missing, we throw, since builds and deployments are likely to fail.
-      throw new KubernetesError(
-        deline`
+      throw new KubernetesError({
+        message: deline`
         One or more cluster-wide system services are missing or not ready. You need to run ${initCommand}
         to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
       `,
-        {
+        detail: {
           status,
-        }
-      )
+        },
+      })
     } else {
       // If system services are outdated but none are *missing*, we warn instead of flagging as not ready here.
       // This avoids blocking users where there's variance in configuration between users of the same cluster,
@@ -290,7 +296,10 @@ export async function prepareSystem({
   return {}
 }
 
-export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams): Promise<CleanupEnvironmentResult> {
+export async function cleanupEnvironment({
+  ctx,
+  log,
+}: CleanupEnvironmentParams<KubernetesConfig>): Promise<CleanupEnvironmentResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
@@ -334,7 +343,9 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
   // Since we've deleted one or more namespaces, we invalidate the NS cache for this provider instance.
   clearNamespaceCache(provider)
 
-  return { namespaceStatuses: [{ namespaceName: namespace, state: "missing", pluginName: provider.name }] }
+  ctx.events.emit("namespaceStatus", { namespaceName: namespace, state: "missing", pluginName: provider.name })
+
+  return {}
 }
 
 export function getKubernetesSystemVariables(config: KubernetesConfig) {
@@ -380,28 +391,28 @@ export async function buildDockerAuthConfig(
     async (accumulator, secretRef) => {
       const secret = await readSecret(api, secretRef)
       if (secret.type !== dockerAuthSecretType) {
-        throw new ConfigurationError(
-          dedent`
+        throw new ConfigurationError({
+          message: dedent`
         Configured imagePullSecret '${secret.metadata.name}' does not appear to be a valid registry secret, because
         it does not have \`type: ${dockerAuthSecretType}\`.
         ${dockerAuthDocsLink}
         `,
-          { secretRef }
-        )
+          detail: { secretRef },
+        })
       }
 
       // Decode the secret
       const encoded = secret.data && secret.data![dockerAuthSecretKey]
 
       if (!encoded) {
-        throw new ConfigurationError(
-          dedent`
+        throw new ConfigurationError({
+          message: dedent`
         Configured imagePullSecret '${secret.metadata.name}' does not appear to be a valid registry secret, because
         it does not contain a ${dockerAuthSecretKey} key.
         ${dockerAuthDocsLink}
         `,
-          { secretRef }
-        )
+          detail: { secretRef },
+        })
       }
 
       let decoded: any
@@ -409,24 +420,24 @@ export async function buildDockerAuthConfig(
       try {
         decoded = JSON.parse(Buffer.from(encoded, "base64").toString())
       } catch (err) {
-        throw new ConfigurationError(
-          dedent`
+        throw new ConfigurationError({
+          message: dedent`
         Could not parse configured imagePullSecret '${secret.metadata.name}' as a JSON docker authentication file:
         ${err.message}.
         ${dockerAuthDocsLink}
         `,
-          { secretRef }
-        )
+          detail: { secretRef },
+        })
       }
       if (!decoded.auths && !decoded.credHelpers) {
-        throw new ConfigurationError(
-          dedent`
+        throw new ConfigurationError({
+          message: dedent`
         Could not parse configured imagePullSecret '${secret.metadata.name}' as a valid docker authentication file,
         because it is missing an "auths" or "credHelpers" key.
         ${dockerAuthDocsLink}
         `,
-          { secretRef }
-        )
+          detail: { secretRef },
+        })
       }
       return {
         ...accumulator,

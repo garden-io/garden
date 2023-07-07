@@ -4,9 +4,11 @@ name: remote-sources
 sources:
   - name: web-services
     # use #your-branch to specify a branch, #v0.3.0 for a tag or a full length commit SHA1
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#0.13
+    # This tests branch/tag. If you use tag, remember to update it if the target repo changes.
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#main
   - name: db-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#main
+    # This tests SHA1 commit hash, please use commit hashes if the target repo is updated.
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#66903d73fbca3daa6ed53d04a4b03ddd9dafea43
 environments:
   - name: local
     variables:

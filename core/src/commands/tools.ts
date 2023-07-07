@@ -103,10 +103,10 @@ export class ToolsCommand extends Command<Args, Opts> {
       pluginName = split[0]
       toolName = split[1]
     } else {
-      throw new ParameterError(
-        `Invalid tool name argument. Please specify either a tool name (no periods) or <plugin name>.<tool name>.`,
-        { args }
-      )
+      throw new ParameterError({
+        message: `Invalid tool name argument. Please specify either a tool name (no periods) or <plugin name>.<tool name>.`,
+        detail: { args },
+      })
     }
 
     // We're executing a tool
@@ -117,7 +117,7 @@ export class ToolsCommand extends Command<Args, Opts> {
       plugins = plugins.filter((p) => p.name === pluginName)
 
       if (plugins.length === 0) {
-        throw new ParameterError(`Could not find plugin ${pluginName}.`, { availablePlugins })
+        throw new ParameterError({ message: `Could not find plugin ${pluginName}.`, detail: { availablePlugins } })
       }
     } else {
       // Place configured providers at the top for preference, if applicable
@@ -145,7 +145,7 @@ export class ToolsCommand extends Command<Args, Opts> {
     const matchedNames = matchedTools.map(({ plugin, tool }) => `${plugin.name}.${tool.name}`)
 
     if (matchedTools.length === 0) {
-      throw new ParameterError(`Could not find tool ${args.tool}.`, { args })
+      throw new ParameterError({ message: `Could not find tool ${args.tool}.`, detail: { args } })
     }
 
     if (matchedTools.length > 1) {

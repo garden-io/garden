@@ -74,14 +74,15 @@ export class LinkModuleCommand extends Command<Args> {
     if (!isRemote) {
       const modulesWithRemoteSource = graph.getModules().filter(moduleHasRemoteSource).sort()
 
-      throw new ParameterError(
-        `Expected module(s) ${chalk.underline(moduleName)} to have a remote source.` +
+      throw new ParameterError({
+        message:
+          `Expected module(s) ${chalk.underline(moduleName)} to have a remote source.` +
           ` Did you mean to use the "link source" command?`,
-        {
+        detail: {
           modulesWithRemoteSource,
           input: module,
-        }
-      )
+        },
+      })
     }
 
     const absPath = resolve(garden.projectRoot, path)

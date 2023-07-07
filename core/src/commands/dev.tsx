@@ -23,6 +23,7 @@ import moment from "moment"
 import { dedent } from "../util/string"
 import Spinner from "ink-spinner"
 import type { Log } from "../logger/log-entry"
+import { bindActiveContext } from "../util/tracing/context"
 
 const devCommandArgs = {
   ...serveArgs,
@@ -92,12 +93,12 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
     if (terminalWriter.type === "ink") {
       inkWriter = terminalWriter as InkTerminalWriter
     } else {
-      throw new ParameterError(`This command can only be used with the ink logger type`, {
+      throw new ParameterError({ message: `This command can only be used with the ink logger type`, detail: {
         writerTypes: {
           terminalWriter: terminalWriter.type,
           fileWriters: logger.getWriters().file.map((w) => w.type),
         },
-      })
+      }})
     }
 
     const commandLine = await this.initCommandHandler(params)
@@ -122,9 +123,9 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
         },
       })
 
-      useInput((input, key) => {
+      useInput(bindActiveContext((input, key) => {
         commandLine.handleInput(input, key)
-      })
+      }))
 
       const width = stdout ? stdout.columns - 2 : 50
 

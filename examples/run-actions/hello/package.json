@@ -6,19 +6,17 @@
   "scripts": {
     "start": "node main.js",
     "test": "echo OK",
-    "integ": "node_modules/mocha/bin/_mocha test/integ.js"
+    "integ": "mocha test/integ.js"
   },
   "author": "garden.io <info@garden.io>",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.17.3",
-    "knex": "^2.4.0",
-    "pg": "^7.12.1",
-    "request": "^2.88.0",
-    "request-promise": "^4.2.6"
+    "express": "^4.18.2",
+    "knex": "^2.4.2",
+    "pg": "^8.11.0"
   },
   "devDependencies": {
     "mocha": "^10.2.0",
-    "supertest": "^4.0.2"
+    "supertest": "^6.3.3"
   }
 }

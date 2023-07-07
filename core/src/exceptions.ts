@@ -16,22 +16,53 @@ export interface GardenError<D extends object = any> extends Error {
   message: string
   detail?: D
   stack?: string
+  wrappedErrors?: GardenError[]
+}
+
+export function isGardenError(err: any): err is GardenError {
+  return "type" in err && "message" in err
+}
+
+export type StackTraceMetadata = {
+  functionName: string
+  relativeFileName?: string
+}
+
+export type GardenErrorStackTrace = {
+  metadata: StackTraceMetadata[]
+  wrappedMetadata?: StackTraceMetadata[][]
+}
+
+export interface GardenErrorParams<D extends object = any> {
+  message: string
+  readonly detail?: D
+  readonly stack?: string
+  readonly wrappedErrors?: GardenError[]
 }
 
 export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
   abstract type: string
+  public message: string
+  public detail?: D
+  public wrappedErrors?: GardenError<any>[]
 
-  constructor(message: string, public readonly detail: D, public readonly wrappedError?: Error) {
+  constructor({ message, detail, stack, wrappedErrors }: GardenErrorParams<D>) {
     super(message)
     this.detail = detail
+    this.stack = stack || this.stack
+    this.wrappedErrors = wrappedErrors
   }
 
   toString() {
     if (testFlags.expandErrors) {
       let str = super.toString()
 
-      if (this.wrappedError) {
-        str += "\n\nWrapped error:\n\n" + this.wrappedError
+      if (this.wrappedErrors) {
+        str += "\n\nWrapped error:\n\n"
+
+        for (const wrappedError in this.wrappedErrors) {
+          str += wrappedError + "\n\n"
+        }
       }
 
       return str
@@ -105,8 +136,8 @@ export class RuntimeError extends GardenBaseError {
 export class InternalError extends GardenBaseError {
   type = "internal"
 
-  constructor(message: string, detail: any) {
-    super(message + "\nThis is a bug. Please report it!", detail)
+  constructor({ message, detail }: { message: string; detail: any }) {
+    super({ message: message + "\nThis is a bug. Please report it!", detail })
   }
 }
 
@@ -134,25 +165,27 @@ export class TemplateStringError extends GardenBaseError {
   type = "template-string"
 }
 
-interface ErrorEvent {
-  error: any
-  message: string
+export class WrappedNativeError extends GardenBaseError {
+  type = "wrapped-native-error"
+
+  constructor(error: Error) {
+    super({ message: error.message, stack: error.stack })
+  }
 }
 
-export function toGardenError(err: Error | ErrorEvent | GardenBaseError | string): GardenBaseError {
+export function toGardenError(err: Error | GardenBaseError | string): GardenBaseError {
   if (err instanceof GardenBaseError) {
     return err
   } else if (err instanceof Error) {
-    const out = new RuntimeError(err.message, err)
+    const wrappedError = new WrappedNativeError(err)
+    const out = new RuntimeError({ message: err.message, wrappedErrors: [wrappedError] })
     out.stack = err.stack
     return out
-  } else if (!isString(err) && err.message && err.error) {
-    return new RuntimeError(err.message, err)
   } else if (isString(err)) {
-    return new RuntimeError(err, {})
+    return new RuntimeError({ message: err })
   } else {
     const msg = err["message"]
-    return new RuntimeError(msg, err)
+    return new RuntimeError({ message: msg })
   }
 }
 
@@ -176,4 +209,70 @@ export function formatGardenErrorWithDetail(error: GardenError) {
     }
   }
   return out
+}
+
+function getStackTraceFromString(stack: string): StackTraceMetadata[] {
+  // Care about the first line matching our code base
+  const lines = stack.split("\n").slice(1)
+
+  return lines.flatMap((l) => {
+    // match and extract any line from a stack trace with
+    // function, file path, line number, column number
+    // we are only interested in the first two for now
+    const atLine = l.match(/at (?:(.+?)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/)
+
+    // ignore this if there is no regex match
+    if (!atLine) {
+      return []
+    }
+
+    const functionName: string = atLine[1] || "<unknown>"
+    const filePath = atLine[2] || ""
+    let lastFilePos = -1
+    let tmpPos = -1
+
+    // Get the slice offset assuming the file path contains a known
+    // path component in the source file path.
+    if ((tmpPos = filePath.lastIndexOf("src")) > -1) {
+      lastFilePos = tmpPos + 4
+    } else if ((tmpPos = filePath.lastIndexOf("node_modules")) > -1) {
+      lastFilePos = tmpPos + 13
+    } else if ((tmpPos = filePath.lastIndexOf("node:internal")) > -1) {
+      lastFilePos = tmpPos + 14
+    }
+
+    let relativeFileName: string | undefined = undefined
+
+    if (lastFilePos > -1) {
+      relativeFileName = filePath.slice(lastFilePos)
+    }
+
+    return [
+      {
+        functionName,
+        relativeFileName,
+      },
+    ]
+  })
+}
+
+export function getStackTraceMetadata(error: GardenError): GardenErrorStackTrace {
+  if (!error.stack && !error.wrappedErrors) {
+    return { metadata: [], wrappedMetadata: undefined }
+  }
+
+  const errorMetadata: StackTraceMetadata[] = error.stack ? getStackTraceFromString(error.stack) : []
+
+  const wrappedMetadata: StackTraceMetadata[][] | undefined = error.wrappedErrors?.map((wrappedError) => {
+    if (!wrappedError.stack) {
+      return []
+    }
+
+    return getStackTraceFromString(wrappedError.stack)
+  })
+
+  return {
+    metadata: errorMetadata,
+    wrappedMetadata,
+  }
 }

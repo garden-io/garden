@@ -7,8 +7,7 @@
  */
 
 import chalk from "chalk"
-import { omit } from "lodash"
-import { ActionState, stateForCacheStatusEvent } from "../actions/types"
+import { ActionState } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { DeployState } from "../types/service"
 import { BaseRouterParams, createActionRouter } from "./base"
@@ -20,12 +19,11 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
     deploy: async (params) => {
       const { router, action, garden } = params
 
-      const actionUid = action.getUid()
+      const actionUid = action.uid
       params.events = params.events || new PluginEventBroker(garden)
 
       const actionName = action.name
       const actionType = API_ACTION_TYPE
-      const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
       params.events.on("log", ({ timestamp, msg, origin, level }) => {
@@ -43,42 +41,14 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         })
       })
 
-      const startedAt = new Date().toISOString()
-
-      const payloadAttrs = {
-        actionName,
-        actionVersion,
-        actionType,
-        moduleName,
-        actionUid,
-        startedAt,
-      }
-
-      garden.events.emit("deployStatus", {
-        ...payloadAttrs,
-        state: "processing",
-        status: { state: "deploying" },
-      })
-
       const output = await router.callHandler({ params, handlerType: "deploy" })
       const result = output.result
-
       await router.validateActionOutputs(action, "runtime", result.outputs)
-
-      garden.events.emit("deployStatus", {
-        ...payloadAttrs,
-        state: result.state,
-        completedAt: new Date().toISOString(),
-        status: omit(result.detail, "detail"),
-      })
-
-      router.emitNamespaceEvents(result.detail?.namespaceStatuses)
-
       return output
     },
 
     delete: async (params) => {
-      const { action, router, handlers } = params
+      const { router, handlers } = params
 
       const log = params.log.createLog().info("Cleaning up...")
 
@@ -104,7 +74,6 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         },
       })
 
-      router.emitNamespaceEvents(output.result.detail?.namespaceStatuses)
 
       log.success(`Done`)
 
@@ -131,40 +100,10 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
     },
 
     getStatus: async (params) => {
-      const { garden, router, action } = params
-      const actionName = action.name
-      const actionVersion = action.versionString()
-      const actionType = API_ACTION_TYPE
-
-      const payloadAttrs = {
-        actionName,
-        actionVersion,
-        actionType,
-        actionUid: action.getUid(),
-        moduleName: action.moduleName(),
-        startedAt: new Date().toISOString(),
-      }
-
-      garden.events.emit("deployStatus", {
-        ...payloadAttrs,
-        state: "getting-status",
-        status: { state: "unknown" },
-      })
-
+      const { router, action } = params
       const output = await router.callHandler({ params, handlerType: "getStatus" })
       const result = output.result
-
-      garden.events.emit("deployStatus", {
-        ...payloadAttrs,
-        completedAt: new Date().toISOString(),
-        state: stateForCacheStatusEvent(result.state),
-        status: omit(result.detail, "detail"),
-      })
-
-      router.emitNamespaceEvents(result.detail?.namespaceStatuses)
-
       await router.validateActionOutputs(action, "runtime", result.outputs)
-
       return output
     },
 

@@ -30,7 +30,7 @@ import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
 import { cloneDeep, memoize } from "lodash"
 import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
-import { DOCS_BASE_URL, GardenApiVersion } from "../constants"
+import { DOCS_BASE_URL, GardenApiVersion, GitScanMode, gitScanModes } from "../constants"
 import { defaultDotIgnoreFile } from "../util/fs"
 import type { CommandInfo } from "../plugin-context"
 import type { VcsInfo } from "../vcs/vcs"
@@ -191,6 +191,10 @@ export interface ProxyConfig {
   hostname: string
 }
 
+interface GitConfig {
+  mode: GitScanMode
+}
+
 export interface ProjectConfig {
   apiVersion: GardenApiVersion
   kind: "Project"
@@ -207,6 +211,7 @@ export interface ProjectConfig {
   scan?: {
     include?: string[]
     exclude?: string[]
+    git?: GitConfig
   }
   outputs?: OutputSpec[]
   providers: GenericProviderConfig[]
@@ -261,6 +266,16 @@ const projectScanSchema = createSchema({
       `
       )
       .example(["public/**/*", "tmp/**/*"]),
+    git: joi.object().keys({
+      mode: joi
+        .string()
+        .allow(...gitScanModes)
+        .only()
+        .default("subtree")
+        .description(
+          "Choose how to perform scans of git repositories. The default (`subtree`) runs individual git scans on each action/module path. The `repo` mode scans entire repositories and then filters down to files matching the paths, includes and excludes for each action/module. This can be considerably more efficient for large projects with many actions/modules."
+        ),
+    }),
   }),
 })
 
@@ -376,7 +391,7 @@ export const projectSchema = createSchema({
         )
         .example(["127.0.0.1"]),
     }),
-    scan: projectScanSchema().description("Control where to scan for configuration files in the project."),
+    scan: projectScanSchema().description("Control where and how to scan for configuration files in the project."),
     outputs: joiSparseArray(projectOutputSchema())
       .unique("name")
       .description(
@@ -423,9 +438,12 @@ export function getDefaultEnvironmentName(defaultName: string, config: ProjectCo
     return environments[0].name
   } else {
     if (!findByName(environments, defaultName)) {
-      throw new ConfigurationError(`The specified default environment ${defaultName} is not defined`, {
-        defaultEnvironment: defaultName,
-        availableEnvironments: getNames(environments),
+      throw new ConfigurationError({
+        message: `The specified default environment ${defaultName} is not defined`,
+        detail: {
+          defaultEnvironment: defaultName,
+          availableEnvironments: getNames(environments),
+        },
       })
     }
     return defaultName
@@ -583,17 +601,17 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   if (!environmentConfig) {
     const definedEnvironments = getNames(environments)
 
-    throw new ParameterError(
-      `Project ${projectName} does not specify environment ${environment} (found ${naturalList(
+    throw new ParameterError({
+      message: `Project ${projectName} does not specify environment ${environment} (found ${naturalList(
         definedEnvironments.map((e) => `'${e}'`)
       )})`,
-      {
+      detail: {
         projectName,
         environmentName: environment,
         namespace,
         definedEnvironments,
-      }
-    )
+      },
+    })
   }
 
   const projectVarfileVars = await loadVarfile({
@@ -658,6 +676,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   return {
     environmentName: environment,
     namespace,
+    defaultNamespace: environmentConfig.defaultNamespace,
     production: !!environmentConfig.production,
     providers: Object.values(mergedProviders),
     variables,
@@ -679,12 +698,12 @@ export function getNamespace(environmentConfig: EnvironmentConfig, namespace: st
     const envHighlight = chalk.white.bold(envName)
     const exampleFlag = chalk.white(`--env=${chalk.bold("some-namespace.")}${envName}`)
 
-    throw new ParameterError(
-      `Environment ${envHighlight} has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. ${exampleFlag}).`,
-      {
+    throw new ParameterError({
+      message: `Environment ${envHighlight} has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. ${exampleFlag}).`,
+      detail: {
         environmentConfig,
-      }
-    )
+      },
+    })
   }
 
   return namespace
@@ -694,7 +713,10 @@ export function parseEnvironment(env: string): ParsedEnvironment {
   const result = joi.environment().validate(env, { errors: { label: false } })
 
   if (result.error) {
-    throw new ValidationError(`Invalid environment specified (${env}): ${result.error.message}`, { env })
+    throw new ValidationError({
+      message: `Invalid environment specified (${env}): ${result.error.message}`,
+      detail: { env },
+    })
   }
 
   // Note: This is validated above to be either one or two parts

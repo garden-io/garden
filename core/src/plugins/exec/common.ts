@@ -35,7 +35,7 @@ export function convertCommandSpec(command: string[], shell: boolean) {
   }
 }
 
-export async function execRun({
+export async function execRunCommand({
   command,
   action,
   ctx,
@@ -56,7 +56,10 @@ export async function execRun({
   }
 
   const outputStream = split2()
-  outputStream.on("error", () => {})
+  outputStream.on("error", (line: Buffer) => {
+    log.error(line.toString())
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
+  })
   outputStream.on("data", (line: Buffer) => {
     log.verbose(line.toString())
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
@@ -72,7 +75,7 @@ export async function execRun({
 
   log.debug(`Running command: ${cmd}`)
 
-  return exec(cmd, args, {
+  const result = await exec(cmd, args, {
     ...opts,
     shell,
     cwd: action.getBuildPath(),
@@ -80,6 +83,16 @@ export async function execRun({
     stdout: outputStream,
     stderr: outputStream,
   })
+
+  // Comes from error object
+  const shortMessage = (result as any).shortMessage || ""
+
+  return {
+    ...result,
+    outputLog: ((result.stdout || "") + "\n" + (result.stderr || "") + "\n" + shortMessage).trim(),
+    completedAt: new Date(),
+    success: result.exitCode === 0,
+  }
 }
 
 export async function copyArtifacts(

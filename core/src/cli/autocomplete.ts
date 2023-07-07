@@ -12,6 +12,7 @@ import { ConfigDump } from "../garden"
 import { Log } from "../logger/log-entry"
 import { parseCliArgs, pickCommand } from "./helpers"
 import { globalDisplayOptions, globalGardenInstanceOptions, globalOptions, Parameter, Parameters } from "./params"
+import stringify from "json-stringify-safe"
 
 export interface AutocompleteSuggestion {
   // What's being suggested in the last item in the split array
@@ -110,7 +111,7 @@ export class Autocompleter {
   }
 
   private debug(msg: any) {
-    this.enableDebug && this.log.silly(typeof msg === "string" ? msg : JSON.stringify(msg))
+    this.enableDebug && this.log.silly(typeof msg === "string" ? msg : stringify(msg))
   }
 
   private matchCommandNames(commands: Command[], input: string) {

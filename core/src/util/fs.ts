@@ -8,7 +8,7 @@
 
 import unixify = require("unixify")
 import klaw = require("klaw")
-import glob from "glob"
+import { glob } from "glob"
 import tmp from "tmp-promise"
 import { pathExists, readFile, writeFile, lstat, realpath, Stats } from "fs-extra"
 import { join, basename, win32, posix } from "path"
@@ -176,15 +176,14 @@ export async function findConfigPathsInPath({
     exclude = []
   }
 
-  exclude.push(".garden/**/*")
-
   const paths = await vcs.getFiles({
     path: dir,
     pathDescription: "project root",
     include,
-    exclude: exclude || [],
+    exclude,
     log,
     filter: (f) => isConfigFilename(basename(f)),
+    scanRoot: dir,
   })
 
   return paths.map((f) => f.path)
@@ -226,18 +225,9 @@ export function joinWithPosix(basePath: string, posixRelPath: string = "") {
 /**
  * Return a list of all files in directory at `path`
  */
-export async function listDirectory(path: string, { recursive = true } = {}): Promise<string[]> {
+export async function listDirectory(path: string, { recursive = true } = {}) {
   const pattern = recursive ? "**/*" : "*"
-
-  return new Promise((resolve, reject) => {
-    glob(pattern, { cwd: path, dot: true }, (err, files) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve(files)
-      }
-    })
-  })
+  return glob(pattern, { cwd: path, dot: true })
 }
 
 let _micromatch: typeof Micromatch
@@ -260,13 +250,14 @@ export function matchGlobs(paths: string[], patterns: string[]): string[] {
 /**
  * Check if a path passes through given include/exclude filters.
  *
- * @param path A POSIX-style path
+ * @param path A filesystem path
  * @param include List of globs to match for inclusion, or undefined
  * @param exclude List of globs to match for exclusion, or undefined
  */
 export function matchPath(path: string, include?: string[], exclude?: string[]) {
   return (
-    (!include || matchGlobs([path], include).length === 1) && (!exclude || matchGlobs([path], exclude).length === 0)
+    (!include || matchGlobs([path], include).length === 1) &&
+    (!exclude?.length || matchGlobs([path], exclude).length === 0)
   )
 }
 
@@ -301,7 +292,7 @@ export async function getWorkingCopyId(gardenDirPath: string) {
  */
 export async function isDirectory(path: string) {
   if (!(await pathExists(path))) {
-    throw new FilesystemError(`Path ${path} does not exist`, { path })
+    throw new FilesystemError({ message: `Path ${path} does not exist`, detail: { path } })
   }
 
   const stat = await lstat(path)

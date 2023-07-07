@@ -8,7 +8,8 @@
 
 import { ActionReference, StringMap } from "../../config/common"
 import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
-import { ExecActionConfig, ExecBuildConfig, defaultStatusTimeout } from "./config"
+import { ExecBuildConfig } from "./build"
+import { ExecActionConfig, defaultStatusTimeout } from "./config"
 import { ExecModule } from "./moduleConfig"
 
 export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>): ExecBuildConfig | undefined {
@@ -121,6 +122,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       kind: "Run",
       type: "exec",
       name: task.name,
+      description: task.spec.description,
       ...params.baseFields,
 
       disabled: task.disabled,

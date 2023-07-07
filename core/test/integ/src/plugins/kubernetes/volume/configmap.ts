@@ -64,7 +64,7 @@ describe("configmap module", () => {
     ])
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const action = await garden.resolveAction({ action: graph.getDeploy("test"), log: garden.log })
+    const action = await garden.resolveAction({ action: graph.getDeploy("test"), log: garden.log, graph })
 
     const deployTask = new DeployTask({
       garden,

@@ -43,8 +43,11 @@ export class SecretsDeleteCommand extends Command<Args> {
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
     const secretsToDelete = args.ids || []
     if (secretsToDelete.length === 0) {
-      throw new CommandError(`No secret IDs provided.`, {
-        args,
+      throw new CommandError({
+        message: `No secret IDs provided.`,
+        detail: {
+          args,
+        },
       })
     }
 
@@ -54,7 +57,7 @@ export class SecretsDeleteCommand extends Command<Args> {
 
     const api = garden.cloudApi
     if (!api) {
-      throw new ConfigurationError(noApiMsg("delete", "secrets"), {})
+      throw new ConfigurationError({ message: noApiMsg("delete", "secrets"), detail: {} })
     }
 
     const cmdLog = log.createLog({ name: "secrets-command" })

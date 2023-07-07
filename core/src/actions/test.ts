@@ -33,21 +33,27 @@ export const testActionConfigSchema = memoize(() =>
   })
 )
 
-export class TestAction<C extends TestActionConfig = any, O extends {} = any> extends RuntimeAction<C, O> {
+export class TestAction<
+  C extends TestActionConfig = any,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Test"
 }
 
-export class ResolvedTestAction<C extends TestActionConfig = any, O extends {} = any> extends ResolvedRuntimeAction<
-  C,
-  O
-> {
+export class ResolvedTestAction<
+  C extends TestActionConfig = any,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Test"
 }
 
-export class ExecutedTestAction<C extends TestActionConfig = any, O extends {} = any> extends ExecutedRuntimeAction<
-  C,
-  O
-> {
+export class ExecutedTestAction<
+  C extends TestActionConfig = any,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Test"
 }
 

@@ -100,66 +100,14 @@ export interface ActionConfigTypes {
 }
 
 /**
- * These are the states returned from actions.
+ * These are the states returned from actions and used internally by Garden. Note that
+ * the Action statuses we emit to Cloud have slightly different semantics (e.g. there we use
+ * "cached" instead of "ready")
  *
  * See https://melvingeorge.me/blog/convert-array-into-string-literal-union-type-typescript
  */
 export const actionStateTypes = ["ready", "not-ready", "processing", "failed", "unknown"] as const
-export type ActionState = typeof actionStateTypes[number]
-
-/**
- * These are the states emitted in status events. Here, we include additional states to help distinguish status event
- * emitted around status/cache checks VS statuses emitted around the execution after a failed status check.
- */
-export const actionStateTypesForEvent = [...actionStateTypes, "getting-status", "cached"] as const
-/**
- * This type represents the lifecycle of an individual action execution.
- *
- * The state transitions that take place when an action goes through the standard "check status and execute the
- * action if no up-to date result exists" flow (as is done in the primary task classes) is as follows:
- *
- * ```
- * initial state: "getting-status"
- * final state: "ready" or "failed"
- *
- * "getting-status" -> "cached" | "not-ready"
- * "not-ready" -> "processing"
- * "processing" -> "ready" | "failed"
- * ```
- *
- * The states have the following semantics:
- *
- * - `"unknown"`: A null state used e.g. by default/no-op action handlers.
- *
- * - `"getting-status"`: The status of the action is being checked/fetched.
- *   - For example, for a container build status check, this might involve querying a container registry to see if a
- *     build exists for the requested action's version.
- *   - Or for a Kubernetes deployment, this might involve checking if the requested resources are already live and up
- *     to date.
- *
- * - `"cached"`: This state indicates a cache hit. An up-to-date result exists for the action.
- *   - This state can be reached e.g. when a status check indicates that an up-to-date build artifact / deployed
- *     resource / test result / run result already exists.
- *
- * - `"ready"`: The action was executed successfully, and an up-to-date result exists for the action.
- *   - This state can be reached by successfully processing the action after getting a `"not-ready"` state from the
- *     status check.
- *
- * - `"not-ready"`: No result (or no healthy result) for the action exists with the requested version.
- *   - This state is reached by a status check that doesn't find an up-to-date result (e.g. no up-to-date container
- *     image, or a deployed resource that's missing, unhealthy, stopped or out of date with the requested action's
- *     version).
- *
- * - `"processing"`: The action is being executed.
- *
- * - `"failed"`: The action was executed, but a failure or error occurred, so no up-to-date result was created for
- *   the action.
- */
-export type ActionStateForEvent = typeof actionStateTypesForEvent[number]
-
-export const stateForCacheStatusEvent = (state: ActionState): ActionStateForEvent => {
-  return state === "ready" ? "cached" : state
-}
+export type ActionState = (typeof actionStateTypes)[number]
 
 export interface ActionStatus<
   T extends BaseAction = BaseAction,
@@ -198,6 +146,10 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   baseBuildDirectory: string // <project>/.garden/build by default
   compatibleTypes: string[]
   config: C
+  // It's not ideal that we're passing this here, but since we reuse the params of the base action in
+  // `actionToResolved` and `resolvedActionToExecuted`, it's probably clearest and least magical to pass it in
+  // explicitly at action creation time (which only happens in a very few places in the code base anyway).
+  uid: string
   dependencies: ActionDependency[]
   graph: ConfigGraph
   linkedSource: LinkedSource | null
@@ -211,25 +163,35 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   variables: DeepPrimitiveMap
 }
 
-export interface ResolveActionParams<C extends BaseActionConfig, Outputs extends {} = any> {
+export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs extends {} = any> {
   resolvedGraph: ResolvedConfigGraph
   dependencyResults: GraphResults
   executedDependencies: ExecutedAction[]
   resolvedDependencies: ResolvedAction[]
   spec: C["spec"]
-  staticOutputs: Outputs
+  staticOutputs: StaticOutputs
   inputs: DeepPrimitiveMap
   variables: DeepPrimitiveMap
 }
 
-export type ResolvedActionWrapperParams<C extends BaseActionConfig> = ActionWrapperParams<C> & ResolveActionParams<C>
+export type ResolvedActionWrapperParams<
+  C extends BaseActionConfig,
+  StaticOutputs extends {} = any
+> = ActionWrapperParams<C> & ResolveActionParams<C, StaticOutputs>
 
-export interface ExecuteActionParams<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
-  status: ActionStatus<BaseAction<C, O>, any>
+export interface ExecuteActionParams<
+  C extends BaseActionConfig = BaseActionConfig,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> {
+  status: ActionStatus<BaseAction<C, StaticOutputs>, any, RuntimeOutputs>
 }
 
-export type ExecutedActionWrapperParams<C extends BaseActionConfig, O extends {}> = ResolvedActionWrapperParams<C> &
-  ExecuteActionParams<C, O>
+export type ExecutedActionWrapperParams<
+  C extends BaseActionConfig,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> = ResolvedActionWrapperParams<C, StaticOutputs> & ExecuteActionParams<C, StaticOutputs, RuntimeOutputs>
 
 export type GetActionOutputType<T> = T extends BaseAction<any, infer O> ? O : any
 
@@ -243,23 +205,23 @@ export type ResolvedAction = ResolvedBuildAction | ResolvedDeployAction | Resolv
 export type ExecutedAction = ExecutedBuildAction | ExecutedDeployAction | ExecutedRunAction | ExecutedTestAction
 
 export type Resolved<T extends BaseAction> = T extends BuildAction
-  ? ResolvedBuildAction<T["_config"], T["_outputs"]>
+  ? ResolvedBuildAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends DeployAction
-  ? ResolvedDeployAction<T["_config"], T["_outputs"]>
+  ? ResolvedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends RunAction
-  ? ResolvedRunAction<T["_config"], T["_outputs"]>
+  ? ResolvedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends TestAction
-  ? ResolvedTestAction<T["_config"], T["_outputs"]>
+  ? ResolvedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T
 
 export type Executed<T extends BaseAction> = T extends BuildAction
-  ? ExecutedBuildAction<T["_config"], T["_outputs"]>
+  ? ExecutedBuildAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends DeployAction
-  ? ExecutedDeployAction<T["_config"], T["_outputs"]>
+  ? ExecutedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends RunAction
-  ? ExecutedRunAction<T["_config"], T["_outputs"]>
+  ? ExecutedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends TestAction
-  ? ExecutedTestAction<T["_config"], T["_outputs"]>
+  ? ExecutedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T
 
 export type ActionReferenceMap = {
@@ -275,3 +237,10 @@ export type ActionConfigMap = {
 export interface ActionConfigsByKey {
   [key: string]: ActionConfig
 }
+
+export type GetOutputValueType<K, StaticOutputs, RuntimeOutputs> = K extends keyof StaticOutputs
+  ? StaticOutputs[K]
+  : K extends keyof RuntimeOutputs
+  ? RuntimeOutputs[K] | undefined
+  : never
+

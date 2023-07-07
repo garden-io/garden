@@ -24,7 +24,7 @@ import { BuildTask } from "../../../../../../src/tasks/build"
 import { dedent, deline } from "../../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
-import { safeLoadAll } from "js-yaml"
+import { loadAll } from "js-yaml"
 import { Garden } from "../../../../../../src"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { getIngressApiVersion } from "../../../../../../src/plugins/kubernetes/container/ingress"
@@ -251,10 +251,10 @@ ${expectedIngressOutput}
 
       // The exact output will vary by K8s versions so we just validate that we get valid YAML and
       // the expected kinds.
-      const parsed = safeLoadAll(templates)
+      const parsed = loadAll(templates)
       expect(parsed.length).to.equal(4)
 
-      const kinds = uniq(parsed.map((p) => p.kind)).sort()
+      const kinds = uniq(parsed.map((p) => (p as any).kind)).sort()
       expect(kinds).to.eql(["Secret", "Service", "StatefulSet"])
     })
   })

@@ -66,28 +66,44 @@ export async function ensureNamespace(
     const cache = nsCache.get(providerUid) || {}
 
     if (!cache[namespace.name] || namespaceNeedsUpdate(cache[namespace.name].resource!, namespace)) {
+      // FIXME: if passed `namespace: string` this will set cache[undefined]
+      // This seems to require `namespace: { name: foo }` in project config contrary to docs
       cache[namespace.name] = { status: "pending" }
 
       // Get the latest remote namespace list
-      const namespacesStatus = await api.core.listNamespace()
+      let namespaces: KubernetesServerResource<V1Namespace>[] = []
+      try {
+        const namespacesStatus = await api.core.listNamespace()
+        namespaces = namespacesStatus.items
+      } catch (error) {
+        log.warn("Unable to list all namespaces. If you are using OpenShift, ignore this warning.")
+        let namespaceStatus = await api.core.readNamespace(namespace.name)
+        namespaces = [namespaceStatus]
+      }
 
-      for (const n of namespacesStatus.items) {
+      for (const n of namespaces) {
         if (n.status.phase === "Active") {
           cache[n.metadata.name] = { status: "created", resource: n }
         }
         if (n.metadata.name === namespace.name) {
           result.remoteResource = n
           if (n.status.phase === "Terminating") {
-            throw new KubernetesError(
-              dedent`Namespace "${n.metadata.name}" is in "Terminating" state so Garden is unable to create it.
+            throw new KubernetesError({
+              message: dedent`Namespace "${n.metadata.name}" is in "Terminating" state so Garden is unable to create it.
             Please try again once the namespace has terminated.`,
-              {}
-            )
+              detail: {},
+            })
           }
         }
       }
 
       if (cache[namespace.name].status !== "created") {
+        // FIXME: fix root cause, remove check
+        if (cache[namespace.name] === undefined) {
+          log.verbose("Not creating a namespace called undefined")
+          return
+        }
+
         log.verbose("Creating namespace " + namespace.name)
         try {
           result.remoteResource = await api.core.createNamespace({
@@ -105,10 +121,10 @@ export async function ensureNamespace(
           })
           result.created = true
         } catch (error) {
-          throw new KubernetesError(
-            `Namespace ${namespace.name} doesn't exist and Garden was unable to create it. You may need to create it manually or ask an administrator to do so.`,
-            { error }
-          )
+          throw new KubernetesError({
+            message: `Namespace ${namespace.name} doesn't exist and Garden was unable to create it. You may need to create it manually or ask an administrator to do so.`,
+            detail: { error },
+          })
         }
       } else if (namespaceNeedsUpdate(result.remoteResource, namespace)) {
         // Make sure annotations and labels are set correctly if the namespace already exists
@@ -176,6 +192,10 @@ interface GetNamespaceParams {
  * ensures it exists in the target cluster (unless skipCreate=true).
  *
  * Returns a namespace status (which includes the namespace's name).
+ *
+ * Also emits a `namespaceStatus` event on the provided plugin context's event bus. This means that the caller doesn't
+ * need to worry about remembering to emit namespace events (they are then caught by the base router and re-emitted on
+ * the Garden instance's event bus).
  */
 export async function getNamespaceStatus({
   log,
@@ -187,20 +207,23 @@ export async function getNamespaceStatus({
   const namespace = cloneDeep(override || provider.config.namespace)!
 
   const api = await KubeApi.factory(log, ctx, provider)
+  let status: NamespaceStatus
   if (!skipCreate) {
     await ensureNamespace(api, ctx, namespace, log)
-    return {
+    status = {
       pluginName: provider.name,
       namespaceName: namespace.name,
       state: "ready",
     }
   } else {
-    return {
+    status = {
       pluginName: provider.name,
       namespaceName: namespace.name,
       state: (await namespaceExists(api, ctx, namespace.name)) ? "ready" : "missing",
     }
   }
+  ctx.events.emit("namespaceStatus", status)
+  return status
 }
 
 export async function getSystemNamespace(
@@ -210,6 +233,11 @@ export async function getSystemNamespace(
   api?: KubeApi
 ): Promise<string> {
   const namespace = { name: provider.config.gardenSystemNamespace }
+  // HACK: in OpenShift, we work in only one namespace, the one assigned to the developer
+  if (!namespace.name) {
+    log.warn("No system namespace found, using the current namespace. If you are using OpenShift, ignore this warning.")
+    namespace.name = provider.config.namespace!.name
+  }
 
   if (!api) {
     api = await KubeApi.factory(log, ctx, provider)
@@ -230,18 +258,6 @@ export async function getAppNamespace(
     provider,
   })
   return status.namespaceName
-}
-
-export async function getAppNamespaceStatus(
-  ctx: KubernetesPluginContext,
-  log: Log,
-  provider: KubernetesProvider
-): Promise<NamespaceStatus> {
-  return getNamespaceStatus({
-    log,
-    ctx,
-    provider,
-  })
 }
 
 export async function getAllNamespaces(api: KubeApi): Promise<string[]> {
@@ -265,17 +281,17 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
   } catch (err) {
     log.error("Error")
 
-    throw new DeploymentError(
-      dedent`
+    throw new DeploymentError({
+      message: dedent`
       Unable to connect to Kubernetes cluster. Got error:
 
       ${err.message}
     `,
-      { providerConfig: k8sCtx.provider.config }
-    )
+      detail: { providerConfig: k8sCtx.provider.config },
+    })
   }
 
-  const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const ns = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
   return {
     "app-namespace": ns,
@@ -311,8 +327,11 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
 
     const now = new Date().getTime()
     if (now - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
-      throw new TimeoutError(`Timed out waiting for namespace ${namespaces.join(", ")} delete to complete`, {
-        namespaces,
+      throw new TimeoutError({
+        message: `Timed out waiting for namespace ${namespaces.join(", ")} delete to complete`,
+        detail: {
+          namespaces,
+        },
       })
     }
   }

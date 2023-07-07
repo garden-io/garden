@@ -16,15 +16,23 @@ import { DOCS_BASE_URL, GardenApiVersion } from "../constants"
 import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
 import { ConfigurationError, InternalError } from "../exceptions"
 import type { ConfigContextType } from "./template-contexts/base"
+import { z } from "zod"
+import {
+  gitUrlRegex,
+  objectSpreadKey,
+  arrayConcatKey,
+  arrayForEachKey,
+  arrayForEachFilterKey,
+  arrayForEachReturnKey,
+  identifierRegex,
+  joiIdentifierDescription,
+  userIdentifierRegex,
+  variableNameRegex,
+  envVarRegex,
+} from "./constants"
 
-export const objectSpreadKey = "$merge"
-export const conditionalKey = "$if"
-export const conditionalThenKey = "$then"
-export const conditionalElseKey = "$else"
-export const arrayConcatKey = "$concat"
-export const arrayForEachKey = "$forEach"
-export const arrayForEachReturnKey = "$return"
-export const arrayForEachFilterKey = "$filter"
+// Avoid chasing moved references
+export * from "./constants"
 
 const ajv = new Ajv({ allErrors: true, useDefaults: true, strict: false })
 addFormats(ajv)
@@ -143,6 +151,7 @@ export interface CustomObjectSchema extends Joi.ObjectSchema {
   concat(schema: object): this
 
   jsonSchema(schema: object): this
+  zodSchema(schema: z.ZodObject<any>): this
 }
 
 export interface GitUrlSchema extends Joi.StringSchema {
@@ -423,6 +432,37 @@ joi = joi.extend({
         }
       },
     },
+
+    zodSchema: {
+      method(zodSchema: z.ZodObject<any>) {
+        // eslint-disable-next-line no-invalid-this
+        this.$_setFlag("zodSchema", zodSchema)
+        // eslint-disable-next-line no-invalid-this
+        return this.$_addRule(<any>{ name: "zodSchema", args: { zodSchema } })
+      },
+      args: [
+        {
+          name: "zodSchema",
+          assert: (value) => {
+            return !!value
+          },
+          message: "must be a valid Zod object schema",
+        },
+      ],
+      validate(value, helpers, args) {
+        const schema = args.zodSchema as z.ZodObject<any>
+
+        try {
+          return schema.parse(value)
+        } catch (error) {
+          // TODO: customize the error output here to make it a bit nicer
+          const outputError = helpers.error("validation")
+          outputError.message = error.message
+          outputError.zodError = error
+          return outputError
+        }
+      },
+    },
   },
 })
 
@@ -474,10 +514,10 @@ const actionRefParseError = (reference: any) => {
 
   const refStr = JSON.stringify(reference)
 
-  return new ConfigurationError(
-    `Could not parse ${refStr} as a valid action reference. An action reference should be a "<kind>.<name>" string, where <kind> is one of ${validActionKinds} and <name> is a valid name of an action. You may also specify an object with separate kind and name fields.`,
-    { reference }
-  )
+  return new ConfigurationError({
+    message: `Could not parse ${refStr} as a valid action reference. An action reference should be a "<kind>.<name>" string, where <kind> is one of ${validActionKinds} and <name> is a valid name of an action. You may also specify an object with separate kind and name fields.`,
+    detail: { reference },
+  })
 }
 
 interface SchemaKeys {
@@ -519,7 +559,7 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
   let { name } = spec
 
   if (schemaRegistry[name]) {
-    throw new InternalError(`Object schema ${name} defined multiple times`, { name })
+    throw new InternalError({ message: `Object schema ${name} defined multiple times`, detail: { name } })
   }
 
   schemaRegistry[name] = { spec }
@@ -651,18 +691,6 @@ export const joiPrimitive = () =>
     .alternatives()
     .try(joi.string().allow("").allow(null), joi.number(), joi.boolean())
     .description("Number, string or boolean")
-
-export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash
-// from https://stackoverflow.com/a/12311250/3290965
-export const identifierRegex = /^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$/
-export const userIdentifierRegex = /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/
-export const envVarRegex = /^(?!garden)[a-z_][a-z0-9_\.]*$/i
-export const gitUrlRegex = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\/?|\#[-\d\w._\/]+?)$/
-export const variableNameRegex = /[a-zA-Z][a-zA-Z0-9_\-]*/i
-
-export const joiIdentifierDescription =
-  "valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
-  "and cannot end with a dash) and must not be longer than 63 characters."
 
 /**
  * Add a joi.actionReference() type, wrapping the parseActionReference() function and returning it as a parsed object.
@@ -949,4 +977,21 @@ export function describeSchema(schema: Joi.ObjectSchema): SchemaDescription {
     keys: Object.keys(desc.keys || {}),
     metadata: metadataFromDescription(desc),
   }
+}
+
+export function zodObjectToJoi(schema: z.ZodObject<any>): Joi.ObjectSchema {
+  let wrapped = joi.object().zodSchema(schema)
+
+  let description = schema.description || ""
+
+  const example = schema.getExample()
+  if (example) {
+    wrapped = wrapped.example(example)
+  }
+
+  if (description) {
+    wrapped = wrapped.description(description)
+  }
+
+  return wrapped
 }

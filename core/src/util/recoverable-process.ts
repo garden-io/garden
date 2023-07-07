@@ -122,7 +122,7 @@ export interface RetryConfig {
 export function validateRetryConfig(retryConfig: RetryConfig): RetryConfig {
   const requireNonNegative = (value: number, name: string): void => {
     if (value < 0) {
-      throw new ConfigurationError(`Value ${name} cannot be negative: ${value}`, { name: value })
+      throw new ConfigurationError({ message: `Value ${name} cannot be negative: ${value}`, detail: { name: value } })
     }
   }
   requireNonNegative(retryConfig.maxRetries, "maxRetries")
@@ -486,7 +486,12 @@ export class RecoverableProcess {
 
   private addDescendant(descendant: RecoverableProcess): RecoverableProcess {
     if (this.state !== "runnable") {
-      this.throw(new RuntimeError("Cannot attach a descendant to already running, stopped or failed process.", this))
+      this.throw(
+        new RuntimeError({
+          message: "Cannot attach a descendant to already running, stopped or failed process.",
+          detail: this,
+        })
+      )
     }
 
     descendant.parent = this
@@ -531,10 +536,10 @@ export class RecoverableProcess {
       return this
     }
     if (this.state === "failed") {
-      this.throw(new RuntimeError("Cannot start failed process with no retries left.", this))
+      this.throw(new RuntimeError({ message: "Cannot start failed process with no retries left.", detail: this }))
     }
     if (this.state === "stopped") {
-      this.throw(new RuntimeError("Cannot start already stopped process.", this))
+      this.throw(new RuntimeError({ message: "Cannot start already stopped process.", detail: this }))
     }
     // no need to use pRetry here, the failures will be handled by the event process listeners
     const proc = this.executor(this.command)
@@ -569,7 +574,12 @@ export class RecoverableProcess {
   public startAll(): RecoverableProcess {
     const root = this.getTreeRoot()
     if (root.hasFailures()) {
-      this.throw(new RuntimeError("Cannot start the process tree. Some processes failed with no retries left.", this))
+      this.throw(
+        new RuntimeError({
+          message: "Cannot start the process tree. Some processes failed with no retries left.",
+          detail: this,
+        })
+      )
     }
     RecoverableProcess.startFromNode(root)
     return root

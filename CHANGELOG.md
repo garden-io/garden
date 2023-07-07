@@ -1,4 +1,99 @@
 
+<a name="0.13.6"></a>
+## [0.13.6](https://github.com/garden-io/garden/compare/0.13.5...0.13.6) (2023-07-04)
+
+### Bug Fixes
+
+* respect deploymentRegistry in the garden publish command ([#4740](https://github.com/garden-io/garden/issues/4740)) ([aa7708ced](https://github.com/garden-io/garden/commit/aa7708ced))
+* **helm:** expose ingresses of resources deployed with helm ([339fe863e](https://github.com/garden-io/garden/commit/339fe863e))
+* **template:** don't use var file when path is unresolved ([#4737](https://github.com/garden-io/garden/issues/4737)) ([c323ccc92](https://github.com/garden-io/garden/commit/c323ccc92))
+
+### Features
+
+* open telemetry ([#4664](https://github.com/garden-io/garden/issues/4664)) ([10aee8b1b](https://github.com/garden-io/garden/commit/10aee8b1b))
+* **k8s:** introduce new flag waitForJobs to wait for k8s jobs ([#4611](https://github.com/garden-io/garden/issues/4611)) ([6eae3a652](https://github.com/garden-io/garden/commit/6eae3a652))
+* **openshift:** Run and Test actions ([#4730](https://github.com/garden-io/garden/issues/4730)) ([46ec532b4](https://github.com/garden-io/garden/commit/46ec532b4))
+* **openshift:** container Build action ([#4726](https://github.com/garden-io/garden/issues/4726)) ([bdf9e0fbc](https://github.com/garden-io/garden/commit/bdf9e0fbc))
+
+### Improvements
+
+* **k8s:** retry on config retrieval failure ([78669da98](https://github.com/garden-io/garden/commit/78669da98))
+* **server:** add some useful fields to ws event payload ([#4727](https://github.com/garden-io/garden/issues/4727)) ([3c2022c90](https://github.com/garden-io/garden/commit/3c2022c90))
+
+<a name="0.13.5"></a>
+## [0.13.5](https://github.com/garden-io/garden/compare/0.13.4...0.13.5) (2023-06-27)
+
+### Bug Fixes
+
+* **k8s:** fix regression in  sync stop logic ([e3349428d](https://github.com/garden-io/garden/commit/e3349428d))
+* **telemetry:** do not throw in case of any runtime error ([#4722](https://github.com/garden-io/garden/issues/4722)) ([485d25458](https://github.com/garden-io/garden/commit/485d25458))
+
+<a name="0.13.4"></a>
+## [0.13.4](https://github.com/garden-io/garden/compare/0.13.3...0.13.4) (2023-06-27)
+
+### Bug Fixes
+
+* update version hash if a file is renamed ([12bc08b84](https://github.com/garden-io/garden/commit/12bc08b84))
+* **cli:** print correct link to web dashboard ([#4685](https://github.com/garden-io/garden/issues/4685)) ([6d57b1f5c](https://github.com/garden-io/garden/commit/6d57b1f5c))
+* **cloud:** emit stable action uids across phases ([195a65123](https://github.com/garden-io/garden/commit/195a65123))
+* **cloud:** fix session registration flow for dev ([5f782884e](https://github.com/garden-io/garden/commit/5f782884e))
+* **core:** tweak output from internal _get-service-status command ([09228b819](https://github.com/garden-io/garden/commit/09228b819))
+* **dev:** running command status message could become inconsistent ([0cd29f9a4](https://github.com/garden-io/garden/commit/0cd29f9a4))
+* **jib:** fix sha256 hashes for `mvnd` binaries ([0ea5f7857](https://github.com/garden-io/garden/commit/0ea5f7857))
+* **k8s:** update default Kaniko version ([6584369d4](https://github.com/garden-io/garden/commit/6584369d4))
+* **k8s:** invalid session name error with e.g. underscore in username/path ([62e8a96ad](https://github.com/garden-io/garden/commit/62e8a96ad))
+* **template-strings:** do not apply helper functions on unresolved string ([#4692](https://github.com/garden-io/garden/issues/4692)) ([0b47cccc6](https://github.com/garden-io/garden/commit/0b47cccc6))
+
+### Improvements
+
+* **jib:** allow concurrent maven builds ([c9a6cf820](https://github.com/garden-io/garden/commit/c9a6cf820))
+* **jib:** support custom `mvnd` binaries ([d2d6f4df2](https://github.com/garden-io/garden/commit/d2d6f4df2))
+* **logs:** log resolve and statusOnly tasks at debug level ([#4691](https://github.com/garden-io/garden/issues/4691)) ([90577faad](https://github.com/garden-io/garden/commit/90577faad))
+* **sdk:** more iteration on the plugin SDK + migrate exec plugin ([#4654](https://github.com/garden-io/garden/issues/4654)) ([ac4cd75ca](https://github.com/garden-io/garden/commit/ac4cd75ca))
+* **server:** add more command info to ws responses ([4b01824bf](https://github.com/garden-io/garden/commit/4b01824bf))
+* **server:** better logging for loading config ([#4688](https://github.com/garden-io/garden/issues/4688)) ([c4f665917](https://github.com/garden-io/garden/commit/c4f665917))
+
+<a name="0.13.3"></a>
+## [0.13.3](https://github.com/garden-io/garden/compare/0.13.2...0.13.3) (2023-06-21)
+
+### Bug Fixes
+
+* microk8s log following race condition ([5cf7f56e8](https://github.com/garden-io/garden/commit/5cf7f56e8))
+* custom commands not available at beginning in the dev mode ([3dda63e6a](https://github.com/garden-io/garden/commit/3dda63e6a))
+* dev command not working with some plugins ([364aa4812](https://github.com/garden-io/garden/commit/364aa4812))
+* show deploy names instead of [object Object] in logs cmd error ([8d8351aa5](https://github.com/garden-io/garden/commit/8d8351aa5))
+* wrong helm release names on runs and tests with modules ([ed9e7b956](https://github.com/garden-io/garden/commit/ed9e7b956))
+* do not mark deploy action outdated for irrelevant file changes ([149bfdf18](https://github.com/garden-io/garden/commit/149bfdf18))
+* print garden version in verbose logging ([ed4147105](https://github.com/garden-io/garden/commit/ed4147105))
+* properly pass module buidld dependencies ([cf751991e](https://github.com/garden-io/garden/commit/cf751991e))
+* properly convert serviceResources ([0f427fd29](https://github.com/garden-io/garden/commit/0f427fd29))
+* infinite retry loop on pod creation error ([8af4a844f](https://github.com/garden-io/garden/commit/8af4a844f))
+* **analytics:** do not track hidden commands ([b005da99b](https://github.com/garden-io/garden/commit/b005da99b))
+* **cli:** ignore deprecated --skip-watch flag in deploy command ([841ea3ff9](https://github.com/garden-io/garden/commit/841ea3ff9))
+* **cloud:** emit ns statuses for in-cluster builds ([#4628](https://github.com/garden-io/garden/issues/4628)) ([fec4668c0](https://github.com/garden-io/garden/commit/fec4668c0))
+* **cloud:** properly handle dev delegation ([#4675](https://github.com/garden-io/garden/issues/4675)) ([4cdad7f50](https://github.com/garden-io/garden/commit/4cdad7f50))
+* **dev:** don't init cloud API on no-project commands ([aff49fd5e](https://github.com/garden-io/garden/commit/aff49fd5e))
+* **garden:** ensure namespace is resolved when getting instance key ([2d0f4e518](https://github.com/garden-io/garden/commit/2d0f4e518))
+* **pulumi:** remove PULUMI_EXPERIMENTAL flag due to side effects ([#4585](https://github.com/garden-io/garden/issues/4585)) ([d9cec2dba](https://github.com/garden-io/garden/commit/d9cec2dba))
+* **server:** ensure logs are displayed in dev command ([25dcdb8bf](https://github.com/garden-io/garden/commit/25dcdb8bf))
+* **server:** set correct default project root for autocomplete requests ([97e4d33e6](https://github.com/garden-io/garden/commit/97e4d33e6))
+* **sync:** fix status bug for `kubernetes` deploys ([564995a59](https://github.com/garden-io/garden/commit/564995a59))
+* **sync:** fix log rendering for sync status cmd ([be933cd7a](https://github.com/garden-io/garden/commit/be933cd7a))
+
+### Features
+
+* **cli:** add `get files` command to see files included in actions ([ee63d5fe5](https://github.com/garden-io/garden/commit/ee63d5fe5))
+* **template:** allow variable references in include/exclude config ([3773e2ed3](https://github.com/garden-io/garden/commit/3773e2ed3))
+* **template:** allow `this.name` and `this.mode` in action config ([#4646](https://github.com/garden-io/garden/issues/4646)) ([f3bf29ef5](https://github.com/garden-io/garden/commit/f3bf29ef5))
+
+### Improvements
+
+* support version command in dev mode ([90f16eca7](https://github.com/garden-io/garden/commit/90f16eca7))
+* **events:** improve types/consistency for action status events ([aee98c6a3](https://github.com/garden-io/garden/commit/aee98c6a3))
+* **jib:** upgrade Maven Daemon version to `0.9.0` ([0e822b392](https://github.com/garden-io/garden/commit/0e822b392))
+* **jib:** upgrade Maven version to `3.8.8` ([a6310eba1](https://github.com/garden-io/garden/commit/a6310eba1))
+* **k8s:** catch k3s connectivity error and retry ([8c999995f](https://github.com/garden-io/garden/commit/8c999995f))
+
 <a name="0.13.2"></a>
 ## [0.13.2](https://github.com/garden-io/garden/compare/0.13.1...0.13.2) (2023-06-08)
 

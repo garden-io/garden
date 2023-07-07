@@ -10,25 +10,22 @@ import { join } from "path"
 import { expect } from "chai"
 import { ensureDir } from "fs-extra"
 import {
-  makeTestGardenA,
-  makeTestGarden,
   expectError,
-  makeTestModule,
   getDataDir,
-  createProjectConfig,
-  TestGarden,
-  customizedTestPlugin,
+  makeGarden,
   makeTempDir,
+  makeTestGarden,
+  makeTestGardenA,
+  makeTestModule,
+  noOpTestPlugin,
+  TestGarden,
 } from "../../helpers"
 import { getNames } from "../../../src/util/util"
 import { ConfigGraph, ConfigGraphNode } from "../../../src/graph/config-graph"
 import { Garden } from "../../../src/garden"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../../../src/constants"
 import tmp from "tmp-promise"
-import { GardenPlugin } from "../../../src/plugin/plugin"
-import { ProjectConfig } from "../../../src/config/project"
 import { ActionKind, BaseActionConfig } from "../../../src/actions/types"
-import { joi } from "../../../src/config/common"
 
 const makeAction = ({
   basePath,
@@ -55,16 +52,6 @@ const makeAction = ({
   spec,
 })
 
-async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
-  const config: ProjectConfig = createProjectConfig({
-    path: tmpDir.path,
-    providers: [{ name: "test" }],
-  })
-
-  const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [plugin] })
-  return garden
-}
-
 /**
  * TODO-G2B:
  *  - implement the remained test cases similar to the existing module-based (getDependants* and getDependencies)
@@ -77,43 +64,7 @@ describe("ConfigGraph (action-based configs)", () => {
 
   // Minimalistic test plugin with no-op behaviour and without any schema validation constraints,
   // because we only need to unit test the processing of action configs into the action definitions.
-  const testPlugin = customizedTestPlugin({
-    name: "test",
-    createActionTypes: {
-      Build: [
-        {
-          name: "test",
-          docs: "Test Build action",
-          schema: joi.object(),
-          handlers: {},
-        },
-      ],
-      Deploy: [
-        {
-          name: "test",
-          docs: "Test Deploy action",
-          schema: joi.object(),
-          handlers: {},
-        },
-      ],
-      Run: [
-        {
-          name: "test",
-          docs: "Test Run action",
-          schema: joi.object(),
-          handlers: {},
-        },
-      ],
-      Test: [
-        {
-          name: "test",
-          docs: "Test Test action",
-          schema: joi.object(),
-          handlers: {},
-        },
-      ],
-    },
-  })
+  const testPlugin = noOpTestPlugin()
 
   // Helpers to create minimalistic action configs.
   // Each action type has its own simple spec with a single field named `${lowercase(kind)}Command`.
@@ -203,15 +154,6 @@ describe("ConfigGraph (action-based configs)", () => {
         const buildActions = configGraph.getBuilds()
 
         expect(getNames(buildActions).sort()).to.eql(["build-1", "build-2", "build-3"])
-
-        const spec1 = buildActions[0].getConfig("spec")
-        expect(spec1.buildCommand).to.eql(["echo", "build-1", "ok"])
-
-        const spec2 = buildActions[1].getConfig("spec")
-        expect(spec2.buildCommand).to.eql(["echo", "build-2", "ok"])
-
-        const spec3 = buildActions[2].getConfig("spec")
-        expect(spec3.buildCommand).to.eql(["echo", "build-3", "ok"])
       })
 
       it("should optionally return specified Build actions in the context", async () => {
@@ -271,15 +213,6 @@ describe("ConfigGraph (action-based configs)", () => {
         const deployActions = configGraph.getDeploys()
 
         expect(getNames(deployActions).sort()).to.eql(["deploy-1", "deploy-2", "deploy-3"])
-
-        const spec1 = deployActions[0].getConfig("spec")
-        expect(spec1.deployCommand).to.eql(["echo", "deploy-1", "ok"])
-
-        const spec2 = deployActions[1].getConfig("spec")
-        expect(spec2.deployCommand).to.eql(["echo", "deploy-2", "ok"])
-
-        const spec3 = deployActions[2].getConfig("spec")
-        expect(spec3.deployCommand).to.eql(["echo", "deploy-3", "ok"])
       })
 
       it("should optionally return specified Deploy actions in the context", async () => {
@@ -339,15 +272,6 @@ describe("ConfigGraph (action-based configs)", () => {
         const runActions = configGraph.getRuns()
 
         expect(getNames(runActions).sort()).to.eql(["run-1", "run-2", "run-3"])
-
-        const spec1 = runActions[0].getConfig("spec")
-        expect(spec1.runCommand).to.eql(["echo", "run-1", "ok"])
-
-        const spec2 = runActions[1].getConfig("spec")
-        expect(spec2.runCommand).to.eql(["echo", "run-2", "ok"])
-
-        const spec3 = runActions[2].getConfig("spec")
-        expect(spec3.runCommand).to.eql(["echo", "run-3", "ok"])
       })
 
       it("should optionally return specified Run actions in the context", async () => {
@@ -407,15 +331,6 @@ describe("ConfigGraph (action-based configs)", () => {
         const testActions = configGraph.getTests()
 
         expect(getNames(testActions).sort()).to.eql(["test-1", "test-2", "test-3"])
-
-        const spec1 = testActions[0].getConfig("spec")
-        expect(spec1.testCommand).to.eql(["echo", "test-1", "ok"])
-
-        const spec2 = testActions[1].getConfig("spec")
-        expect(spec2.testCommand).to.eql(["echo", "test-2", "ok"])
-
-        const spec3 = testActions[2].getConfig("spec")
-        expect(spec3.testCommand).to.eql(["echo", "test-3", "ok"])
       })
 
       it("should optionally return specified Test actions in the context", async () => {

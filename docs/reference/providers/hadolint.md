@@ -11,7 +11,7 @@ This provider creates a [`hadolint`](../action-types/Test/hadolint.md) Test acti
 
 To configure `hadolint`, you can use `.hadolint.yaml` config files. For each Test, we first look for one in the relevant action's root. If none is found there, we check the project root, and if none is there we fall back to default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
-See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the [hadolint example project](https://github.com/garden-io/garden/tree/0.13.2/examples/hadolint) for a usage example.
+See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the [hadolint example project](https://github.com/garden-io/garden/tree/0.13.6/examples/hadolint) for a usage example.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
@@ -27,10 +27,14 @@ providers:
     name:
 
     # List other providers that should be resolved before this one.
+    #
+    # Example: `["exec"]`
     dependencies: []
 
     # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
     # disables the provider. To use a provider in all environments, omit this field.
+    #
+    # Example: `["dev","stage"]`
     environments:
 
     # By default, the provider automatically creates a `hadolint` Test for every `container` Build in your
@@ -59,30 +63,17 @@ The name of the provider plugin to use.
 | -------- | -------- |
 | `string` | Yes      |
 
-Example:
-
-```yaml
-providers:
-  - name: "local-kubernetes"
-```
-
 ### `providers[].dependencies[]`
 
 [providers](#providers) > dependencies
 
 List other providers that should be resolved before this one.
 
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
+Example: `["exec"]`
 
-Example:
-
-```yaml
-providers:
-  - dependencies:
-      - exec
-```
+| Type    | Default | Required |
+| ------- | ------- | -------- |
+| `array` | `[]`    | No       |
 
 ### `providers[].environments[]`
 
@@ -90,18 +81,11 @@ providers:
 
 If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+Example: `["dev","stage"]`
 
-Example:
-
-```yaml
-providers:
-  - environments:
-      - dev
-      - stage
-```
+| Type    | Required |
+| ------- | -------- |
+| `array` | No       |
 
 ### `providers[].autoInject`
 
@@ -121,7 +105,7 @@ project. Set this to `false` to disable this behavior.
 Set this to `"warning"` if you'd like tests to be marked as failed if one or more warnings are returned.
 Set to `"none"` to always mark the tests as successful.
 
-| Type     | Default   | Required |
-| -------- | --------- | -------- |
-| `string` | `"error"` | No       |
+| Type     | Allowed Values             | Default   | Required |
+| -------- | -------------------------- | --------- | -------- |
+| `string` | "error", "warning", "none" | `"error"` | No       |
 

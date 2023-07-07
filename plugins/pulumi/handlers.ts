@@ -45,8 +45,11 @@ export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({
     const exists = await pathExists(absRoot)
 
     if (!exists) {
-      throw new ConfigurationError(`Pulumi: configured working directory '${root}' does not exist`, {
-        moduleConfig,
+      throw new ConfigurationError({
+        message: `Pulumi: configured working directory '${root}' does not exist`,
+        detail: {
+          moduleConfig,
+        },
       })
     }
   }
@@ -59,16 +62,22 @@ export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({
   // Check to avoid using `orgName` or `cacheStatus: true` with non-pulumi managed backends
   if (!backendUrl.startsWith("https://")) {
     if (orgName) {
-      throw new ConfigurationError("Pulumi: orgName is not supported for self-managed backends", {
-        moduleConfig,
-        providerConfig: provider.config,
+      throw new ConfigurationError({
+        message: "Pulumi: orgName is not supported for self-managed backends",
+        detail: {
+          moduleConfig,
+          providerConfig: provider.config,
+        },
       })
     }
 
     if (moduleConfig.spec.cacheStatus) {
-      throw new ConfigurationError("Pulumi: `cacheStatus: true` is not supported for self-managed backends", {
-        moduleConfig,
-        providerConfig: provider.config,
+      throw new ConfigurationError({
+        message: "Pulumi: `cacheStatus: true` is not supported for self-managed backends",
+        detail: {
+          moduleConfig,
+          providerConfig: provider.config,
+        },
       })
     }
   }

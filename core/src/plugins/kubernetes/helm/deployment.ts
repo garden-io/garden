@@ -21,6 +21,7 @@ import { ConfiguredLocalMode, configureLocalMode, startServiceInLocalMode } from
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { HelmDeployAction } from "./config"
 import { isEmpty } from "lodash"
+import { getK8sIngresses } from "../status/ingress"
 
 export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async (params) => {
   const { ctx, action, log, force } = params
@@ -166,6 +167,8 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     })
     attached = true
   }
+  // Get ingresses of deployed resources
+  const ingresses = getK8sIngresses(manifests)
 
   return {
     state: "ready",
@@ -173,8 +176,8 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       forwardablePorts,
       state: "ready",
       version: action.versionString(),
+      ingresses,
       detail: { remoteResources: statuses.map((s) => s.resource) },
-      namespaceStatuses: [namespaceStatus],
     },
     attached,
     // TODO-0.13.1

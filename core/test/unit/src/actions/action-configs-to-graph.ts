@@ -17,7 +17,7 @@ import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_DEPLOY_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
-  DEFAULT_TEST_TIMEOUT_SEC
+  DEFAULT_TEST_TIMEOUT_SEC,
 } from "../../../../src/constants"
 
 describe("actionConfigsToGraph", () => {
@@ -562,9 +562,7 @@ describe("actionConfigsToGraph", () => {
           },
           spec: {
             // Set so that sync comes up as a supported mode
-            syncMode: {
-              deployCommand: ["echo"],
-            },
+            persistent: true,
           },
         },
       ],
@@ -770,5 +768,77 @@ describe("actionConfigsToGraph", () => {
         contains: ["Found two actions of the same name and kind:"],
       }
     )
+  })
+
+  describe("file inclusion-exclusion", () => {
+    const getBaseParams = ({
+      include,
+      exclude,
+    }: {
+      include?: string[]
+      exclude?: string[]
+    }) => ({
+      garden,
+      log,
+      groupConfigs: [],
+      configs: [
+        {
+          kind: <"Build">"Build",
+          type: <"test">"test",
+          name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+          internal: {
+            basePath: tmpDir.path,
+          },
+          spec: {},
+
+          include,
+          exclude,
+        },
+      ],
+      moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
+      linkedSources: {},
+    })
+
+    it("sets include and exclude", async () => {
+      const graph = await actionConfigsToGraph({
+        ...getBaseParams({
+          include: ["include-file"],
+          exclude: ["exclude-file"],
+        }),
+      })
+      const action = graph.getBuild("foo")
+
+      expect(action.getConfig().include).to.eql(["include-file"])
+      expect(action.getConfig().exclude).to.eql(["exclude-file"])
+    })
+
+    it("sets include to [] if all is excluded", async () => {
+      const graph = await actionConfigsToGraph({
+        ...getBaseParams({
+          include: undefined,
+          exclude: ["**/*", "some-thing-else"],
+        }),
+      })
+      const action = graph.getBuild("foo")
+
+      expect(action.getConfig().include).to.eql([])
+    })
+
+    it("throws if everything is excluded but an include is attempted", async () => {
+      await expectError(
+        () =>
+          actionConfigsToGraph({
+            ...getBaseParams({
+              include: ["some-file"],
+              exclude: ["**/*"],
+            }),
+          }),
+        {
+          contains: ['tries to include files but excludes all files via "**/*"'],
+        }
+      )
+    })
   })
 })

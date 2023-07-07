@@ -58,9 +58,12 @@ export async function waitForServiceEndpoints(
       }
 
       if (new Date().getTime() - start > timeout) {
-        throw new TimeoutError(`Timed out waiting for Service '${serviceName}' Endpoints to resolve to correct Pods`, {
-          service,
-          pods,
+        throw new TimeoutError({
+          message: `Timed out waiting for Service '${serviceName}' Endpoints to resolve to correct Pods`,
+          detail: {
+            service,
+            pods,
+          },
         })
       }
 

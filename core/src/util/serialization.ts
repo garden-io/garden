@@ -9,7 +9,7 @@
 import { mapValues } from "lodash"
 import Cryo from "cryo"
 import { writeFile } from "fs-extra"
-import { DumpOptions, safeDump } from "js-yaml"
+import { DumpOptions, dump } from "js-yaml"
 import highlight from "cli-highlight"
 import chalk from "chalk"
 
@@ -21,7 +21,7 @@ export async function dumpYaml(yamlPath: string, data: any) {
  * Wraps safeDump and enforces that invalid values are skipped
  */
 export function safeDumpYaml(data: any, opts: DumpOptions = {}) {
-  return safeDump(data, { ...opts, skipInvalid: true })
+  return dump(data, { ...opts, skipInvalid: true })
 }
 
 /**

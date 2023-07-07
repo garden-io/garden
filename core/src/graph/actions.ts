@@ -53,7 +53,7 @@ import {
   resolveTemplateStrings,
 } from "../template-string/template-string"
 import { dedent, deline, naturalList } from "../util/string"
-import { resolveVariables } from "./common"
+import { mergeVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
 import chalk from "chalk"
@@ -63,6 +63,8 @@ import { ConfigContext } from "../config/template-contexts/base"
 import { LinkedSource, LinkedSourceMap } from "../config-store/local"
 import { relative } from "path"
 import { profileAsync } from "../util/profiling"
+import { uuidv4 } from "../util/random"
+import { getConfigBasePath } from "../vcs/vcs"
 
 export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
   garden,
@@ -85,7 +87,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
   function addConfig(config: ActionConfig) {
     if (!actionKinds.includes(config.kind)) {
-      throw new ConfigurationError(`Unknown action kind: ${config.kind}`, { config })
+      throw new ConfigurationError({ message: `Unknown action kind: ${config.kind}`, detail: { config } })
     }
 
     const key = actionReferenceToString(config)
@@ -110,6 +112,10 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
       addConfig(config)
     }
   }
+
+  // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
+  const allPaths = Object.values(configsByKey).map((c) => getConfigBasePath(c))
+  const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
 
   const router = await garden.getActionRouter()
 
@@ -150,7 +156,17 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     }
 
     try {
-      const action = await actionFromConfig({ garden, graph, config, router, log, configsByKey, mode, linkedSources })
+      const action = await actionFromConfig({
+        garden,
+        graph,
+        config,
+        router,
+        log,
+        configsByKey,
+        mode,
+        linkedSources,
+        scanRoot: minimalRoots[getConfigBasePath(config)],
+      })
 
       if (!action.supportsMode(mode)) {
         if (explicitMode) {
@@ -160,13 +176,14 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
       graph.addAction(action)
     } catch (error) {
-      throw new ConfigurationError(
-        chalk.redBright(
-          `\nError processing config for ${chalk.white.bold(config.kind)} action ${chalk.white.bold(config.name)}:\n`
-        ) + chalk.red(error.message),
-        { config },
-        error
-      )
+      throw new ConfigurationError({
+        message:
+          chalk.redBright(
+            `\nError processing config for ${chalk.white.bold(config.kind)} action ${chalk.white.bold(config.name)}:\n`
+          ) + chalk.red(error.message),
+        detail: { config },
+        wrappedErrors: [error],
+      })
     }
   })
 
@@ -184,6 +201,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   configsByKey,
   mode,
   linkedSources,
+  scanRoot,
 }: {
   garden: Garden
   graph: ConfigGraph
@@ -193,14 +211,14 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   configsByKey: ActionConfigsByKey
   mode: ActionMode
   linkedSources: LinkedSourceMap
+  scanRoot?: string
 }) {
-  let action: Action
-
   // Call configure handler and validate
   const { config, supportedModes, templateContext } = await preprocessActionConfig({
     garden,
     config: inputConfig,
     router,
+    mode,
     log,
   })
 
@@ -232,8 +250,9 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     }
   }
 
+  const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
+
   if (!actionTypes[config.kind][config.type]) {
-    const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
     const availableKinds: ActionKind[] = []
     actionKinds.forEach((actionKind) => {
       if (actionTypes[actionKind][config.type]) {
@@ -242,30 +261,45 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     })
 
     if (availableKinds.length > 0) {
-      throw new ConfigurationError(
-        deline`
+      throw new ConfigurationError({
+        message: deline`
         Unrecognized ${config.type} action of kind ${config.kind} (defined at ${configPath}).
         There are no ${config.type} ${config.kind} actions, did you mean to specify a ${naturalList(availableKinds, {
           trailingWord: "or a",
         })} action(s)?
         `,
-        { config, configuredActionTypes: Object.keys(actionTypes) }
-      )
+        detail: { config, configuredActionTypes: Object.keys(actionTypes) },
+      })
     }
 
-    throw new ConfigurationError(
-      deline`
+    throw new ConfigurationError({
+      message: deline`
       Unrecognized action type '${config.type}' (defined at ${configPath}).
       Are you missing a provider configuration?
       `,
-      { config, configuredActionTypes: Object.keys(actionTypes) }
-    )
+      detail: { config, configuredActionTypes: Object.keys(actionTypes) },
+    })
   }
 
   const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
-  const treeVersion = config.internal.treeVersion || (await garden.vcs.getTreeVersion(log, garden.projectName, config))
 
-  const variables = await resolveVariables({
+  if (config.exclude?.includes("**/*")) {
+    if (config.include && config.include.length !== 0) {
+      throw new ConfigurationError({
+        message: deline`Action ${config.kind}.${config.name} (defined at ${configPath})
+        tries to include files but excludes all files via "**/*".
+        Read about including and excluding files and directories here:
+        https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories`,
+      })
+    }
+    config.include = []
+  }
+
+  const treeVersion =
+    config.internal.treeVersion ||
+    (await garden.vcs.getTreeVersion({ log, projectName: garden.projectName, config, scanRoot }))
+
+  const variables = await mergeVariables({
     basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: config.varfiles,
@@ -275,6 +309,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     baseBuildDirectory: garden.buildStaging.buildDirPath,
     compatibleTypes,
     config,
+    uid: uuidv4(),
     dependencies,
     graph,
     projectRoot: garden.projectRoot,
@@ -289,34 +324,28 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   }
 
   if (isBuildActionConfig(config)) {
-    action = new BuildAction(params)
+    return new BuildAction(params)
   } else if (isDeployActionConfig(config)) {
-    action = new DeployAction(params)
+    return new DeployAction(params)
   } else if (isRunActionConfig(config)) {
-    action = new RunAction(params)
+    return new RunAction(params)
   } else if (isTestActionConfig(config)) {
-    action = new TestAction(params)
+    return new TestAction(params)
   } else {
-    const _exhaustiveCheck: never = config
-    // This will be caught earlier
-    throw new InternalError(`Invalid kind '${config["kind"]}' encountered when resolving actions.`, {
-      config: _exhaustiveCheck,
-    })
+    return config satisfies never
   }
-
-  return action
 })
 
 export function actionNameConflictError(configA: ActionConfig, configB: ActionConfig, rootPath: string) {
-  return new ConfigurationError(
-    dedent`
+  return new ConfigurationError({
+    message: dedent`
     Found two actions of the same name and kind:
       - ${describeActionConfigWithPath(configA, rootPath)}
       - ${describeActionConfigWithPath(configB, rootPath)}
     Please rename one of the two to avoid the conflict.
     `,
-    { configA, configB }
-  )
+    detail: { configA, configB },
+  })
 }
 
 /**
@@ -445,46 +474,73 @@ function getActionSchema(kind: ActionKind) {
     case "Test":
       return testActionConfigSchema()
     default:
-      // this can be rewritten as `satisfies` with TypeScript 4.9+
-      const _exhaustiveCheck: never = kind
-      return _exhaustiveCheck
+      return kind satisfies never
   }
 }
 
-const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
+export const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
   garden,
   config,
+  mode,
   router,
   log,
 }: {
   garden: Garden
   config: ActionConfig
   router: ActionRouter
+  mode: ActionMode
   log: Log
 }) {
   const description = describeActionConfig(config)
   const templateName = config.internal.templateName
 
+  // in pre-processing, only use varfiles that are not template strings
+  const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(f))
+  const variables = await mergeVariables({
+    basePath: config.internal.basePath,
+    variables: config.variables,
+    varfiles: resolvedVarFiles,
+  })
+  const resolvedVariables = resolveTemplateStrings(
+    variables,
+    new ActionConfigContext({
+      garden,
+      config: { ...config, internal: { ...config.internal, inputs: {} } },
+      thisContextParams: {
+        mode,
+        name: config.name,
+      },
+      variables,
+    }),
+    { allowPartial: true }
+  )
+
   if (templateName) {
     // Partially resolve inputs
     const partiallyResolvedInputs = resolveTemplateStrings(
       config.internal.inputs || {},
-      new ActionConfigContext(garden, { ...config, internal: { ...config.internal, inputs: {} } }),
-      {
-        allowPartial: true,
-      }
+      new ActionConfigContext({
+        garden,
+        config: { ...config, internal: { ...config.internal, inputs: {} } },
+        thisContextParams: {
+          mode,
+          name: config.name,
+        },
+        variables: resolvedVariables,
+      }),
+      { allowPartial: true }
     )
 
     const template = garden.configTemplates[templateName]
 
     // Note: This shouldn't happen in normal user flows
     if (!template) {
-      throw new InternalError(
-        `${description} references template '${
+      throw new InternalError({
+        message: `${description} references template '${
           config.internal.templateName
         }' which cannot be found. Available templates: ${naturalList(Object.keys(garden.configTemplates)) || "(none)"}`,
-        { templateName }
-      )
+        detail: { templateName },
+      })
     }
 
     // Validate inputs schema
@@ -498,7 +554,15 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
   }
 
   const builtinConfigKeys = getBuiltinConfigContextKeys()
-  const builtinFieldContext = new ActionConfigContext(garden, config)
+  const builtinFieldContext = new ActionConfigContext({
+    garden,
+    config,
+    thisContextParams: {
+      mode,
+      name: config.name,
+    },
+    variables: resolvedVariables,
+  })
 
   function resolveTemplates() {
     // Fully resolve built-in fields that only support ProjectConfigContext
@@ -507,7 +571,7 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
       allowPartial: false,
     })
     config = { ...config, ...resolvedBuiltin }
-    const { spec = {}, variables = {} } = config
+    const { spec = {} } = config
 
     // Validate fully resolved keys (the above + those that don't allow any templating)
     // TODO-0.13.1: better error messages when something goes wrong here
@@ -524,7 +588,7 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
       projectRoot: garden.projectRoot,
     })
 
-    config = { ...config, variables, spec }
+    config = { ...config, variables: resolvedVariables, spec }
 
     // Partially resolve other fields
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
@@ -541,10 +605,19 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
   // -> Throw if trying to modify no-template fields
   for (const field of noTemplateFields) {
     if (!isEqual(config[field], updatedConfig[field])) {
-      throw new PluginError(
-        `Configure handler for ${description} attempted to modify the ${field} field, which is not allowed. Please report this as a bug.`,
-        { config, field, original: config[field], modified: updatedConfig[field] }
-      )
+      throw new PluginError({
+        message: `Configure handler for ${description} attempted to modify the ${field} field, which is not allowed. Please report this as a bug.`,
+        detail: { config, field, original: config[field], modified: updatedConfig[field] },
+      })
+    }
+  }
+
+  // for an Deploy/Test/Run action, when build is specified
+  // we set the include field to [] unless either of include or exclude
+  // is explicitly set on the config.
+  if (config.kind !== "Build" && config.build) {
+    if (!updatedConfig.include && !updatedConfig.exclude) {
+      updatedConfig.include = []
     }
   }
 
@@ -555,10 +628,10 @@ const preprocessActionConfig = profileAsync(async function preprocessActionConfi
   try {
     resolveTemplates()
   } catch (error) {
-    throw new ConfigurationError(
-      `Configure handler for ${config.type} ${config.kind} set a templated value on a config field which could not be resolved. This may be a bug in the plugin, please report this. Error: ${error}`,
-      { config, error }
-    )
+    throw new ConfigurationError({
+      message: `Configure handler for ${config.type} ${config.kind} set a templated value on a config field which could not be resolved. This may be a bug in the plugin, please report this. Error: ${error}`,
+      detail: { config, error },
+    })
   }
 
   return { config, supportedModes, templateContext: builtinFieldContext }
@@ -582,7 +655,10 @@ function dependenciesFromActionConfig(
       const { kind, name } = parseActionReference(d)
       return { kind, name, explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false }
     } catch (error) {
-      throw new ValidationError(`Invalid dependency specified: ${error.message}`, { error, config })
+      throw new ValidationError({
+        message: `Invalid dependency specified: ${error.message}`,
+        detail: { error, config },
+      })
     }
   })
 
@@ -598,10 +674,10 @@ function dependenciesFromActionConfig(
       const buildKey = actionReferenceToString(ref)
 
       if (!configsByKey[buildKey]) {
-        throw new ConfigurationError(
-          `${description} references Build ${copyFrom.build} in the \`copyFrom\` field, but no such Build action could be found`,
-          { config, buildName: copyFrom.build }
-        )
+        throw new ConfigurationError({
+          message: `${description} references Build ${copyFrom.build} in the \`copyFrom\` field, but no such Build action could be found`,
+          detail: { config, buildName: copyFrom.build },
+        })
       }
 
       addDep(ref, { explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false })
@@ -612,10 +688,10 @@ function dependenciesFromActionConfig(
     const buildKey = actionReferenceToString(ref)
 
     if (!configsByKey[buildKey]) {
-      throw new ConfigurationError(
-        `${description} references Build ${config.build} in the \`build\` field, but no such Build action could be found`,
-        { config, buildName: config.build }
-      )
+      throw new ConfigurationError({
+        message: `${description} references Build ${config.build} in the \`build\` field, but no such Build action could be found`,
+        detail: { config, buildName: config.build },
+      })
     }
 
     addDep(ref, { explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false })

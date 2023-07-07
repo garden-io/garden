@@ -9,7 +9,7 @@
 import { Command, CommandResult, CommandParams } from "./base"
 import { startServer } from "../server/server"
 import { IntegerParameter, StringsParameter } from "../cli/params"
-import { printHeader } from "../logger/util"
+import { printEmoji, printHeader } from "../logger/util"
 import { dedent } from "../util/string"
 import { CommandLine } from "../cli/command-line"
 import { GardenInstanceManager } from "../server/instance-manager"
@@ -129,7 +129,7 @@ export class ServeCommand<
       log,
       manager,
       port: opts.port,
-      defaultProjectRoot: process.cwd(),
+      defaultProjectRoot: manager.defaultProjectRoot || process.cwd(),
       serveCommand: this,
     })
 
@@ -157,7 +157,7 @@ export class ServeCommand<
         }
 
         if (projectId && defaultGarden) {
-          await cloudApi.registerSession({
+          const session = await cloudApi.registerSession({
             parentSessionId: undefined,
             projectId,
             // Use the process (i.e. parent command) session ID for the serve command session
@@ -166,7 +166,18 @@ export class ServeCommand<
             localServerPort: this.server.port,
             environment: defaultGarden.environmentName,
             namespace: defaultGarden.namespace,
+            isDevCommand: true,
           })
+          if (session?.shortId) {
+            const distroName = getCloudDistributionName(cloudDomain)
+            const livePageUrl = cloudApi.getLivePageUrl({ shortId: session.shortId })
+            const msg = dedent`${printEmoji("🌸", log)}Connected to ${distroName} ${printEmoji("🌸", log)}
+              Follow the link below to stream logs, run commands, and more from your web dashboard ${printEmoji(
+              "👇",
+              log
+            )} \n\n${chalk.cyan(livePageUrl)}\n`
+            log.info(chalk.white(msg))
+          }
         }
       }
     } catch (err) {

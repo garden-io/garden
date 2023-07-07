@@ -89,7 +89,7 @@ export class GetStatusCommand extends Command {
         providers: {},
         actions: await Bluebird.props({
           Build: {},
-          Deploy: router.getDeployStatuses({ log, graph }),
+          Deploy: getDeployStatuses(router, graph, log),
           Test: {},
           Run: {},
         }),
@@ -100,7 +100,7 @@ export class GetStatusCommand extends Command {
         providers: envStatus,
         actions: await Bluebird.props({
           Build: getBuildStatuses(router, graph, log),
-          Deploy: router.getDeployStatuses({ log, graph }),
+          Deploy: getDeployStatuses(router, graph, log),
           Test: getTestStatuses(router, graph, log),
           Run: getRunStatuses(router, graph, log),
         }),
@@ -147,6 +147,17 @@ export class GetStatusCommand extends Command {
   }
 }
 
+async function getDeployStatuses(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
+  const actions = graph.getDeploys()
+
+  return fromPairs(
+    await Bluebird.map(actions, async (action) => {
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const { result } = await router.deploy.getStatus({ action, log: actionLog, graph })
+      return [action.name, result]
+    })
+  )
+}
 async function getBuildStatuses(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
   const actions = graph.getBuilds()
 

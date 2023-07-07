@@ -85,7 +85,7 @@ COPY --chown=$USER:root --from=aws-builder /usr/bin/aws-iam-authenticator /usr/b
 #
 # gcloud base
 #
-FROM google/cloud-sdk:433.0.1-alpine@sha256:cba61285346abb92a06fa80069604590d605d7dfeea69e5b9af223d20f95a69d as gcloud-base
+FROM google/cloud-sdk:437.0.1-alpine@sha256:592f179939215e2efd40ed6e099b286e5dbb78796df073d3a29cf7374ac62d3c as gcloud-base
 
 RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet
 

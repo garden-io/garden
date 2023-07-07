@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: busybox-deployment
+  labels:
+    app: busybox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: busybox
+  template:
+    metadata:
+      labels:
+        app: busybox
+    spec:
+      containers:
+        - name: busybox
+          image: busybox:1.31.1
+          args: [sh, -c, "while :; do sleep 2073600; done"]
+          env:
+            - name: FOO
+              value: banana
+            - name: BAR
+              value: ""
+            - name: BAZ
+              value: null
+          ports:
+            - containerPort: 80

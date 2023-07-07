@@ -19,9 +19,38 @@ import { ActionKind } from "../actions/types"
 import isGlob from "is-glob"
 import { ParameterError } from "../exceptions"
 import { naturalList } from "../util/string"
+import { CommandParams } from "./base"
+import { ServeCommandOpts } from "./serve"
+import { DevCommand } from "./dev"
 
 export function makeGetTestOrTaskLog(actions: (TestAction | RunAction)[]) {
   return actions.map((t) => prettyPrintTestOrTask(t)).join("\n")
+}
+
+/**
+ * Runs a `dev` command and runs `commandName` with the args & opts provided in `params` as the first
+ * interactive command.
+ *
+ * Also updates the `commandInfo` accordinly so that the session registration parameters sent to Cloud are correct.
+ */
+export async function runAsDevCommand(
+  commandName: string, // The calling command's opts need to extend `ServeCommandOpts`.
+  params: CommandParams<{}, ServeCommandOpts>
+) {
+  const commandInfo = params.garden.commandInfo
+  params.opts.cmd = getCmdOptionForDev(commandName, params)
+  commandInfo.name = "dev"
+  commandInfo.args["$all"] = []
+  commandInfo.opts.cmd = params.opts.cmd
+  const devCmd = new DevCommand()
+  devCmd.printHeader(params)
+  await devCmd.prepare(params)
+
+  return devCmd.action(params)
+}
+
+export function getCmdOptionForDev(commandName: string, params: CommandParams) {
+  return [commandName + " " + params.args.$all?.join(" ")]
 }
 
 export function prettyPrintWorkflow(workflow: WorkflowConfig): string {
@@ -103,7 +132,7 @@ export const validateActionSearchResults = ({
 
   names?.forEach((n) => {
     if (!isGlob(n) && !actions.find((a) => a.name === n)) {
-      throw new ParameterError(`${actionKind} action "${n}" was not found.`, { ...errData })
+      throw new ParameterError({ message: `${actionKind} action "${n}" was not found.`, detail: { ...errData } })
     }
   })
 
@@ -112,7 +141,7 @@ export const validateActionSearchResults = ({
     if (names) {
       argumentsMsg = ` (matching argument(s) ${naturalList(names.map((n) => `'${n}'`))})`
     }
-    throw new ParameterError(`No ${actionKind} actions were found${argumentsMsg}.`, { errData })
+    throw new ParameterError({ message: `No ${actionKind} actions were found${argumentsMsg}.`, detail: { errData } })
   }
   return { shouldAbort: false }
 }

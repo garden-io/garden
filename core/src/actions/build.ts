@@ -26,6 +26,7 @@ import type {
   ExecutedActionWrapperParams,
   ExecutedAction,
   ResolvedAction,
+  GetOutputValueType,
 } from "./types"
 import {
   baseActionConfigSchema,
@@ -147,8 +148,9 @@ export const buildActionConfigSchema = createSchema({
 
 export class BuildAction<
   C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
-  O extends {} = any
-> extends BaseAction<C, O> {
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Build"
 
   /**
@@ -185,10 +187,11 @@ export class BuildAction<
 // TODO: see if we can avoid the duplication here with ResolvedRuntimeAction
 export class ResolvedBuildAction<
     C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
-    Outputs extends {} = any
+    StaticOutputs extends {} = any,
+    RuntimeOutputs extends {} = any
   >
-  extends BuildAction<C, Outputs>
-  implements ResolvedActionExtension<C, Outputs>
+  extends BuildAction<C, StaticOutputs, RuntimeOutputs>
+  implements ResolvedActionExtension<C, StaticOutputs, RuntimeOutputs>
 {
   protected graph: ResolvedConfigGraph
   protected readonly params: ResolvedActionWrapperParams<C>
@@ -228,41 +231,41 @@ export class ResolvedBuildAction<
     return key ? this._config.spec[key] : this._config.spec
   }
 
-  getOutput<K extends keyof Outputs>(key: K) {
-    return this._staticOutputs[key]
+  getOutput<K extends keyof StaticOutputs>(key: K): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {
+    return <any>this._staticOutputs[<keyof StaticOutputs>key]
   }
 
   getOutputs() {
     return this._staticOutputs
   }
-
-  getVariables() {
-    return this.variables
-  }
 }
 
 export class ExecutedBuildAction<
     C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
-    O extends {} = any
+    StaticOutputs extends {} = any,
+    RuntimeOutputs extends {} = any
   >
-  extends ResolvedBuildAction<C, O>
-  implements ExecutedActionExtension<C, O>
+  extends ResolvedBuildAction<C, StaticOutputs, RuntimeOutputs>
+  implements ExecutedActionExtension<C, StaticOutputs, RuntimeOutputs>
 {
   protected readonly executed: true
-  private readonly status: ActionStatus<this, any, O>
+  private readonly status: ActionStatus<this, any, RuntimeOutputs>
 
-  constructor(params: ExecutedActionWrapperParams<C, O>) {
+  constructor(params: ExecutedActionWrapperParams<C, StaticOutputs, RuntimeOutputs>) {
     super(params)
     this.status = params.status
     this.executed = true
   }
 
-  getOutput<K extends keyof O>(key: K) {
-    return this.status.outputs[key] || this._staticOutputs[key]
+  getOutput<K extends keyof (StaticOutputs & RuntimeOutputs)>(
+    key: K
+  ): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {
+    // FIXME: unsure how to avoid the any cast here, but usage is unaffected
+    return <any>(this.status.outputs[<any>key] || this._staticOutputs[<keyof StaticOutputs>key])
   }
 
   getOutputs() {
-    return this.status.outputs
+    return { ...this._staticOutputs, ...this.status.outputs }
   }
 }
 

@@ -152,7 +152,10 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
           currentNode = node
         } else if (part.block === "else") {
           if (currentNode.type !== "if") {
-            throw new TemplateStringError("Found ${else} block without a preceding ${if...} block.", {})
+            throw new TemplateStringError({
+              message: "Found ${else} block without a preceding ${if...} block.",
+              detail: {},
+            })
           }
           const node: ConditionalTree = {
             type: "else",
@@ -166,7 +169,10 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
           if (currentNode.type === "if" || currentNode.type === "else") {
             currentNode = currentNode.parent!
           } else {
-            throw new TemplateStringError("Found ${endif} block without a preceding ${if...} block.", {})
+            throw new TemplateStringError({
+              message: "Found ${endif} block without a preceding ${if...} block.",
+              detail: {},
+            })
           }
         } else {
           const v = getValue(part)
@@ -180,7 +186,7 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
       }
 
       if (currentNode.type === "if" || currentNode.type === "else") {
-        throw new TemplateStringError("Missing ${endif} after ${if ...} block.", {})
+        throw new TemplateStringError({ message: "Missing ${endif} after ${if ...} block.", detail: {} })
       }
 
       // Walk down tree and resolve the output string
@@ -204,7 +210,7 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
     const prefix = `Invalid template string (${chalk.white(truncate(string, 35).replace(/\n/g, "\\n"))}): `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 
-    throw new TemplateStringError(message, {})
+    throw new TemplateStringError({ message, detail: {} })
   }
 }
 
@@ -214,7 +220,7 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
 
 // `extends any` here isn't pretty but this function is hard to type correctly
 export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T extends any>(
-  value: T ,
+  value: T,
   context: ConfigContext,
   opts: ContextResolveOpts = {}
 ): T {
@@ -237,12 +243,12 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
               .filter((k) => k !== arrayConcatKey)
               .map((k) => JSON.stringify(k))
           )
-          throw new ConfigurationError(
-            `A list item with a ${arrayConcatKey} key cannot have any other keys (found ${extraKeys})`,
-            {
+          throw new ConfigurationError({
+            message: `A list item with a ${arrayConcatKey} key cannot have any other keys (found ${extraKeys})`,
+            detail: {
               value: v,
-            }
-          )
+            },
+          })
         }
 
         // Handle array concatenation via $concat
@@ -253,13 +259,13 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
         } else if (opts.allowPartial) {
           output.push({ $concat: resolved })
         } else {
-          throw new ConfigurationError(
-            `Value of ${arrayConcatKey} key must be (or resolve to) an array (got ${typeof resolved})`,
-            {
+          throw new ConfigurationError({
+            message: `Value of ${arrayConcatKey} key must be (or resolve to) an array (got ${typeof resolved})`,
+            detail: {
               value,
               resolved,
-            }
-          )
+            },
+          })
         }
       } else {
         output.push(resolveTemplateStrings(v, context, opts))
@@ -287,13 +293,13 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
           } else if (opts.allowPartial) {
             output[k] = resolved
           } else {
-            throw new ConfigurationError(
-              `Value of ${objectSpreadKey} key must be (or resolve to) a mapping object (got ${typeof resolved})`,
-              {
+            throw new ConfigurationError({
+              message: `Value of ${objectSpreadKey} key must be (or resolve to) a mapping object (got ${typeof resolved})`,
+              detail: {
                 value,
                 resolved,
-              }
-            )
+              },
+            })
           }
         } else {
           output[k] = resolved
@@ -312,8 +318,11 @@ const expectedForEachKeys = [arrayForEachKey, arrayForEachReturnKey, arrayForEac
 function handleForEachObject(value: any, context: ConfigContext, opts: ContextResolveOpts) {
   // Validate input object
   if (value[arrayForEachReturnKey] === undefined) {
-    throw new ConfigurationError(`Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field.`, {
-      value,
+    throw new ConfigurationError({
+      message: `Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field.`,
+      detail: {
+        value,
+      },
     })
   }
 
@@ -322,10 +331,13 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
   if (unexpectedKeys.length > 0) {
     const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
 
-    throw new ConfigurationError(`Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}`, {
-      value,
-      expectedKeys: expectedForEachKeys,
-      unexpectedKeys,
+    throw new ConfigurationError({
+      message: `Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}`,
+      detail: {
+        value,
+        expectedKeys: expectedForEachKeys,
+        unexpectedKeys,
+      },
     })
   }
 
@@ -337,13 +349,13 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
     if (opts.allowPartial) {
       return value
     } else {
-      throw new ConfigurationError(
-        `Value of ${arrayForEachKey} key must be (or resolve to) an array or mapping object (got ${typeof resolvedInput})`,
-        {
+      throw new ConfigurationError({
+        message: `Value of ${arrayForEachKey} key must be (or resolve to) an array or mapping object (got ${typeof resolvedInput})`,
+        detail: {
           value,
           resolved: resolvedInput,
-        }
-      )
+        },
+      })
     }
   }
 
@@ -374,14 +386,14 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
       if (filterResult === false) {
         continue
       } else if (filterResult !== true) {
-        throw new ConfigurationError(
-          `${arrayForEachFilterKey} clause in ${arrayForEachKey} loop must resolve to a boolean value (got ${typeof resolvedInput})`,
-          {
+        throw new ConfigurationError({
+          message: `${arrayForEachFilterKey} clause in ${arrayForEachKey} loop must resolve to a boolean value (got ${typeof resolvedInput})`,
+          detail: {
             itemValue,
             filterExpression,
             filterResult,
-          }
-        )
+          },
+        })
       }
     }
 
@@ -400,8 +412,11 @@ function handleConditional(value: any, context: ConfigContext, opts: ContextReso
   const elseExpression = value[conditionalElseKey]
 
   if (thenExpression === undefined) {
-    throw new ConfigurationError(`Missing ${conditionalThenKey} field next to ${conditionalKey} field.`, {
-      value,
+    throw new ConfigurationError({
+      message: `Missing ${conditionalThenKey} field next to ${conditionalKey} field.`,
+      detail: {
+        value,
+      },
     })
   }
 
@@ -410,10 +425,13 @@ function handleConditional(value: any, context: ConfigContext, opts: ContextReso
   if (unexpectedKeys.length > 0) {
     const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
 
-    throw new ConfigurationError(`Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}`, {
-      value,
-      expectedKeys: expectedConditionalKeys,
-      unexpectedKeys,
+    throw new ConfigurationError({
+      message: `Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}`,
+      detail: {
+        value,
+        expectedKeys: expectedConditionalKeys,
+        unexpectedKeys,
+      },
     })
   }
 
@@ -424,13 +442,13 @@ function handleConditional(value: any, context: ConfigContext, opts: ContextReso
     if (opts.allowPartial) {
       return value
     } else {
-      throw new ConfigurationError(
-        `Value of ${conditionalKey} key must be (or resolve to) a boolean (got ${typeof resolvedConditional})`,
-        {
+      throw new ConfigurationError({
+        message: `Value of ${conditionalKey} key must be (or resolve to) a boolean (got ${typeof resolvedConditional})`,
+        detail: {
           value,
           resolved: resolvedConditional,
-        }
-      )
+        },
+      })
     }
   }
 
@@ -504,20 +522,35 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
     .filter((ref) => ref[0] === "actions")
     .map((ref) => {
       if (!ref[1]) {
-        throw new ConfigurationError("Found invalid action reference (missing kind)", { config, ref })
+        throw new ConfigurationError({
+          message: "Found invalid action reference (missing kind)",
+          detail: { config, ref },
+        })
       }
       if (!isString(ref[1])) {
-        throw new ConfigurationError("Found invalid action reference (kind is not a string)", { config, ref })
+        throw new ConfigurationError({
+          message: "Found invalid action reference (kind is not a string)",
+          detail: { config, ref },
+        })
       }
       if (!actionKindsLower.includes(<any>ref[1])) {
-        throw new ConfigurationError(`Found invalid action reference (invalid kind '${ref[1]}')`, { config, ref })
+        throw new ConfigurationError({
+          message: `Found invalid action reference (invalid kind '${ref[1]}')`,
+          detail: { config, ref },
+        })
       }
 
       if (!ref[2]) {
-        throw new ConfigurationError("Found invalid action reference (missing name)", { config, ref })
+        throw new ConfigurationError({
+          message: "Found invalid action reference (missing name)",
+          detail: { config, ref },
+        })
       }
       if (!isString(ref[2])) {
-        throw new ConfigurationError("Found invalid action reference (name is not a string)", { config, ref })
+        throw new ConfigurationError({
+          message: "Found invalid action reference (name is not a string)",
+          detail: { config, ref },
+        })
       }
 
       return {
@@ -536,10 +569,16 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
     let kind: ActionKind
 
     if (!ref[1]) {
-      throw new ConfigurationError("Found invalid runtime reference (missing kind)", { config, ref })
+      throw new ConfigurationError({
+        message: "Found invalid runtime reference (missing kind)",
+        detail: { config, ref },
+      })
     }
     if (!isString(ref[1])) {
-      throw new ConfigurationError("Found invalid runtime reference (kind is not a string)", { config, ref })
+      throw new ConfigurationError({
+        message: "Found invalid runtime reference (kind is not a string)",
+        detail: { config, ref },
+      })
     }
 
     if (ref[1] === "services") {
@@ -547,14 +586,23 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
     } else if (ref[1] === "tasks") {
       kind = "Run"
     } else {
-      throw new ConfigurationError(`Found invalid runtime reference (invalid kind '${ref[1]}')`, { config, ref })
+      throw new ConfigurationError({
+        message: `Found invalid runtime reference (invalid kind '${ref[1]}')`,
+        detail: { config, ref },
+      })
     }
 
     if (!ref[2]) {
-      throw new ConfigurationError(`Found invalid runtime reference (missing name)`, { config, ref })
+      throw new ConfigurationError({
+        message: `Found invalid runtime reference (missing name)`,
+        detail: { config, ref },
+      })
     }
     if (!isString(ref[2])) {
-      throw new ConfigurationError("Found invalid runtime reference (name is not a string)", { config, ref })
+      throw new ConfigurationError({
+        message: "Found invalid runtime reference (name is not a string)",
+        detail: { config, ref },
+      })
     }
 
     refs.push({
@@ -671,10 +719,13 @@ function buildBinaryExpression(head: any, tail: any) {
         .map((res) => res.message)
         .filter(Boolean)
         .join(" ")
-      const err = new TemplateStringError(message || "Could not resolve one or more keys.", {
-        left,
-        right,
-        operator,
+      const err = new TemplateStringError({
+        message: message || "Could not resolve one or more keys.",
+        detail: {
+          left,
+          right,
+          operator,
+        },
       })
       return { _error: err }
     }
@@ -694,20 +745,20 @@ function buildBinaryExpression(head: any, tail: any) {
       } else if (Array.isArray(left) && Array.isArray(right)) {
         return left.concat(right)
       } else {
-        const err = new TemplateStringError(
-          `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
-          { left, right, operator }
-        )
+        const err = new TemplateStringError({
+          message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
+          detail: { left, right, operator },
+        })
         return { _error: err }
       }
     }
 
     // All other operators require numbers to make sense (we're not gonna allow random JS weirdness)
     if (!isNumber(left) || !isNumber(right)) {
-      const err = new TemplateStringError(
-        `Both terms need to be numbers for ${operator} operator (got ${typeof left} and ${typeof right}).`,
-        { left, right, operator }
-      )
+      const err = new TemplateStringError({
+        message: `Both terms need to be numbers for ${operator} operator (got ${typeof left} and ${typeof right}).`,
+        detail: { left, right, operator },
+      })
       return { _error: err }
     }
 
@@ -729,7 +780,7 @@ function buildBinaryExpression(head: any, tail: any) {
       case ">":
         return left > right
       default:
-        const err = new TemplateStringError("Unrecognized operator: " + operator, { operator })
+        const err = new TemplateStringError({ message: "Unrecognized operator: " + operator, detail: { operator } })
         return { _error: err }
     }
   }, head)
@@ -778,7 +829,7 @@ function buildLogicalExpression(head: any, tail: any, opts: ContextResolveOpts) 
         }
         return getValue(leftRes) ? leftRes : rightRes
       default:
-        const err = new TemplateStringError("Unrecognized operator: " + operator, { operator })
+        const err = new TemplateStringError({ message: "Unrecognized operator: " + operator, detail: { operator } })
         return { _error: err }
     }
   }, head)

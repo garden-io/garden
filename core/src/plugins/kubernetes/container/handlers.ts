@@ -99,14 +99,15 @@ export function validateDeploySpec(
     const hostname = ingressSpec.hostname || provider.config.defaultHostname
 
     if (!hostname) {
-      throw new ConfigurationError(
-        `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
+      throw new ConfigurationError({
+        message:
+          `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
           `Please configure a default hostname or specify a hostname for the ingress.`,
-        {
+        detail: {
           name,
           ingressSpec,
-        }
-      )
+        },
+      })
     }
 
     // make sure the hostname is set

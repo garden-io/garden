@@ -1,0 +1,69 @@
+kind: Build
+type: container
+name: openshift-nginx-hello
+# FIXME: currently this is required, otherwise you get an ENOENT when calling
+# containerHelpers.dockerCli({cwd: action.getBuildPath() ... })
+# because the .garden/build directory is not created
+buildAtSource: true
+
+---
+kind: Deploy
+type: container
+name: openshift-nginx-hello
+build: openshift-nginx-hello
+spec:
+  ports:
+    - name: http
+      containerPort: 8080
+      localPort: 8080
+  ingresses:
+    - path: /
+      port: http
+      hostname: hello.local.demo.garden
+  sync:
+    paths:
+      - source: index.html
+        target: /opt/app-root/src/index.html
+        mode: one-way-replica
+
+---
+kind: Run
+type: container
+name: ls
+description: Lists the contents of the web server directory
+build: openshift-nginx-hello
+spec:
+  command: ["ls"]
+
+---
+kind: Run
+type: kubernetes-exec
+name: nginx-reload
+description: Restarts the nginx worker processes. `ps aux` will report different times before/after running this
+dependencies: [deploy.openshift-nginx-hello]
+spec:
+  resource:
+    kind: Deployment
+    name: openshift-nginx-hello
+  command: ["kill", "-SIGHUP", "1"]
+
+---
+kind: Test
+type: container
+name: cat
+description: Verifies the existence of the index.html file
+build: openshift-nginx-hello
+spec:
+  command: ["cat", "index.html"]
+
+---
+kind: Test
+type: kubernetes-exec
+name: curl
+description: Verifies the index page is being served
+dependencies: [deploy.openshift-nginx-hello]
+spec:
+  resource:
+    kind: Deployment
+    name: openshift-nginx-hello
+  command: ["curl", "localhost:8080"]

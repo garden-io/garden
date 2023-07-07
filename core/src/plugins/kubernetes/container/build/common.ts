@@ -184,7 +184,10 @@ export async function skopeoBuildStatus({
 
   if (!deploymentRegistry) {
     // This is validated in the provider configure handler, so this is an internal error if it happens
-    throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
+    throw new InternalError({
+      message: `Expected configured deploymentRegistry for remote build`,
+      detail: { config: provider.config },
+    })
   }
 
   const outputs = k8sGetContainerBuildActionOutputs({ action, provider })
@@ -230,9 +233,14 @@ export async function skopeoBuildStatus({
     if (res.exitCode !== 0 && !skopeoManifestUnknown(res.stderr)) {
       const output = res.allLogs || err.message
 
-      throw new RuntimeError(`Unable to query registry for image status: ${output}`, {
-        command: skopeoCommand,
-        output,
+      // TODO: if a registry does not have an image with the name at all, we throw here
+      // This isn't a great first-time-use experience (or after you've reset a registry)
+      throw new RuntimeError({
+        message: `Unable to query registry for image status: ${output}`,
+        detail: {
+          command: skopeoCommand,
+          output,
+        },
       })
     }
     return { state: "unknown", outputs, detail: {} }
@@ -306,13 +314,13 @@ export async function ensureUtilDeployment({
 
     // Check status of the util deployment
     const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name, imagePullSecrets)
-    const status = await compareDeployedResources(
-      ctx as KubernetesPluginContext,
+    const status = await compareDeployedResources({
+      ctx: ctx as KubernetesPluginContext,
       api,
       namespace,
-      [deployment, service],
-      deployLog
-    )
+      manifests: [deployment, service],
+      log: deployLog,
+    })
 
     if (status.state === "ready") {
       // Need to wait a little to ensure the secret is updated in the deployment
@@ -348,7 +356,13 @@ export async function ensureUtilDeployment({
 
 export async function getManifestInspectArgs(remoteId: string, deploymentRegistry: ContainerRegistryConfig) {
   const dockerArgs = ["manifest", "inspect", remoteId]
-  if (isLocalHostname(deploymentRegistry.hostname)) {
+  const { hostname } = deploymentRegistry
+  // Allow insecure connections on local registry
+  if (
+    hostname === "localhost" ||
+    hostname.startsWith("127.") ||
+    hostname === "default-route-openshift-image-registry.apps-crc.testing"
+  ) {
     dockerArgs.push("--insecure")
   }
 
@@ -382,7 +396,7 @@ export async function ensureBuilderSecret({
   const secretName = `garden-docker-auth-${hash}`
   authSecret.metadata.name = secretName
 
-  const existingSecret = await api.readOrNull({ log, namespace, manifest: authSecret })
+  const existingSecret = await api.readBySpecOrNull({ log, namespace, manifest: authSecret })
 
   if (!existingSecret || authSecret.data?.[dockerAuthSecretKey] !== existingSecret.data?.[dockerAuthSecretKey]) {
     log.info(chalk.gray(`-> Updating Docker auth secret in namespace ${namespace}`))
@@ -391,10 +405,6 @@ export async function ensureBuilderSecret({
   }
 
   return { authSecret, updated }
-}
-
-function isLocalHostname(hostname: string) {
-  return hostname === "localhost" || hostname.startsWith("127.")
 }
 
 export function getUtilContainer(authSecretName: string, provider: KubernetesProvider): V1Container {
@@ -453,7 +463,7 @@ export function getUtilContainer(authSecretName: string, provider: KubernetesPro
         },
       },
     },
-    resources: stringifyResources(provider.config.resources.util),
+    resources: stringifyResources(provider.config?.resources?.util),
     securityContext: {
       runAsUser: 1000,
       runAsGroup: 1000,
@@ -471,6 +481,7 @@ export function getUtilManifests(
     builderToleration,
   ]
   const kanikoAnnotations = provider.config.kaniko?.util?.annotations || provider.config.kaniko?.annotations
+  const utilContainer = getUtilContainer(authSecretName, provider)
   const deployment: KubernetesDeployment = {
     apiVersion: "apps/v1",
     kind: "Deployment",
@@ -496,7 +507,7 @@ export function getUtilManifests(
           annotations: kanikoAnnotations,
         },
         spec: {
-          containers: [getUtilContainer(authSecretName, provider)],
+          containers: [utilContainer],
           imagePullSecrets,
           volumes: [
             {

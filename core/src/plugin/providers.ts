@@ -32,31 +32,32 @@ import { getDebugInfo, DebugInfo, GetDebugInfoParams } from "./handlers/Provider
 import { AugmentGraphResult, AugmentGraphParams, augmentGraph } from "./handlers/Provider/augmentGraph"
 import { GetDashboardPageParams, GetDashboardPageResult, getDashboardPage } from "./handlers/Provider/getDashboardPage"
 import { baseHandlerSchema } from "./handlers/base/base"
+import type { BaseProviderConfig } from "../config/provider"
 
-export type ProviderHandlers = {
-  [P in keyof ProviderActionParams]: ActionHandler<ProviderActionParams[P], ProviderActionOutputs[P]>
+export type ProviderHandlers<C extends BaseProviderConfig = any, O extends object = any> = {
+  [P in keyof ProviderActionParams]: ActionHandler<ProviderActionParams<C>[P], ProviderActionOutputs<C, O>[P]>
 }
 
 export type ProviderActionName = keyof ProviderHandlers
 
-export interface ProviderActionParams {
-  configureProvider: ConfigureProviderParams
-  augmentGraph: AugmentGraphParams
+export interface ProviderActionParams<C extends BaseProviderConfig = any> {
+  configureProvider: ConfigureProviderParams<C>
+  augmentGraph: AugmentGraphParams<C>
 
-  getEnvironmentStatus: GetEnvironmentStatusParams
-  prepareEnvironment: PrepareEnvironmentParams
-  cleanupEnvironment: CleanupEnvironmentParams
+  getEnvironmentStatus: GetEnvironmentStatusParams<C>
+  prepareEnvironment: PrepareEnvironmentParams<C>
+  cleanupEnvironment: CleanupEnvironmentParams<C>
 
-  getDashboardPage: GetDashboardPageParams
-  getDebugInfo: GetDebugInfoParams
+  getDashboardPage: GetDashboardPageParams<C>
+  getDebugInfo: GetDebugInfoParams<C>
 }
 
-export interface ProviderActionOutputs {
-  configureProvider: ConfigureProviderResult
+export interface ProviderActionOutputs<C extends BaseProviderConfig = any, O extends object = any> {
+  configureProvider: ConfigureProviderResult<C>
   augmentGraph: AugmentGraphResult
 
-  getEnvironmentStatus: EnvironmentStatus
-  prepareEnvironment: PrepareEnvironmentResult
+  getEnvironmentStatus: EnvironmentStatus<O>
+  prepareEnvironment: PrepareEnvironmentResult<O>
   cleanupEnvironment: CleanupEnvironmentResult
 
   getDashboardPage: GetDashboardPageResult

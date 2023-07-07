@@ -15,9 +15,10 @@ import { InternalError } from "../exceptions"
 import { validateWithPath } from "../config/validation"
 import { DeepPrimitiveMap } from "../config/common"
 import { merge } from "lodash"
-import { resolveVariables } from "../graph/common"
+import { mergeVariables } from "../graph/common"
 import { actionToResolved } from "../actions/helpers"
 import { ResolvedConfigGraph } from "../graph/config-graph"
+import { OtelTraced } from "../util/tracing/decorators"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -69,6 +70,17 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     })
   }
 
+  @OtelTraced({
+    name(_params) {
+      return this.action.key() + ".resolveAction"
+    },
+    getAttributes(_params) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   async process({
     dependencyResults,
   }: ActionTaskProcessParams<T, ResolveActionResults<T>>): Promise<ResolveActionResults<T>> {
@@ -118,13 +130,13 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       const group = this.graph.getGroup(groupName)
 
       groupVariables = resolveTemplateStrings(
-        await resolveVariables({ basePath: group.path, variables: group.variables, varfiles: group.varfiles }),
+        await mergeVariables({ basePath: group.path, variables: group.variables, varfiles: group.varfiles }),
         inputsContext
       )
     }
 
     const actionVariables = resolveTemplateStrings(
-      await resolveVariables({
+      await mergeVariables({
         basePath: action.basePath(),
         variables: config.variables,
         varfiles: config.varfiles,
@@ -214,6 +226,15 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     }
   }
 
+  @OtelTraced({
+    name: "validateAction",
+    getAttributes(_spec) {
+      return {
+        key: this.action.key(),
+        kind: this.action.kind,
+      }
+    },
+  })
   private async validateSpec<S>(spec: S) {
     const actionTypes = await this.garden.getActionTypes()
     const { kind, type } = this.action
@@ -222,7 +243,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     if (!actionType) {
       // This should be caught way earlier in normal usage, so it's an internal error
-      throw new InternalError(`Could not find type definition for ${description}.`, { kind, type })
+      throw new InternalError({ message: `Could not find type definition for ${description}.`, detail: { kind, type } })
     }
 
     const path = this.action.basePath()

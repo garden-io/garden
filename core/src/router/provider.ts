@@ -19,7 +19,7 @@ import { PluginActionParamsBase } from "../plugin/base"
 import {
   ProviderActionOutputs,
   ProviderActionParams,
-  GardenPlugin,
+  GardenPluginSpec,
   WrappedActionHandler,
   getProviderActionDescriptions,
   ResolvedActionHandlerDescriptions,
@@ -133,8 +133,6 @@ export class ProviderRouter extends BaseRouter {
       defaultHandler: async () => ({ status: { ready: true, outputs: {} } }),
     })
 
-    this.emitNamespaceEvents(res.status.namespaceStatuses)
-
     return res
   }
 
@@ -148,8 +146,6 @@ export class ProviderRouter extends BaseRouter {
       params: omit(params, ["pluginName"]),
       defaultHandler: async () => ({}),
     })
-
-    this.emitNamespaceEvents(res.namespaceStatuses)
 
     return res
   }
@@ -233,7 +229,7 @@ export class ProviderRouter extends BaseRouter {
   }
 
   private addPluginHandler<T extends keyof WrappedPluginHandlers>(
-    plugin: GardenPlugin,
+    plugin: GardenPluginSpec,
     handlerType: T,
     handler: ProviderHandlers[T]
   ) {
@@ -245,10 +241,13 @@ export class ProviderRouter extends BaseRouter {
       async (...args: any[]) => {
         const result = await handler.apply(plugin, args)
         if (result === undefined) {
-          throw new PluginError(`Got empty response from ${handlerType} handler on ${pluginName} provider`, {
-            args,
-            handlerType,
-            pluginName,
+          throw new PluginError({
+            message: `Got empty response from ${handlerType} handler on ${pluginName} provider`,
+            detail: {
+              args,
+              handlerType,
+              pluginName,
+            },
           })
         }
         return validateSchema(result, schema, { context: `${handlerType} output from plugin ${pluginName}` })
@@ -313,13 +312,17 @@ export class ProviderRouter extends BaseRouter {
     }
 
     if (pluginName) {
-      throw new PluginError(`Plugin '${pluginName}' does not have a '${handlerType}' handler.`, errorDetails)
+      throw new PluginError({
+        message: `Plugin '${pluginName}' does not have a '${handlerType}' handler.`,
+        detail: errorDetails,
+      })
     } else {
-      throw new ParameterError(
-        `No '${handlerType}' handler configured in environment '${this.garden.environmentName}'. ` +
+      throw new ParameterError({
+        message:
+          `No '${handlerType}' handler configured in environment '${this.garden.environmentName}'. ` +
           `Are you missing a provider configuration?`,
-        errorDetails
-      )
+        detail: errorDetails,
+      })
     }
   }
 }

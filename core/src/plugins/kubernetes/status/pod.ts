@@ -13,6 +13,7 @@ import { V1Pod, V1Status } from "@kubernetes/client-node"
 import { ResourceStatus } from "./status"
 import chalk from "chalk"
 import { DeployState, combineStates } from "../../../types/service"
+import stringify from "json-stringify-safe"
 
 export const POD_LOG_LINES = 30
 
@@ -96,12 +97,11 @@ export async function getPodLogs({
   }
 
   return Bluebird.map(podContainers, async (containerName) => {
-    let log = ""
-
     const follow = false
     const insecureSkipTLSVerify = false
     const pretty = undefined
 
+    let log: any
     try {
       log = await api.core.readNamespacedPodLog(
         pod.metadata!.name!,
@@ -148,7 +148,7 @@ export async function getPodLogs({
     }
 
     if (typeof log === "object") {
-      log = JSON.stringify(log)
+      log = stringify(log)
     }
 
     // the API returns undefined if no logs have been output, for some reason

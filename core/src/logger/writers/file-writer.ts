@@ -67,7 +67,10 @@ export class FileWriter extends Writer {
   static async factory(config: FileWriterConfig) {
     const { logFilePath, truncatePrevious } = config
     if (!isAbsolute(logFilePath)) {
-      throw new InternalError(`FileWriter expected absolute log file path, got ${logFilePath}`, { logFilePath })
+      throw new InternalError({
+        message: `FileWriter expected absolute log file path, got ${logFilePath}`,
+        detail: { logFilePath },
+      })
     }
     await ensureDir(dirname(logFilePath))
     if (truncatePrevious) {

@@ -7,11 +7,11 @@
  */
 
 import Joi from "@hapi/joi"
-import normalize = require("normalize-path")
+import normalize from "normalize-path"
 import { sortBy, pick } from "lodash"
 import { createHash } from "crypto"
 import { validateSchema } from "../config/validation"
-import { join, relative, isAbsolute } from "path"
+import { join, relative, isAbsolute, sep } from "path"
 import { DOCS_BASE_URL, GARDEN_VERSIONFILE_NAME as GARDEN_TREEVERSION_FILENAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
@@ -19,7 +19,7 @@ import { ExternalSourceType, getRemoteSourceLocalPath, getRemoteSourcesPath } fr
 import { ModuleConfig, serializeConfig } from "../config/module"
 import type { Log } from "../logger/log-entry"
 import { treeVersionSchema } from "../config/common"
-import { dedent } from "../util/string"
+import { dedent, splitLast } from "../util/string"
 import { fixedProjectExcludes } from "../util/fs"
 import { pathToCacheContext, TreeCache } from "../cache"
 import type { ServiceConfig } from "../config/service"
@@ -30,8 +30,9 @@ import { validateInstall } from "../util/validateInstall"
 import { isActionConfig } from "../actions/base"
 import type { BaseActionConfig } from "../actions/types"
 import { Garden } from "../garden"
-import chalk = require("chalk")
+import chalk from "chalk"
 import { Profile } from "../util/profiling"
+import Bluebird from "bluebird"
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
@@ -104,6 +105,14 @@ export interface GetFilesParams {
   exclude?: string[]
   filter?: (path: string) => boolean
   failOnPrompt?: boolean
+  scanRoot: string | undefined
+}
+
+export interface GetTreeVersionParams {
+  log: Log
+  projectName: string
+  config: ModuleConfig | BaseActionConfig
+  scanRoot?: string // Set the scanning root instead of detecting, in order to optimize the scanning.
 }
 
 export interface RemoteSourceParams {
@@ -133,7 +142,7 @@ export abstract class VcsHandler {
   protected projectRoot: string
   protected gardenDirPath: string
   protected ignoreFile: string
-  private cache: TreeCache
+  protected cache: TreeCache
 
   constructor(params: VcsHandlerParams) {
     this.garden = params.garden
@@ -146,25 +155,28 @@ export abstract class VcsHandler {
   abstract name: string
 
   abstract getRepoRoot(log: Log, path: string): Promise<string>
-
   abstract getFiles(params: GetFilesParams): Promise<VcsFile[]>
-
   abstract ensureRemoteSource(params: RemoteSourceParams): Promise<string>
-
   abstract updateRemoteSource(params: RemoteSourceParams): Promise<void>
-
   abstract getPathInfo(log: Log, path: string): Promise<VcsInfo>
 
   clearTreeCache() {
     this.cache.clear()
   }
 
-  async getTreeVersion(
-    log: Log,
-    projectName: string,
-    config: ModuleConfig | BaseActionConfig,
-    force = false
-  ): Promise<TreeVersion> {
+  async getTreeVersion({
+    log,
+    projectName,
+    config,
+    force = false,
+    scanRoot,
+  }: {
+    log: Log
+    projectName: string
+    config: ModuleConfig | BaseActionConfig
+    force?: boolean
+    scanRoot?: string
+  }): Promise<TreeVersion> {
     const cacheKey = getResourceTreeCacheKey(config)
     const description = describeConfig(config)
 
@@ -207,6 +219,7 @@ export abstract class VcsHandler {
           pathDescription: description + " root",
           include: config.include,
           exclude,
+          scanRoot,
         })
 
         if (files.length > fileCountWarningThreshold) {
@@ -225,7 +238,8 @@ export abstract class VcsHandler {
           // Don't include the config file in the file list
           .filter((f) => !configPath || f.path !== configPath)
 
-        result.contentHash = hashStrings(files.map((f) => f.hash))
+        // compute hash using <file-relative-path>-<file-hash> to cater for path changes (e.g. renaming)
+        result.contentHash = hashStrings(files.map((f) => `${relative(this.projectRoot, f.path)}-${f.hash}`))
         result.files = files.map((f) => f.path)
       }
 
@@ -235,11 +249,75 @@ export abstract class VcsHandler {
     return result
   }
 
-  async resolveTreeVersion(log: Log, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
+  /**
+   * Write a file and ensure relevant caches are invalidated after writing.
+   */
+  async writeFile(log: Log, path: string, data: string | Buffer) {
+    await writeFile(path, data)
+    this.cache.invalidateUp(log, pathToCacheContext(path))
+  }
+
+  async resolveTreeVersion(params: GetTreeVersionParams): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control
-    const versionFilePath = join(moduleConfig.path, GARDEN_TREEVERSION_FILENAME)
+    const path = getConfigBasePath(params.config)
+    const versionFilePath = join(path, GARDEN_TREEVERSION_FILENAME)
     const fileVersion = await readTreeVersionFile(versionFilePath)
-    return fileVersion || (await this.getTreeVersion(log, projectName, moduleConfig))
+    return fileVersion || (await this.getTreeVersion(params))
+  }
+
+  /**
+   * Returns a map of the optimal paths for each of the given action/module source path.
+   * This is used to avoid scanning more of each git repository than necessary, and
+   * reduces duplicate scanning of the same directories (since fewer unique roots mean
+   * more tree cache hits).
+   */
+  async getMinimalRoots(log: Log, paths: string[]) {
+    const repoRoots: { [path: string]: string } = {}
+    const outputs: { [path: string]: string } = {}
+    const rootsToPaths: { [repoRoot: string]: string[] } = {}
+
+    await Bluebird.map(paths, async (path) => {
+      const repoRoot = await this.getRepoRoot(log, path)
+      repoRoots[path] = repoRoot
+      if (rootsToPaths[repoRoot]) {
+        rootsToPaths[repoRoot].push(path)
+      } else {
+        rootsToPaths[repoRoot] = [path]
+      }
+    })
+
+    for (const path of paths) {
+      const repoRoot = repoRoots[path]
+      const repoPaths = rootsToPaths[repoRoot]
+
+      for (const repoPath of repoPaths) {
+        if (!outputs[path]) {
+          // No path set so far
+          outputs[path] = repoPath
+        } else if (outputs[path].startsWith(repoPath)) {
+          // New path is prefix of prior path
+          outputs[path] = repoPath
+        } else {
+          // Find common prefix
+          let p = repoPath
+
+          while (true) {
+            p = splitLast(p, sep)[0]
+            if (p.length < repoRoot.length) {
+              // Don't go past the actual git repo root
+              outputs[path] = repoRoot
+              break
+            } else if (outputs[path].startsWith(p)) {
+              // Found a common prefix
+              outputs[path] = p
+              break
+            }
+          }
+        }
+      }
+    }
+
+    return outputs
   }
 
   /**
@@ -272,10 +350,13 @@ async function readVersionFile(path: string, schema: Joi.Schema): Promise<any> {
   try {
     return validateSchema(JSON.parse(versionFileContents), schema)
   } catch (error) {
-    throw new ConfigurationError(`Unable to parse ${path} as valid version file`, {
-      path,
-      versionFileContents,
-      error,
+    throw new ConfigurationError({
+      message: `Unable to parse ${path} as valid version file`,
+      detail: {
+        path,
+        versionFileContents,
+        error,
+      },
     })
   }
 }

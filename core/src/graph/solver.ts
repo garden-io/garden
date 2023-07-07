@@ -17,7 +17,7 @@ import { groupBy, keyBy } from "lodash"
 import { GraphResult, GraphResults, resultToString, TaskEventBase } from "./results"
 import { gardenEnv } from "../constants"
 import type { Garden } from "../garden"
-import { GraphResultEventPayload, toGraphResultEventPayload } from "../events"
+import { GraphResultEventPayload } from "../events/events"
 import { renderDivider, renderDuration, renderMessageWithDivider } from "../logger/util"
 import { formatGardenErrorWithDetail } from "../exceptions"
 import chalk from "chalk"
@@ -128,7 +128,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
           // We only collect the requests tasks at the top level of the result object.
           // The solver cascades errors in dependencies. So if a dependency fails, we should still always get a
-          // taskComplete event for each requested task, even if an error occurs before getting to it.
+          // "complete" event for each requested task, even if an error occurs before getting to it.
           if (request === undefined) {
             return
           }
@@ -138,7 +138,12 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           results.setResult(request.task, result)
 
           if (throwOnError && result.error) {
-            cleanup({ error: new GraphError(`Failed to ${result.description}: ${result.error}`, { results }) })
+            cleanup({
+              error: new GraphError({
+                message: `Failed to ${result.description}: ${result.error}`,
+                detail: { results },
+              }),
+            })
             return
           }
 
@@ -167,7 +172,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
               msg += `\n ↳ ${r.description}: ${r?.error ? r.error.message : "[ABORTED]"}`
             }
 
-            error = new GraphError(msg, { results })
+            error = new GraphError({ message: msg, detail: { results } })
           }
 
           cleanup({ error: null })
@@ -361,30 +366,15 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
    * Processes a single task to completion, handling errors and providing its result to in-progress task batches.
    */
   private async processNode(node: TaskNode, startedAt: Date) {
-    // Errors thrown in this outer try block are caught in loop().
-    const task = node.task
-    const name = task.getName()
-    const type = task.type
-    const key = node.getKey()
-
     this.logTask(node)
 
     let result: GraphResult
 
     try {
-      this.garden.events.emit("taskProcessing", {
-        name,
-        type,
-        key,
-        startedAt: new Date().toISOString(),
-        inputVersion: node.getInputVersion(),
-      })
-
       const processResult = await node.execute()
       result = this.completeTask({ startedAt, error: null, result: processResult, node, aborted: false })
     } catch (error) {
       result = this.completeTask({ startedAt, error, result: null, node, aborted: false })
-      this.garden.events.emit("taskError", toGraphResultEventPayload(result))
       if (!node.task.interactive) {
         this.logTaskError(node, error)
       }
@@ -464,14 +454,8 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const result = node.complete(params)
     delete this.inProgress[node.getKey()]
 
-    const taskCompletePayload = toGraphResultEventPayload(result)
-    this.emit("taskComplete", taskCompletePayload)
-    this.garden.events.emit("taskComplete", taskCompletePayload)
-
     if (node.executionType === "request" && result.success && result.result?.state === "ready") {
       node.task.emit("ready", { result: <any>result.result })
-      this.emit("taskReady", result)
-      this.garden.events.emit("taskReady", result)
     }
     return result
   }
@@ -516,7 +500,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const msg = renderMessageWithDivider({
       prefix: errMessagePrefix,
       msg: errorMessage,
-      isError: true
+      isError: true,
     })
     log.error({ msg, error, showDuration: false })
     const divider = renderDivider()
@@ -537,8 +521,6 @@ interface SolverEvents {
     keys: string[]
     inProgress: string[]
   }
-  taskComplete: GraphResultEventPayload
-  taskReady: GraphResult
   taskStart: TaskStartEvent
   solveComplete: {
     error: Error | null

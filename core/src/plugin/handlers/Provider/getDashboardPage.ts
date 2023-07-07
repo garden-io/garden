@@ -10,6 +10,7 @@ import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { joi, joiIdentifier, joiArray, createSchema } from "../../../config/common"
 import { memoize } from "lodash"
+import type { BaseProviderConfig } from "../../../config/provider"
 
 export interface DashboardPage {
   name: string
@@ -47,7 +48,7 @@ export const dashboardPagesSchema = memoize(() =>
     .unique("name")
 )
 
-export interface GetDashboardPageParams extends PluginActionParamsBase {
+export interface GetDashboardPageParams<C extends BaseProviderConfig = any> extends PluginActionParamsBase<C> {
   page: DashboardPage
 }
 

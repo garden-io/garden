@@ -8,13 +8,13 @@
 
 import { expect } from "chai"
 
-import { TestGarden } from "../../../../../helpers"
+import { TestGarden, findNamespaceStatusEvent } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { getKubernetesTestGarden } from "./common"
-import { RunTask } from "../../../../../../src/tasks/run"
 import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
+import { TestTask } from "../../../../../../src/tasks/test"
 
-describe("kubernetes-type exec Run", () => {
+describe("kubernetes-type exec Test", () => {
   let garden: TestGarden
   let graph: ConfigGraph
 
@@ -26,10 +26,10 @@ describe("kubernetes-type exec Run", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
-  it("should run a basic Run", async () => {
-    const action = graph.getRun("echo-run-exec")
+  it("should run a basic Test", async () => {
+    const action = graph.getTest("echo-test-exec")
 
-    const testTask = new RunTask({
+    const testTask = new TestTask({
       garden,
       graph,
       action,
@@ -43,7 +43,9 @@ describe("kubernetes-type exec Run", () => {
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await clearRunResult({ ctx, log: garden.log, action })
 
+    garden.events.eventLog = []
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    expect(findNamespaceStatusEvent(garden.events.eventLog, "kubernetes-type-test-default")).to.exist
     const result = results.results.getResult(testTask)
 
     expect(result).to.exist

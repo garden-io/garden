@@ -88,9 +88,12 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       try {
         users = dotenv.parse(await readFile(fromFile))
       } catch (err) {
-        throw new CommandError(`Unable to read users from file at path ${fromFile}: ${err.message}`, {
-          args,
-          opts,
+        throw new CommandError({
+          message: `Unable to read users from file at path ${fromFile}: ${err.message}`,
+          detail: {
+            args,
+            opts,
+          },
         })
       }
     } else if (args.users) {
@@ -100,24 +103,27 @@ export class UsersCreateCommand extends Command<Args, Opts> {
           Object.assign(acc, user)
           return acc
         } catch (err) {
-          throw new CommandError(`Unable to read user from argument ${keyValPair}: ${err.message}`, {
-            args,
-            opts,
+          throw new CommandError({
+            message: `Unable to read user from argument ${keyValPair}: ${err.message}`,
+            detail: {
+              args,
+              opts,
+            },
           })
         }
       }, {})
     } else {
-      throw new CommandError(
-        dedent`
+      throw new CommandError({
+        message: dedent`
         No users provided. Either provide users directly to the command or via the --from-file flag.
       `,
-        { args, opts }
-      )
+        detail: { args, opts },
+      })
     }
 
     const api = garden.cloudApi
     if (!api) {
-      throw new ConfigurationError(noApiMsg("create", "users"), {})
+      throw new ConfigurationError({ message: noApiMsg("create", "users"), detail: {} })
     }
 
     const cmdLog = log.createLog({ name: "users-command" })

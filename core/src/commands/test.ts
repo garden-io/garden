@@ -205,9 +205,12 @@ export class TestCommand extends Command<Args, Opts> {
     )
 
     if (opts.interactive && tasks.length !== 1) {
-      throw new ParameterError(`The --interactive/-i option can only be used if a single test is selected.`, {
-        args,
-        opts,
+      throw new ParameterError({
+        message: `The --interactive/-i option can only be used if a single test is selected.`,
+        detail: {
+          args,
+          opts,
+        },
       })
     }
 

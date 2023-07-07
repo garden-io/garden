@@ -105,7 +105,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     const configDir = resolve(process.cwd(), opts.dir)
 
     if (!(await isDirectory(configDir))) {
-      throw new ParameterError(`${configDir} is not a directory`, { configDir })
+      throw new ParameterError({ message: `${configDir} is not a directory`, detail: { configDir } })
     }
 
     const configPath = join(configDir, opts.filename)
@@ -149,7 +149,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     }
 
     if (!type) {
-      throw new ParameterError(`Must specify --type if --interactive=false`, {})
+      throw new ParameterError({ message: `Must specify --type if --interactive=false`, detail: {} })
     }
 
     presetValues.kind = "Module"
@@ -160,23 +160,26 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       const configs = await loadConfigResources(log, configDir, configPath)
 
       if (configs.filter((c) => c.kind === "Module" && c.name === name).length > 0) {
-        throw new CreateError(
-          chalk.red(
+        throw new CreateError({
+          message: chalk.red(
             `A Garden module named ${chalk.white.bold(name)} already exists in ${chalk.white.bold(configPath)}`
           ),
-          {
+          detail: {
             configDir,
             configPath,
-          }
-        )
+          },
+        })
       }
     }
 
     const definition = allModuleTypes[type]
 
     if (!definition) {
-      throw new ParameterError(`Could not find module type ${chalk.white.bold(type)}`, {
-        availableTypes: Object.keys(allModuleTypes),
+      throw new ParameterError({
+        message: `Could not find module type ${chalk.white.bold(type)}`,
+        detail: {
+          availableTypes: Object.keys(allModuleTypes),
+        },
       })
     }
 

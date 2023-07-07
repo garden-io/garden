@@ -21,9 +21,12 @@ export function terraform(ctx: PluginContext, provider: TerraformProvider) {
     const cli = ctx.tools["terraform.terraform-" + version.replace(/\./g, "-")]
 
     if (!cli) {
-      throw new ConfigurationError(`Unsupported Terraform version: ${version}`, {
-        version,
-        supportedVersions,
+      throw new ConfigurationError({
+        message: `Unsupported Terraform version: ${version}`,
+        detail: {
+          version,
+          supportedVersions,
+        },
       })
     }
 
@@ -40,7 +43,10 @@ export class GlobalTerraform extends CliWrapper {
     try {
       return await which("terraform")
     } catch (err) {
-      throw new RuntimeError(`Terraform version is set to null, and terraform CLI could not be found on PATH`, {})
+      throw new RuntimeError({
+        message: `Terraform version is set to null, and terraform CLI could not be found on PATH`,
+        detail: {},
+      })
     }
   }
 }
@@ -307,7 +313,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
   },
 ]
 
-export const supportedVersions = terraformCliSpecs.map(s => s.version)
+export const supportedVersions = terraformCliSpecs.map((s) => s.version)
 
 // Default to latest Terraform version
 export const defaultTerraformVersion = "1.4.6"

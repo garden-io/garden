@@ -12,6 +12,7 @@ import { isEqual } from "lodash"
 import { validate as validateUuid } from "uuid"
 
 import { makeTestGardenA, TestGarden, enableAnalytics, getDataDir, makeTestGarden, freezeTime } from "../../../helpers"
+import { FakeCloudApi, apiProjectName, apiRemoteOriginUrl } from "../../../helpers/api"
 import { AnalyticsHandler, getAnonymousUserId } from "../../../../src/analytics/analytics"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
@@ -19,50 +20,16 @@ import {
   GardenApiVersion,
   gardenEnv,
 } from "../../../../src/constants"
-import { CloudApi } from "../../../../src/cloud/api"
-import { Log } from "../../../../src/logger/log-entry"
 import { LogLevel, RootLogger } from "../../../../src/logger/logger"
-import { AnalyticsGlobalConfig, GlobalConfigStore } from "../../../../src/config-store/global"
-import { ProjectResource } from "../../../../src/config/project"
+import { AnalyticsGlobalConfig } from "../../../../src/config-store/global"
 import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
 
-class FakeCloudApi extends CloudApi {
-  static async factory(params: { log: Log; projectConfig?: ProjectResource; skipLogging?: boolean }) {
-    return new FakeCloudApi({
-      log: params.log,
-      domain: "https://garden.io",
-      globalConfigStore: new GlobalConfigStore(),
-    })
-  }
-
-  async getProfile() {
-    return {
-      id: "1",
-      createdAt: new Date().toString(),
-      updatedAt: new Date().toString(),
-      name: "gordon",
-      vcsUsername: "gordon@garden.io",
-      serviceAccount: false,
-      organization: {
-        id: "1",
-        name: "garden",
-      },
-      cachedPermissions: {},
-      accessTokens: [],
-      groups: [],
-    }
-  }
-}
+const host = "https://api.segment.io"
+// The codenamize version + the sha512 hash of "test-project-a"
+const projectNameV2 = "discreet-sudden-struggle_95048f63dc14db38ed4138ffb6ff8999"
 
 describe("AnalyticsHandler", () => {
-  const remoteOriginUrl = "git@github.com:garden-io/garden.git"
-  const host = "https://api.segment.io"
   const scope = nock(host)
-  // The sha512 hash of "test-project-a"
-  const projectName =
-    "95048f63dc14db38ed4138ffb6ff89992abdc19b8c899099c52a94f8fcc0390eec6480385cfa5014f84c0a14d4984825ce3bf25db1386d2b5382b936899df675"
-  // The codenamize version + the sha512 hash of "test-project-a"
-  const projectNameV2 = "discreet-sudden-struggle_95048f63dc14db38ed4138ffb6ff8999"
 
   const time = new Date()
   const basicConfig: AnalyticsGlobalConfig = {
@@ -94,7 +61,7 @@ describe("AnalyticsHandler", () => {
   describe("factory", () => {
     beforeEach(async () => {
       garden = await makeTestGardenA()
-      garden.vcsInfo.originUrl = remoteOriginUrl
+      garden.vcsInfo.originUrl = apiRemoteOriginUrl
       await enableAnalytics(garden)
     })
 
@@ -279,7 +246,7 @@ describe("AnalyticsHandler", () => {
       })
       const cloudApi = await FakeCloudApi.factory({ log: logger.createLog() })
       garden = await makeTestGardenA(undefined, { cloudApi })
-      garden.vcsInfo.originUrl = remoteOriginUrl
+      garden.vcsInfo.originUrl = apiRemoteOriginUrl
       await enableAnalytics(garden)
     })
 
@@ -388,7 +355,7 @@ describe("AnalyticsHandler", () => {
   describe("trackCommand", () => {
     beforeEach(async () => {
       garden = await makeTestGardenA()
-      garden.vcsInfo.originUrl = remoteOriginUrl
+      garden.vcsInfo.originUrl = apiRemoteOriginUrl
       await enableAnalytics(garden)
     })
 
@@ -410,9 +377,9 @@ describe("AnalyticsHandler", () => {
         type: "Run Command",
         properties: {
           name: "testCommand",
-          projectId: AnalyticsHandler.hash(remoteOriginUrl),
-          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
-          projectName,
+          projectId: AnalyticsHandler.hash(apiRemoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(apiRemoteOriginUrl),
+          projectName: apiProjectName,
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
@@ -455,9 +422,9 @@ describe("AnalyticsHandler", () => {
         type: "Run Command",
         properties: {
           name: "testCommand",
-          projectId: AnalyticsHandler.hash(remoteOriginUrl),
-          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
-          projectName,
+          projectId: AnalyticsHandler.hash(apiRemoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(apiRemoteOriginUrl),
+          projectName: apiProjectName,
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
@@ -517,9 +484,9 @@ describe("AnalyticsHandler", () => {
         type: "Run Command",
         properties: {
           name: "testCommand",
-          projectId: AnalyticsHandler.hash(remoteOriginUrl),
-          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
-          projectName,
+          projectId: AnalyticsHandler.hash(apiRemoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(apiRemoteOriginUrl),
+          projectName: apiProjectName,
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
@@ -555,7 +522,7 @@ describe("AnalyticsHandler", () => {
 
       const root = getDataDir("test-projects", "login", "has-domain-and-id")
       garden = await makeTestGarden(root)
-      garden.vcsInfo.originUrl = remoteOriginUrl
+      garden.vcsInfo.originUrl = apiRemoteOriginUrl
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
@@ -567,8 +534,8 @@ describe("AnalyticsHandler", () => {
         type: "Run Command",
         properties: {
           name: "testCommand",
-          projectId: AnalyticsHandler.hash(remoteOriginUrl),
-          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
+          projectId: AnalyticsHandler.hash(apiRemoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(apiRemoteOriginUrl),
           projectName: AnalyticsHandler.hash("has-domain-and-id"),
           projectNameV2: AnalyticsHandler.hashV2("has-domain-and-id"),
           enterpriseDomain: AnalyticsHandler.hash("https://example.invalid"),
@@ -605,7 +572,7 @@ describe("AnalyticsHandler", () => {
 
       const root = getDataDir("test-projects", "login", "has-domain-and-id")
       garden = await makeTestGarden(root)
-      garden.vcsInfo.originUrl = remoteOriginUrl
+      garden.vcsInfo.originUrl = apiRemoteOriginUrl
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
@@ -617,8 +584,8 @@ describe("AnalyticsHandler", () => {
         type: "Run Command",
         properties: {
           name: "testCommand",
-          projectId: AnalyticsHandler.hash(remoteOriginUrl),
-          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
+          projectId: AnalyticsHandler.hash(apiRemoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(apiRemoteOriginUrl),
           projectName: AnalyticsHandler.hash("has-domain-and-id"),
           projectNameV2: AnalyticsHandler.hashV2("has-domain-and-id"),
           enterpriseDomain: AnalyticsHandler.hash("https://example.invalid"),
@@ -655,7 +622,7 @@ describe("AnalyticsHandler", () => {
 
       const root = getDataDir("test-projects", "config-templates")
       garden = await makeTestGarden(root)
-      garden.vcsInfo.originUrl = remoteOriginUrl
+      garden.vcsInfo.originUrl = apiRemoteOriginUrl
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
@@ -667,8 +634,8 @@ describe("AnalyticsHandler", () => {
         type: "Run Command",
         properties: {
           name: "testCommand",
-          projectId: AnalyticsHandler.hash(remoteOriginUrl),
-          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
+          projectId: AnalyticsHandler.hash(apiRemoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(apiRemoteOriginUrl),
           projectName: AnalyticsHandler.hash("config-templates"),
           projectNameV2: AnalyticsHandler.hashV2("config-templates"),
           enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
@@ -714,7 +681,7 @@ describe("AnalyticsHandler", () => {
 
     beforeEach(async () => {
       garden = await makeTestGardenA()
-      garden.vcsInfo.originUrl = remoteOriginUrl
+      garden.vcsInfo.originUrl = apiRemoteOriginUrl
       await enableAnalytics(garden)
     })
 

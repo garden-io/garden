@@ -47,7 +47,7 @@ import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs"
 import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } from "fs-extra"
 import { dedent, randomString } from "../../../src/util/string"
 import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util"
-import { safeDump } from "js-yaml"
+import { dump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs"
 import { ActionRouter } from "../../../src/router/router"
 import { convertExecModule } from "../../../src/plugins/exec/convert"
@@ -159,6 +159,7 @@ describe("Garden", () => {
         },
         "templated": {
           name: "templated",
+          dependencies: [],
           path: projectRoot,
         },
         "test-plugin": testPluginProvider.config,
@@ -208,6 +209,7 @@ describe("Garden", () => {
         },
         "templated": {
           name: "templated",
+          dependencies: [],
           path: garden.projectRoot,
         },
         "test-plugin": {
@@ -1711,7 +1713,7 @@ describe("Garden", () => {
     })
 
     it("should add plugin modules if returned by the provider", async () => {
-      const pluginModule: ModuleConfig = makeModuleConfig(`${projectRootA}/tmp`, {
+      const pluginModule: ModuleConfig = makeModuleConfig(projectRootA, {
         name: "foo",
         type: "exec",
       })
@@ -3497,7 +3499,7 @@ describe("Garden", () => {
           ],
         }
 
-        await writeFile(join(tmpRepo.path, "module-a.garden.yml"), safeDump(moduleConfig))
+        await writeFile(join(tmpRepo.path, "module-a.garden.yml"), dump(moduleConfig))
         await exec("git", ["add", "."], { cwd: tmpRepo.path })
         await exec("git", ["commit", "-m", "add module"], { cwd: tmpRepo.path })
 
@@ -3548,7 +3550,7 @@ describe("Garden", () => {
           ],
         }
 
-        await writeFile(join(tmpRepo.path, "module-a.garden.yml"), safeDump(moduleConfig))
+        await writeFile(join(tmpRepo.path, "module-a.garden.yml"), dump(moduleConfig))
         await exec("git", ["add", "."], { cwd: tmpRepo.path })
         await exec("git", ["commit", "-m", "add module"], { cwd: tmpRepo.path })
 
@@ -4482,7 +4484,11 @@ describe("Garden", () => {
       }
       garden.treeCache.set(garden.log, ["moduleVersions", config.name], version, getModuleCacheContext(config))
 
-      const result = await garden.resolveModuleVersion(garden.log, config, [])
+      const result = await garden.resolveModuleVersion({
+        log: garden.log,
+        moduleConfig: config,
+        moduleDependencies: [],
+      })
 
       expect(result).to.eql(version)
     })
@@ -4499,7 +4505,11 @@ describe("Garden", () => {
         files: [],
       })
 
-      const result = await garden.resolveModuleVersion(garden.log, config, [])
+      const result = await garden.resolveModuleVersion({
+        log: garden.log,
+        moduleConfig: config,
+        moduleDependencies: [],
+      })
 
       expect(result.versionString).not.to.eql(
         config.version.versionString,
@@ -4518,7 +4528,12 @@ describe("Garden", () => {
       }
       garden.treeCache.set(garden.log, ["moduleVersions", config.name], version, getModuleCacheContext(config))
 
-      const result = await garden.resolveModuleVersion(garden.log, config, [], true)
+      const result = await garden.resolveModuleVersion({
+        log: garden.log,
+        moduleConfig: config,
+        moduleDependencies: [],
+        force: true,
+      })
 
       expect(result).to.not.eql(version)
     })
@@ -4547,9 +4562,17 @@ describe("Garden", () => {
       it("should return module version if there are no dependencies", async () => {
         const module = await gardenA.resolveModule("module-a")
         gardenA.vcs = handlerA
-        const result = await gardenA.resolveModuleVersion(gardenA.log, module, [])
+        const result = await gardenA.resolveModuleVersion({
+          log: gardenA.log,
+          moduleConfig: module,
+          moduleDependencies: [],
+        })
 
-        const treeVersion = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, module)
+        const treeVersion = await handlerA.getTreeVersion({
+          log: gardenA.log,
+          projectName: gardenA.projectName,
+          config: module,
+        })
 
         expect(result.versionString).to.equal(getModuleVersionString(module, { ...treeVersion, name: "module-a" }, []))
       })
@@ -4590,7 +4613,11 @@ describe("Garden", () => {
         const treeVersionC: TreeVersion = { contentHash: versionStringC, files: [] }
         handlerA.setTestTreeVersion(moduleC.path, treeVersionC)
 
-        const gardenResolvedModuleVersion = await gardenA.resolveModuleVersion(gardenA.log, moduleC, [moduleA, moduleB])
+        const gardenResolvedModuleVersion = await gardenA.resolveModuleVersion({
+          log: gardenA.log,
+          moduleConfig: moduleC,
+          moduleDependencies: [moduleA, moduleB],
+        })
 
         expect(gardenResolvedModuleVersion.versionString).to.equal(
           getModuleVersionString(moduleC, { ...treeVersionC, name: "module-c" }, [
@@ -4606,15 +4633,15 @@ describe("Garden", () => {
 
       it("should not include module's garden.yml in version file list", async () => {
         const moduleConfig = await gardenA.resolveModule("module-a")
-        const version = await gardenA.resolveModuleVersion(gardenA.log, moduleConfig, [])
+        const version = await gardenA.resolveModuleVersion({ log: gardenA.log, moduleConfig, moduleDependencies: [] })
         expect(version.files).to.not.include(moduleConfig.configPath!)
       })
 
       it("should be affected by changes to the module's config", async () => {
         const moduleConfig = await gardenA.resolveModule("module-a")
-        const version1 = await gardenA.resolveModuleVersion(gardenA.log, moduleConfig, [])
+        const version1 = await gardenA.resolveModuleVersion({ log: gardenA.log, moduleConfig, moduleDependencies: [] })
         moduleConfig.name = "foo"
-        const version2 = await gardenA.resolveModuleVersion(gardenA.log, moduleConfig, [])
+        const version2 = await gardenA.resolveModuleVersion({ log: gardenA.log, moduleConfig, moduleDependencies: [] })
         expect(version1).to.not.eql(version2)
       })
 
@@ -4626,9 +4653,17 @@ describe("Garden", () => {
         const orgConfig = await readFile(configPath)
 
         try {
-          const version1 = await gardenA.resolveModuleVersion(garden.log, moduleConfigA1, [])
+          const version1 = await gardenA.resolveModuleVersion({
+            log: garden.log,
+            moduleConfig: moduleConfigA1,
+            moduleDependencies: [],
+          })
           await writeFile(configPath, orgConfig + "\n---")
-          const version2 = await gardenA.resolveModuleVersion(garden.log, moduleConfigA1, [])
+          const version2 = await gardenA.resolveModuleVersion({
+            log: garden.log,
+            moduleConfig: moduleConfigA1,
+            moduleDependencies: [],
+          })
           expect(version1).to.eql(version2)
         } finally {
           await writeFile(configPath, orgConfig)
@@ -4637,9 +4672,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-d3e58c6cb9"
-      const moduleBVersionString = "v-457bae4f58"
-      const moduleCVersionString = "v-12b5e981e0"
+      const moduleAVersionString = "v-e3eed855ed"
+      const moduleBVersionString = "v-cdfff6b4f2"
+      const moduleCVersionString = "v-9d2afce9e4"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")

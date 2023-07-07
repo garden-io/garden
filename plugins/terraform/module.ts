@@ -42,8 +42,11 @@ export const configureTerraformModule: ModuleActionHandlers<TerraformModule>["co
     const exists = await pathExists(absRoot)
 
     if (!exists) {
-      throw new ConfigurationError(`Terraform: configured working directory '${root}' does not exist`, {
-        moduleConfig,
+      throw new ConfigurationError({
+        message: `Terraform: configured working directory '${root}' does not exist`,
+        detail: {
+          moduleConfig,
+        },
       })
     }
   }

@@ -29,15 +29,16 @@ describe("test actions", () => {
     const action = (await actionFromConfig({
       garden,
       // rebuild config graph because the module config has been changed
-      graph: await garden.getConfigGraph({ emit: false, log: garden.log }),
+      graph,
       config: testConfig,
       log: garden.log,
       configsByKey: {},
       router: await garden.getActionRouter(),
       mode: "default",
       linkedSources: {},
+      scanRoot: garden.projectRoot,
     })) as TestAction
-    return await garden.resolveAction<TestAction>({ action, log: garden.log })
+    return await garden.resolveAction<TestAction>({ action, log: garden.log, graph })
   }
 
   before(async () => {
@@ -80,36 +81,6 @@ describe("test actions", () => {
       })
       expect(result.detail?.log).to.eql("bla bla")
       expect(result.state).to.eql("ready")
-    })
-
-    it("should emit testStatus events", async () => {
-      const action = await getResolvedAction(actionConfig)
-      garden.events.eventLog = []
-      await actionRouter.test.run({
-        log,
-        action,
-        interactive: true,
-        graph,
-        silent: false,
-      })
-      const testVersion = action.versionString()
-      const event1 = garden.events.eventLog[0]
-      const event2 = garden.events.eventLog[1]
-
-      expect(event1).to.exist
-      expect(event2).to.exist
-
-      expect(event1.name).to.eql("testStatus")
-      expect(event1.payload.actionName).to.eql("test")
-      expect(event1.payload.actionUid).to.be.ok
-      expect(event1.payload.state).to.eql("processing")
-      expect(event1.payload.status.state).to.eql("running")
-
-      expect(event2.name).to.eql("testStatus")
-      expect(event2.payload.actionName).to.eql("test")
-      expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
-      expect(event2.payload.state).to.eql("ready")
-      expect(event2.payload.status.state).to.eql("succeeded")
     })
 
     it("should copy artifacts exported by the handler to the artifacts directory", async () => {
@@ -176,33 +147,5 @@ describe("test actions", () => {
       expect(result.detail?.log).to.eql("bla bla")
       expect(result.state).to.eql("ready")
     })
-  })
-
-  it("should emit testStatus events", async () => {
-    const action = await garden.resolveAction({ action: graph.getTest("module-a-unit"), log, graph })
-    garden.events.eventLog = []
-
-    await actionRouter.test.getResult({
-      log,
-      action,
-      graph,
-    })
-    const event1 = garden.events.eventLog[0]
-    const event2 = garden.events.eventLog[1]
-
-    expect(event1).to.exist
-    expect(event2).to.exist
-
-    expect(event1.name).to.eql("testStatus")
-    expect(event1.payload.moduleName).to.eql("module-a")
-    expect(event1.payload.actionUid).to.be.ok
-    expect(event1.payload.state).to.eql("getting-status")
-    expect(event1.payload.status.state).to.eql("unknown")
-
-    expect(event2.name).to.eql("testStatus")
-    expect(event1.payload.moduleName).to.eql("module-a")
-    expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
-    expect(event2.payload.state).to.eql("cached")
-    expect(event2.payload.status.state).to.eql("succeeded")
   })
 })

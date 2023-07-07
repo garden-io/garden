@@ -8,7 +8,7 @@
 
 import tmp from "tmp-promise"
 import { expect } from "chai"
-import { createProjectConfig, makeTempDir, TestGarden } from "../../../helpers"
+import { createProjectConfig, freezeTime, makeTempDir, TestGarden } from "../../../helpers"
 import { ProjectConfig } from "../../../../src/config/project"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { RunTask } from "../../../../src/tasks/run"
@@ -118,6 +118,153 @@ describe("RunTask", () => {
 
       // Expect the same log from the second run
       expect(logA).to.eql(logB)
+    })
+
+    it("should emit runStatus events", async () => {
+      const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
+      garden.setActionConfigs([
+        {
+          name: "test",
+          type: "test",
+          kind: "Run",
+          dependencies: [],
+          disabled: false,
+          timeout: 10,
+          internal: {
+            basePath: "./",
+          },
+          spec: {
+            command: ["echo", "this is a test lalala kumiko"],
+          },
+        },
+      ])
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const action = graph.getRun("test")
+
+      const runTask = new RunTask({
+        garden,
+        log: garden.log,
+        graph,
+        action,
+        force: true,
+        forceBuild: false,
+      })
+
+      const now = freezeTime().toISOString()
+      await garden.processTasks({ tasks: [runTask], throwOnError: true })
+
+      const runStatusEvents = garden.events.eventLog.filter((e) => e.name === "runStatus")
+      const actionVersion = runStatusEvents[0].payload.actionVersion
+      const actionUid = runStatusEvents[0].payload.actionUid
+
+      expect(runStatusEvents).to.eql([
+        {
+          name: "runStatus",
+          payload: {
+            actionName: "test",
+            actionVersion,
+            actionType: "run",
+            actionKind: "run",
+            actionUid,
+            moduleName: null,
+            startedAt: now,
+            force: true,
+            operation: "getStatus",
+            state: "getting-status",
+            sessionId: garden.sessionId,
+            status: { state: "unknown" },
+          },
+        },
+        {
+          name: "runStatus",
+          payload: {
+            actionName: "test",
+            actionVersion,
+            actionType: "run",
+            actionKind: "run",
+            actionUid,
+            moduleName: null,
+            startedAt: now,
+            completedAt: now,
+            force: true,
+            operation: "getStatus",
+            state: "not-ready",
+            sessionId: garden.sessionId,
+            status: { state: "unknown" },
+          },
+        },
+        {
+          name: "runStatus",
+          payload: {
+            actionName: "test",
+            actionVersion,
+            actionType: "run",
+            actionKind: "run",
+            actionUid,
+            moduleName: null,
+            force: true,
+            operation: "process",
+            startedAt: now,
+            state: "processing", // <--- Force is set to true so we run even if the previous status is cached
+            sessionId: garden.sessionId,
+            status: { state: "running" },
+          },
+        },
+        {
+          name: "runStatus",
+          payload: {
+            actionName: "test",
+            actionVersion,
+            actionType: "run",
+            actionKind: "run",
+            actionUid,
+            moduleName: null,
+            force: true,
+            operation: "process",
+            startedAt: now,
+            completedAt: now,
+            state: "ready",
+            sessionId: garden.sessionId,
+            status: { state: "succeeded" },
+          },
+        },
+      ])
+    })
+    it("should NOT emit runStatus events if statusOnly=true", async () => {
+      const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
+      garden.setActionConfigs([
+        {
+          name: "test",
+          type: "test",
+          kind: "Run",
+          dependencies: [],
+          disabled: false,
+          timeout: 10,
+          internal: {
+            basePath: "./",
+          },
+          spec: {
+            command: ["echo", "this is a test lalala kumiko"],
+          },
+        },
+      ])
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const action = graph.getRun("test")
+
+      const runTask = new RunTask({
+        garden,
+        log: garden.log,
+        graph,
+        action,
+        force: true,
+        forceBuild: false,
+      })
+
+      await garden.processTasks({ tasks: [runTask], throwOnError: true, statusOnly: true })
+
+      const runStatusEvents = garden.events.eventLog.filter((e) => e.name === "runStatus")
+
+      expect(runStatusEvents).to.eql([])
     })
   })
 })

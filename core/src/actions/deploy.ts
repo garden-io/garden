@@ -33,21 +33,27 @@ export const deployActionConfigSchema = memoize(() =>
   })
 )
 
-export class DeployAction<S extends DeployActionConfig = any, O extends {} = any> extends RuntimeAction<S, O> {
+export class DeployAction<
+  C extends DeployActionConfig = any,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Deploy"
 }
 
-export class ResolvedDeployAction<S extends DeployActionConfig = any, O extends {} = any> extends ResolvedRuntimeAction<
-  S,
-  O
-> {
+export class ResolvedDeployAction<
+  C extends DeployActionConfig = any,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Deploy"
 }
 
-export class ExecutedDeployAction<S extends DeployActionConfig = any, O extends {} = any> extends ExecutedRuntimeAction<
-  S,
-  O
-> {
+export class ExecutedDeployAction<
+  C extends DeployActionConfig = any,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any
+> extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Deploy"
 }
 

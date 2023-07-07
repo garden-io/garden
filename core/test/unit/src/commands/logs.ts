@@ -11,7 +11,7 @@ import { expect } from "chai"
 import { Garden } from "../../../../src"
 import { LogsCommand } from "../../../../src/commands/logs"
 import { ProjectConfig } from "../../../../src/config/project"
-import { GardenPlugin } from "../../../../src/plugin/plugin"
+import { GardenPluginSpec } from "../../../../src/plugin/plugin"
 import { TestGarden } from "../../../../src/util/testing"
 import {
   createProjectConfig,
@@ -26,11 +26,12 @@ import chalk from "chalk"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { LogLevel } from "../../../../src/logger/logger"
 import { DeployLogEntry } from "../../../../src/types/service"
-import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 import { GetDeployLogs } from "../../../../src/plugin/handlers/Deploy/get-logs"
 import { BaseActionConfig } from "../../../../src/actions/types"
 import { LogMonitor, logMonitorColors } from "../../../../src/monitors/logs"
 import stripAnsi from "strip-ansi"
+import { execDeploySpecSchema } from "../../../../src/plugins/exec/deploy"
+import { joi } from "../../../../src/config/common"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 
@@ -69,7 +70,7 @@ const makeDeployAction = (basePath: string, name: string): BaseActionConfig => (
   },
 })
 
-async function makeGarden({ tmpDir, plugin }: { tmpDir: tmp.DirectoryResult; plugin: GardenPlugin }) {
+async function makeGarden({ tmpDir, plugin }: { tmpDir: tmp.DirectoryResult; plugin: GardenPluginSpec }) {
   const config: ProjectConfig = createProjectConfig({
     path: tmpDir.path,
     providers: [{ name: "test" }],
@@ -117,7 +118,7 @@ describe("LogsCommand", () => {
           {
             name: "test",
             docs: "Test Deploy action",
-            schema: execDeployActionSchema(),
+            schema: joi.object().zodSchema(execDeploySpecSchema),
             handlers: {
               getLogs: logsHandler,
             },

@@ -6,19 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
-import { getLogLevelChoices, LoggerBase, LogLevel, ServerLogger, VoidLogger } from "../logger/logger"
+import type Joi from "@hapi/joi"
+import { getLogLevelChoices, LogLevel } from "../logger/logger"
 import stringArgv from "string-argv"
 import { Command, CommandParams, CommandResult, ConsoleCommand } from "../commands/base"
 import { createSchema, joi } from "../config/common"
-import type { Log } from "../logger/log-entry"
+import { type Log } from "../logger/log-entry"
 import { ParameterValues, ChoicesParameter, StringParameter, StringsParameter, GlobalOptions } from "../cli/params"
 import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
 import type { AutocompleteSuggestion } from "../cli/autocomplete"
 import { naturalList } from "../util/string"
 import { isMatch } from "micromatch"
 import type { GardenInstanceManager } from "./instance-manager"
-import { deepFilter } from "../util/objects"
 import { isDirectory } from "../util/fs"
 import { pathExists } from "fs-extra"
 import type { ProjectResource } from "../config/project"
@@ -27,12 +26,19 @@ import type { GlobalConfigStore } from "../config-store/global"
 import type { ParsedArgs } from "minimist"
 import type { ServeCommand } from "../commands/serve"
 import { uuidv4 } from "../util/random"
-import { StatusCommandResult } from "../commands/get/get-status"
-import { omit } from "lodash"
-import { sanitizeValue } from "../util/logging"
+import type { GetSyncStatusResult } from "../plugin/handlers/Deploy/get-sync-status"
 import { getSyncStatuses } from "../commands/sync/sync-status"
-import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
-import { GetSyncStatusResult } from "../plugin/handlers/Deploy/get-sync-status"
+import Bluebird from "bluebird"
+import { ActionStatusPayload } from "../events/action-status-events"
+import { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status"
+import { DeployStatusForEventPayload } from "../types/service"
+import { RunStatusForEventPayload } from "../plugin/plugin"
+import {
+  getBuildStatusPayloads,
+  getDeployStatusPayloads,
+  getRunStatusPayloads,
+  getTestStatusPayloads,
+} from "../actions/helpers"
 
 export interface CommandMap {
   [key: string]: {
@@ -202,12 +208,10 @@ export class HideCommand extends ConsoleCommand<HideArgs> {
 }
 
 interface GetDeployStatusCommandResult {
-  result: {
-    actions: {
-      [actionName: string]: {
-        deployStatus: DeployStatus
-        syncStatus: GetSyncStatusResult
-      }
+  actions: {
+    [actionName: string]: {
+      deployStatus: ActionStatusPayload<DeployStatusForEventPayload>
+      syncStatus: GetSyncStatusResult
     }
   }
 }
@@ -217,6 +221,7 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
   help = "[Internal] Outputs a map of actions with their corresponding deploy and sync statuses."
   hidden = true
 
+  enableAnalytics = false
   streamEvents = false
 
   outputsSchema = () => joi.object()
@@ -225,16 +230,7 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
     const deployActions = graph.getDeploys({ includeDisabled: false }).sort((a, b) => (a.name > b.name ? 1 : -1))
-
-    const deployStatusesRaw = await router.getDeployStatuses({ log, graph })
-
-    const deployStatuses = Object.entries(deployStatusesRaw).reduce((acc, val) => {
-      const [name, status] = val
-      const statusWithOutDetail = omit(status, "detail.detail")
-      acc[name] = statusWithOutDetail
-
-      return acc
-    }, {} as StatusCommandResult["actions"]["Deploy"])
+    const deployStatuses = await getDeployStatusPayloads({ router, graph, log, sessionId: garden.sessionId })
 
     const commandLog = log.createLog({ fixLevel: LogLevel.silly })
     const syncStatuses = await getSyncStatuses({ garden, graph, deployActions, log: commandLog, skipDetail: true })
@@ -245,13 +241,43 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
         syncStatus: syncStatuses[val.name],
       }
       return acc
-    }, {} as { [key: string]: { deployStatus: DeployStatus; syncStatus: GetSyncStatusResult } })
+    }, {} as { [key: string]: { deployStatus: ActionStatusPayload<DeployStatusForEventPayload>; syncStatus: GetSyncStatusResult } })
 
-    const result = { actions }
+    return { result: { actions } }
+  }
+}
 
-    const sanitized = sanitizeValue(deepFilter(result, (_, key) => key !== "executedAction"))
+interface GetActionStatusesCommandResult {
+  actions: {
+    build: Record<string, ActionStatusPayload<BuildStatusForEventPayload>>
+    deploy: Record<string, ActionStatusPayload<DeployStatusForEventPayload>>
+    run: Record<string, ActionStatusPayload<RunStatusForEventPayload>>
+    test: Record<string, ActionStatusPayload<RunStatusForEventPayload>>
+  }
+}
 
-    return { result: sanitized }
+export class _GetActionStatusesCommand extends ConsoleCommand {
+  name = "_get-action-statuses"
+  help = "[Internal/Experimental] Retuns a map of all actions statuses."
+  hidden = true
+
+  streamEvents = false
+
+  outputsSchema = () => joi.object()
+
+  async action({ garden, log }: CommandParams): Promise<CommandResult<GetActionStatusesCommandResult>> {
+    const router = await garden.getActionRouter()
+    const graph = await garden.getResolvedConfigGraph({ log, emit: true })
+    const sessionId = garden.sessionId
+
+    const actions = await Bluebird.props({
+      build: getBuildStatusPayloads({ router, graph, log, sessionId }),
+      deploy: getDeployStatusPayloads({ router, graph, log, sessionId }),
+      test: getTestStatusPayloads({ router, graph, log, sessionId }),
+      run: getRunStatusPayloads({ router, graph, log, sessionId }),
+    })
+
+    return { result: { actions } }
   }
 }
 
@@ -396,13 +422,7 @@ export async function resolveRequest({
     }
   }
 
-  let serverLogger: LoggerBase
-  if (internal) {
-    // TODO: Consider using a logger that logs at the silly level but doesn't emit anything.
-    serverLogger = new VoidLogger({ level: LogLevel.info })
-  } else {
-    serverLogger = command?.getServerLogger() || new ServerLogger({ rootLogger: log.root, level: log.root.level })
-  }
+  const serverLogger = command?.getServerLogger() || log.root
 
   const cmdLog = serverLogger.createLog({})
 

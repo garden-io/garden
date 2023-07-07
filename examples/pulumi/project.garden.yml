@@ -9,4 +9,3 @@ providers:
   - name: pulumi
     environments: [local]
     orgName: ${var.pulumiAppOrg}
-    version: 3.40.0 # <--- currently pinned to older version because of https://github.com/pulumi/pulumi/issues/11444

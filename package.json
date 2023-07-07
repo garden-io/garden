@@ -5,7 +5,7 @@
     "type": "git",
     "url": "git+https://github.com/garden-io/garden.git"
   },
-  "version": "0.13.2",
+  "version": "0.13.6",
   "author": "Garden Technologies, Inc. <info@garden.io>",
   "license": "MPL-2.0",
   "homepage": "https://github.com/garden-io/garden",
@@ -15,8 +15,8 @@
   },
   "private": true,
   "devDependencies": {
-    "@commitlint/cli": "^8.3.5",
-    "@commitlint/config-conventional": "^8.3.4",
+    "@commitlint/cli": "^17.6.5",
+    "@commitlint/config-conventional": "^17.6.5",
     "@google-cloud/kms": "^1.6.3",
     "@types/bluebird": "^3.5.32",
     "@types/fs-extra": "^9.0.1",
@@ -53,7 +53,7 @@
     "npm-license-crawler": "^0.2.1",
     "prettier": "3.0.0",
     "replace-in-file": "^6.0.0",
-    "semver": "^7.3.2",
+    "semver": "^7.5.2",
     "shx": "^0.3.2",
     "strip-ansi": "^6.0.0",
     "treeify": "^1.1.0",

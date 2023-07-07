@@ -29,7 +29,7 @@ import {
   defaultDeploymentStrategy,
   defaultDockerfileName,
 } from "../../../../../src/plugins/container/moduleConfig"
-import { ExecBuildConfig } from "../../../../../src/plugins/exec/config"
+import { ExecBuildConfig } from "../../../../../src/plugins/exec/build"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
@@ -238,7 +238,14 @@ describe("plugins.container", () => {
 
   describe("version calculations", () => {
     async function getTestModule(moduleConfig: ContainerModuleConfig) {
-      return moduleFromConfig({ garden, log, config: moduleConfig, buildDependencies: [], forceVersion: true })
+      return moduleFromConfig({
+        garden,
+        log,
+        config: moduleConfig,
+        buildDependencies: [],
+        forceVersion: true,
+        scanRoot: garden.projectRoot,
+      })
     }
 
     it("has same build version if nothing is changed", async () => {
