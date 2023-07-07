@@ -45,7 +45,7 @@ describe("kubernetes-type exec Test", () => {
 
     garden.events.eventLog = []
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
-    expect(findNamespaceStatusEvent(garden.events.eventLog, "kubernetes-module-test-default")).to.exist
+    expect(findNamespaceStatusEvent(garden.events.eventLog, "kubernetes-type-test-default")).to.exist
     const result = results.results.getResult(testTask)
 
     expect(result).to.exist
