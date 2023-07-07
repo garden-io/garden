@@ -12,7 +12,7 @@ import { actionConfigsToGraph } from "../../../../src/graph/actions"
 import { ModuleGraph } from "../../../../src/graph/modules"
 import { Log } from "../../../../src/logger/log-entry"
 import { dumpYaml } from "../../../../src/util/serialization"
-import { expectError, makeTempGarden, TempDirectory, TestGarden } from "../../../helpers"
+import { createProjectConfig, expectError, makeTempGarden, TempDirectory, TestGarden } from "../../../helpers"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_DEPLOY_TIMEOUT_SEC,
@@ -543,6 +543,71 @@ describe("actionConfigsToGraph", () => {
     const vars = action["variables"]
 
     expect(vars).to.eql({ foo: "FOO", bar: "BAR", baz: "baz" })
+  })
+
+  it("correctly merges varfile with variables when some variables are overridden with --var cli flag", async () => {
+    const dummyGardenInstance = await makeTempGarden({
+      config: createProjectConfig({
+        name: "test",
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+      }),
+      variableOverrides: { "foo": "NEW_FOO", "nested.key1": "NEW_KEY_1_VALUE" },
+    })
+
+    let tmpDir = dummyGardenInstance.tmpDir
+    let garden = dummyGardenInstance.garden
+    let log = garden.log
+
+    try {
+      const varfilePath = join(tmpDir.path, "varfile.yml")
+      await dumpYaml(varfilePath, {
+        foo: "FOO",
+        bar: "BAR",
+        nested: {
+          key1: "SOME_VALUE",
+        },
+      })
+
+      const graph = await actionConfigsToGraph({
+        garden,
+        log,
+        groupConfigs: [],
+        configs: [
+          {
+            kind: "Build",
+            type: "test",
+            name: "foo",
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+            variables: {
+              foo: "foo",
+              baz: "baz",
+            },
+            varfiles: [varfilePath],
+            internal: {
+              basePath: tmpDir.path,
+            },
+            spec: {},
+          },
+        ],
+        moduleGraph: new ModuleGraph([], {}),
+        actionModes: {},
+        linkedSources: {},
+      })
+
+      const action = graph.getBuild("foo")
+      const vars = action["variables"]
+
+      expect(vars).to.eql({
+        foo: "NEW_FOO",
+        bar: "BAR",
+        baz: "baz",
+        nested: {
+          key1: "NEW_KEY_1_VALUE",
+        },
+      })
+    } finally {
+      await tmpDir.cleanup()
+    }
   })
 
   it("sets sync mode correctly if explicitly set in actionModes", async () => {
