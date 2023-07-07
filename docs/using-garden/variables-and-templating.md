@@ -457,7 +457,7 @@ name: my-deploy
 # than those in the `variables` field below).
 #
 # If a varfile is defined but not found, an error is thrown in order to prevent misconfigurations silently passing.
-varfiles: 
+varfiles:
   - my-service.${environment.name}.yaml
 variables:
   # This overrides the project-level hostname variable
@@ -492,11 +492,12 @@ The default varfile format will change to YAML in Garden v0.14, since YAML allow
 In the meantime, to use YAML or JSON files, you must explicitly set the varfile name(s) in your project configuration, via the [`varfile`](../reference/project-config.md#varfile) and/or [`environments[].varfile`](../reference/project-config.md#environmentsvarfile) fields.
 {% endhint %}
 
-You can also set variables on the command line, with `--var` flags. Note that while this is handy for ad-hoc invocations, we don't generally recommend relying on this for normal operations, since you lose a bit of visibility within your configuration. But here's one practical example:
+You can also set variables on the command line, with `--var` flags. To override a nested variable, you can use dot notation. Note that while this is handy for ad-hoc invocations, we don't generally recommend relying on this for normal operations, since you lose a bit of visibility within your configuration. But here's one practical example:
 
 ```sh
-# Override two specific variables value and run a task
-garden run my-run --var my-run-arg=foo,some-numeric-var=123
+# Override three specific variables value and run a task.
+# Use dot notation to override nested variables
+garden run my-run --var my-run-arg=foo,some-numeric-var=123,my-nested-vars.var1=bar
 ```
 
 Multiple variables are separated with a comma, and each part is parsed using [dotenv](https://github.com/motdotla/dotenv#rules) syntax.

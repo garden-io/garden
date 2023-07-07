@@ -12,7 +12,7 @@ import { ensureDir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve } from "path"
-import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
+import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy, set } from "lodash"
 import AsyncLock from "async-lock"
 
 import { TreeCache } from "./cache"
@@ -1923,7 +1923,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
     // Allow overriding variables
     const variableOverrides = opts.variableOverrides || {}
-    variables = { ...variables, ...variableOverrides }
+    variables = overrideVariables(variables, variableOverrides)
 
     // Update the log context
     log.context.gardenKey = getGardenInstanceKey({ environmentName, namespace, projectRoot, variableOverrides })
@@ -1994,6 +1994,20 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     }
   })
 })
+
+// Override variables, also allows to override nested variables using dot notation
+function overrideVariables(variables: DeepPrimitiveMap, overrideVariables: DeepPrimitiveMap): DeepPrimitiveMap {
+  let objNew = cloneDeep(variables)
+  Object.keys(overrideVariables).forEach((key) => {
+    if (objNew.hasOwnProperty(key)) {
+      // if the original key itself is a string with a dot, then override that
+      objNew[key] = overrideVariables[key]
+    } else {
+      set(objNew, key, overrideVariables[key])
+    }
+  })
+  return objNew
+}
 
 /**
  * Dummy Garden class that doesn't scan for modules nor resolves providers.
