@@ -284,7 +284,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
 
   if (config.exclude?.includes("**/*")) {
-    if (config.include?.length !== 0) {
+    if (config.include && config.include.length !== 0) {
       throw new ConfigurationError({
         message: deline`Action ${config.kind}.${config.name} (defined at ${configPath})
         tries to include files but excludes all files via "**/*".
