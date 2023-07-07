@@ -39,7 +39,7 @@ import type { GroupConfig } from "../config/group"
 import { ActionConfigContext } from "../config/template-contexts/actions"
 import { validateWithPath } from "../config/validation"
 import { ConfigurationError, InternalError, PluginError, ValidationError } from "../exceptions"
-import type { Garden } from "../garden"
+import { overrideVariables, type Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
 import type { ActionTypeDefinition } from "../plugin/action-types"
 import { getActionTypeBases } from "../plugins"
@@ -299,11 +299,16 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     config.internal.treeVersion ||
     (await garden.vcs.getTreeVersion({ log, projectName: garden.projectName, config, scanRoot }))
 
-  const variables = await mergeVariables({
+  let variables = await mergeVariables({
     basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: config.varfiles,
   })
+
+  // override the variables if there's any matching variables in variable overrides
+  // passed via --var cli flag. variables passed via --var cli flag have highest precedence
+  const variableOverrides = garden.variableOverrides || {}
+  variables = overrideVariables(variables ?? {}, variableOverrides)
 
   const params: ActionWrapperParams<any> = {
     baseBuildDirectory: garden.buildStaging.buildDirPath,
