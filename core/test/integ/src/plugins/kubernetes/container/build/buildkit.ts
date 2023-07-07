@@ -14,7 +14,10 @@ import {
 } from "../../../../../../../src/plugins/kubernetes/config"
 import { Garden } from "../../../../../../../src"
 import { PluginContext } from "../../../../../../../src/plugin-context"
-import { buildkitBuildHandler, ensureBuildkit } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
+import {
+  buildkitBuildHandler,
+  ensureBuildkit,
+} from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api"
 import { getNamespaceStatus } from "../../../../../../../src/plugins/kubernetes/namespace"
 import { expect } from "chai"
@@ -105,7 +108,7 @@ grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
       let namespaceStatus: NamespaceStatus | null = null
-      ctx.events.once("namespaceStatus", (status) => namespaceStatus = status)
+      ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
       await buildkitBuildHandler({
         ctx,
         log: actionLog,

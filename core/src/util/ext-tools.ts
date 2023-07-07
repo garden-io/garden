@@ -136,12 +136,12 @@ export class CliWrapper {
     streamLogs({
       proc,
       name: this.name,
-      ctx
+      ctx,
     })
 
     await waitForProcess({
       proc,
-      errorPrefix
+      errorPrefix,
     })
   }
 

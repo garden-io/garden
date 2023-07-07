@@ -51,7 +51,7 @@ export class ReconfigurableExporter implements SpanExporter {
     } else {
       this.pendingSpans.push({
         spans,
-        resultCallback
+        resultCallback,
       })
     }
   }
@@ -106,14 +106,18 @@ export class ReconfigurableExporter implements SpanExporter {
     }
 
     if (this.forceFlushRequested && this.targetExporter.forceFlush) {
-      this.targetExporter.forceFlush().then(() => {
-        this.forceFlushDeferred?.resolve()
-      }).catch((err) => {
-        this.forceFlushDeferred?.reject(err)
-      }).finally(() => {
-        this.forceFlushRequested = false
-        this.forceFlushDeferred = undefined
-      })
+      this.targetExporter
+        .forceFlush()
+        .then(() => {
+          this.forceFlushDeferred?.resolve()
+        })
+        .catch((err) => {
+          this.forceFlushDeferred?.reject(err)
+        })
+        .finally(() => {
+          this.forceFlushRequested = false
+          this.forceFlushDeferred = undefined
+        })
     }
 
     if (this.shutdownRequested) {
