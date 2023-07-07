@@ -15,7 +15,7 @@ import type { GenericProviderConfig } from "../../../config/provider"
 
 export interface PrepareEnvironmentParams<
   C extends GenericProviderConfig = any,
-  T extends EnvironmentStatus = EnvironmentStatus
+  T extends EnvironmentStatus = EnvironmentStatus,
 > extends PluginActionParamsBase<C> {
   status: T
   force: boolean

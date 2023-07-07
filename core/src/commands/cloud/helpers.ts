@@ -172,8 +172,8 @@ export function applyFilter(filter: string[], val?: string | string[]) {
 export async function confirmDelete(resource: string, count: number) {
   const msg = chalk.yellow(dedent`
     Warning: you are about to delete ${count} ${
-    count === 1 ? resource : pluralize(resource)
-  }. This operation cannot be undone.
+      count === 1 ? resource : pluralize(resource)
+    }. This operation cannot be undone.
     Are you sure you want to continue? (run the command with the "--yes" flag to skip this check).
   `)
 

@@ -112,7 +112,7 @@ export type ActionState = (typeof actionStateTypes)[number]
 export interface ActionStatus<
   T extends BaseAction = BaseAction,
   D extends {} = any,
-  O extends {} = GetActionOutputType<T>
+  O extends {} = GetActionOutputType<T>,
 > extends ValidResultType {
   state: ActionState
   detail: D | null
@@ -176,13 +176,13 @@ export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs e
 
 export type ResolvedActionWrapperParams<
   C extends BaseActionConfig,
-  StaticOutputs extends {} = any
+  StaticOutputs extends {} = any,
 > = ActionWrapperParams<C> & ResolveActionParams<C, StaticOutputs>
 
 export interface ExecuteActionParams<
   C extends BaseActionConfig = BaseActionConfig,
   StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any
+  RuntimeOutputs extends {} = any,
 > {
   status: ActionStatus<BaseAction<C, StaticOutputs>, any, RuntimeOutputs>
 }
@@ -190,7 +190,7 @@ export interface ExecuteActionParams<
 export type ExecutedActionWrapperParams<
   C extends BaseActionConfig,
   StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any
+  RuntimeOutputs extends {} = any,
 > = ResolvedActionWrapperParams<C, StaticOutputs> & ExecuteActionParams<C, StaticOutputs, RuntimeOutputs>
 
 export type GetActionOutputType<T> = T extends BaseAction<any, infer O> ? O : any
@@ -243,4 +243,3 @@ export type GetOutputValueType<K, StaticOutputs, RuntimeOutputs> = K extends key
   : K extends keyof RuntimeOutputs
   ? RuntimeOutputs[K] | undefined
   : never
-

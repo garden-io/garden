@@ -1,7 +1,7 @@
-import * as pulumi from "@pulumi/pulumi";
-import * as k8s from "@pulumi/kubernetes";
+import * as pulumi from "@pulumi/pulumi"
+import * as k8s from "@pulumi/kubernetes"
 
-const config = new pulumi.Config();
+const config = new pulumi.Config()
 
 const name = config.require("namespace")
 

@@ -339,7 +339,10 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     })
 
     // Execute
-    this.setKeyHandler("return", bindActiveContext(() => this.handleReturn()))
+    this.setKeyHandler(
+      "return",
+      bindActiveContext(() => this.handleReturn())
+    )
 
     // Autocomplete
     this.setKeyHandler("tab", () => {
@@ -730,15 +733,17 @@ ${chalk.white.underline("Keys:")}
               return
             }
 
-            garden = await wrapActiveSpan("getGardenForRequest", () => this.manager.getGardenForRequest({
-              command,
-              projectConfig,
-              globalConfigStore: this.globalConfigStore,
-              log: this.log,
-              args,
-              opts,
-              sessionId,
-            }))
+            garden = await wrapActiveSpan("getGardenForRequest", () =>
+              this.manager.getGardenForRequest({
+                command,
+                projectConfig,
+                globalConfigStore: this.globalConfigStore,
+                log: this.log,
+                args,
+                opts,
+                sessionId,
+              })
+            )
           } catch (error) {
             this.flashError(getCmdFailMsg(name))
             this.log.error({ error })

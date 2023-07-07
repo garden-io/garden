@@ -187,15 +187,8 @@ export const gardenPlugin = () =>
             build: async (params) => {
               const { ctx, log, action } = params
               const spec = action.getSpec() as JibBuildActionSpec
-              const {
-                jdkVersion,
-                jdkPath,
-                mavenPhases,
-                mavenPath,
-                mavendPath,
-                concurrentMavenBuilds,
-                gradlePath,
-              } = spec
+              const { jdkVersion, jdkPath, mavenPhases, mavenPath, mavendPath, concurrentMavenBuilds, gradlePath } =
+                spec
 
               let openJdkPath: string
               if (!!jdkPath) {

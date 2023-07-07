@@ -12,7 +12,7 @@ async function convert(path: string) {
   const rl = jsonl.readlines(absPath)
 
   while (true) {
-    const { value, done } = <any>(await rl.next())
+    const { value, done } = <any>await rl.next()
     if (done) {
       break
     }

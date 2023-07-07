@@ -27,13 +27,8 @@ import {
 } from "../../../../src/constants"
 
 export async function getRouterTestData() {
-  const {
-    basePlugin,
-    dateUsedForCompleted,
-    returnWrongOutputsCfgKey,
-    testPluginA,
-    testPluginB,
-  } = getRouterUnitTestPlugins()
+  const { basePlugin, dateUsedForCompleted, returnWrongOutputsCfgKey, testPluginA, testPluginB } =
+    getRouterUnitTestPlugins()
   const garden = await makeTestGarden(projectRootA, {
     plugins: [basePlugin, testPluginA, testPluginB],
     config: createProjectConfig({

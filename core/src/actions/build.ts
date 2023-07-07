@@ -149,7 +149,7 @@ export const buildActionConfigSchema = createSchema({
 export class BuildAction<
   C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
   StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any
+  RuntimeOutputs extends {} = any,
 > extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Build"
 
@@ -188,7 +188,7 @@ export class BuildAction<
 export class ResolvedBuildAction<
     C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
     StaticOutputs extends {} = any,
-    RuntimeOutputs extends {} = any
+    RuntimeOutputs extends {} = any,
   >
   extends BuildAction<C, StaticOutputs, RuntimeOutputs>
   implements ResolvedActionExtension<C, StaticOutputs, RuntimeOutputs>
@@ -243,7 +243,7 @@ export class ResolvedBuildAction<
 export class ExecutedBuildAction<
     C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
     StaticOutputs extends {} = any,
-    RuntimeOutputs extends {} = any
+    RuntimeOutputs extends {} = any,
   >
   extends ResolvedBuildAction<C, StaticOutputs, RuntimeOutputs>
   implements ExecutedActionExtension<C, StaticOutputs, RuntimeOutputs>

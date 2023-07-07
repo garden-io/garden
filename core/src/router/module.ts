@@ -55,7 +55,10 @@ export class ModuleRouter extends BaseRouter {
   private readonly moduleHandlers: ModuleActionMap
   private readonly moduleHandlerDescriptions: ResolvedActionHandlerDescriptions
 
-  constructor(params: BaseRouterParams, private readonly moduleTypes: { [name: string]: ModuleTypeDefinition }) {
+  constructor(
+    params: BaseRouterParams,
+    private readonly moduleTypes: { [name: string]: ModuleTypeDefinition }
+  ) {
     super(params)
 
     const moduleHandlerNames = getModuleHandlerNames()

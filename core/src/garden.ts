@@ -1091,8 +1091,8 @@ export class Garden {
             throw new PluginError({
               message: deline`
                 Provider '${provider.name}' added a dependency by action '${actionReferenceToString(
-                dependency.by
-              )}' on '${actionReferenceToString(dependency.on)}'
+                  dependency.by
+                )}' on '${actionReferenceToString(dependency.on)}'
                 but action '${actionReferenceToString(dependency[key])}' could not be found.
               `,
               detail: { provider, dependency },

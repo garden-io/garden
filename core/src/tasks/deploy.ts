@@ -73,7 +73,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       }
     },
   })
-  @emitGetStatusEvents<DeployAction>
+  @(emitGetStatusEvents<DeployAction>)
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<DeployAction>) {
     const log = this.log.createLog()
     const action = this.getResolvedAction(this.action, dependencyResults)
@@ -121,7 +121,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       }
     },
   })
-  @emitProcessingEvents<DeployAction>
+  @(emitProcessingEvents<DeployAction>)
   async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const version = action.versionString()

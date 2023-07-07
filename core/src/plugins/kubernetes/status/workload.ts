@@ -83,8 +83,8 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
       logs +=
         chalk.gray(dedent`
       <Showing last ${POD_LOG_LINES} lines per pod in this ${
-          workload.kind
-        }. Run the following command for complete logs>
+        workload.kind
+      }. Run the following command for complete logs>
       $ kubectl -n ${namespace} --context=${api.context} logs ${workload.kind.toLowerCase()}/${workload.metadata.name}
       `) +
         "\n" +

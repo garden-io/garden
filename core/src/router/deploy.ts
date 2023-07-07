@@ -74,7 +74,6 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         },
       })
 
-
       log.success(`Done`)
 
       return output

@@ -414,8 +414,7 @@ export const gardenPlugin = () =>
           {
             platform: "darwin",
             architecture: "amd64",
-            url:
-              "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Darwin_x86_64.tar.gz",
+            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Darwin_x86_64.tar.gz",
             sha256: "1c97f0e43fab99c94593696d362fc1e00e8e80bd0321729412de51d83ecbfb73",
             extract: {
               format: "tar",
@@ -425,8 +424,7 @@ export const gardenPlugin = () =>
           {
             platform: "linux",
             architecture: "amd64",
-            url:
-              "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Linux_x86_64.tar.gz",
+            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Linux_x86_64.tar.gz",
             sha256: "d18c95a4b04e87bfd59e06cc980801d2df5dabb371b495506ef03f70a0a40624",
             extract: {
               format: "tar",

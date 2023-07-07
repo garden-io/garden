@@ -33,7 +33,12 @@ export class AuthRedirectServer {
   private enterpriseDomain: string
   private events: EventEmitter2
 
-  constructor(enterpriseDomain: string, events: EventEmitter2, log: Log, public port?: number) {
+  constructor(
+    enterpriseDomain: string,
+    events: EventEmitter2,
+    log: Log,
+    public port?: number
+  ) {
     this.enterpriseDomain = enterpriseDomain
     this.events = events
     this.log = log.createLog({})

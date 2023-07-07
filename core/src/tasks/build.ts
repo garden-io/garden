@@ -7,7 +7,13 @@
  */
 
 import chalk from "chalk"
-import { ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask, emitGetStatusEvents, emitProcessingEvents } from "../tasks/base"
+import {
+  ActionTaskProcessParams,
+  ActionTaskStatusParams,
+  ExecuteActionTask,
+  emitGetStatusEvents,
+  emitProcessingEvents,
+} from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { BuildAction, BuildActionConfig, ResolvedBuildAction } from "../actions/build"
 import pluralize from "pluralize"
@@ -38,7 +44,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       }
     },
   })
-  @emitGetStatusEvents<BuildAction>
+  @(emitGetStatusEvents<BuildAction>)
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
@@ -65,7 +71,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       }
     },
   })
-  @emitProcessingEvents<BuildAction>
+  @(emitProcessingEvents<BuildAction>)
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, BuildStatus>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
@@ -80,11 +86,13 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     await this.buildStaging(action)
 
     try {
-      const { result } = await wrapActiveSpan("build", () => router.build.build({
-        graph: this.graph,
-        action,
-        log,
-      }))
+      const { result } = await wrapActiveSpan("build", () =>
+        router.build.build({
+          graph: this.graph,
+          action,
+          log,
+        })
+      )
       log.success(`Done`)
 
       return {
@@ -116,7 +124,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
 
     await wrapActiveSpan("syncSources", async (span) => {
       span.setAttributes({
-        "garden.filesSynced": files.length
+        "garden.filesSynced": files.length,
       })
       await this.garden.buildStaging.syncFromSrc({
         action,

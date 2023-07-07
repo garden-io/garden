@@ -204,7 +204,10 @@ export class GardenWatch {
   public currentTestStepIdx: number
   public running: boolean
 
-  constructor(public dir: string, public command: string[]) {
+  constructor(
+    public dir: string,
+    public command: string[]
+  ) {
     this.logEntries = []
     this.checkIntervalMs = DEFAULT_CHECK_INTERVAL_MS
   }

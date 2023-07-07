@@ -127,13 +127,16 @@ export class GetStatusCommand extends Command {
     // will be replaced by a top-level "garden status" command. For that one we'll probably wan to pass the
     // --skip-detail flag to the plugin handlers.
     if (opts["skip-detail"]) {
-      const deployActions = Object.entries(result.actions["Deploy"]).reduce((acc, val) => {
-        const [name, status] = val
-        const statusWithOutDetail = omit(status, "detail.detail")
-        acc[name] = statusWithOutDetail
+      const deployActions = Object.entries(result.actions["Deploy"]).reduce(
+        (acc, val) => {
+          const [name, status] = val
+          const statusWithOutDetail = omit(status, "detail.detail")
+          acc[name] = statusWithOutDetail
 
-        return acc
-      }, {} as StatusCommandResult["actions"]["Deploy"])
+          return acc
+        },
+        {} as StatusCommandResult["actions"]["Deploy"]
+      )
       result["actions"]["Deploy"] = deployActions
     }
 

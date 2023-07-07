@@ -157,7 +157,7 @@ export class GardenSdkPlugin {
 export class GardenSdkProvider<
   Base extends GardenSdkProvider<any, any, any> | undefined,
   ProviderConfigType extends BaseProviderConfig,
-  ProviderOutputsType extends {}
+  ProviderOutputsType extends {},
 > {
   _configType: ProviderConfigType
   _outputsType: ProviderOutputsType
@@ -197,7 +197,7 @@ export class GardenSdkProvider<
     K extends ActionKind,
     SpecSchema extends ObjectBaseZod,
     StaticOutputsSchema extends ObjectBaseZod,
-    RuntimeOutputsSchema extends ObjectBaseZod
+    RuntimeOutputsSchema extends ObjectBaseZod,
   >(params: {
     kind: K
     name: string
@@ -229,7 +229,7 @@ type GetActionType<
   K extends ActionKind,
   SpecType extends {},
   StaticOutputsType extends {},
-  RuntimeOutputsType extends {}
+  RuntimeOutputsType extends {},
 > = K extends "Build"
   ? BuildAction<BuildActionConfig<any, SpecType>, StaticOutputsType, RuntimeOutputsType>
   : K extends "Deploy"
@@ -255,7 +255,7 @@ export class GardenSdkActionDefinition<
   Kind extends ActionKind,
   SpecType extends {},
   StaticOutputsType extends {},
-  RuntimeOutputsType extends {}
+  RuntimeOutputsType extends {},
 > {
   T: {
     Action: GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>
@@ -278,7 +278,7 @@ export class GardenSdkActionDefinition<
   addHandler<
     HandlerType extends keyof GetActionTypeDescriptions<
       GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>
-    >
+    >,
   >(
     type: HandlerType,
     handler: ActionTypeHandler<
@@ -303,7 +303,7 @@ export class GardenSdkActionDefinition<
 function createProvider<
   Base extends GardenSdkProvider<any, any, any> | undefined,
   C extends ObjectBaseZod,
-  O extends ObjectBaseZod
+  O extends ObjectBaseZod,
 >(plugin: GardenSdkPlugin, configSchema: C, outputsSchema: O, base?: Base) {
   // Make sure base provider config properties are not overridden
   const baseKeys = Object.keys(baseProviderConfigSchemaZod.shape)
@@ -340,7 +340,7 @@ function createActionType<
   K extends ActionKind,
   SpecSchema extends ObjectBaseZod,
   StaticOutputsSchema extends ObjectBaseZod,
-  RuntimeOutputsSchema extends ObjectBaseZod
+  RuntimeOutputsSchema extends ObjectBaseZod,
 >({
   provider,
   kind,

@@ -141,8 +141,12 @@ export function renderMessageWithDivider({
   msg,
   isError,
   color,
-}
-  : { prefix: string; msg: string; isError: boolean; color?: Chalk }) {
+}: {
+  prefix: string
+  msg: string
+  isError: boolean
+  color?: Chalk
+}) {
   // Allow overwriting color as an escape hatch. Otherwise defaults to white or red in case of errors.
   const msgColor = color || (isError ? chalk.red : chalk.white)
   return dedent`

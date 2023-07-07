@@ -20,7 +20,11 @@ export abstract class BaseKeyDescription<T = any> {
   required: boolean
   example?: T
 
-  constructor(public name: string | undefined, public level: number, public parent?: BaseKeyDescription) {
+  constructor(
+    public name: string | undefined,
+    public level: number,
+    public parent?: BaseKeyDescription
+  ) {
     this.name = name
     this.level = level
     this.parent = parent

@@ -194,7 +194,11 @@ export class KubeApi {
   public policy: WrappedApi<PolicyV1beta1Api>
   public rbac: WrappedApi<RbacAuthorizationV1Api>
 
-  constructor(public log: Log, public context: string, private config: KubeConfig) {
+  constructor(
+    public log: Log,
+    public context: string,
+    private config: KubeConfig
+  ) {
     const cluster = this.config.getCurrentCluster()
 
     if (!cluster) {

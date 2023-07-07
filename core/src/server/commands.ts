@@ -235,13 +235,21 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
     const commandLog = log.createLog({ fixLevel: LogLevel.silly })
     const syncStatuses = await getSyncStatuses({ garden, graph, deployActions, log: commandLog, skipDetail: true })
 
-    const actions = deployActions.reduce((acc, val) => {
-      acc[val.name] = {
-        deployStatus: deployStatuses[val.name],
-        syncStatus: syncStatuses[val.name],
+    const actions = deployActions.reduce(
+      (acc, val) => {
+        acc[val.name] = {
+          deployStatus: deployStatuses[val.name],
+          syncStatus: syncStatuses[val.name],
+        }
+        return acc
+      },
+      {} as {
+        [key: string]: {
+          deployStatus: ActionStatusPayload<DeployStatusForEventPayload>
+          syncStatus: GetSyncStatusResult
+        }
       }
-      return acc
-    }, {} as { [key: string]: { deployStatus: ActionStatusPayload<DeployStatusForEventPayload>; syncStatus: GetSyncStatusResult } })
+    )
 
     return { result: { actions } }
   }

@@ -50,7 +50,7 @@ export interface GardenModule<
   S extends {} = any,
   T extends {} = any,
   W extends {} = any,
-  O extends {} = any
+  O extends {} = any,
 > extends ModuleConfig<M, S, T, W> {
   buildPath: string
   needsBuild: boolean

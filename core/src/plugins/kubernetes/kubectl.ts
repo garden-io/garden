@@ -231,7 +231,10 @@ export function kubectl(ctx: PluginContext, provider: KubernetesProvider) {
 }
 
 class Kubectl extends PluginTool {
-  constructor(spec: PluginToolSpec, private provider: KubernetesProvider) {
+  constructor(
+    spec: PluginToolSpec,
+    private provider: KubernetesProvider
+  ) {
     super(spec)
   }
 

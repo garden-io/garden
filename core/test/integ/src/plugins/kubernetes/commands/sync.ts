@@ -43,7 +43,7 @@ describe("sync plugin commands", () => {
   const init = async (environmentName: string) => {
     // we use noTempDir here because the tests may fail otherwise locally
     // This has something to do with with the project being in a temp directory.
-    garden = await getContainerTestGarden(environmentName, { noTempDir: true})
+    garden = await getContainerTestGarden(environmentName, { noTempDir: true })
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,

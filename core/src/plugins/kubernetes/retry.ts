@@ -33,7 +33,12 @@ export type RetryOpts = { maxRetries?: number; minTimeoutMs?: number; forceRetry
  * The rationale here is that some errors occur because of network issues, intermittent timeouts etc.
  * and should be retried automatically.
  */
-export async function requestWithRetry<R>(log: Log, description: string, req: () => Promise<R>, opts?: RetryOpts): Promise<R> {
+export async function requestWithRetry<R>(
+  log: Log,
+  description: string,
+  req: () => Promise<R>,
+  opts?: RetryOpts
+): Promise<R> {
   const maxRetries = opts?.maxRetries ?? 5
   const minTimeoutMs = opts?.minTimeoutMs ?? 500
   const forceRetry = opts?.forceRetry ?? false

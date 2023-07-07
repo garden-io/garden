@@ -359,7 +359,7 @@ describe("kubernetes-type handlers", () => {
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
       let namespaceStatus: NamespaceStatus | null = null
-      ctx.events.once("namespaceStatus", (status) => namespaceStatus = status)
+      ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
       const status = await kubernetesDeploy(deployParams)
       expect(status.state).to.eql("ready")
       expect(namespaceStatus).to.exist

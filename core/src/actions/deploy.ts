@@ -36,7 +36,7 @@ export const deployActionConfigSchema = memoize(() =>
 export class DeployAction<
   C extends DeployActionConfig = any,
   StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any
+  RuntimeOutputs extends {} = any,
 > extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Deploy"
 }
@@ -44,7 +44,7 @@ export class DeployAction<
 export class ResolvedDeployAction<
   C extends DeployActionConfig = any,
   StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any
+  RuntimeOutputs extends {} = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Deploy"
 }
@@ -52,7 +52,7 @@ export class ResolvedDeployAction<
 export class ExecutedDeployAction<
   C extends DeployActionConfig = any,
   StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any
+  RuntimeOutputs extends {} = any,
 > extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   kind: "Deploy"
 }
