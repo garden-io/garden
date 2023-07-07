@@ -819,10 +819,12 @@ describe("cli", () => {
       cli.addCommand(command)
 
       const { result } = await cli.run({
-        args: ["test-command-var", "--var", 'key-a=value-a,key-b="value with quotes"'],
+        args: ["test-command-var", "--var", 'key-a=value-a,key-b="value with quotes",key-c.key-d=nested-value'],
         exitOnError: false,
       })
-      expect(result).to.eql({ variables: { "key-a": "value-a", "key-b": "value with quotes" } })
+      expect(result).to.eql({
+        variables: { "key-a": "value-a", "key-b": "value with quotes", "key-c": { "key-d": "nested-value" } },
+      })
     })
 
     it("should output JSON if --output=json", async () => {
