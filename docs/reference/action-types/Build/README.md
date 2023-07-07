@@ -5,6 +5,6 @@ title: Build
 
 # Build Actions
 
-  * [`exec`](./exec.md)
   * [`container`](./container.md)
   * [`jib-container`](./jib-container.md)
+  * [`exec`](./exec.md)
