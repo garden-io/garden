@@ -8,7 +8,7 @@
 
 import unixify = require("unixify")
 import klaw = require("klaw")
-import glob from "glob"
+import { glob } from "glob"
 import tmp from "tmp-promise"
 import { pathExists, readFile, writeFile, lstat, realpath, Stats } from "fs-extra"
 import { join, basename, win32, posix } from "path"
@@ -225,18 +225,9 @@ export function joinWithPosix(basePath: string, posixRelPath: string = "") {
 /**
  * Return a list of all files in directory at `path`
  */
-export async function listDirectory(path: string, { recursive = true } = {}): Promise<string[]> {
+export async function listDirectory(path: string, { recursive = true } = {}) {
   const pattern = recursive ? "**/*" : "*"
-
-  return new Promise((resolve, reject) => {
-    glob(pattern, { cwd: path, dot: true }, (err, files) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve(files)
-      }
-    })
-  })
+  return glob(pattern, { cwd: path, dot: true })
 }
 
 let _micromatch: typeof Micromatch

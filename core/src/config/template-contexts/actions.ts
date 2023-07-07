@@ -274,15 +274,8 @@ export class ActionSpecContext extends OutputConfigContext {
   public this: ActionReferenceContext
 
   constructor(params: ActionSpecContextParams) {
-    const {
-      action,
-      garden,
-      partialRuntimeResolution,
-      variables,
-      inputs,
-      resolvedDependencies,
-      executedDependencies,
-    } = params
+    const { action, garden, partialRuntimeResolution, variables, inputs, resolvedDependencies, executedDependencies } =
+      params
 
     const internal = action.getInternal()
 
