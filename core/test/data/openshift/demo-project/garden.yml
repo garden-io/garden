@@ -4,7 +4,7 @@ name: demo-project
 environments:
   - name: local
 providers:
-  - name: local-openshift
+  - name: openshift
     environments: [local]
     # NOTE: shorthand `namespace: demo-project` fails because we use `namespace.name` in code
     namespace:

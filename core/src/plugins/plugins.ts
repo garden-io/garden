@@ -14,7 +14,6 @@ export const getSupportedPlugins = () => [
   { name: "kubernetes", callback: () => require("./kubernetes/kubernetes").gardenPlugin() },
   { name: "local-kubernetes", callback: () => require("./kubernetes/local/local").gardenPlugin() },
   { name: "openshift", callback: () => require("./openshift/openshift").gardenPlugin() },
-  { name: "local-openshift", callback: () => require("./openshift/local/local").gardenPlugin() },
   { name: "octant", callback: () => require("./octant/octant").gardenPlugin() },
 ]
 
