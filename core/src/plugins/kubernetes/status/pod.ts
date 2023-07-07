@@ -97,12 +97,11 @@ export async function getPodLogs({
   }
 
   return Bluebird.map(podContainers, async (containerName) => {
-    let log = ""
-
     const follow = false
     const insecureSkipTLSVerify = false
     const pretty = undefined
 
+    let log: any
     try {
       log = await api.core.readNamespacedPodLog(
         pod.metadata!.name!,
