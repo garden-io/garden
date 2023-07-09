@@ -333,6 +333,8 @@ export class _ShellCommand extends ConsoleCommand<ShellCommandArgs> {
       cwd,
       stdout: outputStream,
       stderr: outputStream,
+      env: { ...process.env },
+      shell: true,
     })
 
     return { result: {} }
