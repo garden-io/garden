@@ -6,7 +6,7 @@ class GardenCli < Formula
   sha256 "{{sha256}}"
 
   def install
-    libexec.install "garden", "fsevents.node", "static", "better_sqlite3.node"
+    libexec.install "garden", "fsevents.node", "static", "pty.node"
     bin.install_symlink libexec/"garden"
   end
 
