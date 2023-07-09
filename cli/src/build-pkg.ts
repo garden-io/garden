@@ -13,17 +13,18 @@ import Bluebird from "bluebird"
 import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants"
 import { remove, mkdirp, copy, writeFile } from "fs-extra"
 import { exec, getPackageVersion, sleep } from "@garden-io/core/build/src/util/util"
-import { randomString } from "@garden-io/core/build/src/util/string"
+import { dedent, randomString } from "@garden-io/core/build/src/util/string"
 import { pick } from "lodash"
 import minimist from "minimist"
 import { createHash } from "crypto"
 import { createReadStream } from "fs"
+import { makeTempDir } from "@garden-io/core/build/test/helpers"
 
 require("source-map-support").install()
 
 const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
-const tmpDir = resolve(repoRoot, "tmp", "pkg")
-const tmpStaticDir = resolve(tmpDir, "static")
+const tmpDirPath = resolve(repoRoot, "tmp", "pkg")
+const tmpStaticDir = resolve(tmpDirPath, "static")
 const pkgPath = resolve(repoRoot, "cli", "node_modules", ".bin", "pkg")
 const distPath = resolve(repoRoot, "dist")
 
@@ -77,13 +78,13 @@ async function buildBinaries(args: string[]) {
   console.log(chalk.cyan("Building targets: ") + Object.keys(selected).join(", "))
 
   // (re)-create temp dir
-  console.log(chalk.cyan("Creating temp directory at " + tmpDir))
-  await remove(tmpDir)
-  await mkdirp(tmpDir)
+  console.log(chalk.cyan("Creating temp directory at " + tmpDirPath))
+  await remove(tmpDirPath)
+  await mkdirp(tmpDirPath)
 
   // Copy static dir, stripping out undesired files for the dist build
   console.log(chalk.cyan("Copying static directory"))
-  await exec("rsync", ["-r", "-L", "--exclude=.garden", "--exclude=.git", STATIC_DIR, tmpDir])
+  await exec("rsync", ["-r", "-L", "--exclude=.garden", "--exclude=.git", STATIC_DIR, tmpDirPath])
   await exec("git", ["init"], { cwd: tmpStaticDir })
 
   // Copy each package to the temp dir
@@ -94,7 +95,7 @@ async function buildBinaries(args: string[]) {
   console.log(chalk.cyan("Copying packages"))
   await Bluebird.map(Object.entries(workspaces), async ([name, info]: [string, any]) => {
     const sourcePath = resolve(repoRoot, info.location)
-    const targetPath = resolve(tmpDir, info.location)
+    const targetPath = resolve(tmpDirPath, info.location)
     await remove(targetPath)
     await mkdirp(targetPath)
     await exec("rsync", [
@@ -113,13 +114,13 @@ async function buildBinaries(args: string[]) {
   // Edit all the packages to have them directly link any internal dependencies
   console.log(chalk.cyan("Modifying package.json files for direct installation"))
   await Bluebird.map(Object.entries(workspaces), async ([name, info]: [string, any]) => {
-    const packageRoot = resolve(tmpDir, info.location)
+    const packageRoot = resolve(tmpDirPath, info.location)
     const packageJsonPath = resolve(packageRoot, "package.json")
     const packageJson = require(packageJsonPath)
 
     for (const depName of info.workspaceDependencies) {
       const depInfo = workspaces[depName]
-      const targetRoot = resolve(tmpDir, depInfo.location)
+      const targetRoot = resolve(tmpDirPath, depInfo.location)
       const relPath = relative(packageRoot, targetRoot)
       packageJson.dependencies[depName] = "file:" + relPath
     }
@@ -137,7 +138,7 @@ async function buildBinaries(args: string[]) {
 
   // Run yarn install in the cli package
   console.log(chalk.cyan("Installing packages in @garden-io/cli package"))
-  const cliPath = resolve(tmpDir, workspaces["@garden-io/cli"].location)
+  const cliPath = resolve(tmpDirPath, workspaces["@garden-io/cli"].location)
   await exec("yarn", ["--production"], { cwd: cliPath })
 
   // Run pkg and pack up each platform binary
@@ -155,7 +156,7 @@ async function buildBinaries(args: string[]) {
 async function pkgMacos({ targetName, sourcePath, pkgType, version }: TargetHandlerParams) {
   console.log(` - ${targetName} -> fsevents`)
   // Copy fsevents from lib to node_modules
-  await copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents"), resolve(tmpDir, "cli", "node_modules", "fsevents"))
+  await copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents"), resolve(tmpDirPath, "cli", "node_modules", "fsevents"))
 
   await pkgCommon({
     sourcePath,
@@ -206,7 +207,7 @@ async function pkgAlpine({ targetName, version }: TargetHandlerParams) {
   const containerName = "alpine-builder-" + randomString(8)
   const supportDir = resolve(repoRoot, "support")
 
-  await copy(resolve(supportDir, ".dockerignore"), resolve(tmpDir, ".dockerignore"))
+  await copy(resolve(supportDir, ".dockerignore"), resolve(tmpDirPath, ".dockerignore"))
 
   await exec("docker", [
     "build",
@@ -216,7 +217,7 @@ async function pkgAlpine({ targetName, version }: TargetHandlerParams) {
     imageName,
     "-f",
     resolve(repoRoot, "support", "alpine-builder.Dockerfile"),
-    tmpDir,
+    tmpDirPath,
   ])
 
   try {
@@ -254,16 +255,28 @@ async function pkgCommon({
   const abi = getAbi(process.version, "node")
   // TODO: make arch configurable
   const { nodeBinaryPlatform } = targets[targetName]
-  const filename = nodeBinaryPlatform === "linuxmusl" ? `node.abi${abi}.musl.node` : `node.abi${abi}.node`
-  const abiPath = resolve(
-    repoRoot,
-    "node_modules",
-    "node-pty-prebuilt-multiarch",
-    "prebuilds",
-    `${nodeBinaryPlatform}-x64`,
-    filename
-  )
-  await copy(abiPath, resolve(targetPath, "pty.node"))
+
+  if (nodeBinaryPlatform === "win32") {
+    const tmpDir = await makeTempDir()
+    // Seriously, this is so much easier than anything more native...
+    await exec("sh", ["-c", dedent`
+      curl -s -L https://github.com/oznu/node-pty-prebuilt-multiarch/releases/download/v0.10.1-pre.5/node-pty-prebuilt-multiarch-v0.10.1-pre.5-node-v108-win32-x64.tar.gz | tar -xzv - -C .
+      cp build/Release/* '${targetPath}'
+    `], { cwd: tmpDir.path })
+
+    await tmpDir.cleanup()
+  } else {
+    const filename = nodeBinaryPlatform === "linuxmusl" ? `node.abi${abi}.musl.node` : `node.abi${abi}.node`
+    const abiPath = resolve(
+      repoRoot,
+      "node_modules",
+      "node-pty-prebuilt-multiarch",
+      "prebuilds",
+      `${nodeBinaryPlatform}-x64`,
+      filename
+    )
+    await copy(abiPath, resolve(targetPath, "pty.node"))
+  }
 
   console.log(` - ${targetName} -> pkg`)
   await exec(
