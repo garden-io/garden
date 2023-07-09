@@ -44,6 +44,7 @@ import type { ServeCommand } from "../commands/serve"
 import type { AutocompleteSuggestion } from "../cli/autocomplete"
 import execa = require("execa")
 import { z } from "zod"
+import { omitUndefined } from "../util/objects"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -500,7 +501,9 @@ export class GardenServer extends EventEmitter {
 
       if (!validation.success) {
         const event = websocketCloseEvents.badRequest
-        websocket.close(event.code, `${event.message}: ${validation.error.message}`)
+        const msg = `${event.message}: ${validation.error.message}`
+        websocket.send(msg + "\n")
+        websocket.close(event.code, msg)
         return
       }
 
@@ -531,7 +534,7 @@ export class GardenServer extends EventEmitter {
           cols: 80,
           rows: 30,
           cwd,
-          env: {}, // TODO: support this
+          env: { ...omitUndefined(process.env) }, // TODO: support this
         })
 
         proc.onData((data) => {
@@ -542,8 +545,10 @@ export class GardenServer extends EventEmitter {
           const msg = `Command '${command}' exited with code ${exitCode}, signal ${signal}`
           this.log.info(msg)
           const event = websocketCloseEvents.ok
-          cleanup()
-          websocket.OPEN && websocket.close(event.code, msg)
+          if (websocket.OPEN) {
+            websocket.send(msg + "\n")
+            websocket.close(event.code, msg)
+          }
         })
 
         this.setupWsHeartbeat(connectionId, websocket, cleanup)
@@ -555,6 +560,14 @@ export class GardenServer extends EventEmitter {
         websocket.on("message", (stdin: string | Buffer) => {
           proc.write(stdin.toString())
         })
+      } catch (err) {
+        const msg = `Could not run command '${command}': ${err.message}`
+        this.log.error(msg)
+        const event = websocketCloseEvents.ok
+        if (websocket.OPEN) {
+          websocket.send(msg + "\n")
+          websocket.close(event.code, msg)
+        }
       } finally {
         cleanup()
       }
