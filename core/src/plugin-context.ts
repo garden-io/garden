@@ -24,7 +24,6 @@ import { NamespaceStatus } from "./types/namespace"
 
 type WrappedFromGarden = Pick<
   Garden,
-  | "projectId"
   | "projectName"
   | "projectRoot"
   | "gardenDirPath"
@@ -210,7 +209,6 @@ export async function createPluginContext({
     namespace: garden.namespace,
     gardenDirPath: garden.gardenDirPath,
     log: garden.log,
-    projectId: garden.projectId,
     projectName: garden.projectName,
     projectRoot: garden.projectRoot,
     projectSources: garden.getProjectSources(),
