@@ -94,8 +94,8 @@ export type ApiFetchResponse<T> = T & {
 
 // TODO: Read this from the `api-types` package once the session registration logic has been released in Cloud.
 export interface CloudSessionResponse {
-  environmentId: number
-  namespaceId: number
+  environmentId: string
+  namespaceId: string
   shortId: string
 }
 

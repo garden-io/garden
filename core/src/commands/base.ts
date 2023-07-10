@@ -420,7 +420,11 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
             parentSessionId || undefined
           )
 
-          cloudEventStream.emit("sessionCompleted", {})
+          if (allErrors.length > 0) {
+            cloudEventStream.emit("sessionFailed", {})
+          } else {
+            cloudEventStream.emit("sessionCompleted", {})
+          }
         } catch (err) {
           analytics?.trackCommandResult(
             this.getFullName(),
