@@ -1,4 +1,32 @@
 
+<a name="0.13.7"></a>
+## [0.13.7](https://github.com/garden-io/garden/compare/0.13.6...0.13.7) (2023-07-10)
+
+### Bug Fixes
+
+* override action variables via --var cli flag ([6b0b9a637](https://github.com/garden-io/garden/commit/6b0b9a637))
+* task description conversion ([495507344](https://github.com/garden-io/garden/commit/495507344))
+* **cli:** override nested variables using dot notation ([c904730ed](https://github.com/garden-io/garden/commit/c904730ed))
+* **exec:** show error on failed commands ([8d39e22a7](https://github.com/garden-io/garden/commit/8d39e22a7))
+* **k8s:** correctly resolve manifests when `build` is set ([a5f509295](https://github.com/garden-io/garden/commit/a5f509295))
+
+### Features
+
+* **cloud:** display short url for command result ([c16bff6c9](https://github.com/garden-io/garden/commit/c16bff6c9))
+* **k8s:** support globs in kubernetes module/Deploy files field ([c9efb473d](https://github.com/garden-io/garden/commit/c9efb473d))
+* **openshift:** enable deploy --sync ([#4751](https://github.com/garden-io/garden/issues/4751)) ([5281d75b6](https://github.com/garden-io/garden/commit/5281d75b6))
+* **vcs:** add new git repo scanning method to improve resolution speed ([6cb96a618](https://github.com/garden-io/garden/commit/6cb96a618))
+
+### Improvements
+
+* allow to deploy all actions with --skip-dependencies ([f3bc22cc6](https://github.com/garden-io/garden/commit/f3bc22cc6))
+* **k8s:** retry the most used `kubectl` commands on failures ([07224f03e](https://github.com/garden-io/garden/commit/07224f03e))
+
+### Performance Improvements
+
+* automatically include `[]` if all files are excluded ([29621b9dd](https://github.com/garden-io/garden/commit/29621b9dd))
+* **git:** avoid stat-ing files when unnecessary ([2d717ecd9](https://github.com/garden-io/garden/commit/2d717ecd9))
+
 <a name="0.13.6"></a>
 ## [0.13.6](https://github.com/garden-io/garden/compare/0.13.5...0.13.6) (2023-07-04)
 
