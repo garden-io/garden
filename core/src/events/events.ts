@@ -156,11 +156,11 @@ export type GraphResultEventPayload = Omit<GraphResult, "result" | "task" | "dep
 export interface CommandInfoPayload extends CommandInfo {
   // Contains additional context for the command info available during init
   environmentName: string
-  environmentId: number | undefined
+  environmentId?: string
   projectName: string
   projectId: string
   namespaceName: string
-  namespaceId: number | undefined
+  namespaceId?: string
   coreVersion: string
   vcsBranch: string
   vcsCommitHash: string

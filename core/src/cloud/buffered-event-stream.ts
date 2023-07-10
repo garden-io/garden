@@ -83,8 +83,8 @@ interface ApiBatchBase {
 
 export interface ApiEventBatch extends ApiBatchBase {
   events: StreamEvent[]
-  environmentId?: number
-  namespaceId?: number
+  environmentId?: string
+  namespaceId?: string
   // TODO: Remove the `environment` and `namespace` params once we no longer need to support Cloud/Enterprise
   // versions that expect them.
   environment: string
