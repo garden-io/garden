@@ -18,7 +18,6 @@ export type OtelCollectorHoneycombConfiguration = {
 
 export function makeHoneycombPartialConfig(config: OtelCollectorHoneycombConfiguration): OtlpHttpExporterConfigPartial {
   return makeOtlpHttpPartialConfig({
-    // TODO: Probably should separate the config shape from the exporter shape
     name: "otlphttp",
     enabled: config.enabled,
     endpoint: config.endpoint,
