@@ -12,7 +12,7 @@
 
 * [About](./garden-seeds/about.md)
 * [Languages](./garden-seeds/languages/README.md)
-  * [Go seed 🌸](./garden-seeds/languages/go-seed.md)
+  * [Go 🌸](./garden-seeds/languages/go.md)
 
 ## 💐 Tutorials
 

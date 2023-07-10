@@ -9,6 +9,7 @@ From Python 🐍 to Go and more, our seeds offer clear explanations and code sam
 
 Each seed follows a consistent structure, making it easy to integrate Garden into your favorite language.
 
-Explore the Languages Seeds section and experience the power of Garden in your projects.
+From the sidebar, pick a language to quickly scaffold your Garden project and experience the power of Code Synchronization,
+tests, and interactive dev mode.
 
-- [Go seed](./go-seed.md)
+- [Go](./go.md)

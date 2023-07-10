@@ -1,4 +1,4 @@
-# Go seed 🌸
+# Go 🌸
 
 {% hint style="info" %}
 If you encounter any issues or bugs 🐛 in this seed, don't hesitate to join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
@@ -10,12 +10,11 @@ This seed deploys a simple Go API using Helm and Garden to template our applicat
 
 In 5 minutes ⌛ you will deploy your own Go code into a Kubernetes cluster with a rebuild-free container using Garden's code synchronization.
 
-
 ## Diagram 🖼️
 
 This demo scaffolds a Helm chart we'll deploy to our Kubernetes cluster.
 
-![Quick diagram with tooling used in the project](https://ce-content.s3.fr-par.scw.cloud/golang-garden-recipe.png)
+![Quick diagram with tooling](https://ce-content.s3.fr-par.scw.cloud/golang-garden-recipe.png)
 
 ## Prerequisites
 
