@@ -674,7 +674,7 @@ describe("AnalyticsHandler", () => {
   describe("trackCommandResult", () => {
     beforeEach(async () => {
       garden = await makeTestGardenA()
-      garden.vcsInfo.originUrl = remoteOriginUrl
+      garden.vcsInfo.originUrl = apiRemoteOriginUrl
       await enableAnalytics(garden)
     })
 
@@ -706,9 +706,9 @@ describe("AnalyticsHandler", () => {
           durationMsec: 60000,
           errors: [],
           lastError: undefined,
-          projectId: AnalyticsHandler.hash(remoteOriginUrl),
-          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
-          projectName,
+          projectId: AnalyticsHandler.hash(apiRemoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(apiRemoteOriginUrl),
+          projectName: apiProjectName,
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
@@ -816,9 +816,9 @@ describe("AnalyticsHandler", () => {
               },
             },
           },
-          projectId: AnalyticsHandler.hash(remoteOriginUrl),
-          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
-          projectName,
+          projectId: AnalyticsHandler.hash(apiRemoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(apiRemoteOriginUrl),
+          projectName: apiProjectName,
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
@@ -899,9 +899,9 @@ describe("AnalyticsHandler", () => {
             leaf: undefined,
             wrapped: undefined,
           },
-          projectId: AnalyticsHandler.hash(remoteOriginUrl),
-          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
-          projectName,
+          projectId: AnalyticsHandler.hash(apiRemoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(apiRemoteOriginUrl),
+          projectName: apiProjectName,
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
