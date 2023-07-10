@@ -15,7 +15,7 @@ import pty from "node-pty-prebuilt-multiarch"
 import websockify from "koa-websocket"
 import bodyParser = require("koa-bodyparser")
 import getPort = require("get-port")
-import { omit } from "lodash"
+import { isArray, omit } from "lodash"
 
 import { BaseServerRequest, resolveRequest, serverRequestSchema, shellCommandParamsSchema } from "./commands"
 import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants"
@@ -496,6 +496,11 @@ export class GardenServer extends EventEmitter {
       const websocket: Koa.Context["websocket"] = ctx["websocket"]
 
       const connectionId = uuidv4()
+
+      // args may not just be a single value
+      if (ctx.query.args && !isArray(ctx.query.args)) {
+        ctx.query.args = [ctx.query.args]
+      }
 
       const validation = shellCommandBodySchema.safeParse(ctx.query)
 
