@@ -7,7 +7,7 @@ tocTitle: "`docker-compose-exec` Run"
 
 ## Description
 
-TODO
+Uses `docker compose exec` to execute the specified command in an already running `docker-compose` service.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
@@ -157,11 +157,7 @@ spec:
   # The name of the service.
   service:
 
-  # The command to run.
   command:
-
-  # Arguments to pass to the command.
-  arguments: []
 
   # Environment variables to set during execution.
   env: {}
@@ -171,9 +167,6 @@ spec:
 
   # Path to workdir directory for this command.
   workdir:
-
-  # Extra arguments to pass to the command.
-  extraArgs: []
 
   # Index of the container if there are multiple instances of a service.
   index: 1
@@ -427,25 +420,13 @@ The name of the service.
 | -------- | -------- |
 | `string` | Yes      |
 
-### `spec.command`
+### `spec.command[]`
 
 [spec](#spec) > command
 
-The command to run.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `spec.arguments[]`
-
-[spec](#spec) > arguments
-
-Arguments to pass to the command.
-
-| Type    | Default | Required |
-| ------- | ------- | -------- |
-| `array` | `[]`    | No       |
+| Type    | Required |
+| ------- | -------- |
+| `array` | Yes      |
 
 ### `spec.env`
 
@@ -476,16 +457,6 @@ Path to workdir directory for this command.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
-
-### `spec.extraArgs[]`
-
-[spec](#spec) > extraArgs
-
-Extra arguments to pass to the command.
-
-| Type    | Default | Required |
-| ------- | ------- | -------- |
-| `array` | `[]`    | No       |
 
 ### `spec.index`
 

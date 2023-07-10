@@ -62,31 +62,37 @@ export const dockerComposeServiceDeploySchema = s.object({
 const commonRunKeys = s.object({
   projectName: projectNameSchema,
   service: s.string().describe("The name of the service."),
-  command: s.string().describe("The command to run."),
-  arguments: s.array(s.string()).default([]).describe("Arguments to pass to the command."),
+  // image: s.string().optional().describe("The name of the service."),
+  command: s.array(s.string()).optional().describe("Run this command instead of the image's entrypoint."),
   env: s.envVars().default({}).describe("Environment variables to set during execution."),
   user: s.string().optional().describe("Run the command as this user."),
   workdir: s.string().optional().describe("Path to workdir directory for this command."),
-  extraArgs: s.array(s.string()).default([]).describe("Extra arguments to pass to the command."),
 })
 
 export const dockerComposeExecSchema = commonRunKeys.extend({
   index: s.number().default(1).describe("Index of the container if there are multiple instances of a service."),
   privileged: s.boolean().default(false).describe("Give extended privileges to the process."),
-})
+}).required({ command: true })
 
-// TODO: there are more options on `docker compose run` that we could support (but extraArgs does the job for now)
+// TODO: there are more options on `docker compose run` that we could support (but `command` does the job for now)
 export const dockerComposeRunSchema = commonRunKeys.extend({
   name: s.string().optional().describe("Assign a name to the container."),
   servicePorts: s
     .boolean()
     .default(false)
     .describe("Run command with the service's ports enabled and mapped to the host."),
-  // TODO: should we default to true here? (seems more rational in the context)
-  rm: s.boolean().default(false).describe("Automatically remove the container when it exits."),
+  networks: s.array(s.string()).default([]).describe("Connect the container to these networks."),
+  rm: s.boolean().default(true).describe("Automatically remove the container when it exits."),
   useAliases: s
     .boolean()
     .default(false)
     .describe("Use the service's network useAliases in the network(s) the container connects to."),
   volumes: s.array(s.string()).default([]).describe("Bind mount one or more volumes."),
+})
+
+export const dockerComposeRunSchemaBase = dockerComposeRunSchema.omit({ service: true })
+
+// For running by passing an image id to the `docker` CLI (not by passing a service name to `docker compose`).
+export const dockerRunSchema = dockerComposeRunSchemaBase.extend({
+  image: s.string().describe("The image name for the container to run. Should be a valid Docker image identifier."),
 })

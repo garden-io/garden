@@ -102,6 +102,7 @@ type GardenSchema = typeof z & {
     schema: T,
     params?: z.RawCreateParams
   ) => z.ZodEffects<z.ZodArray<T, "many">, T["_output"][], T["_input"][]>
+  // jsonSchema: (schemaPath: string) => z.ZodTypeAny
 }
 
 // This should be imported instead of z because we augment zod with custom methods
@@ -188,3 +189,6 @@ s.userIdentifier = () => {
 s.sparseArray = <T extends z.ZodTypeAny>(schema: T, params?: z.RawCreateParams) => {
   return s.array(schema, params).transform((value) => value.filter((v: any) => v !== undefined && v !== null))
 }
+
+// s.jsonSchema = <J extends z.ZodTypeAny>(schema: J) => {
+// }

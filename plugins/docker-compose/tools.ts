@@ -41,6 +41,61 @@ export const dockerComposeSpec: PluginToolSpec = {
   ],
 }
 
+// TODO: Deduplicate. This was copied from core/src/plugins/container/container.ts.
+export const dockerSpec: PluginToolSpec = {
+  name: "docker",
+  version: "20.10.9",
+  description: "The official Docker CLI.",
+  type: "binary",
+  _includeInGardenImage: true,
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      url: "https://download.docker.com/mac/static/stable/x86_64/docker-20.10.9.tgz",
+      sha256: "f045f816579a96a45deef25aaf3fc116257b4fb5782b51265ad863dcae21f879",
+      extract: {
+        format: "tar",
+        targetPath: "docker/docker",
+      },
+    },
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url: "https://download.docker.com/mac/static/stable/aarch64/docker-20.10.9.tgz",
+      sha256: "e41cc3b53b9907ee038c7a1ab82c5961815241180fefb49359d820d629658e6b",
+      extract: {
+        format: "tar",
+        targetPath: "docker/docker",
+      },
+    },
+    {
+      platform: "linux",
+      architecture: "amd64",
+      url: "https://download.docker.com/linux/static/stable/x86_64/docker-20.10.9.tgz",
+      sha256: "caf74e54b58c0b38bb4d96c8f87665f29b684371c9a325562a3904b8c389995e",
+      extract: {
+        format: "tar",
+        targetPath: "docker/docker",
+      },
+    },
+    {
+      platform: "windows",
+      architecture: "amd64",
+      url: "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v20.10.9/docker-20.10.9.zip",
+      sha256: "360ca42101d453022eea17747ae0328709c7512e71553b497b88b7242b9b0ee4",
+      extract: {
+        format: "zip",
+        targetPath: "docker/docker.exe",
+      },
+    },
+  ],
+}
+
 export function compose(ctx: PluginContext) {
   return ctx.tools["docker-compose.docker-compose"]
+}
+
+export function docker(ctx: PluginContext) {
+  return ctx.tools["docker-compose.docker"]
 }

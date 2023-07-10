@@ -7,7 +7,7 @@ tocTitle: "`docker-compose-run` Run"
 
 ## Description
 
-TODO
+Uses ` compose run` to execute the specified command in a new, one-off container from the specified Compose service.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
@@ -157,11 +157,8 @@ spec:
   # The name of the service.
   service:
 
-  # The command to run.
+  # Run this command instead of the image's entrypoint.
   command:
-
-  # Arguments to pass to the command.
-  arguments: []
 
   # Environment variables to set during execution.
   env: {}
@@ -172,17 +169,17 @@ spec:
   # Path to workdir directory for this command.
   workdir:
 
-  # Extra arguments to pass to the command.
-  extraArgs: []
-
   # Assign a name to the container.
   name:
 
   # Run command with the service's ports enabled and mapped to the host.
   servicePorts: false
 
+  # Connect the container to these networks.
+  networks: []
+
   # Automatically remove the container when it exits.
-  rm: false
+  rm: true
 
   # Use the service's network useAliases in the network(s) the container connects to.
   useAliases: false
@@ -436,25 +433,15 @@ The name of the service.
 | -------- | -------- |
 | `string` | Yes      |
 
-### `spec.command`
+### `spec.command[]`
 
 [spec](#spec) > command
 
-The command to run.
+Run this command instead of the image's entrypoint.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `spec.arguments[]`
-
-[spec](#spec) > arguments
-
-Arguments to pass to the command.
-
-| Type    | Default | Required |
-| ------- | ------- | -------- |
-| `array` | `[]`    | No       |
+| Type    | Required |
+| ------- | -------- |
+| `array` | No       |
 
 ### `spec.env`
 
@@ -486,16 +473,6 @@ Path to workdir directory for this command.
 | -------- | -------- |
 | `string` | No       |
 
-### `spec.extraArgs[]`
-
-[spec](#spec) > extraArgs
-
-Extra arguments to pass to the command.
-
-| Type    | Default | Required |
-| ------- | ------- | -------- |
-| `array` | `[]`    | No       |
-
 ### `spec.name`
 
 [spec](#spec) > name
@@ -516,6 +493,16 @@ Run command with the service's ports enabled and mapped to the host.
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
+### `spec.networks[]`
+
+[spec](#spec) > networks
+
+Connect the container to these networks.
+
+| Type    | Default | Required |
+| ------- | ------- | -------- |
+| `array` | `[]`    | No       |
+
 ### `spec.rm`
 
 [spec](#spec) > rm
@@ -524,7 +511,7 @@ Automatically remove the container when it exits.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
-| `boolean` | `false` | No       |
+| `boolean` | `true`  | No       |
 
 ### `spec.useAliases`
 

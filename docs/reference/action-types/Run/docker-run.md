@@ -151,8 +151,11 @@ kind:
 timeout: 600
 
 spec:
-  # The Compose project name. This field is usually unnecessary unless using several Compose projects together.
+  # The Compose project name, as specified in the provider configuration.
   projectName:
+
+  # Run this command instead of the image's entrypoint.
+  command:
 
   # Environment variables to set during execution.
   env: {}
@@ -162,36 +165,6 @@ spec:
 
   # Path to workdir directory for this command.
   workdir:
-
-  #
-  #       Override the image's entrypoint. See
-  # https://docs.docker.com/engine/reference/run/#entrypoint-default-command-to-execute-at-runtime for more details.
-  #
-  #
-  # Example: `["/bin/sh"]`
-  entrypoint:
-
-  #
-  #       The command that is executed in the container.
-  #
-  #       Note: If you're also providing an `entrypoint`, any arguments it requires should be passed here.
-  #
-  #       For example, if you wanted to run `/bin/sh -c echo "Hello world!"` in the container, you'd set
-  #       `/bin/sh` as the `entrypoint`, and `["-c", "echo", "Hello world!"]` as the `cmd`.
-  #
-  #       These fields map to the `--entrypoint` and `--cmd` CLI options for `docker` run and
-  #       `docker compose run`.
-  #
-  #       To learn more about how `entrypoint` and `cmd` work together in Docker, please check out the following
-  # pages:
-  #
-  #       https://docs.docker.com/engine/reference/run/#cmd-default-command-or-options
-  #
-  #       https://docs.docker.com/engine/reference/builder/#cmd
-  #
-  #
-  # Example: `["npm","run","test"]`
-  command:
 
   # Assign a name to the container.
   name:
@@ -444,11 +417,21 @@ Set a timeout for the run to complete, in seconds.
 
 [spec](#spec) > projectName
 
-The Compose project name. This field is usually unnecessary unless using several Compose projects together.
+The Compose project name, as specified in the provider configuration.
 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `spec.command[]`
+
+[spec](#spec) > command
+
+Run this command instead of the image's entrypoint.
+
+| Type    | Required |
+| ------- | -------- |
+| `array` | No       |
 
 ### `spec.env`
 
@@ -479,48 +462,6 @@ Path to workdir directory for this command.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
-
-### `spec.entrypoint`
-
-[spec](#spec) > entrypoint
-
-
-      Override the image's entrypoint. See https://docs.docker.com/engine/reference/run/#entrypoint-default-command-to-execute-at-runtime for more details.
-    
-
-Example: `["/bin/sh"]`
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `spec.command[]`
-
-[spec](#spec) > command
-
-
-      The command that is executed in the container.
-
-      Note: If you're also providing an `entrypoint`, any arguments it requires should be passed here.
-
-      For example, if you wanted to run `/bin/sh -c echo "Hello world!"` in the container, you'd set
-      `/bin/sh` as the `entrypoint`, and `["-c", "echo", "Hello world!"]` as the `cmd`.
-
-      These fields map to the `--entrypoint` and `--cmd` CLI options for `docker` run and
-      `docker compose run`.
-
-      To learn more about how `entrypoint` and `cmd` work together in Docker, please check out the following pages:
-
-      https://docs.docker.com/engine/reference/run/#cmd-default-command-or-options
-      
-      https://docs.docker.com/engine/reference/builder/#cmd
-    
-
-Example: `["npm","run","test"]`
-
-| Type    | Required |
-| ------- | -------- |
-| `array` | No       |
 
 ### `spec.name`
 

@@ -53,7 +53,7 @@ const runOpts = {
   // "interactive": new BooleanParameter({
   //   help:
   //     "Perform the specified Run in interactive mode (i.e. to allow attaching to a shell). A single Run must be selected, otherwise an error is thrown.",
-  //   alias: "i",
+  //   aliases: ["i"],
   //   cliOnly: true,
   // }),
   "module": new StringsParameter({

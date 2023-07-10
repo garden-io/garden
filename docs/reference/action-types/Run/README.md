@@ -11,4 +11,5 @@ title: Run
   * [`helm-pod`](./helm-pod.md)
   * [`exec`](./exec.md)
   * [`docker-compose-exec`](./docker-compose-exec.md)
+  * [`docker-run`](./docker-run.md)
   * [`docker-compose-run`](./docker-compose-run.md)
