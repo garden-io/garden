@@ -122,6 +122,7 @@ export const defaultDeployOpts = withDefaultGlobalOpts({
   "port": defaultServerPort,
   "cmd": undefined,
   "disable-port-forwards": false,
+  "with-dependants": false,
 })
 
 describe("DeployCommand", () => {
@@ -255,6 +256,76 @@ describe("DeployCommand", () => {
       // Specified services should be deployed
       expect(keys).to.include("deploy.service-b")
       expect(keys).to.include("deploy.service-c")
+    })
+  })
+
+  context("when --with-dependants is passed", () => {
+    it("should deploy dependant deploys", async () => {
+      const garden = await makeTestGarden(projectRootA, { plugins: [testProvider()] })
+      const log = garden.log
+
+      const { result, errors } = await command.action({
+        garden,
+        log,
+        args: {
+          names: ["service-a"],
+        },
+        opts: {
+          ...defaultDeployOpts,
+          "with-dependants": true,
+        },
+      })
+
+      if (errors) {
+        throw errors[0]
+      }
+
+      const keys = getAllProcessedTaskNames(result!.graphResults)
+
+      // c has nothing to do with service-a
+      expect(keys).to.not.include("deploy.service-c")
+      // b is a dependant
+      expect(keys).to.include("deploy.service-b")
+    })
+
+    it("should have no effect if no names are passed", async () => {
+      const garden = await makeTestGarden(projectRootA, { plugins: [testProvider()] })
+      const log = garden.log
+
+      const { result: resultWith, errors: errors1 } = await command.action({
+        garden,
+        log,
+        args: {
+          names: [],
+        },
+        opts: {
+          ...defaultDeployOpts,
+          "with-dependants": true,
+        },
+      })
+      if (errors1) {
+        throw errors1[0]
+      }
+
+      const { result: resultWithout, errors: errors2 } = await command.action({
+        garden,
+        log,
+        args: {
+          names: [],
+        },
+        opts: {
+          ...defaultDeployOpts,
+          "with-dependants": true,
+        },
+      })
+      if (errors2) {
+        throw errors2[0]
+      }
+
+      const keysWith = getAllProcessedTaskNames(resultWith!.graphResults)
+      const keysWithout = getAllProcessedTaskNames(resultWithout!.graphResults)
+
+      expect(keysWith).to.eql(keysWithout)
     })
   })
 

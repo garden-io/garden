@@ -36,6 +36,7 @@ import { LogMonitor } from "../monitors/logs"
 import { LoggerType, parseLogLevel } from "../logger/logger"
 import { serveOpts } from "./serve"
 import { gardenEnv } from "../constants"
+import { DeployAction } from "../actions/deploy"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -91,6 +92,12 @@ export const deployOpts = {
     This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without deploying or running dependencies that may have changed since you last deployed.
     `,
     aliases: ["nodeps"],
+  }),
+  "with-dependants": new BooleanParameter({
+    help: deline`
+    Additionally deploy all deploy actions that are downstream dependants of the action(s) being deployed.
+    This can be useful when you know you need to redeploy dependants.
+    `,
   }),
   "disable-port-forwards": new BooleanParameter({
     help: "Disable automatic port forwarding when running persistently. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS=true in your environment.",
@@ -208,6 +215,18 @@ export class DeployCommand extends Command<Args, Opts> {
       log.info(chalk.gray(msg))
     }
 
+    const skipRuntimeDependencies = opts["skip-dependencies"]
+    const withDependants = opts["with-dependants"]
+    if (withDependants && args.names && args.names.length > 0) {
+      const result = graph.getDependantsForMany({
+        kind: "Deploy",
+        names: deployActions.map((a) => a.name),
+        recursive: true,
+        filter: (a) => a.kind === "Deploy",
+      }) as DeployAction[]
+      deployActions.push(...result)
+    }
+
     const skipped = opts.skip || []
 
     deployActions = deployActions.filter((s) => !s.isDisabled() && !skipped.includes(s.name))
@@ -216,8 +235,6 @@ export class DeployCommand extends Command<Args, Opts> {
       log.error({ msg: "Nothing to deploy. Aborting." })
       return { result: { aborted: true, success: true, ...emptyActionResults } }
     }
-
-    const skipRuntimeDependencies = opts["skip-dependencies"]
 
     const force = opts.force
     const startSync = !!opts.sync
