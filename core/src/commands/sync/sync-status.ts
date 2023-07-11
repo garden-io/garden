@@ -99,15 +99,6 @@ export class SyncStatusCommand extends Command<Args, Opts> {
       .getDeploys({ includeDisabled: false, names: args.names })
       .sort((a, b) => (a.name > b.name ? 1 : -1))
 
-    log.info("")
-    log.info(
-      chalk.white(deline`
-      Getting sync statuses. For more detailed debug information, run this command with
-      the \`--output json\` or \`--output yaml\` flags.
-    `)
-    )
-    log.info("")
-
     const syncStatuses = await getSyncStatuses({ garden, graph, skipDetail, log, deployActions })
 
     if (isEmpty(syncStatuses) && args.names && args.names.length > 0) {
