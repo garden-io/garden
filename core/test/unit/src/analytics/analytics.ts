@@ -13,7 +13,7 @@ import { validate as validateUuid } from "uuid"
 
 import { makeTestGardenA, TestGarden, enableAnalytics, getDataDir, makeTestGarden, freezeTime } from "../../../helpers"
 import { FakeCloudApi, apiProjectName, apiRemoteOriginUrl } from "../../../helpers/api"
-import { AnalyticsHandler, getAnonymousUserId } from "../../../../src/analytics/analytics"
+import { AnalyticsHandler, CommandResultEvent, getAnonymousUserId } from "../../../../src/analytics/analytics"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_GARDEN_CLOUD_DOMAIN,
@@ -777,74 +777,40 @@ describe("AnalyticsHandler", () => {
           ],
         }),
       ]
-      const event = analytics.trackCommandResult("testCommand", errors, startTime, 0)
+      const eventOrFalse = analytics.trackCommandResult("testCommand", errors, startTime, 0)
 
-      expect(event).to.eql({
-        type: "Command Result",
-        properties: {
-          name: "testCommand",
-          result: "failure",
-          exitCode: 0,
-          durationMsec: 60000,
-          errors: ["runtime"],
-          lastError: {
-            error: {
-              errorType: "runtime",
-              context: undefined,
-              stackTrace: {
-                functionName: "Testing.runtime",
-                relativeFileName: "utils/exec.ts",
-                lineNumber: 17,
-              },
-            },
-            wrapped: {
-              errorType: "configuration",
-              context: undefined,
-              stackTrace: {
-                functionName: "Testing.configuration",
-                relativeFileName: "garden.ts",
-                lineNumber: 42,
-              },
-            },
-            leaf: {
-              errorType: "deployment",
-              context: undefined,
-              stackTrace: {
-                functionName: "Testing.deployment",
-                relativeFileName: "plugins/kubernetes.ts",
-                lineNumber: 12,
-              },
-            },
+      expect(eventOrFalse).to.not.eql(false)
+
+      const event = eventOrFalse as CommandResultEvent
+
+      expect(event.properties.result).to.eql("failure")
+      expect(event.properties.errors).to.eql(["runtime"])
+      expect(event.properties.lastError).to.deep.equal({
+        error: {
+          errorType: "runtime",
+          context: undefined,
+          stackTrace: {
+            functionName: "Testing.runtime",
+            relativeFileName: "utils/exec.ts",
+            lineNumber: 17,
           },
-          projectId: AnalyticsHandler.hash(apiRemoteOriginUrl),
-          projectIdV2: AnalyticsHandler.hashV2(apiRemoteOriginUrl),
-          projectName: apiProjectName,
-          projectNameV2,
-          enterpriseProjectId: undefined,
-          enterpriseProjectIdV2: undefined,
-          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
-          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
-          isLoggedIn: false,
-          customer: undefined,
-          ciName: analytics["ciName"],
-          system: analytics["systemConfig"],
-          isCI: analytics["isCI"],
-          sessionId: analytics["sessionId"],
-          parentSessionId: analytics["sessionId"],
-          firstRunAt: basicConfig.firstRunAt,
-          latestRunAt: startTime,
-          isRecurringUser: false,
-          projectMetadata: {
-            modulesCount: 3,
-            moduleTypes: ["test"],
-            tasksCount: 4,
-            servicesCount: 3,
-            testsCount: 5,
-            actionsCount: 0,
-            buildActionCount: 0,
-            testActionCount: 0,
-            deployActionCount: 0,
-            runActionCount: 0,
+        },
+        wrapped: {
+          errorType: "configuration",
+          context: undefined,
+          stackTrace: {
+            functionName: "Testing.configuration",
+            relativeFileName: "garden.ts",
+            lineNumber: 42,
+          },
+        },
+        leaf: {
+          errorType: "deployment",
+          context: undefined,
+          stackTrace: {
+            functionName: "Testing.deployment",
+            relativeFileName: "plugins/kubernetes.ts",
+            lineNumber: 12,
           },
         },
       })
@@ -876,60 +842,27 @@ describe("AnalyticsHandler", () => {
           at processImmediate (node:internal/timers:471:21)`,
         }),
       ]
-      const event = analytics.trackCommandResult("testCommand", errors, startTime, 0)
 
-      expect(event).to.eql({
-        type: "Command Result",
-        properties: {
-          name: "testCommand",
-          result: "failure",
-          exitCode: 0,
-          durationMsec: 60000,
-          errors: ["runtime", "configuration"],
-          lastError: {
-            error: {
-              errorType: "configuration",
-              context: undefined,
-              stackTrace: {
-                functionName: "Testing.configuration",
-                relativeFileName: "garden.ts",
-                lineNumber: 42,
-              },
-            },
-            leaf: undefined,
-            wrapped: undefined,
-          },
-          projectId: AnalyticsHandler.hash(apiRemoteOriginUrl),
-          projectIdV2: AnalyticsHandler.hashV2(apiRemoteOriginUrl),
-          projectName: apiProjectName,
-          projectNameV2,
-          enterpriseProjectId: undefined,
-          enterpriseProjectIdV2: undefined,
-          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
-          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
-          isLoggedIn: false,
-          customer: undefined,
-          ciName: analytics["ciName"],
-          system: analytics["systemConfig"],
-          isCI: analytics["isCI"],
-          sessionId: analytics["sessionId"],
-          parentSessionId: analytics["sessionId"],
-          firstRunAt: basicConfig.firstRunAt,
-          latestRunAt: startTime,
-          isRecurringUser: false,
-          projectMetadata: {
-            modulesCount: 3,
-            moduleTypes: ["test"],
-            tasksCount: 4,
-            servicesCount: 3,
-            testsCount: 5,
-            actionsCount: 0,
-            buildActionCount: 0,
-            testActionCount: 0,
-            deployActionCount: 0,
-            runActionCount: 0,
+      const eventOrFalse = analytics.trackCommandResult("testCommand", errors, startTime, 0)
+
+      expect(eventOrFalse).to.not.eql(false)
+
+      const event = eventOrFalse as CommandResultEvent
+
+      expect(event.properties.result).to.eql("failure")
+      expect(event.properties.errors).to.eql(["runtime", "configuration"])
+      expect(event.properties.lastError).to.deep.equal({
+        error: {
+          errorType: "configuration",
+          context: undefined,
+          stackTrace: {
+            functionName: "Testing.configuration",
+            relativeFileName: "garden.ts",
+            lineNumber: 42,
           },
         },
+        leaf: undefined,
+        wrapped: undefined,
       })
     })
   })

@@ -135,7 +135,7 @@ interface EventBase {
   properties: PropertiesBase
 }
 
-interface CommandEvent extends EventBase {
+export interface CommandEvent extends EventBase {
   type: "Run Command"
   properties: PropertiesBase & {
     name: string
@@ -163,7 +163,7 @@ type AnalyticsGardenError = {
   leaf?: AnalyticsGardenErrorDetail
 }
 
-interface CommandResultEvent extends EventBase {
+export interface CommandResultEvent extends EventBase {
   type: "Command Result"
   properties: PropertiesBase & {
     name: string
@@ -217,7 +217,7 @@ interface ApiRequestBody {
   command: string
 }
 
-type AnalyticsEvent =
+export type AnalyticsEvent =
   | CommandEvent
   | CommandResultEvent
   | ApiEvent
