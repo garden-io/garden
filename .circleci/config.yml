@@ -285,7 +285,7 @@ jobs:
             - e2e/
   build-dist:
     <<: *node-config
-    resource_class: large
+    resource_class: xlarge
     parameters:
       version:
         description: The version tag/name to set
