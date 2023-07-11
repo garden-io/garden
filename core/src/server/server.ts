@@ -11,7 +11,7 @@ import { Server } from "http"
 import chalk from "chalk"
 import Koa from "koa"
 import Router = require("koa-router")
-import pty from "node-pty-prebuilt-multiarch"
+import type PTY from "node-pty-prebuilt-multiarch"
 import websockify from "koa-websocket"
 import bodyParser = require("koa-bodyparser")
 import getPort = require("get-port")
@@ -45,6 +45,8 @@ import type { AutocompleteSuggestion } from "../cli/autocomplete"
 import execa = require("execa")
 import { z } from "zod"
 import { omitUndefined } from "../util/objects"
+
+const pty = require("node-pty-prebuilt-multiarch")
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -507,7 +509,8 @@ export class GardenServer extends EventEmitter {
       if (!validation.success) {
         const event = websocketCloseEvents.badRequest
         const msg = `${event.message}: ${validation.error.message}`
-        websocket.send(msg + "\n")
+        // We need to send line returns as \r\n, otherwise the terminal will not work correctly
+        websocket.send(msg.replace(/\r?\n/g, "\r\n") + "\r\n")
         websocket.close(event.code, msg)
         return
       }
@@ -521,7 +524,7 @@ export class GardenServer extends EventEmitter {
         return
       }
 
-      let proc: pty.IPty
+      let proc: PTY.IPty
       let cleanedUp = false
 
       const cleanup = () => {
@@ -529,13 +532,13 @@ export class GardenServer extends EventEmitter {
           return
         }
         cleanedUp = true
-        this.log.debug(`Connection ${connectionId} terminated, cleaning up.`)
+        this.log.info(`Connection ${connectionId} terminated, cleaning up.`)
         proc?.kill()
       }
 
       try {
-        proc = pty.spawn(command, args, {
-          name: "xterm-color",
+        proc = pty.spawn("sh", ["-c", `sleep 1; ${command} ${args.join(" ")}`], {
+          name: "xterm-256color",
           cols: 80,
           rows: 30,
           cwd,
@@ -551,7 +554,11 @@ export class GardenServer extends EventEmitter {
           this.log.info(msg)
           const event = websocketCloseEvents.ok
           if (websocket.OPEN) {
-            websocket.send(msg + "\n")
+            if (exitCode !== 0) {
+              websocket.send(msg + "\r\n")
+            } else {
+              websocket.send(chalk.green("\r\n\r\nDone!\r\n"))
+            }
             websocket.close(event.code, msg)
           }
         })
@@ -570,10 +577,9 @@ export class GardenServer extends EventEmitter {
         this.log.error(msg)
         const event = websocketCloseEvents.ok
         if (websocket.OPEN) {
-          websocket.send(msg + "\n")
+          websocket.send(msg + "\r\n")
           websocket.close(event.code, msg)
         }
-      } finally {
         cleanup()
       }
     })
