@@ -559,7 +559,8 @@ export class GardenServer extends EventEmitter {
             } else {
               websocket.send(chalk.green("\r\n\r\nDone!\r\n"))
             }
-            websocket.close(event.code, msg)
+            // We use 4700 + exitCode because the websocket close code must be a number between 4000 and 4999
+            websocket.close(4700 + exitCode, msg)
           }
         })
 
