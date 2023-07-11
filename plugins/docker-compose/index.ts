@@ -206,7 +206,14 @@ composeProvider.addHandler("augmentGraph", async ({ ctx, log, actions }) => {
 
   return {
     // Allow users to specify their own action to override the default generated ones
-    addActions: generated.filter((c) => !existingActionKeys.includes(actionReferenceToString(c))),
+    addActions: generated.filter((c) => {
+      const key = actionReferenceToString(c)
+      if (existingActionKeys.includes(key)) {
+        log.warn(`Skipping compose action ${key} as another action with same key already exists`)
+        return false
+      }
+      return true
+    }),
   }
 })
 
