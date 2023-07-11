@@ -571,7 +571,6 @@ export class GardenServer extends EventEmitter {
 
         // Stream stdin
         websocket.on("message", (stdin: string | Buffer) => {
-          console.log(stdin.toString())
           proc.write(stdin.toString())
         })
       } catch (err) {
