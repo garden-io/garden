@@ -1395,7 +1395,6 @@ export class Garden {
     if (existing) {
       if (actionIsDisabled(config, this.environmentName)) {
         this.log.silly(`Skipping action ${key} because it is disabled and another action with the same key exists`)
-        return
       } else if (!actionIsDisabled(existing, this.environmentName)) {
         const paths = [
           existing.internal.configFilePath || existing.internal.basePath,
