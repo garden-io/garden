@@ -137,7 +137,7 @@ import {
   ActionModeMap,
   BaseActionConfig,
 } from "./actions/types"
-import { actionReferenceToString, isActionConfig } from "./actions/base"
+import { actionIsDisabled, actionReferenceToString, isActionConfig } from "./actions/base"
 import { GraphSolver, SolveOpts, SolveParams, SolveResult } from "./graph/solver"
 import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, resolveActions } from "./graph/actions"
 import { ActionTypeDefinition } from "./plugin/action-types"
@@ -1019,6 +1019,7 @@ export class Garden {
       moduleGraph,
       actionModes,
       linkedSources,
+      environmentName: this.environmentName,
     })
 
     // TODO-0.13.1: detect overlap on Build actions
@@ -1388,22 +1389,28 @@ export class Garden {
    */
   protected addActionConfig(config: BaseActionConfig) {
     this.log.silly(`Adding ${config.kind} action ${config.name}`)
+    const key = actionReferenceToString(config)
     const existing = this.actionConfigs[config.kind][config.name]
 
     if (existing) {
-      const paths = [
-        existing.internal.configFilePath || existing.internal.basePath,
-        config.internal.configFilePath || config.internal.basePath,
-      ]
-      const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
+      if (actionIsDisabled(config, this.environmentName)) {
+        this.log.silly(`Skipping action ${key} because it is disabled and another action with the same key exists`)
+        return
+      } else if (!actionIsDisabled(existing, this.environmentName)) {
+        const paths = [
+          existing.internal.configFilePath || existing.internal.basePath,
+          config.internal.configFilePath || config.internal.basePath,
+        ]
+        const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
 
-      throw new ConfigurationError({
-        message: `${config.kind} action ${config.name} is declared multiple times (in '${pathA}' and '${pathB}')`,
-        detail: {
-          pathA,
-          pathB,
-        },
-      })
+        throw new ConfigurationError({
+          message: `${config.kind} action ${config.name} is declared multiple times (in '${pathA}' and '${pathB}') and neither is disabled.`,
+          detail: {
+            pathA,
+            pathB,
+          },
+        })
+      }
     }
 
     this.actionConfigs[config.kind][config.name] = config
