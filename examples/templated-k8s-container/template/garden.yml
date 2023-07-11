@@ -52,7 +52,6 @@ configs:
                 containers:
                   - name: main
                     image: ${actions.build["${parent.name}"].outputs.deployment-image-id}
-                    imagePullPolicy: "Always"
                     ports:
                       - name: http
                         containerPort: ${inputs.containerPort}
