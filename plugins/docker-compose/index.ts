@@ -100,6 +100,17 @@ composeProvider.addHandler("suggestCommands", async ({ ctx, log }) => {
   }
 })
 
+// Prune any unused networks
+composeProvider.addHandler("cleanupEnvironment", async ({ ctx, log }) => {
+  await docker(ctx).exec({
+    cwd: ctx.projectRoot,
+    args: ["network", "prune", "--force"],
+    log,
+  })
+  log.info({ msg: "Pruned unused Docker networks", symbol: "success" })
+  return {}
+})
+
 // composeProvider.addHandler("getEnvironmentStatus", async ({ ctx }) => {
 //   // TODO: Check if all networks exist
 //   console.log("bar")
@@ -256,6 +267,7 @@ composeDeploy.addHandler("deploy", async ({ ctx, log, action, force }) => {
     "--no-deps",
     "--wait",
     "--wait-timeout=" + action.getConfig().timeout,
+    "--remove-orphans",
     spec.service,
   ]
 
