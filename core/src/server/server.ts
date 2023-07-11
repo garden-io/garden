@@ -571,6 +571,7 @@ export class GardenServer extends EventEmitter {
 
         // Stream stdin
         websocket.on("message", (stdin: string | Buffer) => {
+          console.log(stdin.toString())
           proc.write(stdin.toString())
         })
       } catch (err) {
@@ -930,6 +931,6 @@ type SendWrapper<T extends ServerWebsocketMessageType = ServerWebsocketMessageTy
 
 const shellCommandBodySchema = shellCommandParamsSchema.extend({
   key: z.string().describe("The server auth key."),
-  columns: z.number().default(80).describe("Number of columns in the virtual terminal."),
-  rows: z.number().default(30).describe("Number of rows in the virtual terminal."),
+  columns: z.coerce.number().default(80).describe("Number of columns in the virtual terminal."),
+  rows: z.coerce.number().default(30).describe("Number of rows in the virtual terminal."),
 })
