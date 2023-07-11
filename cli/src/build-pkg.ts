@@ -259,10 +259,18 @@ async function pkgCommon({
   if (nodeBinaryPlatform === "win32") {
     const tmpDir = await makeTempDir()
     // Seriously, this is so much easier than anything more native...
-    await exec("sh", ["-c", dedent`
-      curl -s -L https://github.com/oznu/node-pty-prebuilt-multiarch/releases/download/v0.10.1-pre.5/node-pty-prebuilt-multiarch-v0.10.1-pre.5-node-v108-win32-x64.tar.gz | tar -xzv - -C .
-      cp build/Release/* '${targetPath}'
-    `], { cwd: tmpDir.path })
+    await exec(
+      "sh",
+      [
+        "-c",
+        dedent`
+          set -e
+          curl -s -L https://github.com/oznu/node-pty-prebuilt-multiarch/releases/download/v0.10.1-pre.5/node-pty-prebuilt-multiarch-v0.10.1-pre.5-node-v108-win32-x64.tar.gz | tar -xzv -C .
+          cp build/Release/* '${targetPath}'
+        `,
+      ],
+      { cwd: tmpDir.path }
+    )
 
     await tmpDir.cleanup()
   } else {
