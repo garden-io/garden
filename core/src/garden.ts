@@ -1435,10 +1435,15 @@ export class Garden {
     const existing = this.actionConfigs[config.kind][config.name]
 
     if (existing) {
-      if (actionIsDisabled(config, this.environmentName)) {
+      const disabled = actionIsDisabled(config, this.environmentName)
+      const existingDisabled = actionIsDisabled(existing, this.environmentName)
+
+      if (disabled) {
         this.log.silly(`Skipping action ${key} because it is disabled and another action with the same key exists`)
         return
-      } else if (!actionIsDisabled(existing, this.environmentName)) {
+      } else if (existingDisabled) {
+        this.log.silly(`Overriding disabled action ${key} because another enabled action with the same key exists`)
+      } else if (!existingDisabled) {
         const paths = [
           existing.internal.configFilePath || existing.internal.basePath,
           config.internal.configFilePath || config.internal.basePath,

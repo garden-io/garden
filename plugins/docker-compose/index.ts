@@ -126,7 +126,7 @@ composeProvider.addHandler("suggestCommands", async ({ ctx, log }) => {
 //       will need more frameworking, so we define the compose config paths in the provider config atm and
 //       the provider generates these actions for each project.
 composeProvider.addHandler("augmentGraph", async ({ ctx, log, actions }) => {
-  const existingActionKeys = actions.map((a) => a.key())
+  const existingActionKeys = actions.filter((a) => !a.isDisabled()).map((a) => a.key())
 
   const generated = flatten(
     await Bluebird.map(getProjects(ctx), async (projectSpec) => {
