@@ -1173,7 +1173,12 @@ export class Garden {
 
   async getResolvedConfigGraph(params: GetConfigGraphParams): Promise<ResolvedConfigGraph> {
     const graph = await this.getConfigGraph(params)
-    const resolved = await this.resolveActions({ graph, actions: graph.getActions(), log: params.log })
+    const actions = graph.getActions()
+    const resolved = await this.resolveActions({
+      graph,
+      actions: actions.filter((a) => !a.isDisabled()),
+      log: params.log,
+    })
     return new ResolvedConfigGraph({
       actions: Object.values(resolved),
       moduleGraph: graph.moduleGraph,
