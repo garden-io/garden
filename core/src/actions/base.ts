@@ -405,7 +405,8 @@ export abstract class BaseAction<
 
   isDisabled(): boolean {
     // TODO: return true if group is disabled
-    return !!this.getConfig("disabled")
+    // TODO: implement environments field on action config
+    return actionIsDisabled(this._config, "TODO")
   }
 
   /**
@@ -875,4 +876,9 @@ export function addActionDependency(dep: ActionDependency, dependencies: ActionD
     }
   }
   dependencies.push(dep)
+}
+
+export function actionIsDisabled(config: ActionConfig, _environmentName: string): boolean {
+  // TODO: implement environment fields and check if environment is disabled
+  return config.disabled === true
 }

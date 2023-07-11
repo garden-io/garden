@@ -65,6 +65,7 @@ import { relative } from "path"
 import { profileAsync } from "../util/profiling"
 import { uuidv4 } from "../util/random"
 import { getConfigBasePath } from "../vcs/vcs"
+import { actionIsDisabled } from "../actions/base"
 
 export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
   garden,
@@ -74,6 +75,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   moduleGraph,
   actionModes,
   linkedSources,
+  environmentName,
 }: {
   garden: Garden
   log: Log
@@ -82,6 +84,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   moduleGraph: ModuleGraph
   actionModes: ActionModeMap
   linkedSources: LinkedSourceMap
+  environmentName: string
 }): Promise<MutableConfigGraph> {
   const configsByKey: ActionConfigsByKey = {}
 
@@ -94,7 +97,16 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     const existing = configsByKey[key]
 
     if (existing) {
-      throw actionNameConflictError(existing, config, garden.projectRoot)
+      if (actionIsDisabled(config, environmentName)) {
+        log.silly(`Skipping disabled action ${key} in favor of other action with same key`)
+        return
+      } else if (actionIsDisabled(existing, environmentName)) {
+        log.silly(`Skipping disabled action ${key} in favor of other action with same key`)
+        configsByKey[key] = config
+        return
+      } else {
+        throw actionNameConflictError(existing, config, garden.projectRoot)
+      }
     }
     configsByKey[key] = config
   }
@@ -344,10 +356,10 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
 export function actionNameConflictError(configA: ActionConfig, configB: ActionConfig, rootPath: string) {
   return new ConfigurationError({
     message: dedent`
-    Found two actions of the same name and kind:
+    Found two actions of the same name and kind (and neither is disabled):
       - ${describeActionConfigWithPath(configA, rootPath)}
       - ${describeActionConfigWithPath(configB, rootPath)}
-    Please rename one of the two to avoid the conflict.
+    Please rename or disable one of the two to avoid the conflict.
     `,
     detail: { configA, configB },
   })
