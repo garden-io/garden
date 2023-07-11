@@ -515,7 +515,7 @@ export class GardenServer extends EventEmitter {
         return
       }
 
-      const { command, args, cwd, key } = validation.data
+      const { command, args, cwd, key, columns, rows } = validation.data
 
       // It's crucial to authenticate here because running shell commands locally is sensitive
       if (key !== this.authKey) {
@@ -539,8 +539,8 @@ export class GardenServer extends EventEmitter {
       try {
         proc = pty.spawn("sh", ["-c", `sleep 1; ${command} ${args.join(" ")}`], {
           name: "xterm-256color",
-          cols: 80,
-          rows: 30,
+          cols: columns,
+          rows,
           cwd,
           env: { ...omitUndefined(process.env) }, // TODO: support this
         })
