@@ -457,6 +457,40 @@ Examples:
   | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
 
 
+### garden cloud secrets update
+
+**Update secrets in Garden Cloud**
+
+Update secrets in Garden Cloud. You can update the secrets by either specifying secret ID or secret name.
+To get the IDs of the secrets you want to update, run the `garden cloud secrets list` command.
+
+When you want to update the secrets by name, use the `--update-by-name` flag. If you have multiple secrets with same name across different environments and users, specify the environment and user id scope using `--scope-to-env` and `--scope-to-user-id` flags.
+
+Examples:
+    garden cloud secrets update <ID 1>=somevalue <ID 2>=somevalue2 # update two secret values with the given IDs.
+    garden cloud secrets update MY_SECRET=somevalue MY_SECRET_2=somevalue2 --update-by-name # update two secret values with the given names.
+    garden cloud secrets update MY_SECRET=somevalue MY_SECRET_2=somevalue2 --update-by-name --scope-to-env local # update two secret values with the given names for the environment local.
+    garden cloud secrets update MY_SECRET=somevalue MY_SECRET_2=somevalue2 --update-by-name --scope-to-env local --scope-to-user-id <user-id> # update two secret values with the given names for the environment local and specified user id.
+
+#### Usage
+
+    garden cloud secrets update [secretNamesOrIds] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `secretNamesOrIds` | No | The name(s) or ID(s) of the secrets to update along with the new values, separated by &#x27;&#x3D;&#x27;. You may specify multiple secret id/value pairs, separated by spaces.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--scope-to-user-id` |  | string | Update the secret(s) in scope of user with the given user ID. This must be specified if you want to update secrets by name instead of secret ID.
+  | `--scope-to-env` |  | string | Update the secret(s) in scope of the specified environment. This must be specified if you want to update secrets by name instead of secret ID.
+  | `--update-by-name` |  | boolean | Update the secret(s) by providing the name(s) of secrets. By default, the command args are considered to be secret IDs. Make sure to also set &#x60;--user-ud&#x60; and &#x60;--env&#x60; flag if there are multiple secrets of same name across different environments or users.
+
+
 ### garden cloud secrets delete
 
 **Delete secrets from Garden Cloud.**

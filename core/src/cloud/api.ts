@@ -605,6 +605,18 @@ export class CloudApi {
     })
   }
 
+  async put<T>(path: string, opts: ApiFetchOptions & { body?: any } = {}) {
+    const { body, headers, retry, retryDescription, maxRetries } = opts
+    return this.apiFetch<T>(path, {
+      method: "PUT",
+      body: body || {},
+      headers: headers || {},
+      retry: retry === true ? true : false, // defaults to false unless true is explicitly passed
+      retryDescription,
+      maxRetries,
+    })
+  }
+
   async registerSession({
     parentSessionId,
     sessionId,

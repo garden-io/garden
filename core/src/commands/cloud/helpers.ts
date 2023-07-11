@@ -111,7 +111,7 @@ export function handleBulkOperationResult<T>({
   cmdLog: Log
   results: T[]
   errors: ApiCommandError[]
-  action: "create" | "delete"
+  action: "create" | "update" | "delete"
   resource: "secret" | "user"
 }): CommandResult<T[]> {
   const successCount = results.length
@@ -122,7 +122,7 @@ export function handleBulkOperationResult<T>({
   if (errors.length > 0) {
     cmdLog.error("Error")
 
-    const actionVerb = action === "create" ? "creating" : "deleting"
+    const actionVerb = action === "create" ? "creating" : action === "update" ? "updating" : "deleting"
     const errorMsgs = errors
       .map((e) => {
         // Identifier could be an ID, a name or empty.
@@ -146,7 +146,9 @@ export function handleBulkOperationResult<T>({
   if (successCount > 0) {
     const resourceStr = successCount === 1 ? resource : pluralize(resource)
     log.info({
-      msg: `Successfully ${action === "create" ? "created" : "deleted"} ${successCount} ${resourceStr}!`,
+      msg: `Successfully ${
+        action === "create" ? "created" : action === "update" ? "updated" : "deleted"
+      } ${successCount} ${resourceStr}!`,
     })
     log.info("")
   }
