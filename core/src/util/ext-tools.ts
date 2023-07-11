@@ -98,7 +98,7 @@ export class CliWrapper {
       outputStream.on("data", (data: Buffer) => {
         const msg = data.toString()
 
-        if (streamLogs.print) {
+        if (streamLogs.print && msg && msg.length > 0) {
           logEventContext.log.info(hasAnsi(msg) ? msg : chalk.white(msg))
         }
 

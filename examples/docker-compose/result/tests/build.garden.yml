@@ -1,0 +1,4 @@
+kind: Build
+type: container
+name: vote-tests
+disabled: true

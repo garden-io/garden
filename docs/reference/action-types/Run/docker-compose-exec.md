@@ -151,13 +151,11 @@ kind:
 timeout: 600
 
 spec:
-  # The Compose project name, as specified in the provider configuration.
+  # The Compose project name. This field is usually unnecessary unless using several Compose projects together.
   projectName:
 
   # The name of the service.
   service:
-
-  command:
 
   # Environment variables to set during execution.
   env: {}
@@ -167,6 +165,15 @@ spec:
 
   # Path to workdir directory for this command.
   workdir:
+
+  # The command to run inside the container. Note that there's no entrypoint on this schema: When we exec into
+  # a running container, there's no need to override the image's entrypoint.
+  #
+  # This field maps to the `COMMAND` that's passed to `docker compose exec`. See
+  # https://docs.docker.com/engine/reference/commandline/exec/#description for more info.
+  #
+  # Example: `["echo","Hello World"]`
+  command:
 
   # Index of the container if there are multiple instances of a service.
   index: 1
@@ -404,7 +411,7 @@ Set a timeout for the run to complete, in seconds.
 
 [spec](#spec) > projectName
 
-The Compose project name, as specified in the provider configuration.
+The Compose project name. This field is usually unnecessary unless using several Compose projects together.
 
 | Type     | Required |
 | -------- | -------- |
@@ -419,14 +426,6 @@ The name of the service.
 | Type     | Required |
 | -------- | -------- |
 | `string` | Yes      |
-
-### `spec.command[]`
-
-[spec](#spec) > command
-
-| Type    | Required |
-| ------- | -------- |
-| `array` | Yes      |
 
 ### `spec.env`
 
@@ -457,6 +456,22 @@ Path to workdir directory for this command.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `spec.command[]`
+
+[spec](#spec) > command
+
+The command to run inside the container. Note that there's no entrypoint on this schema: When we exec into
+a running container, there's no need to override the image's entrypoint.
+
+This field maps to the `COMMAND` that's passed to `docker compose exec`. See
+https://docs.docker.com/engine/reference/commandline/exec/#description for more info.
+
+Example: `["echo","Hello World"]`
+
+| Type    | Required |
+| ------- | -------- |
+| `array` | Yes      |
 
 ### `spec.index`
 

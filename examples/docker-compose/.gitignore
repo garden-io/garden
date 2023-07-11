@@ -1,0 +1,8 @@
+*.pyc
+.garden
+.vscode
+project.lock.json
+bin/
+obj/
+.vs/
+node_modules/

@@ -6,22 +6,51 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import AsyncLock from "async-lock"
 import { sdk } from "@garden-io/sdk"
-import { DockerComposeDeploySpec, DockerComposeProjectSpec } from "./schemas"
+import {
+  DockerComposeActionSpec,
+  DockerComposeBuildSpec,
+  DockerComposeDeploySpec,
+  DockerComposeProjectSpec,
+  DockerComposeRunSpec,
+  DockerComposeTestSpec,
+  ResolvedComposeRunAction,
+  ResolvedComposeTestAction,
+  ResolvedDockerRunAction,
+  ResolvedDockerTestAction,
+} from "./schemas"
 import { range } from "lodash"
 import type { DockerComposeProviderConfig } from "."
 import { compose } from "./tools"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import { ExecParams, PluginTool } from "@garden-io/core/src/util/ext-tools"
 import { ActionState } from "@garden-io/core/build/src/actions/types"
+import { DeepPrimitiveMap, PrimitiveMap } from "@garden-io/core/build/src/config/common"
 
+type DockerComposeDependencySpec = {
+  [name: string]: {
+    condition?: "service_started" | "service_healthy" | "service_completed_successfully"
+    restart?: boolean
+    required?: boolean
+  }
+}
+
+type DockerComposePortsSpec = {
+  // Short/string-form port specs are normalized into the long/object form.
+  target: number
+  host_ip?: string
+  protocol: string
+  mode: string
+  published: string
+}[]
 
 // Note: This type is not exhaustive. We're only specifying the fields we're actually using, and the full structure
 // has more fields (which we can add here if/when we want to use them directly in the plugin).
 // See here for more: https://docs.docker.com/compose/compose-file/
-export type ComposeProjectConfig = {
-  name?: string
+export type DockerComposeProjectConfig = {
+  name: string
   services: {
     [name: string]: {
       build?: any
@@ -29,14 +58,27 @@ export type ComposeProjectConfig = {
       networks?: {
         [name: string]: any
       }
-      ports?: { // Short/string-form port specs are normalized into the long/object form.
-        target: number
-        host_ip?: string
-        protocol: string
-        mode: string
-        published: string
-      }
+      depends_on?: string[] | DockerComposeDependencySpec[]
+      ports?: DockerComposePortsSpec
     }
+  }
+}
+
+export function getComposeActionName(serviceName: string, projectName: string | null | undefined) {
+  return projectName ? `${projectName}-${serviceName}-compose` : `${serviceName}-compose`
+}
+
+function getComposeBuildImageId(serviceName: string, projectName: string) {
+  return projectName ? `${projectName}-${serviceName}` : serviceName
+}
+
+export interface ComposeBuildOutputs extends DeepPrimitiveMap {
+  "image-id": string
+}
+
+export function getComposeBuildOutputs(spec: DockerComposeBuildSpec, projectName: string): ComposeBuildOutputs {
+  return {
+    "image-id": getComposeBuildImageId(spec.service, projectName),
   }
 }
 
@@ -62,7 +104,42 @@ export function getCommonArgs(spec: DockerComposeDeploySpec) {
   return args
 }
 
-export async function runToolWithArgs(tool: PluginTool, params: ExecParams) {
+export function getRunOpts(
+  action: ResolvedComposeRunAction | ResolvedComposeTestAction | ResolvedDockerRunAction | ResolvedDockerTestAction
+) {
+  const spec = action.getSpec()
+  const opts: string[] = getRunEnvOpts(spec)
+
+  // We only build if the Run/Test action specifies a build (which implies a Dockerfile and a build step, in contrast
+  // to Runs/Tests which reference an image by tag that's not the output of a Garden Build action).
+  !!action.getBuildAction() && opts.push("--build") // TODO: consider making this configurable?
+  spec.entrypoint && opts.push("--entrypoint", spec.entrypoint)
+  spec.name && opts.push("--name", spec.name)
+  spec.rm && opts.push("--rm")
+  spec.servicePorts && opts.push("--service-ports")
+  spec.useAliases && opts.push("--use-aliases")
+  for (const v of spec.volumes) {
+    opts.push("--volume", v)
+  }
+  for (const qualified of spec.networks.map((n) => qualifiedNetworkName(spec.projectName, n))) {
+    opts.push("--network", qualified)
+  }
+  spec.user && opts.push("--user", spec.user)
+  spec.workdir && opts.push("--workdir", spec.workdir)
+
+  return opts
+}
+
+export function getRunEnvOpts(spec: DockerComposeRunSpec | DockerComposeTestSpec) {
+  return Object.keys(spec.env).flatMap((varName) => ["-e", varName])
+}
+
+/**
+ * A helper for calling `docker` or `docker compose` with the provided options/params.
+ *
+ * We make `env` a mandatory param to prevent call sites from forgetting to pass it.
+ */
+export async function runToolWithArgs(tool: PluginTool, params: ExecParams & { env: PrimitiveMap }) {
   const startedAt = new Date()
   let output = ""
   let success = true
@@ -70,9 +147,12 @@ export async function runToolWithArgs(tool: PluginTool, params: ExecParams) {
   try {
     const result = await tool.exec(params)
     output = result.all || result.stdout
+    // console.log(chalk.blue(output))
     state = "ready"
   } catch (err) {
     state = "failed"
+    params.log.error(chalk.red(err.message))
+    // console.log(chalk.red(err.message))
     success = false
   }
 
@@ -106,7 +186,8 @@ export async function withLockOnNetworkCreation<Result>(
     qualifiedNetworkNames: string[]
     serviceName: string
     log: sdk.types.Log
-  }): Promise<Result> {
+  }
+): Promise<Result> {
   const missingNetworkNames = qualifiedNetworkNames.filter((n) => !createdNetworkNames.has(n))
   let res: Result
   if (missingNetworkNames.length === 0) {
@@ -128,7 +209,7 @@ export async function withLockOnNetworkCreation<Result>(
   return res!
 }
 
-export function getNetworkNamesFromConfig(config: ComposeProjectConfig, serviceName: string) {
+export function getNetworkNamesFromConfig(config: DockerComposeProjectConfig, serviceName: string) {
   const projectName = config.name
   const networkNames = Object.keys(config.services[serviceName]?.networks || {})
   return networkNames.map((n) => qualifiedNetworkName(projectName, n))
@@ -150,29 +231,54 @@ export function getProjectInfo(projectName: string | undefined, path: string) {
   return { name: projectName || null, path, cwd: path }
 }
 
-// TODO: Memoize this function based on the SHA of the project file
-export async function getComposeConfig(
-  ctx: sdk.types.PluginContext<DockerComposeProviderConfig>,
-  log: sdk.types.Log,
-  project: DockerComposeProjectInfo
-) {
-  let config: any // TODO: add typing for the resolved config
+// This is refreshed in the `augmentGraph` handler (which calls `getComposeConfig` with `cache = false`).
+// We use this to avoid shelling out to `docker compose config` too often.
+let cachedComposeConfig: DockerComposeProjectConfig | null = null
 
-  const path = project.cwd
+export async function getComposeConfig({
+  ctx,
+  log,
+  cwd,
+  cache,
+}: {
+  ctx: sdk.types.PluginContext<DockerComposeProviderConfig>
+  log: sdk.types.Log
+  cwd: string
+  cache: boolean
+}) {
+  if (cache && cachedComposeConfig) {
+    return cachedComposeConfig
+  }
+  let config: DockerComposeProjectConfig
 
   try {
-    config = await compose(ctx).json({ log, cwd: path, args: ["config", "--format=json"] })
+    config = await compose(ctx).json({ log, cwd, args: ["config", "--format=json"] })
+    cachedComposeConfig = config
   } catch (error) {
     throw new ConfigurationError({
-      message: `Unable to find or process Docker Compose configuration in path '${path}': ${error}`,
+      message: `Unable to find or process Docker Compose configuration in path '${cwd}': ${error}`,
       detail: {
-        path,
+        path: cwd,
         error,
       },
     })
   }
 
   return config
+}
+
+export async function getProjectName({
+  ctx,
+  log,
+  cwd,
+  spec,
+}: {
+  ctx: sdk.types.PluginContext<DockerComposeProviderConfig>
+  log: sdk.types.Log
+  cwd: string
+  spec: DockerComposeActionSpec
+}) {
+  return spec.projectName || (await getComposeConfig({ ctx, log, cwd, cache: true })).name
 }
 
 type ContainerHealthState = "running" | "exited" | "dead"
@@ -211,7 +317,7 @@ export async function getComposeContainers(
  * The spec will always be normalized to the long format here.
  * See https://docs.docker.com/compose/compose-file/compose-file-v3/#ports
  */
-export function getIngresses(portsArray: any[]) {
+export function getIngresses(portsArray: DockerComposePortsSpec) {
   let ingresses: sdk.types.ServiceIngress[] = []
 
   for (const spec of portsArray) {
@@ -258,7 +364,7 @@ export function getIngresses(portsArray: any[]) {
     } else {
       ingresses.push({
         hostname,
-        port,
+        port: parseInt(port, 10),
         path: "/",
         protocol: "http",
       })

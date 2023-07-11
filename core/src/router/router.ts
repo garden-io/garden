@@ -95,6 +95,8 @@ export class ActionRouter extends BaseRouter {
       handlerType: "getOutputs",
       // TODO: figure out why the typing clashes here
       params: { ...params, action: <any>params.action, events: undefined },
+      // TODO: When rolling out the plugin SDK, warn if output schema validation fails due to the default handler
+      // being used.
       defaultHandler: async ({}) => ({ outputs: {} }),
     })
 

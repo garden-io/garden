@@ -1,0 +1,115 @@
+apiVersion: garden.io/v1
+kind: Project
+name: compose-flask-redis
+environments:
+  - name: local
+providers:
+  - name: docker-compose
+    environments: [local]
+variables:
+  echoTwiceCmd: ["-c", "echo 'Hello Compose!' && sleep 1 && echo 'Hello again!'"]
+  projectName: my-project
+  env: 
+    WIZARD: gandalf
+
+---
+
+kind: Run
+type: docker-compose-exec
+name: web-exec-echo-env
+dependencies: [deploy.web-compose]
+spec:
+  service: web
+  projectName: ${var.projectName}
+  env:
+    $merge: ${var.env}
+  command: [env]
+
+---
+
+kind: Run
+type: docker-compose-exec
+name: web-exec-bork
+dependencies: [deploy.web-compose]
+spec:
+  service: web
+  projectName: ${var.projectName}
+  command: [bork]
+
+---
+
+kind: Test
+type: docker-compose-exec
+name: web-exec-echo
+dependencies: [deploy.web-compose]
+spec:
+  service: web
+  projectName: ${var.projectName}
+  command: [echo, "Hello Compose!"]
+
+---
+
+kind: Run
+type: docker-compose-run
+name: web-run-echo-env
+spec:
+  service: web
+  projectName: ${var.projectName}
+  entrypoint: "/bin/sh"
+  # command: ${var.echoTwiceCmd}
+  env:
+    $merge: ${var.env}
+  command: ["-c", "sleep 1 && echo Hello $WIZARD"]
+
+---
+
+kind: Run
+type: docker-compose-run
+name: web-run-bork
+spec:
+  service: web
+  projectName: ${var.projectName}
+  command: [bork]
+
+---
+
+kind: Test
+type: docker-compose-run
+name: web-run-echo
+spec:
+  service: web
+  projectName: ${var.projectName}
+  entrypoint: "/bin/sh"
+  command: ${var.echoTwiceCmd}
+
+---
+
+kind: Run
+type: docker-run
+name: docker-run-echo
+spec:
+  projectName: ${var.projectName}
+  image: ${actions.build.web-compose.outputs.image-id}
+  entrypoint: "/bin/sh"
+  command: ${var.echoTwiceCmd}
+
+---
+
+kind: Run
+type: docker-run
+name: docker-run-bork
+spec:
+  projectName: ${var.projectName}
+  image: ${actions.build.web-compose.outputs.image-id}
+  command: [bork]
+
+---
+
+kind: Test
+type: docker-run
+name: docker-run-echo
+spec:
+  projectName: ${var.projectName}
+  image: ${actions.build.web-compose.outputs.image-id}
+  entrypoint: "/bin/sh"
+  command: ${var.echoTwiceCmd}

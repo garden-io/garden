@@ -7,6 +7,7 @@
  */
 
 import { sdk } from "@garden-io/sdk"
+import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { dedent } from "@garden-io/sdk/util/string"
 
 import {
@@ -17,21 +18,53 @@ import {
   dockerComposeExecSchema,
   dockerComposeRunSchema,
   dockerRunSchema,
-  dockerComposeRunSchemaBase,
+  ResolvedComposeRunAction,
+  ResolvedComposeTestAction,
+  ResolvedDockerRunAction,
+  ResolvedDockerTestAction,
 } from "./schemas"
 import { dockerComposeSpec, compose, dockerSpec, docker } from "./tools"
 import Bluebird from "bluebird"
 import { flatten, fromPairs, isArray } from "lodash"
-import { getCommonArgs, getComposeConfig, getComposeContainers, getIngresses, getNetworkNamesFromConfig, getProjectInfo, getProjects, qualifiedNetworkName, runToolWithArgs, withLockOnNetworkCreation } from "./common"
+import {
+  getCommonArgs,
+  getComposeActionName,
+  getComposeBuildOutputs,
+  getComposeConfig,
+  getComposeContainers,
+  getIngresses,
+  getNetworkNamesFromConfig,
+  getProjectInfo,
+  getProjectName,
+  getProjects,
+  getRunEnvOpts,
+  getRunOpts,
+  runToolWithArgs,
+  withLockOnNetworkCreation,
+} from "./common"
 import { ActionState, actionReferenceToString } from "@garden-io/core/build/src/actions/types"
 import { DeployState } from "@garden-io/core/build/src/types/service"
-import { LogLevel } from "@garden-io/sdk/types"
+import { Log, LogLevel, PluginContext } from "@garden-io/sdk/types"
+import { isTruthy } from "@garden-io/core/build/src/util/util"
+import { DeepPrimitiveMap } from "@garden-io/core/build/src/config/common"
 
 const s = sdk.schema
 
 export const gardenPlugin = sdk.createGardenPlugin({
   name: "docker-compose",
-  docs: dedent`TODO`,
+  docs: dedent`
+      **EXPERIMENTAL**
+
+      This plugin allows you to integrate [Docker Compose](https://docs.docker.com/compose/) projects into your Garden project.
+
+      It works by parsing the Docker Compose projects, and creating Build and Deploy actions for each [service](https://docs.docker.com/compose/compose-file/05-services/) in the project.
+
+      You can then easily add Run and Test actions to complement your Compose project.
+      
+      This can be very useful e.g. for running tests against a Docker Compose stack in CI (and locally), and to wrap various scripts you use during development (e.g. a Run for seeding a database with test data, or a Run for generating a database migration inside a container that you're developing).
+
+      See the [Docker Compose guide](${docsBaseUrl}/docker-compose-plugin/about) for more information on the action types provided by the plugin, and how to use it for developing and testing your Compose project.
+    `,
 })
 
 gardenPlugin.addTool(dockerComposeSpec)
@@ -111,25 +144,6 @@ composeProvider.addHandler("cleanupEnvironment", async ({ ctx, log }) => {
   return {}
 })
 
-// composeProvider.addHandler("getEnvironmentStatus", async ({ ctx }) => {
-//   // TODO: Check if all networks exist
-//   console.log("bar")
-//   return { ready: false, outputs: {} }
-// })
-
-// /**
-//  * Ensure the networks listed in the docker-compose project exist (to prevent race conditions when deploying).
-//  */
-// composeProvider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
-//   await Bluebird.map(getProjects(ctx), async (projectSpec) => {
-//     const path = projectSpec.cwd
-//     const config = await getComposeConfig(ctx, log, projectSpec)
-//     console.log("here")
-//   })
-//   console.log("foo")
-//   return { status: { ready: true, outputs: {} } }
-// })
-
 /**
  * Convert docker-compose projects to individual service Build and Deploy actions
  */
@@ -141,19 +155,22 @@ composeProvider.addHandler("augmentGraph", async ({ ctx, log, actions }) => {
 
   const generated = flatten(
     await Bluebird.map(getProjects(ctx), async (projectSpec) => {
-      const path = projectSpec.cwd
-      const config = await getComposeConfig(ctx, log, projectSpec)
+      const cwd = projectSpec.cwd
+      const config = await getComposeConfig({
+        ctx,
+        log,
+        cwd,
+        cache: false, // We refresh the cached compose config (if any).
+      })
 
       const services = config.services || {}
       const description = `Compose stack at '${projectSpec.path}'`
 
-      const getActionName = (serviceName: string) =>
-        projectSpec.name ? `${projectSpec.name}-${serviceName}` : serviceName
-
       return Object.entries(services).flatMap(([serviceName, serviceSpec]) => {
-        const name = getActionName(serviceName)
+        const projectName = projectSpec.name || undefined
+        const name = getComposeActionName(serviceName, projectName)
 
-        let dependsOn = (<any>serviceSpec).depends_on || {}
+        let dependsOn = serviceSpec.depends_on || {}
 
         if (isArray(dependsOn)) {
           dependsOn = fromPairs(dependsOn.map((d) => [d, { condition: "service_started" }]))
@@ -163,19 +180,19 @@ composeProvider.addHandler("augmentGraph", async ({ ctx, log, actions }) => {
         // see https://docs.docker.com/compose/compose-file/05-services/#depends_on
         // Currently the condition is effectively always "service_healthy".
         // (needs a bit of frameworking to address)
-        const dependencies = Object.keys(dependsOn).map((d) => ({ kind: "Deploy" as const, name: getActionName(d) }))
-
-        const projectName = projectSpec.name || undefined
+        const dependencies = Object.keys(dependsOn).map((d) => ({
+          kind: "Deploy" as const,
+          name: getComposeActionName(d, projectName),
+        }))
 
         return [
-          // TODO: maybe we can skip the build if just referencing a remote image
-          {
+          serviceSpec.build && {
             kind: "Build" as const,
             type: "docker-compose-service",
             name,
             description: `Build service '${name}' in ${description} (auto-generated)`,
             internal: {
-              basePath: path,
+              basePath: cwd,
             },
             timeout: 86400, // TODO: allow configuration on this (compose doesn't have that feature itself)
             spec: {
@@ -189,9 +206,9 @@ composeProvider.addHandler("augmentGraph", async ({ ctx, log, actions }) => {
             name,
             description: `Deploy service '${name}' in ${description} (auto-generated)`,
             internal: {
-              basePath: path,
+              basePath: cwd,
             },
-            build: name,
+            build: serviceSpec.build ? name : undefined,
             dependencies,
             timeout: 86400, // TODO: allow configuration on this (compose doesn't have that feature itself)
             spec: {
@@ -199,7 +216,7 @@ composeProvider.addHandler("augmentGraph", async ({ ctx, log, actions }) => {
               service: serviceName,
             },
           },
-        ]
+        ].filter(isTruthy)
       })
     })
   )
@@ -223,14 +240,37 @@ composeProvider.addHandler("augmentGraph", async ({ ctx, log, actions }) => {
 const composeBuild = composeProvider.createActionType({
   kind: "Build",
   name: "docker-compose-service",
-  docs: "TODO",
+  docs: dedent`
+    Uses \`docker compose build\` to build a service in a Docker Compose project.
+  `,
   specSchema: dockerComposeServiceBuildSchema,
-  staticOutputsSchema: s.object({}), // TODO
+  staticOutputsSchema: s.object({
+    "image-id": s.string().describe(`The Docker image ID pushed by the compose build.`),
+  }),
   runtimeOutputsSchema: s.object({}), // TODO
+})
+
+composeBuild.addHandler("getOutputs", async ({ ctx, log, action }) => {
+  const spec = action.getSpec()
+  const projectName = await getProjectName({ ctx, log, cwd: action.basePath(), spec })
+  return {
+    outputs: getComposeBuildOutputs(spec, projectName) as DeepPrimitiveMap,
+  }
+})
+
+composeBuild.addHandler("getStatus", async ({ ctx, log, action }) => {
+  const spec = action.getSpec()
+  const projectName = await getProjectName({ ctx, log, cwd: action.basePath(), spec })
+  return {
+    state: "not-ready",
+    detail: {},
+    outputs: getComposeBuildOutputs(spec, projectName),
+  }
 })
 
 composeBuild.addHandler("build", async ({ ctx, log, action }) => {
   const spec = action.getSpec()
+  const projectName = await getProjectName({ ctx, log, cwd: action.basePath(), spec })
 
   const args = [...getCommonArgs(spec), "build", "--progress=plain", spec.service]
 
@@ -248,7 +288,7 @@ composeBuild.addHandler("build", async ({ ctx, log, action }) => {
       buildLog: result.all || result.stdout || result.stderr || "",
       details: {},
     },
-    outputs: {},
+    outputs: getComposeBuildOutputs(spec, projectName),
   }
 })
 
@@ -258,7 +298,7 @@ composeBuild.addHandler("build", async ({ ctx, log, action }) => {
 const composeDeploy = composeProvider.createActionType({
   kind: "Deploy",
   name: "docker-compose-service",
-  docs: "TODO",
+  docs: "Uses `docker compose up` to deploy a single service in a Docker Compose project.",
   specSchema: dockerComposeServiceDeploySchema,
   staticOutputsSchema: s.object({}), // TODO
   runtimeOutputsSchema: s.object({}), // TODO
@@ -282,18 +322,19 @@ composeDeploy.addHandler("deploy", async ({ ctx, log, action, force }) => {
     args.push("--force-recreate")
   }
 
-  const path = action.basePath()
+  const cwd = action.basePath()
 
-  const config = await getComposeConfig(ctx, log, getProjectInfo(spec.projectName, path))
+  const config = await getComposeConfig({ ctx, log, cwd, cache: true })
   const qualifiedNetworkNames = getNetworkNamesFromConfig(config, spec.service)
 
   await withLockOnNetworkCreation(
-    () => compose(ctx).exec({
-      cwd: action.basePath(),
-      args,
-      log,
-      streamLogs: { ctx },
-    }),
+    () =>
+      compose(ctx).exec({
+        cwd,
+        args,
+        log,
+        streamLogs: { ctx, print: true, logLevel: LogLevel.info },
+      }),
     {
       log,
       qualifiedNetworkNames,
@@ -316,14 +357,14 @@ composeDeploy.addHandler("deploy", async ({ ctx, log, action, force }) => {
 })
 
 composeDeploy.addHandler("getStatus", async ({ ctx, log, action }) => {
-  const path = action.basePath()
+  const cwd = action.basePath()
   const spec = action.getSpec()
-  const running = await getComposeContainers(ctx, log, getProjectInfo(spec.projectName, path))
+  const running = await getComposeContainers(ctx, log, getProjectInfo(spec.projectName, cwd))
   // Our generated Compose Deploys have the same name as the services in the Compose project.
   const runningForDeploy = running.find((r) => r.Service === action.name)
   const state: ActionState = runningForDeploy && runningForDeploy.State === "running" ? "ready" : "not-ready"
   const deployState: DeployState = state === "ready" ? "ready" : "missing"
-  const config = await getComposeConfig(ctx, log, getProjectInfo(spec.projectName, path))
+  const config = await getComposeConfig({ ctx, log, cwd, cache: true })
   const portSpecs = config?.services?.[spec.service]?.ports || []
   const ingresses = getIngresses(portSpecs)
   return {
@@ -348,7 +389,7 @@ composeDeploy.addHandler("delete", async ({ ctx, log, action }) => {
     args,
     log,
     timeoutSec: action.getConfig().timeout,
-    streamLogs: { ctx },
+    streamLogs: { ctx, print: true, logLevel: LogLevel.info },
   })
 
   return {
@@ -375,7 +416,7 @@ composeDeploy.addHandler("getLogs", async ({ ctx, log, action, since, follow, ta
     cwd: action.basePath(),
     args,
     log,
-    streamLogs: { ctx, print: true, emitEvent: false, logLevel: LogLevel.info }
+    streamLogs: { ctx, print: true, emitEvent: false, logLevel: LogLevel.info },
   })
 
   return {}
@@ -388,11 +429,9 @@ const makeComposeExecHandler = () => {
   return async ({ ctx, log, action }) => {
     const spec = action.getSpec()
 
-    const args = ["exec", spec.service, ...spec.command || []]
+    const args = [spec.service, ...(spec.command || [])]
 
-    // TODO: add env var flags
-
-    const opts: string[] = []
+    const opts: string[] = getRunEnvOpts(spec)
 
     // if (spec.index) {
     //   opts.push("--index", spec.index.toString())
@@ -407,17 +446,12 @@ const makeComposeExecHandler = () => {
       opts.push("--workdir", spec.workdir)
     }
 
-    const {
-      state,
-      success,
-      startedAt,
-      completedAt,
-      output,
-    } = await runToolWithArgs(compose(ctx), {
+    const { state, success, startedAt, completedAt, output } = await runToolWithArgs(compose(ctx), {
       cwd: action.basePath(),
-      args: [...opts, ...args],
+      args: ["exec", ...opts, ...args],
       log,
-      streamLogs: { ctx },
+      env: spec.env,
+      streamLogs: { ctx, print: true, logLevel: LogLevel.info },
     })
 
     return {
@@ -436,19 +470,18 @@ const makeComposeExecHandler = () => {
 const composeExecRun = composeProvider.createActionType({
   kind: "Run",
   name: "docker-compose-exec",
-  docs: "Uses \`docker compose exec\` to execute the specified command in an already running \`docker-compose\` service.",
+  docs: "Uses `docker compose exec` to execute the specified command in an already running `docker-compose` service.",
   specSchema: dockerComposeExecSchema,
   staticOutputsSchema: s.object({}), // TODO
   runtimeOutputsSchema: s.object({}), // TODO
 })
-
 
 composeExecRun.addHandler("run", makeComposeExecHandler())
 
 const composeExecTest = composeProvider.createActionType({
   kind: "Test",
   name: "docker-compose-exec",
-  docs: "Runs a test suite by using \`docker compose exec\` to execute the specified command in an already running \`docker-compose\` service.",
+  docs: "Runs a test suite by using `docker compose exec` to execute the specified command in an already running `docker-compose` service.",
   specSchema: dockerComposeExecSchema,
   staticOutputsSchema: s.object({}), // TODO
   runtimeOutputsSchema: s.object({}), // TODO
@@ -461,66 +494,32 @@ composeExecTest.addHandler("run", makeComposeExecHandler())
  * (Runs and Tests)
  */
 
-function getRunOpts(spec: sdk.types.infer<typeof dockerComposeRunSchemaBase>) {
-  const opts: string[] = []
-
-  if (spec.name) {
-    opts.push("--name", spec.name)
-  }
-  if (spec.rm) {
-    opts.push("--rm")
-  }
-  if (spec.servicePorts) {
-    opts.push("--service-ports")
-  }
-  if (spec.useAliases) {
-    opts.push("--use-aliases")
-  }
-  for (const v of spec.volumes) {
-    opts.push("--volume", v)
-  }
-  for (const qualified of spec.networks.map((n) => qualifiedNetworkName(spec.projectName, n))) {
-    opts.push("--network", qualified)
-  }
-  if (spec.user) {
-    opts.push("--user", spec.user)
-  }
-  if (spec.workdir) {
-    opts.push("--workdir", spec.workdir)
-  }
-
-  return opts
-}
-
 // We use the word "fresh" instead of "run" to distinguish from "exec" (as in, run in a fresh container instead of
 // inside a running service. Just internally to the plugin, to avoid mind-numbingly inane names like `dockerRunRun` and
 // `dockerComposeRunRun`.
 
 const makeDockerFreshHandler = () => {
-  return async ({ ctx, log, action }) => {
+  return async ({
+    ctx,
+    log,
+    action,
+  }: {
+    ctx: PluginContext
+    log: Log
+    action: ResolvedDockerRunAction | ResolvedDockerTestAction
+  }) => {
     const spec = action.getSpec()
 
-    const opts = [
-      "run",
-      // "--build", // TODO: consider making this configurable?
-      ...spec.command || [],
-      ...getRunOpts(spec),
-    ]
+    const args: string[] = ["run", ...getRunOpts(action), spec.image, ...(spec.command || [])]
 
-    // TODO: add env var flags
     // TODO: support interactive flag
 
-    const {
-      state,
-      success,
-      startedAt,
-      completedAt,
-      output,
-    } = await runToolWithArgs(docker(ctx), {
+    const { state, success, startedAt, completedAt, output } = await runToolWithArgs(docker(ctx), {
       cwd: action.basePath(),
-      args: [...opts, spec.image],
+      args,
       log,
-      streamLogs: { ctx },
+      env: spec.env,
+      streamLogs: { ctx, print: true, logLevel: LogLevel.info },
     })
 
     return {
@@ -539,7 +538,7 @@ const makeDockerFreshHandler = () => {
 const dockerFreshRun = composeProvider.createActionType({
   kind: "Run",
   name: "docker-run",
-  docs: "Uses \`docker run\` to execute the specified command in a new, one-off container from the specified image.",
+  docs: "Uses `docker run` to execute the specified command in a new, one-off container from the specified image.",
   specSchema: dockerRunSchema,
   staticOutputsSchema: s.object({}), // TODO
   runtimeOutputsSchema: s.object({}), // TODO
@@ -550,7 +549,7 @@ dockerFreshRun.addHandler("run", makeDockerFreshHandler())
 const dockerFreshTest = composeProvider.createActionType({
   kind: "Test",
   name: "docker-run",
-  docs: "Runs a test suite by using \`docker run\` to execute the specified command in a new, one-off container from the specified image.",
+  docs: "Runs a test suite by using `docker run` to execute the specified command in a new, one-off container from the specified image.",
   specSchema: dockerRunSchema,
   staticOutputsSchema: s.object({}), // TODO
   runtimeOutputsSchema: s.object({}), // TODO
@@ -564,29 +563,26 @@ dockerFreshTest.addHandler("run", makeDockerFreshHandler())
  */
 
 const makeDockerComposeFreshHandler = () => {
-  return async ({ ctx, log, action }) => {
+  return async ({
+    ctx,
+    log,
+    action,
+  }: {
+    ctx: PluginContext
+    log: Log
+    action: ResolvedComposeRunAction | ResolvedComposeTestAction
+  }) => {
     const spec = action.getSpec()
 
-    const opts = [
-      "run",
-      // "--build", // TODO: consider making this configurable?
-      ...spec.command || [],
-      ...getRunOpts(spec),
-    ]
+    const args = ["run", "--remove-orphans", "--no-deps", ...getRunOpts(action), spec.service, ...(spec.command || [])]
 
-    // TODO: add env var flags
     // TODO: support interactive flag
-    const {
-      state,
-      success,
-      startedAt,
-      completedAt,
-      output,
-    } = await runToolWithArgs(compose(ctx), {
+    const { state, success, startedAt, completedAt, output } = await runToolWithArgs(compose(ctx), {
       cwd: action.basePath(),
-      args: [...opts, spec.service],
+      args,
       log,
-      streamLogs: { ctx },
+      env: spec.env,
+      streamLogs: { ctx, print: true, logLevel: LogLevel.info },
     })
 
     return {
@@ -605,7 +601,7 @@ const makeDockerComposeFreshHandler = () => {
 const dockerComposeFreshRun = composeProvider.createActionType({
   kind: "Run",
   name: "docker-compose-run",
-  docs: "Uses \` compose run\` to execute the specified command in a new, one-off container from the specified Compose service.",
+  docs: "Uses ` compose run` to execute the specified command in a new, one-off container from the specified Compose service.",
   specSchema: dockerComposeRunSchema,
   staticOutputsSchema: s.object({}), // TODO
   runtimeOutputsSchema: s.object({}), // TODO
@@ -616,11 +612,10 @@ dockerComposeFreshRun.addHandler("run", makeDockerComposeFreshHandler())
 const dockerComposeFreshTest = composeProvider.createActionType({
   kind: "Test",
   name: "docker-compose-run",
-  docs: "Runs a test suite by using \` compose run\` to execute the specified command in a new, one-off container from the specified Compose service.",
+  docs: "Runs a test suite by using ` compose run` to execute the specified command in a new, one-off container from the specified Compose service.",
   specSchema: dockerComposeRunSchema,
   staticOutputsSchema: s.object({}), // TODO
   runtimeOutputsSchema: s.object({}), // TODO
 })
 
 dockerComposeFreshTest.addHandler("run", makeDockerComposeFreshHandler())
-

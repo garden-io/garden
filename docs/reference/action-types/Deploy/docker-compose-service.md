@@ -7,7 +7,7 @@ tocTitle: "`docker-compose-service` Deploy"
 
 ## Description
 
-TODO
+Uses `docker compose up` to deploy a single service in a Docker Compose project.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
@@ -151,7 +151,7 @@ kind:
 timeout: 300
 
 spec:
-  # The Compose project name, as specified in the provider configuration.
+  # The Compose project name. This field is usually unnecessary unless using several Compose projects together.
   projectName:
 
   # The name of the service to deploy.
@@ -387,7 +387,7 @@ Timeout for the deploy to complete, in seconds.
 
 [spec](#spec) > projectName
 
-The Compose project name, as specified in the provider configuration.
+The Compose project name. This field is usually unnecessary unless using several Compose projects together.
 
 | Type     | Required |
 | -------- | -------- |

@@ -7,7 +7,17 @@ tocTitle: "`docker-compose`"
 
 ## Description
 
-TODO
+**EXPERIMENTAL**
+
+This plugin allows you to integrate [Docker Compose](https://docs.docker.com/compose/) projects into your Garden project.
+
+It works by parsing the Docker Compose projects, and creating Build and Deploy actions for each [service](https://docs.docker.com/compose/compose-file/05-services/) in the project.
+
+You can then easily add Run and Test actions to complement your Compose project.
+
+This can be very useful e.g. for running tests against a Docker Compose stack in CI (and locally), and to wrap various scripts you use during development (e.g. a Run for seeding a database with test data, or a Run for generating a database migration inside a container that you're developing).
+
+See the [Docker Compose guide](https://docs.garden.io/docker-compose-plugin/about) for more information on the action types provided by the plugin, and how to use it for developing and testing your Compose project.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 

@@ -7,7 +7,7 @@ tocTitle: "`docker-compose-service` Build"
 
 ## Description
 
-TODO
+Uses `docker compose build` to build a service in a Docker Compose project.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
@@ -180,7 +180,7 @@ exclude:
 timeout: 600
 
 spec:
-  # The Compose project name, as specified in the provider configuration.
+  # The Compose project name. This field is usually unnecessary unless using several Compose projects together.
   projectName:
 
   # The name of the service to build.
@@ -465,7 +465,7 @@ Set a timeout for the build to complete, in seconds.
 
 [spec](#spec) > projectName
 
-The Compose project name, as specified in the provider configuration.
+The Compose project name. This field is usually unnecessary unless using several Compose projects together.
 
 | Type     | Required |
 | -------- | -------- |
