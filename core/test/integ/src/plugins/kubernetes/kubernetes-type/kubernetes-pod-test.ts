@@ -44,13 +44,13 @@ describe("kubernetes-type pod Test", () => {
     garden.events.eventLog = []
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
     const result = results.results.getResult(testTask)
-    expect(findNamespaceStatusEvent(garden.events.eventLog, "kubernetes-module-test-default")).to.exist
+    expect(findNamespaceStatusEvent(garden.events.eventLog, "kubernetes-type-test-default")).to.exist
 
     expect(result!.result).to.exist
     expect(result!.outputs).to.exist
     expect(result!.result!.outputs).to.exist
     expect(result!.result!.detail?.log.trim()).to.equal("ok")
-    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.equal("kubernetes-module-test-default")
+    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.equal("kubernetes-type-test-default")
   })
 
   it("should run a test in different namespace, if configured", async () => {
