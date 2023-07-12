@@ -157,17 +157,23 @@ export async function checkResourceStatuses(
   waitForJobs?: boolean
 ): Promise<ResourceStatus[]> {
   return Bluebird.map(manifests, async (manifest) => {
-    return checkResourceStatus(api, namespace, manifest, log, waitForJobs)
+    return checkResourceStatus({ api, namespace, manifest, log, waitForJobs })
   })
 }
 
-export async function checkResourceStatus(
-  api: KubeApi,
-  namespace: string,
-  manifest: KubernetesResource,
-  log: Log,
+export async function checkResourceStatus({
+  api,
+  namespace,
+  manifest,
+  log,
+  waitForJobs,
+}: {
+  api: KubeApi
+  namespace: string
+  manifest: KubernetesResource
+  log: Log
   waitForJobs?: boolean
-) {
+}) {
   const handler = objHandlers[manifest.kind]
 
   if (manifest.metadata?.namespace) {
@@ -399,7 +405,7 @@ export async function compareDeployedResources({
   log.debug(`Getting currently deployed resource statuses...`)
 
   const deployedObjectStatuses: ResourceStatus[] = await Bluebird.map(deployedResources, async (resource) =>
-    checkResourceStatus(api, namespace, resource, log)
+    checkResourceStatus({ api, namespace, manifest: resource, log })
   )
 
   const deployedStates = deployedObjectStatuses.map((s) => s.state)
