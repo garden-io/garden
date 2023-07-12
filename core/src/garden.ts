@@ -149,9 +149,10 @@ import { MonitorManager } from "./monitors/manager"
 import { AnalyticsHandler } from "./analytics/analytics"
 import { getGardenInstanceKey } from "./server/helpers"
 import { SuggestedCommand } from "./commands/base"
-import { OtelTraced } from "./util/tracing/decorators"
-import { wrapActiveSpan } from "./util/tracing/spans"
+import { OtelTraced } from "./util/open-telemetry/decorators"
+import { wrapActiveSpan } from "./util/open-telemetry/spans"
 import { GitRepoHandler } from "./vcs/git-repo"
+import { configureNoOpExporter } from "./util/open-telemetry/tracing"
 
 const defaultLocalAddress = "localhost"
 
@@ -397,6 +398,24 @@ export class Garden {
     this.version = getPackageVersion()
     this.monitors = params.monitors || new MonitorManager(this.log, this.events)
     this.solver = new GraphSolver(this)
+
+    // In order not to leak memory, we should ensure that there's always a collector for the OTEL data
+    // Here we check if the otel-collector was configured and we set a NoOp exporter if it was not
+    // This is of course not entirely ideal since this puts into this class some level of coupling
+    // with the plugin based otel-collector.
+    // Since we don't have the ability to hook into the post provider init stage from within the provider plugin
+    // especially because it's the absence of said provider that needs to trigger this case,
+    // there isn't really a cleaner way around this for now.
+    const providerConfigs = this.getRawProviderConfigs()
+
+    const hasOtelCollectorProvider = providerConfigs.some((providerConfig) => {
+      return providerConfig.name === "otel-collector"
+    })
+
+    if (!hasOtelCollectorProvider) {
+      this.log.silly("No OTEL collector configured, setting no-op exporter")
+      configureNoOpExporter()
+    }
   }
 
   static async factory<T extends typeof Garden>(

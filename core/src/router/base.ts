@@ -293,6 +293,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     })
 
     const providers = await this.garden.resolveProviders(log)
+
     const templateContext = action.isResolved()
       ? new ActionSpecContext({
           garden: this.garden,

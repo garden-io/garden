@@ -11,9 +11,10 @@ import { HttpInstrumentation } from "@opentelemetry/instrumentation-http"
 import { gardenEnv } from "../../constants"
 import { getSessionContext } from "./context"
 import { prefixWithGardenNamespace } from "./util"
-import { ReconfigurableExporter } from "./reconfigurable-exporter"
+import { ReconfigurableExporter } from "./exporters/reconfigurable-exporter"
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
 import { OTLPExporterNodeConfigBase } from "@opentelemetry/otlp-exporter-base"
+import { NoOpExporter } from "./exporters/no-op-exporter"
 
 export const tracer = opentelemetry.api.trace.getTracer("garden")
 
@@ -49,9 +50,14 @@ export function initTracing(): opentelemetry.NodeSDK {
     return otelSDK
   }
 
+  console.log("Tracing enabled", gardenEnv.GARDEN_ENABLE_TRACING)
   if (!gardenEnv.GARDEN_ENABLE_TRACING) {
     process.env.OTEL_SDK_DISABLED = "true"
   }
+
+  const hasOtelEnvConfiguration = !!process.env.OTEL_TRACES_EXPORTER
+
+  console.log("Env based override to", process.env.OTEL_TRACES_EXPORTER, hasOtelEnvConfiguration)
 
   otelSDK = new opentelemetry.NodeSDK({
     serviceName: "garden-cli",
@@ -69,7 +75,7 @@ export function initTracing(): opentelemetry.NodeSDK {
         },
       }),
     ],
-    traceExporter: reconfigurableExporter,
+    traceExporter: hasOtelEnvConfiguration ? undefined : reconfigurableExporter,
     autoDetectResources: false,
   })
 
@@ -80,5 +86,10 @@ export function initTracing(): opentelemetry.NodeSDK {
 
 export function configureOTLPHttpExporter(config?: OTLPExporterNodeConfigBase | undefined): void {
   const exporter = new OTLPTraceExporter(config)
+  reconfigurableExporter.setTargetExporter(exporter)
+}
+
+export function configureNoOpExporter(): void {
+  const exporter = new NoOpExporter()
   reconfigurableExporter.setTargetExporter(exporter)
 }

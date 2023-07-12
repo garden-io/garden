@@ -143,17 +143,28 @@ export async function sleep(msec: number) {
 }
 
 /**
- * Returns a promise that can be resolved/rejected by calling resolver/rejecter.
+ * Returns a promise that can be resolved/rejected by calling resolve/reject.
  */
-export function defer<T>() {
-  let outerResolve
-  let outerReject
-  const promise = new Promise<T>((res, rej) => {
-    outerResolve = res
-    outerReject = rej
-  })
+export type Deferred<T> = {
+  resolve: (value: T) => void
+  reject: (reason?: any) => void
+  promise: Promise<T>
+}
 
-  return { promise, resolver: outerResolve, rejecter: outerReject }
+export function defer<T>(): Deferred<T> {
+  let resolve: (value: T) => void
+  let reject: (reason?: any) => void
+
+  const promise = new Promise((pResolve, pReject) => {
+    resolve = pResolve
+    reject = pReject
+  }) as Promise<T>
+
+  return {
+    resolve: resolve!,
+    reject: reject!,
+    promise,
+  }
 }
 
 /**

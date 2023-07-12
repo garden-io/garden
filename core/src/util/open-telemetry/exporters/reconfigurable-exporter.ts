@@ -8,32 +8,11 @@
 
 import { ExportResult } from "@opentelemetry/core"
 import { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base"
+import { Deferred, defer } from "../../util"
 
 type PendingSpan = {
   spans: ReadableSpan[]
   resultCallback: (result: ExportResult) => void
-}
-
-type Deferred<T> = {
-  resolve: (value: T) => void
-  reject: (reason?: any) => void
-  promise: Promise<T>
-}
-
-function makeDeferred<T>(): Deferred<T> {
-  let resolve: (value: T) => void
-  let reject: (reason?: any) => void
-
-  const promise = new Promise((pResolve, pReject) => {
-    resolve = pResolve
-    reject = pReject
-  }) as Promise<T>
-
-  return {
-    resolve: resolve!,
-    reject: reject!,
-    promise,
-  }
 }
 
 export class ReconfigurableExporter implements SpanExporter {
@@ -68,7 +47,7 @@ export class ReconfigurableExporter implements SpanExporter {
     }
 
     this.shutdownRequested = true
-    this.shutdownDeferred = makeDeferred()
+    this.shutdownDeferred = defer()
 
     return this.shutdownDeferred.promise
   }
@@ -89,16 +68,12 @@ export class ReconfigurableExporter implements SpanExporter {
     }
 
     this.forceFlushRequested = true
-    this.forceFlushDeferred = makeDeferred()
+    this.forceFlushDeferred = defer()
 
     return this.forceFlushDeferred.promise
   }
 
   public setTargetExporter(exporter: SpanExporter): void {
-    if (this.targetExporter) {
-      throw new Error("Target Exporter has already been set")
-    }
-
     this.targetExporter = exporter
 
     for (const { spans, resultCallback } of this.pendingSpans) {

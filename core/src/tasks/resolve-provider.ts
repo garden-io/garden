@@ -32,7 +32,7 @@ import { environmentStatusSchema } from "../config/status"
 import { hashString, isNotNull } from "../util/util"
 import { gardenEnv } from "../constants"
 import { stableStringify } from "../util/string"
-import { OtelTraced } from "../util/tracing/decorators"
+import { OtelTraced } from "../util/open-telemetry/decorators"
 
 interface Params extends CommonTaskParams {
   plugin: GardenPluginSpec
