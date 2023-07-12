@@ -6,12 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { inferType } from "../../../config/zod"
+import { sdk } from "../../../plugin/sdk"
+import { baseValidator } from "./base"
+
 export type LoggingExporterVerbosityLevel = "detailed" | "normal" | "basic"
 export const LoggingExporterVerbosityLevelEnum = [
   "detailed",
   "normal",
   "basic",
 ] as const satisfies readonly LoggingExporterVerbosityLevel[]
+
+const s = sdk.schema
+
+export const loggingValidator = baseValidator.merge(
+  s.object({
+    name: s.literal("logging"),
+    verbosity: s.enum(LoggingExporterVerbosityLevelEnum).default("normal"),
+  })
+)
 
 export type LoggingExporterConfigPartial = {
   exporters: {
@@ -28,11 +41,7 @@ export type LoggingExporterConfigPartial = {
   }
 }
 
-export type OtelCollectorLoggingConfiguration = {
-  name: "logging"
-  enabled: boolean
-  verbosity: LoggingExporterVerbosityLevel
-}
+export type OtelCollectorLoggingConfiguration = inferType<typeof loggingValidator>
 
 export function makeLoggingPartialConfig(config: OtelCollectorLoggingConfiguration): LoggingExporterConfigPartial {
   return {

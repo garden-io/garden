@@ -7,6 +7,19 @@
  */
 
 import { hostname } from "os"
+import { sdk } from "../../../plugin/sdk"
+import { baseValidator } from "./base"
+import { inferType } from "../../../config/zod"
+
+const s = sdk.schema
+
+export const dataDogValidator = baseValidator.merge(
+  s.object({
+    name: s.literal("datadog"),
+    site: s.string().min(1).default("datadoghq.com"),
+    apiKey: s.string().min(1),
+  })
+)
 
 export type DatadogExporterConfigPartial = {
   exporters: {
@@ -28,12 +41,7 @@ export type DatadogExporterConfigPartial = {
   }
 }
 
-export type OtelCollectorDatadogConfiguration = {
-  name: "datadog"
-  enabled: boolean
-  site: string
-  apiKey: string
-}
+export type OtelCollectorDatadogConfiguration = inferType<typeof dataDogValidator>
 
 export function makeDatadogPartialConfig(config: OtelCollectorDatadogConfiguration): DatadogExporterConfigPartial {
   return {

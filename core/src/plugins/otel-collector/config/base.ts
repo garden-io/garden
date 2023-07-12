@@ -6,6 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { sdk } from "../../../plugin/sdk"
+
+const s = sdk.schema
+
+export const baseValidator = s.object({
+  name: s.string(),
+  enabled: s.boolean(),
+})
+
 export type OtelCollectorBaseConfig = {
   processors: {
     batch: null | {

@@ -6,6 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { inferType } from "../../../config/zod"
+import { sdk } from "../../../plugin/sdk"
+import { baseValidator } from "./base"
+
+const s = sdk.schema
+
+export const otlpHttpValidator = baseValidator.merge(
+  s.object({
+    name: s.literal("otlphttp"),
+    endpoint: s.string().url(),
+    headers: s.record(s.string().min(1), s.union([s.number(), s.string().min(1), s.undefined()])).optional(),
+  })
+)
+
 export type OtlpHttpExporterName = `otlphttp/${string | number}`
 
 export type OtlpHttpExporterConfigPartial = {
@@ -26,12 +40,7 @@ export type OtlpHttpExporterConfigPartial = {
   }
 }
 
-export type OtelCollectorOtlpHttpConfiguration = {
-  name: "otlphttp"
-  enabled: boolean
-  endpoint: string
-  headers?: Record<string, string | number | undefined>
-}
+export type OtelCollectorOtlpHttpConfiguration = inferType<typeof otlpHttpValidator>
 
 export const makeOtlpHttpPartialConfig = (() => {
   // We use the counter to make sure every http based config has a unique key

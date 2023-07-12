@@ -7,14 +7,22 @@
  */
 
 import { OtlpHttpExporterConfigPartial, makeOtlpHttpPartialConfig } from "./otlphttp"
+import { sdk } from "../../../plugin/sdk"
+import { baseValidator } from "./base"
+import { inferType } from "../../../config/zod"
 
-export type OtelCollectorHoneycombConfiguration = {
-  name: "honeycomb"
-  enabled: boolean
-  endpoint: string
-  apiKey: string
-  dataset?: string
-}
+const s = sdk.schema
+
+export const honeycombValidator = baseValidator.merge(
+  s.object({
+    name: s.literal("honeycomb"),
+    endpoint: s.string().url().default("https://api.honeycomb.io"),
+    apiKey: s.string().min(1),
+    dataset: s.string().optional(),
+  })
+)
+
+export type OtelCollectorHoneycombConfiguration = inferType<typeof honeycombValidator>
 
 export function makeHoneycombPartialConfig(config: OtelCollectorHoneycombConfiguration): OtlpHttpExporterConfigPartial {
   return makeOtlpHttpPartialConfig({

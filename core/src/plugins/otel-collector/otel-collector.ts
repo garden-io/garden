@@ -19,7 +19,11 @@ import { writeFile } from "fs-extra"
 import { streamLogs, waitForLogLine, waitForProcessExit } from "../../util/process"
 import getPort from "get-port"
 import { wrapActiveSpan } from "../../util/tracing/spans"
-import { LoggingExporterVerbosityLevelEnum } from "./config/logging"
+import { dataDogValidator } from "./config/datadog"
+import { honeycombValidator } from "./config/honeycomb"
+import { loggingValidator } from "./config/logging"
+import { newRelicValidator } from "./config/newrelic"
+import { otlpHttpValidator } from "./config/otlphttp"
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
 
@@ -85,51 +89,6 @@ gardenPlugin.addTool({
     },
   ],
 })
-
-const baseValidator = s.object({
-  name: s.string(),
-  enabled: s.boolean(),
-})
-
-const loggingValidator = baseValidator.merge(
-  s.object({
-    name: s.literal("logging"),
-    verbosity: s.enum(LoggingExporterVerbosityLevelEnum).default("normal"),
-  })
-)
-
-const otlpHttpValidator = baseValidator.merge(
-  s.object({
-    name: s.literal("otlphttp"),
-    endpoint: s.string().url(),
-    headers: s.record(s.string().min(1), s.number()).optional(),
-  })
-)
-
-const newRelicValidator = baseValidator.merge(
-  s.object({
-    name: s.literal("newrelic"),
-    endpoint: s.string().url().default("https://otlp.nr-data.net:4318"),
-    apiKey: s.string().min(1),
-  })
-)
-
-const honeycombValidator = baseValidator.merge(
-  s.object({
-    name: s.literal("honeycomb"),
-    endpoint: s.string().url().default("https://api.honeycomb.io"),
-    apiKey: s.string().min(1),
-    dataset: s.string().optional(),
-  })
-)
-
-const dataDogValidator = baseValidator.merge(
-  s.object({
-    name: s.literal("datadog"),
-    site: s.string().min(1).default("datadoghq.com"),
-    apiKey: s.string().min(1),
-  })
-)
 
 const providerConfigSchema = s.object({
   exporters: s.array(

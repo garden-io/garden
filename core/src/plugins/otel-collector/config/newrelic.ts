@@ -7,13 +7,21 @@
  */
 
 import { OtlpHttpExporterConfigPartial, makeOtlpHttpPartialConfig } from "./otlphttp"
+import { sdk } from "../../../plugin/sdk"
+import { baseValidator } from "./base"
+import { inferType } from "../../../config/zod"
 
-export type OtelCollectorNewRelicConfiguration = {
-  name: "newrelic"
-  enabled: boolean
-  endpoint: string
-  apiKey: string
-}
+const s = sdk.schema
+
+export const newRelicValidator = baseValidator.merge(
+  s.object({
+    name: s.literal("newrelic"),
+    endpoint: s.string().url().default("https://otlp.nr-data.net:4318"),
+    apiKey: s.string().min(1),
+  })
+)
+
+export type OtelCollectorNewRelicConfiguration = inferType<typeof newRelicValidator>
 
 export function makeNewRelicPartialConfig(config: OtelCollectorNewRelicConfiguration): OtlpHttpExporterConfigPartial {
   return makeOtlpHttpPartialConfig({
