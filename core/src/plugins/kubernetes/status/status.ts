@@ -600,33 +600,17 @@ export async function getDeployedResource<ResourceKind extends KubernetesObject>
  */
 export async function getDeployedResources<ResourceKind extends KubernetesObject>({
   ctx,
-  provider,
   manifests,
   log,
 }: {
-  ctx: PluginContext
-  provider: KubernetesProvider
+  ctx: KubernetesPluginContext
   manifests: KubernetesResource<ResourceKind>[]
   log: Log
 }): Promise<KubernetesResource<ResourceKind>[]> {
-  const api = await KubeApi.factory(log, ctx, provider)
-  const k8sCtx = ctx as KubernetesPluginContext
-  const appNamespace = await getAppNamespace(k8sCtx, log, provider)
-
-  const deployed = await Bluebird.map(manifests, async (resource: KubernetesResource) => {
-    const namespace = resource.metadata?.namespace || appNamespace
-    try {
-      const res = await api.readBySpec({ namespace, manifest: resource, log })
-      return <KubernetesResource<ResourceKind>>res
-    } catch (err) {
-      if (err.statusCode === 404) {
-        return null
-      } else {
-        throw err
-      }
-    }
-  })
-  return deployed.filter(isTruthy)
+  const maybeDeployedObjects = await Bluebird.map(manifests, async (resource) =>
+    getDeployedResource(ctx, ctx.provider, resource, log)
+  )
+  return maybeDeployedObjects.filter(isTruthy)
 }
 
 /**
