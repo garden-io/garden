@@ -15,6 +15,7 @@ import { ContainerBuildAction, ContainerBuildOutputs, defaultDockerfileName } fr
 import { joinWithPosix } from "../../util/fs"
 import { Resolved } from "../../actions/types"
 import dedent from "dedent"
+import { splitFirst } from "../../util/string"
 
 export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async ({
   ctx,
@@ -62,6 +63,11 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
 
   const cmdOpts = ["build", "-t", identifier, ...getDockerBuildFlags(action), "--file", dockerfilePath]
 
+  // if deploymentImageId is different from localImageId, tag the image with deploymentImageId as well.
+  if (outputs.deploymentImageId && identifier !== outputs.deploymentImageId) {
+    cmdOpts.push(...["-t", outputs.deploymentImageId])
+  }
+
   const logEventContext = {
     origin: "docker build",
     level: "verbose" as const,
@@ -93,6 +99,15 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
 export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {
   const buildName = action.name
   const localId = action.getSpec("localId")
+  const explicitImage = action.getSpec("publishId")
+  let imageId = localId
+  if (explicitImage) {
+    // override imageId if publishId is set
+    const imageTag = splitFirst(explicitImage, ":")[1]
+    const parsedImage = containerHelpers.parseImageId(explicitImage)
+    const tag = imageTag || action.versionString()
+    imageId = containerHelpers.unparseImageId({ ...parsedImage, tag })
+  }
   const version = action.moduleVersion()
 
   const localImageName = containerHelpers.getLocalImageName(buildName, localId)
@@ -100,8 +115,8 @@ export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAc
 
   // Note: The deployment image name/ID outputs are overridden by the kubernetes provider, these defaults are
   // generally not used.
-  const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, localId, undefined)
-  const deploymentImageId = containerHelpers.getBuildDeploymentImageId(buildName, localId, version, undefined)
+  const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, imageId, undefined)
+  const deploymentImageId = containerHelpers.getBuildDeploymentImageId(buildName, imageId, version, undefined)
 
   return {
     localImageName,

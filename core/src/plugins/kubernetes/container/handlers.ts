@@ -21,6 +21,7 @@ import { containerHelpers } from "../../container/helpers"
 import { getContainerModuleOutputs } from "../../container/container"
 import { getContainerBuildActionOutputs } from "../../container/build"
 import { Resolved } from "../../../actions/types"
+import { splitFirst } from "../../../util/string"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   let { moduleConfig } = await params.base!(params)
@@ -62,15 +63,24 @@ export function k8sGetContainerBuildActionOutputs({
 }): ContainerBuildOutputs {
   const localId = action.getSpec("localId")
   const outputs = getContainerBuildActionOutputs(action)
+  const explicitImage = action.getSpec("publishId")
+  let imageId = localId
+  if (explicitImage) {
+    // override imageId if publishId is set
+    const imageTag = splitFirst(explicitImage, ":")[1]
+    const parsedImage = containerHelpers.parseImageId(explicitImage)
+    const tag = imageTag || action.versionString()
+    imageId = containerHelpers.unparseImageId({ ...parsedImage, tag })
+  }
 
   outputs.deploymentImageName = outputs["deployment-image-name"] = containerHelpers.getDeploymentImageName(
     action.name,
-    localId,
+    imageId,
     provider.config.deploymentRegistry
   )
   outputs.deploymentImageId = outputs["deployment-image-id"] = containerHelpers.getBuildDeploymentImageId(
     action.name,
-    localId,
+    imageId,
     action.moduleVersion(),
     provider.config.deploymentRegistry
   )
