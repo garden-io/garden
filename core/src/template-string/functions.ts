@@ -133,7 +133,10 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     name: "isEmpty",
     description: "Returns true if the given value is an empty string, object, array, null or undefined.",
     arguments: {
-      value: joi.alternatives(joi.object(), joi.array(), joi.string()).allow(null).description("The value to check."),
+      value: joi
+        .alternatives(joi.object(), joi.array(), joi.string().allow(""))
+        .allow(null)
+        .description("The value to check."),
     },
     outputSchema: joi.boolean(),
     exampleArguments: [

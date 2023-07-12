@@ -1209,6 +1209,18 @@ describe("resolveTemplateString", async () => {
           expect(res).to.be.true
         })
       })
+
+      context("allows empty strings", () => {
+        it("resolves an empty string as 'true'", () => {
+          const res = resolveTemplateString("${isEmpty('')}", new TestContext({}))
+          expect(res).to.be.true
+        })
+
+        it("resolves a reference to an empty string as 'true'", () => {
+          const res = resolveTemplateString("${isEmpty(a)}", new TestContext({ a: "" }))
+          expect(res).to.be.true
+        })
+      })
     })
 
     context("slice", () => {
