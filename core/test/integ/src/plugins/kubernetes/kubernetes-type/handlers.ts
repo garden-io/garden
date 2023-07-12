@@ -36,7 +36,7 @@ import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../s
 import { ActionModeMap } from "../../../../../../src/actions/types"
 import { NamespaceStatus } from "../../../../../../src/types/namespace"
 
-describe("kubernetes-module handlers", () => {
+describe("kubernetes-type handlers", () => {
   let tmpDir: tmp.DirectoryResult
   let garden: TestGarden
   let log: Log
@@ -99,8 +99,8 @@ describe("kubernetes-module handlers", () => {
             apiVersion: "v1",
             kind: "Namespace",
             metadata: {
-              name: "kubernetes-module-ns-1",
-              labels: { name: "kubernetes-module-ns-1" },
+              name: "kubernetes-type-ns-1",
+              labels: { name: "kubernetes-type-ns-1" },
             },
           },
         ],
@@ -204,7 +204,7 @@ describe("kubernetes-module handlers", () => {
       const status = await kubernetesDeploy(deployParams)
       expect(status.state).to.eql("ready")
       expect(namespaceStatus).to.exist
-      expect(namespaceStatus!.namespaceName).to.eql("kubernetes-module-test-default")
+      expect(namespaceStatus!.namespaceName).to.eql("kubernetes-type-test-default")
     })
 
     it("should toggle sync mode", async () => {
@@ -261,7 +261,7 @@ describe("kubernetes-module handlers", () => {
     })
 
     it("should not delete previously deployed namespace resources", async () => {
-      garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-1")])
+      garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-type-ns-1")])
       let graph = await garden.getConfigGraph({ log, emit: false })
       let action = graph.getDeploy("namespace-resource")
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
@@ -287,7 +287,7 @@ describe("kubernetes-module handlers", () => {
       // this module.
 
       // This should result in a new namespace with a new name being deployed.
-      garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-2")])
+      garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-type-ns-2")])
       graph = await garden.getConfigGraph({ log, emit: false })
       action = graph.getDeploy("namespace-resource")
       manifests = await getManifests({
@@ -345,7 +345,7 @@ describe("kubernetes-module handlers", () => {
         force: false,
       })
 
-      // This should only delete kubernetes-module-ns-2.
+      // This should only delete kubernetes-type-ns-2.
       await garden.processTasks({ tasks: [deleteServiceTask], throwOnError: true })
 
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
