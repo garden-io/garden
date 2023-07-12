@@ -58,34 +58,40 @@ const gradlePaths = [
 const mavenPaths = ["pom.xml", ".mvn"]
 const mavendPaths = ["pom.xml", ".mvnd"]
 
-export function detectProjectType(action: BuildAction): JibPluginType {
-  const actionFiles = action.getFullVersion().files
-
+export function detectProjectType({
+  actionName,
+  actionBasePath,
+  actionFiles,
+}: {
+  actionName: string
+  actionBasePath: string
+  actionFiles: string[]
+}): JibPluginType {
   // TODO: support the Jib CLI
 
   for (const filename of gradlePaths) {
-    const path = resolve(action.basePath(), filename)
+    const path = resolve(actionBasePath, filename)
     if (actionFiles.includes(path)) {
       return "gradle"
     }
   }
 
   for (const filename of mavenPaths) {
-    const path = resolve(action.basePath(), filename)
+    const path = resolve(actionBasePath, filename)
     if (actionFiles.includes(path)) {
       return "maven"
     }
   }
 
   for (const filename of mavendPaths) {
-    const path = resolve(module.path, filename)
+    const path = resolve(actionBasePath, filename)
     if (actionFiles.includes(path)) {
       return "mavend"
     }
   }
 
   throw new ConfigurationError({
-    message: `Could not detect a gradle or maven project to build ${action.name}`,
+    message: `Could not detect a gradle or maven project to build ${actionName}`,
     detail: {},
   })
 }
