@@ -1107,6 +1107,20 @@ describe("resolveTemplateString", () => {
       })
     })
 
+    context("isEmpty", () => {
+      context("allows nulls", () => {
+        it("resolves null as 'true'", () => {
+          const res = resolveTemplateString("${isEmpty(null)}", new TestContext({}))
+          expect(res).to.be.true
+        })
+
+        it("resolves references to null as 'true'", () => {
+          const res = resolveTemplateString("${isEmpty(a)}", new TestContext({ a: null }))
+          expect(res).to.be.true
+        })
+      })
+    })
+
     context("slice", () => {
       it("allows numeric indices", () => {
         const res = resolveTemplateString("${slice(foo, 0, 3)}", new TestContext({ foo: "abcdef" }))
