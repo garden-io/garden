@@ -36,7 +36,7 @@ export const kubernetesStartSync: DeployActionHandler<"startSync", KubernetesDep
   })
 
   const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
-  const deployedResources = await getDeployedResources({ ctx, manifests, log })
+  const deployedResources = await getDeployedResources({ ctx, provider, manifests, log })
 
   await startSyncs({
     ctx: k8sCtx,
@@ -76,7 +76,7 @@ export const kubernetesGetSyncStatus: DeployActionHandler<"getSyncStatus", Kuber
   })
 
   const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
-  const deployedResources = await getDeployedResources({ ctx, manifests, log })
+  const deployedResources = await getDeployedResources({ ctx, provider, manifests, log })
 
   return getSyncStatus({
     ctx: k8sCtx,

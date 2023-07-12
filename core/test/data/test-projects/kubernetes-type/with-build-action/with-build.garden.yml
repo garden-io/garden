@@ -1,6 +1,0 @@
-kind: Deploy
-type: kubernetes
-name: with-build-action
-build: exec-build
-spec:
-  files: ["*.yaml"]
