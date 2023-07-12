@@ -9,7 +9,7 @@
 import { CreateSecretResponse, ListSecretsResponse, UpdateSecretResponse } from "@garden-io/platform-api-types"
 import { pickBy, sortBy, uniqBy } from "lodash"
 import { stringify } from "querystring"
-import { BooleanParameter, StringParameter, StringsParameter } from "../../../cli/params"
+import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params"
 import { CloudProject } from "../../../cloud/api"
 import { StringMap } from "../../../config/common"
 import { CloudApiError, CommandError, ConfigurationError } from "../../../exceptions"
@@ -19,6 +19,7 @@ import { getCloudDistributionName } from "../../../util/util"
 import { Command, CommandParams, CommandResult } from "../../base"
 import { ApiCommandError, SecretResult, handleBulkOperationResult, makeSecretFromResponse, noApiMsg } from "../helpers"
 import dotenv = require("dotenv")
+import { readFile } from "fs-extra"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
@@ -39,11 +40,14 @@ export const secretsUpdateOpts = {
       This must be specified if you want to update secrets by name instead of secret ID.
     `,
   }),
-  "update-by-name": new BooleanParameter({
-    help: deline`Update the secret(s) by providing the name(s) of secrets. By default, the command args are considered to be secret IDs.
-      Make sure to also set \`--user-ud\` and \`--env\` flag if there are multiple secrets of same name across different environments or users.
+  "update-by-id": new BooleanParameter({
+    help: deline`Update the secret(s) by providing the ID(s) of secrets. By default, the command args are considered to be secret name(s).
     `,
     defaultValue: false,
+  }),
+  "from-file": new PathParameter({
+    help: deline`Read the secrets from the file at the given path. The file should have standard "dotenv"
+    format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).`,
   }),
 }
 
@@ -54,16 +58,17 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
   name = "update"
   help = "Update secrets in Garden Cloud"
   description = dedent`
-    Update secrets in Garden Cloud. You can update the secrets by either specifying secret ID or secret name.
-    To get the IDs of the secrets you want to update, run the \`garden cloud secrets list\` command.
+    Update secrets in Garden Cloud. You can update the secrets by either specifying secret name or secret ID.
+    When updating by name, the behavior is upsert (existing secrets are updated while missing secrets are created).
 
-    When you want to update the secrets by name, use the \`--update-by-name\` flag. If you have multiple secrets with same name across different environments and users, specify the environment and user id scope using \`--scope-to-env\` and \`--scope-to-user-id\` flags.
+    If you have multiple secrets with same name across different environments and users, specify the environment and user id using \`--scope-to-env\` and \`--scope-to-user-id\` flags.
+
+    When you want to update the secrets by ID, use the \`--update-by-id\` flag. To get the IDs of the secrets you want to update, run the \`garden cloud secrets list\` command.
 
     Examples:
-        garden cloud secrets update <ID 1>=somevalue <ID 2>=somevalue2 # update two secret values with the given IDs.
-        garden cloud secrets update MY_SECRET=somevalue MY_SECRET_2=somevalue2 --update-by-name # update two secret values with the given names.
-        garden cloud secrets update MY_SECRET=somevalue MY_SECRET_2=somevalue2 --update-by-name --scope-to-env local # update two secret values with the given names for the environment local.
-        garden cloud secrets update MY_SECRET=somevalue MY_SECRET_2=somevalue2 --update-by-name --scope-to-env local --scope-to-user-id <user-id> # update two secret values with the given names for the environment local and specified user id.
+        garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar # update two secret values with the given names.
+        garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar --scope-to-env local --scope-to-user-id <user-id> # update two secret values with the given names for the environment local and specified user id.
+        garden cloud secrets update <ID 1>=foo <ID 2>=bar --update-by-id # update two secret values with the given IDs.
   `
   arguments = secretsUpdateArgs
   options = secretsUpdateOpts
@@ -75,18 +80,10 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
     const envName = opts["scope-to-env"] as string | undefined
     const userId = opts["scope-to-user-id"] as string | undefined
-    const updateByName = opts["update-by-name"] as boolean | undefined
+    const updateById = opts["update-by-id"] as boolean | undefined
+    const fromFile = opts["from-file"] as string | undefined
 
-    if (!args.secretNamesOrIds || args.secretNamesOrIds.length === 0) {
-      throw new CommandError({
-        message: `No secret(s) specified in command argument.`,
-        detail: {
-          args,
-        },
-      })
-    }
-
-    if (updateByName && userId !== undefined && !envName) {
+    if (!updateById && userId !== undefined && !envName) {
       throw new CommandError({
         message: `Got user ID but not environment name. Secrets scoped to users must be scoped to environments as well.`,
         detail: {
@@ -97,21 +94,42 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     }
 
     let secretsToUpdateArgs: StringMap
-    secretsToUpdateArgs = args.secretNamesOrIds?.reduce((acc, keyValPair) => {
+    if (fromFile) {
       try {
-        const secret = dotenv.parse(keyValPair)
-        Object.assign(acc, secret)
-        return acc
+        secretsToUpdateArgs = dotenv.parse(await readFile(fromFile))
       } catch (err) {
         throw new CommandError({
-          message: `Unable to read secret from argument ${keyValPair}: ${err.message}`,
+          message: `Unable to read secrets from file at path ${fromFile}: ${err.message}`,
           detail: {
             args,
             opts,
           },
         })
       }
-    }, {})
+    } else if (args.secretNamesOrIds) {
+      secretsToUpdateArgs = args.secretNamesOrIds?.reduce((acc, keyValPair) => {
+        try {
+          const secret = dotenv.parse(keyValPair)
+          Object.assign(acc, secret)
+          return acc
+        } catch (err) {
+          throw new CommandError({
+            message: `Unable to read secret from argument ${keyValPair}: ${err.message}`,
+            detail: {
+              args,
+              opts,
+            },
+          })
+        }
+      }, {})
+    } else {
+      throw new CommandError({
+        message: `No secret(s) provided. Either provide secrets directly to the command or via a file using the --from-file flag.`,
+        detail: {
+          args,
+        },
+      })
+    }
 
     const api = garden.cloudApi
     if (!api) {
@@ -165,7 +183,8 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     let secretsToUpdate: (SecretResult & { newValue: string })[]
     let secretsToCreate: [string, string][] = []
 
-    if (updateByName) {
+    if (!updateById) {
+      // update secrets by name
       let tmp = sortBy(allSecrets, "name")
       if (envName) {
         tmp = tmp.filter((secret) => secret.environment?.name === envName)
