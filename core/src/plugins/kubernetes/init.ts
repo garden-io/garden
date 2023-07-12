@@ -119,7 +119,13 @@ export async function getEnvironmentStatus({
 
   if (provider.config.buildMode !== "local-docker") {
     const authSecret = await prepareDockerAuth(api, provider, systemNamespace)
-    const comparison = await compareDeployedResources(k8sCtx, api, systemNamespace, [authSecret], log)
+    const comparison = await compareDeployedResources({
+      ctx: k8sCtx,
+      api,
+      namespace: systemNamespace,
+      manifests: [authSecret],
+      log,
+    })
     secretsUpToDate = comparison.state === "ready"
   }
 

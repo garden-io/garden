@@ -188,7 +188,13 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     state,
     remoteResources,
     mode: deployedMode,
-  } = await compareDeployedResources(k8sCtx, api, namespace, preparedManifests, log)
+  } = await compareDeployedResources({
+    ctx: k8sCtx,
+    api,
+    namespace,
+    manifests: preparedManifests,
+    log,
+  })
 
   // Local mode has its own port-forwarding configuration
   const forwardablePorts = deployedMode === "local" ? [] : getForwardablePorts(remoteResources, action)
