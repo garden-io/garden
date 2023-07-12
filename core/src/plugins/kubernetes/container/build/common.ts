@@ -314,13 +314,13 @@ export async function ensureUtilDeployment({
 
     // Check status of the util deployment
     const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name, imagePullSecrets)
-    const status = await compareDeployedResources(
-      ctx as KubernetesPluginContext,
+    const status = await compareDeployedResources({
+      ctx: ctx as KubernetesPluginContext,
       api,
       namespace,
-      [deployment, service],
-      deployLog
-    )
+      manifests: [deployment, service],
+      log: deployLog,
+    })
 
     if (status.state === "ready") {
       // Need to wait a little to ensure the secret is updated in the deployment

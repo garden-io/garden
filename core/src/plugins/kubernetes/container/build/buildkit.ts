@@ -196,7 +196,13 @@ export async function ensureBuildkit({
 
     // Check status of the buildkit deployment
     const manifest = getBuildkitDeployment(provider, authSecret.metadata.name, imagePullSecrets)
-    const status = await compareDeployedResources(ctx as KubernetesPluginContext, api, namespace, [manifest], deployLog)
+    const status = await compareDeployedResources({
+      ctx: ctx as KubernetesPluginContext,
+      api,
+      namespace,
+      manifests: [manifest],
+      log: deployLog,
+    })
 
     if (status.state === "ready") {
       // Need to wait a little to ensure the secret is updated in the deployment

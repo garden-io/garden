@@ -347,13 +347,19 @@ interface ComparisonResult {
 /**
  * Check if each of the given Kubernetes objects matches what's installed in the cluster
  */
-export async function compareDeployedResources(
-  ctx: KubernetesPluginContext,
-  api: KubeApi,
-  namespace: string,
-  manifests: KubernetesResource[],
+export async function compareDeployedResources({
+  ctx,
+  api,
+  namespace,
+  manifests,
+  log,
+}: {
+  ctx: KubernetesPluginContext
+  api: KubeApi
+  namespace: string
+  manifests: KubernetesResource[]
   log: Log
-): Promise<ComparisonResult> {
+}): Promise<ComparisonResult> {
   // Unroll any `List` resource types
   manifests = flatten(manifests.map((r: any) => (r.apiVersion === "v1" && r.kind === "List" ? r.items : [r])))
 
