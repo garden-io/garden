@@ -22,7 +22,7 @@ export async function getKubernetesTestGarden() {
     return kubernetesTestGarden
   }
 
-  const projectRoot = getDataDir("test-projects", "kubernetes-module")
+  const projectRoot = getDataDir("test-projects", "kubernetes-type")
   const garden = await makeTestGarden(projectRoot)
 
   kubernetesTestGarden = garden
