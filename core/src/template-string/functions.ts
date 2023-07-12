@@ -476,11 +476,13 @@ export function callHelperFunction({
   const resolvedArgs: any[] = []
 
   for (const arg of args) {
-    if (arg._error) {
+    // arg can be null here because some helpers allow nulls as valid args
+    if (arg && arg._error) {
       return arg
     }
 
-    if (arg && arg.resolved) {
+    // allow nulls as valid arg values
+    if (arg && arg.resolved !== undefined) {
       resolvedArgs.push(arg.resolved)
     } else {
       resolvedArgs.push(arg)
