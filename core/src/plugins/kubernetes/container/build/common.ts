@@ -314,13 +314,13 @@ export async function ensureUtilDeployment({
 
     // Check status of the util deployment
     const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name, imagePullSecrets)
-    const status = await compareDeployedResources({
-      ctx: ctx as KubernetesPluginContext,
+    const status = await compareDeployedResources(
+      ctx as KubernetesPluginContext,
       api,
       namespace,
-      manifests: [deployment, service],
-      log: deployLog,
-    })
+      [deployment, service],
+      deployLog
+    )
 
     if (status.state === "ready") {
       // Need to wait a little to ensure the secret is updated in the deployment
@@ -396,7 +396,7 @@ export async function ensureBuilderSecret({
   const secretName = `garden-docker-auth-${hash}`
   authSecret.metadata.name = secretName
 
-  const existingSecret = await api.readBySpecOrNull({ log, namespace, manifest: authSecret })
+  const existingSecret = await api.readOrNull({ log, namespace, manifest: authSecret })
 
   if (!existingSecret || authSecret.data?.[dockerAuthSecretKey] !== existingSecret.data?.[dockerAuthSecretKey]) {
     log.info(chalk.gray(`-> Updating Docker auth secret in namespace ${namespace}`))

@@ -176,14 +176,6 @@ export interface ExecInPodResult {
   timedOut: boolean
 }
 
-interface ReadParams {
-  log: Log
-  namespace: string
-  apiVersion: string
-  kind: string
-  name: string
-}
-
 export class KubeApi {
   public apis: WrappedApi<ApisApi>
   public apps: WrappedApi<AppsV1Api>
@@ -369,7 +361,19 @@ export class KubeApi {
   /**
    * Fetch the specified resource from the cluster.
    */
-  async read({ log, namespace, apiVersion, kind, name }: ReadParams) {
+  async read({
+    log,
+    namespace,
+    apiVersion,
+    kind,
+    name,
+  }: {
+    log: Log
+    namespace: string
+    apiVersion: string
+    kind: string
+    name: string
+  }) {
     log.silly(`Fetching Kubernetes resource ${apiVersion}/${kind}/${name}`)
 
     const typePath = await this.getResourceTypeApiPath({
@@ -383,19 +387,6 @@ export class KubeApi {
 
     const res = await this.request({ log, path: apiPath })
     return res.body
-  }
-
-  async readOrNull(params: ReadParams) {
-    try {
-      const resource = await this.read(params)
-      return resource
-    } catch (err) {
-      if (err.statusCode === 404) {
-        return null
-      } else {
-        throw err
-      }
-    }
   }
 
   /**
@@ -413,7 +404,7 @@ export class KubeApi {
   /**
    * Same as readBySpec() but returns null if the resource is missing.
    */
-  async readBySpecOrNull(params: { log: Log; namespace: string; manifest: KubernetesResource }) {
+  async readOrNull(params: { log: Log; namespace: string; manifest: KubernetesResource }) {
     try {
       const resource = await this.readBySpec(params)
       return resource

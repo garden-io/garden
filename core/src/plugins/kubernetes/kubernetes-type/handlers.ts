@@ -9,7 +9,7 @@
 import Bluebird from "bluebird"
 import { isEmpty, omit, partition, uniq } from "lodash"
 import type { ModuleActionHandlers } from "../../../plugin/plugin"
-import { DeployState, ForwardablePort, ServiceStatus } from "../../../types/service"
+import { ServiceStatus } from "../../../types/service"
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import type { KubernetesPluginContext } from "../config"
@@ -19,28 +19,16 @@ import { streamK8sLogs } from "../logs"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getK8sIngresses } from "../status/ingress"
-import {
-  getDeployedResource,
-  resolveResourceStatus,
-  resolveResourceStatuses,
-  ResourceStatus,
-  waitForResources,
-} from "../status/status"
+import { compareDeployedResources, waitForResources } from "../status/status"
 import type { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types"
-import {
-  convertServiceResource,
-  gardenNamespaceAnnotationValue,
-  getManifests,
-  getMetadataManifest,
-  parseMetadataResource,
-} from "./common"
+import { convertServiceResource, gardenNamespaceAnnotationValue, getManifests } from "./common"
 import { configureKubernetesModule, KubernetesModule } from "./module-config"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import type { ExecBuildConfig } from "../../exec/build"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
 import type { DeployActionHandler } from "../../../plugin/action-types"
 import type { ActionLog } from "../../../logger/log-entry"
-import type { ActionMode, Resolved } from "../../../actions/types"
+import type { Resolved } from "../../../actions/types"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
@@ -181,69 +169,36 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     provider,
     skipCreate: true,
   })
-  const defaultNamespace = namespaceStatus.namespaceName
+  const namespace = namespaceStatus.namespaceName
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
 
-  // Note: This is analogous to how we version check Helm charts, i.e. we don't check every resource individually.
-  // Users can always force deploy, much like with Helm Deploys.
-  const metadataManifest = getMetadataManifest(action, defaultNamespace, [])
+  // FIXME: We're currently reading the manifests from the module source dir (instead of build dir)
+  // because the build may not have been staged.
+  // This means that manifests added via the `build.dependencies[].copy` field will not be included.
+  const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace, readFromSrcDir: true })
+  const prepareResult = await configureSpecialModesForManifests({
+    ctx: k8sCtx,
+    log,
+    action,
+    manifests,
+  })
+  const preparedManifests = prepareResult.manifests
 
-  let deployedMode: ActionMode = "default"
-  let state: DeployState = "ready"
-  let remoteResources: KubernetesResource[] = []
-  let forwardablePorts: ForwardablePort[] | undefined
+  let {
+    state,
+    remoteResources,
+    mode: deployedMode,
+  } = await compareDeployedResources(k8sCtx, api, namespace, preparedManifests, log)
 
-  const remoteMetadataResource = await getDeployedResource(ctx, provider, metadataManifest, log)
+  // Local mode has its own port-forwarding configuration
+  const forwardablePorts = deployedMode === "local" ? [] : getForwardablePorts(remoteResources, action)
 
-  if (!remoteMetadataResource) {
-    state = "missing"
-  } else {
-    const deployedMetadata = parseMetadataResource(log, remoteMetadataResource)
-    deployedMode = deployedMetadata.mode
-
-    if (deployedMetadata.resolvedVersion !== action.versionString()) {
-      state = "outdated"
-    } else if (mode === "local" && spec.localMode && deployedMode !== "local") {
+  if (state === "ready") {
+    // Local mode always takes precedence over sync mode
+    if (mode === "local" && spec.localMode && deployedMode !== "local") {
       state = "outdated"
     } else if (mode === "sync" && spec.sync?.paths && deployedMode !== "sync") {
       state = "outdated"
-    } else if (mode === "default" && deployedMode !== mode) {
-      state = "outdated"
-    }
-
-    const manifestMetadata = Object.values(deployedMetadata.manifestMetadata)
-
-    if (manifestMetadata.length > 0) {
-      try {
-        const maybeDeployedResources = await Bluebird.map(manifestMetadata, async (m) => {
-          return [m, await api.readOrNull({ log, ...m })]
-        })
-
-        const statuses: ResourceStatus[] = await Bluebird.map(maybeDeployedResources, async ([m, resource]) => {
-          if (!resource) {
-            return {
-              state: "missing" as const,
-              resource: { apiVersion: m.apiVersion, kind: m.kind, metadata: { name: m.name, namespace: m.namespace } },
-            }
-          }
-          remoteResources.push(resource)
-          return resolveResourceStatus({ api, namespace: defaultNamespace, resource, log })
-        })
-
-        state = resolveResourceStatuses(log, statuses)
-      } catch (error) {
-        log.debug({ msg: `Failed querying for remote resources: ${error.message}`, error })
-        state = "unknown"
-      }
-    }
-
-    // Note: Local mode has its own port-forwarding configuration
-    if (deployedMode !== "local" && remoteResources && remoteResources.length > 0) {
-      try {
-        forwardablePorts = getForwardablePorts(remoteResources, action)
-      } catch (error) {
-        log.debug({ msg: `Unable to extract forwardable ports: ${error.message}`, error })
-      }
     }
   }
 
@@ -255,7 +210,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       version: state === "ready" ? action.versionString() : undefined,
       detail: { remoteResources },
       mode: deployedMode,
-      ingresses: getK8sIngresses(remoteResources || []),
+      ingresses: getK8sIngresses(remoteResources),
     },
     // TODO-0.13.1
     outputs: {},
@@ -436,7 +391,7 @@ export const deleteKubernetesDeploy: DeployActionHandler<"delete", KubernetesDep
   }
 
   return {
-    state: "not-ready",
+    state: "ready",
     detail: status,
     outputs: {},
   }
