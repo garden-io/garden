@@ -3,7 +3,14 @@ kind: Project
 name: demo-project
 environments:
   - name: local
+    variables:
+      baseHostname: local.demo.garden
+  - name: remote
+    variables:
+      # edit based on your openshift cloud url, here and below
+      baseHostname: apps.openshift-trial.23q9.p1.openshiftapps.com
 providers:
+  # openshift local
   - name: openshift
     environments: [local]
     # NOTE: shorthand `namespace: demo-project` fails because we use `namespace.name` in code
@@ -20,12 +27,32 @@ providers:
     imagePullSecrets:
       - name: imagepullsecrets
         namespace: demo-project
-    buildMode:
-      local-docker
-      # kaniko
+    buildMode: local-docker
+  # openshift dedicated cloud on aws
+  - name: openshift
+    environments: [remote]
+    namespace:
+      name: demo-project
+    context: demo-project/api-openshift-trial-23q9-p1-openshiftapps-com:6443/Walther # GitHub username due to using GitHub OAuth provider
+    cluster: api.openshift-trial.23q9.p1.openshiftapps.com:6443
+    defaultHostname: ${var.baseHostname}
+    deploymentRegistry:
+      hostname: default-route-openshift-image-registry.${var.baseHostname}
+      namespace: demo-project
+    imagePullSecrets:
+      - name: imagepullsecrets
+        namespace: demo-project
+    buildMode: kaniko
     kaniko:
       extraFlags:
         # TODO: possibly figure out better non-user-facing workarounds?
         - "--ignore-path=/usr/bin/newuidmap"
         - "--ignore-path=/usr/bin/newgidmap"
         - "--ignore-path=/usr/sbin/suexec"
+# for vote example
+variables:
+  userId: ${local.username}
+  postgres-database: postgres
+  # Only use for testing!
+  postgres-username: postgres
+  postgres-password: test-password
