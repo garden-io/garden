@@ -50,14 +50,11 @@ export function initTracing(): opentelemetry.NodeSDK {
     return otelSDK
   }
 
-  console.log("Tracing enabled", gardenEnv.GARDEN_ENABLE_TRACING)
   if (!gardenEnv.GARDEN_ENABLE_TRACING) {
     process.env.OTEL_SDK_DISABLED = "true"
   }
 
   const hasOtelEnvConfiguration = !!process.env.OTEL_TRACES_EXPORTER
-
-  console.log("Env based override to", process.env.OTEL_TRACES_EXPORTER, hasOtelEnvConfiguration)
 
   otelSDK = new opentelemetry.NodeSDK({
     serviceName: "garden-cli",
