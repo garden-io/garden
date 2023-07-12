@@ -687,14 +687,12 @@ export class GardenServer extends EventEmitter {
         command
           .prepare(prepareParams)
           .then(() => {
-            if (!isInternal) {
+            if (persistent) {
               send("commandStart", {
                 ...commandResponseBase,
                 args,
                 opts,
               })
-            }
-            if (persistent) {
               this.activePersistentRequests[requestId] = { command, connection }
 
               command.subscribe((data: any) => {

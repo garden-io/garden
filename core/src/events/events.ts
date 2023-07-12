@@ -165,6 +165,7 @@ export interface CommandInfoPayload extends CommandInfo {
   vcsBranch: string
   vcsCommitHash: string
   vcsOriginUrl: string
+  sessionId: string
 }
 
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
@@ -292,8 +293,16 @@ export type ActionStatusEventName = PickFromUnion<
   EventName,
   "buildStatus" | "deployStatus" | "testStatus" | "runStatus"
 >
-type GraphEventName = Extract<EventName, "taskCancelled" | "taskComplete" | "taskError" | "taskProcessing">
-type ConfigEventName = Extract<EventName, "configChanged" | "configsScanned" | "autocompleterUpdated">
+type PipedWsEventName = Extract<
+  EventName,
+  | "commandInfo"
+  | "configChanged"
+  | "configsScanned"
+  | "autocompleterUpdated"
+  | "sessionCancelled"
+  | "sessionCompleted"
+  | "sessionFailed"
+>
 
 // These are the events we POST over https via the BufferedEventStream
 const pipedEventNamesSet = new Set<EventName>([
@@ -329,14 +338,22 @@ const actionStatusEventNames = new Set<ActionStatusEventName>([
   "runStatus",
   "testStatus",
 ])
-const configEventNames = new Set<ConfigEventName>(["configsScanned", "configChanged", "autocompleterUpdated"])
+const pipedWsEventNamesSet = new Set<PipedWsEventName>([
+  "commandInfo",
+  "configsScanned",
+  "configChanged",
+  "autocompleterUpdated",
+  "sessionCompleted",
+  "sessionFailed",
+  "sessionCancelled",
+])
 
 const isPipedEvent = (name: string, _payload: any): _payload is Events[EventName] => {
   return pipedEventNamesSet.has(<any>name)
 }
 
-const isConfigEvent = (name: string, _payload: any): _payload is Events[ConfigEventName] => {
-  return configEventNames.has(<any>name)
+const isPipedWsEvent = (name: string, _payload: any): _payload is Events[PipedWsEventName] => {
+  return pipedWsEventNamesSet.has(<any>name)
 }
 
 const isActionStatusEvent = (name: string, _payload: any): _payload is Events[ActionStatusEventName] => {
@@ -349,7 +366,7 @@ export function shouldStreamWsEvent(name: string, payload: any) {
   if (gardenKey && isActionStatusEvent(name, payload)) {
     return true
   }
-  if (isConfigEvent(name, payload)) {
+  if (isPipedWsEvent(name, payload)) {
     return true
   }
 
