@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ListSecretsResponse, UpdateSecretResponse } from "@garden-io/platform-api-types"
-import { sortBy, uniqBy } from "lodash"
+import { CreateSecretResponse, ListSecretsResponse, UpdateSecretResponse } from "@garden-io/platform-api-types"
+import { pickBy, sortBy, uniqBy } from "lodash"
 import { stringify } from "querystring"
 import { BooleanParameter, StringParameter, StringsParameter } from "../../../cli/params"
 import { CloudProject } from "../../../cloud/api"
@@ -73,8 +73,8 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
-    const envNameFilter = opts["scope-to-env"] as string | undefined
-    const userIdFilter = opts["scope-to-user-id"] as string | undefined
+    const envName = opts["scope-to-env"] as string | undefined
+    const userId = opts["scope-to-user-id"] as string | undefined
     const updateByName = opts["update-by-name"] as boolean | undefined
 
     if (!args.secretNamesOrIds || args.secretNamesOrIds.length === 0) {
@@ -85,6 +85,17 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
         },
       })
     }
+
+    if (updateByName && userId !== undefined && !envName) {
+      throw new CommandError({
+        message: `Got user ID but not environment name. Secrets scoped to users must be scoped to environments as well.`,
+        detail: {
+          args,
+          opts,
+        },
+      })
+    }
+
     let secretsToUpdateArgs: StringMap
     secretsToUpdateArgs = args.secretNamesOrIds?.reduce((acc, keyValPair) => {
       try {
@@ -108,6 +119,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     }
 
     let project: CloudProject | undefined
+
     if (garden.projectId) {
       project = await api.getProjectById(garden.projectId)
     }
@@ -117,6 +129,21 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
         message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
         detail: {},
       })
+    }
+
+    let environmentId: string | undefined
+    if (envName) {
+      const environment = project.environments.find((e) => e.name === envName)
+      if (!environment) {
+        throw new CloudApiError({
+          message: `Environment with name ${envName} not found in project`,
+          detail: {
+            environmentName: envName,
+            availableEnvironmentNames: project.environments.map((e) => e.name),
+          },
+        })
+      }
+      environmentId = environment.id
     }
 
     let page = 0
@@ -136,14 +163,15 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     }
 
     let secretsToUpdate: (SecretResult & { newValue: string })[]
+    let secretsToCreate: [string, string][] = []
 
     if (updateByName) {
       let tmp = sortBy(allSecrets, "name")
-      if (envNameFilter) {
-        tmp = tmp.filter((secret) => secret.environment?.name === envNameFilter)
+      if (envName) {
+        tmp = tmp.filter((secret) => secret.environment?.name === envName)
       }
-      if (userIdFilter) {
-        tmp = tmp.filter((secret) => secret.user?.id === userIdFilter)
+      if (userId) {
+        tmp = tmp.filter((secret) => secret.user?.id === userId)
       }
       tmp = tmp.filter((secret) => Object.keys(secretsToUpdateArgs).includes(secret.name))
       // check if there are any secret results with duplicate names
@@ -178,16 +206,23 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       }
 
       secretsToUpdate = tmp.map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.name] }))
+      // check the diff between secrets to update and command args to find out
+      // secrets that do not exist yet and can be created
+      const diffCreateAndUpdate = pickBy(
+        secretsToUpdateArgs,
+        (_value, key) => !secretsToUpdate.find((secret) => secret.name === key)
+      )
+      secretsToCreate = diffCreateAndUpdate ? Object.entries(diffCreateAndUpdate) : []
     } else {
+      // update secrets by ids
       secretsToUpdate = sortBy(allSecrets, "name")
         .filter((secret) => Object.keys(secretsToUpdateArgs).includes(secret.id))
         .map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.id] }))
     }
 
-    if (secretsToUpdate.length === 0) {
-      const secretArgTypeWord = updateByName ? "name(s)" : "ID(s)"
+    if (secretsToUpdate.length === 0 && secretsToCreate.length === 0) {
       throw new CommandError({
-        message: `No matching secrets found in the project that match the specified secret ${secretArgTypeWord} and filters.`,
+        message: `No secrets to be updated or created.`,
         detail: {
           args,
         },
@@ -195,6 +230,13 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     }
 
     const cmdLog = log.createLog({ name: "secrets-command" })
+    if (secretsToUpdate?.length > 0) {
+      cmdLog.info(`${secretsToUpdate.length} existing secret(s) to be updated.`)
+    }
+    if (secretsToCreate && secretsToCreate?.length > 0) {
+      cmdLog.info(`${secretsToCreate.length} new secret(s) to be created.`)
+    }
+
     let count = 1
     const errors: ApiCommandError[] = []
     const results: SecretResult[] = []
@@ -216,6 +258,25 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
           identifier: secret.name,
           message: err?.response?.body?.message || err.messsage,
         })
+      }
+    }
+
+    if (secretsToCreate && secretsToCreate.length > 0) {
+      // reset counter
+      count = 1
+      for (const [name, value] of secretsToCreate) {
+        cmdLog.info({ msg: `Creating secrets... → ${count}/${secretsToCreate.length}` })
+        count++
+        try {
+          const body = { environmentId, userId, projectId: project.id, name, value }
+          const res = await api.post<CreateSecretResponse>(`/secrets`, { body })
+          results.push(makeSecretFromResponse(res.data))
+        } catch (err) {
+          errors.push({
+            identifier: name,
+            message: err?.response?.body?.message || err.messsage,
+          })
+        }
       }
     }
 
