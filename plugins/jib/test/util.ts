@@ -37,26 +37,37 @@ describe("util", function () {
 
   describe("detectProjectType", () => {
     it("returns gradle if action files include a gradle config", () => {
-      action._config.internal.basePath = "/foo"
-      action["_treeVersion"].files = ["/foo/build.gradle"]
-
-      expect(detectProjectType(action)).to.equal("gradle")
+      expect(
+        detectProjectType({
+          actionName: "foo",
+          actionBasePath: "/foo",
+          actionFiles: ["/foo/build.gradle"],
+        })
+      ).to.equal("gradle")
     })
 
     it("returns maven if action files include a maven config", () => {
-      action._config.internal.basePath = "/foo"
-      action["_treeVersion"].files = ["/foo/pom.xml"]
-
-      expect(detectProjectType(action)).to.equal("maven")
+      expect(
+        detectProjectType({
+          actionName: "foo",
+          actionBasePath: "/foo",
+          actionFiles: ["/foo/pom.xml"],
+        })
+      ).to.equal("maven")
     })
 
     it("throws if no maven or gradle config is in the action file list", () => {
-      action._config.internal.basePath = "/foo"
-      action["_treeVersion"].files = []
-
-      void expectError(() => detectProjectType(action), {
-        contains: "Could not detect a gradle or maven project to build foo",
-      })
+      void expectError(
+        () =>
+          detectProjectType({
+            actionName: "foo",
+            actionBasePath: "/foo",
+            actionFiles: [],
+          }),
+        {
+          contains: "Could not detect a gradle or maven project to build foo",
+        }
+      )
     })
   })
 

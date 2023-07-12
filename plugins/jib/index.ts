@@ -16,7 +16,7 @@ import { mavendSpec, mvnd, mvndVersion } from "./mavend"
 import { gradle, gradleSpec, gradleVersion } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
-import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
+import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
 import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
 import {
   containerBuildSpecSchema,
@@ -205,7 +205,11 @@ export const gardenPlugin = () =>
               let projectType = spec.projectType
 
               if (!projectType) {
-                projectType = detectProjectType(action)
+                projectType = detectProjectType({
+                  actionName: action.name,
+                  actionBasePath: action.basePath(),
+                  actionFiles: action.getFullVersion().files,
+                })
                 statusLine.info(`Detected project type ${projectType}`)
               }
 
