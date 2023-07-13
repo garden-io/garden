@@ -396,7 +396,7 @@ export async function ensureBuilderSecret({
   const secretName = `garden-docker-auth-${hash}`
   authSecret.metadata.name = secretName
 
-  const existingSecret = await api.readOrNull({ log, namespace, manifest: authSecret })
+  const existingSecret = await api.readBySpecOrNull({ log, namespace, manifest: authSecret })
 
   if (!existingSecret || authSecret.data?.[dockerAuthSecretKey] !== existingSecret.data?.[dockerAuthSecretKey]) {
     log.info(chalk.gray(`-> Updating Docker auth secret in namespace ${namespace}`))
