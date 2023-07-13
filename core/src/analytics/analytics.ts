@@ -23,15 +23,10 @@ import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
 import { uuidv4 } from "../util/random"
-import {
-  GardenBaseError,
-  GardenError,
-  GardenErrorContext,
-  StackTraceMetadata,
-  getStackTraceMetadata,
-} from "../exceptions"
+import { GardenBaseError, GardenErrorContext, StackTraceMetadata } from "../exceptions"
 import { ActionConfigMap } from "../actions/types"
 import { actionKinds } from "../actions/types"
+import { getResultErrorProperties } from "./helpers"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 const CI_USER = "ci-user"
@@ -151,13 +146,13 @@ interface ApiEvent extends EventBase {
   }
 }
 
-type AnalyticsGardenErrorDetail = {
+export type AnalyticsGardenErrorDetail = {
   errorType: string
   context?: GardenErrorContext
   stackTrace?: StackTraceMetadata
 }
 
-type AnalyticsGardenError = {
+export type AnalyticsGardenError = {
   error: AnalyticsGardenErrorDetail
   wrapped?: AnalyticsGardenErrorDetail
   leaf?: AnalyticsGardenErrorDetail
@@ -612,59 +607,6 @@ export class AnalyticsHandler {
     })
   }
 
-  resultErrorProperties(errors: GardenBaseError[]): {
-    errors: string[]
-    lastError?: AnalyticsGardenError
-  } {
-    const getErrorDetail = (e: GardenError): AnalyticsGardenErrorDetail => {
-      const stackTrace = getStackTraceMetadata(e)
-      const firstEntry = stackTrace.metadata.at(0)
-
-      return {
-        errorType: e.type,
-        context: e.context,
-        stackTrace: firstEntry,
-      }
-    }
-
-    const getLeafErrors = (e: GardenError): AnalyticsGardenErrorDetail[] => {
-      if (!e.wrappedErrors || e.wrappedErrors.length === 0) {
-        return [getErrorDetail(e)]
-      } else {
-        return e.wrappedErrors.flatMap(getLeafErrors)
-      }
-    }
-
-    const allErrorMetadata: AnalyticsGardenError[] = errors.flatMap((e) => {
-      try {
-        return {
-          // details of the root error
-          error: getErrorDetail(e),
-          // the first wrapped error
-          wrapped: e.wrappedErrors?.at(0) ? getErrorDetail(e.wrappedErrors?.at(0)!) : undefined,
-          // recursively get all the leaf errors and select the first one
-          leaf: e.wrappedErrors ? getLeafErrors(e).at(0) : undefined,
-        }
-      } catch (err) {
-        this.log.silly(`Failed to get analytics error detail from ${e}, ${e.wrappedErrors?.at(0)}, ${err}`)
-        return []
-      }
-    })
-
-    // capture the unique top level errors
-    const allErrors = [
-      ...new Set<string>(
-        allErrorMetadata.map((e) => {
-          return e.error.errorType
-        })
-      ),
-    ]
-
-    return {
-      errors: allErrors,
-      lastError: allErrorMetadata.at(-1),
-    }
-  }
   /**
    * Track a command result.
    */
@@ -682,7 +624,7 @@ export class AnalyticsHandler {
     let errorProperties
 
     try {
-      errorProperties = this.resultErrorProperties(errors)
+      errorProperties = getResultErrorProperties(errors)
     } catch (err) {
       this.log.debug(`Failed to extract command result error properties, ${err.toString()}`)
     }
