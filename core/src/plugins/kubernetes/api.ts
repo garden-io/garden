@@ -190,6 +190,19 @@ interface ReadBySpecParams {
   manifest: KubernetesResource
 }
 
+async function nullIfNotFound<T>(fn: () => Promise<T>) {
+  try {
+    const resource = await fn()
+    return resource
+  } catch (err) {
+    if (err.statusCode === 404) {
+      return null
+    } else {
+      throw err
+    }
+  }
+}
+
 export class KubeApi {
   public apis: WrappedApi<ApisApi>
   public apps: WrappedApi<AppsV1Api>
@@ -392,16 +405,7 @@ export class KubeApi {
   }
 
   async readOrNull(params: ReadParams) {
-    try {
-      const resource = await this.read(params)
-      return resource
-    } catch (err) {
-      if (err.statusCode === 404) {
-        return null
-      } else {
-        throw err
-      }
-    }
+    return await nullIfNotFound(() => this.read(params))
   }
 
   /**
@@ -420,16 +424,7 @@ export class KubeApi {
    * Same as readBySpec() but returns null if the resource is missing.
    */
   async readBySpecOrNull(params: ReadBySpecParams) {
-    try {
-      const resource = await this.readBySpec(params)
-      return resource
-    } catch (err) {
-      if (err.statusCode === 404) {
-        return null
-      } else {
-        throw err
-      }
-    }
+    return await nullIfNotFound(() => this.readBySpec(params))
   }
 
   async listResources<T extends KubernetesResource>({
