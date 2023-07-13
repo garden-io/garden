@@ -10,6 +10,7 @@ import { resolve, relative } from "path"
 import { readFile, createWriteStream, writeFile } from "fs-extra"
 import { getPackages } from "./script-utils"
 import Bluebird = require("bluebird")
+
 const replace = require("replace-in-file")
 
 type ReleaseType = "minor" | "patch" | "preminor" | "prepatch" | "prerelease"
@@ -282,7 +283,7 @@ async function updateChangelog(version: string) {
   const nextChangelogEntry = (
     await execa(
       "git-chglog",
-      ["--tag-filter-pattern", "^\\d+\\.\\d+\\.\\d+$", "--sort", "semver", "--next-tag", version, version],
+      ["--tag-filter-pattern", "^\\d+\\.\\d+\\.\\d+$", "--sort", "semver", `${version}..${version}`],
       { cwd: gardenRoot }
     )
   ).stdout
