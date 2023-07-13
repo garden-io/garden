@@ -28,6 +28,11 @@ RUN apk add --no-cache \
   groff \
   py3-crcmod
 
+# Add tools required for Azure DevOps. See also https://github.com/microsoft/azure-pipelines-agent/blob/master/docs/design/non-glibc-containers.md
+RUN apk add --no-cache --virtual .pipeline-deps readline linux-pam  \
+  && apk add bash sudo shadow \
+  && apk del .pipeline-deps
+
 ENV USER=root
 ENV HOME=/root
 
