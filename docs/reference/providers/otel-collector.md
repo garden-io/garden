@@ -7,7 +7,13 @@ tocTitle: "`otel-collector`"
 
 ## Description
 
-Otel Collector
+This provider enables gathering and exporting [OpenTelemetry](https://opentelemetry.io/) data for the Garden execution.
+
+It provides detailed insights into what a Garden command is doing at any given time and can be used for alerting on performance regressions or debugging performance issues.
+
+It does that by running an [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector) on the local machine for the duration of the command execution, which then exports the gathered data to the desired service.
+
+Currently supported exporters are [Datadog](https://www.datadoghq.com/), [Newrelic](https://newrelic.com/), [Honeycomb](https://www.honeycomb.io/) and 'OTLP HTTP'.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 

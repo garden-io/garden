@@ -10,6 +10,7 @@ import { inferType } from "../../../config/zod"
 import { sdk } from "../../../plugin/sdk"
 import { baseValidator } from "./base"
 
+// Verbosity levels documented in https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/loggingexporter/README.md
 export type LoggingExporterVerbosityLevel = "detailed" | "normal" | "basic"
 export const LoggingExporterVerbosityLevelEnum = [
   "detailed",
