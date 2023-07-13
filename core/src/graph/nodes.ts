@@ -7,7 +7,7 @@
  */
 
 import { Task, ValidResultType } from "../tasks/base"
-import { GardenBaseError, InternalError } from "../exceptions"
+import { GardenBaseError, InternalError, isGardenError } from "../exceptions"
 import { GraphResult, GraphResultFromTask, GraphResults } from "./results"
 import type { GraphSolver } from "./solver"
 import { ValuesType } from "utility-types"
@@ -378,7 +378,8 @@ export class GraphNodeError extends GardenBaseError<GraphNodeErrorDetail> {
       message = `${node.describe()} failed: ${error}`
     }
 
-    super({ message, detail: params })
+    const wrappedErrors = isGardenError(error) ? [error] : []
+    super({ message, detail: params, wrappedErrors, context: { taskType: node.task.type } })
   }
 
   aborted() {
