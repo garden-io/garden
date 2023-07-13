@@ -28,7 +28,9 @@ RUN set -ex; \
 ENV USER=root
 ENV HOME=/root
 
-ENTRYPOINT ["/garden/garden"]
+# We do not set an entrypoint here for compatibility with Azure DevOps pipelines.
+# See also https://learn.microsoft.com/en-us/azure/devops/pipelines/process/container-phases?view=azure-devops#linux-based-containers
+ENTRYPOINT []
 
 FROM buster-base-root as buster-base-rootless
 
