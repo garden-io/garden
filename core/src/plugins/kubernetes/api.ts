@@ -176,6 +176,20 @@ export interface ExecInPodResult {
   timedOut: boolean
 }
 
+interface ReadParams {
+  log: Log
+  namespace: string
+  apiVersion: string
+  kind: string
+  name: string
+}
+
+interface ReadBySpecParams {
+  log: Log
+  namespace: string
+  manifest: KubernetesResource
+}
+
 export class KubeApi {
   public apis: WrappedApi<ApisApi>
   public apps: WrappedApi<AppsV1Api>
@@ -361,19 +375,7 @@ export class KubeApi {
   /**
    * Fetch the specified resource from the cluster.
    */
-  async read({
-    log,
-    namespace,
-    apiVersion,
-    kind,
-    name,
-  }: {
-    log: Log
-    namespace: string
-    apiVersion: string
-    kind: string
-    name: string
-  }) {
+  async read({ log, namespace, apiVersion, kind, name }: ReadParams) {
     log.silly(`Fetching Kubernetes resource ${apiVersion}/${kind}/${name}`)
 
     const typePath = await this.getResourceTypeApiPath({
@@ -389,10 +391,23 @@ export class KubeApi {
     return res.body
   }
 
+  async readOrNull(params: ReadParams) {
+    try {
+      const resource = await this.read(params)
+      return resource
+    } catch (err) {
+      if (err.statusCode === 404) {
+        return null
+      } else {
+        throw err
+      }
+    }
+  }
+
   /**
    * Given a manifest, attempt to read the matching resource from the cluster.
    */
-  async readBySpec({ log, namespace, manifest }: { log: Log; namespace: string; manifest: KubernetesResource }) {
+  async readBySpec({ log, namespace, manifest }: ReadBySpecParams) {
     log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
@@ -404,7 +419,7 @@ export class KubeApi {
   /**
    * Same as readBySpec() but returns null if the resource is missing.
    */
-  async readOrNull(params: { log: Log; namespace: string; manifest: KubernetesResource }) {
+  async readBySpecOrNull(params: ReadBySpecParams) {
     try {
       const resource = await this.readBySpec(params)
       return resource
