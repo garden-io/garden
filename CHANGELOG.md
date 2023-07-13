@@ -1,8 +1,14 @@
 
+<a name="0.12.62"></a>
+## [0.12.62](https://github.com/garden-io/garden/compare/0.12.62...0.12.61) (2023-07-12)
+
+### Bug Fixes
+
+* **template:** allow empty string as a valid arg of `isEmpty` helper ([66458a9e7](https://github.com/garden-io/garden/commit/66458a9e7))
+* **template:** allow `null` as a valid argument in helper functions ([05d1dacc1](https://github.com/garden-io/garden/commit/05d1dacc1))
+
 <a name="0.12.61"></a>
 ## [0.12.61](https://github.com/garden-io/garden/compare/0.12.60...0.12.61) (2023-06-21)
-
-## Changelog
 
 ### Bug Fixes
 
