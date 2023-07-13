@@ -11,7 +11,7 @@ import { GenericProviderConfig, Provider } from "../../config/provider"
 import { dedent } from "../../util/string"
 import { sdk } from "../../plugin/sdk"
 import { registerCleanupFunction } from "../../util/util"
-import { configureOTLPHttpExporter } from "../../util/open-telemetry/tracing"
+import { configureNoOpExporter, configureOTLPHttpExporter } from "../../util/open-telemetry/tracing"
 import { OtelExportersConfig, getOtelCollectorConfigFile } from "./config"
 import YAML from "yaml"
 import { makeTempDir } from "../../util/fs"
@@ -118,6 +118,7 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
 
   if (!exporters) {
     scopedLog.debug("No OTEL exporters are enabled, otel-collector is not needed.")
+    configureNoOpExporter()
     return { status: { ready: true, disableCache: true, outputs: {} } }
   }
 
