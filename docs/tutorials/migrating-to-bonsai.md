@@ -31,7 +31,7 @@ Here is the list of breaking changes from Garden Acorn (0.12) to Bonsai (0.13). 
   - `google-app-engine`
   - `google-cloud-functions`
   - `local-google-cloud-functions`
-  - `maven-container` (superseded by the the `jib-container` plugin)
+  - `maven-container` (superseded by the `jib-container` plugin)
   - `npm-package` (the `exec` provider is a good replacement there)
   - `openfaas`
 
