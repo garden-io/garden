@@ -300,17 +300,40 @@ export class GitHandler extends VcsHandler {
 
     const absExcludes = exclude.map((p) => resolve(path, p))
 
-    // Apply the include patterns to the ls-files queries. We use the 'glob' "magic word" (in git parlance)
+    // Apply the include patterns to the ls-files queries. We use the --glob-pathspecs flag
     // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
-    // Note: We unfortunately can't exclude at this level because it simply doesn't work in git, for reasons unknown.
-    const patterns = [...(include || []).map((p) => ":(glob)" + p)]
+
+    // Due to an issue in git, we can unfortunately only use _either_ include or exclude patterns in the
+    // ls-files commands, but not both. Trying both just ignores the exclude patterns.
+
+    if (include?.includes("**/*")) {
+      // This is redundant
+      include = undefined
+    }
+
+    const hasIncludes = !!include?.length
+
+    const globalArgs = ["--glob-pathspecs"]
     const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
+
+    if (!hasIncludes) {
+      for (const p of exclude) {
+        lsFilesCommonArgs.push("--exclude", p)
+      }
+    }
 
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
     const trackedButIgnored = new Set(
       !this.ignoreFile
         ? []
-        : await git("ls-files", "--ignored", ...lsFilesCommonArgs, "--exclude-per-directory", this.ignoreFile)
+        : await git(
+            ...globalArgs,
+            "ls-files",
+            "--ignored",
+            ...lsFilesCommonArgs,
+            "--exclude-per-directory",
+            this.ignoreFile
+          )
     )
 
     // List all submodule paths in the current path
@@ -366,8 +389,12 @@ export class GitHandler extends VcsHandler {
 
       const resolvedPath = resolve(path, filePath)
 
-      // Filter on excludes
-      if (!matchPath(filePath, undefined, exclude) || submodulePaths.includes(resolvedPath)) {
+      // Filter on excludes and submodules
+      if (submodulePaths.includes(resolvedPath)) {
+        return
+      }
+
+      if (hasIncludes && !matchPath(filePath, undefined, exclude)) {
         return
       }
 
@@ -428,11 +455,11 @@ export class GitHandler extends VcsHandler {
 
     await new Promise<void>((_resolve, _reject) => {
       // Prepare args
-      const args = ["ls-files", "-s", "--others", ...lsFilesCommonArgs]
+      const args = [...globalArgs, "ls-files", "-s", "--others", ...lsFilesCommonArgs]
       if (this.ignoreFile) {
         args.push("--exclude-per-directory", this.ignoreFile)
       }
-      args.push(...patterns)
+      args.push(...(include || []))
 
       // Start git process
       gitLog.silly(`Calling git with args '${args.join(" ")}' in ${path}`)

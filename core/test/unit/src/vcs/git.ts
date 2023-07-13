@@ -270,7 +270,7 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
       ).to.eql([])
     })
 
-    it("should respect include and exclude patterns, if both are specified", async () => {
+    it("should respect include and exclude filters, if both are specified", async () => {
       const moduleDir = resolve(tmpPath, "module-a")
       const pathA = resolve(moduleDir, "yes.txt")
       const pathB = resolve(tmpPath, "no.txt")
