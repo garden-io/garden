@@ -1,4 +1,4 @@
 ---
-title: Garden Seeds
 order: 2
+title: Garden Seeds
 ---
