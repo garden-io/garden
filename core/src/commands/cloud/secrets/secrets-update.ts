@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CreateSecretResponse, ListSecretsResponse, UpdateSecretResponse } from "@garden-io/platform-api-types"
+import { CreateSecretResponse, UpdateSecretResponse } from "@garden-io/platform-api-types"
 import { pickBy, sortBy, uniqBy } from "lodash"
-import { stringify } from "querystring"
 import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params"
 import { CloudProject } from "../../../cloud/api"
 import { StringMap } from "../../../config/common"
@@ -20,6 +19,7 @@ import { Command, CommandParams, CommandResult } from "../../base"
 import { ApiCommandError, SecretResult, handleBulkOperationResult, makeSecretFromResponse, noApiMsg } from "../helpers"
 import dotenv = require("dotenv")
 import { readFile } from "fs-extra"
+import { fetchAllSecrets } from "./secrets-list"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
@@ -164,22 +164,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       environmentId = environment.id
     }
 
-    let page = 0
-    let allSecrets: SecretResult[] = []
-    let hasMore = true
-    const pageLimit = 100
-    while (hasMore) {
-      log.debug(`Fetching page ${page}`)
-      const q = stringify({ projectId: project.id, offset: page * pageLimit, limit: pageLimit })
-      const res = await api.get<ListSecretsResponse>(`/secrets?${q}`)
-      if (res.data.length === 0) {
-        hasMore = false
-      } else {
-        allSecrets.push(...res.data.map((secret) => makeSecretFromResponse(secret)))
-        page++
-      }
-    }
-
+    const allSecrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
     let secretsToUpdate: (SecretResult & { newValue: string })[]
     let secretsToCreate: [string, string][] = []
 

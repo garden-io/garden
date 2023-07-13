@@ -18,7 +18,26 @@ import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
 import { getCloudDistributionName } from "../../../util/util"
-import { CloudProject } from "../../../cloud/api"
+import { CloudApi, CloudProject } from "../../../cloud/api"
+import { Log } from "../../../logger/log-entry"
+
+export const fetchAllSecrets = async (api: CloudApi, projectId: string, log: Log): Promise<SecretResult[]> => {
+  let page = 0
+  let secrets: SecretResult[] = []
+  let hasMore = true
+  while (hasMore) {
+    log.debug(`Fetching page ${page}`)
+    const q = stringify({ projectId, offset: page * pageLimit, limit: pageLimit })
+    const res = await api.get<ListSecretsResponse>(`/secrets?${q}`)
+    if (res.data.length === 0) {
+      hasMore = false
+    } else {
+      secrets.push(...res.data.map((secret) => makeSecretFromResponse(secret)))
+      page++
+    }
+  }
+  return secrets
+}
 
 const pageLimit = 100
 
@@ -77,21 +96,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
       })
     }
 
-    let page = 0
-    let secrets: SecretResult[] = []
-    let hasMore = true
-    while (hasMore) {
-      log.debug(`Fetching page ${page}`)
-      const q = stringify({ projectId: project.id, offset: page * pageLimit, limit: pageLimit })
-      const res = await api.get<ListSecretsResponse>(`/secrets?${q}`)
-      if (res.data.length === 0) {
-        hasMore = false
-      } else {
-        secrets.push(...res.data.map((secret) => makeSecretFromResponse(secret)))
-        page++
-      }
-    }
-
+    const secrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
     log.info("")
 
     if (secrets.length === 0) {
