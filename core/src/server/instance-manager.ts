@@ -51,7 +51,7 @@ interface GardenInstanceManagerParams {
   log: Log
   sessionId: string
   plugins: GardenPluginReference[]
-  serveCommand?: ServeCommand
+  serveCommand: ServeCommand
   extraCommands?: Command[]
   defaultOpts?: Partial<GardenOpts>
   cloudApiFactory?: CloudApiFactory
@@ -104,6 +104,7 @@ export class GardenInstanceManager {
     this.defaultOpts = defaultOpts || {}
     this.plugins = plugins
     this.cloudApiFactory = cloudApiFactory || CloudApi.factory
+    this.serveCommand = serveCommand
 
     this.events = new EventBus()
     this.monitors = new MonitorManager(log, this.events)
@@ -381,7 +382,7 @@ export class GardenInstanceManager {
 
     const gardenParams = await resolveGardenParamsPartial(projectRoot, gardenOpts)
 
-    return this.ensureInstance(
+    const garden = await this.ensureInstance(
       log,
       {
         projectRoot,
@@ -391,5 +392,24 @@ export class GardenInstanceManager {
       },
       gardenOpts
     )
+
+    if (cloudApi && garden.projectId && this.serveCommand.server) {
+      // Ensure cloud session is registered for the domain and server session, since this may not happen on startup
+      // if the command isn't started in a Garden project root. This is a no-op if it's already registered.
+      // FIXME: We still need to rethink on the Cloud side how sessions are scoped
+      await cloudApi.registerSession({
+        parentSessionId: undefined,
+        projectId: garden.projectId,
+        // Use the process (i.e. parent command) session ID for the serve/dev command session
+        sessionId: this.sessionId,
+        commandInfo: garden.commandInfo,
+        localServerPort: this.serveCommand.server.port,
+        environment: garden.environmentName,
+        namespace: garden.namespace,
+        isDevCommand: true,
+      })
+    }
+
+    return garden
   }
 }
