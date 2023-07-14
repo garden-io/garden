@@ -360,6 +360,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
       let msg = `An error occurred while trying to run '${cmd}' (${err.message}).`
       if ((<any>err).code === "ENOENT") {
         msg = `${msg} Please make sure '${cmd}' is installed and in the $PATH.`
+        cwd && (msg = `${msg} Please make sure '${cwd}' exists and is a valid directory path.`)
       }
       _reject(new RuntimeError({ message: msg, detail: { cmd, args, opts, result, err } }))
     })
