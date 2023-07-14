@@ -316,12 +316,12 @@ providers:
         exclude:
 
         # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600
-        # (user read/write). See the [Mutagen
+        # (user can read/write, everyone else can read). See the [Mutagen
         # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
         fileMode:
 
         # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to
-        # 0700 (user read/write). See the [Mutagen
+        # 0700 (user can read/write, everyone else can read). See the [Mutagen
         # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
         directoryMode:
 
@@ -1222,7 +1222,7 @@ providers:
 
 [providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > fileMode
 
-The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1232,7 +1232,7 @@ The default permission bits, specified as an octal, to set on files at the sync 
 
 [providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > directoryMode
 
-The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
 | Type     | Required |
 | -------- | -------- |

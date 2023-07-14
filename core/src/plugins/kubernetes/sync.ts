@@ -35,6 +35,7 @@ import {
 } from "./util"
 import {
   KubernetesResource,
+  OctalPermissionMask,
   SupportedRuntimeAction,
   SyncableKind,
   SyncableResource,
@@ -103,8 +104,8 @@ export const kubernetesModuleSyncSchema = () =>
  */
 export interface SyncDefaults {
   exclude?: string[]
-  fileMode?: number
-  directoryMode?: number
+  fileMode?: OctalPermissionMask
+  directoryMode?: OctalPermissionMask
   owner?: number | string
   group?: number | string
 }

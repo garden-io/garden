@@ -30,6 +30,7 @@ import { PluginTool } from "./util/ext-tools"
 import { deline } from "./util/string"
 import { registerCleanupFunction, sleep } from "./util/util"
 import { emitNonRepeatableWarning } from "./warnings"
+import { OctalPermissionMask } from "./plugins/kubernetes/types"
 
 const maxRestarts = 10
 const mutagenLogSection = "<mutagen>"
@@ -107,8 +108,8 @@ export interface SyncConfig {
   ignore: string[]
   defaultOwner?: number | string
   defaultGroup?: number | string
-  defaultFileMode?: number
-  defaultDirectoryMode?: number
+  defaultFileMode?: OctalPermissionMask
+  defaultDirectoryMode?: OctalPermissionMask
 }
 
 interface ActiveSync {
@@ -906,6 +907,6 @@ function formatSyncConflict(sourceDescription: string, targetDescription: string
 /**
  * Converts an octal permission mask to string.
  */
-function modeToString(mode: number) {
-  return "0" + mode.toString(8)
+function modeToString(mode: OctalPermissionMask) {
+  return `0${mode.toString(8)}`
 }

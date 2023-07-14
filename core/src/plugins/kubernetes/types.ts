@@ -108,3 +108,16 @@ export type SupportedRuntimeAction =
   | KubernetesDeployAction
   | KubernetesRunAction
   | KubernetesTestAction
+
+type Enumerate<N extends number, Acc extends number[] = []> = Acc["length"] extends N
+  ? Acc[number]
+  : Enumerate<N, [...Acc, Acc["length"]]>
+
+type IntRange<F extends number, T extends number> = Exclude<Enumerate<T>, Enumerate<F>>
+
+/**
+ * Octal number between 0o0 until including 0o777
+ *
+ * UNIX file system permission bitmask. See also https://man7.org/linux/man-pages/man2/chmod.2.html
+ */
+export type OctalPermissionMask = IntRange<0o000, 0o1000> // maximum allowed octal is 0o777 (0o777 + 0o1 = 0o1000)
