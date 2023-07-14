@@ -10,8 +10,19 @@ import { ChildProcess } from "child_process"
 import split2 from "split2"
 import { RuntimeError } from "../exceptions"
 import { PluginContext } from "../plugin-context"
+import { StringLogLevel } from "../logger/logger"
 
-export function streamLogs({ proc, name, ctx }: { proc: ChildProcess; name: string; ctx: PluginContext }): void {
+export function streamLogs({
+  proc,
+  name,
+  ctx,
+  level,
+}: {
+  proc: ChildProcess
+  name: string
+  ctx: PluginContext
+  level?: StringLogLevel
+}): void {
   const logStream = split2()
 
   let stdout: string = ""
@@ -33,7 +44,7 @@ export function streamLogs({ proc, name, ctx }: { proc: ChildProcess; name: stri
 
   const logEventContext = {
     origin: name,
-    level: "verbose" as const,
+    level: level ?? ("verbose" as const),
   }
 
   const logger = ctx.log.createLog({
@@ -43,7 +54,6 @@ export function streamLogs({ proc, name, ctx }: { proc: ChildProcess; name: stri
   logStream.on("data", (line: Buffer) => {
     const logLine = line.toString()
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: logLine, ...logEventContext })
-    logger.silly(logLine)
   })
 }
 

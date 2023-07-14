@@ -161,6 +161,7 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
     ctx,
     name: "otel-collector-process",
     proc: collectorProcess,
+    level: "silly",
   })
 
   try {
