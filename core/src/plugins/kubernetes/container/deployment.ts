@@ -40,6 +40,7 @@ import {
 } from "../types"
 import { k8sGetContainerDeployStatus, ContainerServiceStatus } from "./status"
 import { emitNonRepeatableWarning } from "../../../warnings"
+import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters - or so they tell me
@@ -492,6 +493,9 @@ function workloadConfig({
   }
 
   const { annotations, daemon } = action.getSpec()
+  // Add default-container annotation in generated manifest
+  // so exec respects it in case of multiple containers in pod
+  annotations[K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY] = action.name
 
   return {
     kind: daemon ? "DaemonSet" : "Deployment",
