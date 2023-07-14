@@ -136,7 +136,6 @@ export class BuildStaging {
     this.createdPaths.clear()
   }
 
-  // TODO: ensure build path elsewhere?
   getBuildPath(config: BuildActionConfig<string, any> | ModuleConfig): string {
     // We don't stage the build for local exec modules, so the module path is effectively the build path.
     if (config.kind === "Module" && config.type === "exec" && config["local"] === true) {
