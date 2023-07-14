@@ -4,18 +4,23 @@ name: otel-collector-test
 environments:
   - name: local
     defaultNamespace: ${var.env-name}
+    variables:
+      defaultHostname: ${var.env-name}.local.demo.garden
   - name: testing
     defaultNamespace: ${var.env-name}
+    variables:
+      defaultHostname: ${var.env-name}.dev-1.sys.garden
 providers:
   - name: local-kubernetes
     environments: [local]
     namespace: ${environment.namespace}
+    defaultHostname: ${var.defaultHostname}
   - name: kubernetes
     environments: [testing]
     # Replace the below values as appropriate
     context: gke_garden-ci_europe-west1-b_core-ci
     namespace: ${environment.namespace}
-    defaultHostname: ${var.env-name}.dev-1.sys.garden
+    defaultHostname: ${var.defaultHostname}
     buildMode: cluster-buildkit
     deploymentRegistry:
       hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
@@ -29,7 +34,7 @@ providers:
     exporters:
       - name: otlphttp
         enabled: true
-        endpoint: http://otel-collector-test.local.demo.garden:80
+        endpoint: http://${var.defaultHostname}:80
         headers:
           x-garden-test-header: 1
 variables:
