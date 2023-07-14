@@ -72,9 +72,7 @@ export async function streamK8sLogs(params: GetAllLogsParams) {
     const pods = await getAllPods(api, params.defaultNamespace, params.resources)
     let tail = params.tail
     if (!tail) {
-      const containers = pods.flatMap((pod) => {
-        return pod.spec!.containers.map((c) => c.name).filter((n) => !n.match(/garden-/))
-      })
+      const containers = pods.flatMap((pod) => containerNamesForLogging(pod))
       tail = Math.floor(maxLogLinesInMemory / containers.length)
 
       params.log.debug(`Tail parameter not set explicitly. Setting to ${tail} to prevent log overflow.`)
