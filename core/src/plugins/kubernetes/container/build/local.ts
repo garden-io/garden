@@ -31,7 +31,7 @@ export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
   if (deploymentRegistry) {
     const args = await getManifestInspectArgs(outputs.deploymentImageId, deploymentRegistry)
     const res = await containerHelpers.dockerCli({
-      cwd: action.getBuildPath(),
+      cwd: ctx.projectRoot,
       args,
       log,
       ctx,
