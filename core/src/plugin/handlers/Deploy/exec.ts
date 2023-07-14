@@ -16,6 +16,7 @@ import { Executed } from "../../../actions/types"
 interface ExecInDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   command: string[]
   interactive: boolean
+  target?: string
 }
 
 export interface ExecInDeployResult {

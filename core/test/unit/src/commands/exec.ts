@@ -27,6 +27,7 @@ describe("ExecCommand", () => {
       args,
       opts: withDefaultGlobalOpts({
         interactive: false,
+        target: "",
       }),
     })
 

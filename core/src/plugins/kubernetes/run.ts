@@ -46,6 +46,9 @@ import { LogLevel } from "../../logger/logger"
 import { getResourceEvents } from "./status/events"
 import stringify from "json-stringify-safe"
 
+// ref: https://kubernetes.io/docs/reference/labels-annotations-taints/#kubectl-kubernetes-io-default-container
+export const K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY = "kubectl.kubernetes.io/default-container"
+
 /**
  * When a `podSpec` is passed to `runAndCopy`, only these fields will be used for the runner's pod spec
  * (and, in some cases, overridden/populated in `runAndCopy`).
@@ -1047,7 +1050,29 @@ export class PodRunner extends PodRunnerParams {
     }
 
     const startedAt = new Date()
-    const containerName = container || this.pod.spec.containers[0].name
+    let containerName = container
+    if (!containerName) {
+      // if no container name is specified, check if the Pod has annotation kubectl.kubernetes.io/default-container
+      const defaultAnnotationContainer = this.pod.metadata.annotations
+        ? this.pod.metadata.annotations[K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY]
+        : undefined
+
+      if (defaultAnnotationContainer) {
+        containerName = defaultAnnotationContainer
+        if (this.pod.spec.containers.length > 1) {
+          log.info(
+            // in case there are more than 1 containers and exec picks container with annotation
+            `Defaulted container ${containerName} due to the annotation ${K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY}.`
+          )
+        }
+      } else {
+        containerName = this.pod.spec.containers[0].name
+        if (this.pod.spec.containers.length > 1) {
+          const allContainerNames = this.pod.spec.containers.map((c) => c.name)
+          log.info(`Defaulted container ${containerName} out of: ${allContainerNames.join(", ")}.`)
+        }
+      }
+    }
 
     log.debug(`Execing command in ${this.namespace}/Pod/${this.podName}/${containerName}: ${command.join(" ")}`)
     const startTime = new Date(Date.now())

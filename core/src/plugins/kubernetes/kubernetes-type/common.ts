@@ -52,7 +52,7 @@ export async function getManifests({
 
   // remove *List objects
   const manifests = rawManifests.flatMap((manifest) => {
-    if (manifest.kind.endsWith("List")) {
+    if (manifest?.kind?.endsWith("List")) {
       if (!manifest.items || manifest.items.length === 0) {
         // empty list
         return []

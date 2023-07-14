@@ -1361,6 +1361,7 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result
+  | `--target` |  | string | Specify name of the target if a Deploy action consists of multiple components. _NOTE: This option is only relevant in certain scenarios and will be ignored otherwise._ For Kubernetes deploy actions, this is useful if a Deployment includes multiple containers, such as sidecar containers. By default, the container with &#x60;kubectl.kubernetes.io/default-container&#x60; annotation or the first container is picked.
 
 #### Outputs
 
