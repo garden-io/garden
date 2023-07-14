@@ -17,7 +17,7 @@ import { getKubernetesDeployStatus } from "./handlers"
 import chalk from "chalk"
 
 export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeployAction> = async (params) => {
-  const { ctx, log, action, command, interactive } = params
+  const { ctx, log, action, command, interactive, target: containerName } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
 
@@ -64,5 +64,5 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
     })
   }
 
-  return execInWorkload({ ctx, provider, log, namespace, workload: target, command, interactive })
+  return execInWorkload({ ctx, provider, log, namespace, workload: target, containerName, command, interactive })
 }

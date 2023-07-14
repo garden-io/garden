@@ -16,7 +16,7 @@ import { DeployActionHandler } from "../../../plugin/action-types"
 import { k8sGetContainerDeployStatus } from "./status"
 
 export const execInContainer: DeployActionHandler<"exec", ContainerDeployAction> = async (params) => {
-  const { ctx, log, action, command, interactive } = params
+  const { ctx, log, action, command, interactive, target: containerName } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const status = await k8sGetContainerDeployStatus({
@@ -43,6 +43,7 @@ export const execInContainer: DeployActionHandler<"exec", ContainerDeployAction>
     log,
     namespace,
     workload: status.detail?.detail.workload,
+    containerName,
     command,
     interactive,
   })

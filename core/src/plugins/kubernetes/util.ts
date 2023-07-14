@@ -252,6 +252,7 @@ export async function execInWorkload({
   namespace,
   workload,
   command,
+  containerName,
   streamLogs = false,
   interactive,
 }: {
@@ -261,6 +262,7 @@ export async function execInWorkload({
   namespace: string
   workload: KubernetesWorkload | KubernetesPod
   command: string[]
+  containerName?: string
   streamLogs?: boolean
   interactive: boolean
 }) {
@@ -285,6 +287,7 @@ export async function execInWorkload({
     timeoutSec: 999999,
     tty: interactive,
     buffer: true,
+    containerName,
   }
 
   if (streamLogs) {

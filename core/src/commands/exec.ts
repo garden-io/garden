@@ -16,6 +16,7 @@ import { executeAction } from "../graph/actions"
 import { NotFoundError } from "../exceptions"
 import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import { createActionLog } from "../logger/log-entry"
+import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../plugins/kubernetes/run"
 
 const execArgs = {
   deploy: new StringParameter({
@@ -39,6 +40,12 @@ const execOpts = {
     defaultValue: false,
     cliDefault: true,
     cliOnly: true,
+  }),
+  target: new StringParameter({
+    help: `Specify name of the target if a Deploy action consists of multiple components. _NOTE: This option is only relevant in certain scenarios and will be ignored otherwise._ For Kubernetes deploy actions, this is useful if a Deployment includes multiple containers, such as sidecar containers. By default, the container with \`${K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY}\` annotation or the first container is picked.`,
+    cliOnly: true,
+    defaultValue: undefined,
+    required: false,
   }),
 }
 
@@ -74,6 +81,7 @@ export class ExecCommand extends Command<Args, Opts> {
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInDeployResult>> {
     const deployName = args.deploy
     const command = this.getCommand(args)
+    const target = opts["target"] as string | undefined
 
     const graph = await garden.getConfigGraph({ log, emit: false })
     const action = graph.getDeploy(deployName)
@@ -138,6 +146,7 @@ export class ExecCommand extends Command<Args, Opts> {
       graph,
       action: executed,
       command,
+      target,
       interactive: opts.interactive,
     })
 
