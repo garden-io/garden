@@ -1,27 +1,13 @@
 #!/usr/bin/env ts-node
 
-import execa from "execa"
 import { writeFile } from "fs-extra"
 import { execSync } from "child_process"
 import { resolve } from "path"
 import { dedent } from "@garden-io/sdk/util/string"
+import { getChangelog } from "./changelog"
 import parseArgs = require("minimist")
 
 const gardenRoot = resolve(__dirname, "..")
-
-async function getChangelog(curReleaseTag: string) {
-  try {
-    return (
-      await execa(
-        "git-chglog",
-        ["--tag-filter-pattern", "^\\d+\\.\\d+\\.\\d+$", "--sort", "semver", `${curReleaseTag}..${curReleaseTag}`],
-        { cwd: gardenRoot }
-      )
-    ).stdout
-  } catch (err) {
-    throw new Error(`Error generating changelog: ${err}`)
-  }
-}
 
 function getContributors(prevReleaseTag: string, curReleaseTag: string) {
   try {

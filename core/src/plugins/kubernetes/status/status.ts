@@ -12,36 +12,31 @@ import { DeploymentError } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
-import {
-  BaseResource,
-  KubernetesResource,
-  KubernetesServerResource,
-  KubernetesWorkload,
-  SyncableResource,
-} from "../types"
-import { cloneDeep, flatten, isArray, isEqual, isPlainObject, keyBy, mapValues, omit, pickBy } from "lodash"
-import { KubernetesPluginContext, KubernetesProvider } from "../config"
+import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
+import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
+import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { isSubset } from "../../../util/is-subset"
 import { Log } from "../../../logger/log-entry"
 import {
-  KubernetesObject,
-  V1Container,
-  V1Job,
-  V1PersistentVolumeClaim,
-  V1Pod,
-  V1ReplicaSet,
   V1ReplicationController,
+  V1ReplicaSet,
+  V1Pod,
+  V1PersistentVolumeClaim,
   V1Service,
+  V1Container,
+  KubernetesObject,
+  V1Job,
 } from "@kubernetes/client-node"
+import dedent = require("dedent")
 import { getPods, getResourceKey, hashManifest } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
 import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
+import { SyncableResource } from "../types"
 import { ActionMode } from "../../../actions/types"
 import { deepMap } from "../../../util/objects"
-import { combineStates, DeployState } from "../../../types/service"
+import { DeployState, combineStates } from "../../../types/service"
 import { isTruthy, sleep } from "../../../util/util"
-import dedent = require("dedent")
 
 export interface ResourceStatus<T extends BaseResource | KubernetesObject = BaseResource> {
   state: DeployState
@@ -179,14 +174,18 @@ export async function checkResourceStatus({
   log: Log
   waitForJobs?: boolean
 }) {
+  const handler = objHandlers[manifest.kind]
+
   if (manifest.metadata?.namespace) {
     namespace = manifest.metadata.namespace
   }
 
   let resource: KubernetesServerResource
+  let resourceVersion: number | undefined
 
   try {
     resource = await api.readBySpec({ namespace, manifest, log })
+    resourceVersion = parseInt(resource.metadata.resourceVersion!, 10)
   } catch (err) {
     if (err.statusCode === 404) {
       return { state: <DeployState>"missing", resource: manifest }
@@ -195,41 +194,15 @@ export async function checkResourceStatus({
     }
   }
 
-  return resolveResourceStatus({ api, namespace, resource, log, waitForJobs })
-}
-
-export async function resolveResourceStatus(
-  params: Omit<StatusHandlerParams, "resourceVersion">
-): Promise<ResourceStatus> {
-  const handler = objHandlers[params.resource.kind]
-
+  let status: ResourceStatus
   if (handler) {
-    const resourceVersion = parseInt(params.resource.metadata.resourceVersion!, 10)
-    return handler({ ...params, resourceVersion })
+    status = await handler({ api, namespace, resource, log, resourceVersion, waitForJobs })
   } else {
     // if there is no explicit handler to check the status, we assume there's no rollout phase to wait for
-    return { state: "ready", resource: params.resource }
+    status = { state: "ready", resource: manifest }
   }
-}
 
-export function resolveResourceStatuses(log: Log, statuses: ResourceStatus[]) {
-  const deployedStates = statuses.map((s) => s.state)
-  const state = combineStates(deployedStates)
-
-  if (state !== "ready") {
-    const descriptions = statuses
-      .filter((s) => s.state !== "ready")
-      .map((s) => `${getResourceKey(s.resource)}: "${s.state}"`)
-      .join("\n")
-
-    log.silly(
-      dedent`
-      Resource(s) with non-ready status found in the cluster:
-
-      ${descriptions}` + "\n"
-    )
-  }
-  return state
+  return status
 }
 
 interface WaitParams {
@@ -397,7 +370,10 @@ export async function compareDeployedResources({
   manifests = flatten(manifests.map((r: any) => (r.apiVersion === "v1" && r.kind === "List" ? r.items : [r])))
 
   // Check if any resources are missing from the cluster.
-  const deployedResources = await getDeployedResources({ ctx, log, manifests })
+  const maybeDeployedObjects = await Bluebird.map(manifests, (resource) =>
+    getDeployedResource(ctx, ctx.provider, resource, log)
+  )
+  const deployedResources = <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
   const manifestsMap = keyBy(manifests, (m) => getResourceKey(m))
   const manifestKeys = Object.keys(manifestsMap)
   const deployedMap = keyBy(deployedResources, (m) => getResourceKey(m))
@@ -429,13 +405,24 @@ export async function compareDeployedResources({
   log.debug(`Getting currently deployed resource statuses...`)
 
   const deployedObjectStatuses: ResourceStatus[] = await Bluebird.map(deployedResources, async (resource) =>
-    resolveResourceStatus({ api, namespace, resource, log })
+    checkResourceStatus({ api, namespace, manifest: resource, log })
   )
 
-  const resolvedState = resolveResourceStatuses(log, deployedObjectStatuses)
+  const deployedStates = deployedObjectStatuses.map((s) => s.state)
+  if (deployedStates.find((s) => s !== "ready")) {
+    const descriptions = zip(deployedResources, deployedStates)
+      .filter(([_, s]) => s !== "ready")
+      .map(([o, s]) => `${logDescription(o!)}: "${s}"`)
+      .join("\n")
 
-  if (resolvedState !== "ready") {
-    result.state = resolvedState
+    log.silly(
+      dedent`
+      Resource(s) with non-ready status found in the cluster:
+
+      ${descriptions}` + "\n"
+    )
+
+    result.state = combineStates(deployedStates)
     return result
   }
 
@@ -608,19 +595,22 @@ export async function getDeployedResource<ResourceKind extends KubernetesObject>
   }
 }
 
-export async function getDeployedResources({
+/**
+ * Fetches matching deployed resources from the cluster for the provided array of manifests.
+ */
+export async function getDeployedResources<ResourceKind extends KubernetesObject>({
   ctx,
-  log,
   manifests,
+  log,
 }: {
   ctx: KubernetesPluginContext
+  manifests: KubernetesResource<ResourceKind>[]
   log: Log
-  manifests: KubernetesResource[]
-}) {
-  const maybeDeployedObjects = await Bluebird.map(manifests, (resource) =>
+}): Promise<KubernetesResource<ResourceKind>[]> {
+  const maybeDeployedObjects = await Bluebird.map(manifests, async (resource) =>
     getDeployedResource(ctx, ctx.provider, resource, log)
   )
-  return <KubernetesResource[]>maybeDeployedObjects.filter(isTruthy)
+  return maybeDeployedObjects.filter(isTruthy)
 }
 
 /**

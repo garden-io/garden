@@ -245,8 +245,22 @@ function filterErrorForExport(error: any) {
     "success",
     "type"
   )
+
+  // recursively go through the wrappedErrors
+  const allWrappedErrors = error.wrappedErrors || []
+  const filteredWrappedErrors = allWrappedErrors.flatMap((e) => {
+    const filteredError = filterErrorForExport(e)
+
+    if (!filteredError) {
+      return []
+    } else {
+      return [filteredError]
+    }
+  })
+
   return {
     ...pick(error, "message", "type", "stack"),
     detail: filteredDetail,
+    wrappedErrors: filteredWrappedErrors,
   }
 }

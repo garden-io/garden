@@ -1,4 +1,25 @@
 
+<a name="0.13.8"></a>
+## [0.13.8](https://github.com/garden-io/garden/compare/0.13.7...0.13.8) (2023-07-13)
+
+### Bug Fixes
+
+* respect spec.publishId for publishing image ([24089334b](https://github.com/garden-io/garden/commit/24089334b))
+* **cloud:** send "sessionFailed" event if result has errors ([e4c5c936c](https://github.com/garden-io/garden/commit/e4c5c936c))
+* **template:** allow empty string as a valid arg of `isEmpty` helper ([45d9484cd](https://github.com/garden-io/garden/commit/45d9484cd))
+* **template:** allow `null` as a valid argument in helper functions ([655a5c8e4](https://github.com/garden-io/garden/commit/655a5c8e4))
+
+### Features
+
+* add `with-dependants` deploy command flag ([c34851e9b](https://github.com/garden-io/garden/commit/c34851e9b))
+* **config:** allow multiple actions with same key if all but one is disabled ([d7ea44955](https://github.com/garden-io/garden/commit/d7ea44955))
+* **k8s:** support globs in kubernetes module/Deploy files field ([9cb5ba402](https://github.com/garden-io/garden/commit/9cb5ba402))
+* **server:** add internal _shell command and new WS endpoint ([873d4aa22](https://github.com/garden-io/garden/commit/873d4aa22))
+
+### Improvements
+
+* **server:** also send sessions events over ws ([55fdeee98](https://github.com/garden-io/garden/commit/55fdeee98))
+
 <a name="0.13.7"></a>
 ## [0.13.7](https://github.com/garden-io/garden/compare/0.13.6...0.13.7) (2023-07-10)
 

@@ -5,25 +5,26 @@ ARG VARIANT=root
 FROM node:18.15.0-buster-slim@sha256:b89966598ea8c38c37543823e54f3ff36c067d90f935085796cbd077a98c4ff8 as buster-base-root
 
 # system dependencies
-RUN set -ex; \
-  apt-get update; \
+RUN apt-get update && \
   apt-get install -y --no-install-recommends \
-  apt-transport-https \
-  bash \
-  ca-certificates \
-  curl \
-  gnupg2 \
-  git \
-  gzip \
-  openssl \
-  rsync \
-  software-properties-common; \
-  \
-  curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -; \
-  add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"; \
-  apt-get update; \
-  apt-get install -y docker-ce-cli; \
-  rm -rf /var/lib/apt/lists/*;
+    apt-transport-https \
+    bash \
+    ca-certificates \
+    curl \
+    gnupg2 \
+    git \
+    gzip \
+    openssl \
+    rsync \
+    software-properties-common && \
+  install -m 0755 -d /etc/apt/keyrings && \
+  curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+  chmod a+r /etc/apt/keyrings/docker.gpg && \
+  echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" > /etc/apt/sources.list.d/docker.list && \
+  apt-get update && \
+  apt-get install docker-ce-cli -y
 
 ENV USER=root
 ENV HOME=/root

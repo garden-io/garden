@@ -372,7 +372,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
         try {
           if (cloudSession && this.streamEvents) {
             log.silly(`Connecting Garden instance events to Cloud API`)
-            cloudEventStream.emit("commandInfo", {
+            garden.events.emit("commandInfo", {
               ...commandInfo,
               environmentName: garden.environmentName,
               environmentId: cloudSession.environmentId,
@@ -384,6 +384,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
               vcsBranch: garden.vcsInfo.branch,
               vcsCommitHash: garden.vcsInfo.commitHash,
               vcsOriginUrl: garden.vcsInfo.originUrl,
+              sessionId: garden.sessionId,
             })
           }
 
@@ -421,9 +422,9 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
           )
 
           if (allErrors.length > 0) {
-            cloudEventStream.emit("sessionFailed", {})
+            garden.events.emit("sessionFailed", {})
           } else {
-            cloudEventStream.emit("sessionCompleted", {})
+            garden.events.emit("sessionCompleted", {})
           }
         } catch (err) {
           analytics?.trackCommandResult(
@@ -433,7 +434,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
             1,
             parentSessionId || undefined
           )
-          cloudEventStream.emit("sessionFailed", {})
+          garden.events.emit("sessionFailed", {})
           throw err
         } finally {
           if (parentSessionId) {

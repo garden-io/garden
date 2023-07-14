@@ -17,6 +17,7 @@ export interface GardenError<D extends object = any> extends Error {
   detail?: D
   stack?: string
   wrappedErrors?: GardenError[]
+  context?: GardenErrorContext
 }
 
 export function isGardenError(err: any): err is GardenError {
@@ -26,6 +27,7 @@ export function isGardenError(err: any): err is GardenError {
 export type StackTraceMetadata = {
   functionName: string
   relativeFileName?: string
+  lineNumber?: number
 }
 
 export type GardenErrorStackTrace = {
@@ -38,6 +40,11 @@ export interface GardenErrorParams<D extends object = any> {
   readonly detail?: D
   readonly stack?: string
   readonly wrappedErrors?: GardenError[]
+  readonly context?: GardenErrorContext
+}
+
+export type GardenErrorContext = {
+  taskType?: string
 }
 
 export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
@@ -45,12 +52,14 @@ export abstract class GardenBaseError<D extends object = any> extends Error impl
   public message: string
   public detail?: D
   public wrappedErrors?: GardenError<any>[]
+  public context?: GardenErrorContext
 
-  constructor({ message, detail, stack, wrappedErrors }: GardenErrorParams<D>) {
+  constructor({ message, detail, stack, wrappedErrors, context }: GardenErrorParams<D>) {
     super(message)
     this.detail = detail
     this.stack = stack || this.stack
     this.wrappedErrors = wrappedErrors
+    this.context = context
   }
 
   toString() {
@@ -247,10 +256,13 @@ function getStackTraceFromString(stack: string): StackTraceMetadata[] {
       relativeFileName = filePath.slice(lastFilePos)
     }
 
+    let lineNumber = parseInt(atLine[3], 10) || -1
+
     return [
       {
         functionName,
         relativeFileName,
+        lineNumber,
       },
     ]
   })

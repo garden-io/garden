@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve --dashboard",
+    "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "test:unit": "vue-cli-service test:unit",
     "lint": "vue-cli-service lint",
@@ -13,8 +13,9 @@
     "axios": "^0.21.2",
     "chai": "^4.2.0",
     "core-js": "^3.6.5",
-    "vue": "^2.6.10",
+    "vue": "^2.7.14",
     "vue-router": "^3.4.9",
+    "vue-loader": "^17.2.2",
     "vuex": "^3.1.1"
   },
   "devDependencies": {
@@ -27,7 +28,7 @@
     "@vue/eslint-config-airbnb": "^4.0.1",
     "@vue/test-utils": "^1.0.0-beta.20",
     "eslint": "^8.41.0",
-    "eslint-plugin-vue": "^9.14.0",
+    "eslint-plugin-vue": "^9.15.1",
     "mocha": "^10.2.0",
     "vue-template-compiler": "^2.6.10"
   }

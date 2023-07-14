@@ -4,12 +4,14 @@ import execa from "execa"
 import semver from "semver"
 import inquirer from "inquirer"
 import chalk from "chalk"
+import { relative, resolve } from "path"
+import { createWriteStream, readFile, writeFile } from "fs-extra"
+import { getPackages } from "./script-utils"
+import { getChangelog } from "./changelog"
 import parseArgs = require("minimist")
 import deline = require("deline")
-import { resolve, relative } from "path"
-import { readFile, createWriteStream, writeFile } from "fs-extra"
-import { getPackages } from "./script-utils"
 import Bluebird = require("bluebird")
+
 const replace = require("replace-in-file")
 
 type ReleaseType = "minor" | "patch" | "preminor" | "prepatch" | "prerelease"
@@ -279,13 +281,7 @@ async function updateChangelog(version: string) {
   const changelogPath = "./CHANGELOG.md"
   // TODO: Use readStream and pipe
   const changelog = await readFile(changelogPath)
-  const nextChangelogEntry = (
-    await execa(
-      "git-chglog",
-      ["--tag-filter-pattern", "^\\d+\\.\\d+\\.\\d+$", "--sort", "semver", "--next-tag", version, version],
-      { cwd: gardenRoot }
-    )
-  ).stdout
+  const nextChangelogEntry = getChangelog(version)
   return new Promise((resolve, reject) => {
     const writeStream = createWriteStream(changelogPath)
     writeStream.write(nextChangelogEntry)

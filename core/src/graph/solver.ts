@@ -8,7 +8,7 @@
 
 import type { BaseTask, Task, ValidResultType } from "../tasks/base"
 import type { Log } from "../logger/log-entry"
-import { GardenBaseError, toGardenError } from "../exceptions"
+import { GardenBaseError, GardenError, isGardenError, toGardenError } from "../exceptions"
 import { uuidv4 } from "../util/random"
 import { DependencyGraph, metadataForLog } from "./common"
 import { Profile } from "../util/profiling"
@@ -165,14 +165,21 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             // TODO-0.13.1: better aggregate error output
             let msg = `Failed to complete ${failed.length}/${tasks.length} tasks:`
 
+            let wrappedErrors: GardenError[] = []
+
             for (const [_, r] of failed) {
               if (!r) {
                 continue
               }
+
+              if (isGardenError(r.error)) {
+                wrappedErrors.push(r.error)
+              }
+
               msg += `\n ↳ ${r.description}: ${r?.error ? r.error.message : "[ABORTED]"}`
             }
 
-            error = new GraphError({ message: msg, detail: { results } })
+            error = new GraphError({ message: msg, detail: { results }, wrappedErrors })
           }
 
           cleanup({ error: null })

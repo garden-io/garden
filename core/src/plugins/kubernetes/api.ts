@@ -184,6 +184,25 @@ interface ReadParams {
   name: string
 }
 
+interface ReadBySpecParams {
+  log: Log
+  namespace: string
+  manifest: KubernetesResource
+}
+
+async function nullIfNotFound<T>(fn: () => Promise<T>) {
+  try {
+    const resource = await fn()
+    return resource
+  } catch (err) {
+    if (err.statusCode === 404) {
+      return null
+    } else {
+      throw err
+    }
+  }
+}
+
 export class KubeApi {
   public apis: WrappedApi<ApisApi>
   public apps: WrappedApi<AppsV1Api>
@@ -386,22 +405,13 @@ export class KubeApi {
   }
 
   async readOrNull(params: ReadParams) {
-    try {
-      const resource = await this.read(params)
-      return resource
-    } catch (err) {
-      if (err.statusCode === 404) {
-        return null
-      } else {
-        throw err
-      }
-    }
+    return await nullIfNotFound(() => this.read(params))
   }
 
   /**
    * Given a manifest, attempt to read the matching resource from the cluster.
    */
-  async readBySpec({ log, namespace, manifest }: { log: Log; namespace: string; manifest: KubernetesResource }) {
+  async readBySpec({ log, namespace, manifest }: ReadBySpecParams) {
     log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
@@ -413,17 +423,8 @@ export class KubeApi {
   /**
    * Same as readBySpec() but returns null if the resource is missing.
    */
-  async readBySpecOrNull(params: { log: Log; namespace: string; manifest: KubernetesResource }) {
-    try {
-      const resource = await this.readBySpec(params)
-      return resource
-    } catch (err) {
-      if (err.statusCode === 404) {
-        return null
-      } else {
-        throw err
-      }
-    }
+  async readBySpecOrNull(params: ReadBySpecParams) {
+    return await nullIfNotFound(() => this.readBySpec(params))
   }
 
   async listResources<T extends KubernetesResource>({

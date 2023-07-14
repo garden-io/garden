@@ -8,7 +8,13 @@
 * [Quickstart Guide](./basics/quickstart.md)
 * [The Stack Graph (Terminology)](./basics/stack-graph.md)
 
-## 🌻 Tutorials
+## 🌻 Garden Seeds
+
+* [About](./garden-seeds/about.md)
+* [Languages](./garden-seeds/languages/README.md)
+  * [Go 🌸](./garden-seeds/languages/go.md)
+
+## 💐 Tutorials
 
 * [Your First Project](./tutorials/your-first-project/README.md)
   * [1. Initialize a Project](./tutorials/your-first-project/1-initialize-a-project.md)
@@ -17,7 +23,7 @@
   * [4. Configure Your Project](./tutorials/your-first-project/4-configure-your-project.md)
 * [Migrating your configuration for Bonsai](./tutorials/migrating-to-bonsai.md)
 
-## 💐 Using Garden
+## 🌿 Using Garden
 
 * [Configuration Overview](./using-garden/configuration-overview.md)
 * [Projects](./using-garden/projects.md)
@@ -30,7 +36,7 @@
 * [Actions](./using-garden/actions.md)
 * [Using the CLI](./using-garden/using-the-cli.md)
 
-## 🌿 Kubernetes Plugins
+## 🌺 Kubernetes Plugins
 
 * [About](./k8s-plugins/about.md)
 * [Remote K8s Plugin Configuration](./k8s-plugins/remote-k8s/README.md)
@@ -59,24 +65,24 @@
   * [Minimal RBAC Configuration for Development Clusters](./k8s-plugins/advanced/rbac-config.md)
   * [Deploying to Production](./k8s-plugins/advanced/deploying-to-production.md)
 
-## 🌺 Terraform Plugin
+## ☘️ Terraform Plugin
 
 * [About](./terraform-plugin/about.md)
 * [Provider Configuration](./terraform-plugin/configure-provider.md)
 * [Deploy action Configuration](./terraform-plugin/configure-deploy-actions.md)
 
-## ☘️ Pulumi Plugin
+## 🌹 Pulumi Plugin
 
 * [About](./pulumi-plugin/about.md)
 * [Provider Configuration](./pulumi-plugin/configure-provider.md)
 * [Deploy action Configuration](./pulumi-plugin/configure-deploy-actions.md)
 
-## 🌹 Other Plugins
+## 🌼 Other Plugins
 
 * [Container](./other-plugins/container.md)
 * [Exec (local scripts)](./other-plugins/exec.md)
 
-## 🌼 Guides
+## 🌷 Guides
 
 * [Installing Garden](./guides/installation.md)
 * [Adopting Garden](./guides/adopting-garden.md)
@@ -86,12 +92,12 @@
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
 
-## 🌷 Advanced
+## 🪷 Advanced
 
 * [Using Remote Sources](./advanced/using-remote-sources.md)
 * [Custom Commands](./advanced/custom-commands.md)
 
-## 🪷 Reference
+## 🎋 Reference
 
 * [Providers](./reference/providers/README.md)
   * [`conftest-container`](./reference/providers/conftest-container.md)
@@ -169,7 +175,7 @@
 * [Workflow Configuration](./reference/workflow-config.md)
 * [Garden Containers on Docker Hub](./reference/dockerhub-containers.md)
 
-## 🎋 Misc
+## undefined Misc
 
 * [FAQ](./misc/faq.md)
 * [Troubleshooting](./misc/troubleshooting.md)

@@ -22,7 +22,6 @@ Here is the list of breaking changes from Garden Acorn (0.12) to Bonsai (0.13). 
   - The `dotIgnoreFiles` field has been renamed to `dotIgnoreFile` and only supports one file. The old `dotIgnoreFiles` field is still supported with a deprecation warning. Now it supports only 1 filename defined in the array, otherwise an error will be thrown.
   - The `modules.*` field has been renamed to `scan.*`. The old syntax is still supported with a deprecation warning.
   - Removed default `environments` (this might require you to explicitly specify a plugin name or two in your project config that were previously inferred implicitly).
-- Template variable names will use `camelCase` everywhere, no more `snake_case` or `kebab-case`: [tracking issue](https://github.com/garden-io/garden/issues/3513)
 - The deprecated `hot-reload` mode has been removed: Use `sync` instead.
   - Sync mode is faster, more reliable and more full-featured than the old hot reload mode, so we feel confident that you'll be happy with the upgrade.
 - The deprecated `cluster-docker` build mode has been removed. Please use `cluster-buildkit` or `kaniko` instead.
@@ -32,7 +31,7 @@ Here is the list of breaking changes from Garden Acorn (0.12) to Bonsai (0.13). 
   - `google-app-engine`
   - `google-cloud-functions`
   - `local-google-cloud-functions`
-  - `maven-container` (superseded by the the `jib-container` plugin)
+  - `maven-container` (superseded by the `jib-container` plugin)
   - `npm-package` (the `exec` provider is a good replacement there)
   - `openfaas`
 
