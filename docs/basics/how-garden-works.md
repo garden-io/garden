@@ -75,7 +75,7 @@ Garden then leverages your existing configuration (Helm charts, Kubernetes manif
 
 The Stack Graph is pluggable so how these actions (i.e. the graph nodes) are actually run depends on the plugins used (see below).
 
-## **The Garden CLI**
+## **The Garden CLI is awesome**
 
 Each of the four actions (build, deploy, test, run) has a corresponding command that you can run with the Garden CLI.
 
