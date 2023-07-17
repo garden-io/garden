@@ -1,0 +1,20 @@
+{
+  "name": "otlp-server",
+  "version": "1.0.0",
+  "description": "Service to test that the HTTP OTLP exporter works",
+  "main": "main.js",
+  "scripts": {
+    "start": "node healthcheck.js",
+    "test": "echo OK",
+    "integ": "mocha test/integ.js"
+  },
+  "author": "garden.io <info@garden.io>",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "p-defer": "^3.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^10.2.0"
+  }
+}

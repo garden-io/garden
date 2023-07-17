@@ -24,7 +24,7 @@ import { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/Test/get-result"
 import { TestConfig } from "../config/test"
 import { moduleTestNameToActionName } from "../types/module"
-import { OtelTraced } from "../util/tracing/decorators"
+import { OtelTraced } from "../util/open-telemetry/decorators"
 
 class TestError extends Error {
   toString() {

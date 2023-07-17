@@ -24,7 +24,7 @@ import {
   uniqBy,
 } from "lodash"
 import type { ResolvableProps } from "bluebird"
-import exitHook from "async-exit-hook"
+import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
 import _spawn from "cross-spawn"
 import { readFile } from "fs-extra"
 import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
@@ -44,7 +44,7 @@ import { execSync } from "child_process"
 
 export { apply as jsonMerge } from "json-merge-patch"
 
-export type HookCallback = (callback?: () => void) => void
+export type HookCallback = (signal: number) => void | Promise<void>
 
 const exitHookNames: string[] = [] // For debugging/testing/inspection purposes
 
@@ -90,13 +90,18 @@ export async function shutdown(code?: number) {
       // eslint-disable-next-line no-console
       console.log(getDefaultProfiler().report())
     }
-    process.exit(code)
+    gracefulExit(code)
   }
 }
 
 export function registerCleanupFunction(name: string, func: HookCallback) {
   exitHookNames.push(name)
-  exitHook(func)
+  const callbackFunc = (signal: number) => {
+    return Promise.resolve(func(signal))
+  }
+  asyncExitHook(callbackFunc, {
+    minimumWait: 10000,
+  })
 }
 
 export function getPackageVersion(): string {
@@ -138,17 +143,28 @@ export async function sleep(msec: number) {
 }
 
 /**
- * Returns a promise that can be resolved/rejected by calling resolver/rejecter.
+ * Returns a promise that can be resolved/rejected by calling resolve/reject.
  */
-export function defer<T>() {
-  let outerResolve
-  let outerReject
-  const promise = new Promise<T>((res, rej) => {
-    outerResolve = res
-    outerReject = rej
-  })
+export type Deferred<T> = {
+  resolve: (value: T) => void
+  reject: (reason?: any) => void
+  promise: Promise<T>
+}
 
-  return { promise, resolver: outerResolve, rejecter: outerReject }
+export function defer<T>(): Deferred<T> {
+  let resolve: (value: T) => void
+  let reject: (reason?: any) => void
+
+  const promise = new Promise((pResolve, pReject) => {
+    resolve = pResolve
+    reject = pReject
+  }) as Promise<T>
+
+  return {
+    resolve: resolve!,
+    reject: reject!,
+    promise,
+  }
 }
 
 /**

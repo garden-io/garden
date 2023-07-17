@@ -32,7 +32,7 @@ import { environmentStatusSchema } from "../config/status"
 import { hashString, isNotNull } from "../util/util"
 import { gardenEnv } from "../constants"
 import { stableStringify } from "../util/string"
-import { OtelTraced } from "../util/tracing/decorators"
+import { OtelTraced } from "../util/open-telemetry/decorators"
 
 interface Params extends CommonTaskParams {
   plugin: GardenPluginSpec
@@ -352,6 +352,16 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       events: undefined,
     })
 
+    // Forward log events to the CLI.
+    // Probably should be solved similarly to
+    // https://github.com/garden-io/garden/blob/135ea041306f1d9093ae9d6547b1f862ca809f57/core/src/router/build.ts#L44C12-L44C12
+    // to have things consistent
+    // but currently the `getEnvironmentStatus` and `prepareEnvironment` handlers don't go through the router
+    ctx.events.on("log", ({ msg, origin, level }) => {
+      // stream logs to CLI
+      ctx.log[level]({ msg, origin })
+    })
+
     this.log.silly(`Getting status for ${pluginName}`)
 
     // Check for cached provider status
@@ -388,6 +398,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
         pluginName,
         defaultHandler: async () => ({ status }),
       })
+
       const result = await prepareHandler!({ ctx, log: this.log, force: this.forceInit, status })
 
       status = result.status

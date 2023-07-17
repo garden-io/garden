@@ -5,11 +5,11 @@ title: Deploy
 
 # Deploy Actions
 
-  * [`exec`](./exec.md)
   * [`container`](./container.md)
   * [`kubernetes`](./kubernetes.md)
   * [`helm`](./helm.md)
   * [`configmap`](./configmap.md)
   * [`persistentvolumeclaim`](./persistentvolumeclaim.md)
+  * [`exec`](./exec.md)
   * [`terraform`](./terraform.md)
   * [`pulumi`](./pulumi.md)

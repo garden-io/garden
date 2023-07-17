@@ -36,8 +36,8 @@ import {
   renderCommands,
 } from "./helpers"
 import type { GlobalOptions, ParameterValues } from "./params"
-import { bindActiveContext, withSessionContext } from "../util/tracing/context"
-import { wrapActiveSpan } from "../util/tracing/spans"
+import { bindActiveContext, withSessionContext } from "../util/open-telemetry/context"
+import { wrapActiveSpan } from "../util/open-telemetry/spans"
 
 const defaultMessageDuration = 3000
 const commandLinePrefix = chalk.yellow("🌼  > ")

@@ -13,10 +13,7 @@ import {
   getKanikoBuilderPodManifest,
 } from "../../../../../../../src/plugins/kubernetes/container/build/kaniko"
 import { expect } from "chai"
-import {
-  defaultResources,
-  KubernetesProvider,
-} from "../../../../../../../src/plugins/kubernetes/config"
+import { defaultResources, KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
 import { defaultKanikoImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
 import { DeepPartial } from "utility-types"
 
