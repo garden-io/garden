@@ -542,7 +542,7 @@ export const gardenPlugin = () =>
     tools: [
       {
         name: "docker",
-        version: "20.10.9",
+        version: "24.0.4",
         description: "The official Docker CLI.",
         type: "binary",
         _includeInGardenImage: true,
@@ -550,8 +550,8 @@ export const gardenPlugin = () =>
           {
             platform: "darwin",
             architecture: "amd64",
-            url: "https://download.docker.com/mac/static/stable/x86_64/docker-20.10.9.tgz",
-            sha256: "f045f816579a96a45deef25aaf3fc116257b4fb5782b51265ad863dcae21f879",
+            url: "https://download.docker.com/mac/static/stable/x86_64/docker-24.0.4.tgz",
+            sha256: "a1016b319d8fb5b92e6a4f9ae4082b0fe934bcec4a18f4ddba9b6a5778af230c",
             extract: {
               format: "tar",
               targetPath: "docker/docker",
@@ -560,8 +560,8 @@ export const gardenPlugin = () =>
           {
             platform: "darwin",
             architecture: "arm64",
-            url: "https://download.docker.com/mac/static/stable/aarch64/docker-20.10.9.tgz",
-            sha256: "e41cc3b53b9907ee038c7a1ab82c5961815241180fefb49359d820d629658e6b",
+            url: "https://download.docker.com/mac/static/stable/aarch64/docker-24.0.4.tgz",
+            sha256: "d99ce023f984b07a57621d804f226bfeedea513ce708aba480a62f5b63631367",
             extract: {
               format: "tar",
               targetPath: "docker/docker",
@@ -570,8 +570,8 @@ export const gardenPlugin = () =>
           {
             platform: "linux",
             architecture: "amd64",
-            url: "https://download.docker.com/linux/static/stable/x86_64/docker-20.10.9.tgz",
-            sha256: "caf74e54b58c0b38bb4d96c8f87665f29b684371c9a325562a3904b8c389995e",
+            url: "https://download.docker.com/linux/static/stable/x86_64/docker-24.0.4.tgz",
+            sha256: "0ab79ae5f19e2ef5bdc3c3009c8b770dea6189e0f1e0ef4935d78fd30519b11d",
             extract: {
               format: "tar",
               targetPath: "docker/docker",
@@ -580,8 +580,8 @@ export const gardenPlugin = () =>
           {
             platform: "windows",
             architecture: "amd64",
-            url: "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v20.10.9/docker-20.10.9.zip",
-            sha256: "360ca42101d453022eea17747ae0328709c7512e71553b497b88b7242b9b0ee4",
+            url: "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v24.0.4/docker-24.0.4.zip",
+            sha256: "1ffb063724147d871ec01824ee458b66a85191a8ecd943ae77775b5352db12ff",
             extract: {
               format: "zip",
               targetPath: "docker/docker.exe",
