@@ -20,6 +20,73 @@ import { ApiCommandError, SecretResult, handleBulkOperationResult, makeSecretFro
 import dotenv = require("dotenv")
 import { readFile } from "fs-extra"
 import { fetchAllSecrets } from "./secrets-list"
+import { Log } from "../../../logger/log-entry"
+
+export type UpdateSecretBody = SecretResult & { newValue: string }
+
+export async function getSecretsToUpdateByName<T>({
+  allSecrets,
+  envName,
+  userId,
+  secretsToUpdateArgs,
+  log,
+  args,
+}: {
+  allSecrets: SecretResult[]
+  envName?: string
+  userId?: string
+  secretsToUpdateArgs: StringMap
+  log: Log
+  args: T
+}): Promise<Array<UpdateSecretBody>> {
+  let tmp = sortBy(allSecrets, "name")
+  if (envName) {
+    tmp = tmp.filter((secret) => secret.environment?.name === envName)
+  }
+  if (userId) {
+    tmp = tmp.filter((secret) => secret.user?.id === userId)
+  }
+  tmp = tmp.filter((secret) => Object.keys(secretsToUpdateArgs).includes(secret.name))
+  // check if there are any secret results with duplicate names
+  const hasDuplicateSecretsByName = uniqBy(tmp, "name").length !== tmp.length
+  if (hasDuplicateSecretsByName) {
+    const duplicateSecrets = tmp
+      .reduce((accum: Array<{ count: number; name: string; secrets: SecretResult[] }>, val) => {
+        const dupeIndex = accum.findIndex((arrayItem) => arrayItem.name === val.name)
+        if (dupeIndex === -1) {
+          // Not found, so initialize.
+          accum.push({
+            name: val.name,
+            count: 1,
+            secrets: [val],
+          })
+        } else {
+          accum[dupeIndex].count++
+          accum[dupeIndex].secrets.push(val)
+        }
+        return accum
+      }, [])
+      .filter((a) => a.count > 1)
+    log.verbose(`Multiple secrets with duplicate names found. ${JSON.stringify(duplicateSecrets, null, 2)}`)
+
+    const duplicateSecretNames = duplicateSecrets.map((s) => s.name)?.join(", ")
+    throw new CommandError({
+      message: `Multiple secrets with the name(s) ${duplicateSecretNames} found. Either update the secret(s) by ID or use the --scope-to-env and --scope-to-user-id flags to update the scoped secret(s).`,
+      detail: {
+        args,
+      },
+    })
+  }
+  return tmp.map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.name] }))
+}
+
+export function getSecretsToCreate(secretsToUpdateArgs: StringMap, secretsToUpdate: Array<UpdateSecretBody>) {
+  const diffCreateAndUpdate = pickBy(
+    secretsToUpdateArgs,
+    (_value, key) => !secretsToUpdate.find((secret) => secret.name === key)
+  )
+  return diffCreateAndUpdate ? Object.entries(diffCreateAndUpdate) : []
+}
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
@@ -30,6 +97,20 @@ export const secretsUpdateArgs = {
 }
 
 export const secretsUpdateOpts = {
+  "upsert": new BooleanParameter({
+    help: "Set this flag to upsert secrets instead of updating i.e. existing secrets are updated while missing secrets are created",
+    defaultValue: false,
+  }),
+  "update-by-id": new BooleanParameter({
+    help: deline`Update the secret(s) by providing the ID(s) of secrets.
+      By default, the command args are considered to be secret name(s).
+    `,
+    defaultValue: false,
+  }),
+  "from-file": new PathParameter({
+    help: deline`Read the secrets from the file at the given path.
+    The file should have standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).`,
+  }),
   "scope-to-user-id": new StringParameter({
     help: deline`Update the secret(s) in scope of user with the given user ID.
       This must be specified if you want to update secrets by name instead of secret ID.
@@ -39,15 +120,6 @@ export const secretsUpdateOpts = {
     help: deline`Update the secret(s) in scope of the specified environment.
       This must be specified if you want to update secrets by name instead of secret ID.
     `,
-  }),
-  "update-by-id": new BooleanParameter({
-    help: deline`Update the secret(s) by providing the ID(s) of secrets. By default, the command args are considered to be secret name(s).
-    `,
-    defaultValue: false,
-  }),
-  "from-file": new PathParameter({
-    help: deline`Read the secrets from the file at the given path. The file should have standard "dotenv"
-    format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).`,
   }),
 }
 
@@ -82,6 +154,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     const userId = opts["scope-to-user-id"] as string | undefined
     const updateById = opts["update-by-id"] as boolean | undefined
     const fromFile = opts["from-file"] as string | undefined
+    const isUpsert = opts["upsert"] as boolean | undefined
 
     if (!updateById && userId !== undefined && !envName) {
       throw new CommandError({
@@ -137,11 +210,9 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     }
 
     let project: CloudProject | undefined
-
     if (garden.projectId) {
       project = await api.getProjectById(garden.projectId)
     }
-
     if (!project) {
       throw new CloudApiError({
         message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
@@ -165,58 +236,25 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     }
 
     const allSecrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
-    let secretsToUpdate: (SecretResult & { newValue: string })[]
+    let secretsToUpdate: Array<UpdateSecretBody>
     let secretsToCreate: [string, string][] = []
 
     if (!updateById) {
       // update secrets by name
-      let tmp = sortBy(allSecrets, "name")
-      if (envName) {
-        tmp = tmp.filter((secret) => secret.environment?.name === envName)
-      }
-      if (userId) {
-        tmp = tmp.filter((secret) => secret.user?.id === userId)
-      }
-      tmp = tmp.filter((secret) => Object.keys(secretsToUpdateArgs).includes(secret.name))
-      // check if there are any secret results with duplicate names
-      const hasDuplicateSecretsByName = uniqBy(tmp, "name").length !== tmp.length
-      if (hasDuplicateSecretsByName) {
-        const duplicateSecrets = tmp
-          .reduce((accum: Array<{ count: number; name: string; secrets: SecretResult[] }>, val) => {
-            const dupeIndex = accum.findIndex((arrayItem) => arrayItem.name === val.name)
-            if (dupeIndex === -1) {
-              // Not found, so initialize.
-              accum.push({
-                name: val.name,
-                count: 1,
-                secrets: [val],
-              })
-            } else {
-              accum[dupeIndex].count++
-              accum[dupeIndex].secrets.push(val)
-            }
-            return accum
-          }, [])
-          .filter((a) => a.count > 1)
-        log.verbose(`Multiple secrets with duplicate names found. ${JSON.stringify(duplicateSecrets, null, 2)}`)
-
-        const duplicateSecretNames = duplicateSecrets.map((s) => s.name)?.join(", ")
-        throw new CommandError({
-          message: `Multiple secrets with the name(s) ${duplicateSecretNames} found. Either update the secret(s) by ID or use the --scope-to-env and --scope-to-user-id flags to update the scoped secret(s).`,
-          detail: {
-            args,
-          },
-        })
-      }
-
-      secretsToUpdate = tmp.map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.name] }))
-      // check the diff between secrets to update and command args to find out
-      // secrets that do not exist yet and can be created
-      const diffCreateAndUpdate = pickBy(
+      secretsToUpdate = await getSecretsToUpdateByName({
+        allSecrets,
+        envName,
+        userId,
         secretsToUpdateArgs,
-        (_value, key) => !secretsToUpdate.find((secret) => secret.name === key)
-      )
-      secretsToCreate = diffCreateAndUpdate ? Object.entries(diffCreateAndUpdate) : []
+        log,
+        args,
+      })
+
+      if (isUpsert) {
+        // if --upsert is set, check the diff between secrets to update and command args to find out
+        // secrets that do not exist yet and can be created
+        secretsToCreate = getSecretsToCreate(secretsToUpdateArgs, secretsToUpdate)
+      }
     } else {
       // update secrets by ids
       secretsToUpdate = sortBy(allSecrets, "name")
