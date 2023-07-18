@@ -295,7 +295,7 @@ describe("KubeApi", () => {
     const log = getRootLogger().createLog()
     before(async () => {
       class TestKubeConfig extends KubeConfig {
-        getCurrentCluster() {
+        override getCurrentCluster() {
           return {
             name: "test-cluster",
             server: `http://${hostname}:${port}/`,

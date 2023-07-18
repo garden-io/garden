@@ -247,7 +247,7 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
   name = "debug-info"
   help = "Outputs the status of your environment for debug purposes."
 
-  description = dedent`
+  override description = dedent`
     Examples:
 
     garden get debug-info                    # create a zip file at the root of the project with debug information
@@ -255,10 +255,10 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
     garden get debug-info --include-project  # include provider info for the project namespace (disabled by default)
   `
 
-  arguments = debugInfoArguments
-  options = debugInfoOptions
+  override arguments = debugInfoArguments
+  override options = debugInfoOptions
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Get debug info", "information_source")
   }
 

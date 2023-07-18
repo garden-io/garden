@@ -475,7 +475,7 @@ export class CoreLog extends Log<CoreLogContext> {
  * The 'actionName' and 'actionKind' cannot be overwritten when creating child logs.
  */
 export class ActionLog extends Log<ActionLogContext> {
-  showDuration = true
+  override showDuration = true
 
   /**
    * Create a new ActionLog instance. The new instance inherits the parent context.

@@ -13,11 +13,11 @@ import { Command } from "./base"
 export class DashboardCommand extends Command {
   name = "dashboard"
 
-  cliOnly = true
+  override cliOnly = true
 
   help = "Open the Garden dashboard in your browser."
 
-  description = dedent`
+  override description = dedent`
     Opens the Garden dashboard in your browser.
 
     Note: The local dashboard process has been removed as of Garden 0.13. This will take you to the new Cloud dashboard, and thus requires you to log in.

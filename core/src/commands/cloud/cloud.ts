@@ -14,7 +14,7 @@ import { UsersCommand } from "./users/users"
 
 export class CloudCommand extends CommandGroup {
   name = "cloud"
-  aliases = ["enterprise"]
+  override aliases = ["enterprise"]
   help = dedent`
     Manage Garden Cloud/Enterprise resources such as users, groups and secrets.
   `

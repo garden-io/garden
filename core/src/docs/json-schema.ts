@@ -68,11 +68,11 @@ export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
     }
   }
 
-  formatName() {
+  override formatName() {
     return this.type === "array" ? `${this.name}[]` : this.name
   }
 
-  formatType() {
+  override formatType() {
     return formatType(this.schema)
   }
 

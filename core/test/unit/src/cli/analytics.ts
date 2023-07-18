@@ -42,9 +42,9 @@ describe("cli analytics", () => {
   class TestCommand extends Command {
     name = "test-command"
     help = "hilfe!"
-    noProject = true
+    override noProject = true
 
-    printHeader() {}
+    override printHeader() {}
 
     async action({ args }) {
       return { result: { args } }

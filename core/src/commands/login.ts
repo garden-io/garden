@@ -39,15 +39,15 @@ export class LoginCommand extends Command<{}, Opts> {
    * Since we're logging in, we don't want to resolve e.g. the project config (since it may use secrets, which are
    * only available after we've logged in).
    */
-  noProject = true
+  override noProject = true
 
-  description = dedent`
+  override description = dedent`
     Logs you in to Garden Cloud. Subsequent commands will have access to cloud features.
   `
 
-  options = loginOpts
+  override options = loginOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Login", "☁️")
   }
 

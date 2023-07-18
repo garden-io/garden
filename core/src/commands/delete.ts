@@ -24,7 +24,7 @@ import chalk from "chalk"
 // TODO: rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {
   name = "cleanup"
-  aliases = ["del", "delete"]
+  override aliases = ["del", "delete"]
   help = "Clean up resources."
 
   subCommands = [DeleteEnvironmentCommand, DeleteDeployCommand]
@@ -53,22 +53,22 @@ interface DeleteEnvironmentResult {
 
 export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts> {
   name = "namespace"
-  aliases = ["environment", "env", "ns"]
+  override aliases = ["environment", "env", "ns"]
   help = "Deletes a running namespace."
 
-  protected = true
-  streamEvents = true
+  override protected = true
+  override streamEvents = true
 
-  options = deleteEnvironmentOpts
+  override options = deleteEnvironmentOpts
 
-  description = dedent`
+  override description = dedent`
     This will clean up everything deployed in the specified environment, and trigger providers to clear up any other resources
     and reset it. When you then run \`garden deploy\` after, the namespace will be reconfigured.
 
     This can be useful if you find the namespace to be in an inconsistent state, or need/want to free up resources.
   `
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     joi.object().keys({
       providerStatuses: joiIdentifierMap(environmentStatusSchema()).description(
         "The status of each provider in the namespace."
@@ -78,7 +78,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
       ),
     })
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, `Cleanup namespace`, "♻️")
   }
 
@@ -135,17 +135,17 @@ type DeleteDeployOpts = typeof deleteDeployOpts
 
 export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployOpts> {
   name = "deploy"
-  aliases = ["deploys", "service", "services"]
+  override aliases = ["deploys", "service", "services"]
   help = "Cleans up running deployments (or services if using modules)."
-  arguments = deleteDeployArgs
+  override arguments = deleteDeployArgs
 
-  protected = true
+  override protected = true
   workflows = true
-  streamEvents = true
+  override streamEvents = true
 
-  options = deleteDeployOpts
+  override options = deleteDeployOpts
 
-  description = dedent`
+  override description = dedent`
     Cleans up (i.e. un-deploys) the specified actions. Cleans up all deploys/services in the project if no arguments are provided.
     Note that this command does not take into account any deploys depending on the cleaned up actions, and might
     therefore leave the project in an unstable state. Running \`garden deploy\` after will re-deploy anything missing.
@@ -156,14 +156,14 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
         garden cleanup deploy            # deletes all deployed services in the project
   `
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     joiIdentifierMap(
       getDeployStatusSchema().keys({
         version: joi.string(),
       })
     ).description("A map of statuses for all the deleted deploys.")
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Cleaning up deployment(s)", "♻️")
   }
 

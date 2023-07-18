@@ -47,11 +47,11 @@ export class JoiKeyDescription extends BaseKeyDescription {
     this.internal = joiDescription.parent?.internal || !!metas.internal
   }
 
-  formatType() {
+  override formatType() {
     return formatType(this.joiDescription)
   }
 
-  formatName() {
+  override formatName() {
     return isArrayType(this.type) ? `${this.name}[]` : this.name
   }
 

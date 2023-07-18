@@ -22,17 +22,17 @@ type Args = typeof hideWarningArgs
 export class HideWarningCommand extends Command<Args, {}> {
   name = "hide-warning"
   help = "Hide a specific warning message."
-  cliOnly = true
+  override cliOnly = true
 
-  noProject = true
+  override noProject = true
 
-  description = dedent`
+  override description = dedent`
     Hides the specified warning message. The command and key is generally provided along with displayed warning messages.
   `
 
-  arguments = hideWarningArgs
+  override arguments = hideWarningArgs
 
-  printHeader() {}
+  override printHeader() {}
 
   async action({ garden, args }: CommandParams<Args, {}>) {
     await garden.hideWarning(args.key)

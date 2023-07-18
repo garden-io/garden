@@ -19,12 +19,12 @@ import { mkdirp } from "fs-extra"
 export class MutagenCommand extends Command<{}, {}> {
   name = "mutagen"
   help = "Run any Mutagen CLI command in the context of the current project."
-  cliOnly = true
+  override cliOnly = true
 
-  noProject = true
-  ignoreOptions = true
+  override noProject = true
+  override ignoreOptions = true
 
-  description = dedent`
+  override description = dedent`
     The Mutagen tool is used for various functions in Garden, most notably syncs (formerly "dev mode") to containers. When experiencing issues with synchronization, it may be helpful to use the Mutagen CLI directly to troubleshoot or gather more information.
 
     This command simply runs the Mutagen CLI with environment variables appropriately set to interact with the syncs created in the context of this project. All arguments and flags are passed directly to Mutagen.
@@ -35,7 +35,7 @@ export class MutagenCommand extends Command<{}, {}> {
         garden util mutagen sync monitor  # continuously monitor all syncs
   `
 
-  printHeader() {}
+  override printHeader() {}
 
   async action({ garden, log, args }: CommandParams<{}, {}>) {
     const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })

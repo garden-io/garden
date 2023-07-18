@@ -18,7 +18,7 @@ export class GetOutputsCommand extends Command {
   name = "outputs"
   help = "Resolves and returns the outputs of the project."
 
-  description = dedent`
+  override description = dedent`
     Resolves and returns the outputs of the project. If necessary, this may involve deploying services and/or running
     tasks referenced by the outputs in the project configuration.
 
@@ -29,9 +29,9 @@ export class GetOutputsCommand extends Command {
         garden get outputs --output=json   # resolve and return the project outputs in JSON format
   `
 
-  outputsSchema = () => joiVariables().description("A map of all the defined project outputs, fully resolved.")
+  override outputsSchema = () => joiVariables().description("A map of all the defined project outputs, fully resolved.")
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Resolving project outputs", "📓")
   }
 

@@ -59,10 +59,10 @@ export class GetStatusCommand extends Command {
   name = "status"
   help = "Outputs the full status of your project/environment and all actions."
 
-  streamEvents = false
-  options = getStatusOpts
+  override streamEvents = false
+  override options = getStatusOpts
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     joi.object().keys({
       providers: joiIdentifierMap(environmentStatusSchema()).description(
         "A map of statuses for each configured provider."
@@ -75,7 +75,7 @@ export class GetStatusCommand extends Command {
       }),
     })
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Get status", "📟")
   }
 

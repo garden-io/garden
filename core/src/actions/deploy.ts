@@ -38,7 +38,7 @@ export class DeployAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  kind: "Deploy"
+  override kind: "Deploy"
 }
 
 export class ResolvedDeployAction<
@@ -46,7 +46,7 @@ export class ResolvedDeployAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  kind: "Deploy"
+  override kind: "Deploy"
 }
 
 export class ExecutedDeployAction<
@@ -54,7 +54,7 @@ export class ExecutedDeployAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  kind: "Deploy"
+  override kind: "Deploy"
 }
 
 export function isDeployAction(action: Action): action is DeployAction {

@@ -76,9 +76,9 @@ describe("cli", () => {
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ args }) {
           return { result: { args } }
@@ -213,9 +213,9 @@ describe("cli", () => {
         class TestCommand extends Command {
           name = "test-command"
           help = "halp!"
-          noProject = true
+          override noProject = true
 
-          printHeader() {}
+          override printHeader() {}
 
           async action({}) {
             return { result: { something: "important" } }
@@ -277,9 +277,9 @@ describe("cli", () => {
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({}) {
           return { result: { something: "important" } }
@@ -299,9 +299,9 @@ describe("cli", () => {
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({}) {
           return { result: { something: "important" } }
@@ -325,7 +325,7 @@ describe("cli", () => {
         name = "test-command"
         help = "halp!"
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ garden }: CommandParams) {
           const record = await globalConfigStore.get("activeProcesses", String(processRecord.pid))
@@ -365,11 +365,11 @@ describe("cli", () => {
         name = "test-command"
         help = "halp!"
 
-        maybePersistent() {
+        override maybePersistent() {
           return true
         }
 
-        async prepare({ log: _log }: PrepareParams) {
+        override async prepare({ log: _log }: PrepareParams) {
           const serveCommand = new ServeCommand()
           this.server = await startServer({
             log: _log,
@@ -379,7 +379,7 @@ describe("cli", () => {
           })
         }
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ garden }: CommandParams) {
           const record = await globalConfigStore.get("activeProcesses", String(processRecord.pid))
@@ -419,9 +419,9 @@ describe("cli", () => {
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({}) {
           return { result: { something: "important" } }
@@ -450,11 +450,11 @@ describe("cli", () => {
     it("correctly parses and passes global options", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        aliases = ["some-alias"]
+        override aliases = ["some-alias"]
         help = ""
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ args, opts }) {
           return { result: { args, opts } }
@@ -511,11 +511,11 @@ describe("cli", () => {
     it("allows setting env through GARDEN_ENVIRONMENT env variable", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        aliases = ["some-alias"]
+        override aliases = ["some-alias"]
         help = ""
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ args, opts }) {
           return { result: { args, opts } }
@@ -545,11 +545,11 @@ describe("cli", () => {
     it("prefers --env over GARDEN_ENVIRONMENT env variable", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        aliases = ["some-alias"]
+        override aliases = ["some-alias"]
         help = ""
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ args, opts }) {
           return { result: { args, opts } }
@@ -579,11 +579,11 @@ describe("cli", () => {
     it("correctly parses and passes arguments and options for a command", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        aliases = ["some-alias"]
+        override aliases = ["some-alias"]
         help = ""
-        noProject = true
+        override noProject = true
 
-        arguments = {
+        override arguments = {
           foo: new StringParameter({
             help: "Some help text.",
             required: true,
@@ -593,13 +593,13 @@ describe("cli", () => {
           }),
         }
 
-        options = {
+        override options = {
           floop: new StringParameter({
             help: "Option help text.",
           }),
         }
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ args, opts }) {
           return { result: { args, opts } }
@@ -644,11 +644,11 @@ describe("cli", () => {
     it("correctly parses and passes arguments and options for a subcommand", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        aliases = ["some-alias"]
+        override aliases = ["some-alias"]
         help = ""
-        noProject = true
+        override noProject = true
 
-        arguments = {
+        override arguments = {
           foo: new StringParameter({
             help: "Some help text.",
             required: true,
@@ -658,13 +658,13 @@ describe("cli", () => {
           }),
         }
 
-        options = {
+        override options = {
           floop: new StringParameter({
             help: "Option help text.",
           }),
         }
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ args, opts }) {
           return { result: { args, opts } }
@@ -732,18 +732,18 @@ describe("cli", () => {
     it("aborts with usage information on missing/invalid command arguments and options", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        aliases = ["some-alias"]
+        override aliases = ["some-alias"]
         help = ""
-        noProject = true
+        override noProject = true
 
-        arguments = {
+        override arguments = {
           foo: new StringParameter({
             help: "Some help text.",
             required: true,
           }),
         }
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ args, opts }) {
           return { result: { args, opts } }
@@ -766,9 +766,9 @@ describe("cli", () => {
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ args }) {
           return { result: { args } }
@@ -786,9 +786,9 @@ describe("cli", () => {
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ args }) {
           return { result: { args } }
@@ -806,9 +806,9 @@ describe("cli", () => {
       class TestCommand extends Command {
         name = "test-command-var"
         help = "halp!"
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ garden }) {
           return { result: { variables: garden.variables } }
@@ -831,9 +831,9 @@ describe("cli", () => {
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action() {
           return { result: { some: "output" } }
@@ -851,9 +851,9 @@ describe("cli", () => {
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action() {
           return { result: { some: "output" } }
@@ -871,9 +871,9 @@ describe("cli", () => {
       class TestCommand2 extends Command {
         name = "test-command-2"
         help = "halp!"
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ garden }) {
           return { result: { environmentName: garden.environmentName } }
@@ -892,9 +892,9 @@ describe("cli", () => {
       class TestCommand3 extends Command {
         name = "test-command-3"
         help = "halp!"
-        noProject = true
+        override noProject = true
 
-        printHeader() {}
+        override printHeader() {}
 
         async action({ garden }) {
           return { result: { environmentName: garden.environmentName } }

@@ -53,7 +53,7 @@ type Opts = typeof secretsCreateOpts
 export class UsersCreateCommand extends Command<Args, Opts> {
   name = "create"
   help = "Create users in Garden Cloud."
-  description = dedent`
+  override description = dedent`
     Create users in Garden Cloud and optionally add the users to specific groups.
     You can get the group IDs from the \`garden cloud users list\` command.
 
@@ -72,10 +72,10 @@ export class UsersCreateCommand extends Command<Args, Opts> {
         garden cloud users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
   `
 
-  arguments = secretsCreateArgs
-  options = secretsCreateOpts
+  override arguments = secretsCreateArgs
+  override options = secretsCreateOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Create users", "🔒")
   }
 

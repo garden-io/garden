@@ -77,11 +77,11 @@ class StreamEventBus extends EventEmitter2 {
     super()
   }
 
-  emit<T extends StreamEventName>(name: T, payload: StreamEvents[T]) {
+  override emit<T extends StreamEventName>(name: T, payload: StreamEvents[T]) {
     return super.emit(name, payload)
   }
 
-  on<T extends StreamEventName>(name: T, listener: (payload: StreamEvents[T]) => void) {
+  override on<T extends StreamEventName>(name: T, listener: (payload: StreamEvents[T]) => void) {
     return super.on(name, listener)
   }
 }

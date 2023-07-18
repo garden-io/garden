@@ -56,9 +56,9 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
   name = "publish"
   help = "Build and publish artifacts (e.g. container images) to a remote registry."
 
-  streamEvents = true
+  override streamEvents = true
 
-  description = dedent`
+  override description = dedent`
     Publishes built artifacts for all or specified builds. Also builds dependencies if needed.
 
     By default the artifacts/images are tagged with the Garden action version,
@@ -81,17 +81,17 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
         garden publish my-container --tag "v1.2-${"${build.hash}"}"
   `
 
-  arguments = publishArgs
-  options = publishOpts
+  override arguments = publishArgs
+  override options = publishOpts
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     processCommandResultSchema().keys({
       published: joiIdentifierMap(publishResultSchema().keys(resultMetadataKeys())).description(
         "A map of all builds that were published (or scheduled/attempted for publishing) and the results."
       ),
     })
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Publish builds", "🚀")
   }
 

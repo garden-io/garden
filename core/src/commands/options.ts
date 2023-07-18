@@ -13,11 +13,11 @@ import { globalOptions } from "../cli/params"
 export class OptionsCommand extends Command {
   name = "options"
   help = "Print global options."
-  noProject = true
+  override noProject = true
 
-  description = "Prints all global options (options that can be applied to any command)."
+  override description = "Prints all global options (options that can be applied to any command)."
 
-  printHeader() {}
+  override printHeader() {}
 
   async action({ log }: CommandParams): Promise<CommandResult> {
     log.info("")

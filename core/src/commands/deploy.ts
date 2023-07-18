@@ -125,10 +125,10 @@ export class DeployCommand extends Command<Args, Opts> {
   name = "deploy"
   help = "Deploy actions to your environment."
 
-  protected = true
-  streamEvents = true
+  override protected = true
+  override streamEvents = true
 
-  description = dedent`
+  override description = dedent`
     Deploys all or specified Deploy actions, taking into account dependency order.
     Also performs builds and other dependencies if needed.
 
@@ -152,26 +152,26 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy my-deploy -l 3       # deploy with verbose log level to see logs of the creation of the deployment
   `
 
-  arguments = deployArgs
-  options = deployOpts
+  override arguments = deployArgs
+  override options = deployOpts
 
   private garden?: Garden
 
-  outputsSchema = () => processCommandResultSchema()
+  override outputsSchema = () => processCommandResultSchema()
 
-  maybePersistent({ opts }: PrepareParams<Args, Opts>) {
+  override maybePersistent({ opts }: PrepareParams<Args, Opts>) {
     return !!opts["sync"] || !!opts["local-mode"] || !!opts.forward || !!opts.logs
   }
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Deploy", "🚀")
   }
 
-  getTerminalWriterType(params): LoggerType {
+  override getTerminalWriterType(params): LoggerType {
     return this.maybePersistent(params) ? "ink" : "default"
   }
 
-  terminate() {
+  override terminate() {
     super.terminate()
     this.garden?.events.emit("_exit", {})
   }

@@ -204,7 +204,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
   pulumiParams: PulumiBaseParams
   commandName: string
   commandDescription: string
-  skipRuntimeDependencies: boolean
+  override skipRuntimeDependencies: boolean
   runFn: PulumiRunFn
 
   constructor({

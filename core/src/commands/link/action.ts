@@ -43,14 +43,14 @@ interface Output {
 export class LinkActionCommand extends Command<Args> {
   name = "action"
   help = "Link a remote action to a local directory."
-  arguments = linkActionArguments
+  override arguments = linkActionArguments
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     joi.object().keys({
       sources: joiArray(linkedActionSchema()).description("A list of all locally linked remote actions."),
     })
 
-  description = dedent`
+  override description = dedent`
     After linking a remote action, Garden will read the source from the linked local directory instead of the remote repository. Garden can only link actions that have a remote source, i.e. actions that specify a \`source.repository.url\` in their configuration.
 
     Examples:
@@ -58,7 +58,7 @@ export class LinkActionCommand extends Command<Args> {
         garden link action build.my-build path/to/my-build # links Build my-build to its local version at the given path
   `
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Link action", "🔗")
   }
 

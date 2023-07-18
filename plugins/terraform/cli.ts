@@ -39,7 +39,7 @@ export class GlobalTerraform extends CliWrapper {
     super({ name: "terraform", path: "terraform" })
   }
 
-  async getPath(_: Log) {
+  override async getPath(_: Log) {
     try {
       return await which("terraform")
     } catch (err) {

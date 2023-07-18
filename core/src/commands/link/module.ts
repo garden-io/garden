@@ -42,14 +42,14 @@ interface Output {
 export class LinkModuleCommand extends Command<Args> {
   name = "module"
   help = "Link a remote module to a local directory."
-  arguments = linkModuleArguments
+  override arguments = linkModuleArguments
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     joi.object().keys({
       sources: joiArray(linkedModuleSchema()).description("A list of all locally linked external modules."),
     })
 
-  description = dedent`
+  override description = dedent`
     After linking a remote module, Garden will read the source from the module's local directory instead of from
     the remote URL. Garden can only link modules that have a remote source,
     i.e. modules that specifiy a \`repositoryUrl\` in their \`garden.yml\` config file.
@@ -59,7 +59,7 @@ export class LinkModuleCommand extends Command<Args> {
         garden link module my-module path/to/my-module # links my-module to its local version at the given path
   `
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Link module", "🔗")
   }
 

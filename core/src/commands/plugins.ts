@@ -39,9 +39,9 @@ type Args = typeof pluginArgs
 export class PluginsCommand extends Command<Args> {
   name = "plugins"
   help = "Plugin-specific commands."
-  aliases = ["plugin"]
+  override aliases = ["plugin"]
 
-  description = dedent`
+  override description = dedent`
     Execute a command defined by a plugin in your project.
     Run without arguments to get a list of all plugin commands available.
     Run with just the plugin name to get a list of commands provided by that plugin.
@@ -58,9 +58,9 @@ export class PluginsCommand extends Command<Args> {
         garden plugins kubernetes
   `
 
-  arguments = pluginArgs
+  override arguments = pluginArgs
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Plugins", "⚙️")
   }
 

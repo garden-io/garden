@@ -46,7 +46,7 @@ describe("runCli", () => {
       name = randomString(10)
       help = "halp!"
 
-      printHeader() {}
+      override printHeader() {}
       async action({}: CommandParams) {
         const allProcesses = Object.values(await globalConfigStore.get("activeProcesses"))
         const record = find(allProcesses, (p) => p.command)
@@ -78,7 +78,7 @@ describe("runCli", () => {
       name = randomString(10)
       help = "halp!"
 
-      printHeader() {}
+      override printHeader() {}
       async action({}: CommandParams) {
         return { result: {} }
       }

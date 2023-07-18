@@ -59,7 +59,7 @@ export class TestVcsHandler extends VcsHandler {
     }
   }
 
-  async getTreeVersion(params: GetTreeVersionParams) {
+  override async getTreeVersion(params: GetTreeVersionParams) {
     return this.testTreeVersions[getConfigBasePath(params.config)] || super.getTreeVersion(params)
   }
 

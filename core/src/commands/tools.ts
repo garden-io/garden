@@ -43,11 +43,11 @@ type Opts = typeof toolsOpts
 export class ToolsCommand extends Command<Args, Opts> {
   name = "tools"
   help = "Access tools included by providers."
-  cliOnly = true
+  override cliOnly = true
 
-  noProject = true
+  override noProject = true
 
-  description = dedent`
+  override description = dedent`
     Run a tool defined by a provider in your project, downloading and extracting it if necessary. Run without arguments to get a list of all tools available.
 
     Run with the --get-path flag to just print the path to the binary or library directory (depending on the tool type). If the tool is a non-executable library, this flag is implicit.
@@ -71,12 +71,12 @@ export class ToolsCommand extends Command<Args, Opts> {
         garden tools
   `
 
-  arguments = toolsArgs
-  options = toolsOpts
+  override arguments = toolsArgs
+  override options = toolsOpts
 
-  printHeader() {}
+  override printHeader() {}
 
-  async prepare({ log }: { log: Log }) {
+  override async prepare({ log }: { log: Log }) {
     // Override the logger output, to output to stderr instead of stdout, to avoid contaminating command output
     const terminalWriter = log.root.getWriters().display
     if (terminalWriter.type === "default" || terminalWriter.type === "basic") {

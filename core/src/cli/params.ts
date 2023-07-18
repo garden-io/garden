@@ -170,7 +170,7 @@ export class StringsParameter extends Parameter<string[] | undefined> {
     this.delimiter = args.delimiter || /,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/
   }
 
-  coerce(input?: string | string[]): string[] {
+  override coerce(input?: string | string[]): string[] {
     if (!input) {
       return []
     } else if (!isArray(input)) {
@@ -184,7 +184,7 @@ export class PathParameter extends Parameter<string> {
   type = "path"
   schema = joi.string()
 
-  coerce(input?: string): string {
+  override coerce(input?: string): string {
     return resolve(process.cwd(), input || ".")
   }
 }
@@ -193,7 +193,7 @@ export class DurationParameter extends Parameter<string> {
   type = "moment"
   schema = joi.string()
 
-  coerce(input: string): string {
+  override coerce(input: string): string {
     const parts = splitDuration(input)
     const expectedType = dedent`
       Duration where unit is one of ${validDurationUnits.join(
@@ -236,9 +236,9 @@ export class DurationParameter extends Parameter<string> {
 }
 
 export class PathsParameter extends StringsParameter {
-  type = "array:path"
+  override type = "array:path"
 
-  coerce(input?: string | string[]): string[] {
+  override coerce(input?: string | string[]): string[] {
     const paths = super.coerce(input)
     return paths.map((p) => resolve(process.cwd(), p))
   }
@@ -248,7 +248,7 @@ export class IntegerParameter extends Parameter<number> {
   type = "number"
   schema = joi.number().integer()
 
-  coerce(input: string) {
+  override coerce(input: string) {
     const output = parseInt(input, 10)
     if (isNaN(output)) {
       throw new ParameterError({
@@ -284,7 +284,7 @@ export class ChoicesParameter extends Parameter<string> {
     this.schema = joi.string().valid(...this.choices)
   }
 
-  coerce(input: string) {
+  override coerce(input: string) {
     input = String(input)
 
     if (this.choices.includes(input)) {
@@ -302,7 +302,7 @@ export class ChoicesParameter extends Parameter<string> {
     }
   }
 
-  getSuggestions() {
+  override getSuggestions() {
     return this.choices
   }
 }
@@ -316,7 +316,7 @@ export class BooleanParameter extends Parameter<boolean> {
     this.defaultValue = args.defaultValue || false
   }
 
-  coerce(input: any) {
+  override coerce(input: any) {
     if (input === true || input === "true" || input === "1" || input === "yes" || input === 1) {
       return true
     } else if (input === false || input === "false" || input === "0" || input === "no" || input === 0) {
@@ -334,7 +334,7 @@ export class TagsOption extends Parameter<string[] | undefined> {
   type = "array:tag"
   schema = joi.array().items(joi.string())
 
-  coerce(input?: string | string[]): string[] {
+  override coerce(input?: string | string[]): string[] {
     if (!input) {
       return []
     } else if (!isArray(input)) {
@@ -345,8 +345,8 @@ export class TagsOption extends Parameter<string[] | undefined> {
 }
 
 export class EnvironmentParameter extends StringOption {
-  type = "string"
-  schema = joi.environment()
+  override type = "string"
+  override schema = joi.environment()
 
   constructor({ help = "The environment (and optionally namespace) to work against.", required = false } = {}) {
     super({
@@ -359,7 +359,7 @@ export class EnvironmentParameter extends StringOption {
     })
   }
 
-  validate(input: string | undefined) {
+  override validate(input: string | undefined) {
     if (!input) {
       return
     }
@@ -369,7 +369,7 @@ export class EnvironmentParameter extends StringOption {
     return input
   }
 
-  getDefaultValue() {
+  override getDefaultValue() {
     return gardenEnv.GARDEN_ENVIRONMENT
   }
 }

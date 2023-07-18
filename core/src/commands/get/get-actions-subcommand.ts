@@ -81,11 +81,11 @@ export abstract class GetActionsSubCommand extends GetActionsCommand {
       })
   }
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, capitalize(this.name), "📖")
   }
 
-  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<GetActionsCommandResult>> {
+  override async action(params: CommandParams<Args, Opts>): Promise<CommandResult<GetActionsCommandResult>> {
     const getActionCmdParams = {
       ...params,
       opts: {

@@ -732,7 +732,7 @@ export class StringCollector extends Writable {
     })
   }
 
-  _write(chunk: Buffer, _: string, callback: () => void) {
+  override _write(chunk: Buffer, _: string, callback: () => void) {
     this.chunks.push(Buffer.from(chunk))
     callback()
   }

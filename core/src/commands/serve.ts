@@ -44,39 +44,39 @@ export class ServeCommand<
   name = "serve"
   help = "Starts the Garden Core API server for the current project and environment."
 
-  cliOnly = true
-  streamEvents = true
-  hidden = true
-  noProject = true
+  override cliOnly = true
+  override streamEvents = true
+  override hidden = true
+  override noProject = true
 
   protected _manager?: GardenInstanceManager
   protected commandLine?: CommandLine
   protected sessionId?: string
   protected plugins?: GardenPluginReference[]
 
-  description = dedent`
+  override description = dedent`
     Starts the Garden Core API server for the current project, and your selected environment+namespace.
 
     Note: You must currently run one server per environment and namespace.
   `
 
-  arguments = <A>serveArgs
-  options = <O>serveOpts
+  override arguments = <A>serveArgs
+  override options = <O>serveOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Garden API Server", "🌐")
   }
 
-  terminate() {
+  override terminate() {
     super.terminate()
     this.server?.close().catch(() => {})
   }
 
-  maybePersistent() {
+  override maybePersistent() {
     return true
   }
 
-  allowInDevCommand() {
+  override allowInDevCommand() {
     return false
   }
 

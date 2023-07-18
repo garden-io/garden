@@ -35,12 +35,12 @@ export class SyncRestartCommand extends Command<Args, Opts> {
   name = "restart"
   help = "Restart any active syncs to the given Deploy action(s)."
 
-  protected = true
+  override protected = true
 
-  arguments = syncRestartArgs
-  options = syncRestartOpts
+  override arguments = syncRestartArgs
+  override options = syncRestartOpts
 
-  description = dedent`
+  override description = dedent`
     Restarts one or more active syncs.
 
     Examples:
@@ -51,9 +51,9 @@ export class SyncRestartCommand extends Command<Args, Opts> {
         garden sync restart
   `
 
-  outputsSchema = () => joi.object()
+  override outputsSchema = () => joi.object()
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Restarting sync(s)", "🔁")
   }
 

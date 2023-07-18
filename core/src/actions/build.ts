@@ -151,7 +151,7 @@ export class BuildAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
-  kind: "Build"
+  override kind: "Build"
 
   /**
    * Builds from module conversions inherit their version from their parent module. This is done for compatibility
@@ -163,7 +163,7 @@ export class BuildAction<
    * similar changes to the underlying build-relevant parts of the module config, or to the included sources.
    */
   @Memoize()
-  getFullVersion(): ActionVersion {
+  override getFullVersion(): ActionVersion {
     const actionVersion = super.getFullVersion()
     if (this._moduleVersion) {
       actionVersion.versionString = this.moduleVersion().versionString
@@ -193,9 +193,9 @@ export class ResolvedBuildAction<
   extends BuildAction<C, StaticOutputs, RuntimeOutputs>
   implements ResolvedActionExtension<C, StaticOutputs, RuntimeOutputs>
 {
-  protected graph: ResolvedConfigGraph
-  protected readonly params: ResolvedActionWrapperParams<C>
-  protected readonly resolved: true
+  protected override graph: ResolvedConfigGraph
+  protected override readonly params: ResolvedActionWrapperParams<C>
+  protected override readonly resolved: true
   private readonly dependencyResults: GraphResults
   private readonly executedDependencies: ExecutedAction[]
   private readonly resolvedDependencies: ResolvedAction[]
@@ -248,7 +248,7 @@ export class ExecutedBuildAction<
   extends ResolvedBuildAction<C, StaticOutputs, RuntimeOutputs>
   implements ExecutedActionExtension<C, StaticOutputs, RuntimeOutputs>
 {
-  protected readonly executed: true
+  protected override readonly executed: true
   private readonly status: ActionStatus<this, any, RuntimeOutputs>
 
   constructor(params: ExecutedActionWrapperParams<C, StaticOutputs, RuntimeOutputs>) {
@@ -257,14 +257,14 @@ export class ExecutedBuildAction<
     this.executed = true
   }
 
-  getOutput<K extends keyof (StaticOutputs & RuntimeOutputs)>(
+  override getOutput<K extends keyof (StaticOutputs & RuntimeOutputs)>(
     key: K
   ): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {
     // FIXME: unsure how to avoid the any cast here, but usage is unaffected
     return <any>(this.status.outputs[<any>key] || this._staticOutputs[<keyof StaticOutputs>key])
   }
 
-  getOutputs() {
+  override getOutputs() {
     return { ...this._staticOutputs, ...this.status.outputs }
   }
 }

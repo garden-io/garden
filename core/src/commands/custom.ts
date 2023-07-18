@@ -75,9 +75,9 @@ export class CustomCommandWrapper extends Command {
   name = "<custom>"
   help = ""
 
-  isCustom = true
+  override isCustom = true
 
-  allowUndefinedArguments = true
+  override allowUndefinedArguments = true
 
   constructor(public spec: CommandResource) {
     super(spec)
@@ -90,7 +90,7 @@ export class CustomCommandWrapper extends Command {
     this.options = mapValues(keyBy(spec.opts, "name"), convertArgSpec)
   }
 
-  printHeader({ log }: PrintHeaderParams) {
+  override printHeader({ log }: PrintHeaderParams) {
     log.info(chalk.cyan(this.name))
   }
 

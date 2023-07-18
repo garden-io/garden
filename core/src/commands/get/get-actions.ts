@@ -105,7 +105,7 @@ export type Opts = typeof getActionsOpts
 export class GetActionsCommand extends Command {
   name = "actions"
   help = "Outputs all or specified actions."
-  description = dedent`
+  override description = dedent`
     Outputs all or specified actions. Use with --output=json and jq to extract specific fields.
 
     Examples:
@@ -118,15 +118,15 @@ export class GetActionsCommand extends Command {
       garden get actions --include-state -o=json                 # get json output
 `
 
-  arguments = getActionsArgs
-  options = getActionsOpts
+  override arguments = getActionsArgs
+  override options = getActionsOpts
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     joi.object().keys({
       actions: joiArray(getActionsCmdOutputSchema()).description("A list of the actions."),
     })
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Get Actions", "📖")
   }
 

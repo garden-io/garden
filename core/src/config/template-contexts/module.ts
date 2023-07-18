@@ -137,10 +137,10 @@ export class TaskRuntimeContext extends ServiceRuntimeContext {
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )
-  public outputs: PrimitiveMap
+  public override outputs: PrimitiveMap
 
   @schema(joi.string().required().description("The current version of the task.").example(exampleVersion))
-  public version: string
+  public override version: string
 }
 
 class RuntimeConfigContext extends ConfigContext {

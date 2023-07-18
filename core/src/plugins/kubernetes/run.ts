@@ -765,7 +765,7 @@ export interface PodErrorDetails {
 export class PodRunner extends PodRunnerParams {
   podName: string
   running: boolean
-  logEventContext: PluginEventLogContext | undefined
+  override logEventContext: PluginEventLogContext | undefined
 
   constructor(params: PodRunnerParams) {
     super()

@@ -35,7 +35,7 @@ export class SortedStreamIntersection<T> extends Readable {
     this.started = false
   }
 
-  _read() {
+  override _read() {
     if (!this.started) {
       this.start()
     }

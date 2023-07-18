@@ -38,7 +38,7 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
   name = "config"
   help = "Outputs the full configuration for this project and environment."
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     joi.object().keys({
       allEnvironmentNames: joiArray(environmentNameSchema()).required(),
       environmentName: environmentNameSchema().required(),
@@ -70,9 +70,9 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
       ),
     })
 
-  options = getConfigOptions
+  override options = getConfigOptions
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Get config", "📂")
   }
 

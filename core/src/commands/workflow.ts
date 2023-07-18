@@ -56,10 +56,10 @@ export class WorkflowCommand extends Command<Args, {}> {
   name = "workflow"
   help = "Run a Workflow."
 
-  streamEvents = true
-  streamLogEntries = true
+  override streamEvents = true
+  override streamLogEntries = true
 
-  description = dedent`
+  override description = dedent`
     Runs the commands and/or scripts defined in the workflow's steps, in sequence.
 
     Examples:
@@ -67,9 +67,9 @@ export class WorkflowCommand extends Command<Args, {}> {
         garden workflow my-workflow
   `
 
-  arguments = runWorkflowArgs
+  override arguments = runWorkflowArgs
 
-  printHeader({ log, args }) {
+  override printHeader({ log, args }) {
     printHeader(log, `Running workflow ${chalk.white(args.workflow)}`, "🏃‍♂️")
   }
 

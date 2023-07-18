@@ -27,9 +27,9 @@ export class GetWorkflowsCommand extends Command<Args> {
   name = "workflows"
   help = "Lists the workflows defined in your project."
 
-  arguments = getWorkflowsArgs
+  override arguments = getWorkflowsArgs
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Workflows", "📖")
   }
 

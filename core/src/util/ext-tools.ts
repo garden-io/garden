@@ -236,7 +236,7 @@ export class PluginTool extends CliWrapper {
     this.chmodDone = false
   }
 
-  async getPath(log: Log) {
+  override async getPath(log: Log) {
     return this.ensurePath(log)
   }
 

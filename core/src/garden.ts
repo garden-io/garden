@@ -2041,13 +2041,13 @@ export function overrideVariables(variables: DeepPrimitiveMap, overrideVariables
  * to run outside of valid Garden projects.
  */
 export class DummyGarden extends Garden {
-  async resolveProviders() {
+  override async resolveProviders() {
     return {}
   }
 
-  async scanAndAddConfigs() {}
+  override async scanAndAddConfigs() {}
 
-  async getRepoRoot() {
+  override async getRepoRoot() {
     return ""
   }
 }

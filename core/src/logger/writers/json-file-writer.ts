@@ -23,10 +23,10 @@ export function renderAsJson(level: LogLevel, entry: LogEntry): string | null {
 }
 
 export class JsonFileWriter extends FileWriter {
-  type = "file-json"
+  override type = "file-json"
 
   // Only init if needed to prevent unnecessary file writes
-  initFileLogger() {
+  override initFileLogger() {
     return winston.createLogger({
       level: levelToStr(this.level),
       transports: [
@@ -40,11 +40,11 @@ export class JsonFileWriter extends FileWriter {
     })
   }
 
-  render(entry: LogEntry): string | null {
+  override render(entry: LogEntry): string | null {
     return renderAsJson(this.level, entry)
   }
 
-  write(entry: LogEntry): void {
+  override write(entry: LogEntry): void {
     const out = this.render(entry)
     if (out) {
       if (!this.fileLogger) {

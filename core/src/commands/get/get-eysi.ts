@@ -17,16 +17,16 @@ export class GetEysiCommand extends Command {
   name = "eysi"
   help = "Meet our CTO."
 
-  description = dedent`
+  override description = dedent`
     Just try it.
   `
 
   loggerType: "basic"
 
-  hidden = true
-  noProject = true
+  override hidden = true
+  override noProject = true
 
-  printHeader() {}
+  override printHeader() {}
 
   async action(): Promise<CommandResult> {
     const eysi = (await readFile(join(STATIC_DIR, "eysi.txt"))).toString()

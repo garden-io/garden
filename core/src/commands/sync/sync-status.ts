@@ -62,12 +62,12 @@ export class SyncStatusCommand extends Command<Args, Opts> {
   name = "status"
   help = "Get sync statuses."
 
-  protected = true
+  override protected = true
 
-  arguments = syncStatusArgs
-  options = syncStatusOpts
+  override arguments = syncStatusArgs
+  override options = syncStatusOpts
 
-  description = dedent`
+  override description = dedent`
     Get the current status of the configured syncs for this project.
 
     Examples:
@@ -84,9 +84,9 @@ export class SyncStatusCommand extends Command<Args, Opts> {
         garden sync status -o yaml
   `
 
-  outputsSchema = () => joi.object()
+  override outputsSchema = () => joi.object()
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Getting sync statuses", "📟")
   }
 

@@ -46,7 +46,7 @@ export class BuildStagingRsync extends BuildStaging {
    *
    * If withDelete = true, files/folders in destinationPath that are not in sourcePath will also be deleted.
    */
-  protected async sync(params: SyncParams): Promise<void> {
+  protected override async sync(params: SyncParams): Promise<void> {
     await this.validate()
 
     const { sourceRoot, targetRoot, sourceRelPath, targetRelPath, withDelete, log, files } = params

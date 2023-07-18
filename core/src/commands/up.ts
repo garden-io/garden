@@ -31,7 +31,7 @@ export class UpCommand extends Command<UpArgs, UpOpts> {
   help = "Spin up your stack with the dev console and streaming logs."
   emoji: "🚀"
 
-  description = dedent`
+  override description = dedent`
     Spin up your stack with the dev console and streaming logs.
 
     This is basically an alias for ${chalk.cyanBright(
@@ -39,7 +39,7 @@ export class UpCommand extends Command<UpArgs, UpOpts> {
     )}, but you can add any arguments and flags supported by the ${chalk.cyanBright("deploy")} command as well.
   `
 
-  getTerminalWriterType(): LoggerType {
+  override getTerminalWriterType(): LoggerType {
     return "ink"
   }
 

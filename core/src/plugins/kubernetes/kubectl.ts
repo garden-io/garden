@@ -238,7 +238,7 @@ class Kubectl extends PluginTool {
     super(spec)
   }
 
-  async ensurePath(log: Log) {
+  override async ensurePath(log: Log) {
     const override = this.provider.config.kubectlPath
 
     if (override) {
@@ -257,23 +257,23 @@ class Kubectl extends PluginTool {
     return super.ensurePath(log)
   }
 
-  async stdout(params: KubectlParams) {
+  override async stdout(params: KubectlParams) {
     return super.stdout(params)
   }
 
-  async exec(params: KubectlParams) {
+  override async exec(params: KubectlParams) {
     return super.exec(this.prepareArgs(params))
   }
 
-  async spawn(params: KubectlParams) {
+  override async spawn(params: KubectlParams) {
     return super.spawn(this.prepareArgs(params))
   }
 
-  async spawnAndWait(params: KubectlSpawnParams) {
+  override async spawnAndWait(params: KubectlSpawnParams) {
     return super.spawnAndWait(this.prepareArgs(params))
   }
 
-  async json(params: KubectlParams): Promise<any> {
+  override async json(params: KubectlParams): Promise<any> {
     if (!params.args.includes("--output=json")) {
       params.args.push("--output=json")
     }

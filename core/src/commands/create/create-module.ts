@@ -72,10 +72,10 @@ class CreateError extends GardenBaseError {
 export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleOpts> {
   name = "module"
   help = "Create a new Garden module."
-  noProject = true
-  cliOnly = true
+  override noProject = true
+  override cliOnly = true
 
-  description = dedent`
+  override description = dedent`
     Creates a new Garden module configuration. The generated config includes some default values, as well as the
     schema of the config in the form of commentented-out fields.
 
@@ -87,14 +87,14 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
         garden create module --interactive=false  # don't prompt for user inputs when creating the module
   `
 
-  arguments = createModuleArgs
-  options = createModuleOpts
+  override arguments = createModuleArgs
+  override options = createModuleOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Create new module", "✏️")
   }
 
-  allowInDevCommand() {
+  override allowInDevCommand() {
     return false
   }
 

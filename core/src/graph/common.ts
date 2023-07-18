@@ -55,7 +55,7 @@ export class DependencyGraph<T> extends DepGraph<T> {
     return graph
   }
 
-  overallOrder(leavesOnly?: boolean): string[] {
+  override overallOrder(leavesOnly?: boolean): string[] {
     try {
       return super.overallOrder(leavesOnly)
     } catch {

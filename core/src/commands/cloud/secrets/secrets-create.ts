@@ -51,7 +51,7 @@ type Opts = typeof secretsCreateOpts
 export class SecretsCreateCommand extends Command<Args, Opts> {
   name = "create"
   help = "Create secrets in Garden Cloud."
-  description = dedent`
+  override description = dedent`
     Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
     them to an environment, or an environment and a user.
 
@@ -67,10 +67,10 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
         garden cloud secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
   `
 
-  arguments = secretsCreateArgs
-  options = secretsCreateOpts
+  override arguments = secretsCreateArgs
+  override options = secretsCreateOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Create secrets", "🔒")
   }
 

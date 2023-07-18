@@ -37,13 +37,13 @@ export type GetRunResultCommandResult = Result | null
 export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandResult> {
   name = "run-result"
   help = "Outputs the latest result of a run (or task, if using modules)."
-  aliases = ["task-result"]
+  override aliases = ["task-result"]
 
-  streamEvents = true
+  override streamEvents = true
 
-  arguments = getRunResultArgs
+  override arguments = getRunResultArgs
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     getRunResultSchema()
       .keys({
         artifacts: joiArray(joi.string()).description(
@@ -52,7 +52,7 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
       })
       .description("The output from the Run. May also return null if no Run result is found.")
 
-  printHeader({ log, args }) {
+  override printHeader({ log, args }) {
     const taskName = args.name
     printHeader(log, `Run result for ${chalk.cyan(taskName)}`, "🚀")
   }

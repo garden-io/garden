@@ -19,7 +19,7 @@ export class GetGraphCommand extends Command {
   name = "graph"
   help = "Outputs the dependency relationships across the project."
 
-  printHeader({ log }) {
+  override printHeader({ log }): void {
     printHeader(log, "Get graph", "📈")
   }
 

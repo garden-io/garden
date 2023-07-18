@@ -18,10 +18,10 @@ describe("Command", () => {
     it("renders the command help text", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        aliases = ["some-alias"]
+        override aliases = ["some-alias"]
         help = ""
 
-        arguments = {
+        override arguments = {
           foo: new StringsParameter({
             help: "Some help text.",
             required: true,
@@ -31,13 +31,13 @@ describe("Command", () => {
           }),
         }
 
-        options = {
+        override options = {
           floop: new StringsParameter({
             help: "Option help text.",
           }),
         }
 
-        printHeader() {}
+        override printHeader() {}
 
         async action() {
           return {}
@@ -69,7 +69,7 @@ describe("Command", () => {
         name = "test-command"
         help = ""
 
-        printHeader() {}
+        override printHeader() {}
 
         async action() {
           return {}
@@ -83,10 +83,10 @@ describe("Command", () => {
     it("returns the command path and alias if set and not part of a group", () => {
       class TestCommand extends Command {
         name = "test-command"
-        aliases = ["some-alias"]
+        override aliases = ["some-alias"]
         help = ""
 
-        printHeader() {}
+        override printHeader() {}
 
         async action() {
           return {}
@@ -102,7 +102,7 @@ describe("Command", () => {
         name = "test-command"
         help = ""
 
-        printHeader() {}
+        override printHeader() {}
 
         async action() {
           return {}
@@ -127,7 +127,7 @@ describe("Command", () => {
         name = "test-command"
         help = ""
 
-        printHeader() {}
+        override printHeader() {}
 
         async action() {
           return {}
@@ -136,7 +136,7 @@ describe("Command", () => {
 
       class TestGroup extends CommandGroup {
         name = "test-group"
-        aliases = ["group-alias"]
+        override aliases = ["group-alias"]
         help = ""
 
         subCommands = [TestCommand]
@@ -154,10 +154,10 @@ describe("Command", () => {
     it("returns the full command paths including command alias if part of a group", () => {
       class TestCommand extends Command {
         name = "test-command"
-        aliases = ["command-alias"]
+        override aliases = ["command-alias"]
         help = ""
 
-        printHeader() {}
+        override printHeader() {}
 
         async action() {
           return {}
@@ -183,10 +183,10 @@ describe("Command", () => {
     it("returns all permutations with aliases if both command and group have an alias", () => {
       class TestCommand extends Command {
         name = "test-command"
-        aliases = ["command-alias"]
+        override aliases = ["command-alias"]
         help = ""
 
-        printHeader() {}
+        override printHeader() {}
 
         async action() {
           return {}
@@ -195,7 +195,7 @@ describe("Command", () => {
 
       class TestGroup extends CommandGroup {
         name = "test-group"
-        aliases = ["group-alias"]
+        override aliases = ["group-alias"]
         help = ""
 
         subCommands = [TestCommand]
@@ -221,7 +221,7 @@ describe("CommandGroup", () => {
         name = "test-command-a"
         help = ""
 
-        printHeader() {}
+        override printHeader() {}
 
         async action() {
           return {}
@@ -239,7 +239,7 @@ describe("CommandGroup", () => {
         name = "test-command-b"
         help = ""
 
-        printHeader() {}
+        override printHeader() {}
 
         async action() {
           return {}
@@ -273,10 +273,10 @@ describe("CommandGroup", () => {
     it("renders the command help text", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        aliases = ["command-alias"]
+        override aliases = ["command-alias"]
         help = "Some help text."
 
-        printHeader() {}
+        override printHeader() {}
 
         async action() {
           return {}

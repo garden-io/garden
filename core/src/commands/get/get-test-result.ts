@@ -48,18 +48,18 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
   name = "test-result"
   help = "Outputs the latest execution result of a provided test."
 
-  streamEvents = true
+  override streamEvents = true
 
-  arguments = getTestResultArgs
+  override arguments = getTestResultArgs
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     getTestResultSchema()
       .keys({
         artifacts: joiArray(joi.string()).description("Local file paths to any exported artifacts from the test run."),
       })
       .description("The result from the test. May also return null if no test result is found.")
 
-  printHeader({ log, args }) {
+  override printHeader({ log, args }) {
     const testName = args.name
     const moduleName = args.module
 
