@@ -287,7 +287,7 @@ async function updateChangelog(version: string) {
   const changelogPath = "./CHANGELOG.md";
   // TODO: Use readStream and pipe
   const changelog = await readFile(changelogPath)
-  const nextChangelogEntry = getChangelog(version)
+  const nextChangelogEntry = await getChangelog(version)
   return new Promise((resolve, reject) => {
     const writeStream = createWriteStream(changelogPath)
     writeStream.write(nextChangelogEntry)
