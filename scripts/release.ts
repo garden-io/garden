@@ -7,7 +7,6 @@ import chalk from "chalk"
 import { relative, resolve } from "path"
 import { createWriteStream, readFile, writeFile } from "fs-extra"
 import { getPackages } from "./script-utils"
-import { getChangelog } from "./changelog"
 import parseArgs = require("minimist")
 import deline = require("deline")
 import Bluebird = require("bluebird")
@@ -287,7 +286,13 @@ async function updateChangelog(version: string) {
   const changelogPath = "./CHANGELOG.md";
   // TODO: Use readStream and pipe
   const changelog = await readFile(changelogPath)
-  const nextChangelogEntry = await getChangelog(version)
+  const nextChangelogEntry = (
+    await execa(
+      "git-chglog",
+      ["--tag-filter-pattern", "^\\d+\\.\\d+\\.\\d+$", "--sort", "semver", "--next-tag", version, version],
+      { cwd: gardenRoot }
+    )
+  ).stdout
   return new Promise((resolve, reject) => {
     const writeStream = createWriteStream(changelogPath)
     writeStream.write(nextChangelogEntry)
