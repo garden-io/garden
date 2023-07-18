@@ -129,7 +129,7 @@ type Opts = typeof secretsUpdateOpts
 export class SecretsUpdateCommand extends Command<Args, Opts> {
   name = "update"
   help = "Update secrets in Garden Cloud"
-  description = dedent`
+  override description = dedent`
     Update secrets in Garden Cloud. You can update the secrets by either specifying secret name or secret ID.
     When updating by name, the behavior is upsert (existing secrets are updated while missing secrets are created).
 
@@ -142,10 +142,10 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
         garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar --scope-to-env local --scope-to-user-id <user-id> # update two secret values with the given names for the environment local and specified user id.
         garden cloud secrets update <ID 1>=foo <ID 2>=bar --update-by-id # update two secret values with the given IDs.
   `
-  arguments = secretsUpdateArgs
-  options = secretsUpdateOpts
+  override arguments = secretsUpdateArgs
+  override options = secretsUpdateOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Update secrets", "🔒")
   }
 
