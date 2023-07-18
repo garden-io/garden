@@ -19,7 +19,7 @@ spec:
   ingresses:
     - path: /
       port: http
-      hostname: hello.local.demo.garden
+      hostname: hello.${var.baseHostname}
   sync:
     paths:
       - source: index.html

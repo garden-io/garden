@@ -1,4 +1,4 @@
-# OpenShift Local demo project
+# OpenShift Local setup
 
 **WARNING: this is work in progress**
 
@@ -105,3 +105,79 @@ This will delete the VM running OpenShift, including any configuration done with
 
 You can create a new one by running `crc start` and repeating setup steps for the project, permissions, registry, etc.
 Note that creating a new VM will generate a new kubeadmin password.
+
+# OpenShift Cloud setup
+
+If you have set up an OpenShift Dedicated Cloud cluster, there should be fairly few setup steps to do.
+
+Check the project and action configuration files for more details and examples.
+
+If you want to enable **in-cluster builds**, currently we require you to set up these additional permissions:
+
+_TODO: we should fix this properly by editing the `garden-util` image, and make this section obsolete_
+
+## Using the CLI
+
+```bash
+# replace with your own cluster authentication url
+oc login -u kubeadmin https://api.openshift-trial.23q9.p1.openshiftapps.com:6443
+oc adm policy add-scc-to-user anyuid -z default --namespace demo-project
+oc logout
+```
+
+## Using the Web UI
+
+Alternatively, if you have sufficient permissions, you can do this in the OpenShift web UI
+
+1. Administrator role
+2. User Management tab
+3. Role Bindings section
+4. Create binding
+
+```
+name: allow-anyuid
+namespace: demo-project
+role name: system:openshift:scc:anyuid
+subject: servicegroup
+subject namespace: demo-project
+subject name: default
+```
+
+# OpenShift demos
+
+There are two examples that have been verified to work with OpenShift:
+
+- `openshift-nginx-hello` which included in this directory, and
+- `vote` which can be copied from examples and made to work with slightly modified project configuration.
+
+Copy the vote example to the `vote` directory, and remove the project configuration included with it:
+
+```bash
+cp -r ../../../../../examples/vote/ vote/
+rm vote/garden.yml
+```
+
+NOTE: in case you run into issues, you might need to edit the `Build` actions to have `buildAtSource: true` and/or specify the target platform as `linux/amd64` in additional build arguments.
+
+## OpenShift Local
+
+```bash
+oc logout
+oc login -u developer -p developer https://api.crc.testing:6443
+oc delete secret imagepullsecrets && oc registry login --to auth.json && oc create secret docker-registry imagepullsecrets --from-file=.dockerconfigjson=auth.json && rm auth.json
+oc registry login
+gdev --env local deploy openshift-nginx-hello --sync
+```
+
+## OpenShift Cloud
+
+```bash
+oc logout
+open https://oauth-openshift.apps.openshift-trial.23q9.p1.openshiftapps.com/oauth/token/request
+oc delete secret imagepullsecrets && oc registry login --to auth.json && oc create secret docker-registry imagepullsecrets --from-file=.dockerconfigjson=auth.json && rm auth.json
+oc registry login
+gdev --env remote deploy vote
+gdev --env remote logs worker
+gdev --env remote run db-init --force
+gdev --env remote deploy worker --force
+```
