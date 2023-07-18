@@ -80,14 +80,14 @@ describe("config templates", () => {
       })
     })
 
-    it("defaults to an empty object schema for inputs", async () => {
+    it("defaults to an object with any properties for schema", async () => {
       const config: ConfigTemplateResource = {
         ...defaults,
       }
       const resolved = await resolveConfigTemplate(garden, config)
       expect((<any>resolved.inputsSchema)._rules[0].args.jsonSchema.schema).to.eql({
         type: "object",
-        additionalProperties: false,
+        additionalProperties: true,
       })
     })
 

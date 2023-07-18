@@ -24,7 +24,7 @@ kind: ConfigTemplate
 name:
 
 # Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is
-# provided, no inputs will be accepted and an error thrown if attempting to do so.
+# provided all inputs will be accepted.
 inputsSchemaPath:
 
 # A list of modules this template will output. The schema for each is the same as when you create modules normally in
@@ -224,7 +224,7 @@ The name of the template.
 
 ### `inputsSchemaPath`
 
-Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is provided, no inputs will be accepted and an error thrown if attempting to do so.
+Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is provided all inputs will be accepted.
 
 | Type        | Required |
 | ----------- | -------- |

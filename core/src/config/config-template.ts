@@ -75,10 +75,10 @@ export async function resolveConfigTemplate(
   })
 
   // Read and validate the JSON schema, if specified
-  // -> default to object with no properties
+  // -> default to any object
   let inputsJsonSchema = {
     type: "object",
-    additionalProperties: false,
+    additionalProperties: true,
   }
 
   const configDir = configPath ? dirname(configPath) : resource.internal.basePath
@@ -129,7 +129,7 @@ export const configTemplateSchema = createSchema({
       .posixPath()
       .relativeOnly()
       .description(
-        "Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is provided, no inputs will be accepted and an error thrown if attempting to do so."
+        "Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is provided all inputs will be accepted."
       ),
     // TODO: remove in 0.14
     modules: joi
