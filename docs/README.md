@@ -110,6 +110,7 @@
   * [`kubernetes`](./reference/providers/kubernetes.md)
   * [`local-kubernetes`](./reference/providers/local-kubernetes.md)
   * [`octant`](./reference/providers/octant.md)
+  * [`otel-collector`](./reference/providers/otel-collector.md)
   * [`pulumi`](./reference/providers/pulumi.md)
   * [`terraform`](./reference/providers/terraform.md)
 * [Action Types](./reference/action-types/README.md)

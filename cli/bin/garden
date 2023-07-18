@@ -35,7 +35,7 @@ if (process.env.GARDEN_ENABLE_PROFILING === "1" || process.env.GARDEN_ENABLE_PRO
   }
 }
 
-const { initTracing } = require("@garden-io/core/build/src/util/tracing/tracing")
+const { initTracing } = require("@garden-io/core/build/src/util/open-telemetry/tracing")
 initTracing()
 
 require("source-map-support").install()

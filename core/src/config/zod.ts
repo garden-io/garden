@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Schema, z } from "zod"
+import { Schema, z, infer as inferZodType, ZodType } from "zod"
 import { envVarRegex, identifierRegex, joiIdentifierDescription, userIdentifierRegex } from "./constants"
 
 // Add metadata support to schemas. See https://github.com/colinhacks/zod/issues/273#issuecomment-1434077058
@@ -76,6 +76,7 @@ type GardenSchema = typeof z & {
 
 // This should be imported instead of z because we augment zod with custom methods
 export const s = z as GardenSchema
+export type inferType<T extends ZodType<any, any, any>> = inferZodType<T>
 
 s.envVars = () => s.record(s.string().regex(envVarRegex).min(1), z.string())
 

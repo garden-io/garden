@@ -15,7 +15,7 @@ import { ConfigContext, schema } from "../config/template-contexts/base"
 import { PublishActionResult } from "../plugin/handlers/Build/publish"
 import { BuildAction } from "../actions/build"
 import { ActionSpecContext, ActionSpecContextParams } from "../config/template-contexts/actions"
-import { OtelTraced } from "../util/tracing/decorators"
+import { OtelTraced } from "../util/open-telemetry/decorators"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
   tagTemplate?: string

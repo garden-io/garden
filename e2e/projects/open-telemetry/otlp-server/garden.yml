@@ -1,0 +1,37 @@
+kind: Build
+name: otlp-http
+description: OTLP HTTP service container image
+type: container
+
+---
+kind: Deploy
+name: otlp-http
+description: OTLP HTTP service container
+type: container
+build: otlp-http
+spec:
+  ports:
+    - name: http-otlp
+      containerPort: 8080
+    - name: http-health
+      containerPort: 8081
+  healthCheck:
+    httpGet:
+      path: /health
+      port: http-health
+  ingresses:
+    - path: /v1/traces
+      port: http-otlp
+
+---
+kind: Test
+name: otlp-http-integ
+description: OTLP HTTP service container integration tests
+type: kubernetes-exec
+dependencies:
+  - deploy.otlp-http
+spec:
+  resource:
+    kind: Deployment
+    name: otlp-http
+  command: [ npm, run, integ ]

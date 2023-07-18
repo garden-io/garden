@@ -1,0 +1,41 @@
+apiVersion: garden.io/v1
+kind: Project
+name: otel-collector-test
+environments:
+  - name: local
+    defaultNamespace: ${var.env-name}
+    variables:
+      defaultHostname: ${var.env-name}.local.demo.garden
+  - name: testing
+    defaultNamespace: ${var.env-name}
+    variables:
+      defaultHostname: ${var.env-name}.dev-1.sys.garden
+providers:
+  - name: local-kubernetes
+    environments: [local]
+    namespace: ${environment.namespace}
+    defaultHostname: ${var.defaultHostname}
+  - name: kubernetes
+    environments: [testing]
+    # Replace the below values as appropriate
+    context: gke_garden-ci_europe-west1-b_core-ci
+    namespace: ${environment.namespace}
+    defaultHostname: ${var.defaultHostname}
+    buildMode: cluster-buildkit
+    deploymentRegistry:
+      hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
+      namespace: garden-ci   # <- set this to the project ID of the target cluster
+    imagePullSecrets:
+      # Make sure this matches the name and namespace of the imagePullSecret you've created
+      # to authenticate with your registry (if needed)
+      - name: gcr-config
+        namespace: default
+  - name: otel-collector
+    exporters:
+      - name: otlphttp
+        enabled: true
+        endpoint: http://${var.defaultHostname}:80
+        headers:
+          x-garden-test-header: 1
+variables:
+  env-name: ${project.name}-testing-${local.username}

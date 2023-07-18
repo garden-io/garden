@@ -850,6 +850,9 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   if (module.templateName) {
     action.internal.templateName = module.templateName
   }
+  if (module.parentName) {
+    action.internal.parentName = module.parentName
+  }
   if (module.inputs) {
     action.internal.inputs = module.inputs
   }

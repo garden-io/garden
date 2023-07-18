@@ -1,0 +1,10 @@
+apiVersion: garden.io/v1
+kind: Project
+name: otel-collector
+environments:
+  - name: local
+providers:
+  - name: otel-collector
+    exporters:
+    - name: logging
+      enabled: true

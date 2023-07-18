@@ -10,7 +10,14 @@ import AsyncLock from "async-lock"
 import chalk from "chalk"
 import split2 = require("split2")
 import { isEmpty } from "lodash"
-import { buildSyncVolumeName, buildkitContainerName, buildkitDeploymentName, buildkitImageName, buildkitRootlessImageName, dockerAuthSecretKey } from "../../constants"
+import {
+  buildSyncVolumeName,
+  buildkitContainerName,
+  buildkitDeploymentName,
+  buildkitImageName,
+  buildkitRootlessImageName,
+  dockerAuthSecretKey,
+} from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
 import { Log } from "../../../../logger/log-entry"
