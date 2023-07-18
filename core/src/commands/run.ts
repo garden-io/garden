@@ -93,10 +93,10 @@ export class RunCommand extends Command<Args, Opts> {
   name = "run"
   help = "Perform one or more Run actions"
 
-  streamEvents = true
-  protected = true
+  override streamEvents = true
+  override protected = true
 
-  description = dedent`
+  override description = dedent`
     This is useful for any ad-hoc Runs, for example database migrations, or when developing.
 
     Examples:
@@ -105,12 +105,12 @@ export class RunCommand extends Command<Args, Opts> {
         garden run my-run -l 3       # run with verbose log level to see the live log output
   `
 
-  arguments = runArgs
-  options = runOpts
+  override arguments = runArgs
+  override options = runOpts
 
-  outputsSchema = () => processCommandResultSchema()
+  override outputsSchema = () => processCommandResultSchema()
 
-  printHeader({ log }: PrepareParams<Args, Opts>) {
+  override printHeader({ log }: PrepareParams<Args, Opts>) {
     const msg = `Run`
     printHeader(log, msg, "🏃‍♂️")
   }

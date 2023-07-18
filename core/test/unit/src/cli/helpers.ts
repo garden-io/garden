@@ -425,9 +425,9 @@ describe("processCliArgs", () => {
     class SpreadCommand extends Command<typeof argSpec> {
       name = "spread-command"
       help = "halp!"
-      noProject = true
+      override noProject = true
 
-      arguments = argSpec
+      override arguments = argSpec
 
       async action(params: any) {
         return { result: params }

@@ -2,6 +2,7 @@
   "compilerOptions": {
     "allowJs": false,
     "allowUnreachableCode": false,
+    "noImplicitOverride": true,
     "allowUnusedLabels": false,
     "declaration": true,
     "declarationMap": true,

@@ -54,9 +54,9 @@ const outputsSchema = createSchema({
 
 export class GetModulesCommand extends Command {
   name = "modules"
-  aliases = ["module"]
+  override aliases = ["module"]
   help = "Outputs all or specified modules."
-  description = dedent`
+  override description = dedent`
     Outputs all or specified modules. Use with --output=json and jq to extract specific fields.
 
     Examples:
@@ -67,12 +67,12 @@ export class GetModulesCommand extends Command {
         garden get modules -o=json | jq '.modules["my-module"].version'   # get version of my-module
   `
 
-  arguments = getModulesArgs
-  options = getModulesOptions
+  override arguments = getModulesArgs
+  override options = getModulesOptions
 
-  outputsSchema = outputsSchema
+  override outputsSchema = outputsSchema
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Get Modules", "📖")
   }
 

@@ -17,16 +17,16 @@ export class GetDoddiCommand extends Command {
   name = "doddi"
   help = "Meet our VP of Engineering."
 
-  description = dedent`
+  override description = dedent`
     He's nice. We promise. Don't be afraid.
   `
 
   loggerType: "basic"
 
-  hidden = true
-  noProject = true
+  override hidden = true
+  override noProject = true
 
-  printHeader() {}
+  override printHeader() {}
 
   async action(): Promise<CommandResult> {
     const image = (await readFile(join(STATIC_DIR, "doddi.txt"))).toString()

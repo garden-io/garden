@@ -449,13 +449,13 @@ describe("docs config module", () => {
   describe("renderMarkdownLink", () => {
     it("should return a markdown link with a name and relative path", () => {
       class TestKeyDescription extends BaseKeyDescription {
-        type = "string"
+        override type = "string"
 
         constructor(name: string, level: number) {
           super(name, level)
         }
 
-        fullKey() {
+        override fullKey() {
           return "happy.families[].are.all[].alike"
         }
 

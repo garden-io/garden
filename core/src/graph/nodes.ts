@@ -206,7 +206,7 @@ export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
     return this.task.getDescription()
   }
 
-  getKey() {
+  override getKey() {
     return `${this.task.getBaseKey()}:request:${this.batchId}`
   }
 
@@ -218,7 +218,7 @@ export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
     }
   }
 
-  complete(params: CompleteTaskParams) {
+  override complete(params: CompleteTaskParams) {
     const result = super.complete(params)
     this.completeHandler(result)
     return result

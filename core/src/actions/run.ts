@@ -38,7 +38,7 @@ export class RunAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  kind: "Run"
+  override kind: "Run"
 }
 
 export class ResolvedRunAction<
@@ -46,7 +46,7 @@ export class ResolvedRunAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  kind: "Run"
+  override kind: "Run"
 }
 
 export class ExecutedRunAction<
@@ -54,7 +54,7 @@ export class ExecutedRunAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  kind: "Run"
+  override kind: "Run"
 }
 
 export function isRunAction(action: Action): action is RunAction {

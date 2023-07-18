@@ -40,7 +40,7 @@ function printIngresses(status: DeployStatus, log: ActionLog) {
 @Profile()
 export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
   type = "deploy" as const
-  concurrencyLimit = 10
+  override concurrencyLimit = 10
 
   events?: PluginEventBroker
   startSync: boolean
@@ -51,7 +51,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     this.startSync = !!params.startSync
   }
 
-  protected getDependencyParams(): DeployTaskParams {
+  protected override getDependencyParams(): DeployTaskParams {
     return {
       ...super.getDependencyParams(),
       startSync: this.startSync,

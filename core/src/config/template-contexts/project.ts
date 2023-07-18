@@ -307,7 +307,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   private _enterpriseDomain: string | undefined
   private _loggedIn: boolean
 
-  getMissingKeyErrorFooter(_key: ContextKeySegment, path: ContextKeySegment[]): string {
+  override getMissingKeyErrorFooter(_key: ContextKeySegment, path: ContextKeySegment[]): string {
     if (last(path) !== "secrets") {
       return ""
     }
@@ -371,7 +371,7 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
         keyPlaceholder: "<secret-name>",
       })
   )
-  public secrets: PrimitiveMap
+  public override secrets: PrimitiveMap
 
   constructor(params: EnvironmentConfigContextParams) {
     super(params)
@@ -393,7 +393,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       )
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public variables: DeepPrimitiveMap
+  public override variables: DeepPrimitiveMap
 
   constructor(garden: Garden, variables: DeepPrimitiveMap) {
     super({

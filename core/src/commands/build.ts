@@ -55,10 +55,10 @@ export class BuildCommand extends Command<Args, Opts> {
   name = "build"
   help = "Perform your Builds."
 
-  protected = true
-  streamEvents = true
+  override protected = true
+  override streamEvents = true
 
-  description = dedent`
+  override description = dedent`
     Runs all or specified Builds, taking into account build dependency order.
     Optionally stays running and automatically builds when sources (or dependencies' sources) change.
 
@@ -71,12 +71,12 @@ export class BuildCommand extends Command<Args, Opts> {
         garden build -l 3              # build with verbose log level to see the live log output
   `
 
-  arguments = buildArgs
-  options = buildOpts
+  override arguments = buildArgs
+  override options = buildOpts
 
-  outputsSchema = () => processCommandResultSchema()
+  override outputsSchema = () => processCommandResultSchema()
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Build", "🔨")
   }
 

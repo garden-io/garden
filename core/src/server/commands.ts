@@ -68,13 +68,13 @@ interface AutocompleteResult {
 export class AutocompleteCommand extends ConsoleCommand<AutocompleteArguments> {
   name = "autocomplete"
   help = "Given an input string, provide a list of suggestions for available Garden commands."
-  hidden = true
+  override hidden = true
 
-  noProject = true
+  override noProject = true
 
-  arguments = autocompleteArguments
+  override arguments = autocompleteArguments
 
-  enableAnalytics = false
+  override enableAnalytics = false
 
   constructor(private manager: GardenInstanceManager) {
     super(manager)
@@ -100,7 +100,7 @@ export class ReloadCommand extends ConsoleCommand {
   name = "reload"
   help = "Reload the project and action/module configuration."
 
-  noProject = true
+  override noProject = true
 
   constructor(private serveCommand?: ServeCommand) {
     super(serveCommand)
@@ -130,9 +130,9 @@ export class LogLevelCommand extends ConsoleCommand<LogLevelArguments> {
   name = "log-level"
   help = "Change the max log level of (future) printed logs in the console."
 
-  noProject = true
+  override noProject = true
 
-  arguments = logLevelArguments
+  override arguments = logLevelArguments
 
   async action({ log, commandLine, args }: CommandParams<LogLevelArguments>) {
     const level = args.level
@@ -171,10 +171,10 @@ type HideArgs = typeof hideArgs
 
 export class HideCommand extends ConsoleCommand<HideArgs> {
   name = "hide"
-  aliases = ["stop"]
+  override aliases = ["stop"]
   help = "Stop monitoring for logs for all or specified Deploy actions"
 
-  arguments = hideArgs
+  override arguments = hideArgs
 
   async action({ garden, log, args }: CommandParams<HideArgs>) {
     let type = args.type
@@ -222,12 +222,12 @@ interface GetDeployStatusCommandResult {
 export class _GetDeployStatusCommand extends ConsoleCommand {
   name = "_get-deploy-status"
   help = "[Internal] Outputs a map of actions with their corresponding deploy and sync statuses."
-  hidden = true
+  override hidden = true
 
-  enableAnalytics = false
-  streamEvents = false
+  override enableAnalytics = false
+  override streamEvents = false
 
-  outputsSchema = () => joi.object()
+  override outputsSchema = () => joi.object()
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<GetDeployStatusCommandResult>> {
     const router = await garden.getActionRouter()
@@ -270,11 +270,11 @@ interface GetActionStatusesCommandResult {
 export class _GetActionStatusesCommand extends ConsoleCommand {
   name = "_get-action-statuses"
   help = "[Internal/Experimental] Retuns a map of all actions statuses."
-  hidden = true
+  override hidden = true
 
-  streamEvents = false
+  override streamEvents = false
 
-  outputsSchema = () => joi.object()
+  override outputsSchema = () => joi.object()
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<GetActionStatusesCommandResult>> {
     const router = await garden.getActionRouter()
@@ -310,15 +310,15 @@ type ShellCommandArgs = typeof shellCommandArgs
 export class _ShellCommand extends ConsoleCommand<ShellCommandArgs> {
   name = "_shell"
   help = "[Internal] Runs a shell command (used by Desktop client)."
-  hidden = true
+  override hidden = true
 
-  enableAnalytics = false
-  streamEvents = false
-  noProject = true
+  override enableAnalytics = false
+  override streamEvents = false
+  override noProject = true
 
-  arguments = shellCommandArgs
+  override arguments = shellCommandArgs
 
-  outputsSchema = () => joi.object()
+  override outputsSchema = () => joi.object()
 
   async action({ log, args: _args }: CommandParams<ShellCommandArgs>): Promise<CommandResult<{}>> {
     const { command, args, cwd } = shellCommandParamsSchema.parse(JSON.parse(_args.request))

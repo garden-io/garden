@@ -19,7 +19,7 @@ export const apiProjectName =
   "95048f63dc14db38ed4138ffb6ff89992abdc19b8c899099c52a94f8fcc0390eec6480385cfa5014f84c0a14d4984825ce3bf25db1386d2b5382b936899df675"
 
 export class FakeCloudApi extends CloudApi {
-  static async factory(params: { log: Log; skipLogging?: boolean }) {
+  static override async factory(params: { log: Log; skipLogging?: boolean }) {
     return new FakeCloudApi({
       log: params.log,
       domain: "https://garden.io",
@@ -27,7 +27,7 @@ export class FakeCloudApi extends CloudApi {
     })
   }
 
-  async getProfile() {
+  override async getProfile() {
     return {
       id: "1",
       createdAt: new Date().toString(),
@@ -45,11 +45,11 @@ export class FakeCloudApi extends CloudApi {
     }
   }
 
-  async getAllProjects(): Promise<CloudProject[]> {
+  override async getAllProjects(): Promise<CloudProject[]> {
     return [(await this.getProjectById(apiProjectId))!]
   }
 
-  async createProject(name: string): Promise<CloudProject> {
+  override async createProject(name: string): Promise<CloudProject> {
     return {
       id: apiProjectId,
       name,
@@ -58,7 +58,7 @@ export class FakeCloudApi extends CloudApi {
     }
   }
 
-  async getProjectByName(name: string): Promise<CloudProject | undefined> {
+  override async getProjectByName(name: string): Promise<CloudProject | undefined> {
     return {
       id: apiProjectId,
       name,
@@ -67,7 +67,7 @@ export class FakeCloudApi extends CloudApi {
     }
   }
 
-  async getProjectById(_: string): Promise<CloudProject | undefined> {
+  override async getProjectById(_: string): Promise<CloudProject | undefined> {
     return {
       id: apiProjectId,
       name: apiProjectName,
@@ -76,11 +76,11 @@ export class FakeCloudApi extends CloudApi {
     }
   }
 
-  async getSecrets(_: GetSecretsParams): Promise<StringMap> {
+  override async getSecrets(_: GetSecretsParams): Promise<StringMap> {
     return {}
   }
 
-  async checkClientAuthToken(): Promise<boolean> {
+  override async checkClientAuthToken(): Promise<boolean> {
     return true
   }
 }

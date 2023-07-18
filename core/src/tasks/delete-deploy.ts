@@ -25,7 +25,7 @@ export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployActio
 
 export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus> {
   type = "delete-deploy"
-  concurrencyLimit = 10
+  override concurrencyLimit = 10
   dependantsFirst: boolean
   deleteDeployNames: string[]
 
@@ -35,7 +35,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
     this.deleteDeployNames = params.deleteDeployNames || [params.action.name]
   }
 
-  protected getDependencyParams(): DeleteDeployTaskParams {
+  protected override getDependencyParams(): DeleteDeployTaskParams {
     return {
       ...super.getDependencyParams(),
       dependantsFirst: this.dependantsFirst,
@@ -43,7 +43,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
     }
   }
 
-  resolveProcessDependencies() {
+  override resolveProcessDependencies() {
     const resolveTask = this.getResolveTask(this.action)
 
     if (!this.dependantsFirst) {
@@ -71,7 +71,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
     return [resolveTask, ...depTasks]
   }
 
-  getName() {
+  override getName() {
     return this.action.name
   }
 

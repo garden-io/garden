@@ -46,15 +46,15 @@ interface Output {
 export class UpdateRemoteModulesCommand extends Command<Args, Opts> {
   name = "modules"
   help = "Update remote modules."
-  arguments = updateRemoteModulesArguments
-  options = updateRemoteModulesOptions
+  override arguments = updateRemoteModulesArguments
+  override options = updateRemoteModulesOptions
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     joi.object().keys({
       sources: joiArray(moduleSourceSchema()).description("A list of all external module sources in the project."),
     })
 
-  description = dedent`
+  override description = dedent`
     Updates remote modules, i.e. modules that have a \`repositoryUrl\` field
     in their \`garden.yml\` config that points to a remote repository.
 
@@ -65,7 +65,7 @@ export class UpdateRemoteModulesCommand extends Command<Args, Opts> {
         garden update-remote modules my-module  # update remote module my-module
   `
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Update remote modules", "🛠️")
   }
 

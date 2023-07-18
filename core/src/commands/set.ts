@@ -14,7 +14,7 @@ import { Command, CommandGroup, CommandParams } from "./base"
 export class SetCommand extends CommandGroup {
   name = "set"
   help = "Set or modify data and configuration values."
-  hidden = true
+  override hidden = true
 
   subCommands = [SetDefaultEnvCommand]
 }
@@ -33,7 +33,7 @@ export class SetDefaultEnvCommand extends Command<SetDefaultEnvArgs, {}> {
 
   help = "Locally override the default environment for the project."
 
-  description = dedent`
+  override description = dedent`
     Override the default environment for the project for this working copy.
 
     Examples:
@@ -43,7 +43,7 @@ export class SetDefaultEnvCommand extends Command<SetDefaultEnvArgs, {}> {
       garden set default-env              # Clear any previously set override
   `
 
-  arguments = setDefaultEnvArgs
+  override arguments = setDefaultEnvArgs
 
   async action({ garden, log, args }: CommandParams<SetDefaultEnvArgs, {}>) {
     await garden.localConfigStore.set("defaultEnv", args.env || "")

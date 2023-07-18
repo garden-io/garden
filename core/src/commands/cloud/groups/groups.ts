@@ -43,7 +43,7 @@ type Opts = typeof groupsListOpts
 export class GroupsListCommand extends Command<{}, Opts> {
   name = "list"
   help = "List groups defined in Garden Cloud."
-  description = dedent`
+  override description = dedent`
     List all groups from Garden Cloud. This is useful for getting the group IDs when creating
     users via the \`garden cloud users create\` command.
 
@@ -52,9 +52,9 @@ export class GroupsListCommand extends Command<{}, Opts> {
         garden cloud groups list --filter-names dev-*  # list all groups that start with 'dev-'
   `
 
-  options = groupsListOpts
+  override options = groupsListOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "List groups", "")
   }
 

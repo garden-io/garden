@@ -36,10 +36,10 @@ type Opts = typeof unlinkSourceOptions
 export class UnlinkSourceCommand extends Command<Args, Opts> {
   name = "source"
   help = "Unlink a previously linked remote source from its local directory."
-  arguments = unlinkSourceArguments
-  options = unlinkSourceOptions
+  override arguments = unlinkSourceArguments
+  override options = unlinkSourceOptions
 
-  description = dedent`
+  override description = dedent`
     After unlinking a remote source, Garden will go back to reading it from its remote URL instead
     of its local directory.
 
@@ -49,7 +49,7 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
         garden unlink source --all      # unlinks all sources
   `
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Unlink source", "⛓️")
   }
 

@@ -189,12 +189,12 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   name = "self-update"
   help = "Update the Garden CLI."
 
-  cliOnly = true
-  noProject = true
+  override cliOnly = true
+  override noProject = true
 
   // TODO Core 1.0 major release: add this example (after --major example):
   //  garden self-update --minor  # install the latest minor version (if it exists) greater than the current one
-  description = dedent`
+  override description = dedent`
     Updates your Garden CLI in-place.
 
     Defaults to the latest minor release version, but you can also request a specific release version as an argument.
@@ -210,14 +210,14 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
        garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
   `
 
-  arguments = selfUpdateArgs
-  options = selfUpdateOpts
+  override arguments = selfUpdateArgs
+  override options = selfUpdateOpts
 
   _basePreReleasesUrl = "https://github.com/garden-io/garden/releases/download/"
   // Overridden during testing
   _baseReleasesUrl = "https://download.garden.io/core/"
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Update Garden", "🗞️")
   }
 

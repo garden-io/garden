@@ -43,14 +43,14 @@ interface Output {
 export class LinkSourceCommand extends Command<Args> {
   name = "source"
   help = "Link a remote source to a local directory."
-  arguments = linkSourceArguments
+  override arguments = linkSourceArguments
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     joi.object().keys({
       sources: joiArray(linkedSourceSchema()).description("A list of all locally linked external sources."),
     })
 
-  description = dedent`
+  override description = dedent`
     After linking a remote source, Garden will read it from its local directory instead of
     from the remote URL. Garden can only link remote sources that have been declared in the project
     level \`garden.yml\` config.
@@ -60,7 +60,7 @@ export class LinkSourceCommand extends Command<Args> {
         garden link source my-source path/to/my-source # links my-source to its local version at the given path
   `
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Link source", "🔗")
   }
 

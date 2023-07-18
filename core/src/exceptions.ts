@@ -49,7 +49,7 @@ export type GardenErrorContext = {
 
 export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
   abstract type: string
-  public message: string
+  public override message: string
   public detail?: D
   public wrappedErrors?: GardenError<any>[]
   public context?: GardenErrorContext
@@ -62,7 +62,7 @@ export abstract class GardenBaseError<D extends object = any> extends Error impl
     this.context = context
   }
 
-  toString() {
+  override toString() {
     if (testFlags.expandErrors) {
       let str = super.toString()
 

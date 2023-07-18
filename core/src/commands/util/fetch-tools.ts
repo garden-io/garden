@@ -35,11 +35,11 @@ type FetchToolsOpts = typeof fetchToolsOpts
 export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
   name = "fetch-tools"
   help = "Pre-fetch plugin tools."
-  cliOnly = true
+  override cliOnly = true
 
-  noProject = true
+  override noProject = true
 
-  description = dedent`
+  override description = dedent`
     Pre-fetch all the available tools for the configured providers in the current
     project/environment, or all registered providers if the --all parameter is
     specified.
@@ -50,9 +50,9 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
         garden util fetch-tools --all  # fetch for all registered providers
   `
 
-  options = fetchToolsOpts
+  override options = fetchToolsOpts
 
-  printHeader() {}
+  override printHeader() {}
 
   async action({ garden, log, opts }: CommandParams<{}, FetchToolsOpts>) {
     let plugins: GardenPluginSpec[]

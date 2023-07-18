@@ -45,15 +45,15 @@ interface Output {
 export class UpdateRemoteSourcesCommand extends Command<Args, Opts> {
   name = "sources"
   help = "Update remote sources."
-  arguments = updateRemoteSourcesArguments
-  options = updateRemoteSourcesOptions
+  override arguments = updateRemoteSourcesArguments
+  override options = updateRemoteSourcesOptions
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     joi.object().keys({
       sources: joiArray(projectSourceSchema()).description("A list of all configured external project sources."),
     })
 
-  description = dedent`
+  override description = dedent`
     Updates the remote sources declared in the project level \`garden.yml\` config file.
 
     Examples:
@@ -63,7 +63,7 @@ export class UpdateRemoteSourcesCommand extends Command<Args, Opts> {
         garden update-remote sources my-source  # update remote source my-source
   `
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Update remote sources", "🛠️")
   }
 

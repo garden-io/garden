@@ -49,7 +49,7 @@ export class ExecCommand extends Command<Args, Opts> {
   name = "exec"
   help = "Executes a command (such as an interactive shell) in a running service."
 
-  description = dedent`
+  override description = dedent`
     Finds an active container for a deployed Deploy and executes the given command within the container.
     Supports interactive shells.
 
@@ -60,12 +60,12 @@ export class ExecCommand extends Command<Args, Opts> {
          garden exec my-service /bin/sh   # runs a shell in the my-service Deploy's container
   `
 
-  arguments = execArgs
-  options = execOpts
+  override arguments = execArgs
+  override options = execOpts
 
-  outputsSchema = () => execInDeployResultSchema()
+  override outputsSchema = () => execInDeployResultSchema()
 
-  printHeader({ log, args }) {
+  override printHeader({ log, args }) {
     const deployName = args.deploy
     const command = this.getCommand(args)
     printHeader(log, `Running command ${chalk.cyan(command.join(" "))} in Deploy ${chalk.cyan(deployName)}`, "runner")

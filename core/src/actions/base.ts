@@ -701,9 +701,9 @@ export abstract class ResolvedRuntimeAction<
   extends RuntimeAction<Config, StaticOutputs, RuntimeOutputs>
   implements ResolvedActionExtension<Config, StaticOutputs, RuntimeOutputs>
 {
-  protected graph: ResolvedConfigGraph
-  protected readonly params: ResolvedActionWrapperParams<Config>
-  protected readonly resolved: true
+  protected override graph: ResolvedConfigGraph
+  protected override readonly params: ResolvedActionWrapperParams<Config>
+  protected override readonly resolved: true
   private readonly dependencyResults: GraphResults
   private readonly executedDependencies: ExecutedAction[]
   private readonly resolvedDependencies: ResolvedAction[]
@@ -801,14 +801,14 @@ export abstract class ExecutedRuntimeAction<
     return this.status
   }
 
-  getOutput<K extends keyof (StaticOutputs & RuntimeOutputs)>(
+  override getOutput<K extends keyof (StaticOutputs & RuntimeOutputs)>(
     key: K
   ): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {
     // FIXME: unsure how to avoid the any cast here, but usage is unaffected
     return <any>(this.status.outputs[<keyof RuntimeOutputs>key] || this._staticOutputs[<keyof StaticOutputs>key])
   }
 
-  getOutputs() {
+  override getOutputs() {
     return { ...this._staticOutputs, ...this.status.outputs }
   }
 }

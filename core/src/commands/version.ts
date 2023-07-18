@@ -15,9 +15,9 @@ interface VersionCommandResult {
 
 export class VersionCommand extends Command {
   name = "version"
-  aliases = ["v", "V"]
+  override aliases = ["v", "V"]
   help = "Shows the current garden version."
-  noProject = true
+  override noProject = true
 
   async action({ log }): Promise<CommandResult<VersionCommandResult>> {
     const version = getPackageVersion()

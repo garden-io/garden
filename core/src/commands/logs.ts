@@ -81,7 +81,7 @@ export class LogsCommand extends Command<Args, Opts> {
   name = "logs"
   help = "Retrieves the most recent logs for the specified Deploy(s)."
 
-  description = dedent`
+  override description = dedent`
     Outputs logs for all or specified Deploys, and optionally waits for new logs to come in.
     Defaults to getting logs from the last minute when in \`--follow\` mode. You can change this with the \`--since\` or \`--tail\` options.
 
@@ -95,20 +95,20 @@ export class LogsCommand extends Command<Args, Opts> {
         garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
   `
 
-  arguments = logsArgs
-  options = logsOpts
+  override arguments = logsArgs
+  override options = logsOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Logs", "📜")
   }
 
-  getServerLogger() {
+  override getServerLogger() {
     // We don't want to log anything when called via the server.
     // Note that the level doesn't really matter here since the void logger doesn't log anything
     return new VoidLogger({ level: LogLevel.info })
   }
 
-  maybePersistent({ opts }: PrepareParams<Args, Opts>) {
+  override maybePersistent({ opts }: PrepareParams<Args, Opts>) {
     return !!opts.follow
   }
 

@@ -114,7 +114,7 @@ export class TestEventBus extends EventBus {
     this.eventLog = []
   }
 
-  emit<T extends keyof Events>(name: T, payload: Events[T]) {
+  override emit<T extends keyof Events>(name: T, payload: Events[T]) {
     this.eventLog.push({ name, payload })
     return super.emit(name, payload)
   }
@@ -154,10 +154,10 @@ export type TestGardenOpts = Partial<GardenOpts> & {
 }
 
 export class TestGarden extends Garden {
-  events: TestEventBus
-  public vcs: VcsHandler // Not readonly, to allow overriding with a mocked handler in tests
-  public secrets: StringMap // Not readonly, to allow setting secrets in tests
-  public variables: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
+  override events: TestEventBus
+  public override vcs: VcsHandler // Not readonly, to allow overriding with a mocked handler in tests
+  public override secrets: StringMap // Not readonly, to allow setting secrets in tests
+  public override variables: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
   private repoRoot: string
   public cacheKey: string
 
@@ -166,7 +166,7 @@ export class TestGarden extends Garden {
     this.events = new TestEventBus()
   }
 
-  static async factory<T extends typeof Garden>(
+  static override async factory<T extends typeof Garden>(
     this: T,
     currentDirectory: string,
     opts?: TestGardenOpts
@@ -209,14 +209,14 @@ export class TestGarden extends Garden {
     return garden
   }
 
-  async processTasks(params: Omit<SolveParams, "log"> & { log?: Log }) {
+  override async processTasks(params: Omit<SolveParams, "log"> & { log?: Log }) {
     return super.processTasks({ ...params, log: params.log || this.log })
   }
 
   /**
    * Override to cache the config graph.
    */
-  async getConfigGraph(
+  override async getConfigGraph(
     params: GetConfigGraphParams & {
       noCache?: boolean
     }
@@ -246,7 +246,7 @@ export class TestGarden extends Garden {
   }
 
   // Overriding to save time in tests
-  async getRepoRoot() {
+  override async getRepoRoot() {
     if (this.repoRoot) {
       return this.repoRoot
     }

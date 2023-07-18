@@ -21,12 +21,12 @@ type Args = typeof configAnalyticsEnabledArgs
 
 export class ConfigAnalyticsEnabled extends Command {
   name = "analytics-enabled"
-  noProject = true
+  override noProject = true
   help = "Update your preferences regarding analytics."
 
-  arguments = configAnalyticsEnabledArgs
+  override arguments = configAnalyticsEnabledArgs
 
-  description = dedent`
+  override description = dedent`
     To help us make Garden better, we collect some analytics data about its usage.
     We make sure all the data collected is anonymized and stripped of sensitive
     information. We collect data about which commands are run, what tasks they trigger,
@@ -43,7 +43,7 @@ export class ConfigAnalyticsEnabled extends Command {
   `
 
   // Skip printing header
-  printHeader() {}
+  override printHeader() {}
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
     const analyticsClient = await garden.getAnalyticsHandler()

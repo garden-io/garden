@@ -40,7 +40,7 @@ type Opts = typeof secretsListOpts
 export class SecretsListCommand extends Command<{}, Opts> {
   name = "list"
   help = "List secrets defined in Garden Cloud."
-  description = dedent`
+  override description = dedent`
     List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
 
     Examples:
@@ -49,9 +49,9 @@ export class SecretsListCommand extends Command<{}, Opts> {
         garden cloud secrets list --filter-envs dev --filter-names *_DB_*  # list all secrets from the dev environment that have '_DB_' in their name.
   `
 
-  options = secretsListOpts
+  override options = secretsListOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "List secrets", "🔒")
   }
 

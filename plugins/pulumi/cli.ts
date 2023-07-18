@@ -47,7 +47,7 @@ export class GlobalPulumi extends CliWrapper {
     super({ name: "pulumi", path: "pulumi" })
   }
 
-  async getPath(_: Log) {
+  override async getPath(_: Log) {
     try {
       return await which("pulumi")
     } catch (err) {

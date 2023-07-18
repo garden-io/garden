@@ -33,9 +33,9 @@ export class UpdateRemoteAllCommand extends Command<{}, Opts> {
   name = "all"
   help = "Update all remote sources, actions and modules."
 
-  options = updateRemoteAllOptions
+  override options = updateRemoteAllOptions
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     joi.object().keys({
       projectSources: joiArray(projectSourceSchema()).description("A list of all configured external project sources."),
       actionSources: joiArray(actionSourceSchema()).description(
@@ -46,14 +46,14 @@ export class UpdateRemoteAllCommand extends Command<{}, Opts> {
       ),
     })
 
-  description = dedent`
+  override description = dedent`
     Examples:
 
         garden update-remote all             # update all remote sources, actions and modules in the project
         garden update-remote all --parallel  # update all remote sources in the project in parallel mode
   `
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Update remote sources and modules", "🛠️")
   }
 

@@ -103,10 +103,10 @@ export class TestCommand extends Command<Args, Opts> {
   name = "test"
   help = "Run all or specified Test actions in the project."
 
-  protected = true
-  streamEvents = true
+  override protected = true
+  override streamEvents = true
 
-  description = dedent`
+  override description = dedent`
     Runs all or specified Tests defined in the project. Also run builds and other dependencies,
     including Deploys if needed.
 
@@ -121,20 +121,20 @@ export class TestCommand extends Command<Args, Opts> {
         garden test -l 3                # run with verbose log level to see the live log output
   `
 
-  arguments = testArgs
-  options = testOpts
+  override arguments = testArgs
+  override options = testOpts
 
-  outputsSchema = () => processCommandResultSchema()
+  override outputsSchema = () => processCommandResultSchema()
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, `Running Tests`, "🌡️")
   }
 
-  maybePersistent({ opts }: PrepareParams<Args, Opts>) {
+  override maybePersistent({ opts }: PrepareParams<Args, Opts>) {
     return opts.interactive
   }
 
-  allowInDevCommand({ opts }: PrepareParams<Args, Opts>) {
+  override allowInDevCommand({ opts }: PrepareParams<Args, Opts>) {
     return !opts.interactive
   }
 

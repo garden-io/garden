@@ -16,7 +16,7 @@ export class TestGardenCli extends GardenCli {
     super({ cloudApiFactory: FakeCloudApi.factory, ...params })
   }
 
-  async getGarden(workingDir: string, opts: GardenOpts) {
+  override async getGarden(workingDir: string, opts: GardenOpts) {
     return makeTestGarden(workingDir, opts)
   }
 }

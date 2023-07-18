@@ -68,10 +68,10 @@ class CreateError extends GardenBaseError {
 export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProjectOpts> {
   name = "project"
   help = "Create a new Garden project."
-  noProject = true
-  cliOnly = true
+  override noProject = true
+  override cliOnly = true
 
-  description = dedent`
+  override description = dedent`
     Creates a new Garden project configuration. The generated config includes some default values, as well as the
     schema of the config in the form of commentented-out fields. Also creates a default (blank) .gardenignore file
     in the same path.
@@ -84,19 +84,19 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
         garden create project --interactive=false # don't prompt for user inputs when creating the config
   `
 
-  arguments = createProjectArgs
-  options = createProjectOpts
+  override arguments = createProjectArgs
+  override options = createProjectOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Create new project", "✏️")
   }
 
   // Defining it like this because it'll stall on waiting for user input.
-  maybePersistent() {
+  override maybePersistent() {
     return true
   }
 
-  allowInDevCommand() {
+  override allowInDevCommand() {
     return false
   }
 

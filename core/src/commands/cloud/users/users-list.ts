@@ -33,7 +33,7 @@ type Opts = typeof usersListOpts
 export class UsersListCommand extends Command<{}, Opts> {
   name = "list"
   help = "List users defined in Garden Cloud."
-  description = dedent`
+  override description = dedent`
     List all users from Garden Cloud. Optionally filter on group names or user names.
 
     Examples:
@@ -42,9 +42,9 @@ export class UsersListCommand extends Command<{}, Opts> {
         garden cloud users list --filter-groups devs-*     # list all users in groups that with names that start with 'dev-'
   `
 
-  options = usersListOpts
+  override options = usersListOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "List users", "💁‍♀️")
   }
 

@@ -17,13 +17,13 @@ export class ValidateCommand extends Command {
   help = "Check your garden configuration for errors."
   emoji: "✔️"
 
-  aliases: ["scan"]
+  override aliases: ["scan"]
 
-  description = dedent`
+  override description = dedent`
     Throws an error and exits with code 1 if something's not right in your garden config files.
   `
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Validate", "✔️")
   }
 

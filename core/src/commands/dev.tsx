@@ -42,17 +42,17 @@ type DevCommandOpts = typeof devCommandOpts
 type ActionParams = CommandParams<DevCommandArgs, DevCommandOpts>
 
 export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
-  name = "dev"
-  help = "Starts the Garden interactive development console."
+  override name = "dev"
+  override help = "Starts the Garden interactive development console."
 
-  protected = true
-  cliOnly = true
-  streamEvents = true
+  override protected = true
+  override cliOnly = true
+  override streamEvents = true
 
-  arguments = devCommandArgs
-  options = devCommandOpts
+  override arguments = devCommandArgs
+  override options = devCommandOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     const width = process.stdout?.columns ? process.stdout?.columns - 2 : 100
 
     console.clear()
@@ -73,15 +73,15 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
     )
   }
 
-  getTerminalWriterType(): LoggerType {
+  override getTerminalWriterType(): LoggerType {
     return "ink"
   }
 
-  allowInDevCommand() {
+  override allowInDevCommand() {
     return false
   }
 
-  async action(params: ActionParams): Promise<CommandResult> {
+  override async action(params: ActionParams): Promise<CommandResult> {
     const { log } = params
     this.setProps(params.garden.sessionId, params.cli?.plugins || [])
 
@@ -155,7 +155,7 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
     return {}
   }
 
-  async reload(log: Log) {
+  override async reload(log: Log) {
     this.commandLine?.disable("🌸  Loading Garden project...")
 
     const manager = this.getManager(log, undefined)
@@ -253,7 +253,7 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
 class HelpCommand extends ConsoleCommand {
   name = "help"
   help = ""
-  hidden = true
+  override hidden = true
 
   async action({ commandLine }: CommandParams) {
     commandLine?.showHelp()
@@ -264,7 +264,7 @@ class HelpCommand extends ConsoleCommand {
 class QuitCommand extends ConsoleCommand {
   name = "quit"
   help = "Exit the dev console."
-  aliases = ["exit"]
+  override aliases = ["exit"]
 
   constructor(private quit: () => void) {
     super(quit)
@@ -279,7 +279,7 @@ class QuitCommand extends ConsoleCommand {
 class QuietCommand extends ConsoleCommand {
   name = "quiet"
   help = ""
-  hidden = true
+  override hidden = true
 
   async action({ commandLine }: CommandParams) {
     commandLine?.flashMessage(chalk.italic("Shh!"), { prefix: "🤫  " })
@@ -290,7 +290,7 @@ class QuietCommand extends ConsoleCommand {
 class QuiteCommand extends ConsoleCommand {
   name = "quite"
   help = ""
-  hidden = true
+  override hidden = true
 
   async action({ commandLine }: CommandParams) {
     commandLine?.flashMessage(chalk.italic("Indeed!"), { prefix: "🎩  " })

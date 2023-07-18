@@ -36,13 +36,13 @@ type Opts = typeof unlinkActionOptions
 
 export class UnlinkActionCommand extends Command<Args, Opts> {
   name = "action"
-  aliases = ["actions"]
+  override aliases = ["actions"]
 
   help = "Unlink a previously linked remote action from its local directory."
-  arguments = unlinkActionArguments
-  options = unlinkActionOptions
+  override arguments = unlinkActionArguments
+  override options = unlinkActionOptions
 
-  description = dedent`
+  override description = dedent`
     After unlinking a remote action, Garden will go back to reading the action's source from its remote repository instead of its local directory.
 
     Examples:
@@ -51,7 +51,7 @@ export class UnlinkActionCommand extends Command<Args, Opts> {
         garden unlink action --all           # unlink all actions
   `
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Unlink action", "⛓️")
   }
 

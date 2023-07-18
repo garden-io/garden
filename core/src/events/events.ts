@@ -50,12 +50,12 @@ export class EventBus extends EventEmitter2 {
     this.keyIndex = {}
   }
 
-  emit<T extends EventName>(name: T, payload: EventPayload<T>) {
+  override emit<T extends EventName>(name: T, payload: EventPayload<T>) {
     // The context set in the constructor is added on the $context field
     return super.emit(name, { $context: { ...payload.$context, ...this.context }, ...payload })
   }
 
-  on<T extends EventName>(name: T, listener: GardenEventListener<T>) {
+  override on<T extends EventName>(name: T, listener: GardenEventListener<T>) {
     return super.on(name, listener)
   }
 
@@ -120,7 +120,7 @@ export class EventBus extends EventEmitter2 {
     return super.on(name, listener)
   }
 
-  onAny(listener: GardenEventAnyListener) {
+  override onAny(listener: GardenEventAnyListener) {
     return super.onAny(<any>listener)
   }
 
@@ -138,7 +138,7 @@ export class EventBus extends EventEmitter2 {
     return super.onAny(<any>listener)
   }
 
-  once<T extends EventName>(name: T, listener: GardenEventListener<T>) {
+  override once<T extends EventName>(name: T, listener: GardenEventListener<T>) {
     return super.once(name, listener)
   }
 

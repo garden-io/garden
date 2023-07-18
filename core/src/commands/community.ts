@@ -14,15 +14,15 @@ export class CommunityCommand extends Command {
   name = "community"
   help = "Join our community Discord to chat with us!"
 
-  description = dedent`
+  override description = dedent`
     Opens the Garden Community Discord invite link
   `
 
   loggerType: "basic"
 
-  noProject = true
+  override noProject = true
 
-  printHeader() {}
+  override printHeader() {}
 
   async action(): Promise<CommandResult> {
     const discordInvite = "https://discord.gg/FrmhuUjFs6"

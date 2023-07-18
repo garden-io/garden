@@ -16,14 +16,14 @@ import { pathToCacheContext } from "../cache"
 type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt">
 
 export class GitRepoHandler extends GitHandler {
-  name = "git-repo"
+  override name = "git-repo"
 
   /**
    * This has the same signature as the GitHandler super class method but instead of scanning the individual directory
    * path directly, we scan the entire enclosing git repository, cache that file list and then filter down to the
    * sub-path. This results in far fewer git process calls but in turn collects more data in memory.
    */
-  async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
+  override async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
     const { log, path, pathDescription, filter, failOnPrompt = false } = params
 
     if (params.include && params.include.length === 0) {

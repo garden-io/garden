@@ -216,13 +216,13 @@ export interface ActionTaskProcessParams<T extends Action, S extends ValidResult
 export interface BaseActionTaskOutputs extends BaseTaskOutputs {}
 
 export abstract class BaseActionTask<T extends Action, O extends ValidResultType> extends BaseTask<O> {
-  _resultType: O & BaseActionTaskOutputs
+  override _resultType: O & BaseActionTaskOutputs
 
   action: T
   graph: ConfigGraph
   forceActions: ActionReference[]
   skipRuntimeDependencies: boolean
-  log: ActionLog
+  override log: ActionLog
 
   constructor(params: BaseActionTaskParams<T>) {
     const { action } = params
@@ -239,9 +239,9 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
     }
   }
 
-  abstract getStatus(params: ActionTaskStatusParams<T>): null | Promise<O | null>
+  abstract override getStatus(params: ActionTaskStatusParams<T>): null | Promise<O | null>
 
-  abstract process(params: ActionTaskProcessParams<T, O>): Promise<O>
+  abstract override process(params: ActionTaskProcessParams<T, O>): Promise<O>
 
   getName() {
     return this.action.name
@@ -554,10 +554,10 @@ export abstract class ExecuteActionTask<
     version: string
   },
 > extends BaseActionTask<T, O & ExecuteActionOutputs<T>> {
-  executeTask = true
-  abstract type: Lowercase<T["kind"]>
+  override executeTask = true
+  abstract override type: Lowercase<T["kind"]>
 
-  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<O & ExecuteActionOutputs<T>>
+  abstract override getStatus(params: ActionTaskStatusParams<T>): Promise<O & ExecuteActionOutputs<T>>
 
-  abstract process(params: ActionTaskProcessParams<T, O>): Promise<O & ExecuteActionOutputs<T>>
+  abstract override process(params: ActionTaskProcessParams<T, O>): Promise<O & ExecuteActionOutputs<T>>
 }

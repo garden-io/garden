@@ -468,7 +468,7 @@ export class ServerLogger extends LoggerBase {
     this.rootLogger = config.rootLogger
   }
 
-  log(entry: LogEntry) {
+  override log(entry: LogEntry) {
     this.rootLogger.log({ ...entry, level: LogLevel.silly })
 
     if (entry.level <= eventLogLevel && !entry.skipEmit) {
@@ -478,7 +478,7 @@ export class ServerLogger extends LoggerBase {
 }
 
 export class VoidLogger extends LoggerBase {
-  log() {
+  override log() {
     // No op
   }
 }
@@ -495,7 +495,7 @@ export class EventLogger extends LoggerBase {
   /**
    * Creates a new CoreLog context from the root Logger.
    */
-  createLog(params: CreateEventLogParams) {
+  override createLog(params: CreateEventLogParams) {
     return super.createLog(params)
   }
 }

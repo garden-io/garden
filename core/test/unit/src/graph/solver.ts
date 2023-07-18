@@ -67,7 +67,7 @@ export class TestTask extends BaseTask<TestTaskResult> {
     return this.name
   }
 
-  getId(): string {
+  override getId(): string {
     return this.uid ? `${this.name}.${this.uid}` : this.name
   }
 

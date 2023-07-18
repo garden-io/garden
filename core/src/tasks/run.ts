@@ -20,7 +20,7 @@ import { resolvedActionToExecuted } from "../actions/helpers"
 import { OtelTraced } from "../util/open-telemetry/decorators"
 
 class RunTaskError extends Error {
-  toString() {
+  override toString() {
     return this.message
   }
 }

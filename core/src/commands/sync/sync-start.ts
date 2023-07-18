@@ -51,12 +51,12 @@ export class SyncStartCommand extends Command<Args, Opts> {
   name = "start"
   help = "Start any configured syncs to the given Deploy action(s)."
 
-  protected = true
+  override protected = true
 
-  arguments = syncStartArgs
-  options = syncStartOpts
+  override arguments = syncStartArgs
+  override options = syncStartOpts
 
-  description = dedent`
+  override description = dedent`
     Start a sync between your local project directory and one or more Deploys.
 
     Examples:
@@ -82,13 +82,13 @@ export class SyncStartCommand extends Command<Args, Opts> {
         garden sync start api -f
   `
 
-  outputsSchema = () => joi.object()
+  override outputsSchema = () => joi.object()
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Starting sync(s)", "🔁")
   }
 
-  maybePersistent({ opts }: PrepareParams<Args, Opts>) {
+  override maybePersistent({ opts }: PrepareParams<Args, Opts>) {
     return !!opts.monitor
   }
 

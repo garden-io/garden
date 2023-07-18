@@ -45,18 +45,18 @@ interface Output {
 
 export class UpdateRemoteActionsCommand extends Command<Args, Opts> {
   name = "actions"
-  aliases = ["action"]
+  override aliases = ["action"]
 
   help = "Update remote actions."
-  arguments = updateRemoteActionsArguments
-  options = updateRemoteActionsOptions
+  override arguments = updateRemoteActionsArguments
+  override options = updateRemoteActionsOptions
 
-  outputsSchema = () =>
+  override outputsSchema = () =>
     joi.object().keys({
       sources: joiArray(actionSourceSchema()).description("A list of all external action sources in the project."),
     })
 
-  description = dedent`
+  override description = dedent`
     Updates remote actions, i.e. actions that have a \`source.repository.url\` field set in their config that points to a remote repository.
 
     Examples:
@@ -66,7 +66,7 @@ export class UpdateRemoteActionsCommand extends Command<Args, Opts> {
         garden update-remote action build.my-build   # update remote Build my-build
   `
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Update remote actions", "🛠️")
   }
 

@@ -36,12 +36,12 @@ export class SyncStopCommand extends Command<Args, Opts> {
   name = "stop"
   help = "Stop any active syncs to the given Deploy action(s)."
 
-  protected = true
+  override protected = true
 
-  arguments = syncStopArgs
-  options = syncStopOpts
+  override arguments = syncStopArgs
+  override options = syncStopOpts
 
-  description = dedent`
+  override description = dedent`
     Stops one or more active syncs.
 
     Examples:
@@ -52,9 +52,9 @@ export class SyncStopCommand extends Command<Args, Opts> {
         garden sync stop
   `
 
-  outputsSchema = () => joi.object()
+  override outputsSchema = () => joi.object()
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Stopping sync(s)", "🔁")
   }
 

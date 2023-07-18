@@ -31,13 +31,13 @@ export class GetFilesCommand extends Command<Args, Opts> {
   name = "files"
   help = "List all files from all or specified actions."
 
-  description = "This is useful to diagnose issues with ignores, include and exclude for a given action."
+  override description = "This is useful to diagnose issues with ignores, include and exclude for a given action."
 
-  arguments = getFilesArgs
+  override arguments = getFilesArgs
 
-  outputsSchema = () => joi.object().pattern(joi.string(), joi.array().items(joi.string()).required())
+  override outputsSchema = () => joi.object().pattern(joi.string(), joi.array().items(joi.string()).required())
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Get Files", "🗂️")
   }
 

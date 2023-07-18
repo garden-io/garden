@@ -247,7 +247,7 @@ export class ActionSpecContext extends OutputConfigContext {
   public actions: ActionReferencesContext
 
   @schema(ActionReferencesContext.getSchema().description("Alias for `action`."))
-  public runtime: ActionReferencesContext
+  public override runtime: ActionReferencesContext
 
   @schema(
     joiVariables().description(`The inputs provided to the config through a template, if applicable.`).meta({

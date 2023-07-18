@@ -26,7 +26,7 @@ type Args = typeof secretsDeleteArgs
 export class SecretsDeleteCommand extends Command<Args> {
   name = "delete"
   help = "Delete secrets from Garden Cloud."
-  description = dedent`
+  override description = dedent`
     Delete secrets in Garden Cloud. You will need the IDs of the secrets you want to delete,
     which you which you can get from the \`garden cloud secrets list\` command.
 
@@ -34,9 +34,9 @@ export class SecretsDeleteCommand extends Command<Args> {
         garden cloud secrets delete <ID 1> <ID 2> <ID 3>   # delete three secrets with the given IDs.
   `
 
-  arguments = secretsDeleteArgs
+  override arguments = secretsDeleteArgs
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Delete secrets", "🔒")
   }
 

@@ -247,7 +247,7 @@ export class GenericContext extends ConfigContext {
     Object.assign(this, obj)
   }
 
-  static getSchema() {
+  static override getSchema() {
     return joi.object()
   }
 }
@@ -263,7 +263,7 @@ export class ScanContext extends ConfigContext {
     this.foundKeys = new KeyedSet<ContextKeySegment[]>((v) => renderKeyPath(v))
   }
 
-  resolve({ key, nodePath }: ContextResolveParams) {
+  override resolve({ key, nodePath }: ContextResolveParams) {
     const fullKey = nodePath.concat(key)
     this.foundKeys.add(fullKey)
     return { resolved: renderTemplateString(fullKey), partial: true }
@@ -308,7 +308,7 @@ export class ErrorContext extends ConfigContext {
     super()
   }
 
-  resolve({}): ContextResolveOutput {
+  override resolve({}): ContextResolveOutput {
     throw new ConfigurationError({ message: this.message, detail: {} })
   }
 }

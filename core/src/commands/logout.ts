@@ -28,14 +28,14 @@ type Opts = typeof logoutOpts
 export class LogOutCommand extends Command<{}, Opts> {
   name = "logout"
   help = "Log out of Garden Cloud."
-  noProject = true
+  override noProject = true
 
-  description = dedent`
+  override description = dedent`
     Logs you out of Garden Cloud.
   `
-  options = logoutOpts
+  override options = logoutOpts
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Log out", "☁️")
   }
 

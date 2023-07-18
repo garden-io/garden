@@ -36,10 +36,10 @@ type Opts = typeof unlinkModuleOptions
 export class UnlinkModuleCommand extends Command<Args, Opts> {
   name = "module"
   help = "Unlink a previously linked remote module from its local directory."
-  arguments = unlinkModuleArguments
-  options = unlinkModuleOptions
+  override arguments = unlinkModuleArguments
+  override options = unlinkModuleOptions
 
-  description = dedent`
+  override description = dedent`
     After unlinking a remote module, Garden will go back to reading the module's source from
     its remote URL instead of its local directory.
 
@@ -49,7 +49,7 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
         garden unlink module --all      # unlink all modules
   `
 
-  printHeader({ log }) {
+  override printHeader({ log }) {
     printHeader(log, "Unlink module", "⛓️")
   }
 
