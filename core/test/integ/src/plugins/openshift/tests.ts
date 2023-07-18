@@ -92,7 +92,7 @@ describe.skip("OpenShift", () => {
       garden,
       log,
       args: {
-        names: [],
+        names: ["cat", "curl"],
       },
       opts: withDefaultGlobalOpts({
         "name": undefined,
