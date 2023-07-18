@@ -237,7 +237,9 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
           })
         )
 
-        state = resolveResourceStatuses(log, statuses)
+        if (state !== "outdated") {
+          state = resolveResourceStatuses(log, statuses)
+        }
       } catch (error) {
         log.debug({ msg: `Failed querying for remote resources: ${error.message}`, error })
         state = "unknown"
