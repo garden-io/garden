@@ -54,17 +54,17 @@ export class CliWrapper {
   name: string
   protected toolPath: string
 
-  constructor(name: string, path: string) {
+  constructor({ name, path }: { name: string; path: string }) {
     this.name = name
     this.toolPath = path
   }
 
-  async ensurePath(_: Log) {
+  async getPath(_: Log) {
     return this.toolPath
   }
 
   async exec({ args, cwd, env, log, timeoutSec, input, ignoreError, stdout, stderr }: ExecParams) {
-    const path = await this.ensurePath(log)
+    const path = await this.getPath(log)
 
     if (!args) {
       args = []
@@ -105,7 +105,7 @@ export class CliWrapper {
   }
 
   async spawn({ args, cwd, env, log }: SpawnParams) {
-    const path = await this.ensurePath(log)
+    const path = await this.getPath(log)
 
     if (!args) {
       args = []
@@ -146,7 +146,7 @@ export class CliWrapper {
   }
 
   async spawnAndWait({ args, cwd, env, log, ignoreError, rawMode, stdout, stderr, timeoutSec, tty }: SpawnParams) {
-    const path = await this.ensurePath(log)
+    const path = await this.getPath(log)
 
     if (!args) {
       args = []
@@ -196,7 +196,7 @@ export class PluginTool extends CliWrapper {
   private chmodDone: boolean
 
   constructor(spec: PluginToolSpec) {
-    super(spec.name, "")
+    super({ name: spec.name, path: "" })
 
     const platform = getPlatform()
     const architecture = getArchitecture()
@@ -236,6 +236,10 @@ export class PluginTool extends CliWrapper {
     this.chmodDone = false
   }
 
+  async getPath(log: Log) {
+    return this.ensurePath(log)
+  }
+
   async ensurePath(log: Log) {
     await this.download(log)
     const path = join(this.versionPath, ...this.targetSubpath.split(posix.sep))
@@ -247,7 +251,7 @@ export class PluginTool extends CliWrapper {
         this.chmodDone = true
       }
     }
-
+    this.toolPath = path
     return path
   }
 

@@ -44,7 +44,7 @@ export function pulumi(ctx: PluginContext, provider: PulumiProvider) {
 
 export class GlobalPulumi extends CliWrapper {
   constructor() {
-    super("pulumi", "pulumi/pulumi")
+    super({ name: "pulumi", path: "pulumi" })
   }
 
   async getPath(_: Log) {
