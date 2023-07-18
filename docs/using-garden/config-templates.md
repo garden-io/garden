@@ -68,6 +68,8 @@ Each template can include one or more actions (`Build`, `Deploy`, `Test` or `Run
 
 ### Defining and referencing inputs
 
+It's possible to define a schema to validate inputs given to a `ConfigTemplate`. If no schema is defined any inputs are allowed.
+
 On the `ConfigTemplate`, the `inputsSchemaPath` field points to a standard [JSON Schema](https://json-schema.org/) file, which describes the schema for the `inputs` field on every action and module that references the template. In our example, it looks like this:
 
 ```json
@@ -92,7 +94,7 @@ On the `ConfigTemplate`, the `inputsSchemaPath` field points to a standard [JSON
 }
 ```
 
-This simple schema says the `containerPort` and `servicePort` inputs are required, and that you can optionally set a `replicas` value as well. Any JSON Schema with `"type": "object"` is supported, and users can add any parameters that templated actions and modules should specify. These could be ingress hostnames, paths, or really any flags that need to be customizable per action or module.
+This schema says that the `containerPort` and `servicePort` inputs are required, and that you can optionally set a `replicas` value as well. Any JSON Schema with `"type": "object"` is supported, and users can add any parameters that templated actions and modules should specify. These could be ingress hostnames, paths, or really any flags that need to be customizable per action or module.
 
 These values can then be referenced using `${inputs.*}` template strings, anywhere under the `configs` and `modules` fields.
 
