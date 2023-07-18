@@ -59,7 +59,7 @@ describe("SecretsUpdateCommand", () => {
     },
   ]
 
-  it("should throw an error without run without arguments", async () => {
+  it("should throw an error when run without arguments", async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
     const command = new SecretsUpdateCommand()
@@ -104,7 +104,7 @@ describe("SecretsUpdateCommand", () => {
     ])
   })
 
-  it(`should throw an error when a multiple secrets of same name are found, and user and env scopes are not set`, async () => {
+  it(`should throw an error when multiple secrets of same name are found, and user and env scopes are not set`, async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
     const secretsToUpdateArgs: StringMap = {
