@@ -98,7 +98,7 @@ export const secretsUpdateArgs = {
 
 export const secretsUpdateOpts = {
   "upsert": new BooleanParameter({
-    help: "Set this flag to upsert secrets instead of updating i.e. existing secrets are updated while missing secrets are created",
+    help: "Set this flag to upsert secrets instead of update i.e. existing secrets are updated while missing secrets are created.",
     defaultValue: false,
   }),
   "update-by-id": new BooleanParameter({

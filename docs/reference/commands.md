@@ -487,10 +487,11 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--scope-to-user-id` |  | string | Update the secret(s) in scope of user with the given user ID. This must be specified if you want to update secrets by name instead of secret ID.
-  | `--scope-to-env` |  | string | Update the secret(s) in scope of the specified environment. This must be specified if you want to update secrets by name instead of secret ID.
+  | `--upsert` |  | boolean | Set this flag to upsert secrets instead of update i.e. existing secrets are updated while missing secrets are created.
   | `--update-by-id` |  | boolean | Update the secret(s) by providing the ID(s) of secrets. By default, the command args are considered to be secret name(s).
   | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+  | `--scope-to-user-id` |  | string | Update the secret(s) in scope of user with the given user ID. This must be specified if you want to update secrets by name instead of secret ID.
+  | `--scope-to-env` |  | string | Update the secret(s) in scope of the specified environment. This must be specified if you want to update secrets by name instead of secret ID.
 
 
 ### garden cloud secrets delete
