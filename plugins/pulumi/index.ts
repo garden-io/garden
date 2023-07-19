@@ -103,7 +103,7 @@ export const gardenPlugin = () =>
           configure: configurePulumiModule,
 
           async convert(params: ConvertModuleParams<PulumiModule>) {
-            const { module, dummyBuild, prepareRuntimeDependencies } = params
+            const { module, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } = params
             const actions: (ExecBuildConfig | PulumiDeployConfig)[] = []
 
             if (dummyBuild) {
@@ -115,7 +115,12 @@ export const gardenPlugin = () =>
               type: "pulumi",
               name: module.name,
               ...params.baseFields,
-              dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
+
+              build: dummyBuild?.name,
+              dependencies: [
+                ...module.build.dependencies.map(convertBuildDependency),
+                ...prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
+              ],
 
               timeout: defaultPulumiTimeoutSec,
               spec: {
