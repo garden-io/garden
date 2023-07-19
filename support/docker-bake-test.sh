@@ -103,18 +103,18 @@ TEST "run all binaries"
   for variant in bonsai-buster{,-rootless} bonsai-alpine{,-rootless}
     do
     # Garden on vanilla images
-    should_succeed garden --version gardendev/garden:$variant
-    should_succeed garden --version gardendev/garden:$variant
+    should_succeed garden version gardendev/garden:$variant
+    should_succeed garden version gardendev/garden:$variant
   done
 
   for variant in bonsai-alpine{,-rootless}
     do
     # garden
-    should_succeed garden --version gardendev/garden-aws-gcloud-azure:$variant
-    should_succeed garden --version gardendev/garden-aws-gcloud:$variant
-    should_succeed garden --version gardendev/garden-aws:$variant
-    should_succeed garden --version gardendev/garden-gcloud:$variant
-    should_succeed garden --version gardendev/garden-azure:$variant
+    should_succeed garden version gardendev/garden-aws-gcloud-azure:$variant
+    should_succeed garden version gardendev/garden-aws-gcloud:$variant
+    should_succeed garden version gardendev/garden-aws:$variant
+    should_succeed garden version gardendev/garden-gcloud:$variant
+    should_succeed garden version gardendev/garden-azure:$variant
 
     # aws
     should_succeed aws --version gardendev/garden-aws-gcloud-azure:$variant
