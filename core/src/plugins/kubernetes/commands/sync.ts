@@ -7,9 +7,7 @@
  */
 
 import chalk from "chalk"
-import { getMutagenEnv, mutagenCliSpec, parseSyncListResult } from "../../../mutagen"
-import { MUTAGEN_DIR_NAME } from "../../../constants"
-import { join } from "path"
+import { getMutagenDataDir, getMutagenEnv, mutagenCliSpec, parseSyncListResult } from "../../../mutagen"
 import { pathExists } from "fs-extra"
 import { dedent } from "../../../util/string"
 import { Log } from "../../../logger/log-entry"
@@ -24,7 +22,7 @@ export const syncStatus: PluginCommand = {
   title: "Get the current sync status",
 
   handler: async ({ ctx, log }) => {
-    const dataDir = getMutagenDataDir(ctx.gardenDirPath)
+    const dataDir = getMutagenDataDir(ctx.gardenDirPath, log)
     const mutagen = new PluginTool(mutagenCliSpec)
 
     if (!(await pathExists(dataDir))) {
@@ -58,7 +56,7 @@ export const syncPause: PluginCommand = {
   title: "Pause sync",
 
   handler: async ({ ctx, log }) => {
-    const dataDir = getMutagenDataDir(ctx.gardenDirPath)
+    const dataDir = getMutagenDataDir(ctx.gardenDirPath, log)
     const mutagen = new PluginTool(mutagenCliSpec)
 
     if (!(await pathExists(dataDir))) {
@@ -87,7 +85,7 @@ export const syncPause: PluginCommand = {
         await mutagen.exec({
           cwd: dataDir,
           log,
-          env: getMutagenEnv({ dataDir, log }),
+          env: getMutagenEnv(dataDir),
           args: ["sync", "pause", sessionName],
         })
       }
@@ -104,7 +102,7 @@ export const syncResume: PluginCommand = {
   title: "Resume sync",
 
   handler: async ({ ctx, log }) => {
-    const dataDir = getMutagenDataDir(ctx.gardenDirPath)
+    const dataDir = getMutagenDataDir(ctx.gardenDirPath, log)
     const mutagen = new PluginTool(mutagenCliSpec)
 
     if (!(await pathExists(dataDir))) {
@@ -133,7 +131,7 @@ export const syncResume: PluginCommand = {
         await mutagen.exec({
           cwd: dataDir,
           log,
-          env: getMutagenEnv({ dataDir, log }),
+          env: getMutagenEnv(dataDir),
           args: ["sync", "resume", sessionName],
         })
       }
@@ -148,12 +146,8 @@ async function getMutagenSyncSessions({ mutagen, dataDir, log }: { mutagen: Plug
   const res = await mutagen.exec({
     cwd: dataDir,
     log,
-    env: getMutagenEnv({ dataDir, log }),
+    env: getMutagenEnv(dataDir),
     args: ["sync", "list", "--template={{ json . }}"],
   })
   return parseSyncListResult(res)
-}
-
-function getMutagenDataDir(gardenDirPath: string) {
-  return join(gardenDirPath, MUTAGEN_DIR_NAME)
 }
