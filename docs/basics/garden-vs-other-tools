@@ -26,7 +26,7 @@ Garden can greatly simplify the task of creating ephemeral environments for ever
 
   
 
-What our users report is that over time, the amount of YAML in their CI pipeline definitions shrinks down to almost nothing, since deploying an entire environment or running an end-to-end test suite becomes just `garden deploy` or `garden test`
+Our users report that over time the amount of YAML in their CI pipeline definitions shrinks down to almost nothing, since deploying an entire environment or running an end-to-end test suite becomes just `garden deploy` or `garden test`.
 
   
 
