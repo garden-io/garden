@@ -28,7 +28,6 @@ import { ActionConfigMap } from "../actions/types"
 import { actionKinds } from "../actions/types"
 import { getResultErrorProperties } from "./helpers"
 
-const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 const CI_USER = "ci-user"
 
 /**
@@ -288,7 +287,9 @@ export class AnalyticsHandler {
     ciInfo: CiInfo
   }) {
     const segmentClient = require("analytics-node")
-    this.segment = new segmentClient(API_KEY, { flushAt: 20, flushInterval: 300 })
+    const segmentApiKey = gardenEnv.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
+
+    this.segment = new segmentClient(segmentApiKey, { flushAt: 20, flushInterval: 300 })
     this.log = log
     this.isEnabled = isEnabled
     this.garden = garden
