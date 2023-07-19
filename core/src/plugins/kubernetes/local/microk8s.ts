@@ -13,7 +13,7 @@ import { exec } from "../../../util/util"
 import { containerHelpers } from "../../container/helpers"
 import { ContainerBuildAction } from "../../container/moduleConfig"
 import chalk from "chalk"
-import { naturalList, deline } from "../../../util/string"
+import { deline, naturalList } from "../../../util/string"
 import { ExecaReturnValue } from "execa"
 import { PluginContext } from "../../../plugin-context"
 import { parse as parsePath } from "path"
@@ -55,7 +55,11 @@ export async function configureMicrok8sAddons(log: Log, addons: string[]) {
 
   if (missingAddons.length > 0) {
     microK8sLog.info(`enabling required addons (${missingAddons.join(", ")})`)
-    await exec("microk8s", ["enable"].concat(missingAddons))
+    // It's recommended to enable microk8s addons sequentially instead of using chained operations.
+    // Otherwise, a deprecation warning will be printed.
+    for (const missingAddon of missingAddons) {
+      await exec("microk8s", ["enable", missingAddon])
+    }
   }
 }
 
