@@ -188,7 +188,7 @@ export const gardenPlugin = () =>
         needsBuild: false,
         handlers: {
           async convert(params: ConvertModuleParams<TerraformModule>) {
-            const { module, dummyBuild, prepareRuntimeDependencies } = params
+            const { module, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } = params
             const actions: (ExecBuildConfig | TerraformDeployConfig)[] = []
 
             if (dummyBuild) {
@@ -202,7 +202,10 @@ export const gardenPlugin = () =>
               ...params.baseFields,
 
               build: dummyBuild?.name,
-              dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
+              dependencies: [
+                ...module.build.dependencies.map(convertBuildDependency),
+                ...prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
+              ],
 
               timeout: defaultTerraformTimeoutSec,
               spec: {
