@@ -632,9 +632,13 @@ jobs:
             sudo microk8s.status --wait-ready --timeout=300
 
             # Workaround for some issue with snap/microk8s
-            sudo microk8s.enable storage registry dns || true
+            sudo microk8s.enable storage || true
+            sudo microk8s.enable registry || true
+            sudo microk8s.enable dns || true
             sleep 10
-            sudo microk8s.enable storage registry dns
+            sudo microk8s.enable storage
+            sudo microk8s.enable registry
+            sudo microk8s.enable dns
 
             echo "********* microk8s ready! ************"
 
