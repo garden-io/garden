@@ -156,7 +156,7 @@ function generateMarkdown(tree: FileTree, docsRoot: string, depth: number, emoji
 const indent: string = "  "
 
 export function generateTableOfContents(docsRoot: string): string {
-  const rawTree = <FileTree>dtree(docsRoot, { extensions: /\.md/ })
+  const rawTree = <FileTree>dtree(docsRoot, { extensions: /\.md/, attributes: ["size", "type", "extension"] })
   if (rawTree === null) {
     throw new Error("Directory not found.")
   }
