@@ -185,7 +185,9 @@ const testPluginBuild = testPluginProvider.createActionType({
   runtimeOutputsSchema: execRuntimeOutputsSchema,
 })
 
-testPluginBuild.addHandler("build", execBuildHandler)
+// TODO: remove typecast. Required due to `testBuildStaticOutputsSchema` being defined and `execBuildHandler` not having the outputs.
+// Property 'foo' is missing in type '{}' but required in type '{ foo: string; }
+testPluginBuild.addHandler("build", execBuildHandler as any)
 testPluginBuild.addHandler("getStatus", async ({ ctx, action }) => {
   const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
   return result || { state: "not-ready", detail: null, outputs: {} }

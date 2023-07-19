@@ -303,7 +303,7 @@ export class GardenServer extends EventEmitter {
      * means we can keep a consistent format across mechanisms.
      */
     http.post("/api", async (ctx) => {
-      const { garden, command, log, args, opts } = await this.resolveRequest(ctx, ctx.request.body)
+      const { garden, command, log, args, opts } = await this.resolveRequest(ctx, ctx.request.body as BaseServerRequest)
 
       if (!command) {
         return ctx.throw(400, "Must specify command parameter.")
@@ -347,7 +347,7 @@ export class GardenServer extends EventEmitter {
      * Resolves the URL for the given provider dashboard page, and redirects to it.
      */
     http.get("/dashboardPages/:pluginName/:pageName", async (ctx) => {
-      const { garden } = await this.resolveRequest(ctx, ctx.request.body)
+      const { garden } = await this.resolveRequest(ctx, ctx.request.body as BaseServerRequest)
 
       const { pluginName, pageName } = ctx.params
 
