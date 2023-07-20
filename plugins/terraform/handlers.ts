@@ -9,7 +9,7 @@
 import { join } from "path"
 import { deline } from "@garden-io/core/build/src/util/string"
 import { terraform } from "./cli"
-import { applyStack, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./common"
+import { applyStack, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers"
 import { TerraformProvider } from "./provider"
 import { DeployActionHandler } from "@garden-io/core/build/src/plugin/action-types"
 import { DeployState } from "@garden-io/core/build/src/types/service"

@@ -7,7 +7,7 @@
  */
 
 import { TerraformProvider } from "./provider"
-import { applyStack, getRoot, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./common"
+import { applyStack, getRoot, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers"
 import chalk from "chalk"
 import { deline } from "@garden-io/sdk/util/string"
 import { ProviderHandlers } from "@garden-io/sdk/types"

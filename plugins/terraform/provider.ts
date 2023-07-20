@@ -8,7 +8,7 @@
 
 import { dedent } from "@garden-io/sdk/util/string"
 import { defaultTerraformVersion, supportedVersions } from "./cli"
-import { TerraformBaseSpec, variablesSchema } from "./common"
+import { TerraformBaseSpec, variablesSchema } from "./helpers"
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"

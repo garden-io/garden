@@ -9,7 +9,7 @@
 import { createSchema, joi, joiVariables } from "@garden-io/core/build/src/config/common"
 import { dedent } from "@garden-io/core/build/src/util/string"
 import { supportedVersions } from "./cli"
-import { TerraformBaseSpec, variablesSchema } from "./common"
+import { TerraformBaseSpec, variablesSchema } from "./helpers"
 import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
 
 export interface TerraformDeploySpec extends TerraformBaseSpec {

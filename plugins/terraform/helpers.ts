@@ -16,7 +16,6 @@ import { terraform } from "./cli"
 import { TerraformProvider } from "./provider"
 import { writeFile } from "fs-extra"
 import chalk from "chalk"
-
 import { joi, joiStringMap, PrimitiveMap } from "@garden-io/core/build/src/config/common"
 import split2 = require("split2")
 
