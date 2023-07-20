@@ -35,7 +35,7 @@ providers:
       - name: gcr-config
         namespace: default
 variables:
-  userId: ${local.username}
+  userId: ${kebabCase(local.username)}
   postgres-database: postgres
   # Only use for testing!
   postgres-username: postgres

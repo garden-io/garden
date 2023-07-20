@@ -24,4 +24,4 @@ providers:
       - name: gcr-config
         namespace: default
 variables:
-  userId: ${local.username}
+  userId: ${kebabCase(local.username)}
