@@ -6,15 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeepPrimitiveMap, joi, joiSparseArray, joiVariables } from "@garden-io/core/build/src/config/common"
+import {
+  createSchema,
+  DeepPrimitiveMap,
+  joi,
+  joiSparseArray,
+  joiVariables,
+} from "@garden-io/core/build/src/config/common"
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
 import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
-import { GardenModule } from "@garden-io/sdk/types"
 import { dedent } from "@garden-io/sdk/util/string"
 import { defaultPulumiVersion, supportedVersions } from "./cli"
-import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
-import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
-import { createSchema } from "@garden-io/core/build/src/config/common"
 
 type PulumiProviderConfig = GenericProviderConfig & {
   version: string | null
@@ -82,14 +84,8 @@ export interface PulumiDeploySpec {
   stack?: string
 }
 
-interface PulumiServiceSpec extends PulumiDeploySpec {
-  dependencies: string[]
-}
-
 export type PulumiDeployConfig = DeployActionConfig<"pulumi", PulumiDeploySpec>
 export type PulumiDeploy = DeployAction<PulumiDeployConfig, any>
-
-export interface PulumiModule extends GardenModule<PulumiServiceSpec> {}
 
 // Validate that the path ends in .yaml or .yml
 const yamlFileRegex = /(\.yaml)|(\.yml)$/
@@ -198,10 +194,3 @@ export const pulumiDeploySchema = createSchema({
   name: "pulumi:Deploy",
   keys: pulumiDeploySchemaKeys,
 })
-
-export const pulumiModuleSchema = () =>
-  joi.object().keys({
-    build: baseBuildSpecSchema(),
-    dependencies: dependenciesSchema(),
-    ...pulumiDeploySchemaKeys(),
-  })
