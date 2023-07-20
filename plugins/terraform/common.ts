@@ -41,6 +41,10 @@ interface TerraformParamsWithWorkspace extends TerraformParams {
   workspace: string | null
 }
 
+interface TerraformParamsWithVariables extends TerraformParamsWithWorkspace {
+  variables: object
+}
+
 /**
  * Validates the stack at the given root.
  *
@@ -124,10 +128,6 @@ export async function getTfOutputs(params: TerraformParams) {
 
 export function getRoot(ctx: PluginContext, provider: TerraformProvider) {
   return resolve(ctx.projectRoot, provider.config.initRoot || ".")
-}
-
-interface TerraformParamsWithVariables extends TerraformParamsWithWorkspace {
-  variables: object
 }
 
 type StackStatus = "up-to-date" | "outdated" | "error"
