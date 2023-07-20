@@ -18,14 +18,8 @@ import { configureTerraformModule, TerraformModule, terraformModuleSchema } from
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { listDirectory } from "@garden-io/sdk/util/fs"
 import { getTerraformCommands } from "./commands"
-import {
-  deleteTerraformModule,
-  deployTerraform,
-  getTerraformStatus,
-  TerraformDeployConfig,
-  terraformDeployOutputsSchema,
-  terraformDeploySchema,
-} from "./action"
+import { TerraformDeployConfig, terraformDeployOutputsSchema, terraformDeploySchema } from "./action"
+import { deleteTerraformModule, deployTerraform, getTerraformStatus } from "./handlers"
 import { DOCS_BASE_URL } from "@garden-io/core/build/src/constants"
 import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/build"
 import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/convert"

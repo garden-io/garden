@@ -17,7 +17,7 @@ import { TerraformProvider } from "./provider"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { terraformDeploySchemaKeys } from "./action"
 
-interface TerraformModuleSpec extends TerraformBaseSpec {
+export interface TerraformModuleSpec extends TerraformBaseSpec {
   root: string
   dependencies: string[]
 }
