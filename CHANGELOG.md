@@ -1,4 +1,32 @@
 
+<a name="0.13.9"></a>
+## [0.13.9](https://github.com/garden-io/garden/compare/0.13.8...0.13.9) (2023-07-20)
+
+### Bug Fixes
+
+* properly handle build deps for pulumi and terraform modules ([fbc2320af](https://github.com/garden-io/garden/commit/fbc2320af))
+* enoent when version set to null on tf and pulumi ([8de4c6f12](https://github.com/garden-io/garden/commit/8de4c6f12))
+* allow to use `parent.name` template ([c01f4a052](https://github.com/garden-io/garden/commit/c01f4a052))
+* local-docker build failure when `deploymentRegistry` is enabled ([#4835](https://github.com/garden-io/garden/issues/4835)) ([135ea0413](https://github.com/garden-io/garden/commit/135ea0413))
+* **container:** add default container annotation to generated manifests ([7ca6ca5d1](https://github.com/garden-io/garden/commit/7ca6ca5d1))
+* **docs:** remove unimplemented change from Bonsai migration guide ([b8483e3b1](https://github.com/garden-io/garden/commit/b8483e3b1))
+* **k8s:** enable microk8s addons sequentially ([1a715f949](https://github.com/garden-io/garden/commit/1a715f949))
+* **mutagen:** use shorter directories for mutagen syncs ([#4867](https://github.com/garden-io/garden/issues/4867)) ([2698410c8](https://github.com/garden-io/garden/commit/2698410c8))
+
+### Features
+
+* otel collector integration ([#4769](https://github.com/garden-io/garden/issues/4769)) ([9c4405548](https://github.com/garden-io/garden/commit/9c4405548))
+* **exec:** add --target flag in exec command ([ac7042759](https://github.com/garden-io/garden/commit/ac7042759))
+
+### Improvements
+
+* update docker to v24.0.4 ([eb12ceab0](https://github.com/garden-io/garden/commit/eb12ceab0))
+* verify downloads using sha256 in Dockerfiles ([#4826](https://github.com/garden-io/garden/issues/4826)) ([e976849c7](https://github.com/garden-io/garden/commit/e976849c7))
+
+### Performance Improvements
+
+* **git:** optimize git scan when exclude but no include filter is set ([7361fc90a](https://github.com/garden-io/garden/commit/7361fc90a))
+
 <a name="0.13.8"></a>
 ## [0.13.8](https://github.com/garden-io/garden/compare/0.13.7...0.13.8) (2023-07-13)
 
