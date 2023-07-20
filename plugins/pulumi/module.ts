@@ -15,11 +15,11 @@ import { join } from "path"
 import { pathExists } from "fs-extra"
 import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
 
-interface PulumiServiceSpec extends PulumiDeploySpec {
+interface PulumiModuleSpec extends PulumiDeploySpec {
   dependencies: string[]
 }
 
-export interface PulumiModule extends GardenModule<PulumiServiceSpec> {}
+export interface PulumiModule extends GardenModule<PulumiModuleSpec> {}
 
 export const pulumiModuleSchema = () =>
   joi.object().keys({
