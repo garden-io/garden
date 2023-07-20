@@ -1,4 +1,11 @@
 
+<a name="0.12.63"></a>
+## [0.12.63](https://github.com/garden-io/garden/compare/0.13.8...0.12.63) (2023-07-18)
+
+### Improvements
+
+* update docker to v24.0.4 ([13db6076f](https://github.com/garden-io/garden/commit/13db6076f))
+
 <a name="0.12.62"></a>
 ## [0.12.62](https://github.com/garden-io/garden/compare/0.12.62...0.12.61) (2023-07-12)
 
