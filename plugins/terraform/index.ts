@@ -41,7 +41,7 @@ type TerraformProviderConfig = GenericProviderConfig &
 
 export interface TerraformProvider extends Provider<TerraformProviderConfig> {}
 
-const configSchema = providerConfigBaseSchema()
+const terraformProviderConfigSchema = providerConfigBaseSchema()
   .keys({
     allowDestroy: joi.boolean().default(false).description(dedent`
         If set to true, Garden will run \`terraform destroy\` on the project root stack when calling \`garden delete env\`.
@@ -87,7 +87,7 @@ export const gardenPlugin = () =>
     docs: dedent`
     This provider allows you to integrate Terraform stacks into your Garden project. See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for details and usage information.
   `,
-    configSchema,
+    configSchema: terraformProviderConfigSchema,
     handlers: {
       getEnvironmentStatus,
       prepareEnvironment,
