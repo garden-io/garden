@@ -19,7 +19,7 @@ variables:
   registryHostname: docker.io
   registryNamespace: worldofgeese
   terraformInitRoot: "./terraform/"
-  userId: ${local.username}
+  userId: ${kebabCase(local.username)}
 providers:
   - name: terraform
     # This must be set to indicate that there is a stack in the terraform project folder.

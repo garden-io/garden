@@ -20,11 +20,11 @@ providers:
     buildMode: ${var.buildMode} # <- set differently in each environment above
     deploymentRegistry:
       # Replace these values as appropriate
-      hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
-      namespace: garden-ci   # <- set this to the project ID of the target cluster
+      hostname: eu.gcr.io # <- set this according to the region your cluster runs in
+      namespace: garden-ci # <- set this to the project ID of the target cluster
     imagePullSecrets:
       # Make sure this matches the name and namespace of the imagePullSecret you've created
       - name: gcr-config
         namespace: default
 variables:
-  userId: ${local.username}
+  userId: ${kebabCase(local.username)}

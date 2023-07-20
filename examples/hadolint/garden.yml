@@ -16,12 +16,12 @@ providers:
     defaultHostname: ${project.name}-testing-${var.userId}.dev-1.sys.garden
     buildMode: kaniko
     deploymentRegistry:
-      hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
-      namespace: garden-ci   # <- set this to the project ID of the target cluster
+      hostname: eu.gcr.io # <- set this according to the region your cluster runs in
+      namespace: garden-ci # <- set this to the project ID of the target cluster
     imagePullSecrets:
       # Make sure this matches the name and namespace of the imagePullSecret you've created
       # to authenticate with your registry (if needed)
       - name: gcr-config
         namespace: default
 variables:
-  userId: ${local.username}
+  userId: ${kebabCase(local.username)}
