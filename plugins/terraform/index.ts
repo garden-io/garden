@@ -56,7 +56,7 @@ const terraformProviderConfigSchema = providerConfigBaseSchema()
 
         See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for more information.
       `),
-    // When you provide variables directly in \`terraform\` axtions, those variables will
+    // When you provide variables directly in \`terraform\` actions, those variables will
     // extend the ones specified here, and take precedence if the keys overlap.
     variables: variablesSchema().description(dedent`
         A map of variables to use when applying Terraform stacks. You can define these here, in individual
