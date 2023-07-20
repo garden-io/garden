@@ -194,3 +194,6 @@ export const pulumiDeploySchema = createSchema({
   name: "pulumi:Deploy",
   keys: pulumiDeploySchemaKeys,
 })
+
+export const pulumiDeployOutputsSchema = () =>
+  joiVariables().description("A map of all the outputs returned by the Pulumi stack.")
