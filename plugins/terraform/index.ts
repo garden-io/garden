@@ -25,7 +25,7 @@ import {
   getTerraformStatus,
   TerraformDeployConfig,
   terraformDeployOutputsSchema,
-  terraformDeploySchemaKeys,
+  terraformDeploySchema,
 } from "./action"
 
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
@@ -127,7 +127,7 @@ export const gardenPlugin = () =>
 
           See the [Terraform guide](${DOCS_BASE_URL}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
           `,
-          schema: joi.object().keys(terraformDeploySchemaKeys()),
+          schema: terraformDeploySchema(),
           runtimeOutputsSchema: terraformDeployOutputsSchema(),
           handlers: {
             configure: async ({ ctx, config }) => {
