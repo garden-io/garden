@@ -11,7 +11,7 @@ import which from "which"
 import { CliWrapper } from "@garden-io/sdk/util/ext-tools"
 import { ConfigurationError, RuntimeError } from "@garden-io/sdk/exceptions"
 import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
-import { PulumiProvider } from "./config"
+import { PulumiProvider } from "./provider"
 
 export const defaultPulumiEnv = {
   // This suppresses the "warning: A new version of Pulumi is available" output when running pulumi commands.
