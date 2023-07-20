@@ -8,17 +8,15 @@
 
 import { expect } from "chai"
 import { Garden } from "../../../../../../src/garden"
-import { getContainerTestGarden } from "../container/container"
-import { PluginContext } from "../../../../../../src/plugin-context"
-import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { getMutagenMonitor } from "../../../../../../src/mutagen"
-import { syncPause, syncResume, syncStatus } from "../../../../../../src/plugins/kubernetes/commands/sync"
-import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { Log } from "../../../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { join } from "path"
-import { MUTAGEN_DIR_NAME } from "../../../../../../src/constants"
+import { Log } from "../../../../../../src/logger/log-entry"
+import { getMutagenDataDir, getMutagenMonitor } from "../../../../../../src/mutagen"
+import { PluginContext } from "../../../../../../src/plugin-context"
+import { syncPause, syncResume, syncStatus } from "../../../../../../src/plugins/kubernetes/commands/sync"
+import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
+import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { cleanProject } from "../../../../../helpers"
+import { getContainerTestGarden } from "../container/container"
 
 describe("sync plugin commands", () => {
   let garden: Garden
@@ -34,7 +32,7 @@ describe("sync plugin commands", () => {
   after(async () => {
     if (garden) {
       garden.close()
-      const dataDir = join(garden.gardenDirPath, MUTAGEN_DIR_NAME)
+      const dataDir = getMutagenDataDir(garden.gardenDirPath, garden.log)
       await getMutagenMonitor({ log, dataDir }).stop()
       await cleanProject(garden.gardenDirPath)
     }

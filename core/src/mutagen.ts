@@ -7,27 +7,28 @@
  */
 
 import AsyncLock from "async-lock"
-import chalk from "chalk"
-import { join } from "path"
-import { mkdirp, pathExists } from "fs-extra"
-import respawn from "respawn"
-import { Log } from "./logger/log-entry"
-import { PluginToolSpec } from "./plugin/tools"
-import { PluginTool } from "./util/ext-tools"
-import { registerCleanupFunction, sleep } from "./util/util"
-import { GardenBaseError } from "./exceptions"
-import pRetry from "p-retry"
-import { syncGuideLink } from "./plugins/kubernetes/sync"
-import dedent from "dedent"
-import { PluginContext } from "./plugin-context"
 import Bluebird from "bluebird"
-import { MUTAGEN_DIR_NAME } from "./constants"
-import { ExecaReturnValue } from "execa"
+import chalk from "chalk"
+import dedent from "dedent"
 import EventEmitter from "events"
+import { ExecaReturnValue } from "execa"
+import { mkdirp, pathExists } from "fs-extra"
+import hasha from "hasha"
+import pRetry from "p-retry"
+import { join } from "path"
+import respawn from "respawn"
 import split2 from "split2"
-import { TypedEventEmitter } from "./util/events"
+import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants"
+import { GardenBaseError } from "./exceptions"
 import pMemoize from "./lib/p-memoize"
+import { Log } from "./logger/log-entry"
+import { PluginContext } from "./plugin-context"
+import { PluginToolSpec } from "./plugin/tools"
+import { syncGuideLink } from "./plugins/kubernetes/sync"
+import { TypedEventEmitter } from "./util/events"
+import { PluginTool } from "./util/ext-tools"
 import { deline } from "./util/string"
+import { registerCleanupFunction, sleep } from "./util/util"
 import { emitNonRepeatableWarning } from "./warnings"
 
 const maxRestarts = 10
@@ -134,7 +135,6 @@ export class MutagenError extends GardenBaseError {
 interface MutagenDaemonParams {
   ctx: PluginContext
   log: Log
-  dataDir?: string
 }
 
 interface MutagenMonitorParams {
@@ -328,10 +328,10 @@ export class Mutagen {
   private configLock: AsyncLock
   private monitoring: boolean
 
-  constructor({ ctx, log, dataDir }: MutagenDaemonParams) {
+  constructor({ ctx, log }: MutagenDaemonParams) {
     this.log = log
     this.configLock = new AsyncLock()
-    this.dataDir = dataDir || join(ctx.gardenDirPath, MUTAGEN_DIR_NAME)
+    this.dataDir = getMutagenDataDir(ctx.gardenDirPath, log)
     this.activeSyncs = {}
     this.monitoring = false
 
@@ -629,7 +629,7 @@ export class Mutagen {
           cwd: this.dataDir,
           args,
           log: this.log,
-          env: getMutagenEnv({ dataDir: this.dataDir, log: this.log }),
+          env: getMutagenEnv(this.dataDir),
         })
       } catch (err) {
         const unableToConnect = err.message.match(/unable to connect to daemon/)
@@ -778,13 +778,29 @@ export interface SyncSession {
  */
 const MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT = 70
 
-export function getMutagenEnv({ dataDir, log }: { dataDir: string; log: Log }) {
-  if (dataDir.length > MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT) {
-    emitNonRepeatableWarning(
-      log,
-      `Your Garden project path looks too long, that might cause errors while starting the syncs. Consider using a shorter path (no longer than ${MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT} characters).`
+/**
+ * Returns mutagen data directory path based on the project dir.
+ * If the project path longer than `MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT`, it computes
+ * hash of project dir path, uses first 9 characters of hash as directory name
+ * and creates a directory in $HOME/.garden/mutagen.
+ *
+ * However, if the path is not longer than `MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT`, then
+ * it uses the ./project-root/.garden/mutagen directory.
+ */
+export function getMutagenDataDir(path: string, log: Log) {
+  if (path.length > MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT) {
+    const hash = hasha(path, { algorithm: "sha256" }).slice(0, 9)
+    const shortPath = join(GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME, hash)
+    log.verbose(
+      `Your Garden project path looks too long, that might cause errors while starting the syncs. Garden will create a new directory to manage syncs at path: ${shortPath}.`
     )
+    return shortPath
   }
+  // if path is not too long, then use relative directory to the project
+  return join(path, MUTAGEN_DIR_NAME)
+}
+
+export function getMutagenEnv(dataDir: string) {
   return {
     MUTAGEN_DATA_DIRECTORY: dataDir,
   }
