@@ -39,6 +39,9 @@ export const gardenPlugin = () =>
     This provider allows you to integrate Terraform stacks into your Garden project. See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for details and usage information.
   `,
     configSchema: terraformProviderConfigSchema,
+
+    commands: getTerraformCommands(),
+
     handlers: {
       getEnvironmentStatus,
       prepareEnvironment,
@@ -61,7 +64,6 @@ export const gardenPlugin = () =>
         return { config }
       },
     },
-    commands: getTerraformCommands(),
 
     createActionTypes: {
       Deploy: [
