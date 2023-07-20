@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { terraform } from "./cli"
-import { TerraformProvider } from "."
+import { TerraformProvider } from "./provider"
 import { ConfigurationError, ParameterError } from "@garden-io/sdk/exceptions"
 import { prepareVariables, setWorkspace, tfValidate } from "./common"
 import { ConfigGraph, PluginCommand, PluginCommandParams } from "@garden-io/sdk/types"

@@ -11,20 +11,20 @@ import { createSchema, joi, joiVariables } from "@garden-io/core/build/src/confi
 import { dedent, deline } from "@garden-io/core/build/src/util/string"
 import { supportedVersions, terraform } from "./cli"
 import {
-  getStackStatus,
   applyStack,
-  variablesSchema,
-  TerraformBaseSpec,
+  getStackStatus,
   getTfOutputs,
   prepareVariables,
   setWorkspace,
+  TerraformBaseSpec,
+  variablesSchema,
 } from "./common"
-import { TerraformProvider } from "."
-import chalk = require("chalk")
+import { TerraformProvider } from "./provider"
 import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
 import { DeployActionHandler } from "@garden-io/core/build/src/plugin/action-types"
 import { DeployState } from "@garden-io/core/build/src/types/service"
 import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status"
+import chalk = require("chalk")
 
 export interface TerraformDeploySpec extends TerraformBaseSpec {
   root: string

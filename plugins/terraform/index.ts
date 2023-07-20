@@ -12,9 +12,8 @@ import { pathExists } from "fs-extra"
 import { createGardenPlugin } from "@garden-io/sdk"
 import { cleanupEnvironment, getEnvironmentStatus, prepareEnvironment } from "./init"
 import { dedent } from "@garden-io/sdk/util/string"
-import { defaultTerraformVersion, supportedVersions, terraformCliSpecs } from "./cli"
+import { defaultTerraformVersion, terraformCliSpecs } from "./cli"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
-import { TerraformBaseSpec, variablesSchema } from "./common"
 import { configureTerraformModule, TerraformModule, terraformModuleSchema } from "./module"
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { listDirectory } from "@garden-io/sdk/util/fs"
@@ -27,52 +26,10 @@ import {
   terraformDeployOutputsSchema,
   terraformDeploySchema,
 } from "./action"
-
-import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
-import { joi } from "@garden-io/core/build/src/config/common"
 import { DOCS_BASE_URL } from "@garden-io/core/build/src/constants"
 import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/build"
 import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
-
-type TerraformProviderConfig = GenericProviderConfig &
-  TerraformBaseSpec & {
-    initRoot?: string
-  }
-
-export interface TerraformProvider extends Provider<TerraformProviderConfig> {}
-
-const terraformProviderConfigSchema = providerConfigBaseSchema()
-  .keys({
-    allowDestroy: joi.boolean().default(false).description(dedent`
-        If set to true, Garden will run \`terraform destroy\` on the project root stack when calling \`garden delete env\`.
-      `),
-    autoApply: joi.boolean().default(false).description(dedent`
-        If set to true, Garden will automatically run \`terraform apply -auto-approve\` when a stack is not up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing entirely.
-
-        **Note: This is not recommended for production, or shared environments in general!**
-      `),
-    initRoot: joi.posixPath().subPathOnly().description(dedent`
-        Specify the path to a Terraform config directory, that should be resolved when initializing the provider. This is useful when other providers need to be able to reference the outputs from the stack.
-
-        See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for more information.
-      `),
-    // When you provide variables directly in \`terraform\` actions, those variables will
-    // extend the ones specified here, and take precedence if the keys overlap.
-    variables: variablesSchema().description(dedent`
-        A map of variables to use when applying Terraform stacks. You can define these here, in individual
-        \`terraform\` action configs, or you can place a \`terraform.tfvars\` file in each working directory.
-      `),
-    // May be overridden by individual \`terraform\` actions.
-    version: joi
-      .string()
-      .allow(...supportedVersions, null)
-      .only()
-      .default(defaultTerraformVersion).description(dedent`
-        The version of Terraform to use. Set to \`null\` to use whichever version of \`terraform\` that is on your PATH.
-      `),
-    workspace: joi.string().description("Use the specified Terraform workspace."),
-  })
-  .unknown(false)
+import { TerraformProvider, terraformProviderConfigSchema } from "./provider"
 
 // Need to make these variables to avoid escaping issues
 const deployOutputsTemplateString = "${deploys.<deploy-name>.outputs.<key>}"

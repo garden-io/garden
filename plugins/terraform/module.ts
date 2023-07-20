@@ -13,7 +13,7 @@ import { GardenModule, ModuleActionHandlers } from "@garden-io/sdk/types"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
 import { TerraformBaseSpec } from "./common"
-import { TerraformProvider } from "."
+import { TerraformProvider } from "./provider"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { terraformDeploySchemaKeys } from "./action"
 

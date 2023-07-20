@@ -13,7 +13,7 @@ import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/ex
 import { Log, PluginContext } from "@garden-io/sdk/types"
 import { dedent } from "@garden-io/sdk/util/string"
 import { terraform } from "./cli"
-import { TerraformProvider } from "."
+import { TerraformProvider } from "./provider"
 import { writeFile } from "fs-extra"
 import chalk from "chalk"
 
