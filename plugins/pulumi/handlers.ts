@@ -20,7 +20,7 @@ import {
   selectStack,
   setStackVersionTag,
 } from "./helpers"
-import { PulumiDeploy } from "./config"
+import { PulumiDeploy } from "./action"
 import { PulumiProvider } from "./provider"
 import chalk from "chalk"
 import { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types"

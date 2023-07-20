@@ -18,7 +18,7 @@ import {
   PluginContext,
 } from "@garden-io/sdk/types"
 
-import { PulumiDeploy } from "./config"
+import { PulumiDeploy } from "./action"
 import { PulumiProvider } from "./provider"
 import { Profile } from "@garden-io/core/build/src/util/profiling"
 import {

@@ -10,13 +10,13 @@ import { joi } from "@garden-io/core/build/src/config/common"
 import { GardenModule, ModuleActionHandlers } from "@garden-io/sdk/types"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
-import { pulumiDeploySchemaKeys, PulumiDeploySpec } from "./config"
+import { pulumiDeploySchemaKeys, PulumiDeploySpec } from "./action"
 import { PulumiProvider } from "./provider"
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
 
-interface PulumiModuleSpec extends PulumiDeploySpec {
+export interface PulumiModuleSpec extends PulumiDeploySpec {
   dependencies: string[]
 }
 
