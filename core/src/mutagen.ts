@@ -135,7 +135,6 @@ export class MutagenError extends GardenBaseError {
 interface MutagenDaemonParams {
   ctx: PluginContext
   log: Log
-  dataDir?: string
 }
 
 interface MutagenMonitorParams {
@@ -329,10 +328,10 @@ export class Mutagen {
   private configLock: AsyncLock
   private monitoring: boolean
 
-  constructor({ ctx, log, dataDir }: MutagenDaemonParams) {
+  constructor({ ctx, log }: MutagenDaemonParams) {
     this.log = log
     this.configLock = new AsyncLock()
-    this.dataDir = dataDir || getMutagenDataDir(ctx.gardenDirPath, log)
+    this.dataDir = getMutagenDataDir(ctx.gardenDirPath, log)
     this.activeSyncs = {}
     this.monitoring = false
 
