@@ -1,28 +1,35 @@
 ---
 order: 1
-title: How Garden Works
+title: How does Garden work
 ---
 
-# How Garden Works
+# How does Garden work?
 
-This page contains a brief explanation of the how and why of Garden. For those that prefer something a bit more visual, we recommend checking out this video. Otherwise, continue reading below.
+This section describes how Garden works and the idea behind developing it. Check out this video to get an overview of Garden Core's capabilities: 
 
 {% embed url="https://youtu.be/3gMJWGV0WE8" %}
 
 ## **The Stack Graph**
 
-Garden Core is a standalone binary that can run from CI or from a developer’s machine. It allows you to codify a complete description of your stack using intuitive YAML declarations—making your workflows **reproducible and portable**.
+The Stack Graph is **an executable blueprint that helps run the system using a single command**. The Stack Graph is pluggable, hence how these actions (the graph nodes) run depends on the plugins used.
+Below is a representation of how a YAML manifest is resolved into a graph. 
 
-It is based on the simple idea that all DevOps workflows can be fully described in terms of the following four actions:
+![The Stack Graph](../how-to-stack-graph.png)
+
+## **Garden Core**
+**Garden Core** is a powerful standalone binary that can be executed from the CI or from a developer’s machine. It allows you to codify a complete description of your stack using intuitive YAML declarations, making your workflows **reproducible** and **portable**.
+
+It is based on the idea that all DevOps workflows can be completely described in terms of four actions, listed below:
 
 - **build**
 - **deploy**
 - **test**
-- **run** (for running ad-hoc tasks)
+- **run** (to run ad-hoc tasks)
 
-…along with the dependencies between these actions across the components of the system.
+> **Note**:
+The actions are interdependent across the component of the system.
 
-To make a concrete example, here’s a simplified description of a three tier web application:
+Below is the YAML manifest of a three tier web application:
 
 ```yaml
 # This config is in a single file for convenience.
@@ -65,93 +72,78 @@ spec:
   args: [python, /app/test.py]
 ```
 
-Garden collects all of these descriptions, even across multiple repositories, into the Stack Graph—**an executable blueprint for going from zero to a running system in a single command**.
-
-![The Stack Graph](../how-to-stack-graph.png)
-
-Garden then leverages your existing configuration (Helm charts, Kubernetes manifests, Dockerfiles, Terraform files, etc) and infrastructure to execute the graph **in any environment**.
+Garden collects all these descriptions (can be across multiple repositories) into the Stack Graph and leverages your existing configuration (Helm charts, Kubernetes manifests, Dockerfiles, Terraform files, etc) and infrastructure to execute the graph **in any environment**. Below is a visual of how Garden executes the graph. 
 
 ![Configure once, run anywhwere](../how-to-configure-once.png)
 
-The Stack Graph is pluggable so how these actions (i.e. the graph nodes) are actually run depends on the plugins used (see below).
-
 ## **The Garden CLI**
 
-Each of the four actions (build, deploy, test, run) has a corresponding command that you can run with the Garden CLI.
+Each of the four actions (build, deploy, test, and run) has a corresponding command that you can run with the Garden CLI.
 
-For example, to create a preview environment on every pull request, simply add the following to your CI pipeline:
+For example, to create a preview environment on every pull request, add the following to your CI pipeline:
 
 ```yaml
 garden deploy --env preview
 ```
 
-Or say a developer wants to run an end-to-end test from their laptop as they code. Again, it’s simple:
+To run an end-to-end test from their machine as they code:
 
 ```yaml
 garden test --name e2e
 ```
 
-Garden also has a special mode called "sync mode" which live reloads changes to your running deploys ensuring **blazing fast feedback while developing**. To enable it, simply run:
+Garden has a special mode called **sync mode** which live reloads changes to your running deploys ensuring **blazing fast feedback while developing**. To enable it, simply run:
 
 ```yaml
 garden deploy --sync
 ```
 
-There are also a handful of utility commands for getting logs, exec-ing into services, publishing images, and more.
+There are many other utility commands to fetch logs, exec into services, publish images, etc.
 
-Thanks to the Stack Graph, these workflows stay consistent no matter how big your stack grows.
-
+With the help of the Stack Graph, these workflows stay consistent irrespective of how the stack scales.
 
 ![Garden scales with your stack](../how-to-garden-scales.png)
 
+## **Garden Cloud**
+
+Garden Cloud is a web platform built on top of Garden Core. It adds features for teams using Garden Core such as user and secret management, log streaming, interactivity, and much more.
+
+To learn about Garden Cloud, check out our [website](https://garden-io.webflow.io/pricing) or the official [Cloud documentation](https://cloud.docs.garden.io/).
+
 ## **Plugins**
 
-Garden is pluggable by design and supports a variety of providers and action types, which you can choose based on preference and to suit your existing set-up.
+By design, Garden is pluggable and supports a variety of providers and action types. You can choose from these providers based on your existing set-up.
+The plugins determine the course of a given Garden command. Each action (or node) in the graph belongs to a plugin, and the plugin is responsible for executing the action.
 
-It’s the plugins that determine what happens when you run a given Garden command. Each action, or node in the graph, belongs to a plugin which is responsible for executing it.
+For example, you can:
+- Use the Kubernetes plugin to install Helm charts and apply your Kubernetes manifests and the Terraform plugin to provision the infrastructure.
+- Mix and match platforms in the same project by using custom plugins for serverless runtimes.
+- Streamline workflows using language-specific plugins.
+- Leverage Garden's caching and scan-during-runtime feature using security plugins.
 
-You can for example use the Kubernetes plugin to install your Helm charts and apply your Kubernetes manifests, and the Terraform plugin to provision infrastructure.
+Check out how certain common plugins, like [Kubernetes](../k8s-plugins/about.md) and [Terraform](../terraform-plugin/about.md) work.
 
-For more detail on how some common plugins work, see for example:
-
-- [How the Kubernetes plugin works](../k8s-plugins/about.md)
-- [How the Terraform plugin works](../terraform-plugin/about.md)
-
-We will be adding more plugins and releasing a Plugin SDK (exact timeline TBD) which will allow the community to maintain their own Garden plugins.
-
-Sky’s the limit but to name some examples:
-
-- Plugins for serverless runtimes will allow users to mix and match platforms in the same project.
-- Security plugins that benefit from Garden’s caching and only run time consuming scans when needed.
-- Language specific plugins for streamlining workflows.
-
-**This ensures that Garden is future proof and can grow with your stack. No need to retool or disrupt developer workflows for the “next big thing”.**
+> Tip:
+Plugins ensure that Garden is future proof and can grow with your stack. This eradicates the need to retool or disrupt developer workflows for the “next big thing”.
 
 ## **Caching**
 
-One of the most important features of Garden is its smart caching abilities. Thanks to the graph structure, Garden can calculate the version of any part of your system, while accounting for upstream dependencies.
+One of the most important features of Garden is its smart caching abilities. Owing to the graph structure, Garden determines the version of any element of your system, while accounting for upstream dependencies. This ensures that the same image or same test need not be executed more than once.
 
-**This ensures that the same image never needs to be built twice or the same test run twice.**
-
-If the end-to-end test in the example above passes, Garden will know not to run it again if the code hasn’t changed. Since Garden factors in dependencies, it will however re-run the test if any of the upstream services under test are modified.
-
-Most tools don’t have this granular understanding of the system and the choice is between running everything or nothing. With Garden you can be confident that tests run when they **need to,** but no more.
-
-This alone can speed up your pipelines by orders of magnitude.
+If the end-to-end service test passes, Garden determines that the code hasn't changed, thereby not to run the test again. However, if any of the upstream services under test are modified, Garden captures the change and re-runs the test. Garden ensures that the tests are executed when required, thereby ramping up the speed of execution of your pipelines by orders of magnitude.
 
 ## **Templating**
 
-Garden has a powerful templating engine that allows you to set variables and enable or disable parts of the graph depending on your environment.
-
-You might for e.g. deploy a development database with the Kubernetes plugin in development but use the Terraform plugin to provision a managed database for production.
-
-This allows you to codify your entire stack and use the same workflows for all stages of software delivery.
-
+Another essential feature is Garden's robust templating engine that allows you to define variables and enable (or disable) parts of the graph depending on your environment. This makes your configuration dynamic and adaptable.
+For example, you might deploy a development database with the Kubernetes plugin in development but use the Terraform plugin to provision a managed database in production.
+This flexibility allows you to codify your entire stack and utilize the same workflow for different environments or stages of software delivery, thereby making your workflows more consistent and reusable. 
 
 ![Garden plugins](../how-to-pluggable.png)
 
-## **Garden Cloud**
+## Conclusion
 
-Garden Cloud is a web platform built on top of Garden Core that adds features for teams using Garden Core such as user and secret management, log streaming, interactivity, and much more.
+In summary, Garden empowers you by providing a flexible and declarative approach to managing DevOps workflows. It facilitates reproducibility and portability by allowing you to define your stack in YAML. Garden Core's features make your stack description more versatile and your workflows consistent across different environments.
 
-To learn about Garden Cloud, check out our [website](https://garden-io.webflow.io/pricing) or the official [Cloud docs](https://cloud.docs.garden.io/).
+For any further assistance or questions, feel free to reach out to our support channels.
+
+Happy Gardening!
