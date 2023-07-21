@@ -7,11 +7,11 @@
  */
 
 import { joi } from "@garden-io/core/build/src/config/common"
-import { GardenModule, ModuleActionHandlers } from "@garden-io/sdk/types"
+import { GardenModule, ModuleActionHandlers, PluginContext } from "@garden-io/sdk/types"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
 import { pulumiDeploySchemaKeys, PulumiDeploySpec } from "./action"
-import { PulumiProvider } from "./provider"
+import { PulumiProvider, PulumiProviderConfig } from "./provider"
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
@@ -22,6 +22,8 @@ export interface PulumiModuleSpec extends PulumiDeploySpec {
 
 export interface PulumiModule extends GardenModule<PulumiModuleSpec> {}
 
+type PulumiModuleConfig = PulumiModule["_config"]
+
 export const pulumiModuleSchema = () =>
   joi.object().keys({
     build: baseBuildSpecSchema(),
@@ -29,7 +31,10 @@ export const pulumiModuleSchema = () =>
     ...pulumiDeploySchemaKeys(),
   })
 
-export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({ ctx, moduleConfig }) => {
+export const configurePulumiModule: ModuleActionHandlers<PulumiModule>["configure"] = async (params) => {
+  const ctx = params.ctx as PluginContext<PulumiProviderConfig>
+  const moduleConfig = params.moduleConfig as PulumiModuleConfig
+
   // Make sure the configured root path exists
   const root = moduleConfig.spec.root
   if (root) {
@@ -47,7 +52,6 @@ export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({
   }
 
   const provider = ctx.provider as PulumiProvider
-
   const backendUrl = provider.config.backendURL
   const orgName = moduleConfig.spec.orgName || provider.config.orgName
 
