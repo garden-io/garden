@@ -23,7 +23,8 @@ import { deleteTerraformModule, deployTerraform, getTerraformStatus } from "./ha
 import { DOCS_BASE_URL } from "@garden-io/core/build/src/constants"
 import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/build"
 import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
-import { TerraformProvider, terraformProviderConfigSchema } from "./provider"
+import { TerraformProvider, TerraformProviderConfig, terraformProviderConfigSchema } from "./provider"
+import { PluginContext } from "@garden-io/core/build/src/plugin-context"
 
 // Need to make these variables to avoid escaping issues
 const deployOutputsTemplateString = "${deploys.<deploy-name>.outputs.<key>}"
@@ -83,7 +84,9 @@ export const gardenPlugin = () =>
           schema: terraformDeploySchema(),
           runtimeOutputsSchema: terraformDeployOutputsSchema(),
           handlers: {
-            configure: async ({ ctx, config }) => {
+            configure: async (params) => {
+              const ctx = params.ctx as PluginContext<TerraformProviderConfig>
+              const config = params.config as TerraformProviderConfig
               const provider = ctx.provider as TerraformProvider
 
               // Use the provider config if no value is specified for the module
