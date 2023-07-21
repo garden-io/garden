@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { TerraformProvider } from "."
+import { TerraformProvider } from "./provider"
 import which from "which"
 import { ConfigurationError, RuntimeError } from "@garden-io/sdk/exceptions"
 import { CliWrapper, PluginToolSpec } from "@garden-io/sdk/util/ext-tools"

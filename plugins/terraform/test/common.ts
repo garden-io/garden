@@ -8,10 +8,11 @@
 
 import { join } from "path"
 import { pathExists, remove } from "fs-extra"
-import { gardenPlugin, TerraformProvider } from ".."
+import { gardenPlugin } from ".."
+import { TerraformProvider } from "../provider"
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { Log, PluginContext } from "@garden-io/sdk/types"
-import { getWorkspaces, setWorkspace } from "../common"
+import { getWorkspaces, setWorkspace } from "../helpers"
 import { expect } from "chai"
 import { defaultTerraformVersion, terraform } from "../cli"
 

@@ -11,14 +11,15 @@ import Bluebird from "bluebird"
 import {
   ConfigGraph,
   Garden,
+  GraphResults,
+  PluginActionTask,
   PluginCommand,
   PluginCommandParams,
   PluginContext,
-  GraphResults,
-  PluginActionTask,
 } from "@garden-io/sdk/types"
 
-import { PulumiDeploy, PulumiProvider } from "./config"
+import { PulumiDeploy } from "./action"
+import { PulumiProvider } from "./provider"
 import { Profile } from "@garden-io/core/build/src/util/profiling"
 import {
   cancelUpdate,

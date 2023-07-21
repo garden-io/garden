@@ -9,11 +9,11 @@
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { joi } from "@garden-io/core/build/src/config/common"
-import { GardenModule, ModuleActionHandlers } from "@garden-io/sdk/types"
+import { GardenModule, ModuleActionHandlers, PluginContext } from "@garden-io/sdk/types"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
-import { TerraformBaseSpec } from "./common"
-import { TerraformProvider } from "."
+import { TerraformBaseSpec } from "./helpers"
+import { TerraformProvider, TerraformProviderConfig } from "./provider"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { terraformDeploySchemaKeys } from "./action"
 
@@ -24,6 +24,8 @@ export interface TerraformModuleSpec extends TerraformBaseSpec {
 
 export interface TerraformModule extends GardenModule<TerraformModuleSpec> {}
 
+type TerraformModuleConfig = TerraformModule["_config"]
+
 export const terraformModuleSchema = () =>
   joi.object().keys({
     build: baseBuildSpecSchema(),
@@ -31,10 +33,9 @@ export const terraformModuleSchema = () =>
     ...terraformDeploySchemaKeys(),
   })
 
-export const configureTerraformModule: ModuleActionHandlers<TerraformModule>["configure"] = async ({
-  ctx,
-  moduleConfig,
-}) => {
+export const configureTerraformModule: ModuleActionHandlers<TerraformModule>["configure"] = async (params) => {
+  const ctx = params.ctx as PluginContext<TerraformProviderConfig>
+  const moduleConfig = params.moduleConfig as TerraformModuleConfig
   // Make sure the configured root path exists
   const root = moduleConfig.spec.root
   if (root) {

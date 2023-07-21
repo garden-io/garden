@@ -6,11 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
-import { pathExists } from "fs-extra"
 import { pulumi } from "./cli"
-import { ModuleActionHandlers, ProviderHandlers } from "@garden-io/sdk/types"
-import { ConfigurationError } from "@garden-io/sdk/exceptions"
+import { ProviderHandlers } from "@garden-io/sdk/types"
 import {
   applyConfig,
   clearStackVersionTag,
@@ -23,7 +20,8 @@ import {
   selectStack,
   setStackVersionTag,
 } from "./helpers"
-import { PulumiDeploy, PulumiProvider } from "./config"
+import { PulumiDeploy } from "./action"
+import { PulumiProvider } from "./provider"
 import chalk from "chalk"
 import { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types"
 import { DeployState } from "@garden-io/core/build/src/types/service"
@@ -35,63 +33,6 @@ export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async 
   //
   // Instead, the `garden plugins pulumi destroy` command can be used.
   return {}
-}
-
-export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({ ctx, moduleConfig }) => {
-  // Make sure the configured root path exists
-  const root = moduleConfig.spec.root
-  if (root) {
-    const absRoot = join(moduleConfig.path, root)
-    const exists = await pathExists(absRoot)
-
-    if (!exists) {
-      throw new ConfigurationError({
-        message: `Pulumi: configured working directory '${root}' does not exist`,
-        detail: {
-          moduleConfig,
-        },
-      })
-    }
-  }
-
-  const provider = ctx.provider as PulumiProvider
-
-  const backendUrl = provider.config.backendURL
-  const orgName = moduleConfig.spec.orgName || provider.config.orgName
-
-  // Check to avoid using `orgName` or `cacheStatus: true` with non-pulumi managed backends
-  if (!backendUrl.startsWith("https://")) {
-    if (orgName) {
-      throw new ConfigurationError({
-        message: "Pulumi: orgName is not supported for self-managed backends",
-        detail: {
-          moduleConfig,
-          providerConfig: provider.config,
-        },
-      })
-    }
-
-    if (moduleConfig.spec.cacheStatus) {
-      throw new ConfigurationError({
-        message: "Pulumi: `cacheStatus: true` is not supported for self-managed backends",
-        detail: {
-          moduleConfig,
-          providerConfig: provider.config,
-        },
-      })
-    }
-  }
-
-  moduleConfig.serviceConfigs = [
-    {
-      name: moduleConfig.name,
-      dependencies: moduleConfig.spec.dependencies,
-      disabled: false,
-      spec: moduleConfig.spec,
-    },
-  ]
-
-  return { moduleConfig }
 }
 
 export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatus"] = async ({ ctx, log, action }) => {

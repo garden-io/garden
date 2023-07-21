@@ -13,10 +13,9 @@ import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/ex
 import { Log, PluginContext } from "@garden-io/sdk/types"
 import { dedent } from "@garden-io/sdk/util/string"
 import { terraform } from "./cli"
-import { TerraformProvider } from "."
+import { TerraformProvider } from "./provider"
 import { writeFile } from "fs-extra"
 import chalk from "chalk"
-
 import { joi, joiStringMap, PrimitiveMap } from "@garden-io/core/build/src/config/common"
 import split2 = require("split2")
 
@@ -39,6 +38,10 @@ interface TerraformParams {
 
 interface TerraformParamsWithWorkspace extends TerraformParams {
   workspace: string | null
+}
+
+interface TerraformParamsWithVariables extends TerraformParamsWithWorkspace {
+  variables: object
 }
 
 /**
@@ -124,10 +127,6 @@ export async function getTfOutputs(params: TerraformParams) {
 
 export function getRoot(ctx: PluginContext, provider: TerraformProvider) {
   return resolve(ctx.projectRoot, provider.config.initRoot || ".")
-}
-
-interface TerraformParamsWithVariables extends TerraformParamsWithWorkspace {
-  variables: object
 }
 
 type StackStatus = "up-to-date" | "outdated" | "error"

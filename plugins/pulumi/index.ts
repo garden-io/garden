@@ -8,32 +8,24 @@
 
 import { createGardenPlugin } from "@garden-io/sdk"
 import { dedent } from "@garden-io/sdk/util/string"
-import { configurePulumiModule, deletePulumiDeploy, deployPulumi, getPulumiDeployStatus } from "./handlers"
+import { deletePulumiDeploy, deployPulumi, getPulumiDeployStatus } from "./handlers"
 import { getPulumiCommands } from "./commands"
-
-import { joiVariables } from "@garden-io/core/build/src/config/common"
 import { pulumiCliSPecs } from "./cli"
-import {
-  PulumiDeployConfig,
-  pulumiDeploySchema,
-  PulumiModule,
-  pulumiModuleSchema,
-  pulumiProviderConfigSchema,
-} from "./config"
+import { PulumiDeployConfig, pulumiDeployOutputsSchema, pulumiDeploySchema } from "./action"
+import { pulumiProviderConfigSchema } from "./provider"
 import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/build"
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import { omit } from "lodash"
 import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
+import { configurePulumiModule, PulumiModule, pulumiModuleSchema } from "./module"
 
 // Need to make these variables to avoid escaping issues
 const moduleOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
 const actionOutputsTemplateString = "${actions.<name>.outputs.<key>}"
 
 const defaultPulumiTimeoutSec = 600
-
-const outputsSchema = () => joiVariables().description("A map of all the outputs returned by the Pulumi stack.")
 
 export const gardenPlugin = () =>
   createGardenPlugin({
@@ -59,7 +51,7 @@ export const gardenPlugin = () =>
           Stack outputs are made available as action outputs. These can then be referenced by other actions under \`${actionOutputsTemplateString}\`. You can template in those values as e.g. command arguments or environment variables for other services.
           `,
           schema: pulumiDeploySchema(),
-          runtimeOutputsSchema: outputsSchema(),
+          runtimeOutputsSchema: pulumiDeployOutputsSchema(),
           handlers: {
             validate: async ({ action }) => {
               const root = action.getSpec("root")
