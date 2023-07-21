@@ -55,6 +55,8 @@ const clientAuthTokenSchema = z.object({
   token: z.string(),
   refreshToken: z.string(),
   validity: z.coerce.date(),
+  userId: z.string().optional(),
+  organizationName: z.string().optional(),
 })
 
 const globalConfigSchema = z.object({

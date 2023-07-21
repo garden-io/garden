@@ -9,12 +9,12 @@
 import { expect } from "chai"
 import { getRootLogger } from "../../../../src/logger/logger"
 import { gardenEnv } from "../../../../src/constants"
-import { CloudApi } from "../../../../src/cloud/api"
+import { CloudApi, CloudUserProfile } from "../../../../src/cloud/api"
 import { uuidv4 } from "../../../../src/util/random"
 import { randomString } from "../../../../src/util/string"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
 
-describe("CloudApi", () => {
+describe("AuthToken", () => {
   const log = getRootLogger().createLog()
   const domain = "https://garden." + randomString()
   const globalConfigStore = new GlobalConfigStore()
@@ -34,6 +34,26 @@ describe("CloudApi", () => {
       await CloudApi.saveAuthToken(log, globalConfigStore, testToken, domain)
       const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.eql(testToken.token)
+    })
+
+    it("should return a user profile if stored", async () => {
+      const testToken = {
+        token: uuidv4(),
+        refreshToken: uuidv4(),
+        tokenValidity: 9999,
+      }
+      const userProfile: CloudUserProfile = {
+        userId: "some-uuid",
+        organizationName: "some-org-name",
+        domain,
+      }
+
+      await CloudApi.saveAuthToken(log, globalConfigStore, testToken, domain, userProfile)
+      const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
+      expect(savedToken).to.eql(testToken.token)
+
+      const savedProfile = await CloudApi.getAuthTokenUserProfile(log, globalConfigStore, domain)
+      expect(savedProfile).to.eql(userProfile)
     })
 
     it("should return the value of GARDEN_AUTH_TOKEN if it's present", async () => {

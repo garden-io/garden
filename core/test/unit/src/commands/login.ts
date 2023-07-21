@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import nock from "nock"
 import { expect } from "chai"
 import td from "testdouble"
 import {
@@ -20,7 +21,7 @@ import { AuthRedirectServer } from "../../../../src/cloud/auth"
 
 import { LoginCommand } from "../../../../src/commands/login"
 import { dedent, randomString } from "../../../../src/util/string"
-import { CloudApi } from "../../../../src/cloud/api"
+import { CloudApi, CloudApiTokenRefreshError } from "../../../../src/cloud/api"
 import { LogLevel } from "../../../../src/logger/logger"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants"
 import { CloudApiError } from "../../../../src/exceptions"
@@ -41,12 +42,45 @@ function loginCommandParams({ garden, opts = { "disable-project-check": false } 
   }
 }
 
+function makeScope({ domain, withProfileRequest = true }: { domain?: string; withProfileRequest?: boolean }) {
+  const scope = nock(domain || "http://example.invalid")
+
+  scope.get("/api/token/verify").reply(200, {
+    status: "success",
+    data: {
+      valid: true,
+    },
+  })
+
+  if (withProfileRequest) {
+    scope.get("/api/profile").reply(200, {
+      status: "success",
+      data: {
+        id: "1",
+        createdAt: new Date().toString(),
+        updatedAt: new Date().toString(),
+        name: "gordon",
+        vcsUsername: "gordon@garden.io",
+        serviceAccount: false,
+        organization: {
+          id: "1",
+          name: "garden",
+        },
+        cachedPermissions: {},
+        accessTokens: [],
+        groups: [],
+      },
+    })
+  }
+
+  return scope
+}
+
 // In the tests below we stub out the auth redirect server but still emit the
 // token received event.
 describe("LoginCommand", () => {
   let tmpDir: TempDirectory
   let globalConfigStore: GlobalConfigStore
-  const loginOpts = { "disable-project-check": false }
 
   beforeEach(async () => {
     td.replace(AuthRedirectServer.prototype, "start", async () => {})
@@ -58,6 +92,7 @@ describe("LoginCommand", () => {
 
   afterEach(async () => {
     await tmpDir.cleanup()
+    nock.cleanAll()
   })
 
   it("should log in if the project has a domain without an id", async () => {
@@ -74,6 +109,11 @@ describe("LoginCommand", () => {
       globalConfigStore,
     })
 
+    // intercept token verification and profile request
+    const scope = makeScope({ domain: garden.cloudDomain })
+
+    // emits an event which the local server expects, this is independent of the network
+    // requests scoped by nock
     setTimeout(() => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
@@ -84,6 +124,10 @@ describe("LoginCommand", () => {
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+    expect(savedToken!.userId).to.eql("1")
+    expect(savedToken!.organizationName).to.eql("garden")
+
+    expect(scope.done()).to.not.throw
   })
 
   it("should log in if the project has a domain and an id", async () => {
@@ -100,6 +144,9 @@ describe("LoginCommand", () => {
       globalConfigStore,
     })
 
+    // intercept token verification and profile request
+    const scope = makeScope({ domain: garden.cloudDomain })
+
     setTimeout(() => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
@@ -110,6 +157,10 @@ describe("LoginCommand", () => {
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+    expect(savedToken!.userId).to.eql("1")
+    expect(savedToken!.organizationName).to.eql("garden")
+
+    expect(scope.done()).to.not.throw
   })
 
   it("should be a no-op if the user is already logged in", async () => {
@@ -162,6 +213,9 @@ describe("LoginCommand", () => {
     const cloudDomain = "https://example.invalid"
     Object.assign(garden, { cloudDomain })
 
+    // intercept token verification and profile request
+    const scope = makeScope({ domain: garden.cloudDomain })
+
     setTimeout(() => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
@@ -171,6 +225,10 @@ describe("LoginCommand", () => {
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+    expect(savedToken!.userId).to.eql("1")
+    expect(savedToken!.organizationName).to.eql("garden")
+
+    expect(scope.done()).to.not.throw
   })
 
   it("should fall back to the default garden cloud domain when none is defined", async () => {
@@ -184,6 +242,9 @@ describe("LoginCommand", () => {
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "missing-domain"), {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
+
+    // intercept token verification and profile request
+    const scope = makeScope({ domain: garden.cloudDomain })
 
     setTimeout(() => {
       garden.events.emit("receivedToken", testToken)
@@ -200,6 +261,10 @@ describe("LoginCommand", () => {
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+    expect(savedToken!.userId).to.eql("1")
+    expect(savedToken!.organizationName).to.eql("garden")
+
+    expect(scope.done()).to.not.throw
   })
 
   it("should throw if the user has an invalid auth token", async () => {
@@ -321,6 +386,9 @@ describe("LoginCommand", () => {
     // Need to override the default because we're using DummyGarden
     Object.assign(garden, { cloudDomain })
 
+    // intercept token verification and profile request
+    const scope = makeScope({ domain: garden.cloudDomain })
+
     setTimeout(() => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
@@ -334,6 +402,125 @@ describe("LoginCommand", () => {
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+
+    expect(scope.done()).to.not.throw
+  })
+
+  it("should fail to login if the token verification to the cloud api fails", async () => {
+    const postfix = randomString()
+    const testToken = {
+      token: `dummy-token-${postfix}`,
+      refreshToken: `dummy-refresh-token-${postfix}`,
+      tokenValidity: 60,
+    }
+    const command = new LoginCommand()
+    const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+      noEnterprise: false,
+      commandInfo: { name: "foo", args: {}, opts: {} },
+      globalConfigStore,
+    })
+
+    // intercept token verification and profile request
+    //    const scope = makeScope({ domain: garden.cloudDomain, withProfileRequest: false })
+    const scope = nock(garden.cloudDomain || "http://example.invalid")
+
+    scope.get("/api/token/verify").reply(500)
+
+    setTimeout(() => {
+      garden.events.emit("receivedToken", testToken)
+    }, 500)
+
+    await expectError(
+      async () => await command.action(loginCommandParams({ garden })),
+      (err) => {
+        expect(err.message).to.contain(`Failed verifying user for ${garden.cloudDomain}`)
+        expect(err.wrappedErrors).to.have.length(1)
+        expect(err.wrappedErrors[0]).to.be.an.instanceof(CloudApiError)
+        expect(err.wrappedErrors[0].message).to.contain(`An error occurred while verifying client auth token`)
+      }
+    )
+
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    expect(savedToken).to.not.exist
+
+    expect(scope.done()).to.not.throw
+  })
+
+  it("should fail to login if the token refresh fails after a failed verification", async () => {
+    const postfix = randomString()
+    const testToken = {
+      token: `dummy-token-${postfix}`,
+      refreshToken: `dummy-refresh-token-${postfix}`,
+      tokenValidity: 60,
+    }
+    const command = new LoginCommand()
+    const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+      noEnterprise: false,
+      commandInfo: { name: "foo", args: {}, opts: {} },
+      globalConfigStore,
+    })
+
+    // intercept token verification and profile request
+    //    const scope = makeScope({ domain: garden.cloudDomain, withProfileRequest: false })
+    const scope = nock(garden.cloudDomain || "http://example.invalid")
+
+    scope.get("/api/token/verify").reply(401)
+
+    scope.get("/api/token/refresh").reply(401)
+
+    setTimeout(() => {
+      garden.events.emit("receivedToken", testToken)
+    }, 500)
+
+    await expectError(
+      async () => await command.action(loginCommandParams({ garden })),
+      (err) => {
+        expect(err.message).to.contain(`Failed verifying user for ${garden.cloudDomain}`)
+        expect(err.wrappedErrors).to.have.length(1)
+        expect(err.wrappedErrors[0]).to.be.an.instanceof(CloudApiTokenRefreshError)
+        expect(err.wrappedErrors[0].message).to.contain(`An error occurred while verifying`)
+      }
+    )
+
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    expect(savedToken).to.not.exist
+
+    expect(scope.done()).to.not.throw
+  })
+
+  it("should succeed to login even if the profile retrieval fails", async () => {
+    const postfix = randomString()
+    const testToken = {
+      token: `dummy-token-${postfix}`,
+      refreshToken: `dummy-refresh-token-${postfix}`,
+      tokenValidity: 60,
+    }
+    const command = new LoginCommand()
+    const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+      noEnterprise: false,
+      commandInfo: { name: "foo", args: {}, opts: {} },
+      globalConfigStore,
+    })
+
+    // intercept token verification and profile request
+    //    const scope = makeScope({ domain: garden.cloudDomain, withProfileRequest: false })
+    const scope = makeScope({ domain: garden.cloudDomain, withProfileRequest: false })
+    scope.get("/api/profile").reply(500)
+
+    setTimeout(() => {
+      garden.events.emit("receivedToken", testToken)
+    }, 500)
+
+    await command.action(loginCommandParams({ garden }))
+
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    expect(savedToken).to.exist
+    expect(savedToken!.token).to.eql(testToken.token)
+    expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+    expect(savedToken!.userId).to.be.undefined
+    expect(savedToken!.organizationName).to.be.undefined
+
+    expect(scope.done()).to.not.throw
   })
 
   context("GARDEN_AUTH_TOKEN set in env", () => {
@@ -400,6 +587,9 @@ describe("LoginCommand", () => {
         globalConfigStore,
       })
 
+      // intercept token verification and profile request
+      const scope = makeScope({ domain: garden.cloudDomain })
+
       setTimeout(() => {
         garden.events.emit("receivedToken", testToken)
       }, 500)
@@ -414,6 +604,8 @@ describe("LoginCommand", () => {
       expect(savedToken).to.exist
       expect(savedToken!.token).to.eql(testToken.token)
       expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+
+      expect(scope.done()).to.not.throw
     })
 
     it("should log in using the domain in GARDEN_CLOUD_DOMAIN", async () => {
@@ -429,6 +621,9 @@ describe("LoginCommand", () => {
         commandInfo: { name: "foo", args: {}, opts: {} },
         globalConfigStore,
       })
+
+      // intercept token verification and profile request
+      const scope = makeScope({ domain: garden.cloudDomain })
 
       setTimeout(() => {
         garden.events.emit("receivedToken", testToken)
@@ -448,6 +643,7 @@ describe("LoginCommand", () => {
       const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
       expect(logOutput).to.include(`Logging in to ${gardenEnv.GARDEN_CLOUD_DOMAIN}`)
+      expect(scope.done()).to.not.throw
     })
 
     after(() => {

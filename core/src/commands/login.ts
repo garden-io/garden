@@ -9,7 +9,7 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { AuthTokenResponse, CloudApi, getGardenCloudDomain } from "../cloud/api"
+import { AuthTokenResponse, CloudApi, CloudUserProfile, getGardenCloudDomain } from "../cloud/api"
 import { Log } from "../logger/log-entry"
 import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
@@ -86,8 +86,10 @@ export class LoginCommand extends Command<{}, Opts> {
 
     const distroName = getCloudDistributionName(cloudDomain)
 
+    let cloudApi: CloudApi | undefined
+
     try {
-      const cloudApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
+      cloudApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
 
       if (cloudApi) {
         log.info({ msg: `You're already logged in to ${cloudDomain}.` })
@@ -111,8 +113,39 @@ export class LoginCommand extends Command<{}, Opts> {
 
     log.info({ msg: `Logging in to ${cloudDomain}...` })
     const tokenResponse = await login(log, cloudDomain, garden.events)
+    // Save the token, then try to create a cloud API instance and retrieve the profile
     await CloudApi.saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain)
-    log.info({ msg: `Successfully logged in to ${cloudDomain}.` })
+
+    try {
+      cloudApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
+
+      // this is a best effort request to retrieve the profile and
+      // store with the token
+      let userProfile: CloudUserProfile | undefined
+
+      try {
+        const remoteProfile = await cloudApi?.getProfile()
+
+        if (remoteProfile && remoteProfile.id && remoteProfile.organization.name) {
+          userProfile = {
+            userId: remoteProfile.id,
+            organizationName: remoteProfile.organization.name,
+            domain: cloudDomain,
+          }
+        }
+      } catch (err) {
+        log.silly(`Failed to retreive the user profile after retrieving access token, ${err.toString()}`)
+      }
+
+      await CloudApi.saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain, userProfile)
+      log.info({ msg: `Successfully logged in to ${cloudDomain}.` })
+    } catch (err) {
+      await CloudApi.clearAuthToken(log, globalConfigStore, cloudDomain)
+      throw new CloudApiError({
+        message: `Failed verifying user for ${cloudDomain}. Try logging in again.`,
+        wrappedErrors: [err],
+      })
+    }
 
     return {}
   }

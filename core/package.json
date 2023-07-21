@@ -246,7 +246,7 @@
     "is-subset": "^0.1.1",
     "md5": "^2.3.0",
     "mocha": "^10.2.0",
-    "nock": "^12.0.3",
+    "nock": "^13.3.2",
     "node-fetch": "^2.7.0",
     "nodemon": "^3.0.1",
     "nyc": "^15.1.0",
@@ -279,8 +279,8 @@
     "integ-local": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" npm run _integ",
     "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" npm run _integ",
     "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only npm run _integ",
-    "test": "mocha",
-    "test:silly": "GARDEN_LOGGER_TYPE=basic GARDEN_LOG_LEVEL=silly mocha"
+    "test": "NODE_OPTIONS=--no-experimental-fetch mocha",
+    "test:silly": "NODE_OPTIONS=--no-experimental-fetch GARDEN_LOGGER_TYPE=basic GARDEN_LOG_LEVEL=silly mocha"
   },
   "pkg": {
     "scripts": [
