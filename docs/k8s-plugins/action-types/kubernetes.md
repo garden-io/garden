@@ -57,10 +57,16 @@ spec:
     - ./manifests/Service.yaml
 ```
 
-{% hint style="warning" %}
-Due to a current limitation you need to list all the manifests. There's an [open
-issue](https://github.com/garden-io/garden/issues/3465) for addressing this.
-{% endhint %}
+You can also use glob patterns like so:
+
+```yaml
+kind: Deploy
+type: kubernetes
+name: api
+spec:
+  files:
+    - ./manifests/*.yaml
+```
 
 You can also use templating to reference different manifests based on environment.
 For example, if your project structure looks like this:
