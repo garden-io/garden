@@ -44,7 +44,8 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
     configure: async ({ ctx, config }) => {
       // The `spec` field hasn't been validated here yet,
       // so the value of `files` might be `undefined` instead of a default empty array
-      let files = config.spec.files || []
+      // also we discard any falsy file values in files array
+      let files = (config.spec.files || []).filter((f) => !!f)
 
       if (files.length > 0 && !config.spec.kustomize) {
         if (!config.include) {
