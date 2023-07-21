@@ -143,6 +143,8 @@ export const gardenPlugin = () =>
         schema: terraformModuleSchema(),
         needsBuild: false,
         handlers: {
+          configure: configureTerraformModule,
+
           async convert(params: ConvertModuleParams<TerraformModule>) {
             const { module, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } = params
             const actions: (ExecBuildConfig | TerraformDeployConfig)[] = []
@@ -206,8 +208,6 @@ export const gardenPlugin = () =>
               return { suggestions: [] }
             }
           },
-
-          configure: configureTerraformModule,
         },
       },
     ],
