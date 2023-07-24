@@ -28,10 +28,20 @@ RUN apk add --no-cache \
   groff \
   py3-crcmod
 
+# Add tools required for Azure DevOps. See also https://github.com/microsoft/azure-pipelines-agent/blob/master/docs/design/non-glibc-containers.md
+RUN apk add --no-cache --virtual .pipeline-deps readline linux-pam  \
+  && apk add bash sudo shadow \
+  && apk del .pipeline-deps
+
 ENV USER=root
 ENV HOME=/root
 
-ENTRYPOINT ["/garden/garden"]
+# We do not set an entrypoint here for compatibility with Azure DevOps pipelines.
+# See also https://learn.microsoft.com/en-us/azure/devops/pipelines/process/container-phases?view=azure-devops#linux-based-containers
+ENTRYPOINT []
+
+# Required by Azure DevOps to tell the system where node is installed
+LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
 
 FROM garden-alpine-base-root as garden-alpine-base-rootless
 
@@ -128,9 +138,6 @@ COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/az /usr/local/bi
 COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubelogin /usr/local/bin/kubelogin
 
-# Required by Azure DevOps to tell the system where node is installed
-LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
-
 #
 # garden-aws
 #
@@ -187,6 +194,3 @@ COPY --chown=$USER:root --from=garden-azure-base /azure-cli /azure-cli
 COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/az /usr/local/bin/az
 COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubelogin /usr/local/bin/kubelogin
-
-# Required by Azure DevOps to tell the system where node is installed
-LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
