@@ -24,6 +24,7 @@ import { uniq } from "lodash"
 import { DOCS_BASE_URL } from "../../../constants"
 import { kubernetesGetSyncStatus, kubernetesStartSync } from "./sync"
 import { k8sContainerStopSync } from "../container/sync"
+import { isTruthy } from "../../../util/util"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.
@@ -44,7 +45,8 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
     configure: async ({ ctx, config }) => {
       // The `spec` field hasn't been validated here yet,
       // so the value of `files` might be `undefined` instead of a default empty array
-      let files = config.spec.files || []
+      // also we discard any falsy file values in files array
+      let files = (config.spec.files || []).filter(isTruthy)
 
       if (files.length > 0 && !config.spec.kustomize) {
         if (!config.include) {

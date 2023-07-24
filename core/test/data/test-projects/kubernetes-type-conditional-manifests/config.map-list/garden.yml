@@ -1,0 +1,8 @@
+kind: "Deploy"
+type: "kubernetes"
+name: "config-map-list"
+variables:
+  foo: false
+spec:
+  files:
+    - "${var.foo ? 'manifests.yaml' : null}"

@@ -1,0 +1,7 @@
+apiVersion: garden.io/v1
+kind: Project
+name: test-kubernetes-type-conditional-manifests
+environments:
+  - name: local
+providers:
+  - name: local-kubernetes

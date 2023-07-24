@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
 
-import { TestGarden } from "../../../../../helpers"
+import { TestGarden, getDataDir, makeTestGarden } from "../../../../../helpers"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
 import { getKubernetesTestGarden } from "./common"
@@ -172,5 +172,20 @@ describe("configureKubernetesModule", () => {
     patchModuleConfig("module-simple", { exclude: ["bar"] })
     const configExclude = await garden.resolveModule("module-simple")
     expect(configExclude.include).to.be.undefined
+  })
+})
+
+describe("configureKubernetesType", () => {
+  let garden: TestGarden
+
+  before(async () => {
+    const projectRoot = getDataDir("test-projects", "kubernetes-type-conditional-manifests")
+    garden = await makeTestGarden(projectRoot)
+  })
+
+  it("should resolve fine with null values for manifests in spec.files", async () => {
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const action = graph.getDeploy("config-map-list")
+    expect(action["_config"].spec.files).to.eql([null])
   })
 })
