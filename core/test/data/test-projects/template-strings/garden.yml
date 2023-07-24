@@ -1,0 +1,24 @@
+apiVersion: garden.io/v1
+kind: Project
+name: template-strings
+environments:
+  - name: default
+    variables:
+      includeEnvFiles:
+        - 'aFileFromEnvConfig'
+providers:
+  - name: test-plugin
+    environments: [ default ]
+variables:
+  includeProjectFiles:
+    - 'aFileFromProjectConfig'
+
+---
+kind: Deploy
+type: exec
+name: test-deploy
+include:
+  - $concat: ${var.includeEnvFiles}
+  - $concat: ${var.includeProjectFiles}
+spec:
+  deployCommand: [ "sh", "-c", "echo", "foo" ]
