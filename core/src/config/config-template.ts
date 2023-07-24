@@ -11,7 +11,7 @@ import { baseModuleSpecSchema, BaseModuleSpec } from "./module"
 import { dedent, naturalList } from "../util/string"
 import { configTemplateKind, renderTemplateKind, BaseGardenResource, baseInternalFieldsSchema } from "./base"
 import { resolveTemplateStrings } from "../template-string/template-string"
-import { validateWithPath } from "./validation"
+import { validateConfig } from "./validation"
 import { Garden } from "../garden"
 import { ConfigurationError } from "../exceptions"
 import { resolve, posix, dirname } from "path"
@@ -66,12 +66,11 @@ export async function resolveConfigTemplate(
   const configPath = resource.internal.configFilePath
 
   // Validate the partial config
-  const validated = validateWithPath({
+  const validated = validateConfig({
     config: resolved,
-    path: configPath || resource.internal.basePath,
     schema: configTemplateSchema(),
     projectRoot: garden.projectRoot,
-    configType: configTemplateKind,
+    yamlDocBasePath: [],
   })
 
   // Read and validate the JSON schema, if specified

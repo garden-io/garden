@@ -101,6 +101,9 @@ export const getDefaultProjectConfig = (): ProjectConfig =>
     kind: "Project",
     name: "test",
     path: "tmp",
+    internal: {
+      basePath: "/foo",
+    },
     defaultEnvironment,
     dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
@@ -242,7 +245,7 @@ export const makeTestGardenBuildDependants = profileAsync(async function _makeTe
  */
 export async function makeTempGarden(opts?: TestGardenOpts) {
   const tmpDir = await makeTempDir({ git: true })
-  await dumpYaml(join(tmpDir.path, "project.garden.yml"), opts?.config || getDefaultProjectConfig())
+  await dumpYaml(join(tmpDir.path, "project.garden.yml"), omit(opts?.config || getDefaultProjectConfig(), "internal"))
   const garden = await makeTestGarden(tmpDir.path, opts)
   return { tmpDir, garden }
 }

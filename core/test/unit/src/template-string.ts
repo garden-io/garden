@@ -1035,7 +1035,7 @@ describe("resolveTemplateString", () => {
     it("throws if a wrong argument type is passed", () => {
       void expectError(() => resolveTemplateString("${base64Decode(a)}", new TestContext({ a: 1234 })), {
         contains:
-          "Invalid template string (${base64Decode(a)}): Error validating argument 'string' for base64Decode helper function: value must be a string",
+          "Invalid template string (${base64Decode(a)}): Error validating argument 'string' for base64Decode helper function:\nvalue must be a string",
       })
     })
 
@@ -1101,7 +1101,7 @@ describe("resolveTemplateString", () => {
               b: ["a"],
             },
             errorMessage:
-              "Error validating argument 'arg1' for concat helper function: value must be one of [array, string]",
+              "Error validating argument 'arg1' for concat helper function:\nvalue must be one of [array, string]",
           })
         })
       })

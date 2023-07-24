@@ -20,7 +20,7 @@ import { isMatch } from "micromatch"
 import type { GardenInstanceManager } from "./instance-manager"
 import { isDirectory } from "../util/fs"
 import { pathExists } from "fs-extra"
-import type { ProjectResource } from "../config/project"
+import type { ProjectConfig } from "../config/project"
 import { findProjectConfig } from "../config/base"
 import type { GlobalConfigStore } from "../config-store/global"
 import type { ParsedArgs } from "minimist"
@@ -406,7 +406,7 @@ export async function resolveRequest({
     return { error: { code, message, detail } }
   }
 
-  let projectConfig: ProjectResource | undefined
+  let projectConfig: ProjectConfig | undefined
 
   // TODO: support --root option flag
 

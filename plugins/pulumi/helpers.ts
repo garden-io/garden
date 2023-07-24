@@ -235,7 +235,7 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   let stackConfigFileExists: boolean
   try {
     const fileData = await readFile(stackConfigPath)
-    stackConfig = (await loadAndValidateYaml(fileData.toString(), stackConfigPath))[0]
+    stackConfig = (await loadAndValidateYaml(fileData.toString(), stackConfigPath))[0].toJS()
     stackConfigFileExists = true
   } catch (err) {
     log.debug(`No pulumi stack configuration file for action ${action.name} found at ${stackConfigPath}`)

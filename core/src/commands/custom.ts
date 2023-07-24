@@ -129,6 +129,8 @@ export class CustomCommandWrapper extends Command {
         path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
         configType: `exec field in custom Command '${this.name}'`,
+        yamlDoc: undefined,
+        yamlDocBasePath: [],
       })
 
       const command = exec.command
@@ -179,6 +181,8 @@ export class CustomCommandWrapper extends Command {
         path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
         configType: `gardenCommand field in custom Command '${this.name}'`,
+        yamlDoc: undefined,
+        yamlDocBasePath: [],
       })
 
       log.debug(`Running Garden command: ${gardenCommand.join(" ")}`)
@@ -275,6 +279,8 @@ export async function getCustomCommands(log: Log, projectRoot: string) {
         path: (<CommandResource>config).internal.basePath,
         projectRoot,
         configType: `custom Command '${config.name}'`,
+        yamlDoc: (<CommandResource>config).internal.yamlDoc,
+        yamlDocBasePath: [],
       })
     )
 

@@ -28,6 +28,9 @@ describe.skip("conftest provider", () => {
     kind: "Project",
     name: "test",
     path: projectRoot,
+    internal: {
+      basePath: projectRoot,
+    },
     defaultEnvironment: "default",
     dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],

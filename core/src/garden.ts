@@ -1758,6 +1758,8 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     configType: "project environments",
     path: config.path,
     projectRoot: config.path,
+    yamlDoc: config.internal.yamlDoc,
+    yamlDocBasePath: ["environments"],
   })
 
   const configDefaultEnvironment = resolveTemplateString(
@@ -2059,6 +2061,9 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
     apiVersion: GardenApiVersion.v1,
     kind: "Project",
     name: "no-project",
+    internal: {
+      basePath: root,
+    },
     defaultEnvironment: "",
     dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: environmentName, defaultNamespace: _defaultNamespace, variables: {} }],

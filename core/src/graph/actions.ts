@@ -571,6 +571,8 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       path: config.internal.basePath,
       schema: template.inputsSchema,
       projectRoot: garden.projectRoot,
+      yamlDoc: undefined,
+      yamlDocBasePath: [],
     })
   }
 
@@ -607,6 +609,8 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       name: config.name,
       path: config.internal.basePath,
       projectRoot: garden.projectRoot,
+      yamlDoc: config.internal.yamlDoc,
+      yamlDocBasePath: [],
     })
 
     config = { ...config, variables: resolvedVariables, spec }

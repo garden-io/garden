@@ -462,6 +462,12 @@ joi = joi.extend({
           const outputError = helpers.error("validation")
           outputError.message = error.message
           outputError.zodError = error
+
+          if (error instanceof z.ZodError && error.issues.length > 0) {
+            // Not perfect, but at least we can get the path of the first error
+            outputError.path = error.issues[0].path
+          }
+
           return outputError
         }
       },

@@ -180,6 +180,20 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
     this.log.silly(`Validating ${providerName} config`)
 
+    const projectConfig = this.garden.getProjectConfig()
+    const yamlDoc = projectConfig.internal.yamlDoc
+    let yamlDocBasePath: (string | number)[] = []
+
+    if (yamlDoc) {
+      projectConfig.providers.forEach((p, i) => {
+        if (p.name === this.config.name) {
+          yamlDocBasePath = ["providers", i]
+          return false
+        }
+        return true
+      })
+    }
+
     const validateConfig = (config: GenericProviderConfig) => {
       return <GenericProviderConfig>validateWithPath({
         config: omit(config, "path"),
@@ -188,6 +202,8 @@ export class ResolveProviderTask extends BaseTask<Provider> {
         projectRoot: this.garden.projectRoot,
         configType: "provider configuration",
         ErrorClass: ConfigurationError,
+        yamlDoc,
+        yamlDocBasePath,
       })
     }
 
@@ -255,6 +271,8 @@ export class ResolveProviderTask extends BaseTask<Provider> {
         projectRoot: this.garden.projectRoot,
         configType: `provider configuration (base schema from '${base.name}' plugin)`,
         ErrorClass: ConfigurationError,
+        yamlDoc,
+        yamlDocBasePath,
       })
     }
 

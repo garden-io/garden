@@ -426,6 +426,9 @@ describe("resolveProjectConfig", () => {
       })
     ).to.eql({
       ...config,
+      internal: {
+        basePath: "/foo",
+      },
       dotIgnoreFiles: [],
       environments: [
         {
@@ -1076,7 +1079,7 @@ describe("pickEnvironment", () => {
           secrets: {},
           commandInfo,
         }),
-      { contains: "Error validating environment default: key .defaultNamespace must be a string" }
+      { contains: ["Error validating environment default", "defaultNamespace must be a string"] }
     )
   })
 

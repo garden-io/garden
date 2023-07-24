@@ -247,6 +247,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     }
 
     const path = this.action.basePath()
+    const internal = this.action.getInternal()
 
     spec = validateWithPath({
       config: spec,
@@ -254,6 +255,8 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       path,
       projectRoot: this.garden.projectRoot,
       configType: `spec for ${description}`,
+      yamlDoc: internal.yamlDoc,
+      yamlDocBasePath: ["spec"],
     })
 
     const actionTypeBases = await this.garden.getActionTypeBases(kind, type)
@@ -266,6 +269,8 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         path,
         projectRoot: this.garden.projectRoot,
         configType: `spec for ${description} (base schema from '${base.name}' plugin)`,
+        yamlDoc: internal.yamlDoc,
+        yamlDocBasePath: ["spec"],
       })
     }
 

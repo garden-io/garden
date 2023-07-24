@@ -36,6 +36,7 @@ import { validateSchema } from "../config/validation"
 import { mkdirp, remove } from "fs-extra"
 import { GlobalConfigStore } from "../config-store/global"
 import { isPromise } from "./objects"
+import chalk from "chalk"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -412,7 +413,13 @@ export class TestGarden extends Garden {
 export function expectFuzzyMatch(str: string, sample: string | string[]) {
   const errorMessageNonAnsi = stripAnsi(str)
   const samples = typeof sample === "string" ? [sample] : sample
-  samples.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
+  try {
+    samples.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.log("Error message:\n", chalk.red(errorMessageNonAnsi), "\n")
+    throw err
+  }
 }
 
 export function expectLogsContain(logs: string[], sample: string) {

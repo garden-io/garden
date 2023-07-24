@@ -355,6 +355,8 @@ export class ModuleResolver {
         path: config.configPath || config.path,
         schema: template.inputsSchema,
         projectRoot: garden.projectRoot,
+        yamlDoc: undefined,
+        yamlDocBasePath: [],
       })
 
       config.inputs = inputs
@@ -424,6 +426,8 @@ export class ModuleResolver {
         name: config.name,
         path: config.path,
         projectRoot: garden.projectRoot,
+        yamlDoc: undefined,
+        yamlDocBasePath: [],
       })
     }
 
@@ -435,6 +439,8 @@ export class ModuleResolver {
       name: config.name,
       path: config.path,
       projectRoot: garden.projectRoot,
+      yamlDoc: undefined,
+      yamlDocBasePath: [],
     })
 
     if (config.repositoryUrl) {
@@ -470,6 +476,8 @@ export class ModuleResolver {
           projectRoot: garden.projectRoot,
           configType: `configuration for module '${config.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: ConfigurationError,
+          yamlDoc: undefined,
+          yamlDocBasePath: [],
         })
       }
     }
@@ -606,6 +614,8 @@ export class ModuleResolver {
         path: module.configPath || module.path,
         projectRoot: this.garden.projectRoot,
         ErrorClass: PluginError,
+        yamlDoc: undefined,
+        yamlDocBasePath: [],
       })
     }
 
@@ -623,6 +633,8 @@ export class ModuleResolver {
           projectRoot: this.garden.projectRoot,
           configType: `outputs for module '${module.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: PluginError,
+          yamlDoc: undefined,
+          yamlDocBasePath: [],
         })
       }
     }

@@ -66,6 +66,9 @@ export async function getSystemGarden(
       path: systemProjectPath,
       apiVersion: GardenApiVersion.v1,
       kind: "Project",
+      internal: {
+        basePath: systemProjectPath,
+      },
       name: systemNamespace,
       defaultEnvironment: "default",
       dotIgnoreFile: defaultDotIgnoreFile,

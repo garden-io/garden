@@ -8,25 +8,26 @@
 
 import dotenv = require("dotenv")
 import { sep, resolve, relative, basename, dirname, join } from "path"
-import { load, loadAll } from "js-yaml"
+import { load } from "js-yaml"
 import { lint } from "yaml-lint"
 import { pathExists, readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
 import { coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig, ModuleConfig } from "./module"
 import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions"
 import { DEFAULT_BUILD_TIMEOUT_SEC, DOCS_BASE_URL, GardenApiVersion } from "../constants"
-import { ProjectConfig, ProjectResource } from "../config/project"
+import type { ProjectConfig } from "../config/project"
 import { validateWithPath } from "./validation"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs"
 import { isConfigFilename } from "../util/fs"
 import { ConfigTemplateKind } from "./config-template"
-import { isTruthy } from "../util/util"
+import { isNotNull, isTruthy } from "../util/util"
 import { createSchema, DeepPrimitiveMap, joi, PrimitiveMap } from "./common"
 import { emitNonRepeatableWarning } from "../warnings"
 import { ActionKind, actionKinds } from "../actions/types"
 import { mayContainTemplateString } from "../template-string/template-string"
 import { Log } from "../logger/log-entry"
 import { deline } from "../util/string"
+import { Document, parseAllDocuments } from "yaml"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -42,6 +43,10 @@ The format of the files is determined by the configured file's extension:
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 `.trim()
 
+export interface YamlDocumentWithSource extends Document {
+  source: string
+}
+
 export interface GardenResourceInternalFields {
   basePath: string
   configFilePath?: string
@@ -49,10 +54,12 @@ export interface GardenResourceInternalFields {
   inputs?: DeepPrimitiveMap
   parentName?: string
   templateName?: string
+  // Used to map fields to specific doc and location
+  yamlDoc?: YamlDocumentWithSource
 }
 
 export interface BaseGardenResource {
-  apiVersion?: string
+  apiVersion?: GardenApiVersion
   kind: string
   name: string
   internal: GardenResourceInternalFields
@@ -66,6 +73,7 @@ export const baseInternalFieldsSchema = createSchema({
     inputs: joi.object().optional().meta({ internal: true }),
     parentName: joi.string().optional().meta({ internal: true }),
     templateName: joi.string().optional().meta({ internal: true }),
+    yamlDoc: joi.any().optional().meta({ internal: true }),
   }),
   allowUnknown: true,
   meta: { internal: true },
@@ -87,9 +95,15 @@ export const allConfigKinds = ["Module", "Workflow", "Project", configTemplateKi
  * @param content - The contents of the file as a string.
  * @param path - The path to the file.
  */
-export async function loadAndValidateYaml(content: string, path: string): Promise<any[]> {
+export async function loadAndValidateYaml(content: string, path: string): Promise<YamlDocumentWithSource[]> {
   try {
-    return loadAll(content) || []
+    return Array.from(parseAllDocuments(content) || []).map((doc: any) => {
+      if (doc.errors.length > 0) {
+        throw doc.errors[0]
+      }
+      doc.source = content
+      return doc
+    })
   } catch (err) {
     // We try to find the error using a YAML linter
     try {
@@ -145,13 +159,13 @@ export async function validateRawConfig({
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
 
-  const resources = <GardenResource[]>rawSpecs
+  const resources = rawSpecs
     .map((s) => {
       const relPath = relative(projectRoot, configPath)
       const description = `config at ${relPath}`
-      return prepareResource({ log, spec: s, configFilePath: configPath, projectRoot, description, allowInvalid })
+      return prepareResource({ log, doc: s, configFilePath: configPath, projectRoot, description, allowInvalid })
     })
-    .filter(Boolean)
+    .filter(isNotNull)
   return resources
 }
 
@@ -171,20 +185,26 @@ export async function readConfigFile(configPath: string, projectRoot: string) {
  */
 export function prepareResource({
   log,
-  spec,
+  doc,
   configFilePath,
   projectRoot,
   description,
   allowInvalid = false,
 }: {
   log: Log
-  spec: any
+  doc: YamlDocumentWithSource
   configFilePath: string
   projectRoot: string
   description: string
   allowInvalid?: boolean
 }): GardenResource | ModuleConfig | null {
   const relPath = relative(projectRoot, configFilePath)
+
+  const spec = doc.toJS()
+
+  if (spec === null) {
+    return null
+  }
 
   if (!isPlainObject(spec)) {
     throw new ConfigurationError({
@@ -209,7 +229,7 @@ export function prepareResource({
         })
       }
     }
-    if (spec.internal) {
+    if (spec.internal !== undefined) {
       throw new ConfigurationError({
         message: `Found invalid key "internal" in config at ${relPath}`,
         detail: {
@@ -228,7 +248,10 @@ export function prepareResource({
   if (kind === "Project") {
     spec.path = basePath
     spec.configPath = configFilePath
-    delete spec.internal
+    spec.internal = {
+      basePath,
+      yamlDoc: doc,
+    }
     return prepareProjectResource(log, spec)
   } else if (
     actionKinds.includes(kind) ||
@@ -240,6 +263,7 @@ export function prepareResource({
     spec.internal = {
       basePath,
       configFilePath,
+      yamlDoc: doc,
     }
     return spec
   } else if (kind === "Module") {
@@ -269,9 +293,9 @@ export function prepareResource({
 }
 
 // TODO-0.14: remove these deprecation handlers in 0.14
-type DeprecatedConfigHandler = (log: Log, spec: ProjectResource) => ProjectResource
+type DeprecatedConfigHandler = (log: Log, spec: ProjectConfig) => ProjectConfig
 
-function handleDotIgnoreFiles(log: Log, projectSpec: ProjectResource) {
+function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
   // If the project config has an explicitly defined `dotIgnoreFile` field,
   // it means the config has already been updated to 0.13 format.
   if (!!projectSpec.dotIgnoreFile) {
@@ -307,8 +331,8 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectResource) {
   })
 }
 
-function handleProjectModules(log: Log, projectSpec: ProjectResource): ProjectResource {
-  // Field 'modules' was intentionally removed from the internal interface `ProjectResource`,
+function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConfig {
+  // Field 'modules' was intentionally removed from the internal interface `ProjectConfig`,
   // but it still can be presented in the runtime if the old config format is used.
   if (projectSpec["modules"]) {
     emitNonRepeatableWarning(
@@ -320,7 +344,7 @@ function handleProjectModules(log: Log, projectSpec: ProjectResource): ProjectRe
   return projectSpec
 }
 
-function handleMissingApiVersion(log: Log, projectSpec: ProjectResource): ProjectResource {
+function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
   // We conservatively set the apiVersion to be compatible with 0.12.
   if (projectSpec["apiVersion"] === undefined) {
     emitNonRepeatableWarning(
@@ -354,8 +378,8 @@ const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [
   handleProjectModules,
 ]
 
-export function prepareProjectResource(log: Log, spec: any): ProjectResource {
-  let projectSpec = <ProjectResource>spec
+export function prepareProjectResource(log: Log, spec: any): ProjectConfig {
+  let projectSpec = <ProjectConfig>spec
   for (const handler of bonsaiDeprecatedConfigHandlers) {
     projectSpec = handler(log, projectSpec)
   }
@@ -421,6 +445,8 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
     projectRoot,
     configType: "module",
     ErrorClass: ConfigurationError,
+    yamlDoc: undefined,
+    yamlDocBasePath: [],
   })
 
   return config
@@ -454,7 +480,7 @@ export async function findProjectConfig({
   path: string
   allowInvalid?: boolean
   scan?: boolean
-}): Promise<ProjectResource | undefined> {
+}): Promise<ProjectConfig | undefined> {
   let sepCount = path.split(sep).length - 1
 
   let allProjectSpecs: GardenResource[] = []
@@ -488,7 +514,7 @@ export async function findProjectConfig({
         },
       })
     } else if (allProjectSpecs.length === 1) {
-      return <ProjectResource>allProjectSpecs[0]
+      return <ProjectConfig>allProjectSpecs[0]
     }
 
     if (!scan) {

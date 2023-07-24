@@ -23,7 +23,7 @@ import {
   Primitive,
   PrimitiveMap,
 } from "./common"
-import { validateWithPath } from "./validation"
+import { validateConfig, validateWithPath } from "./validation"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project"
 import { findByName, getNames } from "../util/util"
@@ -36,7 +36,7 @@ import { defaultDotIgnoreFile } from "../util/fs"
 import type { CommandInfo } from "../plugin-context"
 import type { VcsInfo } from "../vcs/vcs"
 import { profileAsync } from "../util/profiling"
-import { loadVarfile, varfileDescription } from "./base"
+import { BaseGardenResource, baseInternalFieldsSchema, loadVarfile, varfileDescription } from "./base"
 import chalk = require("chalk")
 import { Log } from "../logger/log-entry"
 import { renderDivider } from "../logger/util"
@@ -196,7 +196,7 @@ interface GitConfig {
   mode: GitScanMode
 }
 
-export interface ProjectConfig {
+export interface ProjectConfig extends BaseGardenResource {
   apiVersion: GardenApiVersion
   kind: "Project"
   name: string
@@ -219,10 +219,6 @@ export interface ProjectConfig {
   sources?: SourceConfig[]
   varfile?: string
   variables: DeepPrimitiveMap
-}
-
-export interface ProjectResource extends ProjectConfig {
-  kind: "Project"
 }
 
 export const projectNameSchema = memoize(() =>
@@ -316,6 +312,7 @@ export const projectSchema = createSchema({
     kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
     path: projectRootSchema().meta({ internal: true }),
     configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
+    internal: baseInternalFieldsSchema(),
     name: projectNameSchema(),
     // TODO: Refer to enterprise documentation for more details.
     id: joi.string().meta({ internal: true }).description("The project's ID in Garden Cloud."),
@@ -513,7 +510,7 @@ export function resolveProjectConfig({
   }
 
   // Validate after resolving global fields
-  config = validateWithPath({
+  config = validateConfig({
     config: {
       ...config,
       ...globalConfig,
@@ -524,9 +521,8 @@ export function resolveProjectConfig({
       sources: [],
     },
     schema: projectSchema(),
-    configType: "project",
-    path: config.path,
     projectRoot: config.path,
+    yamlDocBasePath: [],
   })
 
   const providers = config.providers
@@ -597,7 +593,16 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
 
   let { environment, namespace } = parseEnvironment(envString)
 
-  let environmentConfig = findByName(environments, environment)
+  let environmentConfig: EnvironmentConfig | undefined
+  let index = -1
+
+  for (const env of environments) {
+    index++
+    if (env.name === environment) {
+      environmentConfig = env
+      break
+    }
+  }
 
   if (!environmentConfig) {
     const definedEnvironments = getNames(environments)
@@ -645,6 +650,8 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     configType: `environment ${environment}`,
     path: projectConfig.path,
     projectRoot: projectConfig.path,
+    yamlDoc: projectConfig.internal.yamlDoc,
+    yamlDocBasePath: ["environments", index],
   })
 
   namespace = getNamespace(environmentConfig, namespace)

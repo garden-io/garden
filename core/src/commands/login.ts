@@ -15,7 +15,7 @@ import { ConfigurationError, InternalError, TimeoutError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
 import { EventBus } from "../events/events"
 import { getCloudDistributionName } from "../util/util"
-import { ProjectResource } from "../config/project"
+import { ProjectConfig } from "../config/project"
 import { findProjectConfig } from "../config/base"
 import { BooleanParameter } from "../cli/params"
 import { deline } from "../util/string"
@@ -56,7 +56,7 @@ export class LoginCommand extends Command<{}, Opts> {
     // so we initialize it here. noProject also make sure that the project config is not
     // initialized in the garden class, so we need to read it in here to get the cloud
     // domain.
-    let projectConfig: ProjectResource | undefined = undefined
+    let projectConfig: ProjectConfig | undefined = undefined
     const forceProjectCheck = !opts["disable-project-check"]
 
     if (forceProjectCheck) {

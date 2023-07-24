@@ -32,7 +32,7 @@ import {
   cliStyles,
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
-import { ProjectResource } from "../config/project"
+import { ProjectConfig } from "../config/project"
 import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME, gardenEnv } from "../constants"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
@@ -426,7 +426,7 @@ ${renderCommands(commands)}
       return done(1, chalk.red(`Could not find specified root path (${argv.root})`))
     }
 
-    let projectConfig: ProjectResource | undefined
+    let projectConfig: ProjectConfig | undefined
 
     // First look for native Garden commands
     let { command, rest, matchedPath } = pickCommand(Object.values(this.commands), argv._)
@@ -581,7 +581,7 @@ ${renderCommands(commands)}
   }
 
   @pMemoizeDecorator()
-  async getProjectConfig(log: Log, workingDir: string): Promise<ProjectResource | undefined> {
+  async getProjectConfig(log: Log, workingDir: string): Promise<ProjectConfig | undefined> {
     return findProjectConfig({ log, path: workingDir })
   }
 

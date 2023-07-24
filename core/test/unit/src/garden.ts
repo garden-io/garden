@@ -238,7 +238,7 @@ describe("Garden", () => {
     it("should throw if project.environments is not an array", async () => {
       const projectRoot = getDataDir("test-project-malformed-environments")
       await expectError(async () => makeTestGarden(projectRoot), {
-        contains: "Error validating project environments: value must be an array",
+        contains: ["Error validating project environments", "must be an array"],
       })
     })
 
@@ -250,7 +250,7 @@ describe("Garden", () => {
       })
       config.environments = [] // <--
       await expectError(async () => await TestGarden.factory(pathFoo, { config }), {
-        contains: "Error validating project environments: value must contain at least 1 items",
+        contains: ["Error validating project environments", "must contain at least 1 items"],
       })
     })
 
@@ -264,7 +264,7 @@ describe("Garden", () => {
       config.environments = [] // this is omitted later to simulate a config where envs are not set
       config = omit(config, "environments") as any as ProjectConfig
       await expectError(async () => await TestGarden.factory(pathFoo, { config }), {
-        contains: "Error validating project environments: value is required",
+        contains: ["Error validating project environments", "environments is required"],
       })
     })
 
@@ -470,6 +470,9 @@ describe("Garden", () => {
         kind: "Project",
         name: "test",
         path: pathFoo,
+        internal: {
+          basePath: pathFoo,
+        },
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
@@ -492,6 +495,9 @@ describe("Garden", () => {
         kind: "Project",
         name: "test",
         path: pathFoo,
+        internal: {
+          basePath: pathFoo,
+        },
         proxy: {
           hostname: "127.0.0.1", // <--- Proxy config is set here
         },
@@ -520,6 +526,9 @@ describe("Garden", () => {
           kind: "Project",
           name: "test",
           path: pathFoo,
+          internal: {
+            basePath: pathFoo,
+          },
           defaultEnvironment: "default",
           dotIgnoreFile: ".gitignore",
           environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
@@ -531,6 +540,9 @@ describe("Garden", () => {
           kind: "Project",
           name: "test",
           path: pathFoo,
+          internal: {
+            basePath: pathFoo,
+          },
           proxy: {
             hostname: "127.0.0.1", // <--- This should be overwritten
           },
@@ -619,7 +631,11 @@ describe("Garden", () => {
       const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, { plugins })
       await expectError(() => garden.getAllPlugins(), {
-        contains: `Unable to load plugin: Error: Error validating plugin module \"${pluginPath}\": key .gardenPlugin must be of type object`,
+        contains: [
+          "Unable to load plugin",
+          `Error validating plugin module "${pluginPath}"`,
+          "gardenPlugin must be of type object",
+        ],
       })
     })
 
@@ -629,7 +645,11 @@ describe("Garden", () => {
       const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, { plugins })
       await expectError(() => garden.getAllPlugins(), {
-        contains: `Unable to load plugin: Error: Error validating plugin module "${pluginPath}": key .gardenPlugin is required`,
+        contains: [
+          "Unable to load plugin",
+          `Error validating plugin module "${pluginPath}"`,
+          "gardenPlugin is required",
+        ],
       })
     })
 
@@ -1936,7 +1956,7 @@ describe("Garden", () => {
         () => garden.resolveProviders(garden.log),
         (err) => {
           expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-          expectFuzzyMatch(err.detail.messages[0], "Error validating provider configuration: key .foo must be a string")
+          expectFuzzyMatch(err.detail.messages[0], ["Error validating provider configuration", "foo must be a string"])
         }
       )
     })
@@ -1966,7 +1986,7 @@ describe("Garden", () => {
         () => garden.resolveProviders(garden.log),
         (err) => {
           expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-          expectFuzzyMatch(err.detail.messages[0], "Error validating provider configuration: key .foo must be a string")
+          expectFuzzyMatch(err.detail.messages[0], ["Error validating provider configuration", "foo must be a string"])
         }
       )
     })
@@ -2170,10 +2190,10 @@ describe("Garden", () => {
           () => garden.resolveProviders(garden.log),
           (err) => {
             expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-            expectFuzzyMatch(
-              err.detail.messages[0],
-              "Error validating provider configuration: key .foo must be a string"
-            )
+            expectFuzzyMatch(err.detail.messages[0], [
+              "Error validating provider configuration",
+              "foo must be a string",
+            ])
           }
         )
       })
@@ -2211,7 +2231,7 @@ describe("Garden", () => {
             expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
             expectFuzzyMatch(
               err.detail.messages[0],
-              "Error validating provider configuration (base schema from 'base' plugin): key .foo must be a string"
+              "Error validating provider configuration (base schema from 'base' plugin):\nfoo must be a string"
             )
           }
         )
@@ -2266,7 +2286,7 @@ describe("Garden", () => {
       })
 
       await expectError(() => garden.getProjectSources(), {
-        contains: "Error validating remote source: key [0][name] must be a string",
+        contains: "Error validating remote source:\n[0][name] must be a string",
       })
 
       delete process.env.TEST_ENV_VAR
@@ -2506,14 +2526,14 @@ describe("Garden", () => {
 
       expect(build.type).to.equal("test")
       expect(build.spec.command).to.eql(["${inputs.value}"]) // <- resolved later
-      expect(build.internal).to.eql(internal)
+      expect(omit(build.internal, "yamlDoc")).to.eql(internal)
 
       expect(deploy["build"]).to.equal("${parent.name}-${inputs.name}") // <- resolved later
-      expect(deploy.internal).to.eql(internal)
+      expect(omit(deploy.internal, "yamlDoc")).to.eql(internal)
 
       expect(test.dependencies).to.eql(["build.${parent.name}-${inputs.name}"]) // <- resolved later
       expect(test.spec.command).to.eql(["echo", "${inputs.envName}", "${inputs.providerKey}"]) // <- resolved later
-      expect(test.internal).to.eql(internal)
+      expect(omit(test.internal, "yamlDoc")).to.eql(internal)
     })
 
     it("should resolve a workflow from a template", async () => {
@@ -2535,7 +2555,7 @@ describe("Garden", () => {
 
       expect(workflow).to.exist
       expect(workflow.steps).to.eql([{ script: 'echo "${inputs.envName}"' }]) // <- resolved later
-      expect(workflow.internal).to.eql(internal)
+      expect(omit(workflow.internal, "yamlDoc")).to.eql(internal)
     })
 
     it("should throw on duplicate config template names", async () => {
@@ -3654,7 +3674,8 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules",
-          "foo: Error validating Module 'foo': key \"bla\" is not allowed at path [bla]",
+          "foo: Error validating Module 'foo'",
+          '"bla" is not allowed at path [bla]',
         ],
       })
     })
@@ -3702,7 +3723,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          "foo: Error validating outputs for module 'foo': key .foo must be a string",
+          "foo: Error validating outputs for module 'foo':\nfoo must be a string",
         ],
       })
     })
@@ -3730,13 +3751,13 @@ describe("Garden", () => {
       }
 
       expect(build.type).to.equal("test")
-      expect(build.getInternal()).to.eql(internal)
+      expect(omit(build.getInternal(), "yamlDoc")).to.eql(internal)
 
       expect(deploy.getBuildAction()?.name).to.equal("foo-test") // <- should be resolved
-      expect(deploy.getInternal()).to.eql(internal)
+      expect(omit(deploy.getInternal(), "yamlDoc")).to.eql(internal)
 
       expect(test.getDependencies().map((a) => a.key())).to.eql(["build.foo-test"]) // <- should be resolved
-      expect(test.getInternal()).to.eql(internal)
+      expect(omit(test.getInternal(), "yamlDoc")).to.eql(internal)
     })
 
     it("throws with helpful message if action type doesn't exist", async () => {
@@ -3938,7 +3959,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          "foo: Error validating configuration for module 'foo' (base schema from 'base' plugin): key .base is required",
+          "foo: Error validating configuration for module 'foo' (base schema from 'base' plugin):\nbase is required",
         ],
       })
     })
@@ -4003,7 +4024,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          "foo: Error validating outputs for module 'foo' (base schema from 'base' plugin): key .foo must be a string",
+          "foo: Error validating outputs for module 'foo' (base schema from 'base' plugin):\nfoo must be a string",
         ],
       })
     })
@@ -4088,7 +4109,7 @@ describe("Garden", () => {
         await expectError(() => garden.resolveModules({ log: garden.log }), {
           contains: [
             "Failed resolving one or more modules:",
-            "foo: Error validating configuration for module 'foo' (base schema from 'base-a' plugin): key .base is required",
+            "foo: Error validating configuration for module 'foo' (base schema from 'base-a' plugin):\nbase is required",
           ],
         })
       })
@@ -4166,7 +4187,7 @@ describe("Garden", () => {
         await expectError(() => garden.resolveModules({ log: garden.log }), {
           contains: [
             "Failed resolving one or more modules:",
-            "foo: Error validating outputs for module 'foo' (base schema from 'base-a' plugin): key .foo must be a string",
+            "foo: Error validating outputs for module 'foo' (base schema from 'base-a' plugin):\nfoo must be a string",
           ],
         })
       })

@@ -157,7 +157,7 @@ describe("validate", () => {
     })
 
     await expectError(() => validateSchema(obj, schema), {
-      contains: "key .A is required, key .B.b is required",
+      contains: ["A is required", "B.b is required"],
       errorMessageGetter: (err) => err.detail.errorDescription,
     })
   })
@@ -182,7 +182,7 @@ describe("validate", () => {
     })
 
     await expectError(() => validateSchema(obj, schema), {
-      contains: "key .A.B[c].C is required",
+      contains: "A.B[c].C is required",
       errorMessageGetter: (err) => err.detail.errorDescription,
     })
   })
@@ -205,7 +205,7 @@ describe("validate", () => {
     const schema = joi.object().keys({ a: joi.object().pattern(/[a-z]+/, joi.string()) })
 
     await expectError(() => validateSchema(obj, schema), {
-      contains: 'key "123" is not allowed at path .a',
+      contains: '"123" is not allowed at path a',
       errorMessageGetter: (err) => err.detail.errorDescription,
     })
   })
@@ -458,8 +458,12 @@ describe("joi.customObject", () => {
   it("should give validation error if object doesn't match specified JSON Schema", async () => {
     const joiSchema = joi.object().jsonSchema(jsonSchema)
     await expectError(() => validateSchema({ numberProperty: "oops", blarg: "blorg" }, joiSchema), {
-      contains:
-        "Validation error: value at . must have required property 'stringProperty', value at . must NOT have additional properties, value at ./numberProperty must be integer",
+      contains: [
+        "Validation error",
+        "value at . must have required property 'stringProperty'",
+        "value at . must NOT have additional properties",
+        "value at ./numberProperty must be integer",
+      ],
     })
   })
 
@@ -472,32 +476,6 @@ describe("joi.customObject", () => {
   it("should throw if invalid schema is passed to .jsonSchema()", async () => {
     await expectError(() => joi.object().jsonSchema({ type: "banana", blorg: "blarg" }), {
       contains: "jsonSchema must be a valid JSON Schema with type=object or reference",
-    })
-  })
-})
-
-describe("validateSchema", () => {
-  it("should format a basic object validation error", async () => {
-    const schema = joi.object().keys({ foo: joi.string() })
-    const value = { foo: 123 }
-    await expectError(() => validateSchema(value, schema), {
-      contains: "Validation error: key .foo must be a string",
-    })
-  })
-
-  it("should format a nested object validation error", async () => {
-    const schema = joi.object().keys({ foo: joi.object().keys({ bar: joi.string() }) })
-    const value = { foo: { bar: 123 } }
-    await expectError(() => validateSchema(value, schema), {
-      contains: "Validation error: key .foo.bar must be a string",
-    })
-  })
-
-  it("should format a nested pattern object validation error", async () => {
-    const schema = joi.object().keys({ foo: joi.object().pattern(/.+/, joi.string()) })
-    const value = { foo: { bar: 123 } }
-    await expectError(() => validateSchema(value, schema), {
-      contains: "Validation error: key .foo[bar] must be a string",
     })
   })
 })

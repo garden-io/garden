@@ -24,6 +24,7 @@ import { safeDumpYaml } from "../../../../src/util/serialization"
 import { getRootLogger } from "../../../../src/logger/logger"
 import { ConfigurationError } from "../../../../src/exceptions"
 import { resetNonRepeatableWarningHistory } from "../../../../src/warnings"
+import { omit } from "lodash"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -165,7 +166,7 @@ describe("loadConfigResources", () => {
     await expectError(
       async () =>
         await loadConfigResources(log, projectPath, resolve(projectPath, "invalid-syntax-module", "garden.yml")),
-      { contains: ["Could not parse", "duplicated mapping key"] }
+      { contains: ["could not parse", "Map keys must be unique"] }
     )
   })
 
@@ -191,7 +192,7 @@ describe("loadConfigResources", () => {
     await expectError(
       async () => await loadConfigResources(log, projectPath, resolve(projectPath, "missing-type", "garden.yml")),
       {
-        contains: "Error validating module (missing-type/garden.yml): key .type is required",
+        contains: "Error validating module (missing-type/garden.yml):\ntype is required",
       }
     )
   })
@@ -201,7 +202,7 @@ describe("loadConfigResources", () => {
     await expectError(
       async () => await loadConfigResources(log, projectPath, resolve(projectPath, "missing-name", "garden.yml")),
       {
-        contains: "Error validating module (missing-name/garden.yml): key .name is required",
+        contains: "Error validating module (missing-name/garden.yml):\nname is required",
       }
     )
   })
@@ -224,90 +225,90 @@ describe("loadConfigResources", () => {
     const configPath = resolve(projectPathA, "garden.yml")
     const parsed = await loadConfigResources(log, projectPathA, configPath)
 
-    expect(parsed).to.eql([
-      {
-        apiVersion: GardenApiVersion.v1,
-        kind: "Project",
-        path: projectPathA,
-        configPath,
-        name: "test-project-a",
-        environments: [
-          {
-            name: "local",
-          },
-          {
-            name: "other",
-          },
-        ],
-        providers: [{ name: "test-plugin" }, { name: "test-plugin-b", environments: ["local"] }],
-        outputs: [
-          {
-            name: "taskName",
-            value: "task-a",
-          },
-        ],
-        variables: { some: "variable" },
-      },
-    ])
+    expect(parsed.length).to.equal(1)
+
+    expect(omit(parsed[0], "internal")).to.eql({
+      apiVersion: GardenApiVersion.v1,
+      kind: "Project",
+      path: projectPathA,
+      configPath,
+      name: "test-project-a",
+      environments: [
+        {
+          name: "local",
+        },
+        {
+          name: "other",
+        },
+      ],
+      providers: [{ name: "test-plugin" }, { name: "test-plugin-b", environments: ["local"] }],
+      outputs: [
+        {
+          name: "taskName",
+          value: "task-a",
+        },
+      ],
+      variables: { some: "variable" },
+    })
   })
 
   it("should load and parse a module config", async () => {
     const configPath = resolve(modulePathA, "garden.yml")
     const parsed = await loadConfigResources(log, projectPathA, configPath)
 
-    expect(parsed).to.eql([
-      {
-        apiVersion: GardenApiVersion.v0,
-        kind: "Module",
-        name: "module-a",
-        type: "test",
-        configPath,
-        description: undefined,
-        disabled: undefined,
-        generateFiles: undefined,
-        include: undefined,
-        exclude: undefined,
-        repositoryUrl: undefined,
-        allowPublish: undefined,
-        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
-        path: modulePathA,
-        variables: { msg: "OK" },
-        varfile: undefined,
+    expect(parsed.length).to.equal(1)
 
-        spec: {
-          build: {
-            command: ["echo", "A"],
-            dependencies: [],
-          },
-          services: [{ name: "service-a" }],
-          tasks: [
-            {
-              name: "task-a",
-              command: ["echo", "${var.msg}"],
-            },
-            {
-              name: "task-a2",
-              command: ["echo", "${environment.name}-${var.msg}"],
-            },
-          ],
-          tests: [
-            {
-              name: "unit",
-              command: ["echo", "${var.msg}"],
-            },
-            {
-              name: "integration",
-              command: ["echo", "${var.msg}"],
-              dependencies: ["service-a"],
-            },
-          ],
+    expect(omit(parsed[0], "internal")).to.eql({
+      apiVersion: GardenApiVersion.v0,
+      kind: "Module",
+      name: "module-a",
+      type: "test",
+      configPath,
+      description: undefined,
+      disabled: undefined,
+      generateFiles: undefined,
+      include: undefined,
+      exclude: undefined,
+      repositoryUrl: undefined,
+      allowPublish: undefined,
+      build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+      path: modulePathA,
+      variables: { msg: "OK" },
+      varfile: undefined,
+
+      spec: {
+        build: {
+          command: ["echo", "A"],
+          dependencies: [],
         },
-
-        serviceConfigs: [],
-        taskConfigs: [],
-        testConfigs: [],
+        services: [{ name: "service-a" }],
+        tasks: [
+          {
+            name: "task-a",
+            command: ["echo", "${var.msg}"],
+          },
+          {
+            name: "task-a2",
+            command: ["echo", "${environment.name}-${var.msg}"],
+          },
+        ],
+        tests: [
+          {
+            name: "unit",
+            command: ["echo", "${var.msg}"],
+          },
+          {
+            name: "integration",
+            command: ["echo", "${var.msg}"],
+            dependencies: ["service-a"],
+          },
+        ],
       },
-    ])
+
+      serviceConfigs: [],
+      taskConfigs: [],
+      testConfigs: [],
+    })
   })
 
   it("should load and parse a module template", async () => {
@@ -315,71 +316,68 @@ describe("loadConfigResources", () => {
     const configFilePath = resolve(projectPath, "templates.garden.yml")
     const parsed: any = await loadConfigResources(log, projectPath, configFilePath)
 
-    expect(parsed).to.eql([
-      {
-        kind: configTemplateKind,
-        name: "combo",
+    expect(parsed.length).to.equal(1)
 
-        internal: {
-          basePath: projectPath,
-          configFilePath,
+    expect(omit(parsed[0], "internal")).to.eql({
+      kind: configTemplateKind,
+      name: "combo",
+
+      inputsSchemaPath: "module-templates.json",
+      modules: [
+        {
+          type: "test",
+          name: "${parent.name}-${inputs.name}-a",
+          include: [],
+          build: {
+            command: ["${inputs.value}"],
+          },
+          generateFiles: [
+            {
+              targetPath: "module-a.log",
+              value: "hellow",
+            },
+          ],
         },
-
-        inputsSchemaPath: "module-templates.json",
-        modules: [
-          {
-            type: "test",
-            name: "${parent.name}-${inputs.name}-a",
-            include: [],
-            build: {
-              command: ["${inputs.value}"],
-            },
-            generateFiles: [
-              {
-                targetPath: "module-a.log",
-                value: "hellow",
-              },
-            ],
+        {
+          type: "test",
+          name: "${parent.name}-${inputs.name}-b",
+          include: [],
+          build: {
+            dependencies: ["${parent.name}-${inputs.name}-a"],
           },
-          {
-            type: "test",
-            name: "${parent.name}-${inputs.name}-b",
-            include: [],
-            build: {
-              dependencies: ["${parent.name}-${inputs.name}-a"],
+          generateFiles: [
+            {
+              targetPath: "module-b.log",
+              sourcePath: "source.txt",
             },
-            generateFiles: [
-              {
-                targetPath: "module-b.log",
-                sourcePath: "source.txt",
-              },
-            ],
+          ],
+        },
+        {
+          type: "test",
+          name: "${parent.name}-${inputs.name}-c",
+          include: [],
+          build: {
+            dependencies: ["${parent.name}-${inputs.name}-a"],
           },
-          {
-            type: "test",
-            name: "${parent.name}-${inputs.name}-c",
-            include: [],
-            build: {
-              dependencies: ["${parent.name}-${inputs.name}-a"],
+          generateFiles: [
+            {
+              targetPath: ".garden/subdir/module-c.log",
+              value:
+                'Hello I am string!\ninput: ${inputs.value}\nmodule reference: ${modules["${parent.name}-${inputs.name}-a"].path}\n',
             },
-            generateFiles: [
-              {
-                targetPath: ".garden/subdir/module-c.log",
-                value:
-                  'Hello I am string!\ninput: ${inputs.value}\nmodule reference: ${modules["${parent.name}-${inputs.name}-a"].path}\n',
-              },
-            ],
-          },
-        ],
-      },
-    ])
+          ],
+        },
+      ],
+    })
   })
 
   it("should load and parse a config file defining a project and a module", async () => {
     const configPath = resolve(projectPathMultipleModules, "garden.yml")
     const parsed = await loadConfigResources(log, projectPathMultipleModules, configPath)
 
-    expect(parsed).to.eql([
+    expect(parsed.length).to.equal(2)
+
+    expect(parsed.map((p) => omit(p, "internal"))).to.eql([
       {
         apiVersion: GardenApiVersion.v1,
         kind: "Project",
@@ -434,7 +432,9 @@ describe("loadConfigResources", () => {
     const configPath = resolve(modulePathAMultiple, "garden.yml")
     const parsed = await loadConfigResources(log, projectPathMultipleModules, configPath)
 
-    expect(parsed).to.eql([
+    expect(parsed.length).to.equal(2)
+
+    expect(parsed.map((p) => omit(p, "internal"))).to.eql([
       {
         apiVersion: GardenApiVersion.v0,
         kind: "Module",
@@ -506,17 +506,17 @@ describe("loadConfigResources", () => {
     const configPath = resolve(projectPath, "garden.yml")
     const parsed = await loadConfigResources(log, projectPath, configPath)
 
-    expect(parsed).to.eql([
-      {
-        apiVersion: GardenApiVersion.v1,
-        kind: "Project",
-        path: projectPath,
-        configPath,
-        name: "test-project-a",
-        environments: [{ name: "local" }, { name: "other" }],
-        providers: [{ name: "test-plugin", environments: ["local"] }, { name: "test-plugin-b" }],
-      },
-    ])
+    expect(parsed.length).to.equal(1)
+
+    expect(omit(parsed[0], "internal")).to.eql({
+      apiVersion: GardenApiVersion.v1,
+      kind: "Project",
+      path: projectPath,
+      configPath,
+      name: "test-project-a",
+      environments: [{ name: "local" }, { name: "other" }],
+      providers: [{ name: "test-plugin", environments: ["local"] }, { name: "test-plugin-b" }],
+    })
   })
 
   it("should throw if config file is not found", async () => {
@@ -530,16 +530,14 @@ describe("loadConfigResources", () => {
     const configPath = resolve(path, "garden.yml")
     const parsed = await loadConfigResources(log, path, configPath)
 
-    expect(parsed).to.eql([
-      {
-        apiVersion: GardenApiVersion.v1,
-        kind: "Project",
-        name: "foo",
-        environments: [{ name: "local" }],
-        path,
-        configPath,
-      },
-    ])
+    expect(omit(parsed[0], "internal")).to.eql({
+      apiVersion: GardenApiVersion.v1,
+      kind: "Project",
+      name: "foo",
+      environments: [{ name: "local" }],
+      path,
+      configPath,
+    })
   })
 })
 

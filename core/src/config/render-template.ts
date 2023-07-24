@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { Document } from "yaml"
 import { ModuleConfig } from "./module"
 import { dedent, deline, naturalList } from "../util/string"
 import {
@@ -16,6 +17,7 @@ import {
   prepareResource,
   RenderTemplateKind,
   renderTemplateKind,
+  YamlDocumentWithSource,
 } from "./base"
 import { maybeTemplateString, resolveTemplateString, resolveTemplateStrings } from "../template-string/template-string"
 import { validateWithPath } from "./validation"
@@ -142,6 +144,8 @@ export async function renderConfigTemplate({
     path: resolved.internal.configFilePath || resolved.internal.basePath,
     schema: renderTemplateConfigSchema(),
     projectRoot: garden.projectRoot,
+    yamlDoc: undefined,
+    yamlDocBasePath: [],
   })
 
   const template = templates[resolved.template]
@@ -304,7 +308,7 @@ async function renderConfigs({
       try {
         resource = <TemplatableConfig>prepareResource({
           log,
-          spec,
+          doc: new Document(spec) as YamlDocumentWithSource,
           configFilePath: renderConfigPath,
           projectRoot: garden.projectRoot,
           description: `resource in Render ${renderConfig.name}`,
@@ -316,6 +320,7 @@ async function renderConfigs({
           detail: {
             spec,
             renderConfig,
+            configFilePath: renderConfigPath,
           },
           wrappedErrors: [error],
         })
