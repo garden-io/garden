@@ -1,3 +1,8 @@
+---
+order: 95
+title: Using the CLI
+---
+
 # Using the CLI
 
 Here, we'll describe at a high level the common day-to-day usage of the Garden CLI, with specific examples.

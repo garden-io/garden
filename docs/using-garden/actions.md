@@ -1,5 +1,5 @@
 ---
-order: 95
+order: 30
 title: Actions
 ---
 
@@ -36,12 +36,12 @@ For example, `helm` Deploys (i.e. those with `type: helm` in their configuration
 
 The four action kinds in Garden are:
 
-* `Build` actions, e.g. to build a Docker image or to run a local build script.
-* `Deploy` actions to _deploy_ a service, e.g. a Kubernetes Deployment, Helm chart or Terraform stack.
-    *  For those of you who have been using Garden for a while: These correspond to services in 0.12.
-* `Run` actions for arbitrary scripts, e.g. to perform stateful operations (load test data into databases), download tools or any other miscellaneous steps.
-  * These correspond to tasks in 0.12.
-* `Test` actions to _test_ components, e.g. run unit tests, end-to-end tests or any other test suite you may have defined.
+- `Build` actions, e.g. to build a Docker image or to run a local build script.
+- `Deploy` actions to _deploy_ a service, e.g. a Kubernetes Deployment, Helm chart or Terraform stack.
+  - For those of you who have been using Garden for a while: These correspond to services in 0.12.
+- `Run` actions for arbitrary scripts, e.g. to perform stateful operations (load test data into databases), download tools or any other miscellaneous steps.
+  - These correspond to tasks in 0.12.
+- `Test` actions to _test_ components, e.g. run unit tests, end-to-end tests or any other test suite you may have defined.
 
 Below is a sample of the action configurations for the API service in the [`vote-helm` example project](../../examples/demo-project):
 
@@ -137,7 +137,7 @@ Generally, we recommend using the same deployment tools you use in CI or in prod
   may also specify `Deploy`, `Run` and `Test` actions on them. The `kubernetes` providers, for example, can take these
   service definitions, generate Kubernetes manifests and deploy them. This is generally much easier to use than the
   below `kubernetes` and `helm` action types, but in turn loses some flexibility of those two.
-- [terraform](../reference/action-types/Deploy/terraform.md)  offer a powerful way to deploy any cloud resources as part
+- [terraform](../reference/action-types/Deploy/terraform.md) offer a powerful way to deploy any cloud resources as part
   of your project. See the [Terraform guide](../terraform-plugin/README.md) for more information.
 
 There are several other action types available as well. See
@@ -162,12 +162,11 @@ include:
   - my-sources/**/*.py
 exclude:
   - my-sources/tmp/**/*
-...
 ```
 
 {% hint style="info" %}
 Generally, using `.gardenignore` files is far more performant than exclude config statements and will decrease
-graph resolution time. Read more about `.gardenignore` files in the 
+graph resolution time. Read more about `.gardenignore` files in the
 [configuration-overview documentation](./configuration-overview.md#includingexcluding-files-and-directories)
 {% endhint %}
 

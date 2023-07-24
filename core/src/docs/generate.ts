@@ -155,7 +155,14 @@ export async function writeConfigReferenceDocs(
   // Render module types
   const moduleTypeDir = resolve(docsRoot, "reference", "module-types")
   makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH = "../../"
-  const moduleReadme = ["---", "order: 3", "title: Module Types", "---", "", "# Module Types", ""]
+  const moduleReadme = ["---", "order: 101", "title: Module Types", "---", "", "# Module Types (deprecated)", ""]
+
+  const deprecationWarning = `
+  {% hint style="warning" %}
+  Modules are deprecated and will be removed in version \`0.14\`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
+  {% endhint %}
+  `
+  moduleReadme.push(deprecationWarning)
   const moduleTypeDefinitions = await (await getFreshGarden()).getModuleTypes()
 
   for (const { name } of moduleTypes) {
