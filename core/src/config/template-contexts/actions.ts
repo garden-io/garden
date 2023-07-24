@@ -8,6 +8,7 @@
 
 import chalk from "chalk"
 import { merge } from "lodash"
+import type { ActionConfig } from "../../actions/types"
 import { Action, ActionMode, ExecutedAction, ResolvedAction } from "../../actions/types"
 import { Garden } from "../../garden"
 import { GardenModule } from "../../types/module"
@@ -22,12 +23,19 @@ import {
   PrimitiveMap,
 } from "../common"
 import { ProviderMap } from "../provider"
-import { ConfigContext, ErrorContext, schema, ParentContext, TemplateContext } from "./base"
+import { ConfigContext, ErrorContext, ParentContext, schema, TemplateContext } from "./base"
 import { exampleVersion, OutputConfigContext } from "./module"
 import { TemplatableConfigContext } from "./project"
 import { DOCS_BASE_URL } from "../../constants"
-import type { ActionConfig } from "../../actions/types"
 import type { WorkflowConfig } from "../workflow"
+
+function mergeVariables({ garden, variables }: { garden: Garden; variables: DeepPrimitiveMap }): DeepPrimitiveMap {
+  const mergedVariables: DeepPrimitiveMap = {}
+  merge(mergedVariables, garden.variables)
+  merge(mergedVariables, variables)
+  merge(mergedVariables, garden.variableOverrides)
+  return mergedVariables
+}
 
 type ActionConfigThisContextParams = Pick<ActionReferenceContextParams, "name" | "mode">
 
@@ -73,9 +81,10 @@ export class ActionConfigContext extends TemplatableConfigContext {
   public this: ActionConfigThisContext
 
   constructor({ garden, config, thisContextParams, variables }: ActionConfigContextParams) {
+    const mergedVariables = mergeVariables({ garden, variables })
     super(garden, config)
     this.this = new ActionConfigThisContext(this, thisContextParams)
-    this.variables = this.var = variables
+    this.variables = this.var = mergedVariables
   }
 }
 
@@ -279,10 +288,7 @@ export class ActionSpecContext extends OutputConfigContext {
 
     const internal = action.getInternal()
 
-    const mergedVariables: DeepPrimitiveMap = {}
-    merge(mergedVariables, garden.variables)
-    merge(mergedVariables, variables)
-    merge(mergedVariables, garden.variableOverrides)
+    const mergedVariables = mergeVariables({ garden, variables })
 
     super({
       ...params,

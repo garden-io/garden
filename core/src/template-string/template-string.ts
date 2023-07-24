@@ -7,29 +7,29 @@
  */
 
 import chalk from "chalk"
-import { GardenBaseError, ConfigurationError, TemplateStringError } from "../exceptions"
+import { ConfigurationError, GardenBaseError, TemplateStringError } from "../exceptions"
 import {
   ConfigContext,
-  ContextResolveOpts,
-  ScanContext,
-  ContextResolveOutput,
   ContextKeySegment,
+  ContextResolveOpts,
+  ContextResolveOutput,
   GenericContext,
+  ScanContext,
 } from "../config/template-contexts/base"
-import { difference, uniq, isPlainObject, isNumber, cloneDeep, isString } from "lodash"
+import { cloneDeep, difference, isNumber, isPlainObject, isString, uniq } from "lodash"
 import {
-  Primitive,
-  StringMap,
-  isPrimitive,
-  objectSpreadKey,
+  ActionReference,
   arrayConcatKey,
+  arrayForEachFilterKey,
   arrayForEachKey,
   arrayForEachReturnKey,
-  arrayForEachFilterKey,
-  ActionReference,
+  conditionalElseKey,
   conditionalKey,
   conditionalThenKey,
-  conditionalElseKey,
+  isPrimitive,
+  objectSpreadKey,
+  Primitive,
+  StringMap,
 } from "../config/common"
 import { profile } from "../util/profiling"
 import { dedent, deline, naturalList, titleize, truncate } from "../util/string"
