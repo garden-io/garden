@@ -2,7 +2,7 @@
 # Defaults to root.
 ARG VARIANT=root
 
-FROM node:18.15.0-buster-slim@sha256:b89966598ea8c38c37543823e54f3ff36c067d90f935085796cbd077a98c4ff8 as buster-base-root
+FROM node:18.17.0-buster-slim@sha256:a280a168070b051e2160b62d3739de30029d53e49d45af82a1d9f72ca0aa3f08 as buster-base-root
 
 # system dependencies
 RUN apt-get update && \
