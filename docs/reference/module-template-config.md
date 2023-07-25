@@ -1,9 +1,14 @@
 ---
-order: 43
+order: 70
 title: Module Template Configuration
 ---
 
-# Module Template Configuration Reference
+# Module Template Configuration Reference (deprecated)
+
+<!-- TODO-0.14: remove this page completely -->
+{% hint style="info" %}
+Module templates feature has been deprecated in `0.13` in favor of [Config Templates](../using-garden/config-templates.md). We recommend updating your existing `ModuleTemplate` resources to `ConfigTemplate` resources and use the new `RenderTemplate` kind to render the templates. For backwards compatibility, the older declarations will still work until version `0.14`, and are converted at runtime.
+{% endhint %}
 
 Below is the schema reference for `ConfigTemplate` configuration files. To learn more about config templates, see the [Config Templates guide](../using-garden/config-templates.md).
 
