@@ -457,24 +457,38 @@ export async function findProjectConfig({
 }): Promise<ProjectResource | undefined> {
   let sepCount = path.split(sep).length - 1
 
+  let allProjectSpecs: GardenResource[] = []
+
   for (let i = 0; i < sepCount; i++) {
     const configFiles = (await listDirectory(path, { recursive: false })).filter(isConfigFilename)
 
     for (const configFile of configFiles) {
       const resources = await loadConfigResources(log, path, join(path, configFile), allowInvalid)
 
-      const projectSpecs = resources.filter((s) => s.kind === "Project")
+      let projectSpecs = resources.filter((s) => s.kind === "Project")
 
       if (projectSpecs.length > 1 && !allowInvalid) {
         throw new ConfigurationError({
-          message: `Multiple project declarations found in ${path}`,
+          message: `Multiple project declarations found in ${path}/${configFile}`,
           detail: {
             projectSpecs,
           },
         })
       } else if (projectSpecs.length > 0) {
-        return <ProjectResource>projectSpecs[0]
+        allProjectSpecs = allProjectSpecs.concat(projectSpecs)
       }
+    }
+
+    if (allProjectSpecs.length > 1 && !allowInvalid) {
+      const configPaths = allProjectSpecs.map((i) => `- ${(i as ProjectConfig).configPath}`)
+      throw new ConfigurationError({
+        message: `Multiple project declarations found at paths:\n${configPaths.join("\n")}`,
+        detail: {
+          allProjectSpecs,
+        },
+      })
+    } else if (allProjectSpecs.length === 1) {
+      return <ProjectResource>allProjectSpecs[0]
     }
 
     if (!scan) {
