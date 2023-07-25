@@ -32,6 +32,7 @@ const projectPathMultipleModules = getDataDir("test-projects", "multiple-module-
 const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
 
 const projectPathDuplicateProjects = getDataDir("test-project-duplicate-project-config")
+const projectPathMultipleProjects = getDataDir("test-project-multiple-project-configs")
 const logger = getRootLogger()
 const log = logger.createLog()
 
@@ -580,9 +581,15 @@ describe("findProjectConfig", async () => {
     expect(project && project.path).to.eq(customConfigPath)
   })
 
-  it("should throw an error if multiple projects are found", async () => {
+  it("should throw an error if multiple projects are found in same config file", async () => {
     await expectError(async () => await findProjectConfig({ log, path: projectPathDuplicateProjects }), {
-      contains: "Multiple project declarations found",
+      contains: "Multiple project declarations found in",
+    })
+  })
+
+  it("should throw an error if multiple projects are found in multiple config files", async () => {
+    await expectError(async () => await findProjectConfig({ log, path: projectPathMultipleProjects }), {
+      contains: "Multiple project declarations found at paths",
     })
   })
 })
