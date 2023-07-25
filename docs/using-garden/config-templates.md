@@ -5,11 +5,11 @@ title: Config Templates
 
 # Config Templates
 
-You can create customized templates for actions, workflows and modules, and render them using `kind: RenderTemplate` resources. These templates allow you to define your own schemas and abstractions, that are then translated at runtime to one or more resources.
+Config templates are a way to define reusable abstractions for actions or workflows. This provides a powerful yet easy-to-use mechanism to tailor Garden's functionality to your needs, improve governance, reduce boilerplate, and provide higher-level abstractions to application developers.
 
-This provides a powerful yet easy-to-use mechanism to tailor Garden's functionality to your needs, improve governance, reduce boilerplate, and to provide higher-level abstractions to application developers.
+**How do they work?** You can create customized templates for actions and workflows, and render them using `kind: RenderTemplate` resources. These templates allow you to define your own schemas and abstractions, which are then translated at runtime to one or more resources.
 
-These templates can be defined within a project, or in a separate repository that can be shared across multiple projects (using remote sources).
+Config templates can be defined within a project, or in a separate repository that can be shared across multiple projects (using remote sources).
 
 {% hint style="info" %}
 This feature has been updated in `0.13` to support actions and workflows, in addition to modules. The `ModuleTemplate` resource kind has been renamed to `ConfigTemplate`, and instead of `templated` _Modules_, there is now a specific `RenderTemplate` kind to render the templates. The older declarations will still work until version `0.14`, and are converted at runtime.
@@ -29,7 +29,7 @@ inputsSchemaPath: schema.json
 configs:
   - kind: Build
     type: container
-    name: ${parent.name}-image
+    name: ${parent.name}
     description: ${parent.name} image
 
   - kind: Deploy
