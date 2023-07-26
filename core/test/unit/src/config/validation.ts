@@ -10,7 +10,12 @@ import { expect } from "chai"
 import { joi } from "../../../../src/config/common"
 import { validateSchema } from "../../../../src/config/validation"
 import { expectError } from "../../../helpers"
-import { BaseGardenResource, YamlDocumentWithSource, baseInternalFieldsSchema } from "../../../../src/config/base"
+import {
+  BaseGardenResource,
+  YamlDocumentWithSource,
+  baseInternalFieldsSchema,
+  loadAndValidateYaml,
+} from "../../../../src/config/base"
 import { GardenApiVersion } from "../../../../src/constants"
 import { parseDocument } from "yaml"
 import { dedent } from "../../../../src/util/string"
@@ -225,6 +230,57 @@ describe("validateSchema", () => {
         3  | spec:
         4  |   foo: 123
         ------------^
+        spec.foo must be a string
+      `)
+    )
+  })
+
+  it("shows correct position of error if yamlDoc with multiple configs is attached to config", async () => {
+    const schema = joi.object().keys({
+      apiVersion: joi.string(),
+      kind: joi.string(),
+      name: joi.string(),
+      internal: baseInternalFieldsSchema(),
+      spec: joi.object().keys({
+        foo: joi.string(),
+      }),
+    })
+
+    const yaml = dedent`
+      apiVersion: v1
+      kind: Test
+      spec:
+        foo: 123
+      name: foo
+      ---
+      apiVersion: v1
+      kind: Test
+      spec:
+        foo: 456
+      name: bar
+    `
+
+    const yamlDocs = await loadAndValidateYaml(yaml, "/foo")
+    const yamlDoc = yamlDocs[1]
+
+    const config: any = {
+      ...yamlDoc.toJS(),
+      internal: {
+        basePath: "/foo",
+        yamlDoc,
+      },
+    }
+
+    void expectError(
+      () => validateSchema(config, schema, { yamlDoc, yamlDocBasePath: [] }),
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(dedent`
+        Validation error:
+
+        ...
+        9   | spec:
+        10  |   foo: 456
+        -------------^
         spec.foo must be a string
       `)
     )
