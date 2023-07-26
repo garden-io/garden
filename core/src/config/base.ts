@@ -97,7 +97,7 @@ export const allConfigKinds = ["Module", "Workflow", "Project", configTemplateKi
  */
 export async function loadAndValidateYaml(content: string, path: string): Promise<YamlDocumentWithSource[]> {
   try {
-    return Array.from(parseAllDocuments(content) || []).map((doc: any) => {
+    return Array.from(parseAllDocuments(content, { merge: true, strict: false }) || []).map((doc: any) => {
       if (doc.errors.length > 0) {
         throw doc.errors[0]
       }
