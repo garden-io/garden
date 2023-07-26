@@ -120,6 +120,7 @@ export interface RunResult {
   startedAt: Date
   completedAt: Date
   log: string
+  diagnosticErrorMsg?: string
   namespaceStatus?: NamespaceStatus
 }
 
@@ -131,6 +132,10 @@ export const runResultSchema = createSchema({
     startedAt: joi.date().required().description("When the module run was started."),
     completedAt: joi.date().required().description("When the module run was completed."),
     log: joi.string().allow("").default("").description("The output log from the run."),
+    diagnosticErrorMsg: joi
+      .string()
+      .optional()
+      .description("An optional, more detailed diagnostic error message from the plugin."),
   }),
   allowUnknown: true,
 })
