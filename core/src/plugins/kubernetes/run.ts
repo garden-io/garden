@@ -1236,6 +1236,14 @@ export class PodRunner extends PodRunnerParams {
       throw err
     }
 
+    function renderDiagnosticErrorMessage(error: KnownError): string | undefined {
+      if (error.type === "pod-runner" && error.detail.podStatus) {
+        return `PodStatus:\n${stringify(error.detail.podStatus, null, 2)}`
+      } else {
+        return undefined
+      }
+    }
+
     function renderError(error: KnownError): string {
       const errorDetail = error.detail
       const logs = errorDetail.logs
@@ -1253,7 +1261,6 @@ export class PodRunner extends PodRunnerParams {
 
           const containerState = errorDetail.containerStatus?.state
           const terminatedContainerState = containerState?.terminated
-          const podStatus = errorDetail.podStatus
 
           if (!!terminatedContainerState) {
             let terminationDesc = ""
@@ -1263,19 +1270,16 @@ export class PodRunner extends PodRunnerParams {
             if (!!terminatedContainerState.signal) {
               terminationDesc += `Stopped with signal: ${terminatedContainerState.signal}. `
             }
-            terminationDesc += `Reason: ${terminatedContainerState.reason || "unknown"}. `
-            terminationDesc += `Message: ${terminatedContainerState.message || "n/a"}.`
+            if (terminatedContainerState.reason) {
+              terminationDesc += `Reason: ${terminatedContainerState.reason}. `
+            }
+            if (terminatedContainerState.message) {
+              terminationDesc += `Message: ${terminatedContainerState.message}.`
+            }
             terminationDesc = terminationDesc.trim()
 
             if (!!terminationDesc) {
               errorDesc += terminationDesc + "\n\n"
-            }
-          }
-          // Print Pod status if case of too generic and non-informative error in the terminated state
-          if (!terminatedContainerState?.message && terminatedContainerState?.reason === "Error") {
-            if (!!podStatus) {
-              const podStatusDesc = "PodStatus:\n" + stringify(podStatus, null, 2)
-              errorDesc += podStatusDesc + "\n\n"
             }
           }
 
@@ -1305,9 +1309,9 @@ export class PodRunner extends PodRunnerParams {
       }
     }
 
-    const log = renderError(err)
     return {
-      log,
+      log: renderError(err),
+      diagnosticErrorMsg: renderDiagnosticErrorMessage(err),
       moduleName,
       version,
       success: false,
@@ -1315,6 +1319,7 @@ export class PodRunner extends PodRunnerParams {
       completedAt: new Date(),
       command,
       exitCode: err.detail.exitCode,
+      errorDetail: err.detail,
     }
   }
 }

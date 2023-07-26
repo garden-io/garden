@@ -145,6 +145,9 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       const exitCode = status.detail?.exitCode
       const failedMsg = !!exitCode ? `Failed with code ${exitCode}!` : `Failed!`
       this.log.error(failedMsg)
+      if (status.detail?.diagnosticErrorMsg) {
+        this.log.debug(`Additional context for the error:\n\n${status.detail.diagnosticErrorMsg}`)
+      }
       throw new TestError(status.detail?.log)
     }
 
