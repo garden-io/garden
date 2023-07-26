@@ -32,6 +32,7 @@ import { TestAction, TestActionConfig } from "../../actions/test"
 import { RunAction, RunActionConfig } from "../../actions/run"
 import { memoize } from "lodash"
 import Joi from "@hapi/joi"
+import { OctalPermissionMask } from "../kubernetes/types"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -138,8 +139,8 @@ export const defaultSyncMode: SyncMode = "one-way-safe"
 export interface DevModeSyncOptions {
   mode?: SyncMode
   exclude?: string[]
-  defaultFileMode?: number
-  defaultDirectoryMode?: number
+  defaultFileMode?: OctalPermissionMask
+  defaultDirectoryMode?: OctalPermissionMask
   defaultOwner?: number | string
   defaultGroup?: number | string
 }
@@ -189,13 +190,24 @@ export const syncModeSchema = memoize(() =>
     )
 )
 
+const octalPermissionValidationRangeError = deline`
+Mode permission bits out of range.
+Please specify a number between 0 and 0777 in octal representation. The number needs to be prefixed with a leading zero in YAML, e.g. 0777.
+`
+const octalPermissionValidationErrors: Joi.LanguageMessages = {
+  "number.min": octalPermissionValidationRangeError,
+  "number.max": octalPermissionValidationRangeError,
+}
+
 export const syncDefaultFileModeSchema = memoize(() =>
   joi
     .number()
-    .min(0)
-    .max(777)
+    .min(0o0)
+    .max(0o777)
+    .default(0o644)
+    .messages(octalPermissionValidationErrors)
     .description(
-      "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). " +
+      "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0644 (user can read/write, everyone else can read). " +
         permissionsDocs
     )
 )
@@ -203,10 +215,12 @@ export const syncDefaultFileModeSchema = memoize(() =>
 export const syncDefaultDirectoryModeSchema = memoize(() =>
   joi
     .number()
-    .min(0)
-    .max(777)
+    .min(0o0)
+    .max(0o777)
+    .default(0o755)
+    .messages(octalPermissionValidationErrors)
     .description(
-      "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). " +
+      "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0755 (user can read/write, everyone else can read). " +
         permissionsDocs
     )
 )
