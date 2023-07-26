@@ -174,7 +174,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     const context = new ProviderConfigContext(this.garden, resolvedProviders, this.garden.variables)
 
     this.log.silly(`Resolving template strings for provider ${this.config.name}`)
-    let resolvedConfig = resolveTemplateStrings(this.config, context)
+    let resolvedConfig = resolveTemplateStrings({ value: this.config, context })
 
     const providerName = resolvedConfig.name
 
@@ -202,8 +202,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
         projectRoot: this.garden.projectRoot,
         configType: "provider configuration",
         ErrorClass: ConfigurationError,
-        yamlDoc,
-        yamlDocBasePath,
+        source: { yamlDoc, basePath: yamlDocBasePath },
       })
     }
 
@@ -271,8 +270,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
         projectRoot: this.garden.projectRoot,
         configType: `provider configuration (base schema from '${base.name}' plugin)`,
         ErrorClass: ConfigurationError,
-        yamlDoc,
-        yamlDocBasePath,
+        source: { yamlDoc, basePath: yamlDocBasePath },
       })
     }
 

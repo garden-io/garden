@@ -445,8 +445,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
     projectRoot,
     configType: "module",
     ErrorClass: ConfigurationError,
-    yamlDoc: undefined,
-    yamlDocBasePath: [],
+    source: undefined,
   })
 
   return config

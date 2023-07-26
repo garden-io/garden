@@ -1533,9 +1533,13 @@ export class Garden {
    */
   public getProjectSources() {
     const context = new RemoteSourceConfigContext(this, this.variables)
-    const resolved = validateSchema(resolveTemplateStrings(this.projectSources, context), projectSourcesSchema(), {
-      context: "remote source",
-    })
+    const resolved = validateSchema(
+      resolveTemplateStrings({ value: this.projectSources, context }),
+      projectSourcesSchema(),
+      {
+        context: "remote source",
+      }
+    )
     return resolved
   }
 
@@ -1758,21 +1762,20 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     configType: "project environments",
     path: config.path,
     projectRoot: config.path,
-    yamlDoc: config.internal.yamlDoc,
-    yamlDocBasePath: ["environments"],
+    source: { yamlDoc: config.internal.yamlDoc, basePath: ["environments"] },
   })
 
-  const configDefaultEnvironment = resolveTemplateString(
-    config.defaultEnvironment || "",
-    new DefaultEnvironmentContext({
+  const configDefaultEnvironment = resolveTemplateString({
+    string: config.defaultEnvironment || "",
+    context: new DefaultEnvironmentContext({
       projectName,
       projectRoot,
       artifactsPath,
       vcsInfo,
       username: _username,
       commandInfo,
-    })
-  ) as string
+    }),
+  }) as string
 
   const localConfigStore = new LocalConfigStore(gardenDirPath)
 

@@ -40,11 +40,15 @@ const joiOptions: Joi.ValidationOptions = {
   errors: errorPrefs,
 }
 
+interface ConfigSource {
+  yamlDoc?: YamlDocumentWithSource
+  basePath?: (string | number)[]
+}
+
 export interface ValidateOptions {
   context?: string // Descriptive text to include in validation error messages, e.g. "module at some/local/path"
   ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
-  yamlDoc?: YamlDocumentWithSource
-  yamlDocBasePath?: (string | number)[]
+  source?: ConfigSource
 }
 
 export interface ValidateWithPathParams<T> {
@@ -54,8 +58,7 @@ export interface ValidateWithPathParams<T> {
   projectRoot: string
   name?: string // Name of the top-level entity that the config belongs to, e.g. "some-module" or "some-project"
   configType: string // The type of top-level entity that the config belongs to, e.g. "module" or "project"
-  yamlDoc: YamlDocumentWithSource | undefined
-  yamlDocBasePath: (string | number)[]
+  source: ConfigSource | undefined
   ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
 }
 
@@ -73,8 +76,7 @@ export const validateWithPath = profile(function $validateWithPath<T>({
   name,
   configType,
   ErrorClass,
-  yamlDoc,
-  yamlDocBasePath,
+  source,
 }: ValidateWithPathParams<T>) {
   const context =
     `${configType} ${name ? `'${name}' ` : ""}` +
@@ -82,8 +84,7 @@ export const validateWithPath = profile(function $validateWithPath<T>({
 
   const validateOpts = {
     context: context.trim(),
-    yamlDoc,
-    yamlDocBasePath,
+    source,
   }
 
   if (ErrorClass) {
@@ -102,7 +103,7 @@ export interface ValidateConfigParams<T extends BaseGardenResource> {
 }
 
 export function validateConfig<T extends BaseGardenResource>(params: ValidateConfigParams<T>): T {
-  const { config, schema, projectRoot, ErrorClass } = params
+  const { config, schema, projectRoot, ErrorClass, yamlDocBasePath } = params
 
   const { name, kind } = config
   const path = config.internal.configFilePath || config.internal.basePath
@@ -113,7 +114,7 @@ export function validateConfig<T extends BaseGardenResource>(params: ValidateCon
 
   return <T>validateSchema(config, schema, {
     context: context.trim(),
-    yamlDoc: config.internal.yamlDoc,
+    source: config.internal.yamlDoc ? { yamlDoc: config.internal.yamlDoc, basePath: yamlDocBasePath } : undefined,
     ErrorClass,
   })
 }
@@ -121,7 +122,7 @@ export function validateConfig<T extends BaseGardenResource>(params: ValidateCon
 export const validateSchema = profile(function $validateSchema<T>(
   value: T,
   schema: Joi.Schema,
-  { yamlDoc, yamlDocBasePath, context = "", ErrorClass = ConfigurationError }: ValidateOptions = {}
+  { source, context = "", ErrorClass = ConfigurationError }: ValidateOptions = {}
 ): T {
   const result = schema.validate(value, joiOptions)
   const error = result.error
@@ -132,11 +133,13 @@ export const validateSchema = profile(function $validateSchema<T>(
 
   const description = schema.describe()
 
+  const yamlDoc = source?.yamlDoc
   const rawYaml = yamlDoc?.source
+  const yamlBasePath = source?.basePath || []
 
   const errorDetails = error.details.map((e) => {
     // render the key path in a much nicer way
-    let renderedPath = (yamlDocBasePath || []).join(".")
+    let renderedPath = yamlBasePath.join(".")
 
     if (e.path.length) {
       let d = description
@@ -165,7 +168,7 @@ export const validateSchema = profile(function $validateSchema<T>(
     // FIXME: remove once we've customized the error output from AJV in customObject.jsonSchema()
     e.message = e.message.replace(/should NOT have/g, "should not have")
 
-    const node = yamlDoc?.getIn([...(yamlDocBasePath || []), ...e.path], true) as ParsedNode | undefined
+    const node = yamlDoc?.getIn([...yamlBasePath, ...e.path], true) as ParsedNode | undefined
     const range = node?.range
 
     if (rawYaml && yamlDoc?.contents && range) {

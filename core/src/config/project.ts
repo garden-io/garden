@@ -483,15 +483,15 @@ export function resolveProjectConfig({
 
   let globalConfig: any
   try {
-    globalConfig = resolveTemplateStrings(
-      {
+    globalConfig = resolveTemplateStrings({
+      value: {
         apiVersion: config.apiVersion,
         varfile: config.varfile,
         variables: config.variables,
         environments: [],
         sources: [],
       },
-      new ProjectConfigContext({
+      context: new ProjectConfigContext({
         projectName: name,
         projectRoot: config.path,
         artifactsPath,
@@ -501,8 +501,8 @@ export function resolveProjectConfig({
         enterpriseDomain,
         secrets,
         commandInfo,
-      })
-    )
+      }),
+    })
   } catch (err) {
     log.error("Failed to resolve project configuration.")
     log.error(chalk.red.bold(renderDivider()))
@@ -628,9 +628,9 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   const projectVariables: DeepPrimitiveMap = <any>merge(projectConfig.variables, projectVarfileVars)
 
   // Resolve template strings in the environment config, except providers
-  environmentConfig = resolveTemplateStrings(
-    { ...environmentConfig },
-    new EnvironmentConfigContext({
+  environmentConfig = resolveTemplateStrings({
+    value: { ...environmentConfig },
+    context: new EnvironmentConfigContext({
       projectName,
       projectRoot,
       artifactsPath,
@@ -641,8 +641,8 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
       enterpriseDomain,
       secrets,
       commandInfo,
-    })
-  )
+    }),
+  })
 
   environmentConfig = validateWithPath({
     config: environmentConfig,
@@ -650,8 +650,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     configType: `environment ${environment}`,
     path: projectConfig.path,
     projectRoot: projectConfig.path,
-    yamlDoc: projectConfig.internal.yamlDoc,
-    yamlDocBasePath: ["environments", index],
+    source: { yamlDoc: projectConfig.internal.yamlDoc, basePath: ["environments", index] },
   })
 
   namespace = getNamespace(environmentConfig, namespace)

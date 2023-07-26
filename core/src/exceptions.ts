@@ -170,7 +170,12 @@ export class CloudApiError extends GardenBaseError {
   type = "cloud-api"
 }
 
-export class TemplateStringError extends GardenBaseError {
+interface TemplateStringErrorDetail {
+  path?: (string | number)[]
+  [key: string]: any
+}
+
+export class TemplateStringError extends GardenBaseError<TemplateStringErrorDetail> {
   type = "template-string"
 }
 

@@ -120,7 +120,11 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       variables: {},
       inputs: {},
     })
-    const inputs = resolveTemplateStrings(config.internal.inputs || {}, inputsContext, { allowPartial: false })
+    const inputs = resolveTemplateStrings({
+      value: config.internal.inputs || {},
+      context: inputsContext,
+      contextOpts: { allowPartial: false },
+    })
 
     // Resolve variables
     let groupVariables: DeepPrimitiveMap = {}
@@ -129,19 +133,19 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     if (groupName) {
       const group = this.graph.getGroup(groupName)
 
-      groupVariables = resolveTemplateStrings(
-        await mergeVariables({ basePath: group.path, variables: group.variables, varfiles: group.varfiles }),
-        inputsContext
-      )
+      groupVariables = resolveTemplateStrings({
+        value: await mergeVariables({ basePath: group.path, variables: group.variables, varfiles: group.varfiles }),
+        context: inputsContext,
+      })
     }
 
-    const actionVariables = resolveTemplateStrings(
-      await mergeVariables({
+    const actionVariables = resolveTemplateStrings({
+      value: await mergeVariables({
         basePath: action.basePath(),
         variables: config.variables,
         varfiles: config.varfiles,
       }),
-      new ActionSpecContext({
+      context: new ActionSpecContext({
         garden: this.garden,
         resolvedProviders: await this.garden.resolveProviders(this.log),
         action,
@@ -151,8 +155,8 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         executedDependencies,
         variables: groupVariables,
         inputs,
-      })
-    )
+      }),
+    })
 
     const variables = groupVariables
     merge(variables, actionVariables)
@@ -160,9 +164,9 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     merge(variables, this.garden.variableOverrides)
 
     // Resolve spec
-    let spec = resolveTemplateStrings(
-      action.getConfig().spec || {},
-      new ActionSpecContext({
+    let spec = resolveTemplateStrings({
+      value: action.getConfig().spec || {},
+      context: new ActionSpecContext({
         garden: this.garden,
         resolvedProviders: await this.garden.resolveProviders(this.log),
         action,
@@ -172,8 +176,8 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         executedDependencies,
         variables,
         inputs,
-      })
-    )
+      }),
+    })
 
     // Validate spec
     spec = await this.validateSpec(spec)
@@ -255,8 +259,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       path,
       projectRoot: this.garden.projectRoot,
       configType: `spec for ${description}`,
-      yamlDoc: internal.yamlDoc,
-      yamlDocBasePath: ["spec"],
+      source: { yamlDoc: internal.yamlDoc, basePath: ["spec"] },
     })
 
     const actionTypeBases = await this.garden.getActionTypeBases(kind, type)
@@ -269,8 +272,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         path,
         projectRoot: this.garden.projectRoot,
         configType: `spec for ${description} (base schema from '${base.name}' plugin)`,
-        yamlDoc: internal.yamlDoc,
-        yamlDocBasePath: ["spec"],
+        source: { yamlDoc: internal.yamlDoc, basePath: ["spec"] },
       })
     }
 

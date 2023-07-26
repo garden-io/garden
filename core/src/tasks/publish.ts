@@ -105,7 +105,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       })
 
       // Resolve template string and make sure the result is a string
-      tag = "" + resolveTemplateString(this.tagTemplate, templateContext)
+      tag = "" + resolveTemplateString({ string: this.tagTemplate, context: templateContext })
 
       // TODO: validate the tag?
     }

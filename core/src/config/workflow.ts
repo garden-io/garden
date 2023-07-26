@@ -358,7 +358,7 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   }
 
   let resolvedPartialConfig: WorkflowConfig = {
-    ...resolveTemplateStrings(partialConfig, context),
+    ...resolveTemplateStrings({ value: partialConfig, context }),
     name: config.name,
   }
 
@@ -367,8 +367,12 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   }
 
   if (config.internal.inputs) {
-    resolvedPartialConfig.internal.inputs = resolveTemplateStrings(config.internal.inputs, context, {
-      allowPartial: true,
+    resolvedPartialConfig.internal.inputs = resolveTemplateStrings({
+      value: config.internal.inputs,
+      context,
+      contextOpts: {
+        allowPartial: true,
+      },
     })
   }
 

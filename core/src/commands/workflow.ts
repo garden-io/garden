@@ -86,7 +86,7 @@ export class WorkflowCommand extends Command<Args, {}> {
     await registerAndSetUid(garden, log, workflow)
     garden.events.emit("workflowRunning", {})
     const templateContext = new WorkflowConfigContext(garden, garden.variables)
-    const files = resolveTemplateStrings(workflow.files || [], templateContext)
+    const files = resolveTemplateStrings({ value: workflow.files || [], context: templateContext })
 
     // Write all the configured files for the workflow
     await Promise.all(files.map((file) => writeWorkflowFile(garden, file)))
@@ -156,10 +156,12 @@ export class WorkflowCommand extends Command<Args, {}> {
       stepBodyLog.root.storeEntries = true
       try {
         if (step.command) {
-          step.command = resolveTemplateStrings(step.command, stepTemplateContext).filter((arg) => !!arg)
+          step.command = resolveTemplateStrings({ value: step.command, context: stepTemplateContext }).filter(
+            (arg) => !!arg
+          )
           stepResult = await runStepCommand(stepParams)
         } else if (step.script) {
-          step.script = resolveTemplateString(step.script, stepTemplateContext)
+          step.script = resolveTemplateString({ string: step.script, context: stepTemplateContext })
           stepResult = await runStepScript(stepParams)
         } else {
           garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))

@@ -317,7 +317,7 @@ describe("ScanContext", () => {
       a: "some ${templated.string}",
       b: "${more.stuff}",
     }
-    resolveTemplateStrings(obj, context)
+    resolveTemplateStrings({ value: obj, context })
     expect(context.foundKeys.entries()).to.eql([
       ["templated", "string"],
       ["more", "stuff"],
@@ -330,7 +330,7 @@ describe("ScanContext", () => {
       a: "some ${templated['key.with.dots']}",
       b: "${more.stuff}",
     }
-    resolveTemplateStrings(obj, context)
+    resolveTemplateStrings({ value: obj, context })
     expect(context.foundKeys.entries()).to.eql([
       ["templated", "key.with.dots"],
       ["more", "stuff"],

@@ -121,9 +121,16 @@ export async function renderConfigTemplate({
   const loggedIn = garden.isLoggedIn()
   const enterpriseDomain = garden.cloudApi?.domain
   const templateContext = new EnvironmentConfigContext({ ...garden, loggedIn, enterpriseDomain })
-  const resolvedWithoutInputs = resolveTemplateStrings({ ...omit(config, "inputs") }, templateContext)
-  const partiallyResolvedInputs = resolveTemplateStrings(config.inputs || {}, templateContext, {
-    allowPartial: true,
+  const resolvedWithoutInputs = resolveTemplateStrings({
+    value: { ...omit(config, "inputs") },
+    context: templateContext,
+  })
+  const partiallyResolvedInputs = resolveTemplateStrings({
+    value: config.inputs || {},
+    context: templateContext,
+    contextOpts: {
+      allowPartial: true,
+    },
   })
   let resolved: RenderTemplateConfig = {
     ...resolvedWithoutInputs,
@@ -144,8 +151,7 @@ export async function renderConfigTemplate({
     path: resolved.internal.configFilePath || resolved.internal.basePath,
     schema: renderTemplateConfigSchema(),
     projectRoot: garden.projectRoot,
-    yamlDoc: undefined,
-    yamlDocBasePath: [],
+    source: undefined,
   })
 
   const template = templates[resolved.template]
@@ -195,7 +201,7 @@ async function renderModules({
   return Promise.all(
     (template.modules || []).map(async (m) => {
       // Run a partial template resolution with the parent+template info
-      const spec = resolveTemplateStrings(m, context, { allowPartial: true })
+      const spec = resolveTemplateStrings({ value: m, context, contextOpts: { allowPartial: true } })
       const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
 
       let moduleConfig: ModuleConfig
@@ -263,7 +269,7 @@ async function renderConfigs({
       let resolvedName = m.name
 
       try {
-        resolvedName = resolveTemplateString(m.name, context, { allowPartial: false })
+        resolvedName = resolveTemplateString({ string: m.name, context, contextOpts: { allowPartial: false } })
       } catch (error) {
         throw new ConfigurationError({
           message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error.message}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,

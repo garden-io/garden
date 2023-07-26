@@ -62,7 +62,7 @@ export async function resolveConfigTemplate(
   const loggedIn = garden.isLoggedIn()
   const enterpriseDomain = garden.cloudApi?.domain
   const context = new ProjectConfigContext({ ...garden, loggedIn, enterpriseDomain })
-  const resolved = resolveTemplateStrings(partial, context)
+  const resolved = resolveTemplateStrings({ value: partial, context })
   const configPath = resource.internal.configFilePath
 
   // Validate the partial config

@@ -129,7 +129,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { yamlDoc, yamlDocBasePath: [] }),
+      () => validateSchema(config, schema, { source: { yamlDoc } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -172,7 +172,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { yamlDoc, yamlDocBasePath: [] }),
+      () => validateSchema(config, schema, { source: { yamlDoc } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -182,6 +182,53 @@ describe("validateSchema", () => {
         4  |   foo: 123
         ------------^
         spec.foo must be a string
+      `)
+    )
+  })
+
+  it("shows correct position of error in list item if yamlDoc is attached to config", () => {
+    const schema = joi.object().keys({
+      apiVersion: joi.string(),
+      kind: joi.string(),
+      name: joi.string(),
+      internal: baseInternalFieldsSchema(),
+      spec: joi.object().keys({
+        foo: joi.array().items(joi.string()),
+      }),
+    })
+
+    const yaml = dedent`
+      apiVersion: v1
+      kind: Test
+      spec:
+        foo:
+          - fine
+          - 123
+      name: foo
+    `
+
+    const yamlDoc = parseDocument(yaml) as YamlDocumentWithSource
+    yamlDoc["source"] = yaml
+
+    const config: any = {
+      ...yamlDoc.toJS(),
+      internal: {
+        basePath: "/foo",
+        yamlDoc,
+      },
+    }
+
+    void expectError(
+      () => validateSchema(config, schema, { source: { yamlDoc } }),
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(dedent`
+        Validation error:
+
+        ...
+        5  |     - fine
+        6  |     - 123
+        -----------^
+        spec.foo[1] must be a string
       `)
     )
   })
@@ -217,7 +264,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { yamlDoc, yamlDocBasePath: [] }),
+      () => validateSchema(config, schema, { source: { yamlDoc } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -272,7 +319,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { yamlDoc, yamlDocBasePath: [] }),
+      () => validateSchema(config, schema, { source: { yamlDoc } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -311,7 +358,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config.spec, schema, { yamlDoc, yamlDocBasePath: ["spec"] }),
+      () => validateSchema(config.spec, schema, { source: { yamlDoc, basePath: ["spec"] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:

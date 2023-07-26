@@ -174,7 +174,7 @@ export abstract class ConfigContext {
       // handle templated strings in context variables
       if (isString(value)) {
         opts.stack.push(stackEntry)
-        value = resolveTemplateString(value, this._rootContext, opts)
+        value = resolveTemplateString({ string: value, context: this._rootContext, contextOpts: opts })
       }
 
       if (value === undefined) {

@@ -60,16 +60,16 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
 
   if (allRefs.length === 0) {
     // No need to resolve any entities
-    return resolveTemplateStrings(
-      garden.rawOutputs,
-      new OutputConfigContext({
+    return resolveTemplateStrings({
+      value: garden.rawOutputs,
+      context: new OutputConfigContext({
         garden,
         resolvedProviders: {},
         variables: garden.variables,
         modules: [],
         partialRuntimeResolution: false,
-      })
-    )
+      }),
+    })
   }
 
   // Make sure all referenced services and tasks are ready and collect their outputs for the runtime context
@@ -97,5 +97,5 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
 
   const configContext = await garden.getOutputConfigContext(log, modules, results)
 
-  return resolveTemplateStrings(garden.rawOutputs, configContext)
+  return resolveTemplateStrings({ value: garden.rawOutputs, context: configContext })
 }
