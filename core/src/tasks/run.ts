@@ -123,6 +123,9 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       taskLog.success(`Done`)
     } else {
       taskLog.error(`Failed!`)
+      if (status.detail?.diagnosticErrorMsg) {
+        this.log.debug(`Additional context for the error:\n\n${status.detail.diagnosticErrorMsg}`)
+      }
       throw new RunTaskError(status.detail?.log)
     }
 
