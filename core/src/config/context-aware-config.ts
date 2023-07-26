@@ -1,6 +1,9 @@
 import { isPlainObject } from "lodash"
+import chalk from "chalk"
 import { LineCounter, Parser, Composer, Document, ParsedNode, Scalar } from "yaml"
 import { z, infer as inferZodType, ZodIssue, ZodError } from "zod"
+import { dedent } from "../util/string"
+import { highlightYaml } from "../util/serialization"
 
 const gardenConfigFile = z.object({
   kind: z.string(),
@@ -50,21 +53,24 @@ const gardenConfigs = z.discriminatedUnion("kind", [
   gardenTestActionConfig,
 ])
 
-const INVALID_YAML = `
+const INVALID_YAML = dedent`
 kind: Project
 name: garden-enterprise
 environments:
   - name: local
     defaultNamespace: true
-    production: "nope"
-
+    production: |
+      nope
+      not correct
+    
+    somethingelse: true
 ---
 
 kind: Build
 type: 0
 `
 
-const VALID_YAML = `
+const VALID_YAML = dedent`
 kind: Project
 name: garden-enterprise
 environments:
@@ -88,6 +94,66 @@ type YamlContext = {
     end: { line: number; col: number }
     length: number
   }
+}
+
+interface LineContext {
+  before: string[]
+  lines: string[]
+  after: string[]
+}
+
+const getLineWithContext = function (
+  fileLines: string[],
+  linesStart: number,
+  linesEnd: number,
+  context: number
+): LineContext {
+  const lines: number[] = []
+
+  for (let i = linesStart; i <= linesEnd; i++) {
+    // Lines start at 1, arrays at 0
+    lines.push(i - 1)
+  }
+
+  const first = lines[0]
+  const last = lines[lines.length - 1]
+
+  const firstLine = first > context ? first - context : 0
+  const lastLine = last + context < fileLines.length ? last + context : fileLines.length
+
+  return {
+    before: fileLines.slice(firstLine, first),
+    lines: lines.map((lineNumber) => fileLines[lineNumber]),
+    after: fileLines.slice(last + 1, lastLine + 1),
+  }
+}
+
+function renderYamlContext(context: YamlContext): string {
+  let location = context.location ? dedent`
+    ${context.location.start.line === context.location.end.line ? `:${context.location.start.line + 1}` : `:${context.location.start.line + 1}-${context.location.end.line + 1}`}
+  ` : ""
+
+  let string = dedent`
+    ${context.filePath}${location}
+  `
+
+  if (context.location) {
+    const highlighted = highlightYaml(context.content)
+    const fileLines = highlighted.split("\n")
+    const contextSize = 2
+    const fileContext = getLineWithContext(fileLines,context.location.start.line,context.location.end.line, contextSize)
+
+    const logLines = [
+      ...fileContext.before,
+      ...fileContext.lines.map((line) => chalk.underline.bgRed(line)),
+      ...fileContext.after,
+    ]
+    const logLinesWithLineNumbers = logLines.map(
+      (line, index) => `${chalk.dim.italic(context.location!.start.line - contextSize + index + 1)} ${line}`
+    )
+    string += `\n\n${logLinesWithLineNumbers.join("\n")}`
+  }
+  return string
 }
 
 type TypeNarrowingFunction<Input, Output extends Input> = (input: Input) => input is Output
@@ -116,6 +182,13 @@ class ContextAwareObject<T> {
     this.contextMap = contextMap
   }
 
+  /**
+   * Gets the object under the specified key and returns a new `ContextAwareObject` for it.
+   * This can be useful if you need to pass just a subset of data to some components
+   * but still would like to keep the contextual information available in case the component does some validation too.
+   * @param key The key from where to pick the sub object
+   * @returns The sub object wraped in a `ContextAwareObject`
+   */
   public get<Key extends keyof T>(key: Key): ContextAwareObject<T[Key]> {
     const subObject = this.object[key]
     const subContextMap = new Map<string, YamlContext>()
@@ -151,6 +224,15 @@ class ContextAwareObject<T> {
 
         if (context) {
           issueToContextMap.set(issue, context)
+        } else {
+          // If there is no context there should be a parent context unless we are at the root
+          // Mostly the case of a missing context would be if for example a required parameter was missing
+          // Since the absence of something has no actual place in the code, the natural thing to highlight would be the encompassing object
+          const parentPath = issue.path.slice(0, -1)
+          const parentContext = this.contextMap.get(ContextAwareObject.getKey(parentPath))
+          if (parentContext) {
+            issueToContextMap.set(issue, parentContext)
+          }
         }
       }
 
@@ -280,23 +362,30 @@ class ContextAwareObject<T> {
 }
 
 const contextObjects = ContextAwareObject.fromYamlFile({
-  content: VALID_YAML,
+  content: INVALID_YAML,
   filePath: "/some/fake/file.yaml",
 })
 
-console.log(contextObjects)
-
 const validatedObjects = contextObjects.map((obj) => obj.validated(gardenConfigs))
-console.log(validatedObjects)
 
 const first = validatedObjects[0]
 
-if (first.valid) {
-  const { value } = first
-  const isProject = value.narrowType((obj): obj is ProjectConfig => obj.kind === "Project")
-  if (isProject) {
-    const envs = value.get("environments")
-    console.log(envs)
-
+for (const object of validatedObjects) {
+  if (object.valid) {
+    const value = object.value
+    const isProject = value.narrowType((obj): obj is ProjectConfig => obj.kind === "Project")
+    if (isProject) {
+      const envs = value.get("environments")
+      console.log(envs)
+    }
+  } else {
+    const error = object.error
+    for (const issue of error.error.issues) {
+      const context = error.issueToContextMap.get(issue)
+      console.log(issue.message)
+      if (context) {
+        console.log(renderYamlContext(context))
+      }
+    }
   }
 }
