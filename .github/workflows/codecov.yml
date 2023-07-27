@@ -1,0 +1,23 @@
+name: core test coverage
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: core test coverage
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 18.15
+        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8
+        with:
+          node-version: 18.15
+      - name: Build package
+        run: |
+          yarn
+          yarn build
+      - name: Run tests and collect coverage
+        working-directory: ./core
+        run: yarn coverage
+      - name: Upload coverage reports to Codecov with GitHub Action
+        uses: codecov/codecov-action@v3

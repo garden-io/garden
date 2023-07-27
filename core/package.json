@@ -273,7 +273,8 @@
     "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" yarn _integ",
     "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only yarn _integ",
     "test": "mocha",
-    "test:silly": "GARDEN_LOGGER_TYPE=basic GARDEN_LOG_LEVEL=silly mocha"
+    "test:silly": "GARDEN_LOGGER_TYPE=basic GARDEN_LOG_LEVEL=silly mocha",
+    "coverage": "nyc --reporter lcov mocha"
   },
   "pkg": {
     "scripts": [
