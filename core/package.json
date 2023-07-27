@@ -131,6 +131,7 @@
     "string-argv": "^0.3.2",
     "string-width": "^4.2.3",
     "strip-ansi": "^6.0.1",
+    "slice-ansi": "^6.0.0",
     "supertest": "^6.3.3",
     "tar": "^6.1.13",
     "tempy": "^1.0.1",

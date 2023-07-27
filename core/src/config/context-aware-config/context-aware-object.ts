@@ -1,10 +1,8 @@
 import { isPlainObject } from "lodash"
-import chalk from "chalk"
 import { LineCounter, Parser, Composer, Document, ParsedNode, Scalar } from "yaml"
 import { z, infer as inferZodType, ZodIssue, ZodError } from "zod"
-import { dedent } from "../util/string"
-import { highlightYaml } from "../util/serialization"
-import stripAnsi from "strip-ansi"
+import { dedent } from "../../util/string"
+import { YamlContext, renderYamlContext } from "./yaml-context"
 
 
 const gardenConfigFile = z.object({
@@ -60,7 +58,7 @@ kind: Project
 name: garden-enterprise
 environments:
   - name: local
-    defaultNamespace: true
+    defaultNamespace: true # Comment is not highlighted
     production: |
       nope
       not correct
@@ -86,89 +84,6 @@ type: docker
 name: docker-build
 broken"stuff: test
 `
-
-type YamlContext = {
-  filePath: string
-  content: string
-  location?: {
-    start: { line: number; col: number }
-    end: { line: number; col: number }
-    length: number
-  }
-}
-
-function extractContextLines(input: string, location: NonNullable<YamlContext["location"]>, context: number): string {
-  const lines = input.split("\n")
-  const { start, end } = location
-  const startLine = Math.max(1, start.line - context)
-  const endLine = Math.min(lines.length, end.line + context)
-
-  const contextLines = lines.slice(startLine - 1, endLine)
-  return contextLines.join("\n")
-}
-
-function errorHighlightLines(input: string, location: NonNullable<YamlContext["location"]>): string {
-  const lines = input.split("\n")
-  const { start, end } = location
-
-  const startLine = start.line - 1
-  const endLine = end.line - 1
-
-  const startCol = start.col - 1
-  const endCol = end.col - 1
-
-  for (let lineIndex = startLine; lineIndex <= endLine; lineIndex++) {
-    const line = stripAnsi(lines[lineIndex])
-
-    const highlightEndCol = lineIndex === endLine ? endCol : line.length
-
-    // In some multi line strings, it may happen that the end line has an end col index of 0
-    // In that case we just ignore it
-    if (highlightEndCol === 0) {
-      continue
-    }
-
-    let highlightStartCol = lineIndex === startLine ? startCol : 0
-    const leadingWhitespaceInLineMatch = line.match(/^(\s*)/)
-    const leadingWhitespaceInLine = leadingWhitespaceInLineMatch ? leadingWhitespaceInLineMatch[0] : ""
-
-    if (leadingWhitespaceInLine.length > highlightStartCol) {
-      highlightStartCol = leadingWhitespaceInLine.length
-    }
-
-    let before = line.substring(0, highlightStartCol)
-    let underline = line.substring(highlightStartCol, highlightEndCol)
-    let after = line.substring(highlightEndCol)
-
-    lines[lineIndex] = `${before}${chalk.bgRed.underline(underline)}${after}`
-  }
-  return lines.join("\n")
-}
-
-function renderYamlContext(context: YamlContext): string {
-  let location = context.location ? dedent`
-    ${context.location.start.line === context.location.end.line ? `:${context.location.start.line + 1}` : `:${context.location.start.line + 1}-${context.location.end.line + 1}`}
-  ` : ""
-
-  let string = dedent`
-    ${context.filePath}${location}
-  `
-
-  if (context.location) {
-    const highlighted = highlightYaml(context.content)
-    const underlined = errorHighlightLines(highlighted, context.location)
-
-    const contextSize = 2
-    const fileContext = extractContextLines(underlined, context.location, contextSize)
-
-    const logLines = fileContext.split("\n")
-    const logLinesWithLineNumbers = logLines.map(
-      (line, index) => `${chalk.dim.italic(context.location!.start.line - contextSize + index + 1)} ${line}`
-    )
-    string += `\n${logLinesWithLineNumbers.join("\n")}\n`
-  }
-  return string
-}
 
 type TypeNarrowingFunction<Input, Output extends Input> = (input: Input) => input is Output
 
