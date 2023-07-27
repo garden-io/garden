@@ -1861,7 +1861,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         }
       }
 
-      if (!cloudProject && !cloudProjectId && !config.domain) {
+      if (!cloudProject && !cloudProjectId) {
         // Create a new project in case the project does not exist
         // and the user is logged in to a default domain.
         // Note: excluding projects with a domain is for backwards compatibility

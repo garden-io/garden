@@ -770,4 +770,28 @@ export class CloudApi {
     }
     return secrets
   }
+
+  async createEphemeralCluster(): Promise<any> {
+    let response: any
+
+    try {
+      response = await this.post(`/ephemeral-cluster/`)
+    } catch (err) {
+      this.log.debug(`Create ephemeral cluster failed with error, ${err}`)
+      throw err
+    }
+    return response.data?.metadata?.instanceId
+  }
+
+  async getKubeConfigForCluster(clusterId: string): Promise<any> {
+    let response: any
+
+    try {
+      response = await this.get(`/ephemeral-cluster/${clusterId}/kubeconfig`)
+    } catch (err) {
+      this.log.debug(`Create ephemeral cluster failed with error, ${err}`)
+      throw err
+    }
+    return response.data.kubeconfig
+  }
 }
