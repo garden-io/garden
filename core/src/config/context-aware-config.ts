@@ -4,6 +4,8 @@ import { LineCounter, Parser, Composer, Document, ParsedNode, Scalar } from "yam
 import { z, infer as inferZodType, ZodIssue, ZodError } from "zod"
 import { dedent } from "../util/string"
 import { highlightYaml } from "../util/serialization"
+import stripAnsi from "strip-ansi"
+
 
 const gardenConfigFile = z.object({
   kind: z.string(),
@@ -62,7 +64,6 @@ environments:
     production: |
       nope
       not correct
-    
     somethingelse: true
 ---
 
@@ -96,36 +97,52 @@ type YamlContext = {
   }
 }
 
-interface LineContext {
-  before: string[]
-  lines: string[]
-  after: string[]
+function extractContextLines(input: string, location: NonNullable<YamlContext["location"]>, context: number): string {
+  const lines = input.split("\n")
+  const { start, end } = location
+  const startLine = Math.max(1, start.line - context)
+  const endLine = Math.min(lines.length, end.line + context)
+
+  const contextLines = lines.slice(startLine - 1, endLine)
+  return contextLines.join("\n")
 }
 
-const getLineWithContext = function (
-  fileLines: string[],
-  linesStart: number,
-  linesEnd: number,
-  context: number
-): LineContext {
-  const lines: number[] = []
+function errorHighlightLines(input: string, location: NonNullable<YamlContext["location"]>): string {
+  const lines = input.split("\n")
+  const { start, end } = location
 
-  for (let i = linesStart; i <= linesEnd; i++) {
-    // Lines start at 1, arrays at 0
-    lines.push(i - 1)
+  const startLine = start.line - 1
+  const endLine = end.line - 1
+
+  const startCol = start.col - 1
+  const endCol = end.col - 1
+
+  for (let lineIndex = startLine; lineIndex <= endLine; lineIndex++) {
+    const line = stripAnsi(lines[lineIndex])
+
+    const highlightEndCol = lineIndex === endLine ? endCol : line.length
+
+    // In some multi line strings, it may happen that the end line has an end col index of 0
+    // In that case we just ignore it
+    if (highlightEndCol === 0) {
+      continue
+    }
+
+    let highlightStartCol = lineIndex === startLine ? startCol : 0
+    const leadingWhitespaceInLineMatch = line.match(/^(\s*)/)
+    const leadingWhitespaceInLine = leadingWhitespaceInLineMatch ? leadingWhitespaceInLineMatch[0] : ""
+
+    if (leadingWhitespaceInLine.length > highlightStartCol) {
+      highlightStartCol = leadingWhitespaceInLine.length
+    }
+
+    let before = line.substring(0, highlightStartCol)
+    let underline = line.substring(highlightStartCol, highlightEndCol)
+    let after = line.substring(highlightEndCol)
+
+    lines[lineIndex] = `${before}${chalk.bgRed.underline(underline)}${after}`
   }
-
-  const first = lines[0]
-  const last = lines[lines.length - 1]
-
-  const firstLine = first > context ? first - context : 0
-  const lastLine = last + context < fileLines.length ? last + context : fileLines.length
-
-  return {
-    before: fileLines.slice(firstLine, first),
-    lines: lines.map((lineNumber) => fileLines[lineNumber]),
-    after: fileLines.slice(last + 1, lastLine + 1),
-  }
+  return lines.join("\n")
 }
 
 function renderYamlContext(context: YamlContext): string {
@@ -139,19 +156,16 @@ function renderYamlContext(context: YamlContext): string {
 
   if (context.location) {
     const highlighted = highlightYaml(context.content)
-    const fileLines = highlighted.split("\n")
-    const contextSize = 2
-    const fileContext = getLineWithContext(fileLines,context.location.start.line,context.location.end.line, contextSize)
+    const underlined = errorHighlightLines(highlighted, context.location)
 
-    const logLines = [
-      ...fileContext.before,
-      ...fileContext.lines.map((line) => chalk.underline.bgRed(line)),
-      ...fileContext.after,
-    ]
+    const contextSize = 2
+    const fileContext = extractContextLines(underlined, context.location, contextSize)
+
+    const logLines = fileContext.split("\n")
     const logLinesWithLineNumbers = logLines.map(
       (line, index) => `${chalk.dim.italic(context.location!.start.line - contextSize + index + 1)} ${line}`
     )
-    string += `\n\n${logLinesWithLineNumbers.join("\n")}`
+    string += `\n${logLinesWithLineNumbers.join("\n")}\n`
   }
   return string
 }
