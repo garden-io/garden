@@ -18,6 +18,8 @@ Here is the list of breaking changes from Garden Acorn (0.12) to Bonsai (0.13). 
 - `dev-mode` has been renamed to `sync` (and is now referred to as sync mode), both in configuration as well as in CLI command options.
 - The `garden delete` command has been renamed to `garden cleanup`.
 - `garden delete env` has been renamed to `garden cleanup namespace`, with an alias of `garden cleanup ns`
+- Changes to the caching behaviour:
+  - Now Garden caches Run results and re-runs the Runs if its dependencies have changed. It is therefore recommended that you make sure your Runs are idempotent (i.e. can safely be run multiple times). This behaviour can be disabled via the `spec.cacheResult` field on Runs.
 - Changes to project configuration:
   - The `dotIgnoreFiles` field has been renamed to `dotIgnoreFile` and only supports one file. The old `dotIgnoreFiles` field is still supported with a deprecation warning. Now it supports only 1 filename defined in the array, otherwise an error will be thrown.
   - The `modules.*` field has been renamed to `scan.*`. The old syntax is still supported with a deprecation warning.
