@@ -131,15 +131,16 @@ export async function readManifests(
   const spec = action.getSpec()
   const specFiles = spec.files
 
-  const regularPaths = specFiles.filter((f) => !isGlob(f)).map((path) => resolve(manifestPath, path))
+  const regularPaths = specFiles.filter((f) => !isGlob(f))
   const missingPaths = await Bluebird.filter(regularPaths, async (regularPath) => {
-    return !(await pathExists(regularPath))
+    const resolvedPath = resolve(manifestPath, regularPath)
+    return !(await pathExists(resolvedPath))
   })
   if (missingPaths.length) {
     throw new ConfigurationError({
       message: `Invalid manifest file path(s) in ${action.kind} action '${
         action.name
-      }'. Cannot find manifest file(s) at ${naturalList(missingPaths)}`,
+      }'. Cannot find manifest file(s) at ${naturalList(missingPaths)} in ${manifestPath} directory.`,
       detail: {
         action: {
           kind: action.kind,
@@ -159,7 +160,7 @@ export async function readManifests(
     throw new ConfigurationError({
       message: `Invalid manifest file path(s) in ${action.kind} action '${
         action.name
-      }'. Cannot find any manifest files for paths ${naturalList(specFiles)}`,
+      }'. Cannot find any manifest files for paths ${naturalList(specFiles)} in ${manifestPath} directory.`,
       detail: {
         action: {
           kind: action.kind,
