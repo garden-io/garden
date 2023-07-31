@@ -1633,6 +1633,8 @@ export class Garden {
     resolveProviders?: boolean
     resolveWorkflows?: boolean
   }): Promise<ConfigDump> {
+    let providers: ConfigDump["providers"] = []
+    let suggestedCommands: SuggestedCommand[] = []
     let moduleConfigs: ModuleConfig[]
     let workflowConfigs: WorkflowConfig[]
     let actionConfigs: ActionConfigMap = {
@@ -1643,8 +1645,13 @@ export class Garden {
     }
 
     await this.scanAndAddConfigs()
-
-    const providers = Object.values(await this.resolveProviders(log, { noInit: !resolveProviders }))
+    if (resolveProviders) {
+      const resolvedProviders = Object.values(await this.resolveProviders(log))
+      suggestedCommands = await this.getSuggestedCommands(log, resolvedProviders)
+      providers = resolvedProviders
+    } else {
+      providers = this.getRawProviderConfigs()
+    }
 
     if (!graph && resolveGraph) {
       graph = await this.getResolvedConfigGraph({ log, emit: false })
@@ -1686,7 +1693,7 @@ export class Garden {
       projectId: this.projectId,
       domain: this.cloudDomain,
       sources: this.projectSources,
-      suggestedCommands: await this.getSuggestedCommands(log, providers),
+      suggestedCommands,
     }
   }
 
