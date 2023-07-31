@@ -11,7 +11,7 @@ import { cloneDeep } from "lodash"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { readManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
-import { TestGarden, makeTestGarden, getExampleDir, expectError, getDataDir } from "../../../../../helpers"
+import { expectError, getDataDir, getExampleDir, makeTestGarden, TestGarden } from "../../../../../helpers"
 import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
 import { Resolved } from "../../../../../../src/actions/types"
 
@@ -33,27 +33,28 @@ export async function getKubernetesTestGarden() {
 describe("readManifests", () => {
   let garden: TestGarden
   let ctx: PluginContext
-  let action: Resolved<KubernetesDeployAction>
   let graph: ConfigGraph
 
-  const exampleDir = getExampleDir("kustomize")
-
-  before(async () => {
-    garden = await makeTestGarden(exampleDir)
-    const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-  })
-
-  beforeEach(async () => {
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    action = await garden.resolveAction<KubernetesDeployAction>({
-      action: cloneDeep(graph.getDeploy("hello-world")),
-      log: garden.log,
-      graph,
-    })
-  })
-
   context("kustomize", () => {
+    const exampleDir = getExampleDir("kustomize")
+
+    let action: Resolved<KubernetesDeployAction>
+
+    before(async () => {
+      garden = await makeTestGarden(exampleDir)
+      const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
+      ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    })
+
+    beforeEach(async () => {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      action = await garden.resolveAction<KubernetesDeployAction>({
+        action: cloneDeep(graph.getDeploy("hello-world")),
+        log: garden.log,
+        graph,
+      })
+    })
+
     const expectedErr = "kustomize.extraArgs must not include any of -o, --output, -h, --help"
 
     it("throws if --output is set in extraArgs", async () => {
@@ -103,6 +104,88 @@ describe("readManifests", () => {
       const result = await readManifests(ctx, action, garden.log, true)
       const kinds = result.map((r) => r.kind)
       expect(kinds).to.eql(["Deployment", "Service", "ConfigMap"])
+    })
+  })
+
+  context("kubernetes manifest files resolution", () => {
+    before(async () => {
+      garden = await getKubernetesTestGarden()
+      const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
+      ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    })
+
+    beforeEach(async () => {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    })
+
+    it("should support regular files paths", async () => {
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action: cloneDeep(graph.getDeploy("with-build-action")),
+        log: garden.log,
+        graph,
+      })
+      // Pre-check to ensure that the test filenames in the test data are correct.
+      expect(resolvedAction.getSpec().files).to.eql(["deployment-action.yaml"])
+
+      // We use readFromSrcDir = true here because we just resolve but do not execute any actions.
+      // It means that the build directory will not be created.
+      const manifests = await readManifests(ctx, resolvedAction, garden.log, true)
+      expect(manifests).to.exist
+      const names = manifests.map((m) => ({ kind: m.kind, name: m.metadata?.name }))
+      expect(names).to.eql([{ kind: "Deployment", name: "busybox-deployment" }])
+    })
+
+    it("should support both regular paths and glob patterns with deduplication", async () => {
+      const action = cloneDeep(graph.getDeploy("with-build-action"))
+      // Append a valid glob pattern that results to a non-empty list of files.
+      action["_config"]["spec"]["files"].push("*.yaml")
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action,
+        log: garden.log,
+        graph,
+      })
+      // Pre-check to ensure that the test filenames in the test data are correct.
+      expect(resolvedAction.getSpec().files).to.eql(["deployment-action.yaml", "*.yaml"])
+
+      // We use readFromSrcDir = true here because we just resolve but do not execute any actions.
+      // It means that the build directory will not be created.
+      const manifests = await readManifests(ctx, resolvedAction, garden.log, true)
+      expect(manifests).to.exist
+      const names = manifests.map((m) => ({ kind: m.kind, name: m.metadata?.name }))
+      expect(names).to.eql([{ kind: "Deployment", name: "busybox-deployment" }])
+    })
+
+    it("should throw on missing regular path", async () => {
+      const action = cloneDeep(graph.getDeploy("with-build-action"))
+      action["_config"]["spec"]["files"].push("missing-file.yaml")
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action,
+        log: garden.log,
+        graph,
+      })
+
+      // We use readFromSrcDir = true here because we just resolve but do not execute any actions.
+      // It means that the build directory will not be created.
+      await expectError(() => readManifests(ctx, resolvedAction, garden.log, true), {
+        contains: `Invalid manifest file path(s) in ${action.kind} action '${action.name}'`,
+      })
+    })
+
+    it("should throw when no files found from glob pattens", async () => {
+      const action = cloneDeep(graph.getDeploy("with-build-action"))
+      // Rewrite the whole files array to have a glob pattern that results to an empty list of files.
+      action["_config"]["spec"]["files"] = ["./**/manifests/*.yaml"]
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action,
+        log: garden.log,
+        graph,
+      })
+
+      // We use readFromSrcDir = true here because we just resolve but do not execute any actions.
+      // It means that the build directory will not be created.
+      await expectError(() => readManifests(ctx, resolvedAction, garden.log, true), {
+        contains: `Invalid manifest file path(s) in ${action.kind} action '${action.name}'`,
+      })
     })
   })
 })
