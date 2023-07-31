@@ -1,6 +1,6 @@
 name: core test coverage
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   build:
@@ -12,6 +12,11 @@ jobs:
         uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8
         with:
           node-version: 18.15
+      - name: Configure git
+        run: |
+          git config --global user.name "Garden CI"
+          git config --global user.email "admin@garden.io"
+          git config --global protocol.file.allow "always"
       - name: Build package
         run: |
           yarn
