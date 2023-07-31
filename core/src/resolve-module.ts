@@ -343,12 +343,8 @@ export class ModuleResolver {
     if (templateName) {
       const template = this.garden.configTemplates[templateName]
 
-      inputs = resolveTemplateStrings(
-        inputs,
-        new ModuleConfigContext(templateContextParams),
-        // Not all inputs may need to be resolvable
-        { allowPartial: true }
-      )
+      // All inputs need to be resolvable
+      inputs = resolveTemplateStrings(inputs, new ModuleConfigContext(templateContextParams), { allowPartial: false })
 
       inputs = validateWithPath({
         config: cloneDeep(config.inputs || {}),
@@ -369,10 +365,13 @@ export class ModuleResolver {
       allowPartial: true,
     })
 
-    // And finally fully resolve the config
+    // And finally fully resolve the config.
+    // Template strings in the spec can have references to inputs,
+    // so we also need to pass inputs here along with the available variables.
     const configContext = new ModuleConfigContext({
       ...templateContextParams,
       variables: { ...garden.variables, ...resolvedModuleVariables },
+      inputs: { ...config.inputs },
     })
 
     config = resolveTemplateStrings({ ...config, inputs: {}, variables: {} }, configContext, {
