@@ -107,7 +107,7 @@ You can also take advantage of Garden's variables and templating to provide envi
 
 ## Bringing together several Docker Compose projects
 
-This is an advanced use-case supported by the plugin. Using the [`projects`](../reference/providers/docker-compose.md/#providersprojects) field on the `docker-compose` provider, you can specify several projects to be included in the Garden project (by default, Garden looks for a Docker Compose project in the same directory as the Garden project configuration).
+This is an advanced use-case supported by the plugin. Using the [`projects`](../reference/providers/docker-compose.md#providersprojects) field on the `docker-compose` provider, you can specify several projects to be included in the Garden project (by default, Garden looks for a Docker Compose project in the same directory as the Garden project configuration).
 
 This can be useful e.g. for end-to-end testing in CI where you want to tie together several Docker Compose projects for a more complete stack.
 
