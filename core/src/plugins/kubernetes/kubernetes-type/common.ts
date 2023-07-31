@@ -7,7 +7,7 @@
  */
 
 import { resolve } from "path"
-import { readFile } from "fs-extra"
+import { pathExists, readFile } from "fs-extra"
 import Bluebird from "bluebird"
 import { flatten, set } from "lodash"
 import { loadAll } from "js-yaml"
@@ -15,7 +15,7 @@ import { loadAll } from "js-yaml"
 import { KubernetesModule } from "./module-config"
 import { KubernetesResource } from "../types"
 import { KubeApi } from "../api"
-import { gardenAnnotationKey } from "../../../util/string"
+import { gardenAnnotationKey, naturalList } from "../../../util/string"
 import { Log } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
 import { ConfigurationError, PluginError } from "../../../exceptions"
@@ -24,10 +24,11 @@ import { HelmModule } from "../helm/module-config"
 import { KubernetesDeployAction } from "./config"
 import { CommonRunParams } from "../../../plugin/handlers/Run/run"
 import { runAndCopy } from "../run"
-import { getTargetResource, getResourcePodSpec, getResourceContainer, makePodName } from "../util"
+import { getResourceContainer, getResourcePodSpec, getTargetResource, makePodName } from "../util"
 import { Resolved } from "../../../actions/types"
 import { KubernetesPodRunAction, KubernetesPodTestAction } from "./kubernetes-pod"
 import { glob } from "glob"
+import isGlob from "is-glob"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
@@ -128,11 +129,53 @@ export async function readManifests(
   const manifestPath = readFromSrcDir ? action.basePath() : action.getBuildPath()
 
   const spec = action.getSpec()
+  const specFiles = spec.files
 
-  const files = await glob(spec.files, { cwd: manifestPath })
+  const regularPaths = specFiles.filter((f) => !isGlob(f)).map((path) => resolve(manifestPath, path))
+  const missingPaths = await Bluebird.filter(regularPaths, async (regularPath) => {
+    return !(await pathExists(regularPath))
+  })
+  if (missingPaths.length) {
+    throw new ConfigurationError({
+      message: `Invalid manifest file path(s) in ${action.kind} action '${
+        action.name
+      }'. Cannot find manifest file(s) at ${naturalList(missingPaths)}`,
+      detail: {
+        action: {
+          kind: action.kind,
+          name: action.name,
+          type: action.type,
+          spec: {
+            files: specFiles,
+          },
+        },
+        missingPaths,
+      },
+    })
+  }
+
+  const resolvedFiles = await glob(specFiles, { cwd: manifestPath })
+  if (specFiles.length > 0 && resolvedFiles.length === 0) {
+    throw new ConfigurationError({
+      message: `Invalid manifest file path(s) in ${action.kind} action '${
+        action.name
+      }'. Cannot find any manifest files for paths ${naturalList(specFiles)}`,
+      detail: {
+        action: {
+          kind: action.kind,
+          name: action.name,
+          type: action.type,
+          spec: {
+            files: specFiles,
+          },
+        },
+        resolvedFiles,
+      },
+    })
+  }
 
   const fileManifests = flatten(
-    await Bluebird.map(files, async (path) => {
+    await Bluebird.map(resolvedFiles, async (path) => {
       const absPath = resolve(manifestPath, path)
       log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
       const str = (await readFile(absPath)).toString()
