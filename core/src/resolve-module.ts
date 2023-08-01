@@ -342,8 +342,12 @@ export class ModuleResolver {
     if (templateName) {
       const template = this.garden.configTemplates[templateName]
 
-      // All inputs need to be resolvable
-      inputs = resolveTemplateStrings(inputs, new ModuleConfigContext(templateContextParams), { allowPartial: false })
+      inputs = resolveTemplateStrings(
+        inputs,
+        new ModuleConfigContext(templateContextParams),
+        // Not all inputs may need to be resolvable
+        { allowPartial: true }
+      )
 
       inputs = validateWithPath({
         config: cloneDeep(config.inputs || {}),
