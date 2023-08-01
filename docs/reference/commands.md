@@ -3340,6 +3340,9 @@ actions:
         # The output log from the run.
         log:
 
+        # An optional, more detailed diagnostic error message from the plugin.
+        diagnosticErrorMsg:
+
   # A map of statuses for each configured Test.
   Test:
     <name>:
@@ -3370,6 +3373,9 @@ actions:
 
         # The output log from the run.
         log:
+
+        # An optional, more detailed diagnostic error message from the plugin.
+        diagnosticErrorMsg:
 ```
 
 ### garden get actions
@@ -3737,6 +3743,9 @@ detail:
   # The output log from the run.
   log:
 
+  # An optional, more detailed diagnostic error message from the plugin.
+  diagnosticErrorMsg:
+
 # Local file paths to any exported artifacts from the Run's execution.
 artifacts:
 ```
@@ -3788,6 +3797,9 @@ detail:
 
   # The output log from the run.
   log:
+
+  # An optional, more detailed diagnostic error message from the plugin.
+  diagnosticErrorMsg:
 
 # Local file paths to any exported artifacts from the test run.
 artifacts:
