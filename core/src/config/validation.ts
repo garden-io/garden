@@ -40,7 +40,7 @@ const joiOptions: Joi.ValidationOptions = {
   errors: errorPrefs,
 }
 
-interface ConfigSource {
+export interface ConfigSource {
   yamlDoc?: YamlDocumentWithSource
   basePath?: (string | number)[]
 }

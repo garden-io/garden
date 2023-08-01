@@ -108,9 +108,15 @@ export class CustomCommandWrapper extends Command {
     // Strip the command name and any specified arguments off the $rest variable
     const rest = removeSlice(parsed._unknown, this.getPath()).slice(Object.keys(this.arguments || {}).length)
 
+    const yamlDoc = this.spec.internal.yamlDoc
+
     // Render the command variables
     const variablesContext = new CustomCommandContext({ ...garden, args, opts, rest })
-    const commandVariables = resolveTemplateStrings({ value: this.spec.variables, context: variablesContext })
+    const commandVariables = resolveTemplateStrings({
+      value: this.spec.variables,
+      context: variablesContext,
+      source: { yamlDoc, basePath: ["variables"] },
+    })
     const variables: any = jsonMerge(cloneDeep(garden.variables), commandVariables)
 
     // Make a new template context with the resolved variables
@@ -124,7 +130,11 @@ export class CustomCommandWrapper extends Command {
       const startedAt = new Date()
 
       const exec = validateWithPath({
-        config: resolveTemplateStrings({ value: this.spec.exec, context: commandContext }),
+        config: resolveTemplateStrings({
+          value: this.spec.exec,
+          context: commandContext,
+          source: { yamlDoc, basePath: ["exec"] },
+        }),
         schema: customCommandExecSchema(),
         path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
@@ -175,7 +185,11 @@ export class CustomCommandWrapper extends Command {
       const startedAt = new Date()
 
       let gardenCommand = validateWithPath({
-        config: resolveTemplateStrings({ value: this.spec.gardenCommand, context: commandContext }),
+        config: resolveTemplateStrings({
+          value: this.spec.gardenCommand,
+          context: commandContext,
+          source: { yamlDoc, basePath: ["gardenCommand"] },
+        }),
         schema: customCommandGardenCommandSchema(),
         path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,

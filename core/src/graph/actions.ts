@@ -534,6 +534,8 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       variables,
     }),
     contextOpts: { allowPartial: true },
+    // TODO: See about mapping this to the original variable sources
+    source: undefined,
   })
 
   if (templateName) {
@@ -550,6 +552,8 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
         variables: resolvedVariables,
       }),
       contextOpts: { allowPartial: true },
+      // TODO: See about mapping this to the original inputs source
+      source: undefined,
     })
 
     const template = garden.configTemplates[templateName]
@@ -586,6 +590,8 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     variables: resolvedVariables,
   })
 
+  const yamlDoc = config.internal.yamlDoc
+
   function resolveTemplates() {
     // Fully resolve built-in fields that only support ProjectConfigContext
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
@@ -595,6 +601,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       contextOpts: {
         allowPartial: false,
       },
+      source: { yamlDoc, basePath: [] },
     })
     config = { ...config, ...resolvedBuiltin }
     const { spec = {} } = config
@@ -612,7 +619,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       name: config.name,
       path: config.internal.basePath,
       projectRoot: garden.projectRoot,
-      source: { yamlDoc: config.internal.yamlDoc },
+      source: { yamlDoc },
     })
 
     config = { ...config, variables: resolvedVariables, spec }
@@ -625,6 +632,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       contextOpts: {
         allowPartial: true,
       },
+      source: { yamlDoc },
     })
     config = { ...config, ...resolvedOther }
   }

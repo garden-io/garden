@@ -2286,7 +2286,7 @@ describe("Garden", () => {
       })
 
       await expectError(() => garden.getProjectSources(), {
-        contains: "Error validating remote source:\n[0][name] must be a string",
+        contains: ["Error validating remote source:", "[0][name] must be a string"],
       })
 
       delete process.env.TEST_ENV_VAR

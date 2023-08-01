@@ -121,9 +121,13 @@ export async function renderConfigTemplate({
   const loggedIn = garden.isLoggedIn()
   const enterpriseDomain = garden.cloudApi?.domain
   const templateContext = new EnvironmentConfigContext({ ...garden, loggedIn, enterpriseDomain })
+
+  const yamlDoc = config.internal.yamlDoc
+
   const resolvedWithoutInputs = resolveTemplateStrings({
     value: { ...omit(config, "inputs") },
     context: templateContext,
+    source: { yamlDoc },
   })
   const partiallyResolvedInputs = resolveTemplateStrings({
     value: config.inputs || {},
@@ -131,6 +135,7 @@ export async function renderConfigTemplate({
     contextOpts: {
       allowPartial: true,
     },
+    source: { yamlDoc, basePath: ["inputs"] },
   })
   let resolved: RenderTemplateConfig = {
     ...resolvedWithoutInputs,
@@ -198,10 +203,17 @@ async function renderModules({
   context: RenderTemplateConfigContext
   renderConfig: RenderTemplateConfig
 }): Promise<ModuleConfig[]> {
+  const yamlDoc = template.internal.yamlDoc
+
   return Promise.all(
-    (template.modules || []).map(async (m) => {
+    (template.modules || []).map(async (m, i) => {
       // Run a partial template resolution with the parent+template info
-      const spec = resolveTemplateStrings({ value: m, context, contextOpts: { allowPartial: true } })
+      const spec = resolveTemplateStrings({
+        value: m,
+        context,
+        contextOpts: { allowPartial: true },
+        source: { yamlDoc, basePath: ["modules", i] },
+      })
       const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
 
       let moduleConfig: ModuleConfig

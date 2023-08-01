@@ -1373,7 +1373,7 @@ describe("resolveTemplateStrings", () => {
       something: "else",
     })
 
-    const result = resolveTemplateStrings({ value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
 
     expect(result).to.eql({
       some: "value",
@@ -1393,7 +1393,7 @@ describe("resolveTemplateStrings", () => {
       key: "value",
     })
 
-    const result = resolveTemplateStrings({ value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
 
     expect(result).to.eql({
       some: "value",
@@ -1409,7 +1409,7 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({})
 
-    const result = resolveTemplateStrings({ value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
 
     expect(result).to.eql({
       a: "a",
@@ -1426,7 +1426,7 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({})
 
-    const result = resolveTemplateStrings({ value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
 
     expect(result).to.eql({
       a: "a",
@@ -1443,7 +1443,7 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({ obj: { a: "a", b: "b" } })
 
-    const result = resolveTemplateStrings({ value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
 
     expect(result).to.eql({
       a: "a",
@@ -1463,7 +1463,7 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({ obj: { b: "b" } })
 
-    const result = resolveTemplateStrings({ value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
 
     expect(result).to.eql({
       a: "a",
@@ -1479,7 +1479,7 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({ var: { obj: { a: "a", b: "b" } } })
 
-    const result = resolveTemplateStrings({ value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })
 
     expect(result).to.eql({
       a: "a",
@@ -1512,7 +1512,12 @@ describe("resolveTemplateStrings", () => {
       },
     })
 
-    const result = resolveTemplateStrings({ value: obj, context: templateContext, contextOpts: { allowPartial: true } })
+    const result = resolveTemplateStrings({
+      value: obj,
+      context: templateContext,
+      contextOpts: { allowPartial: true },
+      source: undefined,
+    })
 
     expect(result).to.eql({
       "key-value-array": {
@@ -1549,7 +1554,7 @@ describe("resolveTemplateStrings", () => {
       },
     })
 
-    const result = resolveTemplateStrings({ value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })
 
     expect(result).to.eql({
       "key-value-array": [
@@ -1566,7 +1571,9 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({ var: { obj: { a: "a", b: "b" } } })
 
-    expect(() => resolveTemplateStrings({ value: obj, context: templateContext })).to.throw("Invalid template string")
+    expect(() => resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })).to.throw(
+      "Invalid template string"
+    )
   })
 
   context("$concat", () => {
@@ -1574,7 +1581,7 @@ describe("resolveTemplateStrings", () => {
       const obj = {
         foo: ["a", { $concat: ["b", "c"] }, "d"],
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({}) })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) })
       expect(res).to.eql({
         foo: ["a", "b", "c", "d"],
       })
@@ -1584,7 +1591,11 @@ describe("resolveTemplateStrings", () => {
       const obj = {
         foo: ["a", { $concat: "${foo}" }, "d"],
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({ foo: ["b", "c"] }) })
+      const res = resolveTemplateStrings({
+        source: undefined,
+        value: obj,
+        context: new TestContext({ foo: ["b", "c"] }),
+      })
       expect(res).to.eql({
         foo: ["a", "b", "c", "d"],
       })
@@ -1594,7 +1605,11 @@ describe("resolveTemplateStrings", () => {
       const obj = {
         foo: ["a", { $concat: { $forEach: ["B", "C"], $return: "${lower(item.value)}" } }, "d"],
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({ foo: ["b", "c"] }) })
+      const res = resolveTemplateStrings({
+        source: undefined,
+        value: obj,
+        context: new TestContext({ foo: ["b", "c"] }),
+      })
       expect(res).to.eql({
         foo: ["a", "b", "c", "d"],
       })
@@ -1605,7 +1620,7 @@ describe("resolveTemplateStrings", () => {
         foo: ["a", { $concat: "b" }, "d"],
       }
 
-      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
+      void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) }), {
         contains: "Value of $concat key must be (or resolve to) an array (got string)",
       })
     })
@@ -1615,7 +1630,7 @@ describe("resolveTemplateStrings", () => {
         foo: ["a", { $concat: "b", nope: "nay", oops: "derp" }, "d"],
       }
 
-      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
+      void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) }), {
         contains: 'A list item with a $concat key cannot have any other keys (found "nope" and "oops")',
       })
     })
@@ -1625,6 +1640,7 @@ describe("resolveTemplateStrings", () => {
         foo: ["a", { $concat: "${foo}" }, "d"],
       }
       const res = resolveTemplateStrings({
+        source: undefined,
         value: obj,
         context: new TestContext({}),
         contextOpts: { allowPartial: true },
@@ -1644,7 +1660,7 @@ describe("resolveTemplateStrings", () => {
           $else: 456,
         },
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({ foo: 1 }) })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ foo: 1 }) })
       expect(res).to.eql({ bar: 123 })
     })
 
@@ -1656,7 +1672,7 @@ describe("resolveTemplateStrings", () => {
           $else: 456,
         },
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({ foo: 2 }) })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ foo: 2 }) })
       expect(res).to.eql({ bar: 456 })
     })
 
@@ -1667,7 +1683,7 @@ describe("resolveTemplateStrings", () => {
           $then: 123,
         },
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({ foo: 2 }) })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ foo: 2 }) })
       expect(res).to.eql({ bar: undefined })
     })
 
@@ -1680,6 +1696,7 @@ describe("resolveTemplateStrings", () => {
         },
       }
       const res = resolveTemplateStrings({
+        source: undefined,
         value: obj,
         context: new TestContext({ foo: 2 }),
         contextOpts: { allowPartial: true },
@@ -1695,9 +1712,12 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({ foo: "bla" }) }), {
-        contains: "Value of $if key must be (or resolve to) a boolean (got string)",
-      })
+      void expectError(
+        () => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ foo: "bla" }) }),
+        {
+          contains: "Value of $if key must be (or resolve to) a boolean (got string)",
+        }
+      )
     })
 
     it("throws if $then key is missing", () => {
@@ -1707,9 +1727,12 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({ foo: 1 }) }), {
-        contains: "Missing $then field next to $if field",
-      })
+      void expectError(
+        () => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ foo: 1 }) }),
+        {
+          contains: "Missing $then field next to $if field",
+        }
+      )
     })
 
     it("throws if extra keys are found", () => {
@@ -1721,9 +1744,12 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({ foo: 1 }) }), {
-        contains: 'Found one or more unexpected keys on $if object: "foo"',
-      })
+      void expectError(
+        () => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ foo: 1 }) }),
+        {
+          contains: 'Found one or more unexpected keys on $if object: "foo"',
+        }
+      )
     })
   })
 
@@ -1735,7 +1761,7 @@ describe("resolveTemplateStrings", () => {
           $return: "foo",
         },
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({}) })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) })
       expect(res).to.eql({
         foo: ["foo", "foo", "foo"],
       })
@@ -1752,7 +1778,7 @@ describe("resolveTemplateStrings", () => {
           $return: "${item.key}: ${item.value}",
         },
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({}) })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) })
       expect(res).to.eql({
         foo: ["a: 1", "b: 2", "c: 3"],
       })
@@ -1766,7 +1792,7 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
+      void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) }), {
         contains: "Value of $forEach key must be (or resolve to) an array or mapping object (got string)",
       })
     })
@@ -1779,6 +1805,7 @@ describe("resolveTemplateStrings", () => {
         },
       }
       const res = resolveTemplateStrings({
+        source: undefined,
         value: obj,
         context: new TestContext({}),
         contextOpts: { allowPartial: true },
@@ -1793,7 +1820,7 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
+      void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) }), {
         contains: "Missing $return field next to $forEach field.",
       })
     })
@@ -1808,7 +1835,7 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
+      void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) }), {
         contains: 'Found one or more unexpected keys on $forEach object: "$concat" and "foo"',
       })
     })
@@ -1820,7 +1847,11 @@ describe("resolveTemplateStrings", () => {
           $return: "${item.key}: ${item.value}",
         },
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({ foo: ["a", "b", "c"] }) })
+      const res = resolveTemplateStrings({
+        source: undefined,
+        value: obj,
+        context: new TestContext({ foo: ["a", "b", "c"] }),
+      })
       expect(res).to.eql({
         foo: ["0: a", "1: b", "2: c"],
       })
@@ -1833,7 +1864,11 @@ describe("resolveTemplateStrings", () => {
           $return: "${item.value}",
         },
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({ foo: ["a", "b", "c"] }) })
+      const res = resolveTemplateStrings({
+        source: undefined,
+        value: obj,
+        context: new TestContext({ foo: ["a", "b", "c"] }),
+      })
       expect(res).to.eql({
         foo: ["a", "b", "c"],
       })
@@ -1847,7 +1882,11 @@ describe("resolveTemplateStrings", () => {
           $return: "${item.value}",
         },
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({ foo: ["a", "b", "c"] }) })
+      const res = resolveTemplateStrings({
+        source: undefined,
+        value: obj,
+        context: new TestContext({ foo: ["a", "b", "c"] }),
+      })
       expect(res).to.eql({
         foo: ["a", "c"],
       })
@@ -1862,7 +1901,7 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
+      void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) }), {
         contains: "$filter clause in $forEach loop must resolve to a boolean value (got object)",
       })
     })
@@ -1876,7 +1915,7 @@ describe("resolveTemplateStrings", () => {
           },
         },
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({}) })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) })
       expect(res).to.eql({
         foo: ["a-1", "a-2", "b-1", "b-2", "c-1", "c-2"],
       })
@@ -1895,7 +1934,7 @@ describe("resolveTemplateStrings", () => {
           },
         },
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({}) })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) })
       expect(res).to.eql({
         foo: [
           ["A1", "A2"],
@@ -1911,7 +1950,7 @@ describe("resolveTemplateStrings", () => {
           $return: "foo",
         },
       }
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({}) })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) })
       expect(res).to.eql({
         foo: [],
       })
@@ -1949,7 +1988,7 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      const res = resolveTemplateStrings({ value: obj, context: new TestContext({ services }) })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ services }) })
       expect(res).to.eql({
         services: [
           {

@@ -502,6 +502,7 @@ export function resolveProjectConfig({
         secrets,
         commandInfo,
       }),
+      source: { yamlDoc: config.internal.yamlDoc, basePath: [] },
     })
   } catch (err) {
     log.error("Failed to resolve project configuration.")
@@ -627,6 +628,8 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   })
   const projectVariables: DeepPrimitiveMap = <any>merge(projectConfig.variables, projectVarfileVars)
 
+  const source = { yamlDoc: projectConfig.internal.yamlDoc, basePath: ["environments", index] }
+
   // Resolve template strings in the environment config, except providers
   environmentConfig = resolveTemplateStrings({
     value: { ...environmentConfig },
@@ -642,6 +645,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
       secrets,
       commandInfo,
     }),
+    source,
   })
 
   environmentConfig = validateWithPath({
@@ -650,7 +654,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     configType: `environment ${environment}`,
     path: projectConfig.path,
     projectRoot: projectConfig.path,
-    source: { yamlDoc: projectConfig.internal.yamlDoc, basePath: ["environments", index] },
+    source,
   })
 
   namespace = getNamespace(environmentConfig, namespace)

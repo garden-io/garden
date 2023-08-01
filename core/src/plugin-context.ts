@@ -215,7 +215,7 @@ export async function createPluginContext({
     provider,
     production: garden.production,
     resolveTemplateStrings: <T>(o: T, opts?: ResolveTemplateStringsOpts) => {
-      return resolveTemplateStrings({ value: o, context: templateContext, contextOpts: opts || {} })
+      return resolveTemplateStrings({ value: o, context: templateContext, contextOpts: opts || {}, source: undefined })
     },
     sessionId: garden.sessionId,
     tools: await garden.getTools(),

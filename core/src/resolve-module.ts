@@ -285,6 +285,8 @@ export class ModuleResolver {
       value: rawConfig.build.dependencies,
       context: configContext,
       contextOpts: { allowPartial: true },
+      // Note: We're not implementing the YAML source mapping for modules
+      source: undefined,
     })
 
     // The build.dependencies field may not resolve at all, in which case we can't extract any deps from there
@@ -351,6 +353,8 @@ export class ModuleResolver {
         context: new ModuleConfigContext(templateContextParams),
         // Not all inputs may need to be resolvable
         contextOpts: { allowPartial: true },
+        // Note: We're not implementing the YAML source mapping for modules
+        source: undefined,
       })
 
       inputs = validateWithPath({
@@ -375,6 +379,8 @@ export class ModuleResolver {
       contextOpts: {
         allowPartial: true,
       },
+      // Note: We're not implementing the YAML source mapping for modules
+      source: undefined,
     })
 
     // And finally fully resolve the config.
@@ -392,6 +398,8 @@ export class ModuleResolver {
       contextOpts: {
         allowPartial: false,
       },
+      // Note: We're not implementing the YAML source mapping for modules
+      source: undefined,
     })
 
     config.variables = resolvedModuleVariables
@@ -658,6 +666,7 @@ export class ModuleResolver {
   ): Promise<DeepPrimitiveMap> {
     const moduleConfigContext = new ModuleConfigContext(templateContextParams)
     const resolveOpts = { allowPartial: false }
+
     let varfileVars: DeepPrimitiveMap = {}
     if (config.varfile) {
       const varfilePath = resolveTemplateString({
@@ -677,6 +686,8 @@ export class ModuleResolver {
       value: cloneDeep(rawVariables || {}),
       context: moduleConfigContext,
       contextOpts: resolveOpts,
+      // Note: We're not implementing the YAML source mapping for modules
+      source: undefined,
     })
     const mergedVariables: DeepPrimitiveMap = <any>(
       merge(moduleVariables, merge(varfileVars, this.garden.variableOverrides))

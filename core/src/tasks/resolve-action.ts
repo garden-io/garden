@@ -8,7 +8,7 @@
 
 import { BaseActionTask, ActionTaskProcessParams, ActionTaskStatusParams, BaseTask, ValidResultType } from "./base"
 import { Profile } from "../util/profiling"
-import { Action, ActionState, ExecutedAction, Resolved, ResolvedAction } from "../actions/types"
+import { Action, ActionState, BaseActionConfig, ExecutedAction, Resolved, ResolvedAction } from "../actions/types"
 import { ActionSpecContext } from "../config/template-contexts/actions"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { InternalError } from "../exceptions"
@@ -85,7 +85,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     dependencyResults,
   }: ActionTaskProcessParams<T, ResolveActionResults<T>>): Promise<ResolveActionResults<T>> {
     const action = this.action
-    const config = action.getConfig()
+    const config = action.getConfig() as BaseActionConfig
 
     // Collect dependencies
     const resolvedDependencies: ResolvedAction[] = []
@@ -120,10 +120,14 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       variables: {},
       inputs: {},
     })
+
+    const template = config.internal.templateName ? this.garden.configTemplates[config.internal.templateName] : null
+
     const inputs = resolveTemplateStrings({
       value: config.internal.inputs || {},
       context: inputsContext,
       contextOpts: { allowPartial: false },
+      source: { yamlDoc: template?.internal.yamlDoc, basePath: ["inputs"] },
     })
 
     // Resolve variables
@@ -136,6 +140,8 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       groupVariables = resolveTemplateStrings({
         value: await mergeVariables({ basePath: group.path, variables: group.variables, varfiles: group.varfiles }),
         context: inputsContext,
+        // TODO: map variables to their source
+        source: undefined,
       })
     }
 
@@ -156,6 +162,8 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         variables: groupVariables,
         inputs,
       }),
+      // TODO: map variables to their source
+      source: undefined,
     })
 
     const variables = groupVariables
@@ -177,6 +185,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         variables,
         inputs,
       }),
+      source: { yamlDoc: action.getInternal().yamlDoc, basePath: ["spec"] },
     })
 
     // Validate spec

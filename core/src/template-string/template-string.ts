@@ -40,6 +40,7 @@ import type { ModuleConfigContext } from "../config/template-contexts/module"
 import { callHelperFunction } from "./functions"
 import { ActionKind, actionKindsLower } from "../actions/types"
 import { deepMap } from "../util/objects"
+import { ConfigSource } from "../config/validation"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -247,11 +248,13 @@ export function resolveTemplateStrings<T extends any>({
   context,
   contextOpts = {},
   path,
+  source,
 }: {
   value: T
   context: ConfigContext
   contextOpts?: ContextResolveOpts
   path?: ObjectPath
+  source: ConfigSource | undefined
 }): T {
   if (value === null) {
     return null as T
@@ -294,6 +297,7 @@ export function resolveTemplateStrings<T extends any>({
             ...contextOpts,
           },
           path: path && [...path, arrayConcatKey],
+          source,
         })
 
         if (Array.isArray(resolved)) {
@@ -311,7 +315,7 @@ export function resolveTemplateStrings<T extends any>({
           })
         }
       } else {
-        output.push(resolveTemplateStrings({ value: v, context, contextOpts, path: path && [...path, i] }))
+        output.push(resolveTemplateStrings({ value: v, context, contextOpts, source, path: path && [...path, i] }))
       }
     })
 
@@ -319,16 +323,16 @@ export function resolveTemplateStrings<T extends any>({
   } else if (isPlainObject(value)) {
     if (value[arrayForEachKey] !== undefined) {
       // Handle $forEach loop
-      return handleForEachObject({ value, context, contextOpts, path })
+      return handleForEachObject({ value, context, contextOpts, path, source })
     } else if (value[conditionalKey] !== undefined) {
       // Handle $if conditional
-      return handleConditional({ value, context, contextOpts, path })
+      return handleConditional({ value, context, contextOpts, path, source })
     } else {
       // Resolve $merge keys, depth-first, leaves-first
       let output = {}
 
       for (const [k, v] of Object.entries(value)) {
-        const resolved = resolveTemplateStrings({ value: v, context, contextOpts, path: path && [...path, k] })
+        const resolved = resolveTemplateStrings({ value: v, context, contextOpts, source, path: path && [...path, k] })
 
         if (k === objectSpreadKey) {
           if (isPlainObject(resolved)) {
@@ -364,11 +368,13 @@ function handleForEachObject({
   context,
   contextOpts,
   path,
+  source,
 }: {
   value: any
   context: ConfigContext
   contextOpts: ContextResolveOpts
   path: ObjectPath | undefined
+  source: ConfigSource | undefined
 }) {
   // Validate input object
   if (value[arrayForEachReturnKey] === undefined) {
@@ -398,7 +404,13 @@ function handleForEachObject({
   }
 
   // Try resolving the value of the $forEach key
-  let resolvedInput = resolveTemplateStrings({ value: value[arrayForEachKey], context, contextOpts })
+  let resolvedInput = resolveTemplateStrings({
+    value: value[arrayForEachKey],
+    context,
+    contextOpts,
+    source,
+    path: path && [...path, arrayForEachKey],
+  })
   const isObject = isPlainObject(resolvedInput)
 
   if (!Array.isArray(resolvedInput) && !isObject) {
@@ -434,7 +446,7 @@ function handleForEachObject({
         return value
       }
 
-      resolvedInput = resolveTemplateStrings({ value: resolvedInput, context, contextOpts })
+      resolvedInput = resolveTemplateStrings({ value: resolvedInput, context, contextOpts, source: undefined })
     }
   }
 
@@ -464,6 +476,8 @@ function handleForEachObject({
         value: value[arrayForEachFilterKey],
         context: loopContext,
         contextOpts,
+        source,
+        path: path && [...path, arrayForEachFilterKey],
       })
 
       if (filterResult === false) {
@@ -481,11 +495,19 @@ function handleForEachObject({
       }
     }
 
-    output.push(resolveTemplateStrings({ value: value[arrayForEachReturnKey], context: loopContext, contextOpts }))
+    output.push(
+      resolveTemplateStrings({
+        value: value[arrayForEachReturnKey],
+        context: loopContext,
+        contextOpts,
+        source,
+        path: path && [...path, arrayForEachKey, i],
+      })
+    )
   }
 
   // Need to resolve once more to handle e.g. $concat expressions
-  return resolveTemplateStrings({ value: output, context, contextOpts })
+  return resolveTemplateStrings({ value: output, context, contextOpts, source, path })
 }
 
 const expectedConditionalKeys = [conditionalKey, conditionalThenKey, conditionalElseKey]
@@ -495,11 +517,13 @@ function handleConditional({
   context,
   contextOpts,
   path,
+  source,
 }: {
   value: any
   context: ConfigContext
   contextOpts: ContextResolveOpts
   path: ObjectPath | undefined
+  source: ConfigSource | undefined
 }) {
   // Validate input object
   const thenExpression = value[conditionalThenKey]
@@ -532,7 +556,13 @@ function handleConditional({
   }
 
   // Try resolving the value of the $if key
-  const resolvedConditional = resolveTemplateStrings({ value: value[conditionalKey], context, contextOpts })
+  const resolvedConditional = resolveTemplateStrings({
+    value: value[conditionalKey],
+    context,
+    contextOpts,
+    source,
+    path: path && [...path, conditionalKey],
+  })
 
   if (typeof resolvedConditional !== "boolean") {
     if (contextOpts.allowPartial) {
@@ -556,12 +586,14 @@ function handleConditional({
     context,
     path: path && [...path, conditionalThenKey],
     contextOpts,
+    source,
   })
   const resolvedElse = resolveTemplateStrings({
     value: elseExpression,
     context,
     path: path && [...path, conditionalElseKey],
     contextOpts,
+    source,
   })
 
   if (!!resolvedConditional) {
@@ -602,7 +634,7 @@ export function mayContainTemplateString(obj: any): boolean {
  */
 export function collectTemplateReferences<T extends object>(obj: T): ContextKeySegment[][] {
   const context = new ScanContext()
-  resolveTemplateStrings({ value: obj, context, contextOpts: { allowPartial: true } })
+  resolveTemplateStrings({ value: obj, context, contextOpts: { allowPartial: true }, source: undefined })
   return uniq(context.foundKeys.entries()).sort()
 }
 
@@ -727,7 +759,7 @@ export function getModuleTemplateReferences<T extends object>(obj: T, context: M
   const moduleNames = refs.filter((ref) => ref[0] === "modules" && ref.length > 1)
   // Resolve template strings in name refs. This would ideally be done ahead of this function, but is currently
   // necessary to resolve templated module name references in ModuleTemplates.
-  return resolveTemplateStrings({ value: moduleNames, context })
+  return resolveTemplateStrings({ value: moduleNames, context, source: undefined })
 }
 
 /**

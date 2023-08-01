@@ -1533,11 +1533,13 @@ export class Garden {
    */
   public getProjectSources() {
     const context = new RemoteSourceConfigContext(this, this.variables)
+    const source = { yamlDoc: this.projectConfig.internal.yamlDoc, basePath: ["sources"] }
     const resolved = validateSchema(
-      resolveTemplateStrings({ value: this.projectSources, context }),
+      resolveTemplateStrings({ value: this.projectSources, context, source }),
       projectSourcesSchema(),
       {
         context: "remote source",
+        source,
       }
     )
     return resolved

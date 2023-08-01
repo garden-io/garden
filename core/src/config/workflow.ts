@@ -358,7 +358,7 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   }
 
   let resolvedPartialConfig: WorkflowConfig = {
-    ...resolveTemplateStrings({ value: partialConfig, context }),
+    ...resolveTemplateStrings({ value: partialConfig, context, source: { yamlDoc: config.internal.yamlDoc } }),
     name: config.name,
   }
 
@@ -373,6 +373,8 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
       contextOpts: {
         allowPartial: true,
       },
+      // TODO: Map inputs to their original YAML sources
+      source: undefined,
     })
   }
 

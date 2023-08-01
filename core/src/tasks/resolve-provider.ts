@@ -174,11 +174,6 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     const context = new ProviderConfigContext(this.garden, resolvedProviders, this.garden.variables)
 
     this.log.silly(`Resolving template strings for provider ${this.config.name}`)
-    let resolvedConfig = resolveTemplateStrings({ value: this.config, context })
-
-    const providerName = resolvedConfig.name
-
-    this.log.silly(`Validating ${providerName} config`)
 
     const projectConfig = this.garden.getProjectConfig()
     const yamlDoc = projectConfig.internal.yamlDoc
@@ -194,6 +189,14 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       })
     }
 
+    const source = { yamlDoc, basePath: yamlDocBasePath }
+
+    let resolvedConfig = resolveTemplateStrings({ value: this.config, context, source })
+
+    const providerName = resolvedConfig.name
+
+    this.log.silly(`Validating ${providerName} config`)
+
     const validateConfig = (config: GenericProviderConfig) => {
       return <GenericProviderConfig>validateWithPath({
         config: omit(config, "path"),
@@ -202,7 +205,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
         projectRoot: this.garden.projectRoot,
         configType: "provider configuration",
         ErrorClass: ConfigurationError,
-        source: { yamlDoc, basePath: yamlDocBasePath },
+        source,
       })
     }
 

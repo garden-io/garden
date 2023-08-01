@@ -58,6 +58,8 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
 
   const allRefs = [...needProviders, ...needModules, ...needActions]
 
+  const source = { yamlDoc: garden.getProjectConfig().internal.yamlDoc, basePath: ["outputs"] }
+
   if (allRefs.length === 0) {
     // No need to resolve any entities
     return resolveTemplateStrings({
@@ -69,6 +71,7 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
         modules: [],
         partialRuntimeResolution: false,
       }),
+      source,
     })
   }
 
@@ -97,5 +100,5 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
 
   const configContext = await garden.getOutputConfigContext(log, modules, results)
 
-  return resolveTemplateStrings({ value: garden.rawOutputs, context: configContext })
+  return resolveTemplateStrings({ value: garden.rawOutputs, context: configContext, source })
 }
