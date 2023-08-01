@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "excludeModules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "jdkVersion": {
+      "type": "string",
+      "default": "8"
+    }
+  }
+}
