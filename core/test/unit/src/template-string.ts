@@ -15,7 +15,7 @@ import {
   getActionTemplateReferences,
 } from "../../../src/template-string/template-string"
 import { ConfigContext } from "../../../src/config/template-contexts/base"
-import { expectError } from "../../helpers"
+import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../helpers"
 import { dedent } from "../../../src/util/string"
 import stripAnsi from "strip-ansi"
 
@@ -1928,5 +1928,23 @@ describe.skip("throwOnMissingSecretKeys", () => {
         expect(err.message).to.match(/Note: No secrets have been loaded./)
       }
     )
+  })
+})
+
+describe("functional tests", () => {
+  context("cross-context variable references", () => {
+    let dataDir: string
+    let garden: TestGarden
+
+    before(async () => {
+      dataDir = getDataDir("test-projects", "template-strings")
+      garden = await makeTestGarden(dataDir)
+    })
+
+    it("should resolve variables from project-level and environment-level configs", async () => {
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const deployAction = graph.getDeploy("test-deploy")
+      expect(deployAction.getConfig().include).to.eql(["aFileFromEnvConfig", "aFileFromProjectConfig"])
+    })
   })
 })
