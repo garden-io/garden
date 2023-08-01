@@ -72,7 +72,7 @@ describe("functional tests", () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     })
 
-    const expectedExtraFlags = "-Djib.from.image=hub.docker.io/eclipse-temurin:8u345-b01-jre-ubuntu23"
+    const expectedExtraFlags = "-Dbuilder=docker"
 
     context("should resolve vars and inputs with defaults", () => {
       it("with RenderTemplate and ConfigTemplate.configs", async () => {

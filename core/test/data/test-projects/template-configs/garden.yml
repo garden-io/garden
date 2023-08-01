@@ -7,9 +7,8 @@ providers:
   - name: test-plugin
     environments: [ default ]
 variables:
-  dockerRepo: "hub.docker.io"
-  baseImageJava8: eclipse-temurin:8u345-b01-jre-ubuntu23
-  baseImageJava11: distroless-os-images:debian11-java11.0.18
+  standardBuilder: "docker"
+  customBuilder: "dockerx"
 
 ---
 kind: Module
@@ -32,7 +31,7 @@ modules:
     type: container
     name: ${parent.name}-module
     extraFlags:
-      - "-Djib.from.image=${var.dockerRepo}/${inputs.jdkVersion == '11' ? var.baseImageJava11 : var.baseImageJava8}"
+      - "-Dbuilder=${inputs.builder == 'standard' ? var.standardBuilder : var.customBuilder}"
 
 configs:
   - kind: Build
@@ -40,4 +39,4 @@ configs:
     name: ${parent.name}-build
     spec:
       extraFlags:
-        - "-Djib.from.image=${var.dockerRepo}/${inputs.jdkVersion == '11' ? var.baseImageJava11 : var.baseImageJava8}"
+        - "-Dbuilder=${inputs.builder == 'standard' ? var.standardBuilder : var.customBuilder}"
