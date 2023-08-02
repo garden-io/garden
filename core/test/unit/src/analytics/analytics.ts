@@ -14,12 +14,7 @@ import { validate as validateUuid } from "uuid"
 import { makeTestGardenA, TestGarden, enableAnalytics, getDataDir, makeTestGarden, freezeTime } from "../../../helpers"
 import { FakeCloudApi, apiProjectName, apiRemoteOriginUrl } from "../../../helpers/api"
 import { AnalyticsHandler, CommandResultEvent, getAnonymousUserId } from "../../../../src/analytics/analytics"
-import {
-  DEFAULT_BUILD_TIMEOUT_SEC,
-  DEFAULT_GARDEN_CLOUD_DOMAIN,
-  GardenApiVersion,
-  gardenEnv,
-} from "../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion, gardenEnv } from "../../../../src/constants"
 import { LogLevel, RootLogger } from "../../../../src/logger/logger"
 import { AnalyticsGlobalConfig } from "../../../../src/config-store/global"
 import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
@@ -31,8 +26,6 @@ const host = "https://api.segment.io"
 const projectNameV2 = "discreet-sudden-struggle_95048f63dc14db38ed4138ffb6ff8999"
 
 describe("AnalyticsHandler", () => {
-  const scope = nock(host)
-
   const time = new Date()
   const basicConfig: AnalyticsGlobalConfig = {
     anonymousUserId: "6d87dd61-0feb-4373-8c78-41cd010907e7",
@@ -50,7 +43,13 @@ describe("AnalyticsHandler", () => {
     ciName: null,
   }
 
+  function setupNock() {
+    return nock(host)
+  }
+
   before(async () => {
+    // make sure we don't do any external requests
+    nock.disableNetConnect()
     garden = await makeTestGardenA()
     resetAnalyticsConfig = await enableAnalytics(garden)
   })
@@ -58,6 +57,7 @@ describe("AnalyticsHandler", () => {
   after(async () => {
     await resetAnalyticsConfig()
     nock.cleanAll()
+    nock.enableNetConnect()
   })
 
   describe("factory", () => {
@@ -148,7 +148,7 @@ describe("AnalyticsHandler", () => {
     })
     it("should identify the user with an anonymous ID", async () => {
       let payload: any
-      scope
+      const scope = setupNock()
         .post(`/v1/batch`, (body) => {
           const events = body.batch.map((event: any) => event.type)
           payload = body.batch
@@ -193,7 +193,7 @@ describe("AnalyticsHandler", () => {
     })
     it("should not identify the user if analytics is disabled", async () => {
       let payload: any
-      scope
+      const scope = setupNock()
         .post(`/v1/batch`, (body) => {
           const events = body.batch.map((event: any) => event.type)
           payload = body.batch
@@ -258,6 +258,8 @@ describe("AnalyticsHandler", () => {
     })
 
     it("should not replace the anonymous user ID with the Cloud user ID", async () => {
+      setupNock().post(`/v1/batch`).reply(200)
+
       await garden.globalConfigStore.set("analytics", basicConfig)
 
       const now = freezeTime()
@@ -273,6 +275,8 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should be enabled unless env var for disabling is set", async () => {
+      setupNock().post(`/v1/batch`).reply(200)
+
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       const isEnabledWhenNoEnvVar = analytics.isEnabled
@@ -291,7 +295,7 @@ describe("AnalyticsHandler", () => {
     })
     it("should identify the user with a Cloud ID", async () => {
       let payload: any
-      scope
+      const scope = setupNock()
         .post(`/v1/batch`, (body) => {
           const events = body.batch.map((event: any) => event.type)
           payload = body.batch
@@ -303,17 +307,28 @@ describe("AnalyticsHandler", () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
+      const newConfig = await garden.globalConfigStore.get("analytics")
+
+      expect(newConfig).to.eql({
+        anonymousUserId: "6d87dd61-0feb-4373-8c78-41cd010907e7",
+        firstRunAt: basicConfig.firstRunAt,
+        latestRunAt: now,
+        optedOut: false,
+        cloudProfileEnabled: true,
+      })
+
       await analytics.flush()
 
       expect(analytics.isEnabled).to.equal(true)
       expect(scope.isDone()).to.equal(true)
       expect(payload).to.eql([
         {
-          userId: "garden_1", // This is the imporant part
+          userId: "garden_1", // This is the important part
           anonymousId: "6d87dd61-0feb-4373-8c78-41cd010907e7",
           traits: {
             userIdV2: AnalyticsHandler.hashV2("6d87dd61-0feb-4373-8c78-41cd010907e7"),
             customer: "garden",
+            organizationName: "garden",
             platform: payload[0].traits.platform,
             platformVersion: payload[0].traits.platformVersion,
             gardenVersion: payload[0].traits.gardenVersion,
@@ -333,7 +348,7 @@ describe("AnalyticsHandler", () => {
     })
     it("should not identify the user if analytics is disabled via env var", async () => {
       let payload: any
-      scope
+      const scope = setupNock()
         .post(`/v1/batch`, (body) => {
           const events = body.batch.map((event: any) => event.type)
           payload = body.batch
@@ -368,7 +383,7 @@ describe("AnalyticsHandler", () => {
     })
 
     it("should return the event with the correct project metadata", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      setupNock().post(`/v1/batch`).reply(200)
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
@@ -385,10 +400,11 @@ describe("AnalyticsHandler", () => {
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
-          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
-          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomain: undefined,
+          enterpriseDomainV2: undefined,
           isLoggedIn: false,
           customer: undefined,
+          organizationName: undefined,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -413,7 +429,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should set the CI info if applicable", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      setupNock().post(`/v1/batch`).reply(200)
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
@@ -430,10 +446,11 @@ describe("AnalyticsHandler", () => {
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
-          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
-          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomain: undefined,
+          enterpriseDomainV2: undefined,
           isLoggedIn: false,
           customer: undefined,
+          organizationName: undefined,
           system: analytics["systemConfig"],
           isCI: true,
           ciName: "foo",
@@ -458,7 +475,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should handle projects with no services, tests, or tasks", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      setupNock().post(`/v1/batch`).reply(200)
 
       garden.setModuleConfigs([
         {
@@ -492,10 +509,11 @@ describe("AnalyticsHandler", () => {
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
-          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
-          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomain: undefined,
+          enterpriseDomainV2: undefined,
           isLoggedIn: false,
           customer: undefined,
+          organizationName: undefined,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -519,8 +537,8 @@ describe("AnalyticsHandler", () => {
         },
       })
     })
-    it("should include enterprise metadata", async () => {
-      scope.post(`/v1/batch`).reply(200)
+    it("should include enterprise metadata from config", async () => {
+      setupNock().post(`/v1/batch`).reply(200)
 
       const root = getDataDir("test-projects", "login", "has-domain-and-id")
       garden = await makeTestGarden(root)
@@ -546,6 +564,7 @@ describe("AnalyticsHandler", () => {
           enterpriseProjectIdV2: AnalyticsHandler.hashV2("dummy-id"),
           isLoggedIn: false,
           customer: undefined,
+          organizationName: undefined,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -570,7 +589,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should override the parentSessionId", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      setupNock().post(`/v1/batch`).reply(200)
 
       const root = getDataDir("test-projects", "login", "has-domain-and-id")
       garden = await makeTestGarden(root)
@@ -596,6 +615,7 @@ describe("AnalyticsHandler", () => {
           enterpriseProjectIdV2: AnalyticsHandler.hashV2("dummy-id"),
           isLoggedIn: false,
           customer: undefined,
+          organizationName: undefined,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -620,7 +640,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should have counts for action kinds", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      setupNock().post(`/v1/batch`).reply(200)
 
       const root = getDataDir("test-projects", "config-templates")
       garden = await makeTestGarden(root)
@@ -640,12 +660,13 @@ describe("AnalyticsHandler", () => {
           projectIdV2: AnalyticsHandler.hashV2(apiRemoteOriginUrl),
           projectName: AnalyticsHandler.hash("config-templates"),
           projectNameV2: AnalyticsHandler.hashV2("config-templates"),
-          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
-          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomain: undefined,
+          enterpriseDomainV2: undefined,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
           isLoggedIn: false,
           customer: undefined,
+          organizationName: undefined,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -685,7 +706,7 @@ describe("AnalyticsHandler", () => {
     })
 
     it("should return the event as a success", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      setupNock().post(`/v1/batch`).reply(200)
 
       await garden.globalConfigStore.set("analytics", basicConfig)
 
@@ -712,10 +733,11 @@ describe("AnalyticsHandler", () => {
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
-          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
-          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomain: undefined,
+          enterpriseDomainV2: undefined,
           isLoggedIn: false,
           customer: undefined,
+          organizationName: undefined,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -740,7 +762,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should return the event as a failure with nested error metadata", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      setupNock().post(`/v1/batch`).reply(200)
 
       await garden.globalConfigStore.set("analytics", basicConfig)
 
@@ -821,7 +843,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should return the event as a failure with multiple errors", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      const scope = setupNock().post(`/v1/batch`).reply(200)
 
       await garden.globalConfigStore.set("analytics", basicConfig)
 
@@ -877,11 +899,13 @@ describe("AnalyticsHandler", () => {
   // That's why there are usually two mock requests per test below.
   describe("flush", () => {
     const getEvents = (body: any) =>
-      body.batch.map((event: any) => ({
-        event: event.event,
-        type: event.type,
-        name: event.properties.name,
-      }))
+      body.batch
+        .filter((event: any) => event.type === "track")
+        .map((event: any) => ({
+          event: event.event,
+          type: event.type,
+          name: event.properties.name,
+        }))
 
     beforeEach(async () => {
       garden = await makeTestGardenA()
@@ -896,7 +920,7 @@ describe("AnalyticsHandler", () => {
     })
 
     it("should wait for pending events on network delays", async () => {
-      scope
+      const scope = setupNock()
         .post(`/v1/batch`, (body) => {
           // Assert that the event batch contains a single "track" event
           return isEqual(getEvents(body), [

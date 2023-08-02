@@ -15,19 +15,21 @@ import { getPackageVersion, sleep, getDurationMsec } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import hasha = require("hasha")
-import { Garden } from "../garden"
+import { DummyGarden, Garden } from "../garden"
 import { AnalyticsCommandResult, AnalyticsEventType } from "./analytics-types"
 import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
-import { UserResult } from "@garden-io/platform-api-types"
 import { uuidv4 } from "../util/random"
 import { GardenError, NodeJSErrnoErrorCodes, StackTraceMetadata } from "../exceptions"
 import { ActionConfigMap } from "../actions/types"
 import { actionKinds } from "../actions/types"
 import { getResultErrorProperties } from "./helpers"
 import segmentClient = require("analytics-node")
+import { findProjectConfig } from "../config/base"
+import { ProjectConfig } from "../config/project"
+import { CloudApi, CloudUserProfile, getGardenCloudDomain } from "../cloud/api"
 
 const CI_USER = "ci-user"
 
@@ -114,6 +116,7 @@ interface PropertiesBase {
   isLoggedIn: boolean
   cloudUserId?: string
   customer?: string
+  organizationName?: string
   ciName: string | null
   system: SystemInfo
   isCI: boolean
@@ -214,6 +217,7 @@ interface IdentifyEvent {
   traits: {
     userIdV2: string
     customer?: string
+    organizationName?: string
     platform: string
     platformVersion: string
     gardenVersion: string
@@ -270,8 +274,10 @@ export class AnalyticsHandler {
   private enterpriseProjectIdV2?: string
   private enterpriseDomainV2?: string
   private isLoggedIn: boolean
+  // These are set for a logged in user
   private cloudUserId?: string
-  private cloudCustomerName?: string
+  private cloudOrganizationName?: string
+  private cloudDomain?: string
   private ciName: string | null
   private systemConfig: SystemInfo
   private isCI: boolean
@@ -292,6 +298,8 @@ export class AnalyticsHandler {
     cloudUser,
     isEnabled,
     ciInfo,
+    projectName,
+    fallbackCloudDomain,
   }: {
     garden: Garden
     log: Log
@@ -300,8 +308,10 @@ export class AnalyticsHandler {
     moduleConfigs: ModuleConfig[]
     actionConfigs: ActionConfigMap
     isEnabled: boolean
-    cloudUser?: UserResult
+    cloudUser?: CloudUserProfile
     ciInfo: CiInfo
+    projectName: string
+    fallbackCloudDomain?: string
   }) {
     const segmentApiKey = gardenEnv.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
@@ -351,10 +361,10 @@ export class AnalyticsHandler {
 
     const originName = this.garden.vcsInfo.originUrl
 
-    const projectName = this.garden.projectName
     this.projectName = AnalyticsHandler.hash(projectName)
     this.projectNameV2 = AnalyticsHandler.hashV2(projectName)
 
+    // Note, this is not the project id from the Project config, its referred to as enterpriseProjectId below
     const projectId = originName || this.projectName
     this.projectId = AnalyticsHandler.hash(projectId)
     this.projectIdV2 = AnalyticsHandler.hashV2(projectId)
@@ -363,20 +373,22 @@ export class AnalyticsHandler {
     // in the project level Garden configuration. Not to be confused with the anonymized project ID we generate from
     // the project name for the purpose of analytics.
     const enterpriseProjectId = this.garden.projectId
-    if (enterpriseProjectId) {
+    const enterpriseDomain = this.garden.cloudDomain
+
+    // we only set this when defined in the project config since it indicates
+    // that the project has been connected to a cloud project
+    if (enterpriseProjectId && enterpriseDomain) {
       this.enterpriseProjectId = AnalyticsHandler.hash(enterpriseProjectId)
       this.enterpriseProjectIdV2 = AnalyticsHandler.hashV2(enterpriseProjectId)
-    }
-
-    const enterpriseDomain = this.garden.cloudDomain
-    if (enterpriseDomain) {
       this.enterpriseDomain = AnalyticsHandler.hash(enterpriseDomain)
       this.enterpriseDomainV2 = AnalyticsHandler.hashV2(enterpriseDomain)
     }
 
+    // A user can be logged in to the community tier
     if (cloudUser) {
       this.cloudUserId = AnalyticsHandler.makeCloudUserId(cloudUser)
-      this.cloudCustomerName = cloudUser.organization.name
+      this.cloudOrganizationName = cloudUser.organizationName
+      this.cloudDomain = cloudUser.domain
     }
 
     this.isRecurringUser = getIsRecurringUser(analyticsConfig.firstRunAt, analyticsConfig.latestRunAt)
@@ -387,7 +399,8 @@ export class AnalyticsHandler {
       anonymousId: anonymousUserId,
       traits: {
         userIdV2,
-        customer: cloudUser?.organization.name,
+        customer: cloudUser?.organizationName,
+        organizationName: cloudUser?.organizationName,
         platform: platform(),
         platformVersion: release(),
         gardenVersion: getPackageVersion(),
@@ -445,12 +458,47 @@ export class AnalyticsHandler {
     const moduleConfigs = await garden.getRawModuleConfigs()
     const actionConfigs = await garden.getRawActionConfigs()
 
-    let cloudUser: UserResult | undefined
+    let cloudUser: CloudUserProfile | undefined
     if (garden.cloudApi) {
       try {
-        cloudUser = await garden.cloudApi?.getProfile()
+        const userProfile = await garden.cloudApi?.getProfile()
+
+        if (userProfile && userProfile.id && userProfile.organization.name) {
+          cloudUser = {
+            userId: userProfile.id,
+            organizationName: userProfile.organization.name,
+            domain: garden.cloudApi.domain,
+          }
+        }
       } catch (err) {
         log.debug(`Getting profile from API failed with error: ${err}`)
+      }
+    }
+
+    // best effort load the project if this is a dummy garden instance
+    let projectName = garden.projectName
+    let fallbackCloudDomain: string | undefined
+
+    // Not logged in and this is a dummy instance, try to best effort retrieve
+    // the user and project metadata
+    if (!garden.cloudApi && garden instanceof DummyGarden) {
+      const config: ProjectConfig | undefined = await findProjectConfig({ log, path: garden.projectRoot })
+
+      if (config) {
+        fallbackCloudDomain = getGardenCloudDomain(config.domain)
+        // override the project name since it will default to no-project
+        projectName = config.name
+
+        // fallback to the stored user profile (this is done without verifying the token and the content)
+        const userProfile = await CloudApi.getAuthTokenUserProfile(log, garden.globalConfigStore, fallbackCloudDomain)
+
+        if (userProfile) {
+          cloudUser = {
+            userId: userProfile.userId,
+            organizationName: userProfile.organizationName,
+            domain: fallbackCloudDomain,
+          }
+        }
       }
     }
 
@@ -502,6 +550,8 @@ export class AnalyticsHandler {
       isEnabled,
       ciInfo,
       anonymousUserId,
+      projectName,
+      fallbackCloudDomain,
     })
   }
 
@@ -529,8 +579,8 @@ export class AnalyticsHandler {
     }
   }
 
-  static makeCloudUserId(cloudUser: UserResult) {
-    return `${cloudUser.organization.name}_${cloudUser.id}`
+  static makeCloudUserId(cloudUser: CloudUserProfile) {
+    return `${cloudUser.organizationName}_${cloudUser.userId}`
   }
 
   /**
@@ -548,7 +598,8 @@ export class AnalyticsHandler {
       enterpriseDomainV2: this.enterpriseDomainV2,
       isLoggedIn: this.isLoggedIn,
       ciName: this.ciName,
-      customer: this.cloudCustomerName,
+      customer: this.cloudOrganizationName,
+      organizationName: this.cloudOrganizationName,
       system: this.systemConfig,
       isCI: this.isCI,
       sessionId: this.sessionId,

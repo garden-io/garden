@@ -51,7 +51,7 @@ describe("cli analytics", () => {
     }
   }
 
-  it.skip("should access the version check service", async () => {
+  it("should access the version check service", async () => {
     const scope = nock("https://get.garden.io")
     scope.get("/version").query(true).reply(200)
 
@@ -63,7 +63,7 @@ describe("cli analytics", () => {
     expect(scope.done()).to.not.throw
   })
 
-  it.skip("should wait for queued analytic events to flush", async () => {
+  it("should wait for queued analytic events to flush", async () => {
     const scope = nock("https://api.segment.io")
 
     // Each command run result in two events:
@@ -99,7 +99,7 @@ describe("cli analytics", () => {
     expect(scope.done()).to.not.throw
   })
 
-  it.skip("should not send analytics if disabled for command", async () => {
+  it("should not send analytics if disabled for command", async () => {
     const scope = nock("https://api.segment.io")
 
     scope.post(`/v1/batch`).reply(201)

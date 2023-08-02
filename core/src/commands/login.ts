@@ -11,7 +11,7 @@ import { printHeader } from "../logger/util"
 import dedent = require("dedent")
 import { AuthTokenResponse, CloudApi, CloudUserProfile, getGardenCloudDomain } from "../cloud/api"
 import { Log } from "../logger/log-entry"
-import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions"
+import { ConfigurationError, TimeoutError, InternalError, CloudApiError, toGardenError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
 import { EventBus } from "../events/events"
 import { getCloudDistributionName } from "../util/util"
@@ -134,7 +134,7 @@ export class LoginCommand extends Command<{}, Opts> {
           }
         }
       } catch (err) {
-        log.silly(`Failed to retreive the user profile after retrieving access token, ${err.toString()}`)
+        log.silly(`Failed to retreive the user profile after retrieving access token, ${err}`)
       }
 
       await CloudApi.saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain, userProfile)
@@ -143,7 +143,7 @@ export class LoginCommand extends Command<{}, Opts> {
       await CloudApi.clearAuthToken(log, globalConfigStore, cloudDomain)
       throw new CloudApiError({
         message: `Failed verifying user for ${cloudDomain}. Try logging in again.`,
-        wrappedErrors: [err],
+        wrappedErrors: [toGardenError(err)],
       })
     }
 
