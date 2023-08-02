@@ -9,23 +9,23 @@
 import { cloneDeep, isArray, isString, keyBy } from "lodash"
 import { validateWithPath } from "./config/validation"
 import {
-  resolveTemplateStrings,
   getModuleTemplateReferences,
-  resolveTemplateString,
   mayContainTemplateString,
+  resolveTemplateString,
+  resolveTemplateStrings,
 } from "./template-string/template-string"
 import { ContextResolveOpts, GenericContext } from "./config/template-contexts/base"
-import { relative, resolve, posix, dirname } from "path"
+import { dirname, posix, relative, resolve } from "path"
 import type { Garden } from "./garden"
 import { ConfigurationError, FilesystemError, PluginError } from "./exceptions"
-import { deline, dedent } from "./util/string"
+import { dedent, deline } from "./util/string"
 import {
-  ModuleConfigMap,
   GardenModule,
-  ModuleMap,
-  moduleFromConfig,
-  ModuleTypeMap,
   getModuleTypeBases,
+  ModuleConfigMap,
+  moduleFromConfig,
+  ModuleMap,
+  ModuleTypeMap,
 } from "./types/module"
 import { BuildDependencyConfig, ModuleConfig, moduleConfigSchema } from "./config/module"
 import { Profile, profileAsync } from "./util/profiling"
@@ -35,13 +35,12 @@ import type { ProviderMap } from "./config/provider"
 import chalk from "chalk"
 import { DependencyGraph } from "./graph/common"
 import Bluebird from "bluebird"
-import { readFile, mkdirp } from "fs-extra"
+import { mkdirp, readFile } from "fs-extra"
 import type { Log } from "./logger/log-entry"
 import { ModuleConfigContext, ModuleConfigContextParams } from "./config/template-contexts/module"
 import { pathToCacheContext } from "./cache"
-import { loadVarfile } from "./config/base"
+import { loadVarfile, prepareBuildDependencies } from "./config/base"
 import { merge } from "json-merge-patch"
-import { prepareBuildDependencies } from "./config/base"
 import type { ModuleTypeDefinition } from "./plugin/plugin"
 import { serviceFromConfig } from "./types/service"
 import { taskFromConfig } from "./types/task"
@@ -369,10 +368,13 @@ export class ModuleResolver {
       allowPartial: true,
     })
 
-    // And finally fully resolve the config
+    // And finally fully resolve the config.
+    // Template strings in the spec can have references to inputs,
+    // so we also need to pass inputs here along with the available variables.
     const configContext = new ModuleConfigContext({
       ...templateContextParams,
       variables: { ...garden.variables, ...resolvedModuleVariables },
+      inputs: { ...config.inputs },
     })
 
     config = resolveTemplateStrings({ ...config, inputs: {}, variables: {} }, configContext, {

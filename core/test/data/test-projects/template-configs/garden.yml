@@ -1,0 +1,42 @@
+kind: Project
+apiVersion: garden.io/v1
+name: template-configs
+environments:
+  - name: default
+providers:
+  - name: test-plugin
+    environments: [ default ]
+variables:
+  standardBuilder: "docker"
+  customBuilder: "dockerx"
+
+---
+kind: Module
+type: templated
+template: k8s-container
+name: templated-module-based
+
+---
+kind: RenderTemplate
+template: k8s-container
+name: render-template-based
+
+---
+kind: ConfigTemplate
+name: k8s-container
+inputsSchemaPath: schema.json
+
+modules:
+  - kind: Module
+    type: container
+    name: ${parent.name}-module
+    extraFlags:
+      - "-Dbuilder=${inputs.builder == 'standard' ? var.standardBuilder : var.customBuilder}"
+
+configs:
+  - kind: Build
+    type: container
+    name: ${parent.name}-build
+    spec:
+      extraFlags:
+        - "-Dbuilder=${inputs.builder == 'standard' ? var.standardBuilder : var.customBuilder}"
