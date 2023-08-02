@@ -1,98 +1,17 @@
 import { isPlainObject } from "lodash"
 import { LineCounter, Parser, Composer, Document, ParsedNode, Scalar } from "yaml"
 import { z, infer as inferZodType, ZodIssue, ZodError } from "zod"
-import { dedent } from "../../util/string"
-import { YamlContext, renderYamlContext } from "./yaml-context"
+import { YamlContext } from "./yaml-context"
 
 
-const gardenConfigFile = z.object({
-  kind: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-})
+export type TypeNarrowingFunction<Input, Output extends Input> = (input: Input) => input is Output
 
-const gardenProjectConfig = gardenConfigFile.extend({
-  kind: z.literal("Project"),
-  environments: z.array(
-    z.object({
-      name: z.string(),
-      defaultNamespace: z.string().optional(),
-      production: z.boolean().optional().default(false),
-    })
-  ),
-})
-
-type ProjectConfig = inferZodType<typeof gardenProjectConfig>
-
-const gardenActionConfig = gardenConfigFile.extend({
-  kind: z.union([z.literal("Build"), z.literal("Deploy"), z.literal("Run"), z.literal("Test")]),
-})
-
-const gardenBuildActionConfig = gardenActionConfig.extend({
-  kind: z.literal("Build"),
-  type: z.string(),
-})
-
-const gardenDeployActionConfig = gardenActionConfig.extend({
-  kind: z.literal("Deploy"),
-})
-
-const gardenRunActionConfig = gardenActionConfig.extend({
-  kind: z.literal("Run"),
-})
-
-const gardenTestActionConfig = gardenActionConfig.extend({
-  kind: z.literal("Test"),
-})
-
-const gardenConfigs = z.discriminatedUnion("kind", [
-  gardenProjectConfig,
-  gardenBuildActionConfig,
-  gardenDeployActionConfig,
-  gardenRunActionConfig,
-  gardenTestActionConfig,
-])
-
-const INVALID_YAML = dedent`
-kind: Project
-name: garden-enterprise
-environments:
-  - name: local
-    defaultNamespace: true # Comment is not highlighted
-    production: |
-      nope
-      not correct
-    somethingelse: true
----
-
-kind: Build
-type: 0
-`
-
-const VALID_YAML = dedent`
-kind: Project
-name: garden-enterprise
-environments:
-  - name: local
-    defaultNamespace: dev
-    production: false
-
----
-
-kind: Build
-type: docker
-name: docker-build
-broken"stuff: test
-`
-
-type TypeNarrowingFunction<Input, Output extends Input> = (input: Input) => input is Output
-
-type SchemaValidationError<Schema extends z.ZodTypeAny> = {
+export type SchemaValidationError<Schema extends z.ZodTypeAny> = {
   issueToContextMap: Map<ZodIssue, YamlContext>
   error: ZodError<Schema>
 }
 
-type ValidationResult<T, Schema extends z.ZodTypeAny> =
+export type ValidationResult<T, Schema extends z.ZodTypeAny> =
   | {
       valid: true
       value: T
@@ -102,7 +21,7 @@ type ValidationResult<T, Schema extends z.ZodTypeAny> =
       error: SchemaValidationError<Schema>
     }
 
-class ContextAwareObject<T> {
+export class ContextAwareObject<T> {
   public readonly object: T
   private contextMap: Map<string, YamlContext>
 
@@ -287,34 +206,5 @@ class ContextAwareObject<T> {
 
   static parseKey(key: string): (string | number)[] {
     return JSON.parse(key)
-  }
-}
-
-const contextObjects = ContextAwareObject.fromYamlFile({
-  content: INVALID_YAML,
-  filePath: "/some/fake/file.yaml",
-})
-
-const validatedObjects = contextObjects.map((obj) => obj.validated(gardenConfigs))
-
-const first = validatedObjects[0]
-
-for (const object of validatedObjects) {
-  if (object.valid) {
-    const value = object.value
-    const isProject = value.narrowType((obj): obj is ProjectConfig => obj.kind === "Project")
-    if (isProject) {
-      const envs = value.get("environments")
-      console.log(envs)
-    }
-  } else {
-    const error = object.error
-    for (const issue of error.error.issues) {
-      const context = error.issueToContextMap.get(issue)
-      console.log(issue.message)
-      if (context) {
-        console.log(renderYamlContext(context))
-      }
-    }
   }
 }
