@@ -264,7 +264,7 @@ export class GitHandler extends VcsHandler {
     exclude = [...exclude, "**/.garden/**/*"]
 
     const gitLog = log
-      .createLog({})
+      .createLog({ name: "git" })
       .debug(
         `Scanning ${pathDescription} at ${path}\n  → Includes: ${include || "(none)"}\n  → Excludes: ${
           exclude || "(none)"
