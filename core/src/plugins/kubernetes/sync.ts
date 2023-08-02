@@ -143,7 +143,8 @@ export interface KubernetesDeployDevModeSyncSpec extends DevModeSyncOptions {
 const exampleActionRef = templateStringLiteral("actions.build.my-container-image.sourcePath")
 
 export const kubernetesDeploySyncPathSchema = () =>
-  syncDefaultsSchema()
+  joi
+    .object()
     .keys({
       target: targetResourceSpecSchema().description(
         "The Kubernetes resource to sync to. If specified, this is used instead of `spec.defaultTarget`."
