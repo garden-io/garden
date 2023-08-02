@@ -315,13 +315,13 @@ providers:
         # `.git` directories and `.garden` directories are always ignored.
         exclude:
 
-        # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0644
+        # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644
         # (user can read/write, everyone else can read). See the [Mutagen
         # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
         fileMode: 420
 
         # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to
-        # 0755 (user can read/write, everyone else can read). See the [Mutagen
+        # 0o755 (user can read/write, everyone else can read). See the [Mutagen
         # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
         directoryMode: 493
 
@@ -1222,7 +1222,7 @@ providers:
 
 [providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > fileMode
 
-The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -1232,7 +1232,7 @@ The default permission bits, specified as an octal, to set on files at the sync 
 
 [providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > directoryMode
 
-The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
