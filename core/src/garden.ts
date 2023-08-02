@@ -1293,13 +1293,19 @@ export class Garden {
       })
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
+      this.log.debug(`Found ${dirsToScan.length} directories to scan for configs: ${naturalList(dirsToScan)}`)
+
       const configPaths = flatten(await Bluebird.map(dirsToScan, (path) => this.scanForConfigs(this.log, path)))
       for (const path of configPaths) {
         this.configPaths.add(path)
       }
+      this.log.debug(`Found ${configPaths.length} config paths to load the Garden resources from`)
 
       const allResources = flatten(
         await Bluebird.map(configPaths, async (path) => (await this.loadResources(path)) || [])
+      )
+      this.log.debug(
+        `Scanned and found ${allResources.length} Garden resources in ${configPaths.length} configuration paths`
       )
       const groupedResources = groupBy(allResources, "kind")
 
@@ -1393,7 +1399,7 @@ export class Garden {
       }
 
       this.log.debug(
-        `Scanned and found ${actionsCount} actions, ${rawWorkflowConfigs.length} workflows and ${rawModuleConfigs.length} modules`
+        `Scanned and found ${actionsCount} actions, ${rawWorkflowConfigs.length} workflows and ${rawModuleConfigs.length} modules in ${configPaths.length} configuration paths`
       )
 
       this.state.configsScanned = true

@@ -360,12 +360,14 @@ export class GitHandler extends VcsHandler {
             if (hash !== "") {
               entry.hash = hash
               count++
+              gitLog.debug(`COUNT++ ${count} for newly hashed file at ${entry.path}`)
               return callback(null, entry)
             }
           })
         }
       }
       count++
+      gitLog.debug(`COUNT++ ${count} for file at ${entry.path}`)
       callback(null, entry)
     }
 
@@ -550,12 +552,18 @@ export class GitHandler extends VcsHandler {
       ...params,
       callback: (_, entry) => {
         if (entry) {
+          const sizeBefore = files.length
           files.push(entry)
+          const sizeAfter = files.length
+          params.log.debug(`Callback in streamPaths found file (num files ${sizeBefore} => ${sizeAfter}): ${entry.path}`)
         }
       },
     })
 
-    return files.sort()
+    params.log.debug(`FOUND FILES: ${files.length}`)
+    const sorted = files.sort()
+    params.log.debug(`SORTED FILES: ${files.length}`)
+    return sorted
   }
 
   private isHashSHA1(hash: string): boolean {
