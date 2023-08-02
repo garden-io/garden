@@ -311,11 +311,10 @@ export class GitHandler extends VcsHandler {
       include = undefined
     }
 
-    const hasIncludes = !!include?.length
-
     const globalArgs = ["--glob-pathspecs"]
     const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
 
+    const hasIncludes = !!include?.length
     if (!hasIncludes) {
       for (const p of exclude) {
         lsFilesCommonArgs.push("--exclude", p)
