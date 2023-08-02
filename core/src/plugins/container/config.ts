@@ -204,7 +204,8 @@ export const syncDefaultFileModeSchema = memoize(() =>
     .number()
     .min(0o0)
     .max(0o777)
-    .default(() => 0o644)
+    .default(0o644)
+    .meta({ isOctal: true })
     .messages(octalPermissionValidationErrors)
     .description(
       "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). " +
@@ -217,7 +218,8 @@ export const syncDefaultDirectoryModeSchema = memoize(() =>
     .number()
     .min(0o0)
     .max(0o777)
-    .default(() => 0o755)
+    .default(0o755)
+    .meta({ isOctal: true })
     .messages(octalPermissionValidationErrors)
     .description(
       "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). " +

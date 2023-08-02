@@ -46,6 +46,10 @@ export abstract class BaseKeyDescription<T = any> {
     return this.type
   }
 
+  formatDefaultValue() {
+    return JSON.stringify(this.getDefaultValue())
+  }
+
   hasChildren(renderPatternKeys = false) {
     return this.getChildren(renderPatternKeys).length > 0
   }

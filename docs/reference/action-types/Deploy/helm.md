@@ -988,7 +988,7 @@ The default permission bits, specified as an octal, to set on files at the sync 
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `420`   | No       |
+| `number` | `0o644` | No       |
 
 ### `spec.sync.defaults.directoryMode`
 
@@ -998,7 +998,7 @@ The default permission bits, specified as an octal, to set on directories at the
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `493`   | No       |
+| `number` | `0o755` | No       |
 
 ### `spec.sync.defaults.owner`
 
@@ -1038,7 +1038,7 @@ The default permission bits, specified as an octal, to set on files at the sync 
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `420`   | No       |
+| `number` | `0o644` | No       |
 
 ### `spec.sync.paths[].directoryMode`
 
@@ -1048,7 +1048,7 @@ The default permission bits, specified as an octal, to set on directories at the
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `493`   | No       |
+| `number` | `0o755` | No       |
 
 ### `spec.sync.paths[].owner`
 
@@ -1196,7 +1196,7 @@ The default permission bits, specified as an octal, to set on files at the sync 
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `420`   | No       |
+| `number` | `0o644` | No       |
 
 ### `spec.sync.paths[].defaultDirectoryMode`
 
@@ -1206,7 +1206,7 @@ The default permission bits, specified as an octal, to set on directories at the
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `493`   | No       |
+| `number` | `0o755` | No       |
 
 ### `spec.sync.paths[].defaultOwner`
 

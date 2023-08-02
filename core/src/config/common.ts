@@ -82,6 +82,8 @@ interface MetadataKeys {
   // Advise which template context is available for the field, for documentation purposes
   // Set to null if no templating is supported for the field.
   templateContext?: ConfigContextType | null
+  // Flag to be used with numbers, if the default value should be rendered in octal representation.
+  isOctal?: boolean
 }
 
 // Need this to fix the Joi typing

@@ -10,7 +10,7 @@ import { uniq, isFunction, extend, isArray, isPlainObject } from "lodash"
 import { BaseKeyDescription, isArrayType } from "./common"
 import { findByName } from "../util/util"
 import { JsonKeyDescription } from "./json-schema"
-import { JoiDescription } from "../config/common"
+import { JoiDescription, metadataFromDescription } from "../config/common"
 import { safeDumpYaml } from "../util/serialization"
 import { zodToJsonSchema } from "zod-to-json-schema"
 
@@ -78,6 +78,15 @@ export class JoiKeyDescription extends BaseKeyDescription {
   getDefaultValue() {
     const defaultSpec = this.joiDescription.flags?.default
     return isFunction(defaultSpec) ? defaultSpec({}) : defaultSpec
+  }
+
+  override formatDefaultValue(): string {
+    const meta = metadataFromDescription(this.joiDescription)
+    if (meta.isOctal) {
+      return `0o${new Number(this.getDefaultValue()).toString(8)}`
+    }
+
+    return super.formatDefaultValue()
   }
 
   getChildren(renderPatternKeys = false) {

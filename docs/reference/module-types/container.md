@@ -1487,7 +1487,7 @@ The default permission bits, specified as an octal, to set on files at the sync 
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `420`   | No       |
+| `number` | `0o644` | No       |
 
 ### `services[].sync.paths[].defaultDirectoryMode`
 
@@ -1497,7 +1497,7 @@ The default permission bits, specified as an octal, to set on directories at the
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `493`   | No       |
+| `number` | `0o755` | No       |
 
 ### `services[].sync.paths[].defaultOwner`
 
