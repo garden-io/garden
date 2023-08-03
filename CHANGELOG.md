@@ -1,4 +1,22 @@
 
+<a name="0.13.10"></a>
+## [0.13.10](https://github.com/garden-io/garden/compare/0.13.9...0.13.10) (2023-08-03)
+
+### Bug Fixes
+
+* mutagen default permissions are too restrictive ([#4824](https://github.com/garden-io/garden/issues/4824)) ([0d6c93d49](https://github.com/garden-io/garden/commit/0d6c93d49))
+* restore azure devops support for dockerhub images ([#4829](https://github.com/garden-io/garden/issues/4829)) ([ef42b168a](https://github.com/garden-io/garden/commit/ef42b168a))
+* **config:** throw error if multiple project configs are found ([86bb66f39](https://github.com/garden-io/garden/commit/86bb66f39))
+* **docs:** update migration guide ([d685ab96f](https://github.com/garden-io/garden/commit/d685ab96f))
+* **k8s:** regression in globs in k8s manifest files ([#4903](https://github.com/garden-io/garden/issues/4903)) ([1b511dc64](https://github.com/garden-io/garden/commit/1b511dc64))
+* **k8s:** allow null in spec.files for deploy config ([#4881](https://github.com/garden-io/garden/issues/4881)) ([4fc3a0997](https://github.com/garden-io/garden/commit/4fc3a0997))
+* **template:** inputs processing in module config resolution ([#4907](https://github.com/garden-io/garden/issues/4907)) ([d4e7dcbb0](https://github.com/garden-io/garden/commit/d4e7dcbb0))
+* **template:** respect project level variables in action config context ([#4883](https://github.com/garden-io/garden/issues/4883)) ([05d0f4455](https://github.com/garden-io/garden/commit/05d0f4455))
+
+### Improvements
+
+* **k8s:** less verbose Run/Test errors ([#4894](https://github.com/garden-io/garden/issues/4894)) ([ea40c016b](https://github.com/garden-io/garden/commit/ea40c016b))
+
 <a name="0.13.9"></a>
 ## [0.13.9](https://github.com/garden-io/garden/compare/0.13.8...0.13.9) (2023-07-20)
 
