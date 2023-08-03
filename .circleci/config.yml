@@ -4,6 +4,7 @@ version: 2.1
 orbs:
   win: circleci/windows@2.2.0
   rok8s-scripts: fairwinds/rok8s-scripts@11.1.3
+  codecov: codecov/codecov@3.2.5
 
 # Shared config to use between jobs
 # These can be used to inject shared variables
@@ -359,6 +360,26 @@ jobs:
           environment:
             CHOKIDAR_USEPOLLING: "1"
             NODE_OPTIONS: --max_old_space_size=4096
+
+  coverage:
+    <<: *node-config
+    resource_class: large
+    steps:
+      - checkout
+      - *remote-docker
+      - npm_install
+      - *attach-workspace
+      - configure_git
+      - run:
+          name: Core code coverage
+          command: |
+            cd core
+            yarn run coverage
+          environment:
+            CHOKIDAR_USEPOLLING: "1"
+            NODE_OPTIONS: --max_old_space_size=4096
+      - codecov/upload:
+          file: core/coverage/lcov.info
 
   e2e-project:
     <<: *node-config
