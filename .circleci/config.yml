@@ -929,6 +929,8 @@ workflows:
           requires: [build]
       - test-framework:
           requires: [build]
+      - coverage:
+          requires: [build]
       - test-dist:
           # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
