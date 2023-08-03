@@ -1309,6 +1309,34 @@ describe("resolveTemplateStrings", () => {
     })
   })
 
+  it("should resolve $merge keys if one object is undefined but it can fall back to another object", () => {
+    const obj = {
+      $merge: "${var.doesnotexist || var.obj}",
+      c: "c",
+    }
+    const templateContext = new TestContext({ var: { obj: { a: "a", b: "b" } }})
+
+    const result = resolveTemplateStrings(obj, templateContext)
+
+    expect(result).to.eql({
+      a: "a",
+      b: "b",
+      c: "c",
+    })
+  })
+
+  it("should ignore $merge keys if the object to be merged is undefined", () => {
+    const obj = {
+      $merge: "${var.doesnotexist}",
+      c: "c",
+    }
+    const templateContext = new TestContext({ var: { obj: { a: "a", b: "b" } } })
+
+    expect(() => resolveTemplateStrings(obj, templateContext)).to.throw(
+      "Invalid template string"
+    )
+  })
+
   context("$concat", () => {
     it("handles array concatenation", () => {
       const obj = {

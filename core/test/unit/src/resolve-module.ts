@@ -104,4 +104,28 @@ describe("functional tests", () => {
       })
     })
   })
+
+  describe("render templates using $each", () => {
+    let dataDir: string
+    let garden: TestGarden
+    let graph: ConfigGraph
+
+    before(async () => {
+      dataDir = getDataDir("test-projects", "merge-in-module-template")
+      garden = await makeTestGarden(dataDir)
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    })
+
+    const expectedExtraFlags = "-Dbuilder=docker"
+
+    context("should resolve vars and inputs with defaults", () => {
+      it.only("with RenderTemplate and ConfigTemplate.configs", async () => {
+        const buildAction = graph.getBuild("templated")
+        const spec = buildAction.getConfig().spec
+        expect(spec).to.exist
+        console.log(spec)
+        expect(spec.extraFlags).to.eql([expectedExtraFlags])
+      })
+    })
+  })
 })

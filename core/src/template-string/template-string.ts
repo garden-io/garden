@@ -205,6 +205,7 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
       resolveTree(tree)
     }
 
+    console.log("Resolved", resolved)
     return resolved
   } catch (err) {
     const prefix = `Invalid template string (${chalk.white(truncate(string, 35).replace(/\n/g, "\\n"))}): `
@@ -224,6 +225,7 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
   context: ConfigContext,
   opts: ContextResolveOpts = {}
 ): T {
+  console.log("Resolving", value)
   if (value === null) {
     return null as T
   }
@@ -233,6 +235,7 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
   if (typeof value === "string") {
     return <T>resolveTemplateString(value, context, opts)
   } else if (Array.isArray(value)) {
+    console.log("array", value)
     const output: unknown[] = []
 
     for (const v of value) {
@@ -275,6 +278,7 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
     return <T>(<unknown>output)
   } else if (isPlainObject(value)) {
     if (value[arrayForEachKey] !== undefined) {
+      console.log("forEach", value)
       // Handle $forEach loop
       return handleForEachObject(value, context, opts)
     } else if (value[conditionalKey] !== undefined) {
@@ -282,10 +286,12 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
       return handleConditional(value, context, opts)
     } else {
       // Resolve $merge keys, depth-first, leaves-first
+      console.log("$merge", value)
       let output = {}
 
       for (const [k, v] of Object.entries(value)) {
         const resolved = resolveTemplateStrings(v, context, opts)
+        console.log("$merge resolved", k, resolved)
 
         if (k === objectSpreadKey) {
           if (isPlainObject(resolved)) {
@@ -306,9 +312,13 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
         }
       }
 
+      console.log("output", output)
+
       return <T>output
     }
   } else {
+    console.log("value", value)
+
     return <T>value
   }
 })
