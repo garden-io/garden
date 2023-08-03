@@ -772,11 +772,11 @@ export class CloudApi {
   }
 
   async createEphemeralCluster(): Promise<{
-    clustetId: string;
+    clustetId: string
     registry: {
-      endpointAddress: string;
+      endpointAddress: string
       repository: string
-    };
+    }
   }> {
     let response: any
     try {
@@ -785,14 +785,12 @@ export class CloudApi {
       this.log.debug(`Create ephemeral cluster failed with error, ${err}`)
       throw err
     }
-    console.log("create instance response", response.data)
-    // response.data?.metadata?.instanceId
     return {
       clustetId: response.data?.metadata?.instanceId,
       registry: {
         endpointAddress: response.data?.registry?.endpointAddress,
-        repository: response.data?.registry?.repository
-      }
+        repository: response.data?.registry?.repository,
+      },
     }
   }
 
