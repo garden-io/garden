@@ -140,6 +140,9 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
           targetPath,
         }),
         mode: "one-way-replica",
+        // make files world and group readable by default. This is also the default for git.
+        defaultFileMode: 0o644,
+        defaultDirectoryMode: 0o755,
         ignore: [],
       },
     })

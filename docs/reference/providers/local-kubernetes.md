@@ -315,15 +315,15 @@ providers:
         # `.git` directories and `.garden` directories are always ignored.
         exclude:
 
-        # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600
-        # (user read/write). See the [Mutagen
+        # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644
+        # (user can read/write, everyone else can read). See the [Mutagen
         # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-        fileMode:
+        fileMode: 420
 
         # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to
-        # 0700 (user read/write). See the [Mutagen
+        # 0o755 (user can read/write, everyone else can read). See the [Mutagen
         # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-        directoryMode:
+        directoryMode: 493
 
         # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
         # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
@@ -1222,21 +1222,21 @@ providers:
 
 [providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > fileMode
 
-The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `0o644` | No       |
 
 ### `providers[].sync.defaults.directoryMode`
 
 [providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > directoryMode
 
-The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `0o755` | No       |
 
 ### `providers[].sync.defaults.owner`
 

@@ -259,15 +259,15 @@ sync:
       # guide](https://docs.garden.io/guides/code-synchronization) for details.
       mode: one-way-safe
 
-      # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user
-      # read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions)
-      # for more information.
-      defaultFileMode:
-
-      # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700
-      # (user read/write). See the [Mutagen
+      # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644
+      # (user can read/write, everyone else can read). See the [Mutagen
       # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-      defaultDirectoryMode:
+      defaultFileMode: 420
+
+      # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to
+      # 0o755 (user can read/write, everyone else can read). See the [Mutagen
+      # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+      defaultDirectoryMode: 493
 
       # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
       # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
@@ -1170,21 +1170,21 @@ The sync mode to use for the given paths. See the [Code Synchronization guide](h
 
 [sync](#sync) > [paths](#syncpaths) > defaultFileMode
 
-The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `0o644` | No       |
 
 ### `sync.paths[].defaultDirectoryMode`
 
 [sync](#sync) > [paths](#syncpaths) > defaultDirectoryMode
 
-The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `0o755` | No       |
 
 ### `sync.paths[].defaultOwner`
 

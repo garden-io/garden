@@ -63,8 +63,8 @@ describe("k8s sync helpers", () => {
           exclude: ["**/*.log"],
           owner: "node",
           group: "admin",
-          fileMode: 600,
-          directoryMode: 700,
+          fileMode: 0o600,
+          directoryMode: 0o700,
         },
         opts: {
           mode: "one-way",
@@ -79,8 +79,8 @@ describe("k8s sync helpers", () => {
         mode: "one-way",
         defaultOwner: "node",
         defaultGroup: "admin",
-        defaultFileMode: 600,
-        defaultDirectoryMode: 700,
+        defaultFileMode: 0o600,
+        defaultDirectoryMode: 0o700,
       })
     })
 
@@ -92,16 +92,16 @@ describe("k8s sync helpers", () => {
           exclude: ["**/*.log"],
           owner: "node",
           group: "admin",
-          fileMode: 600,
-          directoryMode: 700,
+          fileMode: 0o600,
+          directoryMode: 0o700,
         },
         opts: {
           mode: "one-way",
           exclude: ["node_modules"],
           defaultOwner: "owner_from_spec",
           defaultGroup: "group_from_spec",
-          defaultFileMode: 700,
-          defaultDirectoryMode: 777,
+          defaultFileMode: 0o700,
+          defaultDirectoryMode: 0o777,
         },
         providerDefaults: {},
       })
@@ -113,8 +113,8 @@ describe("k8s sync helpers", () => {
         mode: "one-way",
         defaultOwner: "owner_from_spec",
         defaultGroup: "group_from_spec",
-        defaultFileMode: 700,
-        defaultDirectoryMode: 777,
+        defaultFileMode: 0o700,
+        defaultDirectoryMode: 0o777,
       })
     })
 

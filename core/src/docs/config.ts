@@ -82,7 +82,7 @@ function makeMarkdownDescription(description: BaseKeyDescription, { showRequired
   const tableData: any = {
     Type: "`" + description.formatType() + "`",
     ...(allowedValues ? { "Allowed Values": allowedValues } : {}),
-    ...(defaultValue !== undefined ? { Default: "`" + JSON.stringify(defaultValue) + "`" } : {}),
+    ...(defaultValue !== undefined ? { Default: `\`${description.formatDefaultValue()}\`` } : {}),
   }
 
   if (showRequiredColumn) {
