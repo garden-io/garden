@@ -10,6 +10,7 @@ import chalk from "chalk"
 import { EnvironmentParameter } from "../cli/params"
 import { dedent } from "../util/string"
 import { Command, CommandGroup, CommandParams } from "./base"
+import { ConfigurationError } from "../exceptions"
 
 export class SetCommand extends CommandGroup {
   name = "set"
@@ -46,8 +47,19 @@ export class SetDefaultEnvCommand extends Command<SetDefaultEnvArgs, {}> {
   override arguments = setDefaultEnvArgs
 
   async action({ garden, log, args }: CommandParams<SetDefaultEnvArgs, {}>) {
-    await garden.localConfigStore.set("defaultEnv", args.env || "")
+    if (args.env) {
+      // check if the specified env is a valid environment.
+      const availableEnvironments = garden.getProjectConfig().environments
+      if (!availableEnvironments.find((e) => e.name === args.env)) {
+        throw new ConfigurationError({
+          message: `Invalid environment ${
+            args.env
+          } specified as argument. Available environments: ${availableEnvironments.map((a) => a.name).join(", ")}.`,
+        })
+      }
+    }
 
+    await garden.localConfigStore.set("defaultEnv", args.env || "")
     log.info("")
 
     if (args.env) {
