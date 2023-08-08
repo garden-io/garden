@@ -1325,6 +1325,38 @@ describe("resolveTemplateStrings", () => {
     })
   })
 
+  it.only("should partially resolve $merge keys if one object is undefined but it can fall back to another object", () => {
+    const obj = {
+      "key-value-array": {
+        $forEach: "${inputs.merged-object || []}",
+        $return: {
+          name: "${item.key}",
+          value: "${item.value}"
+        }
+      }
+    }
+    const templateContext = new TestContext({
+      inputs: {
+        "merged-object": {
+          $merge: "${var.empty || var.input-object}",
+        },
+        "INTERNAL_VAR_1": "INTERNAL_VAR_1",
+      }
+    })
+
+    const result = resolveTemplateStrings(obj, templateContext, { allowPartial: true })
+
+    expect(result).to.eql({
+      "key-value-array": {
+        $forEach: "${inputs.merged-object || []}",
+        $return: {
+          name: "${item.key}",
+          value: "${item.value}",
+        },
+      },
+    })
+  })
+
   it("should ignore $merge keys if the object to be merged is undefined", () => {
     const obj = {
       $merge: "${var.doesnotexist}",
