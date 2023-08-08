@@ -23,7 +23,7 @@ export const configSchema = () =>
 
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
   const { base, log, projectName, ctx, config: baseConfig } = params
-  log.info("configuring ephemeral-kubernetes provider")
+  log.info("Configuring ephemeral-kubernetes provider")
   if (!ctx.cloudApi) {
     throw new Error(
       "You are not logged in. You must be logged into Garden Cloud in order to use ephemeral-kubernetes provider."
@@ -36,13 +36,11 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   const newClusterId = newClusterResponse.clustetId
   log.info("Getting kubeconfig for the cluster")
   const kubeConfig = await ctx.cloudApi.getKubeConfigForCluster(newClusterId)
-  // console.log("kubeconfig-xaxa", kubeConfig)
 
   const kubeconfigFileName = `${newClusterId}-kubeconfig.yaml`
   const kubeConfigTmpPath = join(ctx.gardenDirPath, "ephemeral-kubernetes", kubeconfigFileName)
   await writeFile(kubeConfigTmpPath, kubeConfig)
-  // console.log("kubeconfig path", kubeConfigTmpPath)
-  // console.log(`   $ kubectl --kubeconfig=${kubeConfigTmpPath} get all`)
+  log.info(`kubeconfig saved at path: ${kubeConfigTmpPath}`)
 
   // const kubeConfig = DUMMY
   const parsedKubeConfig: any = load(kubeConfig)
