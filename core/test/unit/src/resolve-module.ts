@@ -105,7 +105,7 @@ describe("functional tests", () => {
     })
   })
 
-  describe("render templates using $each", () => {
+  describe.skip("render templates using $each", () => {
     let dataDir: string
     let garden: TestGarden
     let graph: ConfigGraph

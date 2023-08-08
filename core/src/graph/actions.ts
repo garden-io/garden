@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { cloneDeep, isEqual, mapValues, memoize, pick, uniq } from "lodash"
+import { cloneDeep, isEqual, mapValues, memoize, omit, pick, uniq } from "lodash"
 import {
   Action,
   ActionConfig,
@@ -610,19 +610,12 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 
     config = { ...config, variables: resolvedVariables, spec }
 
-    // This is where the unresolved parts get inlined as strings
-    // and where the KV mapping gets resolved wrong
-    // inputs.mergedObject is not yet `[object Object]` but will probably be after the next resolution
-    // Commenting this out resolves the issue
-    // It may however be better to fix the issue that wrongly resolves the dependencies
-    // and make it aware of the fact that sometimes objects end up in a partially resolved graph
-
     // Partially resolve other fields
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
 
-    // const resolvedOther = resolveTemplateStrings(omit(config, builtinConfigKeys), builtinFieldContext, {
-    //   allowPartial: true,
-    // })
+    const resolvedOther = resolveTemplateStrings(omit(config, builtinConfigKeys), builtinFieldContext, {
+      allowPartial: true,
+    })
     config = { ...config }
   }
 

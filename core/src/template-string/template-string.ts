@@ -27,6 +27,7 @@ import {
   conditionalKey,
   conditionalThenKey,
   isPrimitive,
+  isSpecialKey,
   objectSpreadKey,
   Primitive,
   StringMap,
@@ -343,6 +344,7 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
 
   // Try resolving the value of the $forEach key
   let resolvedInput = resolveTemplateStrings(value[arrayForEachKey], context, opts)
+
   const isObject = isPlainObject(resolvedInput)
 
   if (!Array.isArray(resolvedInput) && !isObject) {
@@ -356,6 +358,15 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
           resolved: resolvedInput,
         },
       })
+    }
+  }
+
+  if (isObject) {
+    const keys = Object.keys(resolvedInput)
+    const inputContainsSpecialKeys = keys.some((key) => isSpecialKey(key))
+
+    if (inputContainsSpecialKeys && opts.allowPartial) {
+      return value
     }
   }
 
