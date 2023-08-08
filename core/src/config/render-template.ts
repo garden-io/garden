@@ -129,8 +129,6 @@ export async function renderConfigTemplate({
     inputs: partiallyResolvedInputs,
   }
 
-  console.log("Resolved config template", resolved)
-
   const configType = "Render " + resolved.name
 
   // Return immediately if config is disabled
