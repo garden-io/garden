@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { SetDefaultEnvCommand } from "../../../../src/commands/set"
 import { Log } from "../../../../src/logger/log-entry"
-import { TestGarden, makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
+import { TestGarden, expectError, makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
 
 describe("SetDefaultEnvCommand", () => {
   const command = new SetDefaultEnvCommand()
@@ -33,6 +33,21 @@ describe("SetDefaultEnvCommand", () => {
     const defaultEnv = await garden.localConfigStore.get("defaultEnv")
 
     expect(defaultEnv).to.equal("other")
+  })
+
+  it("throws an error on setting an invalid environment as the default env", async () => {
+    await expectError(
+      () =>
+        command.action({
+          garden,
+          log,
+          args: { env: "wrong-env" },
+          opts: withDefaultGlobalOpts({}),
+        }),
+      (err) => {
+        expect(err.message).to.contain("Invalid environment wrong-env specified as argument.")
+      }
+    )
   })
 
   it("clears the specified environment if no args given", async () => {
