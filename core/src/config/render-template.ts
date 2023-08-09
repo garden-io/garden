@@ -284,7 +284,6 @@ async function renderConfigs({
 
     if (!templatableKinds.includes(m.kind)) {
       throw new ConfigurationError({
-
         message: `Unexpected kind '${m.kind}' found in ${templateDescription}. Supported kinds are: ${naturalList(
           templatableKinds
         )}`,
@@ -309,7 +308,6 @@ async function renderConfigs({
         description: `resource in Render ${renderConfig.name}`,
         allowInvalid: false,
       })!
-
     } catch (error) {
       throw new ConfigurationError({
         message: `${templateDescription} returned an invalid config (named ${spec.name}) for Render ${renderConfig.name}: ${error.message}`,

@@ -24,7 +24,7 @@ export function isSpecialKey(input: string): boolean {
     arrayConcatKey,
     arrayForEachKey,
     arrayForEachReturnKey,
-    arrayForEachFilterKey
+    arrayForEachFilterKey,
   ]
 
   return specialKeys.some((key) => input === key)

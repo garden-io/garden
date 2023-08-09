@@ -1314,7 +1314,7 @@ describe("resolveTemplateStrings", () => {
       $merge: "${var.doesnotexist || var.obj}",
       c: "c",
     }
-    const templateContext = new TestContext({ var: { obj: { a: "a", b: "b" } }})
+    const templateContext = new TestContext({ var: { obj: { a: "a", b: "b" } } })
 
     const result = resolveTemplateStrings(obj, templateContext)
 
@@ -1331,9 +1331,9 @@ describe("resolveTemplateStrings", () => {
         $forEach: "${inputs.merged-object || []}",
         $return: {
           name: "${item.key}",
-          value: "${item.value}"
-        }
-      }
+          value: "${item.value}",
+        },
+      },
     }
     const templateContext = new TestContext({
       inputs: {
@@ -1362,7 +1362,6 @@ describe("resolveTemplateStrings", () => {
     })
   })
 
-
   it("should resolve $merge keys if a dependency cannot be resolved but there's a fallback", () => {
     const obj = {
       "key-value-array": {
@@ -1382,8 +1381,8 @@ describe("resolveTemplateStrings", () => {
       },
       var: {
         "input-object": {
-          EXTERNAL_VAR_1: "EXTERNAL_VAR_1"
-        }
+          EXTERNAL_VAR_1: "EXTERNAL_VAR_1",
+        },
       },
     })
 
@@ -1397,7 +1396,6 @@ describe("resolveTemplateStrings", () => {
     })
   })
 
-
   it("should ignore $merge keys if the object to be merged is undefined", () => {
     const obj = {
       $merge: "${var.doesnotexist}",
@@ -1405,9 +1403,7 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({ var: { obj: { a: "a", b: "b" } } })
 
-    expect(() => resolveTemplateStrings(obj, templateContext)).to.throw(
-      "Invalid template string"
-    )
+    expect(() => resolveTemplateStrings(obj, templateContext)).to.throw("Invalid template string")
   })
 
   context("$concat", () => {
