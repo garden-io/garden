@@ -168,7 +168,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     }
 
     try {
-      // Config still okay here
       const action = await actionFromConfig({
         garden,
         graph,
@@ -234,8 +233,6 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     mode,
     log,
   })
-
-  // Broken here
 
   const actionTypes = await garden.getActionTypes()
   const definition = actionTypes[config.kind][config.type]?.spec

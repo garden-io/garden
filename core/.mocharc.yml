@@ -1,5 +1,4 @@
 require: 
-  - ts-node/register
   - build/test/setup.js
 watch-files:
   - build/**/*
