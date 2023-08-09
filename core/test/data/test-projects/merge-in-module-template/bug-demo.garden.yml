@@ -23,7 +23,6 @@ modules:
             $return:
               name: ${item.key}
               value: ${item.value}
-    files: [.manifests-template.yml]
     generateFiles:
       - sourcePath: manifests-template.yml
         targetPath: .manifests-template.yml
