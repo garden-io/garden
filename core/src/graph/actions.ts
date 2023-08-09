@@ -613,7 +613,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     const resolvedOther = resolveTemplateStrings(omit(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: true,
     })
-    config = { ...config }
+    config = { ...config, ...resolvedOther }
   }
 
   resolveTemplates()
