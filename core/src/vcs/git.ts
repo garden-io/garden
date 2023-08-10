@@ -28,6 +28,7 @@ import chalk from "chalk"
 import hasha = require("hasha")
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import AsyncLock from "async-lock"
+import { pipeline } from "stream/promises"
 
 const gitConfigAsyncLock = new AsyncLock()
 
@@ -250,11 +251,10 @@ export class GitHandler extends VcsHandler {
     exclude,
     filter,
     failOnPrompt = false,
-    callback,
-  }: GetFilesParams & { callback: (err: Error | null, entry?: VcsFile) => void }): Promise<void> {
+  }: GetFilesParams): Promise<VcsFile[]> {
     if (include && include.length === 0) {
       // No need to proceed, nothing should be included
-      return callback(null)
+      return []
     }
 
     if (!exclude) {
@@ -276,17 +276,19 @@ export class GitHandler extends VcsHandler {
 
       if (!pathStats.isDirectory()) {
         gitLog.warn(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`)
-        return callback(null)
+        return []
       }
     } catch (err) {
       // 128 = File no longer exists
       if (err.exitCode === 128 || err.code === "ENOENT") {
         gitLog.warn(`Attempted to scan directory at ${path}, but it does not exist.`)
-        return callback(null)
+        return []
       } else {
         throw err
       }
     }
+
+    let files: VcsFile[] = []
 
     const git = this.gitCli(gitLog, path, failOnPrompt)
     const gitRoot = await this.getRepoRoot(gitLog, path, failOnPrompt)
@@ -346,32 +348,27 @@ export class GitHandler extends VcsHandler {
     // Make sure we have a fresh hash for each file
     let count = 0
 
-    const ensureHash = (entry: VcsFile, stats: Stats | undefined, reject: (err: Error) => void) => {
-      if (entry.hash === "" || modified.has(entry.path)) {
+    const ensureHash = async (file: VcsFile, stats: Stats | undefined): Promise<void> => {
+      if (file.hash === "" || modified.has(file.path)) {
         // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
         // will by extension be filtered out of the list.
-        if (!stats) {
-        }
         if (stats && !stats.isDirectory()) {
-          return this.hashObject(stats, entry.path, (err, hash) => {
-            if (err) {
-              return reject(err)
-            }
-            if (hash !== "") {
-              entry.hash = hash
-              count++
-              return callback(null, entry)
-            }
-          })
+          const hash = await this.hashObject(stats, file.path)
+          if (hash !== "") {
+            file.hash = hash
+            count++
+            files.push(file)
+            return
+          }
         }
       }
       count++
-      callback(null, entry)
+      files.push(file)
     }
 
     // This function is called for each line output from the ls-files commands that we run, and populates the
     // `files` array.
-    const handleEntry = (entry: GitEntry | undefined, reject: (err: Error) => void) => {
+    const handleEntry = async (entry: GitEntry | undefined): Promise<void> => {
       if (!entry) {
         return
       }
@@ -404,53 +401,47 @@ export class GitHandler extends VcsHandler {
       // No need to stat unless it has no hash, is a symlink, or is modified
       // Note: git ls-files always returns mode 120000 for symlinks
       if (hash && entry.mode !== "120000" && !modified.has(resolvedPath)) {
-        return ensureHash(output, undefined, reject)
+        return ensureHash(output, undefined)
       }
 
-      return lstat(resolvedPath, (err, stats) => {
-        if (err) {
-          if (err.code === "ENOENT") {
-            return
-          }
-          return reject(err)
-        }
-
+      try {
+        const stats = await lstat(resolvedPath)
         // We need to special-case handling of symlinks. We disallow any "unsafe" symlinks, i.e. any ones that may
         // link outside of `gitRoot`.
         if (stats.isSymbolicLink()) {
-          return readlink(resolvedPath, (readlinkErr, target) => {
-            if (readlinkErr) {
-              return reject(readlinkErr)
+          const target = await readlink(resolvedPath)
+
+          // Make sure symlink is relative and points within `path`
+          if (isAbsolute(target)) {
+            gitLog.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
+          } else if (target.startsWith("..")) {
+            try {
+              const realTarget = await realpath(resolvedPath)
+              const relPath = relative(path, realTarget)
+
+              if (relPath.startsWith("..")) {
+                gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
+                return
+              }
+              return ensureHash(output, stats)
+            } catch (err) {
+              if (err.code === "ENOENT") {
+                gitLog.verbose(`Ignoring dead symlink at ${resolvedPath}`)
+                return
+              }
+              throw err
             }
-
-            // Make sure symlink is relative and points within `path`
-            if (isAbsolute(target)) {
-              gitLog.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
-            } else if (target.startsWith("..")) {
-              return realpath(resolvedPath, (realpathErr, realTarget) => {
-                if (realpathErr) {
-                  if (realpathErr.code === "ENOENT") {
-                    gitLog.verbose(`Ignoring dead symlink at ${resolvedPath}`)
-                    return
-                  }
-                  return reject(realpathErr)
-                }
-
-                const relPath = relative(path, realTarget)
-
-                if (relPath.startsWith("..")) {
-                  gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
-                  return
-                }
-                return ensureHash(output, stats, reject)
-              })
-            } else {
-              return ensureHash(output, stats, reject)
-            }
-          })
+          } else {
+            return ensureHash(output, stats)
+          }
         }
-        return ensureHash(output, stats, reject)
-      })
+        return ensureHash(output, stats)
+      } catch (err) {
+        if (err.code === "ENOENT") {
+          return
+        }
+        throw err
+      }
     }
 
     await new Promise<void>((_resolve, _reject) => {
@@ -472,8 +463,12 @@ export class GitHandler extends VcsHandler {
         splitStream.end()
       }
       const splitStream = split2()
-      splitStream.on("data", (line) => {
-        handleEntry(parseLine(line), fail)
+      splitStream.on("data", async (line) => {
+        try {
+          await handleEntry(parseLine(line))
+        } catch (err) {
+          fail(err)
+        }
       })
 
       void proc.on("error", (err: execa.ExecaError) => {
@@ -522,7 +517,7 @@ export class GitHandler extends VcsHandler {
           }
         }
 
-        return this.streamPaths({
+        const subfiles = await this.streamPaths({
           log: gitLog,
           path: submodulePath,
           pathDescription: "submodule",
@@ -531,12 +526,15 @@ export class GitHandler extends VcsHandler {
             matchPath(join(submoduleRelPath, p), augmentedIncludes, augmentedExcludes) && (!filter || filter(p)),
           scanRoot: submodulePath,
           failOnPrompt,
-          callback,
         })
+
+        files = [...files, ...subfiles]
       })
     }
 
     gitLog.debug(`Found ${count} files in ${pathDescription} ${path}`)
+
+    return files
   }
 
   /**
@@ -544,16 +542,7 @@ export class GitHandler extends VcsHandler {
    * .ignore files, and the specified include/exclude filters.
    */
   async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
-    const files: VcsFile[] = []
-
-    await this.streamPaths({
-      ...params,
-      callback: (_, entry) => {
-        if (entry) {
-          files.push(entry)
-        }
-      },
-    })
+    const files = await this.streamPaths(params)
 
     return files.sort()
   }
@@ -691,44 +680,43 @@ export class GitHandler extends VcsHandler {
    * We deviate from git's behavior when dealing with symlinks, by hashing the target of the symlink and not the
    * symlink itself. If the symlink cannot be read, we hash the link contents like git normally does.
    */
-  hashObject(stats: Stats, path: string, cb: (err: Error | null, hash: string) => void) {
+  async hashObject(stats: Stats, path: string): Promise<string> {
     const start = performance.now()
     const hash = hasha.stream({ algorithm: "sha1" })
 
     if (stats.isSymbolicLink()) {
       // For symlinks, we follow git's behavior, which is to hash the link itself (i.e. the path it contains) as
       // opposed to the file/directory that it points to.
-      readlink(path, (err, linkPath) => {
-        if (err) {
-          // Ignore errors here, just output empty h°ash
-          this.profiler.log("GitHandler#hashObject", start)
-          return cb(null, "")
-        }
+      try {
+        const linkPath = await readlink(path)
         hash.update(`blob ${stats.size}\0${linkPath}`)
         hash.end()
         const output = hash.read()
         this.profiler.log("GitHandler#hashObject", start)
-        cb(null, output)
-      })
+        return output
+      } catch (err) {
+        // Ignore errors here, just output empty h°ash
+        this.profiler.log("GitHandler#hashObject", start)
+        return ""
+      }
     } else {
       const stream = new PassThrough()
       stream.push(`blob ${stats.size}\0`)
 
-      stream
-        .on("error", () => {
-          // Ignore file read error
-          this.profiler.log("GitHandler#hashObject", start)
-          cb(null, "")
-        })
-        .pipe(hash)
-        .on("error", cb)
-        .on("finish", () => {
-          const output = hash.read()
-          this.profiler.log("GitHandler#hashObject", start)
-          cb(null, output)
-        })
-
-      createReadStream(path).pipe(stream)
+      try {
+        await pipeline(
+          createReadStream(path),
+          stream,
+          hash
+        )
+        const output = hash.read()
+        this.profiler.log("GitHandler#hashObject", start)
+        return output
+      } catch (err) {
+        // Ignore file read error
+        this.profiler.log("GitHandler#hashObject", start)
+        return ""
+      }
     }
   }
 
