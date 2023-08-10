@@ -107,11 +107,11 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
     delete: async (params) => {
       const result = await deleteKubernetesDeploy({
         ...(<any>params),
-        action: getKubernetesAction(params.action)
+        action: getKubernetesAction(params.action),
       })
 
       return { ...result, outputs: {} }
-    }
+    },
   },
 })
 
