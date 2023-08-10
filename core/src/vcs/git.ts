@@ -457,14 +457,8 @@ export class GitHandler extends VcsHandler {
     gitLog.silly(`Calling git with args '${args.join(" ")}' in ${path}`)
     let processEnded = defer<void>()
 
-    const splitStream = split2()
-    splitStream.on("data", async (line) => {
-      await queue.add(() => {
-        return handleEntry(parseLine(line))
-      })
-
-    })
     const proc = execa("git", args, { cwd: path, buffer: false })
+    const splitStream = split2()
 
     // Stream
     const fail = (err: Error) => {
@@ -472,8 +466,18 @@ export class GitHandler extends VcsHandler {
       splitStream.end()
       // Will not throw correctly up the stack
       // Needs to be changed
-      throw err
+      processEnded.reject(err)
     }
+
+    splitStream.on("data", async (line) => {
+      try {
+        await queue.add(() => {
+          return handleEntry(parseLine(line))
+        })
+      } catch (err) {
+        fail(err)
+      }
+    })
 
     proc.stdout?.pipe(splitStream)
 
