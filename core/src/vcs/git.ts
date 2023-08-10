@@ -16,7 +16,7 @@ import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
 import { dedent, deline, splitLast } from "../util/string"
-import { exec, sleep } from "../util/util"
+import { exec } from "../util/util"
 import { Log } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
 import { getDefaultProfiler, Profile, Profiler } from "../util/profiling"
@@ -29,6 +29,7 @@ import hasha = require("hasha")
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import AsyncLock from "async-lock"
 import { pipeline } from "stream/promises"
+import PQueue from "p-queue"
 
 const gitConfigAsyncLock = new AsyncLock()
 
@@ -444,42 +445,55 @@ export class GitHandler extends VcsHandler {
       }
     }
 
-    await new Promise<void>((_resolve, _reject) => {
-      // Prepare args
-      const args = [...globalArgs, "ls-files", "-s", "--others", ...lsFilesCommonArgs]
-      if (this.ignoreFile) {
-        args.push("--exclude-per-directory", this.ignoreFile)
+    const queue = new PQueue()
+    // Prepare args
+    const args = [...globalArgs, "ls-files", "-s", "--others", ...lsFilesCommonArgs]
+    if (this.ignoreFile) {
+      args.push("--exclude-per-directory", this.ignoreFile)
+    }
+    args.push(...(include || []))
+
+    // Start git process
+    gitLog.silly(`Calling git with args '${args.join(" ")}' in ${path}`)
+    const proc = execa("git", args, { cwd: path, buffer: false })
+
+    // Stream
+    const fail = (err: Error) => {
+      proc.kill()
+      splitStream.end()
+      throw err
+    }
+    const splitStream = split2()
+    splitStream.on("data", async (line) => {
+      try {
+        await queue.add(() => {
+          return handleEntry(parseLine(line))
+        })
+      } catch (err) {
+        fail(err)
       }
-      args.push(...(include || []))
-
-      // Start git process
-      gitLog.silly(`Calling git with args '${args.join(" ")}' in ${path}`)
-      const proc = execa("git", args, { cwd: path, buffer: false })
-
-      // Stream
-      const fail = (err: Error) => {
-        _reject(err)
-        proc.kill()
-        splitStream.end()
-      }
-      const splitStream = split2()
-      splitStream.on("data", async (line) => {
-        try {
-          await handleEntry(parseLine(line))
-        } catch (err) {
-          fail(err)
-        }
-      })
-
-      void proc.on("error", (err: execa.ExecaError) => {
-        if (err.exitCode !== 128) {
-          fail(err)
-        }
-      })
-      proc.stdout?.pipe(splitStream)
-      // The sleep here is necessary to wrap up callbacks
-      splitStream.on("end", () => sleep(30).then(() => _resolve()))
     })
+
+    void proc.on("error", (err: execa.ExecaError) => {
+      if (err.exitCode !== 128) {
+        fail(err)
+      }
+    })
+    proc.stdout?.pipe(splitStream)
+
+    // The stream that adds files to be processed has started
+    // We wait until the process is completed and then
+    // we wait until the queue is empty
+    while (true) {
+      await queue.onEmpty()
+      // If the process is done,
+      // there is always an exit code
+      if (proc.exitCode !== null) {
+        break
+      } else {
+        gitLog.silly("Queue empty but process still running, waiting for next empty state")
+      }
+    }
 
     if (submodulePaths.length > 0) {
       // Need to automatically add `**/*` to directory paths, to match git behavior when filtering.
