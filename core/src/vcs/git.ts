@@ -481,6 +481,8 @@ export class GitHandler extends VcsHandler {
       void proc.on("error", (err: execa.ExecaError) => {
         if (err.exitCode !== 128) {
           fail(err)
+        } else {
+          gitLog.debug(`Skipping Git error with code ${err.exitCode}, details: ${err.message}`)
         }
       })
       proc.stdout?.pipe(splitStream)
