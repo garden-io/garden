@@ -7,10 +7,11 @@
  */
 
 import { expect } from "chai"
-import { join } from "path"
+import { join, dirname } from "path"
 import { getDataDir, makeTestGarden, makeTestGardenA, TestGarden } from "../../helpers"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../src/constants"
 import { ConfigGraph } from "../../../src/graph/config-graph"
+import { loadYamlFile } from "../../../src/util/util"
 
 describe("ModuleResolver", () => {
   // Note: We test the ModuleResolver via the TestGarden.resolveModule method, for convenience.
@@ -101,6 +102,35 @@ describe("functional tests", () => {
         const spec = buildAction.getConfig().spec
         expect(spec).to.exist
         expect(spec.extraFlags).to.eql([expectedExtraFlags])
+      })
+    })
+  })
+
+  describe("render templates using $each", () => {
+    let dataDir: string
+    let garden: TestGarden
+
+    before(async () => {
+      dataDir = getDataDir("test-projects", "merge-in-module-template")
+      garden = await makeTestGarden(dataDir)
+    })
+
+    context("should resolve vars and inputs with defaults", () => {
+      it("with RenderTemplate and ConfigTemplate.configs", async () => {
+        const resolvedModule = await garden.resolveModule("bug-service")
+        const [generateFile] = resolvedModule.generateFiles!
+        const generatedFileDir = dirname(generateFile.sourcePath!)
+        const fileName = join(generatedFileDir, generateFile.targetPath)
+
+        const parsed = await loadYamlFile(fileName)
+
+        const templatedEnv = parsed.spec.template.spec.containers[0].env
+
+        expect(templatedEnv).to.eql([
+          { name: "FIELD1", value: "hi" },
+          { name: "FIELD2", value: "bye" },
+          { name: "HELLO", value: "GOODBYE" },
+        ])
       })
     })
   })

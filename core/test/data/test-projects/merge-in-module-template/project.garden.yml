@@ -1,0 +1,11 @@
+kind: Project
+name: example-project
+variables:
+  example-env:
+    FIELD1: hi
+    FIELD2: bye
+environments:
+  - name: default
+    defaultNamespace: ${project.name}
+providers:
+  - name: test-plugin

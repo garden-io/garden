@@ -609,6 +609,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 
     // Partially resolve other fields
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
+
     const resolvedOther = resolveTemplateStrings(omit(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: true,
     })

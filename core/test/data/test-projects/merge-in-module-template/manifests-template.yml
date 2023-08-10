@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bug-demo
+  labels: my-label
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${parent.name}
+      service: ${parent.name}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels: my-label
+    spec:
+      containers:
+        - name: ${parent.name}
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+          env:
+${indent(yamlEncode(var.env), 12)}

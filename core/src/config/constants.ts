@@ -15,6 +15,21 @@ export const arrayForEachKey = "$forEach"
 export const arrayForEachReturnKey = "$return"
 export const arrayForEachFilterKey = "$filter"
 
+export function isSpecialKey(input: string): boolean {
+  const specialKeys = [
+    objectSpreadKey,
+    conditionalKey,
+    conditionalThenKey,
+    conditionalElseKey,
+    arrayConcatKey,
+    arrayForEachKey,
+    arrayForEachReturnKey,
+    arrayForEachFilterKey,
+  ]
+
+  return specialKeys.some((key) => input === key)
+}
+
 export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash
 // from https://stackoverflow.com/a/12311250/3290965
 export const identifierRegex = /^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$/

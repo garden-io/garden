@@ -1,0 +1,28 @@
+---
+kind: Module
+type: templated
+template: manifests-local
+name: manifests
+inputs:
+  env:
+    $merge: ${var.empty || var.example-env}
+    HELLO: GOODBYE
+---
+kind: ModuleTemplate
+name: manifests-local
+inputsSchemaPath: schema.json
+modules:
+  - type: container
+    name: bug-service
+    description: ${parent.name} manifests
+    variables:
+      env:
+        # put non-secrets into the correct format.
+        - $concat:
+            $forEach: ${inputs.env || []}
+            $return:
+              name: ${item.key}
+              value: ${item.value}
+    generateFiles:
+      - sourcePath: manifests-template.yml
+        targetPath: .manifests-template.yml

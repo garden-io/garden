@@ -344,7 +344,9 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       { input: [1], output: "1" },
       { input: [true], output: "true" },
     ],
-    fn: (val: any) => String(val),
+    fn: (val: any) => {
+      return String(val)
+    },
   },
   {
     name: "uuidv4",

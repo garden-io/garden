@@ -27,6 +27,7 @@ import {
   conditionalKey,
   conditionalThenKey,
   isPrimitive,
+  isSpecialKey,
   objectSpreadKey,
   Primitive,
   StringMap,
@@ -343,6 +344,7 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
 
   // Try resolving the value of the $forEach key
   let resolvedInput = resolveTemplateStrings(value[arrayForEachKey], context, opts)
+
   const isObject = isPlainObject(resolvedInput)
 
   if (!Array.isArray(resolvedInput) && !isObject) {
@@ -356,6 +358,28 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
           resolved: resolvedInput,
         },
       })
+    }
+  }
+
+  if (isObject) {
+    const keys = Object.keys(resolvedInput)
+    const inputContainsSpecialKeys = keys.some((key) => isSpecialKey(key))
+
+    if (inputContainsSpecialKeys) {
+      // If partial application is enabled
+      // we cannot be sure if the object can be evaluated correctly.
+      // There could be an expression in there that goes `{foo || bar}`
+      // and `foo` is only to be filled in at a later time, so resolving now would force it to be `bar`.
+      // Thus we return the entire object
+      //
+      // If partial application is disabled
+      // then we need to make sure that the resulting expression is evaluated again
+      // since the magic keys only get resolved via `resolveTemplateStrings`
+      if (opts.allowPartial) {
+        return value
+      }
+
+      resolvedInput = resolveTemplateStrings(resolvedInput, context, opts)
     }
   }
 
