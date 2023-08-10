@@ -472,9 +472,24 @@ export class GitHandler extends VcsHandler {
         proc.kill()
         splitStream.end()
       }
+
+      let streamedEntries = 0
+
+      async function awaitCompletion(sleepIntervalMsec: number) {
+        while (count < streamedEntries) {
+          gitLog.debug(`Processed ${count} of ${streamedEntries} files`)
+          await sleep(sleepIntervalMsec)
+        }
+        gitLog.debug(`Processed ${count} of ${streamedEntries} files`)
+      }
+
       const splitStream = split2()
       splitStream.on("data", (line) => {
-        handleEntry(parseLine(line), fail)
+        const entry = parseLine(line)
+        if (!!entry) {
+          streamedEntries++
+        }
+        handleEntry(entry, fail)
       })
 
       void proc.on("error", (err: execa.ExecaError) => {
@@ -486,7 +501,7 @@ export class GitHandler extends VcsHandler {
       })
       proc.stdout?.pipe(splitStream)
       // The sleep here is necessary to wrap up callbacks
-      splitStream.on("end", () => sleep(30).then(() => _resolve()))
+      splitStream.on("end", () => awaitCompletion(30).then(() => _resolve()))
     })
 
     if (submodulePaths.length > 0) {
