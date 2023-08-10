@@ -16,7 +16,7 @@ import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
 import { dedent, deline, splitLast } from "../util/string"
-import { exec } from "../util/util"
+import { defer, exec } from "../util/util"
 import { Log } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
 import { getDefaultProfiler, Profile, Profiler } from "../util/profiling"
@@ -455,45 +455,44 @@ export class GitHandler extends VcsHandler {
 
     // Start git process
     gitLog.silly(`Calling git with args '${args.join(" ")}' in ${path}`)
+    let processEnded = defer<void>()
+
+    const splitStream = split2()
+    splitStream.on("data", async (line) => {
+      await queue.add(() => {
+        return handleEntry(parseLine(line))
+      })
+
+    })
     const proc = execa("git", args, { cwd: path, buffer: false })
 
     // Stream
     const fail = (err: Error) => {
       proc.kill()
       splitStream.end()
+      // Will not throw correctly up the stack
+      // Needs to be changed
       throw err
     }
-    const splitStream = split2()
-    splitStream.on("data", async (line) => {
-      try {
-        await queue.add(() => {
-          return handleEntry(parseLine(line))
-        })
-      } catch (err) {
-        fail(err)
-      }
-    })
+
+    proc.stdout?.pipe(splitStream)
 
     void proc.on("error", (err: execa.ExecaError) => {
       if (err.exitCode !== 128) {
         fail(err)
       }
     })
-    proc.stdout?.pipe(splitStream)
+
+    void proc.on("exit", (code) => {
+      processEnded.resolve()
+    })
 
     // The stream that adds files to be processed has started
     // We wait until the process is completed and then
     // we wait until the queue is empty
-    while (true) {
-      await queue.onEmpty()
-      // If the process is done,
-      // there is always an exit code
-      if (proc.exitCode !== null) {
-        break
-      } else {
-        gitLog.silly("Queue empty but process still running, waiting for next empty state")
-      }
-    }
+    // After that we're done with all possible files to be processed
+    await processEnded.promise
+    await queue.onIdle()
 
     if (submodulePaths.length > 0) {
       // Need to automatically add `**/*` to directory paths, to match git behavior when filtering.
