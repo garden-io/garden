@@ -5,6 +5,7 @@ import Piscina = require("piscina")
 
 const workerPool = new Piscina({
   filename: resolve(__dirname, "worker.js"),
+  concurrentTasksPerWorker: 10
 })
 
 export function createHasher() {
