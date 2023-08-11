@@ -6,11 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { performance } from "perf_hooks"
 import { isAbsolute, join, posix, relative, resolve } from "path"
 import { isString } from "lodash"
-import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
-import { PassThrough } from "stream"
+import { ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
 import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsHandlerParams, VcsInfo } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
@@ -28,8 +26,8 @@ import chalk from "chalk"
 import hasha = require("hasha")
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import AsyncLock from "async-lock"
-import { pipeline } from "stream/promises"
 import PQueue from "p-queue"
+import { createHasher } from "./file-hasher/hasher"
 
 const gitConfigAsyncLock = new AsyncLock()
 
@@ -295,6 +293,8 @@ export class GitHandler extends VcsHandler {
 
     let files: VcsFile[] = []
 
+    const { hashObject, abortHashing } = createHasher()
+
     const git = this.gitCli(gitLog, path, failOnPrompt)
     const gitRoot = await this.getRepoRoot(gitLog, path, failOnPrompt)
 
@@ -411,7 +411,7 @@ export class GitHandler extends VcsHandler {
         // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
         // will by extension be filtered out of the list.
         if (stats && !stats.isDirectory()) {
-          const hash = await this.hashObject(stats, file.path)
+          const hash = await hashObject(file.path)
           if (hash !== "") {
             file.hash = hash
             count++
@@ -500,6 +500,7 @@ export class GitHandler extends VcsHandler {
         if (err.code === "ENOENT") {
           return
         }
+        abortHashing()
         throw err
       }
     }
@@ -693,47 +694,6 @@ export class GitHandler extends VcsHandler {
 
   private getRemoteSourceLock(sourceType: string, name: string, func: () => Promise<any>) {
     return this.lock.acquire(`remote-source-${sourceType}-${name}`, func)
-  }
-
-  /**
-   * Replicates the `git hash-object` behavior. See https://stackoverflow.com/a/5290484/3290965
-   * We deviate from git's behavior when dealing with symlinks, by hashing the target of the symlink and not the
-   * symlink itself. If the symlink cannot be read, we hash the link contents like git normally does.
-   */
-  async hashObject(stats: Stats, path: string): Promise<string> {
-    const start = performance.now()
-    const hash = hasha.stream({ algorithm: "sha1" })
-
-    if (stats.isSymbolicLink()) {
-      // For symlinks, we follow git's behavior, which is to hash the link itself (i.e. the path it contains) as
-      // opposed to the file/directory that it points to.
-      try {
-        const linkPath = await readlink(path)
-        hash.update(`blob ${stats.size}\0${linkPath}`)
-        hash.end()
-        const output = hash.read()
-        this.profiler.log("GitHandler#hashObject", start)
-        return output
-      } catch (err) {
-        // Ignore errors here, just output empty h°ash
-        this.profiler.log("GitHandler#hashObject", start)
-        return ""
-      }
-    } else {
-      const stream = new PassThrough()
-      stream.push(`blob ${stats.size}\0`)
-
-      try {
-        await pipeline(createReadStream(path), stream, hash)
-        const output = hash.read()
-        this.profiler.log("GitHandler#hashObject", start)
-        return output
-      } catch (err) {
-        // Ignore file read error
-        this.profiler.log("GitHandler#hashObject", start)
-        return ""
-      }
-    }
   }
 
   @pMemoizeDecorator()

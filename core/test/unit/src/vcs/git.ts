@@ -20,6 +20,7 @@ import { deline } from "../../../../src/util/string"
 import { uuidv4 } from "../../../../src/util/random"
 import { VcsHandlerParams } from "../../../../src/vcs/vcs"
 import { repoRoot } from "../../../../src/util/testing"
+import { createHasher } from "../../../../src/vcs/file-hasher/hasher"
 
 // Overriding this to make sure any ignorefile name is respected
 export const defaultIgnoreFilename = ".testignore"
@@ -680,8 +681,9 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
       const stats = await lstat(path)
 
       const expected = await getGitHash(git, path)
+     const { hashObject } = createHasher()
 
-      const hash = await handler.hashObject(stats, path)
+      const hash = await hashObject(path)
       expect(hash).to.equal(expected)
     })
 
@@ -694,8 +696,9 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
 
       const files = (await git("ls-files", "-s", path))[0]
       const expected = files.split(" ")[1]
+      const { hashObject } = createHasher()
 
-      const hash = await handler.hashObject(stats, path)
+      const hash = await hashObject(path)
       expect(hash).to.equal(expected)
     })
 
@@ -713,7 +716,9 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
       const files = (await git("ls-files", "-s", symlinkPath))[0]
       const expected = files.split(" ")[1]
 
-      const hash = await handler.hashObject(stats, symlinkPath)
+     const { hashObject } = createHasher()
+
+      const hash = await hashObject(symlinkPath)
       expect(hash).to.equal(expected)
     })
   })

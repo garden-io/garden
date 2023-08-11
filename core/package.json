@@ -117,6 +117,7 @@
     "parse-duration": "^1.0.2",
     "parse-git-config": "^3.0.0",
     "path-is-inside": "^1.0.2",
+    "piscina": "^4.1.0",
     "pluralize": "^8.0.0",
     "proper-lockfile": "^4.1.2",
     "proper-url-join": "^2.1.1",
