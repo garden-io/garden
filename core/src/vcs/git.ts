@@ -486,7 +486,7 @@ export class GitHandler extends VcsHandler {
       }
     })
 
-    void proc.on("exit", (code) => {
+    void splitStream.on("end", (code) => {
       processEnded.resolve()
     })
 
