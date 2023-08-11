@@ -436,8 +436,9 @@ export class GitHandler extends VcsHandler {
           } else {
             return ensureHash(output, stats)
           }
+        } else {
+          return ensureHash(output, stats)
         }
-        return ensureHash(output, stats)
       } catch (err) {
         if (err.code === "ENOENT") {
           return
@@ -486,7 +487,7 @@ export class GitHandler extends VcsHandler {
       }
     })
 
-    void splitStream.on("end", (code) => {
+    void splitStream.on("end", () => {
       processEnded.resolve()
     })
 
