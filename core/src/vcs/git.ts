@@ -720,11 +720,7 @@ export class GitHandler extends VcsHandler {
       stream.push(`blob ${stats.size}\0`)
 
       try {
-        await pipeline(
-          createReadStream(path),
-          stream,
-          hash
-        )
+        await pipeline(createReadStream(path), stream, hash)
         const output = hash.read()
         this.profiler.log("GitHandler#hashObject", start)
         return output
