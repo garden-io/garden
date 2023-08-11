@@ -355,7 +355,7 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
         (f) => f.path
       )
 
-      expect(files).to.eql([filePath, symlinkPath])
+      expect(files.sort()).to.eql([filePath, symlinkPath])
     })
 
     it("should exclude a relative symlink that points outside repo root", async () => {

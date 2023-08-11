@@ -8,7 +8,7 @@
 
 import { performance } from "perf_hooks"
 import { isAbsolute, join, posix, relative, resolve } from "path"
-import { isString, sortBy } from "lodash"
+import { isString } from "lodash"
 import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
 import { PassThrough } from "stream"
 import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsHandlerParams, VcsInfo } from "./vcs"
@@ -244,7 +244,11 @@ export class GitHandler extends VcsHandler {
     })
   }
 
-  async streamPaths({
+  /**
+   * Returns a list of files, along with file hashes, under the given path, taking into account the configured
+   * .ignore files, and the specified include/exclude filters.
+   */
+  async getFiles({
     log,
     path,
     pathDescription = "directory",
@@ -534,7 +538,7 @@ export class GitHandler extends VcsHandler {
           }
         }
 
-        const subfiles = await this.streamPaths({
+        const subfiles = await this.getFiles({
           log: gitLog,
           path: submodulePath,
           pathDescription: "submodule",
@@ -552,16 +556,6 @@ export class GitHandler extends VcsHandler {
     gitLog.debug(`Found ${count} files in ${pathDescription} ${path}`)
 
     return files
-  }
-
-  /**
-   * Returns a list of files, along with file hashes, under the given path, taking into account the configured
-   * .ignore files, and the specified include/exclude filters.
-   */
-  async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
-    const files = await this.streamPaths(params)
-
-    return sortBy(files, "path")
   }
 
   private isHashSHA1(hash: string): boolean {
