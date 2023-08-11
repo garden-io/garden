@@ -28,7 +28,6 @@ import chalk from "chalk"
 import hasha = require("hasha")
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import AsyncLock from "async-lock"
-import { pipeline } from "stream/promises"
 import PQueue from "p-queue"
 
 const gitConfigAsyncLock = new AsyncLock()
@@ -723,16 +722,24 @@ export class GitHandler extends VcsHandler {
       const stream = new PassThrough()
       stream.push(`blob ${stats.size}\0`)
 
-      try {
-        await pipeline(createReadStream(path), stream, hash)
-        const output = hash.read()
-        this.profiler.log("GitHandler#hashObject", start)
-        return output
-      } catch (err) {
-        // Ignore file read error
-        this.profiler.log("GitHandler#hashObject", start)
-        return ""
-      }
+      const result = defer<string>()
+      stream
+        .on("error", () => {
+          // Ignore file read error
+          this.profiler.log("GitHandler#hashObject", start)
+          result.resolve("")
+        })
+        .pipe(hash)
+        .on("error", (err) => result.reject(err))
+        .on("finish", () => {
+          const output = hash.read()
+          this.profiler.log("GitHandler#hashObject", start)
+          result.resolve(output)
+        })
+
+      createReadStream(path).pipe(stream)
+
+      return result.promise
     }
   }
 
