@@ -269,7 +269,7 @@ export class GitHandler extends VcsHandler {
     exclude = [...exclude, "**/.garden/**/*"]
 
     const gitLog = log
-      .createLog({})
+      .createLog({ name: "git" })
       .debug(
         `Scanning ${pathDescription} at ${path}\n  → Includes: ${include || "(none)"}\n  → Excludes: ${
           exclude || "(none)"
@@ -348,6 +348,59 @@ export class GitHandler extends VcsHandler {
     const submodulePaths = submodules.map((s) => join(gitRoot, s.path))
     if (submodules.length > 0) {
       gitLog.silly(`Submodules listed at ${submodules.map((s) => `${s.path} (${s.url})`).join(", ")}`)
+    }
+
+    let submoduleFiles: Promise<VcsFile[]>[] = []
+
+    // We start processing submodule paths in parallel
+    // and don't await the results until this level of processing is completed
+    if (submodulePaths.length > 0) {
+      // Need to automatically add `**/*` to directory paths, to match git behavior when filtering.
+      const augmentedIncludes = await augmentGlobs(path, include)
+      const augmentedExcludes = await augmentGlobs(path, exclude)
+
+      // Resolve submodules
+      // TODO: see about optimizing this, avoiding scans when we're sure they'll not match includes/excludes etc.
+      submoduleFiles = submodulePaths.map(async (submodulePath) => {
+        if (!submodulePath.startsWith(path) || absExcludes?.includes(submodulePath)) {
+          return []
+        }
+
+        // Note: We apply include/exclude filters after listing files from submodule
+        const submoduleRelPath = relative(path, submodulePath)
+
+        // Catch and show helpful message in case the submodule path isn't a valid directory
+        try {
+          const pathStats = await stat(path)
+
+          if (!pathStats.isDirectory()) {
+            const pathType = getStatsType(pathStats)
+            gitLog.warn(`Expected submodule directory at ${path}, but found ${pathType}. ${submoduleErrorSuggestion}`)
+            return []
+          }
+        } catch (err) {
+          // 128 = File no longer exists
+          if (err.exitCode === 128 || err.code === "ENOENT") {
+            gitLog.warn(
+              `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
+            )
+            return []
+          } else {
+            throw err
+          }
+        }
+
+        return this.getFiles({
+          log: gitLog,
+          path: submodulePath,
+          pathDescription: "submodule",
+          exclude: [],
+          filter: (p) =>
+            matchPath(join(submoduleRelPath, p), augmentedIncludes, augmentedExcludes) && (!filter || filter(p)),
+          scanRoot: submodulePath,
+          failOnPrompt,
+        })
+      })
     }
 
     // Make sure we have a fresh hash for each file
@@ -502,56 +555,12 @@ export class GitHandler extends VcsHandler {
     await processEnded.promise
     await queue.onIdle()
 
-    if (submodulePaths.length > 0) {
-      // Need to automatically add `**/*` to directory paths, to match git behavior when filtering.
-      const augmentedIncludes = await augmentGlobs(path, include)
-      const augmentedExcludes = await augmentGlobs(path, exclude)
+    // We have done the processing of this level of files
+    // So now we just have to wait for all the recursive submodules to resolve as well
+    // before we can return
+    const resolvedSubmoduleFiles = await Promise.all(submoduleFiles)
 
-      // Resolve submodules
-      // TODO: see about optimizing this, avoiding scans when we're sure they'll not match includes/excludes etc.
-      await Bluebird.map(submodulePaths, async (submodulePath) => {
-        if (!submodulePath.startsWith(path) || absExcludes?.includes(submodulePath)) {
-          return
-        }
-
-        // Note: We apply include/exclude filters after listing files from submodule
-        const submoduleRelPath = relative(path, submodulePath)
-
-        // Catch and show helpful message in case the submodule path isn't a valid directory
-        try {
-          const pathStats = await stat(path)
-
-          if (!pathStats.isDirectory()) {
-            const pathType = getStatsType(pathStats)
-            gitLog.warn(`Expected submodule directory at ${path}, but found ${pathType}. ${submoduleErrorSuggestion}`)
-            return
-          }
-        } catch (err) {
-          // 128 = File no longer exists
-          if (err.exitCode === 128 || err.code === "ENOENT") {
-            gitLog.warn(
-              `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
-            )
-            return
-          } else {
-            throw err
-          }
-        }
-
-        const subfiles = await this.getFiles({
-          log: gitLog,
-          path: submodulePath,
-          pathDescription: "submodule",
-          exclude: [],
-          filter: (p) =>
-            matchPath(join(submoduleRelPath, p), augmentedIncludes, augmentedExcludes) && (!filter || filter(p)),
-          scanRoot: submodulePath,
-          failOnPrompt,
-        })
-
-        files = [...files, ...subfiles]
-      })
-    }
+    files = [...files, ...resolvedSubmoduleFiles.flat()]
 
     gitLog.debug(`Found ${count} files in ${pathDescription} ${path}`)
 
