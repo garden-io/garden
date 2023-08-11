@@ -714,7 +714,7 @@ export class GitHandler extends VcsHandler {
         this.profiler.log("GitHandler#hashObject", start)
         return output
       } catch (err) {
-        // Ignore errors here, just output empty h°ash
+        // Ignore errors here, just output empty hash
         this.profiler.log("GitHandler#hashObject", start)
         return ""
       }
