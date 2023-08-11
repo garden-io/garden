@@ -683,7 +683,7 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
       const expected = await getGitHash(git, path)
      const { hashObject } = createHasher()
 
-      const hash = await hashObject(path)
+      const hash = await hashObject(stats, path)
       expect(hash).to.equal(expected)
     })
 
@@ -698,7 +698,7 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
       const expected = files.split(" ")[1]
       const { hashObject } = createHasher()
 
-      const hash = await hashObject(path)
+      const hash = await hashObject(stats, path)
       expect(hash).to.equal(expected)
     })
 
@@ -718,7 +718,7 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
 
      const { hashObject } = createHasher()
 
-      const hash = await hashObject(symlinkPath)
+      const hash = await hashObject(stats, symlinkPath)
       expect(hash).to.equal(expected)
     })
   })
