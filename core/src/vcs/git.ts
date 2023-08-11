@@ -555,14 +555,14 @@ export class GitHandler extends VcsHandler {
     await processEnded.promise
     await queue.onIdle()
 
+    gitLog.debug(`Found ${count} files in ${pathDescription} ${path}`)
+
     // We have done the processing of this level of files
     // So now we just have to wait for all the recursive submodules to resolve as well
     // before we can return
     const resolvedSubmoduleFiles = await Promise.all(submoduleFiles)
 
     files = [...files, ...resolvedSubmoduleFiles.flat()]
-
-    gitLog.debug(`Found ${count} files in ${pathDescription} ${path}`)
 
     return files
   }
