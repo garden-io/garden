@@ -8,7 +8,7 @@
 
 import { performance } from "perf_hooks"
 import { isAbsolute, join, posix, relative, resolve } from "path"
-import { isString } from "lodash"
+import { isString, sortBy } from "lodash"
 import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
 import { PassThrough } from "stream"
 import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsHandlerParams, VcsInfo } from "./vcs"
@@ -415,6 +415,7 @@ export class GitHandler extends VcsHandler {
           // Make sure symlink is relative and points within `path`
           if (isAbsolute(target)) {
             gitLog.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
+            return
           } else if (target.startsWith("..")) {
             try {
               const realTarget = await realpath(resolvedPath)
@@ -561,7 +562,7 @@ export class GitHandler extends VcsHandler {
   async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
     const files = await this.streamPaths(params)
 
-    return files.sort()
+    return sortBy(files, "path")
   }
 
   private isHashSHA1(hash: string): boolean {
