@@ -354,6 +354,7 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
       const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).map(
         (f) => f.path
       )
+
       expect(files).to.eql([filePath, symlinkPath])
     })
 
@@ -680,16 +681,8 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
 
       const expected = await getGitHash(git, path)
 
-      return new Promise((_resolve, reject) => {
-        handler.hashObject(stats, path, (err, hash) => {
-          if (err) {
-            reject(err)
-          } else {
-            expect(hash).to.equal(expected)
-            _resolve()
-          }
-        })
-      })
+      const hash = await handler.hashObject(stats, path)
+      expect(hash).to.equal(expected)
     })
 
     it("should return the same result as `git ls-files` for a file", async () => {
@@ -702,16 +695,8 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
       const files = (await git("ls-files", "-s", path))[0]
       const expected = files.split(" ")[1]
 
-      return new Promise((_resolve, reject) => {
-        handler.hashObject(stats, path, (err, hash) => {
-          if (err) {
-            reject(err)
-          } else {
-            expect(hash).to.equal(expected)
-            _resolve()
-          }
-        })
-      })
+      const hash = await handler.hashObject(stats, path)
+      expect(hash).to.equal(expected)
     })
 
     it("should return the same result as `git ls-files` for a symlink", async () => {
@@ -728,16 +713,8 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
       const files = (await git("ls-files", "-s", symlinkPath))[0]
       const expected = files.split(" ")[1]
 
-      return new Promise((_resolve, reject) => {
-        handler.hashObject(stats, symlinkPath, (err, hash) => {
-          if (err) {
-            reject(err)
-          } else {
-            expect(hash).to.equal(expected)
-            _resolve()
-          }
-        })
-      })
+      const hash = await handler.hashObject(stats, symlinkPath)
+      expect(hash).to.equal(expected)
     })
   })
 
