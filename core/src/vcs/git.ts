@@ -465,8 +465,6 @@ export class GitHandler extends VcsHandler {
     const fail = (err: Error) => {
       proc.kill()
       splitStream.end()
-      // Will not throw correctly up the stack
-      // Needs to be changed
       processEnded.reject(err)
     }
 
