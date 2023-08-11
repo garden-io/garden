@@ -6,25 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiIdentifier, joi, joiSparseArray, createSchema } from "../../../config/common"
-import { dedent } from "../../../util/string"
-import { V1PersistentVolumeClaimSpec, V1PersistentVolumeClaim } from "@kubernetes/client-node"
+import { V1PersistentVolumeClaim, V1PersistentVolumeClaimSpec } from "@kubernetes/client-node"
 import { readFileSync } from "fs-extra"
-import { join } from "path"
-import { ModuleTypeDefinition } from "../../../plugin/plugin"
-import { STATIC_DIR } from "../../../constants"
-import { baseBuildSpecSchema } from "../../../config/module"
-import { ConfigureModuleParams } from "../../../plugin/handlers/Module/configure"
-import { GardenModule } from "../../../types/module"
-import { KubernetesResource } from "../types"
-import { ConvertModuleParams } from "../../../plugin/handlers/Module/convert"
-import { DeployAction, DeployActionConfig, ResolvedDeployAction } from "../../../actions/deploy"
-import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
-import { DeployActionDefinition } from "../../../plugin/action-types"
-import { getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/handlers"
-import { Resolved } from "../../../actions/types"
-import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { memoize } from "lodash"
+import { join } from "path"
+import { DeployAction, DeployActionConfig, ResolvedDeployAction } from "../../../actions/deploy"
+import { Resolved } from "../../../actions/types"
+import { createSchema, joi, joiIdentifier, joiSparseArray } from "../../../config/common"
+import { baseBuildSpecSchema } from "../../../config/module"
+import { STATIC_DIR } from "../../../constants"
+import { DeployActionDefinition } from "../../../plugin/action-types"
+import { ConfigureModuleParams } from "../../../plugin/handlers/Module/configure"
+import { ConvertModuleParams } from "../../../plugin/handlers/Module/convert"
+import { ModuleTypeDefinition } from "../../../plugin/plugin"
+import { GardenModule } from "../../../types/module"
+import { dedent } from "../../../util/string"
+import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
+import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
+import { deleteKubernetesDeploy, getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/handlers"
+import { KubernetesResource } from "../types"
 
 export interface PersistentVolumeClaimDeploySpec {
   namespace?: string
@@ -97,6 +97,15 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
 
     getStatus: async (params) => {
       const result = await getKubernetesDeployStatus({
+        ...(<any>params),
+        action: getKubernetesAction(params.action),
+      })
+
+      return { ...result, outputs: {} }
+    },
+
+    delete: async (params) => {
+      const result = await deleteKubernetesDeploy({
         ...(<any>params),
         action: getKubernetesAction(params.action),
       })
