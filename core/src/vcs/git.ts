@@ -802,7 +802,7 @@ const notInRepoRootErrorMessage = (path: string) => deline`
  * to them, such that they'll be matched consistently between git and our internal pattern matching.
  */
 export async function augmentGlobs(basePath: string, globs?: string[]) {
-  if (!globs) {
+  if (!globs || globs.length === 0) {
     return globs
   }
 
