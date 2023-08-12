@@ -247,7 +247,16 @@ export class GitHandler extends VcsHandler {
    * Returns a list of files, along with file hashes, under the given path, taking into account the configured
    * .ignore files, and the specified include/exclude filters.
    */
-  async getFiles({
+  async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
+    return this._getFiles(params)
+  }
+
+  /**
+   * In order for `GitRepoHandler` not to enter infinite recursion when scanning submodules,
+   * we need to name the function that recurses in here differently from `getFiles` so that `this.getFiles` won't refer
+   * to the method in the subclass.
+   */
+  async _getFiles({
     log,
     path,
     pathDescription = "directory",
@@ -389,7 +398,7 @@ export class GitHandler extends VcsHandler {
           }
         }
 
-        return this.getFiles({
+        return this._getFiles({
           log: gitLog,
           path: submodulePath,
           pathDescription: "submodule",
