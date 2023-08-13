@@ -8,7 +8,8 @@
 
 import { expect } from "chai"
 import execa from "execa"
-import { cloneDeep } from "lodash"
+import cloneDeep from "fast-copy";
+
 import tmp from "tmp-promise"
 
 import { TestGarden } from "../../../../../helpers"

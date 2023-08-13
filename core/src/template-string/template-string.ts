@@ -16,7 +16,8 @@ import {
   GenericContext,
   ScanContext,
 } from "../config/template-contexts/base"
-import { cloneDeep, difference, isNumber, isPlainObject, isString, uniq } from "lodash"
+import cloneDeep from "fast-copy"
+import { difference, isNumber, isPlainObject, isString, uniq } from "lodash"
 import {
   ActionReference,
   arrayConcatKey,

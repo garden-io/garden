@@ -8,7 +8,8 @@
 
 import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
 import { dedent, gardenAnnotationKey, splitLast } from "../../util/string"
-import { cloneDeep, remove, set } from "lodash"
+import cloneDeep from "fast-copy"
+import { remove, set } from "lodash"
 import { BaseResource, KubernetesResource, SyncableResource, SyncableRuntimeAction } from "./types"
 import { PrimitiveMap } from "../../config/common"
 import {

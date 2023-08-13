@@ -7,7 +7,8 @@
  */
 
 import { expect } from "chai"
-import { cloneDeep } from "lodash"
+import cloneDeep from "fast-copy";
+
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { readManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"

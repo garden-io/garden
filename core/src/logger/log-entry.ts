@@ -7,7 +7,8 @@
  */
 
 import logSymbols from "log-symbols"
-import { cloneDeep, round } from "lodash"
+import cloneDeep from "fast-copy"
+import { round } from "lodash"
 
 import { LogLevel } from "./logger"
 import { Omit } from "../util/util"

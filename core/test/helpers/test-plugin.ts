@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep, get, isString, merge } from "lodash"
+import cloneDeep from "fast-copy"
+import { get, isString, merge } from "lodash"
 
 import { convertExecModule } from "../../src/plugins/exec/convert"
 import { createSchema, joi, joiArray } from "../../src/config/common"

@@ -7,7 +7,8 @@
  */
 
 import Bluebird from "bluebird"
-import { cloneDeep, isEqual, mapValues, memoize, omit, pick, uniq } from "lodash"
+import cloneDeep from "fast-copy"
+import { isEqual, mapValues, memoize, omit, pick, uniq } from "lodash"
 import {
   Action,
   ActionConfig,

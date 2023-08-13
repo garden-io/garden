@@ -25,7 +25,8 @@ import {
   syncTargetPathSchema,
 } from "../container/moduleConfig"
 import { dedent, gardenAnnotationKey } from "../../util/string"
-import { cloneDeep, kebabCase, keyBy, omit, set } from "lodash"
+import cloneDeep from "fast-copy"
+import { kebabCase, keyBy, omit, set } from "lodash"
 import {
   getResourceContainer,
   getResourceKey,

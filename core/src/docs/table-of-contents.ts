@@ -27,7 +27,8 @@ import matter = require("gray-matter")
 import dtree = require("directory-tree")
 import { readFileSync, writeFile, createFile } from "fs-extra"
 import { resolve } from "path"
-import { cloneDeep, repeat } from "lodash"
+import cloneDeep from "fast-copy"
+import { repeat } from "lodash"
 import titleize = require("titleize")
 import humanizeString = require("humanize-string")
 import { dedent } from "../util/string"
