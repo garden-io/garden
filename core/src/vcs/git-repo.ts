@@ -54,6 +54,10 @@ export class GitRepoHandler extends GitHandler {
       failOnPrompt,
     })
 
+    const moduleFiles = repoFiles.filter(({ path: p }) => {
+      return p.startsWith(path)
+    })
+
     const include = params.include ? await absGlobs(path, params.include) : [path, join(path, "**", "*")]
     const exclude = await absGlobs(path, params.exclude || [])
 
@@ -61,7 +65,19 @@ export class GitRepoHandler extends GitHandler {
       exclude.push(join(scanRoot, ".garden", "**", "*"))
     }
 
-    return repoFiles.filter(({ path: p }) => (!filter || filter(p)) && matchPath(p, include, exclude))
+    log.debug(
+      `Found ${moduleFiles.length} files in module path, filering by ${include.length} include and ${exclude.length} exclude globs`
+    )
+    log.silly(`Include globs: ${include.join(", ")}`)
+    log.silly(exclude.length > 0 ? `Exclude globs: ${exclude.join(", ")}` : "No exclude globs")
+
+    const filtered = moduleFiles.filter(({ path: p }) => (!filter || filter(p)) && matchPath(p, include, exclude))
+
+    log.debug(
+      `Found ${filtered.length} files in module path after glob matching`
+    )
+
+    return filtered
   }
 
   /**
@@ -75,6 +91,7 @@ export class GitRepoHandler extends GitHandler {
     let existing = this.cache.get(log, key)
 
     if (existing) {
+      params.log.silly(`Found cached repository match at ${path}`)
       return existing
     }
 
@@ -82,6 +99,7 @@ export class GitRepoHandler extends GitHandler {
       existing = this.cache.get(log, key)
 
       if (existing) {
+        params.log.silly(`Found cached repository match at ${path}`)
         return existing
       }
 
