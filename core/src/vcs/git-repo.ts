@@ -73,9 +73,7 @@ export class GitRepoHandler extends GitHandler {
 
     const filtered = moduleFiles.filter(({ path: p }) => (!filter || filter(p)) && matchPath(p, include, exclude))
 
-    log.debug(
-      `Found ${filtered.length} files in module path after glob matching`
-    )
+    log.debug(`Found ${filtered.length} files in module path after glob matching`)
 
     return filtered
   }
