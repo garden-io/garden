@@ -12,7 +12,7 @@ import { expect } from "chai"
 import { PublishCommand } from "../../../../src/commands/publish"
 import { withDefaultGlobalOpts, makeTestGarden, getAllTaskResults, getDataDir } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
-import cloneDeep from "fast-copy";
+import cloneDeep from "fast-copy"
 
 import { PublishActionResult, PublishBuildAction } from "../../../../src/plugin/handlers/Build/publish"
 import { createGardenPlugin, GardenPluginSpec } from "../../../../src/plugin/plugin"

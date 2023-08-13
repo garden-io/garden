@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { join } from "path"
-import cloneDeep from "fast-copy";
+import cloneDeep from "fast-copy"
 
 import td from "testdouble"
 import tmp from "tmp-promise"

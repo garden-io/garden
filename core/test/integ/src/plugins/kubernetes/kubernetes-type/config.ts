@@ -7,8 +7,7 @@
  */
 
 import { expect } from "chai"
-import cloneDeep from "fast-copy";
-
+import cloneDeep from "fast-copy"
 
 import { TestGarden, getDataDir, makeTestGarden } from "../../../../../helpers"
 import { ModuleConfig } from "../../../../../../src/config/module"

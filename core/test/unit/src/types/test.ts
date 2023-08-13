@@ -10,7 +10,7 @@ import { expect } from "chai"
 import { getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers"
 import { TestConfig } from "../../../../src/config/test"
 import { testFromConfig } from "../../../../src/types/test"
-import cloneDeep from "fast-copy";
+import cloneDeep from "fast-copy"
 
 import { DEFAULT_TEST_TIMEOUT_SEC } from "../../../../src/constants"
 

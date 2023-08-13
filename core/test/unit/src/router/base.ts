@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import cloneDeep from "fast-copy";
+import cloneDeep from "fast-copy"
 
 import { ResolvedBuildAction } from "../../../../src/actions/build"
 import { joi } from "../../../../src/config/common"
