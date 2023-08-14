@@ -11,7 +11,7 @@ description: Backend 2 service container
 type: container
 
 build: backend-2
-dependencies: "${var.localMode2 ? ['run.build-backend-local-2'] : []}"
+dependencies: "${this.mode == 'local' ? ['run.build-backend-local-2'] : []}"
 
 # You can specify variables here at the action level
 variables:

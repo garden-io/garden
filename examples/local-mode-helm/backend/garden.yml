@@ -3,7 +3,7 @@ name: backend
 description: Helm chart for the backend service
 type: helm
 
-dependencies: "${var.localMode ? ['build.backend-image', 'run.build-backend-local'] : ['build.backend-image']}"
+dependencies: "${this.mode == 'local' ? ['build.backend-image', 'run.build-backend-local'] : ['build.backend-image']}"
 
 spec:
   localMode:
@@ -24,4 +24,3 @@ spec:
     ingress:
       enabled: true
       paths: [ "/hello-backend" ]
-      hosts: [ "backend.${var.baseHostname}" ]
