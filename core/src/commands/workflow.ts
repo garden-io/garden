@@ -7,7 +7,8 @@
  */
 
 import chalk from "chalk"
-import { cloneDeep, flatten, last, repeat, size } from "lodash"
+import cloneDeep from "fast-copy"
+import { flatten, last, repeat, size } from "lodash"
 import { printHeader, getTerminalWidth, renderMessageWithDivider, renderDuration } from "../logger/util"
 import { Command, CommandParams, CommandResult } from "./base"
 import { dedent, wordWrap, deline } from "../util/string"

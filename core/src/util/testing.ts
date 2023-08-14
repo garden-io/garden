@@ -7,7 +7,8 @@
  */
 
 import { GlobalOptions, globalOptions, ParameterValues } from "../cli/params"
-import { cloneDeep, isEqual, keyBy, set, mapValues } from "lodash"
+import cloneDeep from "fast-copy"
+import { isEqual, keyBy, set, mapValues } from "lodash"
 import { Garden, GardenOpts, GardenParams, GetConfigGraphParams, resolveGardenParams } from "../garden"
 import { DeepPrimitiveMap, StringMap } from "../config/common"
 import { ModuleConfig } from "../config/module"

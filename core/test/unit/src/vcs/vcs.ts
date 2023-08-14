@@ -26,7 +26,8 @@ import {
 } from "../../../../src/vcs/vcs"
 import { makeTestGardenA, makeTestGarden, getDataDir, TestGarden, defaultModuleConfig } from "../../../helpers"
 import { expect } from "chai"
-import { cloneDeep } from "lodash"
+import cloneDeep from "fast-copy"
+
 import { ModuleConfig } from "../../../../src/config/module"
 import { GitHandler } from "../../../../src/vcs/git"
 import { resolve, join } from "path"

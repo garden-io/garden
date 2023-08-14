@@ -8,7 +8,8 @@
 
 import { expect } from "chai"
 import { join } from "path"
-import { cloneDeep } from "lodash"
+import cloneDeep from "fast-copy"
+
 import td from "testdouble"
 import tmp from "tmp-promise"
 import { writeFile, mkdir } from "fs-extra"

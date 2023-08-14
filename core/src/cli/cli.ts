@@ -44,13 +44,13 @@ import { getCustomCommands } from "../commands/custom"
 import { Profile } from "../util/profiling"
 import { prepareDebugLogfiles } from "./debug-logs"
 import { Log } from "../logger/log-entry"
-import { JsonFileWriter } from "../logger/writers/json-file-writer"
 import { dedent } from "../util/string"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess, waitForOutputFlush } from "../process"
 import { uuidv4 } from "../util/random"
 import { withSessionContext } from "../util/open-telemetry/context"
 import { wrapActiveSpan } from "../util/open-telemetry/spans"
+import { JsonFileWriter } from "../logger/writers/json-file-writer"
 
 export interface RunOutput {
   argv: any
@@ -135,7 +135,7 @@ ${renderCommands(commands)}
       {
         logFilePath: join(gardenDirPath, LOGS_DIR_NAME, jsonLogfileName),
         truncatePrevious: true,
-        level: LogLevel.silly,
+        level: LogLevel.debug,
         json: true,
       },
       {

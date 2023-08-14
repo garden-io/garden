@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep, isArray, isString, keyBy } from "lodash"
+import cloneDeep from "fast-copy"
+import { isArray, isString, keyBy } from "lodash"
 import { validateWithPath } from "./config/validation"
 import {
   getModuleTemplateReferences,

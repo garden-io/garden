@@ -15,7 +15,8 @@ import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../..
 import { ActionLog, createActionLog } from "../../../../../src/logger/log-entry"
 import { expect } from "chai"
 import { ContainerBuildAction, ContainerBuildActionSpec } from "../../../../../src/plugins/container/moduleConfig"
-import { cloneDeep } from "lodash"
+import cloneDeep from "fast-copy"
+
 import { publishContainerBuild } from "../../../../../src/plugins/container/publish"
 import { Executed } from "../../../../../src/actions/types"
 import { BuildActionConfig } from "../../../../../src/actions/build"

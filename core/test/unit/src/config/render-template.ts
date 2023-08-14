@@ -17,7 +17,8 @@ import {
 import { resolve } from "path"
 import { joi } from "../../../../src/config/common"
 import { pathExists, remove } from "fs-extra"
-import { cloneDeep } from "lodash"
+import cloneDeep from "fast-copy"
+
 import { configTemplateKind, renderTemplateKind } from "../../../../src/config/base"
 import { RenderTemplateConfig, renderConfigTemplate } from "../../../../src/config/render-template"
 import { Log } from "../../../../src/logger/log-entry"

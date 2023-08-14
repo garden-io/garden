@@ -8,7 +8,8 @@
 
 import tar from "tar"
 import tmp from "tmp-promise"
-import { cloneDeep, omit, pick, some } from "lodash"
+import cloneDeep from "fast-copy"
+import { omit, pick, some } from "lodash"
 import { Log } from "../../logger/log-entry"
 import { CoreV1Event } from "@kubernetes/client-node"
 import {

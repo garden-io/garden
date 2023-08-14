@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten, uniq, cloneDeep, some } from "lodash"
+import cloneDeep from "fast-copy"
+import { flatten, uniq, some } from "lodash"
 import { getNames, findByName } from "../util/util"
 import { ModuleConfig, moduleConfigSchema } from "../config/module"
 import type { ModuleVersion } from "../vcs/vcs"
