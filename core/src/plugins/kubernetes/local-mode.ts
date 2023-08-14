@@ -706,6 +706,7 @@ async function getReversePortForwardCommands(
       `${PROXY_CONTAINER_USER_NAME}@${localhost}`,
       `-p${localSshPort}`,
       `-i ${keyPair.privateKeyPath}`,
+      "-oIdentitiesOnly=yes",
       "-oStrictHostKeyChecking=accept-new",
       `-oUserKnownHostsFile=${knownHostsFilePath}`,
       "-oServerAliveInterval=60",
