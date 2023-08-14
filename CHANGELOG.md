@@ -1,4 +1,18 @@
 
+<a name="0.13.11"></a>
+## [0.13.11](https://github.com/garden-io/garden/compare/0.13.10...0.13.11) (2023-08-14)
+
+### Bug Fixes
+
+* repo scan performance and memory leak ([#4936](https://github.com/garden-io/garden/issues/4936)) ([65d3e7589](https://github.com/garden-io/garden/commit/65d3e7589))
+* templated module templating ([#4932](https://github.com/garden-io/garden/issues/4932)) ([831f61800](https://github.com/garden-io/garden/commit/831f61800))
+* only allow a valid environment to be set as default env ([a2b20e84b](https://github.com/garden-io/garden/commit/a2b20e84b))
+* **k8s:** delete pvc on namespace cleanup ([#4933](https://github.com/garden-io/garden/issues/4933)) ([f866c9537](https://github.com/garden-io/garden/commit/f866c9537))
+
+### Performance Improvements
+
+* improve garden performance ([#4938](https://github.com/garden-io/garden/issues/4938)) ([bf00e650f](https://github.com/garden-io/garden/commit/bf00e650f))
+
 <a name="0.13.10"></a>
 ## [0.13.10](https://github.com/garden-io/garden/compare/0.13.9...0.13.10) (2023-08-03)
 
