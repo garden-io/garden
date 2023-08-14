@@ -136,6 +136,10 @@ export function Profile(profiler?: Profiler) {
   }
 
   return function (target: Function) {
+    if (!profiler!.isEnabled()) {
+      return
+    }
+
     for (const propertyName of Object.getOwnPropertyNames(target.prototype)) {
       const propertyValue = target.prototype[propertyName]
       const isMethod = propertyValue instanceof Function

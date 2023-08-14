@@ -112,6 +112,7 @@
     "normalize-path": "^3.0.0",
     "normalize-url": "^5.3.1",
     "open": "^8.4.2",
+    "p-queue": "^6.0.0",
     "p-retry": "^4.6.2",
     "parse-duration": "^1.0.2",
     "parse-git-config": "^3.0.0",
