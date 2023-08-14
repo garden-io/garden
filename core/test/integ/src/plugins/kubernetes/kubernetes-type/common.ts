@@ -213,14 +213,16 @@ describe("getManifests", () => {
     it("runs kustomize build in the given path", async () => {
       const result = await getManifests({ ctx, api, action, log: garden.log, defaultNamespace })
       const kinds = result.map((r) => r.kind)
-      expect(kinds).to.have.members(["ConfigMap", "Service", "Deployment"])
+      // the last ConfigMap stands for internal metadata ConfigMap
+      expect(kinds).to.have.members(["ConfigMap", "Service", "Deployment", "ConfigMap"])
     })
 
     it("adds extraArgs if specified to the build command", async () => {
       action["_config"].spec.kustomize!.extraArgs = ["--reorder", "none"]
       const result = await getManifests({ ctx, api, action, log: garden.log, defaultNamespace })
       const kinds = result.map((r) => r.kind)
-      expect(kinds).to.eql(["Deployment", "Service", "ConfigMap"])
+      // the last ConfigMap stands for internal metadata ConfigMap
+      expect(kinds).to.eql(["Deployment", "Service", "ConfigMap", "ConfigMap"])
     })
   })
 
@@ -237,52 +239,50 @@ describe("getManifests", () => {
     })
 
     it("should support regular files paths", async () => {
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+      const executedAction = await garden.executeAction<KubernetesDeployAction>({
         action: cloneDeep(graph.getDeploy("with-build-action")),
         log: garden.log,
         graph,
       })
-      // Pre-check to ensure that the test filenames in the test data are correct.
-      expect(resolvedAction.getSpec().files).to.eql(["deployment-action.yaml"])
+      // Pre-check to ensure that the test project has a correct default glob file pattern.
+      expect(executedAction.getSpec().files).to.eql(["*.yaml"])
 
-      // We use readFromSrcDir = true here because we just resolve but do not execute any actions.
-      // It means that the build directory will not be created.
-      const manifests = await getManifests({
-        ctx,
-        api,
-        action: resolvedAction,
-        log: garden.log,
-        defaultNamespace,
-      })
+      const manifests = await getManifests({ ctx, api, action: executedAction, log: garden.log, defaultNamespace })
       expect(manifests).to.exist
       const names = manifests.map((m) => ({ kind: m.kind, name: m.metadata?.name }))
-      expect(names).to.eql([{ kind: "Deployment", name: "busybox-deployment" }])
+      // Now `getManifests` also returns a ConfigMap with internal metadata
+      expect(names).to.eql([
+        { kind: "Deployment", name: "busybox-deployment" },
+        {
+          kind: "ConfigMap",
+          name: "garden-meta-deploy-with-build-action",
+        },
+      ])
     })
 
     it("should support both regular paths and glob patterns with deduplication", async () => {
       const action = cloneDeep(graph.getDeploy("with-build-action"))
-      // Append a valid glob pattern that results to a non-empty list of files.
-      action["_config"]["spec"]["files"].push("*.yaml")
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+      // Append a valid filename that results to the default glob pattern '*.yaml'.
+      action["_config"]["spec"]["files"].push("deployment.yaml")
+      const executedAction = await garden.resolveAction<KubernetesDeployAction>({
         action,
         log: garden.log,
         graph,
       })
-      // Pre-check to ensure that the test filenames in the test data are correct.
-      expect(resolvedAction.getSpec().files).to.eql(["deployment-action.yaml", "*.yaml"])
+      // Pre-check to ensure that the list of files in the test project config is correct.
+      expect(executedAction.getSpec().files).to.eql(["*.yaml", "deployment.yaml"])
 
-      // We use readFromSrcDir = true here because we just resolve but do not execute any actions.
-      // It means that the build directory will not be created.
-      const manifests = await getManifests({
-        ctx,
-        api,
-        action: resolvedAction,
-        log: garden.log,
-        defaultNamespace,
-      })
+      const manifests = await getManifests({ ctx, api, action: executedAction, log: garden.log, defaultNamespace })
       expect(manifests).to.exist
       const names = manifests.map((m) => ({ kind: m.kind, name: m.metadata?.name }))
-      expect(names).to.eql([{ kind: "Deployment", name: "busybox-deployment" }])
+      // Now `getManifests` also returns a ConfigMap with internal metadata
+      expect(names).to.eql([
+        { kind: "Deployment", name: "busybox-deployment" },
+        {
+          kind: "ConfigMap",
+          name: "garden-meta-deploy-with-build-action",
+        },
+      ])
     })
 
     it("should throw on missing regular path", async () => {
@@ -294,8 +294,6 @@ describe("getManifests", () => {
         graph,
       })
 
-      // We use readFromSrcDir = true here because we just resolve but do not execute any actions.
-      // It means that the build directory will not be created.
       await expectError(
         () =>
           getManifests({
@@ -321,8 +319,6 @@ describe("getManifests", () => {
         graph,
       })
 
-      // We use readFromSrcDir = true here because we just resolve but do not execute any actions.
-      // It means that the build directory will not be created.
       await expectError(
         () =>
           getManifests({
