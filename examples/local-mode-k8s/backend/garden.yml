@@ -4,7 +4,7 @@ description: Backend service container
 type: kubernetes
 
 build: backend-image
-dependencies: "${var.localMode ? ['run.build-backend-local'] : []}"
+dependencies: "${this.mode == 'local' ? ['run.build-backend-local'] : []}"
 
 spec:
   localMode:
