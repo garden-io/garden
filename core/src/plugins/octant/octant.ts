@@ -21,6 +21,8 @@ export const gardenPlugin = () =>
     name: "octant",
     dependencies: [{ name: "kubernetes" }],
     docs: dedent`
+    **DEPRECATED:** This plugin will be removed in a future version.
+
     Adds [Octant](https://github.com/vmware-tanzu/octant) to the Garden dashboard, as well as a \`garden tools octant\` command.
   `,
     dashboardPages: [
@@ -83,41 +85,59 @@ export const gardenPlugin = () =>
     tools: [
       {
         name: "octant",
-        version: "0.15.0",
+        version: "0.25.1",
         description: "A web admin UI for Kubernetes.",
         type: "binary",
         _includeInGardenImage: false,
         builds: [
-          // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
+          {
+            platform: "darwin",
+            architecture: "arm64",
+            url: "https://github.com/vmware-tanzu/octant/releases/download/v0.25.1/octant_0.25.1_macOS-arm64.tar.gz",
+            sha256: "9528d1a3e00f1bf0180457a347aac6963dfdc3faa3a85970b93932a352fb38cf",
+            extract: {
+              format: "tar",
+              targetPath: "octant_0.25.1_macOS-arm64/octant",
+            },
+          },
           {
             platform: "darwin",
             architecture: "amd64",
-            url: "https://github.com/vmware-tanzu/octant/releases/download/v0.15.0/octant_0.15.0_macOS-64bit.tar.gz",
-            sha256: "63d03320e058eab4ef7ace6eb17c00e56f8fab85a202843295922535d28693a8",
+            url: "https://github.com/vmware-tanzu/octant/releases/download/v0.25.1/octant_0.25.1_macOS-64bit.tar.gz",
+            sha256: "97b1510362d99c24eeef98b61ca327e6e5323c99a1c774bc8e60751d3c923b33",
             extract: {
               format: "tar",
-              targetPath: "octant_0.15.0_macOS-64bit/octant",
+              targetPath: "octant_0.25.1_macOS-64bit/octant",
             },
           },
-          // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
+          {
+            platform: "linux",
+            architecture: "arm64",
+            url: "https://github.com/vmware-tanzu/octant/releases/download/v0.25.1/octant_0.25.1_Linux-ARM64.tar.gz",
+            sha256: "56d736a61b3c9acc9e83c54ec702b75d70cf9f3860c660dd2467b03b5845bf05",
+            extract: {
+              format: "tar",
+              targetPath: "octant_0.25.1_Linux-ARM64/octant",
+            },
+          },
           {
             platform: "linux",
             architecture: "amd64",
-            url: "https://github.com/vmware-tanzu/octant/releases/download/v0.15.0/octant_0.15.0_Linux-64bit.tar.gz",
-            sha256: "475c420c42f4d5f44650b1fb383f7e830e3939cbcc28e84ef49a6269dc3f658e",
+            url: "https://github.com/vmware-tanzu/octant/releases/download/v0.25.1/octant_0.25.1_Linux-64bit.tar.gz",
+            sha256: "02a404d2f16e669b63df088e45b2fe57ada97d859d3253c86974d56b8bb8807f",
             extract: {
               format: "tar",
-              targetPath: "octant_0.15.0_Linux-64bit/octant",
+              targetPath: "octant_0.25.1_Linux-64bit/octant",
             },
           },
           {
             platform: "windows",
             architecture: "amd64",
-            url: "https://github.com/vmware-tanzu/octant/releases/download/v0.15.0/octant_0.15.0_Windows-64bit.zip",
-            sha256: "963f50c196a56390127b01eabb49abaf0604f49a8c879ce4f28562d8d825b84d",
+            url: "https://github.com/vmware-tanzu/octant/releases/download/v0.25.1/octant_0.25.1_Windows-64bit.zip",
+            sha256: "b1e8f372f64c79ff04d69d19f11773936b67447a3abd5a496fbdfef10b6b6d19",
             extract: {
               format: "tar",
-              targetPath: "octant_0.15.0_Windows-64bit/octant.exe",
+              targetPath: "octant_0.25.1_Windows-64bit/octant.exe",
             },
           },
         ],
