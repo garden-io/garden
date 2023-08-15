@@ -99,6 +99,7 @@ export const gardenPlugin = () =>
               targetPath: "octant_0.15.0_macOS-64bit/octant",
             },
           },
+          // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
           {
             platform: "linux",
             architecture: "amd64",

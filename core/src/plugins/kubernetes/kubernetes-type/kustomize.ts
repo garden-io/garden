@@ -71,6 +71,16 @@ export const kustomizeSpec: PluginToolSpec = {
       },
     },
     {
+      platform: "linux",
+      architecture: "arm64",
+      url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.5.2/kustomize_v4.5.2_linux_arm64.tar.gz",
+      sha256: "7924d2c1c41976859558c7a1b8009c0d8cc63ebce242b8d4314d332236966481",
+      extract: {
+        format: "tar",
+        targetPath: "kustomize",
+      },
+    },
+    {
       platform: "windows",
       architecture: "amd64",
       url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.5.2/kustomize_v4.5.2_windows_amd64.tar.gz",

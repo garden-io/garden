@@ -155,6 +155,16 @@ export const terraformCliSpecs: PluginToolSpec[] = [
         },
       },
       {
+        platform: "linux",
+        architecture: "arm64",
+        url: "https://releases.hashicorp.com/terraform/0.14.7/terraform_0.14.7_linux_arm64.zip",
+        sha256: "0a621f1dc411953b955aaf2d7d46b2f350bd3a85a2284ec994ae41419844120b",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
         platform: "windows",
         architecture: "amd64",
         url: "https://releases.hashicorp.com/terraform/0.14.7/terraform_0.14.7_windows_amd64.zip",
@@ -197,6 +207,16 @@ export const terraformCliSpecs: PluginToolSpec[] = [
         architecture: "amd64",
         url: "https://releases.hashicorp.com/terraform/1.0.5/terraform_1.0.5_linux_amd64.zip",
         sha256: "7ce24478859ab7ca0ba4d8c9c12bb345f52e8efdc42fa3ef9dd30033dbf4b561",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "arm64",
+        url: "https://releases.hashicorp.com/terraform/1.0.5/terraform_1.0.5_linux_arm64.zip",
+        sha256: "f6c56ebb17d6109d908c2936bbdab74f6f7813c542db85ef6cef3dd020359eb2",
         extract: {
           format: "zip",
           targetPath: "terraform",
@@ -251,6 +271,16 @@ export const terraformCliSpecs: PluginToolSpec[] = [
         },
       },
       {
+        platform: "linux",
+        architecture: "arm64",
+        url: "https://releases.hashicorp.com/terraform/1.2.9/terraform_1.2.9_linux_arm64.zip",
+        sha256: "6da7bf01f5a72e61255c2d80eddeba51998e2bb1f50a6d81b0d3b71e70e18531",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
         platform: "windows",
         architecture: "amd64",
         url: "https://releases.hashicorp.com/terraform/1.2.9/terraform_1.2.9_windows_amd64.zip",
@@ -294,6 +324,16 @@ export const terraformCliSpecs: PluginToolSpec[] = [
         architecture: "amd64",
         url: "https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip",
         sha256: "e079db1a8945e39b1f8ba4e513946b3ab9f32bd5a2bdf19b9b186d22c5a3d53b",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "arm64",
+        url: "https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_arm64.zip",
+        sha256: "b38f5db944ac4942f11ceea465a91e365b0636febd9998c110fbbe95d61c3b26",
         extract: {
           format: "zip",
           targetPath: "terraform",

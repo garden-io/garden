@@ -46,6 +46,11 @@ export const gradleSpec: PluginToolSpec = {
       ...spec,
     },
     {
+      platform: "linux",
+      architecture: "arm64",
+      ...spec,
+    },
+    {
       platform: "windows",
       architecture: "amd64",
       ...spec,

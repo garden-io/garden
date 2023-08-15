@@ -868,6 +868,16 @@ export const mutagenCliSpec: PluginToolSpec = {
       },
     },
     {
+      platform: "linux",
+      architecture: "arm64",
+      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_linux_arm64_v0.15.0.tar.gz",
+      sha256: "80f108fc316223d8c3d1a48def18192e666b33a334b75aa3ebcc95938b774e64",
+      extract: {
+        format: "tar",
+        targetPath: "mutagen",
+      },
+    },
+    {
       platform: "windows",
       architecture: "amd64",
       url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_windows_amd64_v0.15.0.zip",

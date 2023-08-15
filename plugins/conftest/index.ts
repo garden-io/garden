@@ -421,6 +421,7 @@ export const gardenPlugin = () =>
               targetPath: "conftest",
             },
           },
+          // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
           {
             platform: "linux",
             architecture: "amd64",

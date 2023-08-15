@@ -21,7 +21,8 @@ interface JdkVersion {
   versionName: string
   mac_amd64: JdkBinary
   mac_arm64?: JdkBinary
-  linux: JdkBinary
+  linux_amd64: JdkBinary
+  linux_arm64: JdkBinary
   windows: JdkBinary
 }
 
@@ -34,9 +35,13 @@ const jdk8Version: JdkVersion = {
     filename: "OpenJDK8U-jdk_x64_mac_hotspot_8u292b10.tar.gz",
     sha256: "5646fbe9e4138c902c910bb7014d41463976598097ad03919e4848634c7e8007",
   },
-  linux: {
+  linux_amd64: {
     filename: "OpenJDK8U-jdk_x64_linux_hotspot_8u292b10.tar.gz",
     sha256: "0949505fcf42a1765558048451bb2a22e84b3635b1a31dd6191780eeccaa4ada",
+  },
+  linux_arm64: {
+    filename: "OpenJDK8U-jdk_aarch64_linux_hotspot_8u292b10.tar.gz",
+    sha256: "a29edaf66221f7a51353d3f28e1ecf4221268848260417bc562d797e514082a8",
   },
   windows: {
     filename: "OpenJDK8U-jdk_x64_windows_hotspot_8u292b10.zip",
@@ -53,9 +58,13 @@ const jdk11Version: JdkVersion = {
     filename: "OpenJDK11U-jdk_x64_mac_hotspot_11.0.9.1_1.tar.gz",
     sha256: "96bc469f9b02a3b84382a0685b0bd7935e1ad1bd82a0aab9befb5b42a17cbd77",
   },
-  linux: {
+  linux_amd64: {
     filename: "OpenJDK11U-jdk_x64_linux_hotspot_11.0.9.1_1.tar.gz",
     sha256: "e388fd7f3f2503856d0b04fde6e151cbaa91a1df3bcebf1deddfc3729d677ca3",
+  },
+  linux_arm64: {
+    filename: "OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.9.1_1.tar.gz",
+    sha256: "e96d665a39800b160f8ed4de03eada2969c650752faaf7cc83fa643e28dce337",
   },
   windows: {
     filename: "OpenJDK11U-jdk_x64_windows_hotspot_11.0.9.1_1.zip",
@@ -72,9 +81,13 @@ const jdk13Version: JdkVersion = {
     filename: "OpenJDK13U-jdk_x64_mac_hotspot_13_33.tar.gz",
     sha256: "f948be96daba250b6695e22cb51372d2ba3060e4d778dd09c89548889783099f",
   },
-  linux: {
+  linux_amd64: {
     filename: "OpenJDK13U-jdk_x64_linux_hotspot_13_33.tar.gz",
     sha256: "e562caeffa89c834a69a44242d802eae3523875e427f07c05b1902c152638368",
+  },
+  linux_arm64: {
+    filename: "OpenJDK13U-jdk_aarch64_linux_hotspot_13_33.tar.gz",
+    sha256: "2365b7fbba8d9125fb091933aad9f38f8cc1fbb0217cdec9ec75d2000f6d451a",
   },
   windows: {
     filename: "OpenJDK13U-jdk_x64_windows_hotspot_13_33.zip",
@@ -95,9 +108,13 @@ const jdk17Version: JdkVersion = {
     filename: "OpenJDK17U-jdk_aarch64_mac_hotspot_17.0.4.1_1.tar.gz",
     sha256: "3a976943a9e6a635e68e2b06bd093fc096aad9f5894acda673d3bea0cb3a6f38",
   },
-  linux: {
+  linux_amd64: {
     filename: "OpenJDK17U-jdk_x64_linux_hotspot_17.0.4.1_1.tar.gz",
     sha256: "5fbf8b62c44f10be2efab97c5f5dbf15b74fae31e451ec10abbc74e54a04ff44",
+  },
+  linux_arm64: {
+    filename: "OpenJDK17U-jdk_aarch64_linux_hotspot_17.0.4.1_1.tar.gz",
+    sha256: "2e4137529319cd7935f74e1289025b7b4c794c0fb47a3d138adffbd1bbc0ea58",
   },
   windows: {
     filename: "OpenJDK17U-jdk_x64_windows_hotspot_17.0.4.1_1.zip",
@@ -141,8 +158,18 @@ function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
       {
         platform: "linux",
         architecture: "amd64",
-        url: jdkVersion.baseUrl + jdkVersion.linux.filename,
-        sha256: jdkVersion.linux.sha256,
+        url: jdkVersion.baseUrl + jdkVersion.linux_amd64.filename,
+        sha256: jdkVersion.linux_amd64.sha256,
+        extract: {
+          format: "tar",
+          targetPath: jdkVersion.versionName,
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "arm64",
+        url: jdkVersion.baseUrl + jdkVersion.linux_arm64.filename,
+        sha256: jdkVersion.linux_arm64.sha256,
         extract: {
           format: "tar",
           targetPath: jdkVersion.versionName,

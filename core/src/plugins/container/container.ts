@@ -578,6 +578,16 @@ export const gardenPlugin = () =>
             },
           },
           {
+            platform: "linux",
+            architecture: "arm64",
+            url: "https://download.docker.com/linux/static/stable/aarch64/docker-24.0.4.tgz",
+            sha256: "193a8e1f051adce6a30a4c8486ce9b39929b9633a0da8c96444c9239859f4354",
+            extract: {
+              format: "tar",
+              targetPath: "docker/docker",
+            },
+          },
+          {
             platform: "windows",
             architecture: "amd64",
             url: "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v24.0.4/docker-24.0.4.zip",
