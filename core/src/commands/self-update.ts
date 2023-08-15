@@ -311,7 +311,11 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
       let architecture = getArchitecture()
 
-      if (architecture === "arm64" && semver.lt(desiredVersion, ARM64_INTRODUCTION_VERSION)) {
+      if (
+        architecture === "arm64" &&
+        desiredVersion !== "edge-bonsai" &&
+        semver.lt(desiredVersion, ARM64_INTRODUCTION_VERSION)
+      ) {
         if (platform === "macos") {
           architecture = "amd64"
           log.info(
