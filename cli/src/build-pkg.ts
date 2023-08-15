@@ -155,10 +155,16 @@ async function buildBinaries(args: string[]) {
   console.log(chalk.green.bold("Done!"))
 }
 
+let fsEventsCopied: Promise<void> | undefined = undefined
 async function pkgMacos({ targetName, sourcePath, pkgType, version }: TargetHandlerParams) {
   console.log(` - ${targetName} -> fsevents`)
   // Copy fsevents from lib to node_modules
-  await copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents"), resolve(tmpDirPath, "cli", "node_modules", "fsevents"))
+  // This might happen concurrently for multiple targets
+  // so we only do it once and then wait for that process to complete
+  if (!fsEventsCopied) {
+    fsEventsCopied = copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents"), resolve(tmpDirPath, "cli", "node_modules", "fsevents"))
+  }
+  await fsEventsCopied
 
   await pkgCommon({
     sourcePath,
