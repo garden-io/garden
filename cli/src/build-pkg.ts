@@ -162,7 +162,10 @@ async function pkgMacos({ targetName, sourcePath, pkgType, version }: TargetHand
   // This might happen concurrently for multiple targets
   // so we only do it once and then wait for that process to complete
   if (!fsEventsCopied) {
-    fsEventsCopied = copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents"), resolve(tmpDirPath, "cli", "node_modules", "fsevents"))
+    fsEventsCopied = copy(
+      resolve(GARDEN_CORE_ROOT, "lib", "fsevents"),
+      resolve(tmpDirPath, "cli", "node_modules", "fsevents")
+    )
   }
   await fsEventsCopied
 
