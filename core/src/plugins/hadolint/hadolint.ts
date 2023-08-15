@@ -131,6 +131,12 @@ gardenPlugin.addTool({
       sha256: "56de6d5e5ec427e17b74fa48d51271c7fc0d61244bf5c90e828aab8362d55010",
     },
     {
+      platform: "linux",
+      architecture: "arm64",
+      url: "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-arm64",
+      sha256: "5798551bf19f33951881f15eb238f90aef023f11e7ec7e9f4c37961cb87c5df6",
+    },
+    {
       platform: "windows",
       architecture: "amd64",
       url: "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Windows-x86_64.exe",

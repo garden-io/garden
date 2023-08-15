@@ -48,7 +48,9 @@ interface TargetSpec {
 
 const targets: { [name: string]: TargetSpec } = {
   "macos-amd64": { pkgType: "node18-macos-x64", handler: pkgMacos, nodeBinaryPlatform: "darwin" },
+  "macos-arm64": { pkgType: "node18-macos-arm64", handler: pkgMacos, nodeBinaryPlatform: "darwin" },
   "linux-amd64": { pkgType: "node18-linux-x64", handler: pkgLinux, nodeBinaryPlatform: "linux" },
+  "linux-arm64": { pkgType: "node18-linux-arm64", handler: pkgLinux, nodeBinaryPlatform: "linux" },
   "windows-amd64": { pkgType: "node18-win-x64", handler: pkgWindows, nodeBinaryPlatform: "win32" },
   "alpine-amd64": { pkgType: "node18-alpine-x64", handler: pkgAlpine, nodeBinaryPlatform: "linuxmusl" },
 }
@@ -153,10 +155,19 @@ async function buildBinaries(args: string[]) {
   console.log(chalk.green.bold("Done!"))
 }
 
+let fsEventsCopied: Promise<void> | undefined = undefined
 async function pkgMacos({ targetName, sourcePath, pkgType, version }: TargetHandlerParams) {
   console.log(` - ${targetName} -> fsevents`)
   // Copy fsevents from lib to node_modules
-  await copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents"), resolve(tmpDirPath, "cli", "node_modules", "fsevents"))
+  // This might happen concurrently for multiple targets
+  // so we only do it once and then wait for that process to complete
+  if (!fsEventsCopied) {
+    fsEventsCopied = copy(
+      resolve(GARDEN_CORE_ROOT, "lib", "fsevents"),
+      resolve(tmpDirPath, "cli", "node_modules", "fsevents")
+    )
+  }
+  await fsEventsCopied
 
   await pkgCommon({
     sourcePath,
@@ -295,7 +306,12 @@ async function pkgCommon({
       sourcePath,
       "--compress",
       "Brotli",
+      // We do not need to compile to bytecode and obfuscate the source
       "--public",
+      "--public-packages",
+      "*",
+      // We include all native binaries required manually
+      "--no-native-build",
       "--options",
       nodeOptions.join(","),
       "--output",

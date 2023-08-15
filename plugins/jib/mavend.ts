@@ -19,7 +19,9 @@ export const mvndVersion = "0.9.0"
 const mvndSpec = {
   description: "The Maven Daemon CLI.",
   baseUrl: `https://github.com/apache/maven-mvnd/releases/download/${mvndVersion}/`,
-  linux: {
+  // 0.9.0 has no ARM64 build for linux yet
+  // Should be fixed once 1.0.0 is released
+  linux_amd64: {
     filename: `maven-mvnd-${mvndVersion}-linux-amd64.tar.gz`,
     sha256: "64acc68f2a3e25a0662eb62bf87cf2641706245505572ca1d20f933c7190f148",
     targetPath: `maven-mvnd-${mvndVersion}-linux-amd64/bin/mvnd`,
@@ -50,11 +52,11 @@ export const mavendSpec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "amd64",
-      sha256: mvndSpec.linux.sha256,
-      url: `${mvndSpec.baseUrl}${mvndSpec.linux.filename}`,
+      sha256: mvndSpec.linux_amd64.sha256,
+      url: `${mvndSpec.baseUrl}${mvndSpec.linux_amd64.filename}`,
       extract: {
         format: "tar",
-        targetPath: mvndSpec.linux.targetPath,
+        targetPath: mvndSpec.linux_amd64.targetPath,
       },
     },
     {

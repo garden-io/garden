@@ -35,7 +35,9 @@ Download the Garden binary for your platform from below or simply run \`garden s
 
 * [Garden v${version} for Alpine AMD64 (tar.gz)](https://download.garden.io/core/${version}/garden-${version}-alpine-amd64.tar.gz)
 * [Garden v${version} for Linux AMD64 (tar.gz)](https://download.garden.io/core/${version}/garden-${version}-linux-amd64.tar.gz)
+* [Garden v${version} for Linux ARM64 (tar.gz)](https://download.garden.io/core/${version}/garden-${version}-linux-arm64.tar.gz)
 * [Garden v${version} for MacOS AMD64 (tar.gz)](https://download.garden.io/core/${version}/garden-${version}-macos-amd64.tar.gz)
+* [Garden v${version} for MacOS ARM64 (tar.gz)](https://download.garden.io/core/${version}/garden-${version}-macos-arm64.tar.gz)
 * [Garden v${version} for Windows AMD64 (.zip)](https://download.garden.io/core/${version}/garden-${version}-windows-amd64.zip)
 
 ## Changelog

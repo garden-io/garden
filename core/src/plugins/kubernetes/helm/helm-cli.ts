@@ -53,6 +53,16 @@ export const helm3Spec: PluginToolSpec = {
       },
     },
     {
+      platform: "linux",
+      architecture: "arm64",
+      url: `https://get.helm.sh/helm-v${HELM_VERSION}-linux-arm64.tar.gz`,
+      sha256: "658839fed8f9be2169f5df68e55cb2f0aa731a50df454caf183186766800bbd0",
+      extract: {
+        format: "tar",
+        targetPath: "linux-arm64/helm",
+      },
+    },
+    {
       platform: "windows",
       architecture: "amd64",
       url: `https://get.helm.sh/helm-v${HELM_VERSION}-windows-amd64.zip`,

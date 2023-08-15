@@ -235,6 +235,18 @@ commands:
           keys:
             - pkg-v3-{{ checksum "yarn.lock" }}
       - run:
+          name: Install Codesigning utility (needed for ARM64 on MacOS)
+          command: |
+            curl -Lo ldid https://github.com/ProcursusTeam/ldid/releases/download/v2.1.5-procursus7/ldid_linux_x86_64
+            chmod +x ldid
+            sudo mv ldid /usr/local/bin
+      - run:
+          name: Setup buildx and qemu for cross-platform builds
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y qemu-user-static
+            sudo apt-get install -y binfmt-support
+      - run:
           name: Run dist script
           command: yarn run dist --version "<<parameters.version>>"
       - persist_to_workspace:
@@ -250,7 +262,7 @@ commands:
       - run:
           # No need to store the raw files as artifacts, we just want the archives
           name: Cleanup
-          command: rm -rf dist/*-amd64
+          command: rm -rf dist/*-amd64 && rm -rf dist/*-arm64
       - store_artifacts:
           path: dist
           destination: dist
@@ -761,6 +773,40 @@ jobs:
           command: dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote --var userId=$CIRCLE_BUILD_NUM-macos
       - cleanup_remote_cluster:
           filter: $CIRCLE_BUILD_NUM-macos
+  test-macos-arm:
+    macos:
+      xcode: "13.4.1"
+    resource_class: macos.m1.medium.gen1
+    steps:
+      - checkout
+      - *attach-workspace
+      - run:
+          name: brew install
+          command: brew install docker kubectl git
+      # Upgrade git to the latest version.
+      # This step ensures that Garden is always tested to be compatible with the latest git.
+      - run:
+          name: Upgrade git
+          command: brew upgrade git
+      - run:
+          name: Install gcloud SDK
+          command: |
+            cd $HOME
+            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-411.0.0-darwin-arm.tar.gz
+            tar xzf google-cloud-sdk-411.0.0-darwin-arm.tar.gz
+            echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
+      - docker_login
+      - run:
+          name: Install gke-gcloud-auth-plugin
+          command: |
+            gcloud --quiet components install gke-gcloud-auth-plugin
+            echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' >> $BASH_ENV
+      - configure_remote_cluster
+      - run:
+          name: Deploy demo-project
+          command: dist/macos-arm64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote --var userId=$CIRCLE_BUILD_NUM-macos-arm
+      - cleanup_remote_cluster:
+          filter: $CIRCLE_BUILD_NUM-macos-arm
 
   test-windows:
     executor: win/default
@@ -820,6 +866,9 @@ workflows:
           <<: *only-internal-prs
           requires: [build-dist]
       - test-macos:
+          <<: *only-internal-prs
+          requires: [build-dist]
+      - test-macos-arm:
           <<: *only-internal-prs
           requires: [build-dist]
       - test-dockerhub:

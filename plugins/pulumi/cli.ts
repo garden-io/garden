@@ -98,6 +98,16 @@ export const pulumiCliSPecs: PluginToolSpec[] = [
         },
       },
       {
+        platform: "linux",
+        architecture: "arm64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.70.0/pulumi-v3.70.0-linux-arm64.tar.gz",
+        sha256: "042849d0aaa16b46f5e8ad062e684219ec803f9b56e8719c04f2469f63b530f4",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
         platform: "windows",
         architecture: "amd64",
         url: "https://github.com/pulumi/pulumi/releases/download/v3.70.0/pulumi-v3.70.0-windows-x64.zip",
@@ -141,6 +151,16 @@ export const pulumiCliSPecs: PluginToolSpec[] = [
         architecture: "amd64",
         url: "https://github.com/pulumi/pulumi/releases/download/v3.64.0/pulumi-v3.64.0-linux-x64.tar.gz",
         sha256: "2560cce127c838c8367541e9493ec12ae9a3144884f98c2afb99b01a14b6b0f7",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "arm64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.64.0/pulumi-v3.64.0-linux-arm64.tar.gz",
+        sha256: "aee09cb70fcffba8c70878fff196d655d76cb7bf56623bb89b0e06efc2e58e79",
         extract: {
           format: "tar",
           targetPath: "pulumi/pulumi",
