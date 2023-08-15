@@ -618,16 +618,17 @@ const platformMap = {
 }
 
 const archMap = {
-  x32: "386",
-  x64: "amd64",
-  arm64: "arm64",
+  x32: "386" as const,
+  x64: "amd64" as const,
 }
+
+export type Architecture = Exclude<NodeJS.Architecture, keyof typeof archMap> | (typeof archMap)[keyof typeof archMap]
 
 export function getPlatform() {
   return platformMap[process.platform] || process.platform
 }
 
-export function getArchitecture() {
+export function getArchitecture(): Architecture {
   const arch = process.arch
   return archMap[arch] || arch
 }

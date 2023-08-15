@@ -13,7 +13,7 @@ import { BooleanParameter, ChoicesParameter, GlobalOptions, ParameterValues, Str
 import { dedent } from "../util/string"
 import { basename, dirname, join, resolve } from "path"
 import chalk from "chalk"
-import { getPackageVersion, getPlatform } from "../util/util"
+import { Architecture, getArchitecture, getPackageVersion, getPlatform } from "../util/util"
 import { RuntimeError } from "../exceptions"
 import { makeTempDir } from "../util/fs"
 import { createReadStream, createWriteStream } from "fs"
@@ -22,6 +22,8 @@ import { got } from "../util/http"
 import { promisify } from "node:util"
 import semver from "semver"
 import stream from "stream"
+
+const ARM64_INTRODUCTION_VERSION = "0.13.12"
 
 const selfUpdateArgs = {
   version: new StringParameter({
@@ -303,11 +305,35 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     const tempDir = await makeTempDir()
 
     try {
-      // Fetch the desired version and extract it to a temp directory
-      const { build, filename, extension, url } = this.getReleaseArtifactDetails(platform, desiredVersion)
       if (!platform) {
         platform = getPlatform() === "darwin" ? "macos" : getPlatform()
       }
+
+      let architecture = getArchitecture()
+
+      if (architecture === "arm64" && semver.lt(desiredVersion, ARM64_INTRODUCTION_VERSION)) {
+        if (platform === "macos") {
+          architecture = "amd64"
+          log.info(
+            chalk.yellow.bold(
+              `No arm64 build available for Garden version ${desiredVersion}. Falling back to amd64 using Rosetta.`
+            )
+          )
+        } else {
+          return {
+            result: {
+              currentVersion,
+              latestVersion,
+              desiredVersion,
+              installationDirectory,
+              abortReason: `No arm64 build available for Garden version ${desiredVersion}.`,
+            },
+          }
+        }
+      }
+
+      // Fetch the desired version and extract it to a temp directory
+      const { build, filename, extension, url } = this.getReleaseArtifactDetails(platform, architecture, desiredVersion)
 
       log.info("")
       log.info(chalk.white(`Downloading version ${chalk.cyan(desiredVersion)} from ${chalk.underline(url)}...`))
@@ -407,11 +433,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     }
   }
 
-  private getReleaseArtifactDetails(platform: string, desiredVersion: string) {
-    if (!platform) {
-      platform = getPlatform() === "darwin" ? "macos" : getPlatform()
-    }
-    const architecture = "amd64" // getArchitecture()
+  private getReleaseArtifactDetails(platform: string, architecture: Architecture, desiredVersion: string) {
     const extension = platform === "windows" ? "zip" : "tar.gz"
     const build = `${platform}-${architecture}`
 
