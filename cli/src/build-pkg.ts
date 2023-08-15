@@ -306,7 +306,12 @@ async function pkgCommon({
       sourcePath,
       "--compress",
       "Brotli",
+      // We do not need to compile to bytecode and obfuscate the source
       "--public",
+      "--public-packages",
+      "*",
+      // We include all native binaries required manually
+      "--no-native-build",
       "--options",
       nodeOptions.join(","),
       "--output",
