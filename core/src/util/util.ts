@@ -620,6 +620,7 @@ const platformMap = {
 const archMap = {
   x32: "386",
   x64: "amd64",
+  arm64: "arm64",
 }
 
 export function getPlatform() {

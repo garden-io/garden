@@ -30,12 +30,29 @@ else
   GARDEN_VERSION=$(curl -sL https://github.com/garden-io/garden/releases/latest -H "Accept: application/json" | jsonValue tag_name 1)
 fi
 
+# Detect OS
 if [ "$(uname -s)" = "Darwin" ]; then
   OS=macos
 else
   OS=`ldd 2>&1|grep musl >/dev/null && echo "alpine" || echo "linux"`
 fi
-PLATFORM=${OS}-amd64
+
+# Detect architecture
+ARCH=$(uname -m)
+case $ARCH in
+  x86_64)
+    ARCH=amd64
+    ;;
+  arm64 | aarch64)
+    ARCH=arm64
+    ;;
+  *)
+    echo "Unsupported architecture: $ARCH"
+    exit 1
+    ;;
+esac
+
+PLATFORM="${OS}-${ARCH}"
 
 filename="garden-${GARDEN_VERSION}-${PLATFORM}.tar.gz"
 url="https://download.garden.io/core/${GARDEN_VERSION}/${filename}"
