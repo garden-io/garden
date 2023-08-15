@@ -235,6 +235,11 @@ commands:
           keys:
             - pkg-v3-{{ checksum "yarn.lock" }}
       - run:
+          name: Install Codesigning utility (needed for ARM64 on MacOS)
+          command: |
+            sudo apt-get update
+            sudo apt install ldid
+      - run:
           name: Run dist script
           command: yarn run dist --version "<<parameters.version>>"
       - persist_to_workspace:
@@ -250,7 +255,7 @@ commands:
       - run:
           # No need to store the raw files as artifacts, we just want the archives
           name: Cleanup
-          command: rm -rf dist/*-amd64
+          command: rm -rf dist/*-amd64 && rm -rf dist/*-arm64
       - store_artifacts:
           path: dist
           destination: dist
