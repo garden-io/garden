@@ -71,8 +71,14 @@ interface CommandLineEvents {
   message: string
 }
 
-function getCmdStartMsg(commandName: string) {
-  return `Running ${chalk.white.bold(commandName)}...`
+function getCmdsRunningMsg(commandNames: string[]) {
+  let msg: string = ""
+  if (commandNames.length === 1) {
+    msg = chalk.cyan(`Running ${styles.command(commandNames[0])} command...`)
+  } else if (commandNames.length > 1) {
+    msg = chalk.cyan(`Running ${commandNames.length} commands: `) + styles.command(commandNames.join(", "))
+  }
+  return msg
 }
 
 function getCmdSuccessMsg(commandName: string) {
@@ -84,7 +90,7 @@ function getCmdFailMsg(commandName: string) {
 }
 
 export function logCommandStart({ commandName, log, width }: { commandName: string; log: Log; width: number }) {
-  const msg = getCmdStartMsg(commandName)
+  const msg = getCmdsRunningMsg([commandName])
   log.info("\n" + renderDivider({ width, title: msg, color: chalk.blueBright, char: "┈" }))
 }
 
@@ -433,18 +439,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   }
 
   renderStatus() {
-    let status = this.persistentStatus
-
-    const runningCommands = Object.values(this.runningCommands)
-
-    // TODO: show spinner here
-    if (runningCommands.length === 1) {
-      status = chalk.cyan(`Running ${styles.command(runningCommands[0].command.getFullName())} command...`)
-    } else if (runningCommands.length > 1) {
-      status =
-        chalk.cyan(`Running ${runningCommands.length} commands: `) +
-        styles.command(runningCommands.map((c) => c.command.getFullName()).join(", "))
-    }
+    const status = getCmdsRunningMsg(Object.values(this.runningCommands).map((cmd) => cmd.command.getFullName()))
 
     this.statusCallback(status)
   }
@@ -692,7 +687,7 @@ ${chalk.white.underline("Keys:")}
 
     // Execute the command
     if (!command.isDevCommand) {
-      this.flashMessage(getCmdStartMsg(name))
+      this.flashMessage(getCmdsRunningMsg([name]))
       logCommandStart({ commandName: rawArgs.join(" "), width, log: this.log })
       this.runningCommands[id] = { command, params: prepareParams }
       this.renderStatus()
@@ -746,11 +741,10 @@ ${chalk.white.underline("Keys:")}
             )
           } catch (error) {
             this.flashError(getCmdFailMsg(name))
-            this.log.error({ error })
-            return
-          } finally {
             delete this.runningCommands[id]
             this.renderStatus()
+            this.log.error({ error })
+            return
           }
 
           // Update persisted history
