@@ -7,6 +7,8 @@ tocTitle: "`octant`"
 
 ## Description
 
+**DEPRECATED:** This plugin will be removed in a future version.
+
 Adds [Octant](https://github.com/vmware-tanzu/octant) to the Garden dashboard, as well as a `garden tools octant` command.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
