@@ -113,18 +113,18 @@ export const gardenPlugin = () =>
           {
             platform: "linux",
             architecture: "arm64",
-            url: "https://github.com/vmware-tanzu/octant/releases/download/v0.25.1/octant_0.25.1_Linux-ARM64.tar.gz",
-            sha256: "56d736a61b3c9acc9e83c54ec702b75d70cf9f3860c660dd2467b03b5845bf05",
+            url: "https://github.com/vmware-tanzu/octant/releases/download/v0.25.1/octant_0.25.1_Linux-arm64.tar.gz",
+            sha256: "a3eb4973a0c869267e3916bd43e0b41b2bbc73b898376b795a617299c7b2a623",
             extract: {
               format: "tar",
-              targetPath: "octant_0.25.1_Linux-ARM64/octant",
+              targetPath: "octant_0.25.1_Linux-arm64/octant",
             },
           },
           {
             platform: "linux",
             architecture: "amd64",
             url: "https://github.com/vmware-tanzu/octant/releases/download/v0.25.1/octant_0.25.1_Linux-64bit.tar.gz",
-            sha256: "02a404d2f16e669b63df088e45b2fe57ada97d859d3253c86974d56b8bb8807f",
+            sha256: "b12bb6752e43f4e0fe54278df8e98dee3439c4066f66cdb7a0ca4a1c7d8eaa1e",
             extract: {
               format: "tar",
               targetPath: "octant_0.25.1_Linux-64bit/octant",
