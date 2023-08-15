@@ -317,7 +317,7 @@ async function pkgCommon({
       "--output",
       resolve(targetPath, binFilename),
     ],
-    { env: { PKG_CACHE_PATH: pkgFetchTmpDir }, stdio: "inherit" }
+    { env: { PKG_CACHE_PATH: pkgFetchTmpDir } }
   )
 
   console.log(` - ${targetName} -> static`)
