@@ -237,8 +237,9 @@ commands:
       - run:
           name: Install Codesigning utility (needed for ARM64 on MacOS)
           command: |
-            sudo apt-get update
-            sudo apt install ldid
+            curl -Lo ldid https://github.com/ProcursusTeam/ldid/releases/download/v2.1.5-procursus7/ldid_linux_x86_64
+            chmod +x ldid
+            sudo mv ldid /usr/local/bin
       - run:
           name: Run dist script
           command: yarn run dist --version "<<parameters.version>>"
