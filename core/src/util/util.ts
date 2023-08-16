@@ -629,6 +629,10 @@ export function getPlatform() {
 }
 
 export function getArchitecture(): Architecture {
+  // Note: When node is running a x64 build,
+  // process.arch is always x64 even though the underlying CPU architecture may be arm64
+  // To check if we are running under Rosetta,
+  // use the `isDarwinARM` function below
   const arch = process.arch
   return archMap[arch] || arch
 }
