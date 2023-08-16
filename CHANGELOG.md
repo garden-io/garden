@@ -1,4 +1,21 @@
 
+<a name="0.13.12"></a>
+## [0.13.12](https://github.com/garden-io/garden/compare/0.13.11...0.13.12) (2023-08-16)
+
+### Bug Fixes
+
+* detect rosetta emulation during self-update ([#4951](https://github.com/garden-io/garden/issues/4951)) ([56722b2b6](https://github.com/garden-io/garden/commit/56722b2b6))
+* **local-mode:** fix port forward when having many local ssh keys ([3bbc44dd7](https://github.com/garden-io/garden/commit/3bbc44dd7))
+
+### Features
+
+* allow arm installs for self-update to bonsai-edge ([71f6221d5](https://github.com/garden-io/garden/commit/71f6221d5))
+* add ARM64 support ([#4947](https://github.com/garden-io/garden/issues/4947)) ([cb0ef7de4](https://github.com/garden-io/garden/commit/cb0ef7de4))
+
+### Improvements
+
+* **dev:** show spinner when cmd is running ([#4945](https://github.com/garden-io/garden/issues/4945)) ([997c2b313](https://github.com/garden-io/garden/commit/997c2b313))
+
 <a name="0.13.11"></a>
 ## [0.13.11](https://github.com/garden-io/garden/compare/0.13.10...0.13.11) (2023-08-14)
 
