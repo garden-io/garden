@@ -29,7 +29,7 @@ You can view task results by running `garden get run-result <run-name>`.
 
 ### Database Migration
 
-Below is an example of two Runs for a Deploy that uses the `postgresql` Helm chart. The `db-init` Run is for initializing the database and `db-clear` is for clearing it. Notice how the Runs depend on `deploy.db`. These Runs are of type [`kubernetes-exec`](../reference/action-types/Run/kubernetes-exec.md) that's used for running commands directly in a running Deploy.
+Below is an example of two Runs for a Deploy that uses the `postgresql` Helm chart. The `db-init` Run is for initializing the database and `db-clear` is for clearing it. Notice how the Runs depend on `deploy.db`. These Runs are of type [`kubernetes-exec`](../reference/action-types/run/kubernetes-exec.md) that's used for running commands directly in a running Deploy.
 
 ```yaml
 kind: Run

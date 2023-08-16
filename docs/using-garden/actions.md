@@ -138,7 +138,7 @@ Generally, we recommend using the same deployment tools you use in CI or in prod
   service definitions, generate Kubernetes manifests and deploy them. This is generally much easier to use than the
   below `kubernetes` and `helm` action types, but in turn loses some flexibility of those two.
 - [terraform](../reference/action-types/Deploy/terraform.md) offer a powerful way to deploy any cloud resources as part
-  of your project. See the [Terraform guide](../terraform-plugin/README.md) for more information.
+  of your project. See the [Terraform guide](../terraform-plugin/about) for more information.
 
 There are several other action types available as well. See
 the [action types reference](../reference/action-types/README.md) for a full list of supported action types, and their

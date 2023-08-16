@@ -8,7 +8,7 @@ But fear not: Bonsai is _mostly backwards compatible_ with the old configuration
 
 On the other hand, the new configuration format is easier to read and write, provides much more flexibility, and adds some completely new functionality. We encourage you to incrementally convert your module configs to actions when you feel the time is right in your project.
 
-If you'd like to learn more about actions before proceeding, check out the [actions guide](../using-garden/) (which describes actions in depth).
+If you'd like to learn more about actions before proceeding, check out the [actions guide](../using-garden/actions) (which describes actions in depth).
 
 ## Breaking changes first
 

@@ -154,4 +154,4 @@ This allows you to codify your entire stack and use the same workflows for all s
 
 Garden Cloud is a web platform built on top of Garden Core that adds features for teams using Garden Core such as user and secret management, log streaming, interactivity, and much more.
 
-To learn about Garden Cloud, check out our [website](https://garden-io.webflow.io/pricing) or the official [Cloud docs](https://cloud.docs.garden.io/).
+To learn about Garden Cloud, check out our [website](https://garden.io/pricing) or the official [Cloud docs](https://cloud.docs.garden.io/).
