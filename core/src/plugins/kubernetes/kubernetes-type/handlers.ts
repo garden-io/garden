@@ -195,7 +195,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     log,
   })
 
-  const forwardablePorts = getForwardablePorts(remoteResources, action, deployedMode)
+  const forwardablePorts = getForwardablePorts({ resources: remoteResources, parentAction: action, mode: deployedMode })
 
   if (state === "ready") {
     // Local mode always takes precedence over sync mode

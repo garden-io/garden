@@ -148,7 +148,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   })
 
   // Local mode has its own port-forwarding configuration
-  const forwardablePorts = getForwardablePorts(manifests, action, mode)
+  const forwardablePorts = getForwardablePorts({ resources: manifests, parentAction: action, mode })
 
   // Make sure port forwards work after redeployment
   killPortForwards(action, forwardablePorts || [], log)

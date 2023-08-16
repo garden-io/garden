@@ -71,7 +71,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   if (state !== "missing") {
     const deployedResources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
 
-    forwardablePorts = getForwardablePorts(deployedResources, action, deployedMode)
+    forwardablePorts = getForwardablePorts({ resources: deployedResources, parentAction: action, mode: deployedMode })
     ingresses = getK8sIngresses(deployedResources)
 
     if (state === "ready") {

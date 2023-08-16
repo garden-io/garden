@@ -221,11 +221,15 @@ function getTargetResourceName(action: SupportedRuntimeAction, targetName?: stri
 /**
  * Returns a list of forwardable ports based on the specified resources.
  */
-export function getForwardablePorts(
-  resources: KubernetesResource[],
-  parentAction: Resolved<KubernetesDeployAction | HelmDeployAction> | undefined,
+export function getForwardablePorts({
+  resources,
+  parentAction,
+  mode,
+}: {
+  resources: KubernetesResource[]
+  parentAction: Resolved<KubernetesDeployAction | HelmDeployAction> | undefined
   mode: ActionMode
-): ForwardablePort[] {
+}): ForwardablePort[] {
   const spec = parentAction?.getSpec()
 
   // Note: Local mode has its own port-forwarding configuration
