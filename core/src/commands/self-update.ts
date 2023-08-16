@@ -13,7 +13,7 @@ import { BooleanParameter, ChoicesParameter, GlobalOptions, ParameterValues, Str
 import { dedent } from "../util/string"
 import { basename, dirname, join, resolve } from "path"
 import chalk from "chalk"
-import { Architecture, getArchitecture, getPackageVersion, getPlatform } from "../util/util"
+import { Architecture, getArchitecture, isDarwinARM, getPackageVersion, getPlatform } from "../util/util"
 import { RuntimeError } from "../exceptions"
 import { makeTempDir } from "../util/fs"
 import { createReadStream, createWriteStream } from "fs"
@@ -310,6 +310,17 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       }
 
       let architecture = getArchitecture()
+      let isArmInRosetta = isDarwinARM()
+
+      // When running under Rosetta,
+      // the architecture is reported back as amd64
+      // but in this case we want to target an arm64 build
+      // so we override the architecture here
+      // and then check if the version is supported or not
+      // potentially reverting it back to amd64 again
+      if (isArmInRosetta) {
+        architecture = "arm64"
+      }
 
       if (
         architecture === "arm64" &&
