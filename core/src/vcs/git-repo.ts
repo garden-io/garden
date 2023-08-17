@@ -12,6 +12,7 @@ import type { GetFilesParams, VcsFile } from "./vcs"
 import { isDirectory, joinWithPosix, matchPath } from "../util/fs"
 import { pathExists } from "fs-extra"
 import { pathToCacheContext } from "../cache"
+import { FileTree } from "./file-tree"
 
 type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt">
 
@@ -47,16 +48,14 @@ export class GitRepoHandler extends GitHandler {
       scanRoot = await this.getRepoRoot(log, path, failOnPrompt)
     }
 
-    const repoFiles = await this.scanRepo({
+    const fileTree = await this.scanRepo({
       log,
       path: scanRoot,
       pathDescription: pathDescription || "repository",
       failOnPrompt,
     })
 
-    const moduleFiles = repoFiles.filter(({ path: p }) => {
-      return p.startsWith(path)
-    })
+    const moduleFiles = fileTree.getFilesAtPath(path)
 
     const include = params.include ? await absGlobs(path, params.include) : [path, join(path, "**", "*")]
     const exclude = await absGlobs(path, params.exclude || [])
@@ -82,11 +81,11 @@ export class GitRepoHandler extends GitHandler {
    * Scans the given repo root and caches the list of files in the tree cache.
    * Uses an async lock to ensure a repo root is only scanned once.
    */
-  async scanRepo(params: ScanRepoParams) {
+  async scanRepo(params: ScanRepoParams): Promise<FileTree> {
     const { log, path } = params
 
     const key = ["git-repo-files", path]
-    let existing = this.cache.get(log, key)
+    let existing = this.cache.get(log, key) as FileTree
 
     if (existing) {
       params.log.silly(`Found cached repository match at ${path}`)
@@ -104,9 +103,11 @@ export class GitRepoHandler extends GitHandler {
       params.log.info(`Scanning repository at ${path}`)
       const files = await super.getFiles({ ...params, scanRoot: undefined })
 
-      this.cache.set(log, key, files, pathToCacheContext(path))
+      const fileTree = FileTree.fromFiles(files)
 
-      return files
+      this.cache.set(log, key, fileTree, pathToCacheContext(path))
+
+      return fileTree
     })
   }
 }
