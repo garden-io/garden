@@ -20,11 +20,13 @@ import { V1Ingress, V1Secret } from "@kubernetes/client-node"
 import { Log } from "../../../logger/log-entry"
 import chalk from "chalk"
 import { Resolved } from "../../../actions/types"
+import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "../ephemeral/ephemeral"
+import { getEphemeralClusterIngresses } from "../ephemeral/ingress"
 
 // Ingress API versions in descending order of preference
 export const supportedIngressApiVersions = ["networking.k8s.io/v1", "networking.k8s.io/v1beta1", "extensions/v1beta1"]
 
-interface ServiceIngressWithCert extends ServiceIngress {
+export interface ServiceIngressWithCert extends ServiceIngress {
   spec: ContainerIngressSpec
   certificate?: IngressTlsCertificate
 }
@@ -212,6 +214,10 @@ export async function getIngresses(
   api: KubeApi,
   provider: KubernetesProvider
 ): Promise<ServiceIngress[]> {
+  if (provider.name === EPHEMERAL_KUBERNETES_PROVIDER_NAME) {
+    return await getEphemeralClusterIngresses(action, provider)
+  }
+
   return (await getIngressesWithCert(action, api, provider)).map((ingress) => ({
     hostname: ingress.hostname,
     path: ingress.path,

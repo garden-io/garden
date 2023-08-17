@@ -13,20 +13,21 @@ import { joiProviderName } from "../../../config/common"
 import { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider"
 import { containerRegistryConfigSchema } from "../../container/config"
 import { KubernetesConfig, k8sContextSchema, kubernetesConfigBase } from "../config"
+import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral"
 
 export const configSchema = () =>
   kubernetesConfigBase().keys({
-    name: joiProviderName("ephemeral-kubernetes"),
+    name: joiProviderName(EPHEMERAL_KUBERNETES_PROVIDER_NAME),
     context: k8sContextSchema().optional(),
     deploymentRegistry: containerRegistryConfigSchema().optional(),
   })
 
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
   const { base, log, projectName, ctx, config: baseConfig } = params
-  log.info("Configuring ephemeral-kubernetes provider")
+  log.info(`Configuring ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider`)
   if (!ctx.cloudApi) {
     throw new Error(
-      "You are not logged in. You must be logged into Garden Cloud in order to use ephemeral-kubernetes provider."
+      `You are not logged in. You must be logged into Garden Cloud in order to use ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider.`
     )
   }
   const ephemeralClusterDirPath = join(ctx.gardenDirPath, "ephemeral-kubernetes")
@@ -38,15 +39,14 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   const kubeConfig = await ctx.cloudApi.getKubeConfigForCluster(newClusterId)
 
   const kubeconfigFileName = `${newClusterId}-kubeconfig.yaml`
-  const kubeConfigTmpPath = join(ctx.gardenDirPath, "ephemeral-kubernetes", kubeconfigFileName)
-  await writeFile(kubeConfigTmpPath, kubeConfig)
-  log.info(`kubeconfig saved at path: ${kubeConfigTmpPath}`)
+  const kubeConfigPath = join(ctx.gardenDirPath, "ephemeral-kubernetes", kubeconfigFileName)
+  await writeFile(kubeConfigPath, kubeConfig)
+  log.info(`kubeconfig saved at path: ${kubeConfigPath}`)
 
-  // const kubeConfig = DUMMY
   const parsedKubeConfig: any = load(kubeConfig)
   const currentContext = parsedKubeConfig["current-context"]
   baseConfig.context = currentContext
-  baseConfig.kubeconfig = `/Users/shumail/mewtow/garden/test/ephemeral-cluster/.garden/ephemeral-kubernetes/${newClusterId}-kubeconfig.yaml`
+  baseConfig.kubeconfig = kubeConfigPath
 
   // set deployment registry
   baseConfig.deploymentRegistry = {
@@ -54,6 +54,8 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
     namespace: newClusterResponse.registry.repository,
     insecure: false,
   }
+  // set default hostname
+  baseConfig.defaultHostname = `${newClusterId}.fra1.namespaced.app`
   // set imagePullSecrets
   baseConfig.imagePullSecrets = [
     {
