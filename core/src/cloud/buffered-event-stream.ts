@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import stringify from "json-stringify-safe"
 
 import { Events, EventName, GardenEventAnyListener, shouldStreamEvent } from "../events/events"
@@ -304,7 +303,7 @@ export class BufferedEventStream {
     }
 
     try {
-      await Bluebird.map(this.getTargets(), (target) => {
+      await Promise.all(this.getTargets().map((target) => {
         const api = this.cloudSession?.api
         if (target.enterprise && api?.domain) {
           // Need to cast so the compiler doesn't complain that the two returns from the map
@@ -324,7 +323,7 @@ export class BufferedEventStream {
 
         const headers = makeAuthHeader(target.clientAuthToken || "")
         return got.post(`${targetUrl}`, { json: data, headers })
-      })
+      }))
     } catch (err) {
       /**
        * We don't throw an exception here, since a failure to stream events and log entries doesn't mean that the

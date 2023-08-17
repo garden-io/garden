@@ -115,6 +115,7 @@
     "open": "^8.4.2",
     "p-queue": "^6.0.0",
     "p-retry": "^4.6.2",
+    "p-limit": "^3.1.0",
     "parse-duration": "^1.0.2",
     "parse-git-config": "^3.0.0",
     "path-is-inside": "^1.0.2",

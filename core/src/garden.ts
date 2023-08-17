@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import chalk from "chalk"
 import { ensureDir } from "fs-extra"
 import { platform, arch } from "os"
@@ -581,7 +580,7 @@ export class Garden {
   }
 
   async getRegisteredPlugins(): Promise<GardenPluginSpec[]> {
-    return Bluebird.map(this.registeredPlugins, (p) => loadPlugin(this.log, this.projectRoot, p))
+    return Promise.all(this.registeredPlugins.map((p) => loadPlugin(this.log, this.projectRoot, p)))
   }
 
   @pMemoizeDecorator()
@@ -751,7 +750,7 @@ export class Garden {
       // Detect circular dependencies here
       const validationGraph = new DependencyGraph()
 
-      await Bluebird.map(rawConfigs, async (config) => {
+      await Promise.all(rawConfigs.map(async (config) => {
         const plugin = plugins[config.name]
 
         if (!plugin) {
@@ -770,7 +769,7 @@ export class Garden {
           validationGraph.addNode(dep)
           validationGraph.addDependency(plugin.name, dep)
         }
-      })
+      }))
 
       const cycles = validationGraph.detectCircularDependencies()
 
@@ -827,13 +826,13 @@ export class Garden {
 
       const gotCachedResult = !!providers.find((p) => p.status.cached)
 
-      await Bluebird.map(providers, async (provider) =>
-        Bluebird.map(provider.moduleConfigs, async (moduleConfig) => {
+      await Promise.all(providers.flatMap((provider) =>
+        provider.moduleConfigs.map(async (moduleConfig) => {
           // Make sure module and all nested entities are scoped to the plugin
           moduleConfig.plugin = provider.name
-          return this.addModuleConfig(moduleConfig)
+          await this.addModuleConfig(moduleConfig)
         })
-      )
+      ))
 
       for (const provider of providers) {
         this.resolvedProviders[provider.name] = provider
@@ -1087,7 +1086,7 @@ export class Garden {
       let updated = false
 
       // Resolve actions from augmentGraph specs and add to the list
-      await Bluebird.map(addActions || [], async (config) => {
+      await Promise.all((addActions || []).map(async (config) => {
         // There is no actual config file for plugin modules (which the prepare function assumes)
         delete config.internal?.configFilePath
 
@@ -1113,7 +1112,7 @@ export class Garden {
         actionConfigs[key] = config
 
         updated = true
-      })
+      }))
 
       for (const dependency of addDependencies || []) {
         for (const key of ["by", "on"]) {
@@ -1295,23 +1294,23 @@ export class Garden {
       // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
       const linkedSources = await getLinkedSources(this, "project")
       const projectSources = this.getProjectSources()
-      const extSourcePaths = await Bluebird.map(projectSources, ({ name, repositoryUrl }) => {
+      const extSourcePaths = await Promise.all(projectSources.map(({ name, repositoryUrl }) => {
         return this.resolveExtSourcePath({
           name,
           linkedSources,
           repositoryUrl,
           sourceType: "project",
         })
-      })
+      }))
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
-      const configPaths = flatten(await Bluebird.map(dirsToScan, (path) => this.scanForConfigs(this.log, path)))
+      const configPaths = flatten(await Promise.all(dirsToScan.map((path) => this.scanForConfigs(this.log, path))))
       for (const path of configPaths) {
         this.configPaths.add(path)
       }
 
       const allResources = flatten(
-        await Bluebird.map(configPaths, async (path) => (await this.loadResources(path)) || [])
+        await Promise.all(configPaths.map(async (path) => (await this.loadResources(path)) || []))
       )
       const groupedResources = groupBy(allResources, "kind")
 
@@ -1324,7 +1323,7 @@ export class Garden {
       const rawConfigTemplateResources = (groupedResources[configTemplateKind] as ConfigTemplateResource[]) || []
 
       // Resolve config templates
-      const configTemplates = await Bluebird.map(rawConfigTemplateResources, (r) => resolveConfigTemplate(this, r))
+      const configTemplates = await Promise.all(rawConfigTemplateResources.map((r) => resolveConfigTemplate(this, r)))
       const templatesByName = keyBy(configTemplates, "name")
       // -> detect duplicate templates
       const duplicateTemplates = duplicatesByKey(configTemplates, "name")
@@ -1360,9 +1359,10 @@ export class Garden {
       ] as RenderTemplateConfig[]
 
       // Resolve Render configs
-      const renderResults = await Bluebird.map(renderConfigs, (config) =>
+      const renderResults = await Promise.all(renderConfigs.map((config) =>
         renderConfigTemplate({ garden: this, log: this.log, config, templates: templatesByName })
-      )
+      ))
+
       const actionsFromTemplates = renderResults.flatMap((r) => r.configs.filter(isActionConfig))
       const modulesFromTemplates = renderResults.flatMap((r) => r.modules)
       const workflowsFromTemplates = renderResults.flatMap((r) => r.configs.filter(isWorkflowConfig))

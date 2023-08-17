@@ -9,7 +9,6 @@
 import chalk from "chalk"
 import { getAbi } from "node-abi"
 import { resolve, relative, join } from "path"
-import Bluebird from "bluebird"
 import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants"
 import { remove, mkdirp, copy, writeFile } from "fs-extra"
 import { exec, getPackageVersion, sleep } from "@garden-io/core/build/src/util/util"
@@ -95,7 +94,7 @@ async function buildBinaries(args: string[]) {
   const workspaces = JSON.parse(JSON.parse(res).data)
 
   console.log(chalk.cyan("Copying packages"))
-  await Bluebird.map(Object.entries(workspaces), async ([name, info]: [string, any]) => {
+  await Promise.all(Object.entries(workspaces).map(async ([name, info]: [string, any]) => {
     const sourcePath = resolve(repoRoot, info.location)
     const targetPath = resolve(tmpDirPath, info.location)
     await remove(targetPath)
@@ -111,11 +110,11 @@ async function buildBinaries(args: string[]) {
     ])
 
     console.log(chalk.green(" ✓ " + name))
-  })
+  }))
 
   // Edit all the packages to have them directly link any internal dependencies
   console.log(chalk.cyan("Modifying package.json files for direct installation"))
-  await Bluebird.map(Object.entries(workspaces), async ([name, info]: [string, any]) => {
+  await Promise.all(Object.entries(workspaces).map(async ([name, info]: [string, any]) => {
     const packageRoot = resolve(tmpDirPath, info.location)
     const packageJsonPath = resolve(packageRoot, "package.json")
     const packageJson = require(packageJsonPath)
@@ -136,7 +135,7 @@ async function buildBinaries(args: string[]) {
     await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2))
 
     console.log(chalk.green(" ✓ " + name))
-  })
+  }))
 
   // Run yarn install in the cli package
   console.log(chalk.cyan("Installing packages in @garden-io/cli package"))
@@ -146,11 +145,11 @@ async function buildBinaries(args: string[]) {
   // Run pkg and pack up each platform binary
   console.log(chalk.cyan("Packaging garden binaries"))
 
-  await Bluebird.map(Object.entries(selected), async ([targetName, spec]) => {
+  await Promise.all(Object.entries(selected).map(async ([targetName, spec]) => {
     await spec.handler({ targetName, sourcePath: cliPath, pkgType: spec.pkgType, version })
     await sleep(5000) // Work around concurrency bug in pkg...
     console.log(chalk.green(" ✓ " + targetName))
-  })
+  }))
 
   console.log(chalk.green.bold("Done!"))
 }

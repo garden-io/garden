@@ -14,7 +14,6 @@ import { ParameterError, toGardenError } from "../exceptions"
 import { Log } from "../logger/log-entry"
 import { Garden } from "../garden"
 import { Command, CommandResult, CommandParams } from "./base"
-import Bluebird from "bluebird"
 import { printHeader, getTerminalWidth } from "../logger/util"
 import { StringOption } from "../cli/params"
 import { ConfigGraph } from "../graph/config-graph"
@@ -133,7 +132,7 @@ async function listPlugins(garden: Garden, log: Log, pluginsToList: string[]) {
   ${chalk.white.bold("PLUGIN COMMANDS")}
   `)
 
-  const plugins = await Bluebird.map(pluginsToList, async (pluginName) => {
+  const plugins = await Promise.all(pluginsToList.map(async (pluginName) => {
     const plugin = await garden.getPlugin(pluginName)
 
     const commands = plugin.commands
@@ -158,7 +157,7 @@ async function listPlugins(garden: Garden, log: Log, pluginsToList: string[]) {
     log.info("")
 
     return plugin
-  })
+  }))
 
   const result = fromPairs(zip(pluginsToList, plugins))
   return { result }

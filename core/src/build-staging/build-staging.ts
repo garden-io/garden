@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { isAbsolute, join, resolve, relative, parse, basename } from "path"
 import { emptyDir, ensureDir, mkdirp, pathExists, remove } from "fs-extra"
 import { ConfigurationError, InternalError } from "../exceptions"
@@ -84,7 +83,7 @@ export class BuildStaging {
   async syncDependencyProducts(action: BuildAction, log: Log) {
     const buildPath = action.getBuildPath()
 
-    await Bluebird.map(action.getConfig("copyFrom") || [], async (copy) => {
+    await Promise.all((action.getConfig("copyFrom") || []).map(async (copy) => {
       const sourceBuild = action.getDependency({ kind: "Build", name: copy.build })
 
       if (!sourceBuild) {
@@ -126,7 +125,7 @@ export class BuildStaging {
         withDelete: false,
         log,
       })
-    })
+    }))
   }
 
   async clear() {
@@ -342,17 +341,15 @@ export class BuildStaging {
     }
 
     // Both source and target path are directories, so we proceed to sync between them.
-    const { sourcePaths, existingAtTarget } = await Bluebird.props({
-      sourcePaths: (async () => {
-        if (files) {
-          // If a file list is provided, the relative source path is always the same as the target.
-          return files.map((f) => [f, f]) as MappedPaths
-        } else {
-          return await scanDirectoryForClone(sourceRoot, sourceRelPath)
-        }
-      })(),
-      existingAtTarget: withDelete ? (await scanDirectoryForClone(targetPath)).map((p) => p[0]) : [],
-    })
+    let sourcePaths: MappedPaths
+    if (files) {
+      // If a file list is provided, the relative source path is always the same as the target.
+      sourcePaths = files.map((f) => [f, f]) as MappedPaths
+    } else {
+      sourcePaths = await scanDirectoryForClone(sourceRoot, sourceRelPath)
+    }
+
+    const existingAtTarget = withDelete ? (await scanDirectoryForClone(targetPath)).map((p) => p[0]) : []
 
     // TODO: optimize by making sure all directories in the file list exist before syncing
 

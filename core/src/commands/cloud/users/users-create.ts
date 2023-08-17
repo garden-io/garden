@@ -22,7 +22,7 @@ import { PathParameter, StringsParameter } from "../../../cli/params"
 import { StringMap } from "../../../config/common"
 import { chunk } from "lodash"
 import dotenv = require("dotenv")
-import Bluebird = require("bluebird")
+import pLimit from "p-limit"
 
 // This is the limit set by the API.
 const MAX_USERS_PER_REQUEST = 100
@@ -144,39 +144,40 @@ export class UsersCreateCommand extends Command<Args, Opts> {
 
     const errors: ApiCommandError[] = []
     const results: UserResult[] = []
-    await Bluebird.map(
-      batches,
-      async (userBatch) => {
-        const asyncBatch = Math.ceil(count / nAsyncBatches)
-        if (asyncBatch > currentAsyncBatch) {
-          currentAsyncBatch = asyncBatch
-          cmdLog.info({ msg: `Creating users... → Batch ${currentAsyncBatch}/${nAsyncBatches}` })
-        }
-        count++
-        try {
-          const body: CreateUserBulkRequest = {
-            users: userBatch,
-            addToGroups,
+    const limit = pLimit(concurrency)
+    await Promise.all(
+      batches.map((userBatch) =>
+        limit(() => async () => {
+          const asyncBatch = Math.ceil(count / nAsyncBatches)
+          if (asyncBatch > currentAsyncBatch) {
+            currentAsyncBatch = asyncBatch
+            cmdLog.info({ msg: `Creating users... → Batch ${currentAsyncBatch}/${nAsyncBatches}` })
           }
-          const res = await api.post<CreateUserBulkResponse>(`/users/bulk`, { body })
-          const successes = res.data.filter((d) => d.statusCode === 200).map((d) => d.user) as UserResultApi[]
-          results.push(...successes.map((s) => makeUserFromResponse(s)))
+          count++
+          try {
+            const body: CreateUserBulkRequest = {
+              users: userBatch,
+              addToGroups,
+            }
+            const res = await api.post<CreateUserBulkResponse>(`/users/bulk`, { body })
+            const successes = res.data.filter((d) => d.statusCode === 200).map((d) => d.user) as UserResultApi[]
+            results.push(...successes.map((s) => makeUserFromResponse(s)))
 
-          const failures = res.data
-            .filter((d) => d.statusCode !== 200)
-            .map((d) => ({
-              message: d.message,
-              identifier: d.user.vcsUsername || "",
-            }))
-          errors.push(...failures)
-        } catch (err) {
-          errors.push({
-            identifier: "",
-            message: err?.response?.body?.message || err.messsage,
-          })
-        }
-      },
-      { concurrency }
+            const failures = res.data
+              .filter((d) => d.statusCode !== 200)
+              .map((d) => ({
+                message: d.message,
+                identifier: d.user.vcsUsername || "",
+              }))
+            errors.push(...failures)
+          } catch (err) {
+            errors.push({
+              identifier: "",
+              message: err?.response?.body?.message || err.messsage,
+            })
+          }
+        })
+      )
     )
 
     return handleBulkOperationResult({

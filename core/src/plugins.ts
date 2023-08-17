@@ -25,7 +25,6 @@ import { validateSchema } from "./config/validation"
 import type { Log } from "./logger/log-entry"
 import { DependencyGraph } from "./graph/common"
 import { parse, resolve } from "path"
-import Bluebird from "bluebird"
 import { ModuleTypeMap, getModuleTypeBases } from "./types/module"
 import { ActionKind, actionKinds } from "./actions/types"
 import type {
@@ -44,7 +43,7 @@ export async function loadAndResolvePlugins(
   registeredPlugins: RegisterPluginParam[],
   configs: GenericProviderConfig[]
 ) {
-  const loadedPlugins = keyBy(await Bluebird.map(registeredPlugins, (p) => loadPlugin(log, projectRoot, p)), "name")
+  const loadedPlugins = keyBy(await Promise.all(registeredPlugins.map((p) => loadPlugin(log, projectRoot, p))), "name")
 
   return resolvePlugins(log, loadedPlugins, configs)
 }

@@ -87,29 +87,40 @@ export class GetStatusCommand extends Command {
     if (opts["only-deploys"]) {
       result = {
         providers: {},
-        actions: await Bluebird.props({
+        actions:{
           Build: {},
-          Deploy: getDeployStatuses(router, graph, log),
+          Deploy: await getDeployStatuses(router, graph, log),
           Test: {},
           Run: {},
-        }),
+        },
       }
     } else {
       const envStatus = await garden.getEnvironmentStatus(log)
+      const [
+        buildStatuses,
+        deployStatuses,
+        testStatuses,
+        runStatuses,
+      ] = await Promise.all([
+        getBuildStatuses(router, graph, log),
+        getDeployStatuses(router, graph, log),
+        getTestStatuses(router, graph, log),
+        getRunStatuses(router, graph, log),
+      ])
       result = {
         providers: envStatus,
-        actions: await Bluebird.props({
-          Build: getBuildStatuses(router, graph, log),
-          Deploy: getDeployStatuses(router, graph, log),
-          Test: getTestStatuses(router, graph, log),
-          Run: getRunStatuses(router, graph, log),
-        }),
+        actions:{
+          Build: buildStatuses,
+          Deploy: deployStatuses,
+          Test: testStatuses,
+          Run: runStatuses,
+        }
       }
     }
 
-    const deployStatuses = result.actions.Deploy
+    const finalDeployStatuses = result.actions.Deploy
 
-    for (const [name, status] of Object.entries(deployStatuses)) {
+    for (const [name, status] of Object.entries(finalDeployStatuses)) {
       if (status.state === "unknown") {
         log.warn(
           chalk.yellow(

@@ -10,7 +10,6 @@ import { GitHandler } from "@garden-io/core/build/src/vcs/git"
 import { Garden } from "@garden-io/core/build/src/garden"
 import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger"
 import { resolve, relative } from "path"
-import Bluebird from "bluebird"
 import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "@garden-io/core/build/src/constants"
 import { writeTreeVersionFile } from "@garden-io/core/build/src/vcs/vcs"
 import { TreeCache } from "@garden-io/core/build/src/cache"
@@ -28,7 +27,7 @@ async function addVersionFiles() {
 
   const moduleConfigs = await garden.getRawModuleConfigs()
 
-  return Bluebird.map(moduleConfigs, async (config) => {
+  return Promise.all(moduleConfigs.map(async (config) => {
     const path = config.path
     const versionFilePath = resolve(path, GARDEN_VERSIONFILE_NAME)
 
@@ -45,7 +44,7 @@ async function addVersionFiles() {
     console.log(`${config.name} -> ${relative(STATIC_DIR, versionFilePath)}`)
 
     return writeTreeVersionFile(path, treeVersion)
-  })
+  }))
 }
 
 if (require.main === module) {

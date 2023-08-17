@@ -35,7 +35,6 @@ import { ActionReference, allowUnknown, DeepPrimitiveMap } from "./config/common
 import type { ProviderMap } from "./config/provider"
 import chalk from "chalk"
 import { DependencyGraph } from "./graph/common"
-import Bluebird from "bluebird"
 import { mkdirp, readFile } from "fs-extra"
 import type { Log } from "./logger/log-entry"
 import { ModuleConfigContext, ModuleConfigContextParams } from "./config/template-contexts/module"
@@ -243,7 +242,7 @@ export class ModuleResolver {
       }
 
       // Process each of the leaf node module configs.
-      await Bluebird.map(batch, processNode)
+      await Promise.all(batch.map(processNode))
     }
 
     // Iterate through dependency graph, a batch of leaves at a time. While there are items remaining:
@@ -522,7 +521,7 @@ export class ModuleResolver {
 
     let updatedFiles = false
 
-    await Bluebird.map(resolvedConfig.generateFiles || [], async (fileSpec) => {
+    await Promise.all((resolvedConfig.generateFiles || []).map(async (fileSpec) => {
       let contents = fileSpec.value || ""
 
       if (fileSpec.sourcePath) {
@@ -576,7 +575,7 @@ export class ModuleResolver {
           },
         })
       }
-    })
+    }))
 
     // Make sure version is re-computed after writing new/updated files
     if (updatedFiles) {
@@ -687,7 +686,7 @@ export const convertModules = profileAsync(async function convertModules(
   const groups: GroupConfig[] = []
   const actions: BaseActionConfig[] = []
 
-  await Bluebird.map(modules, async (module) => {
+  await Promise.all(modules.map(async (module) => {
     const services = module.serviceConfigs.map((c) => serviceFromConfig(graph, module, c))
     const tasks = module.taskConfigs.map((c) => taskFromConfig(module, c))
     const tests = module.testConfigs.map((c) => testFromConfig(module, c, graph))
@@ -793,7 +792,7 @@ export const convertModules = profileAsync(async function convertModules(
 
       actions.push(...result.actions)
     }
-  })
+  }))
 
   return { groups, actions }
 })

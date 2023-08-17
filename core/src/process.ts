@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 
 import { Garden } from "./garden"
 import { Log } from "./logger/log-entry"
@@ -31,12 +30,12 @@ export async function getActiveProcesses(globalConfigStore: GlobalConfigStore) {
   const processes = await globalConfigStore.get("activeProcesses")
 
   // TODO: avoid multiple writes here
-  await Bluebird.map(Object.entries(processes), async ([key, p]) => {
+  await Promise.all(Object.entries(processes).map(async ([key, p]) => {
     if (!isRunning(p.pid)) {
       await globalConfigStore.delete("activeProcesses", key)
       delete processes[key]
     }
-  })
+  }))
 
   return Object.values(processes)
 }
