@@ -29,7 +29,7 @@ const pkgPath = resolve(repoRoot, "cli", "node_modules", ".bin", "pkg")
 const distPath = resolve(repoRoot, "dist")
 
 // Allow larger heap size than default
-const nodeOptions = ["max-old-space-size=4096"]
+const nodeOptions = ["max-old-space-size=4096", "max-semi-space-size=64"]
 
 /* eslint-disable no-console */
 
