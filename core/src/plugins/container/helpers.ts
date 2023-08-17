@@ -20,7 +20,6 @@ import {
   ContainerModuleConfig,
 } from "./moduleConfig"
 import { Writable } from "stream"
-import Bluebird from "bluebird"
 import { flatten, uniq, fromPairs, reduce } from "lodash"
 import { Log } from "../../logger/log-entry"
 import chalk from "chalk"
@@ -255,7 +254,7 @@ const helpers = {
    * Retrieves the docker client and server version.
    */
   getDockerVersion: pMemoize(async (cliPath = "docker"): Promise<DockerVersion> => {
-    const results = await Bluebird.map(["client", "server"], async (key) => {
+    const results = await Promise.all(["client", "server"].map(async (key) => {
       let res: SpawnOutput
 
       try {
@@ -276,7 +275,7 @@ const helpers = {
       }
 
       return [key, output]
-    })
+    }))
 
     return fromPairs(results)
   }),
@@ -441,7 +440,7 @@ const helpers = {
     // Make sure to include the Dockerfile
     paths.push(config.spec.dockerfile || defaultDockerfileName)
 
-    return Bluebird.map(paths, async (path) => {
+    return Promise.all(paths.map(async (path) => {
       const absPath = join(config.path, path)
 
       // Unescape escaped template strings
@@ -464,7 +463,7 @@ const helpers = {
         // Pass the file through directly if it can't be found (an error will occur in the build later)
         return path
       }
-    })
+    }))
   },
 }
 

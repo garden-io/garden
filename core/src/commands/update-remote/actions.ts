@@ -19,7 +19,7 @@ import { Garden } from "../../garden"
 import { Log } from "../../logger/log-entry"
 import { joiArray, joi } from "../../config/common"
 import { StringsParameter, ParameterValues } from "../../cli/params"
-import Bluebird from "bluebird"
+import pMap from "p-map"
 
 const updateRemoteActionsArguments = {
   actions: new StringsParameter({
@@ -113,9 +113,9 @@ export async function updateRemoteActions({
     })
   }
 
-  await Bluebird.map(
+  await pMap(
     actionSources,
-    async ({ name, repositoryUrl }) => {
+    ({ name, repositoryUrl }) => {
       return garden.vcs.updateRemoteSource({
         name,
         url: repositoryUrl,

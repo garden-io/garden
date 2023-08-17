@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { fromPairs, omit } from "lodash"
 import { deepFilter } from "../../util/objects"
 import { Command, CommandResult, CommandParams } from "../base"
@@ -87,7 +86,7 @@ export class GetStatusCommand extends Command {
     if (opts["only-deploys"]) {
       result = {
         providers: {},
-        actions:{
+        actions: {
           Build: {},
           Deploy: await getDeployStatuses(router, graph, log),
           Test: {},
@@ -96,12 +95,7 @@ export class GetStatusCommand extends Command {
       }
     } else {
       const envStatus = await garden.getEnvironmentStatus(log)
-      const [
-        buildStatuses,
-        deployStatuses,
-        testStatuses,
-        runStatuses,
-      ] = await Promise.all([
+      const [buildStatuses, deployStatuses, testStatuses, runStatuses] = await Promise.all([
         getBuildStatuses(router, graph, log),
         getDeployStatuses(router, graph, log),
         getTestStatuses(router, graph, log),
@@ -109,12 +103,12 @@ export class GetStatusCommand extends Command {
       ])
       result = {
         providers: envStatus,
-        actions:{
+        actions: {
           Build: buildStatuses,
           Deploy: deployStatuses,
           Test: testStatuses,
           Run: runStatuses,
-        }
+        },
       }
     }
 
@@ -165,22 +159,26 @@ async function getDeployStatuses(router: ActionRouter, graph: ResolvedConfigGrap
   const actions = graph.getDeploys()
 
   return fromPairs(
-    await Bluebird.map(actions, async (action) => {
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-      const { result } = await router.deploy.getStatus({ action, log: actionLog, graph })
-      return [action.name, result]
-    })
+    await Promise.all(
+      actions.map(async (action) => {
+        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const { result } = await router.deploy.getStatus({ action, log: actionLog, graph })
+        return [action.name, result]
+      })
+    )
   )
 }
 async function getBuildStatuses(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
   const actions = graph.getBuilds()
 
   return fromPairs(
-    await Bluebird.map(actions, async (action) => {
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-      const { result } = await router.build.getStatus({ action, log: actionLog, graph })
-      return [action.name, result]
-    })
+    await Promise.all(
+      actions.map(async (action) => {
+        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const { result } = await router.build.getStatus({ action, log: actionLog, graph })
+        return [action.name, result]
+      })
+    )
   )
 }
 
@@ -188,11 +186,13 @@ async function getTestStatuses(router: ActionRouter, graph: ResolvedConfigGraph,
   const actions = graph.getTests()
 
   return fromPairs(
-    await Bluebird.map(actions, async (action) => {
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-      const { result } = await router.test.getResult({ action, log: actionLog, graph })
-      return [action.name, result]
-    })
+    await Promise.all(
+      actions.map(async (action) => {
+        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const { result } = await router.test.getResult({ action, log: actionLog, graph })
+        return [action.name, result]
+      })
+    )
   )
 }
 
@@ -200,10 +200,12 @@ async function getRunStatuses(router: ActionRouter, graph: ResolvedConfigGraph, 
   const actions = graph.getRuns()
 
   return fromPairs(
-    await Bluebird.map(actions, async (action) => {
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-      const { result } = await router.run.getResult({ action, log: actionLog, graph })
-      return [action.name, result]
-    })
+    await Promise.all(
+      actions.map(async (action) => {
+        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const { result } = await router.run.getResult({ action, log: actionLog, graph })
+        return [action.name, result]
+      })
+    )
   )
 }

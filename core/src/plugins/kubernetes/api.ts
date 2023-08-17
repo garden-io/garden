@@ -8,7 +8,6 @@
 
 import { IncomingMessage } from "http"
 import { ReadStream } from "tty"
-import Bluebird from "bluebird"
 import {
   ApiextensionsV1Api,
   ApisApi,
@@ -473,7 +472,7 @@ export class KubeApi {
     versionedKinds: { apiVersion: string; kind: string }[]
     labelSelector?: { [label: string]: string }
   }): Promise<KubernetesResource[]> {
-    const resources = await Bluebird.map(versionedKinds, async ({ apiVersion, kind }) => {
+    const resources = await Promise.all(versionedKinds.map(async ({ apiVersion, kind }) => {
       try {
         const resourceListForKind = await this.listResources({
           log,
@@ -497,7 +496,7 @@ export class KubeApi {
         }
         throw err
       }
-    })
+    }))
     return flatten(resources)
   }
 

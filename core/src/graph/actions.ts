@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import cloneDeep from "fast-copy"
 import { isEqual, mapValues, memoize, omit, pick, uniq } from "lodash"
 import {
@@ -135,7 +134,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({ actions: [], moduleGraph, groups: groupConfigs })
 
-  await Bluebird.map(Object.entries(configsByKey), async ([key, config]) => {
+  await Promise.all(Object.entries(configsByKey).map(async ([key, config]) => {
     // Apply action modes
     let mode: ActionMode = "default"
     let explicitMode = false // set if a key is explicitly set (as opposed to a wildcard match)
@@ -198,7 +197,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
         wrappedErrors: [error],
       })
     }
-  })
+  }))
 
   graph.validate()
 

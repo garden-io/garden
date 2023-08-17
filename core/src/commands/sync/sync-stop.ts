@@ -11,7 +11,6 @@ import { joi } from "../../config/common"
 import { printHeader } from "../../logger/util"
 import { dedent, naturalList } from "../../util/string"
 import { Command, CommandParams, CommandResult } from "../base"
-import Bluebird from "bluebird"
 import chalk from "chalk"
 import { createActionLog } from "../../logger/log-entry"
 
@@ -100,7 +99,7 @@ export class SyncStopCommand extends Command<Args, Opts> {
 
     const router = await garden.getActionRouter()
 
-    await Bluebird.map(actions, async (action) => {
+    await Promise.all(actions.map(async (action) => {
       const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
       actionLog.info("Stopping active syncs (if any)...")
 
@@ -110,7 +109,7 @@ export class SyncStopCommand extends Command<Args, Opts> {
       garden.monitors.find({ type: "sync", key: action.name }).map((m) => m.stop())
 
       actionLog.info("Syncing successfully stopped.")
-    })
+    }))
 
     log.info(chalk.green("\nDone!"))
 

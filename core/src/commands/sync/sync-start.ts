@@ -12,7 +12,6 @@ import { printHeader } from "../../logger/util"
 import { DeployTask } from "../../tasks/deploy"
 import { dedent, naturalList } from "../../util/string"
 import { Command, CommandParams, CommandResult, PrepareParams } from "../base"
-import Bluebird from "bluebird"
 import chalk from "chalk"
 import { ParameterError, RuntimeError } from "../../exceptions"
 import { SyncMonitor } from "../../monitors/sync"
@@ -219,7 +218,7 @@ export async function startSyncWithoutDeploy({
 
   const router = await garden.getActionRouter()
 
-  await Bluebird.map(tasks, async (task) => {
+  await Promise.all(tasks.map(async (task) => {
     const action = task.action
     const result = statusResult.results.getResult(task)
 
@@ -256,7 +255,7 @@ export async function startSyncWithoutDeploy({
     } else {
       actionLog.warn(chalk.yellow(`${action.longDescription()} is not deployed, cannot start sync.`))
     }
-  })
+  }))
 
   if (!someSyncStarted) {
     throw new RuntimeError({

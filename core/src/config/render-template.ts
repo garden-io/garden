@@ -23,7 +23,6 @@ import { Garden } from "../garden"
 import { ConfigurationError } from "../exceptions"
 import { resolve, posix } from "path"
 import { ensureDir } from "fs-extra"
-import Bluebird from "bluebird"
 import type { TemplatedModuleConfig } from "../plugins/templated"
 import { omit } from "lodash"
 import { EnvironmentConfigContext } from "./template-contexts/project"
@@ -189,7 +188,7 @@ async function renderModules({
   context: RenderTemplateConfigContext
   renderConfig: RenderTemplateConfig
 }): Promise<ModuleConfig[]> {
-  return Bluebird.map(template.modules || [], async (m) => {
+  return Promise.all((template.modules || []).map(async (m) => {
     // Run a partial template resolution with the parent+template info
     const spec = resolveTemplateStrings(m, context, { allowPartial: true })
     const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
@@ -234,7 +233,7 @@ async function renderModules({
     moduleConfig.inputs = renderConfig.inputs
 
     return moduleConfig
-  })
+  }))
 }
 
 async function renderConfigs({
@@ -252,7 +251,7 @@ async function renderConfigs({
 }): Promise<TemplatableConfig[]> {
   const templateDescription = `${configTemplateKind} '${template.name}'`
 
-  return Bluebird.map(template.configs || [], async (m) => {
+  return Promise.all((template.configs || []).map(async (m) => {
     // Resolve just the name, which must be immediately resolvable
     let resolvedName = m.name
 
@@ -331,5 +330,5 @@ async function renderConfigs({
     resource.internal.inputs = renderConfig.inputs
 
     return resource
-  })
+  }))
 }
