@@ -69,7 +69,7 @@ export abstract class TaskNode<T extends Task = Task> {
   }
 
   /**
-   * Returns all dependencies that does not yet have a result, i.e. is not resolved.
+   * Returns all dependencies that do not yet have a result.
    */
   getRemainingDependencies(): TaskNode[] {
     return this.getDependencies().filter((d) => this.getDependencyResult(d) === undefined)
@@ -264,7 +264,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
 
     const status = statusResult?.result
 
-    if (!this.task.force && status?.state === "ready") {
+    if (!needsProcessing(this.task, status?.state)) {
       return status
     }
 
@@ -313,7 +313,7 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
         dependencyResults,
       })
       this.task.emit("statusResolved", { result })
-      if (!this.task.force && result?.state === "ready") {
+      if (!needsProcessing(this.task, result?.state)) {
         const msg = `${this.task.getDescription()} status is ready.`
         this.statusOnly || this.task.type === "resolve-action" ? this.task.log.debug(msg) : this.task.log.verbose(msg)
       }
@@ -327,6 +327,10 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
 
 export function getNodeKey(task: Task, type: NodeType) {
   return `${task.getKey()}:${type}`
+}
+
+export function needsProcessing(task: Task, state: ValidResultType["state"] | undefined) {
+  return task.force || state !== "ready"
 }
 
 export type CompleteHandler<R extends ValidResultType> = (result: GraphResult<R>) => void

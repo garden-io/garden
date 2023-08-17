@@ -21,7 +21,7 @@ import { StringsParameter, BooleanParameter } from "../cli/params"
 import { dedent, deline } from "../util/string"
 import { ParameterError } from "../exceptions"
 import { warnOnLinkedActions } from "../actions/helpers"
-import { validateActionSearchResults, watchParameter, watchRemovedWarning } from "./helpers"
+import { parseSkipDependenciesOpt, validateActionSearchResults, watchParameter, watchRemovedWarning } from "./helpers"
 
 export const testArgs = {
   names: new StringsParameter({
@@ -160,7 +160,6 @@ export class TestCommand extends Command<Args, Opts> {
     let names: string[] | undefined = undefined
     const nameArgs = [...(args.names || []), ...(opts.name || []).map((n) => `*-${n}`)]
     const force = opts.force
-    const skipRuntimeDependencies = opts["skip-dependencies"]
 
     if (nameArgs.length > 0) {
       names = nameArgs
@@ -203,7 +202,7 @@ export class TestCommand extends Command<Args, Opts> {
           force,
           forceBuild: opts["force-build"],
           action,
-          skipRuntimeDependencies,
+          skipRuntimeDependencies: parseSkipDependenciesOpt(opts["skip-dependencies"]),
           interactive: opts.interactive,
         })
     )

@@ -24,6 +24,7 @@ import {
   CompleteTaskParams,
   getNodeKey,
   InternalNodeTypes,
+  needsProcessing,
   ProcessTaskNode,
   RequestTaskNode,
   StatusTaskNode,
@@ -286,7 +287,11 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     return node
   }
 
-  // Note: It is important that this is not an async function
+  // Note: It is important that this is not an async function, since we only want to update the remaining graph of
+  // nodes to process in synchronous code.
+  //
+  // This helps avoid race conditions and makes the implementation easier to reason about. That's why the
+  // `evaluateRequests` method on the solver is also synchronous.
   private loop() {
     // Make sure only one instance of this function is running at any point
     if (this.inLoop) {
@@ -400,6 +405,8 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     return request
   }
 
+  // Similarly to the `loop` method which calls it, this method is deliberately not async. This helps avoid race
+  // conditions when modifying the remaining graph of nodes to process.
   private evaluateRequests() {
     for (const [_batchId, requests] of Object.entries(this.requestedTasks)) {
       for (const request of Object.values(requests)) {
@@ -424,10 +431,11 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           // We're not forcing, and we don't have the status yet, so we ensure that's pending
           this.log.silly(`Request ${request.getKey()} is missing its status.`)
           this.ensurePendingNode(statusNode, request)
-        } else if (status.result?.state === "ready" && !task.force) {
+        } else if (!needsProcessing(task, status.result?.state)) {
           this.log.silly(`Request ${request.getKey()} has ready status and force=false, no need to process.`)
           this.completeTask({ ...status, node: request })
         } else {
+          // Either we're forcing, or the result isn't ready.
           const processNode = this.getNode({ type: "process", task, statusOnly: request.statusOnly })
           const result = this.getPendingResult(processNode)
 

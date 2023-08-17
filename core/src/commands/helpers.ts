@@ -22,6 +22,7 @@ import { naturalList } from "../util/string"
 import { CommandParams } from "./base"
 import { ServeCommandOpts } from "./serve"
 import { DevCommand } from "./dev"
+import { SkipRuntimeDependenciesMode } from "../tasks/base"
 
 /**
  * Runs a `dev` command and runs `commandName` with the args & opts provided in `params` as the first
@@ -47,6 +48,10 @@ export async function runAsDevCommand(
 
 export function getCmdOptionForDev(commandName: string, params: CommandParams) {
   return [commandName + " " + params.args.$all?.join(" ")]
+}
+
+export function parseSkipDependenciesOpt(skipDependencies: boolean): SkipRuntimeDependenciesMode {
+  return skipDependencies ? "always" : "auto"
 }
 
 export function prettyPrintWorkflow(workflow: WorkflowConfig): string {

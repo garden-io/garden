@@ -11,7 +11,7 @@ import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
 import { ActionLog, createActionLog, Log } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
-import { type Action, type ActionState, type Executed, type Resolved } from "../actions/types"
+import { ActionDependency, type Action, type ActionState, type Executed, type Resolved } from "../actions/types"
 import { ConfigGraph } from "../graph/config-graph"
 import type { ActionReference } from "../config/common"
 import { GraphError, InternalError, RuntimeError } from "../exceptions"
@@ -38,11 +38,35 @@ export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
 }
 
+/**
+ * This field determines which runtime dependencies of the task are included (see
+ * {@link BaseActionTask.resolveProcessDependencies}).
+ *
+ * With the default setting, `auto`, the solver decides whether to process this task's runtime dependencies (based on
+ * whether a result with a ready state exists for the task, and whether the task has `force: true`). Only direct
+ * dependencies are returned (i.e. not the recursive subgraph of dependencies for the task).
+ *
+ * When `never`, recursively include runtime dependencies for the entire dependency subgraph of this task. This is
+ * suitable e.g. for tests, where the entire subgraph needs to be up to date to ensure a valid result.
+ *
+ * When `always`, none of this task's runtime dependencies will be included.
+ *
+ * ### A few notes on when `never` VS `auto` is appropriate:
+ *
+ * The `never` setting is useful e.g. for test tasks with runtime dependencies, where we want to ensure that all
+ * runtime dependencies are up to date (recursively) before testing.
+ *
+ * In contrast, when deploying a single service that depends on other deploys that are running but outdated, this is
+ * generally be set to `auto`, meaning that dependencies won't be evaluated or added by the solver if the deploy's
+ * status is ready (it's up to the plugin / action handlers to decide whether a changed action version, which changes
+ * when a dependency changes, necessarily results in an outdated status and thus calls for a redeploy).
+ */
+export type SkipRuntimeDependenciesMode = "auto" | "never" | "always"
+
 export interface CommonTaskParams {
   garden: Garden
   log: Log
   force: boolean
-  skipDependencies?: boolean
 }
 
 export interface BaseActionTaskParams<T extends Action = Action> extends CommonTaskParams {
@@ -51,7 +75,7 @@ export interface BaseActionTaskParams<T extends Action = Action> extends CommonT
   graph: ConfigGraph
   forceActions?: ActionReference[]
   forceBuild?: boolean // Shorthand for placing all builds in forceActions
-  skipRuntimeDependencies?: boolean
+  skipRuntimeDependencies?: SkipRuntimeDependenciesMode
 }
 
 export interface TaskProcessParams {
@@ -112,7 +136,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
   public readonly log: Log
   public readonly uid: string
   public readonly force: boolean
-  public readonly skipDependencies: boolean
+
   protected readonly executeTask: boolean = false
   interactive = false
 
@@ -122,7 +146,6 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
     this.uid = uuidv1() // uuidv1 is timestamp-based
     this.force = !!initArgs.force
     this.log = initArgs.log
-    this.skipDependencies = !!initArgs.skipDependencies
   }
 
   abstract getName(): string
@@ -161,9 +184,6 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
    */
   @Memoize((params: ResolveProcessDependenciesParams<O>) => (params.status ? params.status.state : null))
   getProcessDependencies(params: ResolveProcessDependenciesParams<O>): BaseTask[] {
-    if (this.skipDependencies) {
-      return []
-    }
     return this.resolveProcessDependencies(params)
   }
 
@@ -216,7 +236,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
   action: T
   graph: ConfigGraph
   forceActions: ActionReference[]
-  skipRuntimeDependencies: boolean
+  skipRuntimeDependencies: SkipRuntimeDependenciesMode
   override log: ActionLog
 
   constructor(params: BaseActionTaskParams<T>) {
@@ -227,7 +247,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
     this.action = action
     this.graph = params.graph
     this.forceActions = params.forceActions || []
-    this.skipRuntimeDependencies = params.skipRuntimeDependencies || false
+    this.skipRuntimeDependencies = params.skipRuntimeDependencies || "auto"
 
     if (params.forceBuild) {
       this.forceActions.push(...this.graph.getBuilds())
@@ -254,11 +274,33 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
   resolveProcessDependencies({ status }: ResolveProcessDependenciesParams<ValidResultType>): BaseTask[] {
     const resolveTask = this.getResolveTask(this.action)
 
-    if (status?.state === "ready" && !this.force) {
+    if (status?.state === "ready" && !this.force && this.skipRuntimeDependencies !== "never") {
       return [resolveTask]
     }
 
-    const deps = this.action.getDependencyReferences().flatMap((dep): BaseTask[] => {
+    let dependencyRefs = this.action.getDependencyReferences()
+    if (this.isExecuteTask() && this.skipRuntimeDependencies === "never") {
+      // Then we recursively include runtime dependencies here. This ensures that we look past ready action results
+      // to also process outdated upstream dependencies (which are the desired semantics e.g. for tests).
+      const addedRefs: ActionDependency[] = this.graph
+        .getDependenciesForMany({
+          refs: dependencyRefs,
+          recursive: true,
+          filter: (node) => node.kind !== "Build",
+        })
+        .map((action) => {
+          return {
+            kind: action.kind,
+            name: action.name,
+            explicit: true,
+            needsExecutedOutputs: false,
+            needsStaticOutputs: false,
+          }
+        })
+      dependencyRefs = [...dependencyRefs, ...addedRefs]
+    }
+
+    const deps = dependencyRefs.flatMap((dep): BaseTask[] => {
       const action = this.graph.getActionByRef(dep, { includeDisabled: true })
       const disabled = action.isDisabled()
 
@@ -273,7 +315,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
         }
         return [this.getExecuteTask(action)]
       } else if (dep.explicit) {
-        if (this.skipRuntimeDependencies && dep.kind !== "Build") {
+        if (this.skipRuntimeDependencies === "always" && dep.kind !== "Build") {
           if (dep.needsStaticOutputs) {
             return [this.getResolveTask(action)]
           } else {
@@ -302,7 +344,6 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
       log: this.log,
       graph: this.graph,
       forceActions: this.forceActions,
-      skipDependencies: this.skipDependencies,
       skipRuntimeDependencies: this.skipRuntimeDependencies,
     }
   }

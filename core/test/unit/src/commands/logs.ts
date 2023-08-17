@@ -17,10 +17,10 @@ import {
   createProjectConfig,
   customizedTestPlugin,
   expectError,
+  makeDeploy,
   makeTempDir,
   withDefaultGlobalOpts,
 } from "../../../helpers"
-import { DEFAULT_DEPLOY_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants"
 import { formatForTerminal } from "../../../../src/logger/renderers"
 import chalk from "chalk"
 import { LogEntry } from "../../../../src/logger/log-entry"
@@ -56,21 +56,6 @@ function makeCommandParams({
   }
 }
 
-const makeDeployAction = (basePath: string, name: string): BaseActionConfig => ({
-  apiVersion: GardenApiVersion.v0,
-  kind: "Deploy",
-  name,
-  type: "test",
-  disabled: false,
-  internal: {
-    basePath,
-  },
-  timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
-  spec: {
-    deployCommand: ["echo", "ok"],
-  },
-})
-
 async function makeGarden({ tmpDir, plugin }: { tmpDir: tmp.DirectoryResult; plugin: GardenPluginSpec }) {
   const config: ProjectConfig = createProjectConfig({
     path: tmpDir.path,
@@ -78,7 +63,7 @@ async function makeGarden({ tmpDir, plugin }: { tmpDir: tmp.DirectoryResult; plu
   })
 
   const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [plugin] })
-  garden.setActionConfigs([makeDeployAction(tmpDir.path, "test-service-a")])
+  garden.setActionConfigs([makeDeploy("test-service-a", tmpDir.path)])
   return garden
 }
 
@@ -361,10 +346,10 @@ describe("LogsCommand", () => {
         const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
 
         garden.setActionConfigs([
-          makeDeployAction(tmpDir.path, "a-short"),
-          makeDeployAction(tmpDir.path, "b-not-short"),
-          makeDeployAction(tmpDir.path, "c-by-far-the-longest-of-the-bunch"),
-          makeDeployAction(tmpDir.path, "d-very-very-long"),
+          makeDeploy("a-short", tmpDir.path),
+          makeDeploy("b-not-short", tmpDir.path),
+          makeDeploy("c-by-far-the-longest-of-the-bunch", tmpDir.path),
+          makeDeploy("d-very-very-long", tmpDir.path),
         ])
 
         const command = new LogsCommand()
@@ -381,8 +366,8 @@ describe("LogsCommand", () => {
     })
 
     const actionConfigsForTags = (): BaseActionConfig[] => [
-      makeDeployAction(tmpDir.path, "api"),
-      makeDeployAction(tmpDir.path, "frontend"),
+      makeDeploy("api", tmpDir.path),
+      makeDeploy("frontend", tmpDir.path),
     ]
 
     it("should optionally print tags with --show-tags", async () => {

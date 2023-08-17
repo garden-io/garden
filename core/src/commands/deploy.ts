@@ -21,7 +21,7 @@ import {
   emptyActionResults,
 } from "./base"
 import { printEmoji, printHeader } from "../logger/util"
-import { runAsDevCommand, watchParameter, watchRemovedWarning } from "./helpers"
+import { parseSkipDependenciesOpt, runAsDevCommand, watchParameter, watchRemovedWarning } from "./helpers"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
@@ -215,7 +215,6 @@ export class DeployCommand extends Command<Args, Opts> {
       log.info(chalk.gray(msg))
     }
 
-    const skipRuntimeDependencies = opts["skip-dependencies"]
     const withDependants = opts["with-dependants"]
     if (withDependants && args.names && args.names.length > 0) {
       const result = graph.getDependantsForMany({
@@ -271,7 +270,7 @@ export class DeployCommand extends Command<Args, Opts> {
         action,
         force,
         forceBuild: opts["force-build"],
-        skipRuntimeDependencies,
+        skipRuntimeDependencies: parseSkipDependenciesOpt(opts["skip-dependencies"]),
         startSync,
         events,
       })

@@ -25,7 +25,7 @@ import {
 } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
-import { joi } from "../src/config/common"
+import { joi, parseActionReference } from "../src/config/common"
 import { GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
 import { Garden } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
@@ -44,7 +44,7 @@ import tmp, { DirectoryResult } from "tmp-promise"
 import { ConfigurationError } from "../src/exceptions"
 import execa from "execa"
 import timekeeper from "timekeeper"
-import { ManyActionTypeDefinitions } from "../src/plugin/action-types"
+import { ActionKind, ManyActionTypeDefinitions } from "../src/plugin/action-types"
 import { defaultEnvironment, defaultNamespace, ProjectConfig } from "../src/config/project"
 import { localConfigFilename } from "../src/config-store/local"
 import { GraphResultMapWithoutTask } from "../src/graph/results"
@@ -52,6 +52,7 @@ import { dumpYaml } from "../src/util/serialization"
 import { testPlugins } from "./helpers/test-plugin"
 import { testDataDir, testGitUrl } from "./helpers/constants"
 import { exec } from "../src/util/util"
+import { BaseActionConfig } from "../src/actions/types"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
@@ -175,6 +176,84 @@ export function makeModuleConfig<M extends ModuleConfig = ModuleConfig>(path: st
     type: "test",
     ...from,
   }
+}
+
+interface MakeDummyActionOpts {
+  spec?: any
+  disabled?: boolean
+  dependencies?: string[] // action ref strings (e.g. deploy.api)
+}
+
+export const makeAction = ({
+  basePath,
+  name,
+  kind,
+  opts,
+}: {
+  basePath: string
+  name: string
+  kind: ActionKind
+  opts: MakeDummyActionOpts
+}): BaseActionConfig => ({
+  apiVersion: GardenApiVersion.v0,
+  kind,
+  name,
+  type: "test",
+  disabled: !!opts.disabled,
+  timeout: 10,
+  internal: {
+    basePath,
+  },
+  dependencies: (opts.dependencies || []).map((ref) => parseActionReference(ref)),
+  spec: opts.spec || {},
+})
+
+export const makeBuild = (name: string, path: string, opts?: MakeDummyActionOpts) => {
+  return makeAction({
+    basePath: path,
+    name,
+    kind: "Build",
+    opts: {
+      ...opts,
+      spec: opts?.spec || { buildCommand: ["echo", name, "ok"] },
+    },
+  })
+}
+
+export const makeDeploy = (name: string, path: string, opts?: MakeDummyActionOpts) => {
+  return makeAction({
+    basePath: path,
+    name,
+    kind: "Deploy",
+    opts: {
+      ...opts,
+      spec: opts?.spec || { deployCommand: ["echo", name, "ok"] },
+    },
+  })
+}
+
+export const makeRun = (name: string, path: string, opts?: MakeDummyActionOpts) => {
+  return makeAction({
+    basePath: path,
+    name,
+    kind: "Run",
+    opts: {
+      ...opts,
+      spec: opts?.spec || { runCommand: ["echo", name, "ok"] },
+    },
+  })
+}
+
+export const makeTest = (name: string, path: string, opts?: MakeDummyActionOpts) => {
+  return makeAction({
+    basePath: path,
+    name,
+    kind: "Test",
+    opts: {
+      ...opts,
+      spec: opts?.spec || { testCommand: ["echo", name, "ok"] },
+    },
+  })
 }
 
 export const testProjectTempDirs: { [root: string]: DirectoryResult } = {}

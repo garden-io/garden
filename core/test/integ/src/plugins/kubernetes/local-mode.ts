@@ -79,7 +79,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
       action,
       force: false,
       forceBuild: false,
-      skipRuntimeDependencies: true,
+      skipRuntimeDependencies: "always",
     })
     await garden.processTask(task, log, {})
     const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })

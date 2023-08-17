@@ -47,10 +47,16 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   constructor(params: TestTaskParams) {
     super(params)
 
-    const { silent = true, interactive = false } = params
+    const { silent = true, interactive = false, skipRuntimeDependencies } = params
 
     this.silent = silent
     this.interactive = interactive
+    // For test tasks, we default to recursively including runtime dependencies regardless of whether they're ready
+    // to ensure that any outdated actions upstream of that ready dependency don't get ignored, since the correctness
+    // of test actions requires up-to-date dependencies, recursively).
+    //
+    // // This has its effect via `BaseActionTask.resolveProcessDependencies`.
+    this.skipRuntimeDependencies = skipRuntimeDependencies === "always" ? "always" : "never"
   }
 
   protected override getDependencyParams(): TestTaskParams {

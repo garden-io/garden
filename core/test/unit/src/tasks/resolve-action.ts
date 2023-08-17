@@ -35,7 +35,7 @@ describe("ResolveActionTask", () => {
   })
 
   async function getTask(kind: ActionKind, name: string, actionModes: ActionModeMap = {}) {
-    const graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true, actionModes })
+    const graph = await garden.getConfigGraph({ log, emit: false, actionModes })
     const action = graph.getActionByRef({ kind, name })
 
     return new ResolveActionTask({
@@ -72,7 +72,6 @@ describe("ResolveActionTask", () => {
           name: "foo",
         },
       ])
-
       const task = await getTask("Build", "foo")
 
       expect(task.resolveProcessDependencies()).to.eql([])

@@ -6,16 +6,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import tmp from "tmp-promise"
 import { expect } from "chai"
 import { BaseTask, CommonTaskParams, TaskProcessParams, ValidResultType } from "../../../../src/tasks/base"
-import { makeTestGarden, freezeTime, TestGarden, getDataDir, expectError } from "../../../helpers"
+import {
+  freezeTime,
+  TestGarden,
+  expectError,
+  customizedTestPlugin,
+  makeTempDir,
+  makeGarden,
+  makeBuild,
+  makeDeploy,
+  makeTest,
+} from "../../../helpers"
 import { MakeOptional } from "../../../../src/util/util"
 import { SolveOpts } from "../../../../src/graph/solver"
-import { ActionState } from "../../../../src/actions/types"
+import { ActionState, ActionStatus, BaseActionConfig } from "../../../../src/actions/types"
 import { GardenError, GenericGardenError } from "../../../../src/exceptions"
+import { ConfigGraph } from "../../../../src/graph/config-graph"
+import { joi } from "../../../../src/config/common"
+import { BaseAction } from "../../../../src/actions/base"
+import { TestTask } from "../../../../src/tasks/test"
+import { Log } from "../../../../src/logger/log-entry"
+import { GetRunResult } from "../../../../src/plugin/handlers/Run/get-result"
 
-const projectRoot = getDataDir("test-project-empty")
+const placeholderTimestamp = new Date()
 
+//
+// Utilities for solver tests where action-based tasks are not necessary to reproduce the semantics for testing
+//
 export type TestTaskCallback = (params: { task: BaseTask; params: TaskProcessParams }) => Promise<any>
 
 interface TestTaskParams extends CommonTaskParams {
@@ -37,7 +57,7 @@ interface TestTaskResult extends ValidResultType {
 
 // TODO-G2: Implement equivalent test cases for the new graph
 
-export class TestTask extends BaseTask<TestTaskResult> {
+export class SolverTestTask extends BaseTask<TestTaskResult> {
   type = "test"
 
   name: string
@@ -117,18 +137,138 @@ export class TestTask extends BaseTask<TestTaskResult> {
   }
 }
 
+//
+// Utilities for solver tests where action-based tasks are necessary to reproduce the semantics for testing
+//
+
+// Useful to test caching behavior of tasks
+let resultCache: { [actionKey: string]: ActionStatus }
+// Tracks which tasks were actually run, rather than cached.
+const processedKeys = new Set<string>()
+
+// Build & Deploy
+const makeReadyStatus = (): ActionStatus => {
+  return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+}
+const getStatusHandler = async (params: { action: BaseAction }) => {
+  return (
+    resultCache[params.action.key()] || {
+      state: "unknown",
+      detail: { state: "unknown", detail: {} },
+      outputs: {},
+    }
+  )
+}
+const processHandler = async (params: { action: BaseAction }) => {
+  const status = makeReadyStatus()
+  const key = params.action.key()
+  processedKeys.add(key)
+  resultCache[key] = status
+  return status
+}
+
+// Run & Test
+const makeSuccessfulResult = (): GetRunResult => {
+  const status: GetRunResult = {
+    state: "ready",
+    detail: {
+      success: true,
+      startedAt: placeholderTimestamp,
+      completedAt: placeholderTimestamp,
+      log: "OK",
+    },
+    outputs: {},
+  }
+  return status
+}
+
+const getResultHandler = async (params: { action: BaseAction }) => {
+  return (
+    resultCache[params.action.key()] || {
+      state: "unknown",
+      detail: null,
+      outputs: {},
+    }
+  )
+}
+const runHandler = async (params: { action: BaseAction }) => {
+  const status = makeSuccessfulResult()
+  const key = params.action.key()
+  processedKeys.add(key)
+  resultCache[key] = status
+  return status
+}
+
+const solverTestPlugin = customizedTestPlugin({
+  name: "test",
+  createActionTypes: {
+    Build: [
+      {
+        name: "test",
+        docs: "Test Build action",
+        schema: joi.object(),
+        handlers: {
+          build: processHandler,
+          getStatus: getStatusHandler,
+        },
+      },
+    ],
+    Deploy: [
+      {
+        name: "test",
+        docs: "Test Deploy action",
+        schema: joi.object(),
+        handlers: {
+          deploy: processHandler,
+          getStatus: getStatusHandler,
+        },
+      },
+    ],
+    Run: [
+      {
+        name: "test",
+        docs: "Test Run action",
+        schema: joi.object(),
+        handlers: {
+          run: runHandler,
+          getResult: getResultHandler,
+        },
+      },
+    ],
+    Test: [
+      {
+        name: "test",
+        docs: "Test Test action",
+        schema: joi.object(),
+        handlers: {
+          run: runHandler,
+          getResult: getResultHandler,
+        },
+      },
+    ],
+  },
+})
+
 describe("GraphSolver", () => {
+  let tmpDir: tmp.DirectoryResult
   let now: Date
   let garden: TestGarden
+  let graph: ConfigGraph
+  let log: Log
 
   beforeEach(async () => {
     now = freezeTime()
-    garden = await makeTestGarden(projectRoot)
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
+    garden = await makeGarden(tmpDir, solverTestPlugin)
+    log = garden.log
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    resultCache = {}
+    processedKeys.clear()
   })
 
   function makeTask(params: MakeOptional<TestTaskParams, "garden" | "log" | "force">) {
     const _garden = params.garden || garden
-    return new TestTask({
+    return new SolverTestTask({
       ...params,
       garden: _garden,
       log: params.log || _garden.log,
@@ -163,7 +303,69 @@ describe("GraphSolver", () => {
     expect(result!.outputs["processed"]).to.equal(false)
   })
 
-  it("processes task if it's status is ready and force=true", async () => {
+  it("does not process dependencies for a task with a ready status and force=false", async () => {
+    const dependencyStatusCheckedNames: string[] = []
+    const dependencyProcessedNames: string[] = []
+    const taskA = makeTask({ name: "task-a" })
+    const taskB1 = makeTask({
+      name: "task-b1",
+      dependencies: [taskA],
+      statusCallback: async () => dependencyStatusCheckedNames.push("task-b1"),
+      callback: async () => dependencyProcessedNames.push("task-b1"),
+    })
+    const taskB2 = makeTask({
+      name: "task-b2",
+      dependencies: [],
+      statusCallback: async () => dependencyStatusCheckedNames.push("task-b2"),
+      callback: async () => dependencyProcessedNames.push("task-b2"),
+    })
+    const taskC = makeTask({
+      name: "task-c",
+      state: "ready", // <------
+      dependencies: [taskB1, taskB2],
+      statusCallback: async () => dependencyStatusCheckedNames.push("task-c"),
+      callback: async () => dependencyProcessedNames.push("task-c"),
+    })
+    const result = await processTask(taskC, { throwOnError: true })
+
+    expect(result).to.exist
+    expect(result!.result?.state).to.equal("ready")
+    expect(result!.outputs["processed"]).to.equal(false)
+    expect(dependencyProcessedNames.length).to.eql(0)
+    expect(dependencyStatusCheckedNames.length).to.eql(0)
+  })
+
+  it("processs dependencies for a task with a ready status if skipRuntimeDependencies=never", async () => {
+    const actionConfigs: BaseActionConfig[] = [
+      makeBuild("a", tmpDir.path),
+      makeDeploy("a", tmpDir.path, { dependencies: ["build.a"] }),
+      makeDeploy("b", tmpDir.path, { dependencies: ["deploy.a"] }),
+      makeDeploy("c", tmpDir.path, { dependencies: ["deploy.b"] }),
+      makeTest("c", tmpDir.path, { dependencies: ["deploy.c"] }),
+    ]
+    garden.setActionConfigs([...actionConfigs])
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+    resultCache["deploy.b"] = makeReadyStatus()
+
+    const testAction = graph.getTest("c")
+    // By default, test tasks set `skipRuntimeDependencies = never` on their dependencies.
+    const testTask = new TestTask({
+      garden,
+      log,
+      graph,
+      action: testAction,
+      force: true,
+      forceBuild: false,
+    })
+
+    await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const resultKeys = Object.keys(resultCache)
+    expect(resultKeys.sort()).to.eql(["build.a", "deploy.a", "deploy.b", "deploy.c", "test.c"])
+    expect([...processedKeys].sort()).to.eql(["build.a", "deploy.a", "deploy.c", "test.c"])
+  })
+
+  it("processes task if its status is ready and force=true", async () => {
     const task = makeTask({ state: "ready", force: true })
     const result = await processTask(task, { throwOnError: true })
 
@@ -291,6 +493,8 @@ describe("GraphSolver", () => {
     expect(result).to.exist
     expect(result!.error).to.exist
     expect(result!.error?.message).to.include("Throwing error in process method")
+    // We expect taskB and taskC to have been cancelled.
+    expect(Object.keys(garden["solver"]["inProgress"]).length).to.eql(0)
   })
 
   it("returns status directly and skips processing if state is ready", async () => {
@@ -366,106 +570,6 @@ describe("GraphSolver", () => {
   //     () => graph.process([taskB]),
   //     (err) => expect(err.message).to.eql(errorMsg)
   //   )
-  // })
-
-  // it("should emit events when processing and completing a task", async () => {
-  //   const now = freezeTime()
-
-  //   const garden = await getGarden()
-  //   const graph = new TaskGraph(garden, garden.log)
-  //   const task = new TestTask(garden, "a", false)
-  //   await graph.process([task])
-
-  //   garden.events.eventLog = []
-
-  //   // repeatedTask has the same key and version as task, so its result is already cached
-  //   const repeatedTask = new TestTask(garden, "a", false)
-  //   const results = await graph.process([repeatedTask])
-
-  //   expect(garden.events.eventLog).to.eql([
-  //     { name: "taskGraphProcessing", payload: { startedAt: now } },
-  //     {
-  //       name: "taskComplete",
-  //       payload: toGraphResultEventPayload(results["a"]!),
-  //     },
-  //     { name: "taskGraphComplete", payload: { completedAt: now } },
-  //   ])
-  // })
-
-  // it("should emit a taskError event when failing a task", async () => {
-  //   const now = freezeTime()
-
-  //   const garden = await getGarden()
-  //   const graph = new TaskGraph(garden, garden.log)
-  //   const task = new TestTask(garden, "a", false, { throwError: true })
-
-  //   const result = await graph.process([task])
-  //   const generatedBatchId = result?.a?.batchId || uuidv4()
-
-  //   expect(garden.events.eventLog).to.eql([
-  //     { name: "taskGraphProcessing", payload: { startedAt: now } },
-  //     {
-  //       name: "taskPending",
-  //       payload: {
-  //         addedAt: now,
-  //         batchId: generatedBatchId,
-  //         key: task.getBaseKey(),
-  //         name: task.name,
-  //         type: task.type,
-  //       },
-  //     },
-  //     {
-  //       name: "taskProcessing",
-  //       payload: {
-  //         startedAt: now,
-  //         batchId: generatedBatchId,
-  //         key: task.getBaseKey(),
-  //         name: task.name,
-  //         type: task.type,
-  //         versionString: task.version,
-  //       },
-  //     },
-  //     { name: "taskError", payload: sanitizeValue(result["a"]) },
-  //     { name: "taskGraphComplete", payload: { completedAt: now } },
-  //   ])
-  // })
-
-  // it("should have error property inside taskError event when failing a task", async () => {
-  //   freezeTime()
-
-  //   const garden = await getGarden()
-  //   const graph = new TaskGraph(garden, garden.log)
-  //   const task = new TestTask(garden, "a", false, { throwError: true })
-
-  //   await graph.process([task])
-  //   const taskError = garden.events.eventLog.find((obj) => obj.name === "taskError")
-
-  //   expect(taskError && taskError.payload["error"]).to.exist
-  // })
-
-  // it("should throw on task error if throwOnError is set", async () => {
-  //   const garden = await getGarden()
-  //   const graph = new TaskGraph(garden, garden.log)
-  //   const task = new TestTask(garden, "a", false, { throwError: true })
-
-  //   await expectError(
-  //     () => graph.process([task], { throwOnError: true }),
-  //     (err) => expect(err.message).to.include("action(s) failed")
-  //   )
-  // })
-
-  // it("should include any task errors in task results", async () => {
-  //   const garden = await getGarden()
-  //   const graph = new TaskGraph(garden, garden.log)
-  //   const taskA = new TestTask(garden, "a", false, { throwError: true })
-  //   const taskB = new TestTask(garden, "b", false, { throwError: true })
-  //   const taskC = new TestTask(garden, "c", false)
-
-  //   const results = await graph.process([taskA, taskB, taskC])
-
-  //   expect(results.a!.error).to.exist
-  //   expect(results.b!.error).to.exist
-  //   expect(results.c!.error).to.not.exist
   // })
 
   // it("should process multiple tasks in dependency order", async () => {

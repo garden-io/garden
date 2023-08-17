@@ -37,10 +37,15 @@ import { copy, emptyDir } from "fs-extra"
 import { join } from "path"
 import { isDeployAction } from "@garden-io/core/build/src/actions/deploy"
 import { TemplatableConfigContext } from "@garden-io/core/build/src/config/template-contexts/project"
-import { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base"
+import {
+  ActionTaskProcessParams,
+  SkipRuntimeDependenciesMode,
+  ValidResultType,
+} from "@garden-io/core/build/src/tasks/base"
 import { deletePulumiDeploy } from "./handlers"
 import { ActionLog, createActionLog, Log } from "@garden-io/core/build/src/logger/log-entry"
 import { ActionSpecContext } from "@garden-io/core/build/src/config/template-contexts/actions"
+import { parseSkipDependenciesOpt } from "@garden-io/core/build/src/commands/helpers"
 import { ProviderMap } from "@garden-io/core/build/src/config/provider"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
@@ -212,7 +217,7 @@ interface PulumiPluginCommandTaskParams {
   action: PulumiDeploy
   commandName: string
   commandDescription: string
-  skipRuntimeDependencies: boolean
+  skipRuntimeDependencies: SkipRuntimeDependenciesMode
   runFn: PulumiRunFn
   pulumiParams: PulumiBaseParams
   resolvedProviders: ProviderMap
@@ -225,7 +230,6 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
   pulumiParams: PulumiBaseParams
   commandName: string
   commandDescription: string
-  override skipRuntimeDependencies: boolean
   runFn: PulumiRunFn
   resolvedProviders: ProviderMap
 
@@ -236,7 +240,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
     action,
     commandName,
     commandDescription,
-    skipRuntimeDependencies = false,
+    skipRuntimeDependencies = "auto",
     runFn,
     pulumiParams,
     resolvedProviders,
@@ -250,7 +254,6 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
     })
     this.commandName = commandName
     this.commandDescription = commandDescription
-    this.skipRuntimeDependencies = skipRuntimeDependencies
     this.runFn = runFn
     this.pulumiParams = pulumiParams
     const provider = <PulumiProvider>pulumiParams.ctx.provider
@@ -365,7 +368,6 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
         cli: true,
       })
       const { args: parsedArgs, opts } = parsed
-      const skipRuntimeDependencies = opts["skip-dependencies"]
       const names = parsedArgs.length === 0 ? undefined : parsedArgs
 
       beforeFn && (await beforeFn({ ctx, log }))
@@ -393,7 +395,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
             action,
             commandName: name,
             commandDescription,
-            skipRuntimeDependencies,
+            skipRuntimeDependencies: parseSkipDependenciesOpt(opts["skip-dependencies"]),
             runFn,
             pulumiParams,
           })

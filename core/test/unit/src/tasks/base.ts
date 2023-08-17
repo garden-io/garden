@@ -144,7 +144,7 @@ describe("BaseActionTask", () => {
       expect(deps.map((d) => d.getBaseKey())).to.eql(["resolve-action.test.module-a-integ"])
     })
 
-    context("when skipRuntimeDependencies = true", () => {
+    context("when skipRuntimeDependencies = always", () => {
       it("doesn't return Deploy, Run or Test dependencies", async () => {
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -157,7 +157,7 @@ describe("BaseActionTask", () => {
           action,
           force: true,
           forceBuild: false,
-          skipRuntimeDependencies: true, // <-----
+          skipRuntimeDependencies: "always", // <-----
         })
 
         const deps = task.resolveProcessDependencies({ status: null })
