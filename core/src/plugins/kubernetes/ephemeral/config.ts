@@ -60,10 +60,6 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       name: "nscr-credentials",
       namespace: "default",
     },
-    {
-      name: "dockerhub-credentials",
-      namespace: "default",
-    },
   ]
   // set build mode to kaniko
   baseConfig.buildMode = "kaniko"
