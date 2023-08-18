@@ -114,6 +114,14 @@ export interface OverlapErrorDescription {
   message: string
 }
 
+function makeGenerateFilesOverlapError(_projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription {
+  // TODO: more details
+  return {
+    message: "Found intersection targetPath values in generatedFiles",
+    detail: { overlappingModules: moduleOverlaps },
+  }
+}
+
 function makePathOverlapError(projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription {
   const overlapList = sortBy(moduleOverlaps, (o) => o.module.name)
     .map(({ module, overlaps }) => {
@@ -150,6 +158,30 @@ function makePathOverlapError(projectRoot: string, moduleOverlaps: ModuleOverlap
 
 export function makeOverlapErrors(projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription[] {
   const errors: OverlapErrorDescription[] = []
-  errors.push(makePathOverlapError(projectRoot, moduleOverlaps))
+
+  let filteredOverlaps: ModuleOverlap[] = []
+  let errorDesc: OverlapErrorDescription
+  for (const moduleOverlapType of moduleOverlapTypes) {
+    switch (moduleOverlapType) {
+      case "generateFiles":
+        filteredOverlaps = moduleOverlaps.filter((m) => m.type === moduleOverlapType)
+        if (filteredOverlaps.length > 0) {
+          errorDesc = makeGenerateFilesOverlapError(projectRoot, filteredOverlaps)
+          errors.push(errorDesc)
+        }
+        break
+      case "path":
+        filteredOverlaps = moduleOverlaps.filter((m) => m.type === moduleOverlapType)
+        if (filteredOverlaps.length > 0) {
+          errorDesc = makePathOverlapError(projectRoot, filteredOverlaps)
+          errors.push(errorDesc)
+        }
+        break
+      default:
+        const _exhaustiveCheck: never = moduleOverlapType
+        return _exhaustiveCheck
+    }
+  }
+
   return errors
 }
