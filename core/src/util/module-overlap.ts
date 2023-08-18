@@ -167,7 +167,6 @@ const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
       overlaps: overlaps.map(({ name, path }) => ({ name, path: resolve(projectRoot, path) })),
     }
   })
-  // TODO: more details
   return {
     message,
     detail: { overlappingModules },
