@@ -9,7 +9,6 @@
 import Bluebird from "bluebird"
 import chalk from "chalk"
 import { ensureDir, readdir } from "fs-extra"
-import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve, join } from "path"
 import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
