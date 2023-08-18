@@ -201,7 +201,7 @@ export function splitLast(s: string, delimiter: string) {
   const lastIndex = s.lastIndexOf(delimiter)
 
   if (lastIndex === -1) {
-    return [s, ""]
+    return ["", s]
   }
 
   return [s.slice(0, lastIndex), s.slice(lastIndex + delimiter.length)]
