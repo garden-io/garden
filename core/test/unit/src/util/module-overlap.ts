@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { join } from "path"
-import { detectModuleOverlap } from "../../../../src/util/module-overlap"
+import { detectModuleOverlap, ModuleOverlap } from "../../../../src/util/module-overlap"
 import { ModuleConfig } from "../../../../src/config/module"
 
 describe("detectModuleOverlap", () => {
@@ -32,23 +32,28 @@ describe("detectModuleOverlap", () => {
       name: "module-d",
       path: join(projectRoot, "bas"),
     } as ModuleConfig
-    expect(
-      detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB, moduleC, moduleD] })
-    ).to.eql([
+    const expectedOverlaps: ModuleOverlap[] = [
       {
         module: moduleA,
         overlaps: [moduleB, moduleC],
+        type: "path",
       },
       {
         module: moduleB,
         overlaps: [moduleA, moduleC],
+        type: "path",
       },
       {
         module: moduleC,
         overlaps: [moduleA, moduleB],
+        type: "path",
       },
-    ])
+    ]
+    expect(
+      detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB, moduleC, moduleD] })
+    ).to.eql(expectedOverlaps)
   })
+
   it("should detect if a module has another module in its path", () => {
     const moduleA = {
       name: "module-a",
@@ -66,18 +71,21 @@ describe("detectModuleOverlap", () => {
       name: "module-d",
       path: join(projectRoot, "bas", "bar", "bas"),
     } as ModuleConfig
-    expect(
-      detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB, moduleC, moduleD] })
-    ).to.eql([
+    const expectedOverlaps: ModuleOverlap[] = [
       {
         module: moduleA,
         overlaps: [moduleB, moduleC],
+        type: "path",
       },
       {
         module: moduleB,
         overlaps: [moduleC],
+        type: "path",
       },
-    ])
+    ]
+    expect(
+      detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB, moduleC, moduleD] })
+    ).to.eql(expectedOverlaps)
   })
 
   context("same root", () => {
@@ -91,13 +99,22 @@ describe("detectModuleOverlap", () => {
         name: "module-b",
         path: join(projectRoot, "foo"),
       } as ModuleConfig
-      expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB] })).to.eql([
+      const expectedOverlaps: ModuleOverlap[] = [
         {
           module: moduleB,
           overlaps: [moduleA],
+          type: "path",
         },
-      ])
+      ]
+      expect(
+        detectModuleOverlap({
+          projectRoot,
+          gardenDirPath,
+          moduleConfigs: [moduleA, moduleB],
+        })
+      ).to.eql(expectedOverlaps)
     })
+
     it("should ignore modules that set excludes", () => {
       const moduleA = {
         name: "module-a",
@@ -108,13 +125,22 @@ describe("detectModuleOverlap", () => {
         name: "module-b",
         path: join(projectRoot, "foo"),
       } as ModuleConfig
-      expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB] })).to.eql([
+      const expectedOverlaps: ModuleOverlap[] = [
         {
           module: moduleB,
           overlaps: [moduleA],
+          type: "path",
         },
-      ])
+      ]
+      expect(
+        detectModuleOverlap({
+          projectRoot,
+          gardenDirPath,
+          moduleConfigs: [moduleA, moduleB],
+        })
+      ).to.eql(expectedOverlaps)
     })
+
     it("should ignore modules that are disabled", () => {
       const moduleA = {
         name: "module-a",
@@ -188,18 +214,34 @@ describe("detectModuleOverlap", () => {
         path: join(projectRoot, "foo", "bar"),
         exclude: [""],
       } as ModuleConfig
-      expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA1, moduleB1] })).to.eql([
+      const expectedOverlapsA1B1: ModuleOverlap[] = [
         {
           module: moduleA1,
           overlaps: [moduleB1],
+          type: "path",
         },
-      ])
-      expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA2, moduleB2] })).to.eql([
+      ]
+      expect(
+        detectModuleOverlap({
+          projectRoot,
+          gardenDirPath,
+          moduleConfigs: [moduleA1, moduleB1],
+        })
+      ).to.eql(expectedOverlapsA1B1)
+      const expectedOverlapsA2B2: ModuleOverlap[] = [
         {
           module: moduleA2,
           overlaps: [moduleB2],
+          type: "path",
         },
-      ])
+      ]
+      expect(
+        detectModuleOverlap({
+          projectRoot,
+          gardenDirPath,
+          moduleConfigs: [moduleA2, moduleB2],
+        })
+      ).to.eql(expectedOverlapsA2B2)
     })
 
     it("should not consider remote source modules to overlap with module in project root", () => {
