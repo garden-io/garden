@@ -64,15 +64,19 @@ export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIt
   }
 }
 
+export const moduleOverlapTypes = ["path", "generateFiles"] as const
+export type ModuleOverlapType = typeof moduleOverlapTypes[number]
+
 /**
  * Data structure to describe overlapping modules.
  */
 export interface ModuleOverlap {
   module: ModuleConfig
   overlaps: ModuleConfig[]
+  type?: ModuleOverlapType
 }
 
-type ModuleOverlapFinder = (c: ModuleConfig) => ModuleConfig[]
+type ModuleOverlapFinder = (c: ModuleConfig) => { matches: ModuleConfig[]; type?: ModuleOverlapType }
 
 /**
  * Returns a list of overlapping modules.
@@ -99,9 +103,9 @@ export function detectModuleOverlap({
 
   const findModulePathOverlaps: ModuleOverlapFinder = (config: ModuleConfig) => {
     if (!!config.include || !!config.exclude) {
-      return []
+      return { matches: [] }
     }
-    return enabledModules
+    const matches = enabledModules
       .filter(
         (compare) =>
           config.name !== compare.name &&
@@ -110,12 +114,13 @@ export function detectModuleOverlap({
           !(config.path === projectRoot && pathIsInside(compare.path, gardenDirPath))
       )
       .sort(moduleNameComparator)
+    return { matches, type: "path" }
   }
 
   const findGenerateFilesOverlaps: ModuleOverlapFinder = (config: ModuleConfig) => {
     // Nothing to return if the current module has no `generateFiles` defined.
     if (!config.generateFiles) {
-      return []
+      return { matches: [] }
     }
 
     function resolveTargetPaths(modulePath: string, generateFiles: GenerateFileSpec[]): string[] {
@@ -132,18 +137,20 @@ export function detectModuleOverlap({
       const overlappingTargetPaths = intersection(targetPaths, compareTargetPaths)
       return overlappingTargetPaths.length > 0
     }
-    return enabledModules.filter(targetPathsOverlap).sort(moduleNameComparator)
+    const matches = enabledModules.filter(targetPathsOverlap).sort(moduleNameComparator)
+    return { matches, type: "generateFiles" }
   }
 
   const moduleOverlapFinders: ModuleOverlapFinder[] = [findModulePathOverlaps, findGenerateFilesOverlaps]
   let overlaps: ModuleOverlap[] = []
   for (const config of enabledModules) {
     for (const moduleOverlapFinder of moduleOverlapFinders) {
-      const matches = moduleOverlapFinder(config)
+      const { matches, type } = moduleOverlapFinder(config)
       if (matches.length > 0) {
         overlaps.push({
           module: config,
           overlaps: matches,
+          type,
         })
       }
     }
