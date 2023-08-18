@@ -8,7 +8,10 @@
 import { posix, resolve } from "path"
 import { ModuleConfig, ModuleFileSpec } from "../config/module"
 import pathIsInside from "path-is-inside"
-import { intersection } from "lodash"
+import { intersection, sortBy } from "lodash"
+import chalk from "chalk"
+import { naturalList } from "./string"
+import dedent from "dedent"
 
 export const moduleOverlapTypes = ["path", "generateFiles"] as const
 export type ModuleOverlapType = typeof moduleOverlapTypes[number]
@@ -102,4 +105,38 @@ export function detectModuleOverlap({
     }
   }
   return overlaps
+}
+
+export function makeOverlapError(projectRoot: string, moduleOverlaps: ModuleOverlap[]) {
+  const overlapList = sortBy(moduleOverlaps, (o) => o.module.name)
+    .map(({ module, overlaps }) => {
+      const formatted = overlaps.map((o) => {
+        const detail = o.path === module.path ? "same path" : "nested"
+        return `${chalk.bold(o.name)} (${detail})`
+      })
+      return `Module ${chalk.bold(module.name)} overlaps with module(s) ${naturalList(formatted)}.`
+    })
+    .join("\n\n")
+  const message = chalk.red(dedent`
+      Found multiple enabled modules that share the same garden.yml file or are nested within another:
+
+      ${overlapList}
+
+      If this was intentional, there are two options to resolve this error:
+
+      - You can add ${chalk.bold("include")} and/or ${chalk.bold("exclude")} directives on the affected modules.
+        With explicitly including / excluding files, the modules are actually allowed to overlap in case that is
+        what you want.
+      - You can use the ${chalk.bold("disabled")} directive to make sure that only one of the modules is enabled
+        in any given moment. For example, you can make sure that the modules are enabled only in their exclusive
+        environment.
+    `)
+  // Sanitize error details
+  const overlappingModules = moduleOverlaps.map(({ module, overlaps }) => {
+    return {
+      module: { name: module.name, path: resolve(projectRoot, module.path) },
+      overlaps: overlaps.map(({ name, path }) => ({ name, path: resolve(projectRoot, path) })),
+    }
+  })
+  return { message, detail: { overlappingModules } }
 }
