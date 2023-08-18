@@ -13,6 +13,7 @@ import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve, join } from "path"
 import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
+
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -70,14 +71,7 @@ import {
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
-import {
-  findConfigPathsInPath,
-  getWorkingCopyId,
-  fixedProjectExcludes,
-  detectModuleOverlap,
-  ModuleOverlap,
-  defaultConfigFilename,
-} from "./util/fs"
+import { findConfigPathsInPath, getWorkingCopyId, fixedProjectExcludes, defaultConfigFilename } from "./util/fs"
 import {
   Provider,
   GenericProviderConfig,
@@ -118,6 +112,7 @@ import { getSecrets } from "./cloud/get-secrets"
 import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
+import { detectModuleOverlap, ModuleOverlap } from "./util/module-overlap"
 
 const defaultLocalAddress = "localhost"
 
@@ -827,7 +822,12 @@ export class Garden {
 
         const resolvedConfig = await resolver.resolveModuleConfig(moduleConfig, resolvedModules)
         resolvedModules.push(
-          await moduleFromConfig({ garden: this, log, config: resolvedConfig, buildDependencies: resolvedModules })
+          await moduleFromConfig({
+            garden: this,
+            log,
+            config: resolvedConfig,
+            buildDependencies: resolvedModules,
+          })
         )
         graph = undefined
       })
@@ -942,8 +942,8 @@ export class Garden {
   }
 
   /*
-    Scans the project root for modules and workflows and adds them to the context.
-   */
+        Scans the project root for modules and workflows and adds them to the context.
+       */
   async scanAndAddConfigs(force = false) {
     return this.asyncLock.acquire("scan-configs", async () => {
       if (this.configsScanned && !force) {
@@ -1336,7 +1336,12 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
         // Only fetch secrets if the projectId exists in the cloud API instance
         try {
-          secrets = await getSecrets({ log: cloudLog, projectId: cloudApi.projectId, environmentName, cloudApi })
+          secrets = await getSecrets({
+            log: cloudLog,
+            projectId: cloudApi.projectId,
+            environmentName,
+            cloudApi,
+          })
           cloudLog.setSuccess({ msg: chalk.green("Ready"), append: true })
           cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
         } catch (err) {
