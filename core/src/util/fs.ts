@@ -95,6 +95,8 @@ export function detectModuleOverlap({
   // Don't consider overlap between disabled modules, or where one of the modules is disabled
   const enabledModules = moduleConfigs.filter((m) => !m.disabled)
 
+  const moduleNameComparator = (a, b) => (a.name > b.name ? 1 : -1)
+
   const findModulePathOverlaps: ModuleOverlapFinder = (config: ModuleConfig) => {
     if (!!config.include || !!config.exclude) {
       return []
@@ -107,7 +109,7 @@ export function detectModuleOverlap({
           pathIsInside(compare.path, config.path) &&
           !(config.path === projectRoot && pathIsInside(compare.path, gardenDirPath))
       )
-      .sort((a, b) => (a.name > b.name ? 1 : -1))
+      .sort(moduleNameComparator)
   }
 
   const findGenerateFilesOverlaps: ModuleOverlapFinder = (config: ModuleConfig) => {
@@ -130,7 +132,7 @@ export function detectModuleOverlap({
       const overlappingTargetPaths = intersection(targetPaths, compareTargetPaths)
       return overlappingTargetPaths.length > 0
     }
-    return enabledModules.filter(targetPathsOverlap).sort((a, b) => (a.name > b.name ? 1 : -1))
+    return enabledModules.filter(targetPathsOverlap).sort(moduleNameComparator)
   }
 
   const moduleOverlapFinders: ModuleOverlapFinder[] = [findModulePathOverlaps, findGenerateFilesOverlaps]
