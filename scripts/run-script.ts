@@ -3,8 +3,7 @@
 
 import execa from "execa"
 import minimist from "minimist"
-import Bluebird from "bluebird"
-import { max, padEnd, padStart, mapValues, pickBy } from "lodash"
+import { max, padEnd, padStart } from "lodash"
 import { DepGraph } from "dependency-graph"
 import split2 = require("split2")
 import chalk from "chalk"
@@ -128,7 +127,7 @@ async function runInPackages(args: string[]) {
   }
 
   if (parallel) {
-    await Bluebird.map(Object.keys(packages), runScript)
+    await Promise.all(Object.keys(packages).map(runScript))
   } else {
     const depGraph = new DepGraph()
     for (const p of packageList) {
@@ -145,7 +144,7 @@ async function runInPackages(args: string[]) {
     let leaves = depGraph.overallOrder(true)
 
     while (leaves.length > 0) {
-      await Bluebird.map(leaves, runScript)
+      await Promise.all(leaves.map(runScript))
       for (const name of leaves) {
         depGraph.removeNode(name)
       }

@@ -15,7 +15,6 @@ import { getAllPods, summarize } from "./util"
 import { KubeApi, KubernetesError } from "./api"
 import Stream from "ts-stream"
 import { Log } from "../../logger/log-entry"
-import Bluebird from "bluebird"
 import { KubernetesProvider } from "./config"
 import { PluginContext } from "../../plugin-context"
 import { getPodLogs } from "./status/pod"
@@ -78,12 +77,12 @@ export async function streamK8sLogs(params: GetAllLogsParams) {
       params.log.debug(`Tail parameter not set explicitly. Setting to ${tail} to prevent log overflow.`)
     }
     const { stream } = params
-    await Bluebird.map(pods, async (pod) => {
+    await Promise.all(pods.map(async (pod) => {
       const serviceLogEntries = await readLogs({ ...omit(params, "pods", "stream"), entryConverter, pod, tail, api })
       for (const entry of sortBy(serviceLogEntries, "timestamp")) {
         void stream.write(entry)
       }
-    })
+    }))
   }
   return {}
 }
@@ -371,7 +370,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
       )
     }
 
-    await Bluebird.map(containers, async ({ pod, containerName }) => {
+    await Promise.all(containers.map(async ({ pod, containerName }) => {
       const connection = this.createConnectionIfMissing(pod, containerName)
 
       if (disconnectedStatuses.includes(connection.status) && connection.shouldRetry) {
@@ -458,7 +457,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
 
       req.on("error", async (error) => await this.handleConnectionClose(connection, "error", error))
       req.on("close", async () => await this.handleConnectionClose(connection, "closed", "Request closed"))
-    })
+    }))
   }
 
   private async streamPodLogs({

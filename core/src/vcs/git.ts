@@ -13,7 +13,6 @@ import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, sta
 import { PassThrough } from "stream"
 import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsHandlerParams, VcsInfo } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
-import Bluebird from "bluebird"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
 import { dedent, deline, splitLast } from "../util/string"
 import { defer, exec } from "../util/util"
@@ -815,7 +814,7 @@ export async function augmentGlobs(basePath: string, globs?: string[]) {
     return globs
   }
 
-  return Bluebird.map(globs, async (pattern) => {
+  return Promise.all(globs.map(async (pattern) => {
     if (isGlob(pattern, { strict: false })) {
       // Pass globs through directly (they won't match a specific directory)
       return pattern
@@ -827,7 +826,7 @@ export async function augmentGlobs(basePath: string, globs?: string[]) {
     } catch {
       return pattern
     }
-  })
+  }))
 }
 
 const parseLine = (data: Buffer): GitEntry | undefined => {

@@ -42,7 +42,6 @@ import {
 import { getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace"
 import { convertModules } from "../../../../../src/resolve-module"
 import { BuildAction } from "../../../../../src/actions/build"
-import Bluebird from "bluebird"
 import { DeployAction } from "../../../../../src/actions/deploy"
 import { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config"
 
@@ -81,7 +80,7 @@ describe("util", () => {
     const router = await helmGarden.getActionRouter()
     const { actions } = await convertModules(helmGarden, helmGarden.log, modules, graph.moduleGraph)
 
-    const tasks = await Bluebird.map(actions, async (rawAction) => {
+    const tasks = await Promise.all(actions.map(async (rawAction) => {
       const action = (await actionFromConfig({
         garden: helmGarden,
         graph,
@@ -99,7 +98,7 @@ describe("util", () => {
         action,
         force: false,
       })
-    })
+    }))
     const results = await helmGarden.processTasks({ tasks })
 
     const err = first(Object.values(results).map((r) => r && r.error))

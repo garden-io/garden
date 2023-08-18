@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { flatten } from "lodash"
 import { KubeApi } from "../api"
 import { KubernetesServerResource } from "../types"
@@ -31,7 +30,7 @@ export async function waitForServiceEndpoints(
   const services = resources.filter((r) => r.apiVersion === "v1" && r.kind === "Service")
   const start = new Date().getTime()
 
-  return Bluebird.map(services, async (service) => {
+  return Promise.all(services.map(async (service) => {
     const selector = service.spec.selector
 
     if (!selector) {
@@ -70,5 +69,5 @@ export async function waitForServiceEndpoints(
       log.info(`Waiting for Service '${serviceName}' Endpoints to resolve...`)
       await sleep(1000)
     }
-  })
+  }))
 }

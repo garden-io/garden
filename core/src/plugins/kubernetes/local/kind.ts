@@ -15,7 +15,6 @@ import { KubeApi } from "../api"
 import { KubernetesResource } from "../types"
 import { PluginContext } from "../../../plugin-context"
 import { containerHelpers } from "../../container/helpers"
-import Bluebird from "bluebird"
 
 const nodeCache: { [context: string]: string[] } = {}
 
@@ -42,7 +41,7 @@ export async function getKindImageStatus(config: KubernetesConfig, imageId: stri
   // Check if the image exists on all nodes
   let ready = true
 
-  await Bluebird.map(nodes, async (nodeName) => {
+  await Promise.all(nodes.map(async (nodeName) => {
     const imagesRes = await exec("docker", ["exec", "-i", nodeName, "crictl", "images", "--output=json", clusterId])
     const images = JSON.parse(imagesRes.stdout)
     for (const image of images.images) {
@@ -53,7 +52,7 @@ export async function getKindImageStatus(config: KubernetesConfig, imageId: stri
     }
     // Didn't find it
     ready = false
-  })
+  }))
 
   if (ready) {
     log.debug(`Image ${imageId} has been loaded into kind cluster`)

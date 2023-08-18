@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import slash from "slash"
 import { relative, resolve } from "path"
 import { createGardenPlugin } from "@garden-io/sdk"
@@ -44,7 +43,7 @@ export const gardenPlugin = () =>
         const allTestNames = new Set(actions.filter((a) => a.kind === "Test").map((m) => m.name))
 
         return {
-          addActions: await Bluebird.filter(actions, async (action) => {
+          addActions: actions.filter((action) => {
             return (
               // Pick all kubernetes or helm modules
               action.isCompatible("kubernetes") || action.isCompatible("helm")

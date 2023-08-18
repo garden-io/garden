@@ -14,7 +14,6 @@ import { expect } from "chai"
 import { TestTask } from "../../../../../src/tasks/test"
 import { getSystemGarden } from "../../../../../src/plugins/kubernetes/system"
 import { getKubernetesSystemVariables } from "../../../../../src/plugins/kubernetes/init"
-import Bluebird = require("bluebird")
 import { convertModules } from "../../../../../src/resolve-module"
 import { TestAction } from "../../../../../src/actions/test"
 import { actionFromConfig } from "../../../../../src/graph/actions"
@@ -60,7 +59,7 @@ describe("System services", () => {
     const router = await systemGarden.getActionRouter()
     const tests = actions.actions.filter((a) => a.kind === "Test")
 
-    await Bluebird.map(tests, async (testConfig) => {
+    await Promise.all(tests.map(async (testConfig) => {
       const action = (await actionFromConfig({
         config: testConfig,
         configsByKey: {},
@@ -85,6 +84,6 @@ describe("System services", () => {
       const result = await systemGarden.processTasks({ tasks: [testTask], throwOnError: false, log: systemGarden.log })
       expect(result[key]).to.exist
       expect(result[key]?.error).to.not.exist
-    })
+    }))
   })
 })

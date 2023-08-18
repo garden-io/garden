@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { isEmpty, omit, partition, uniq } from "lodash"
 import type { ModuleActionHandlers } from "../../../plugin/plugin"
 import { ServiceStatus } from "../../../types/service"
@@ -359,7 +358,7 @@ export const deleteKubernetesDeploy: DeployActionHandler<"delete", KubernetesDep
   const [namespaceManifests, otherManifests] = partition(manifests, (m) => m.kind === "Namespace")
 
   if (namespaceManifests.length > 0) {
-    await Bluebird.map(namespaceManifests, (ns) => {
+    await Promise.all(namespaceManifests.map((ns) => {
       const selector = `${gardenAnnotationKey("service")}=${gardenNamespaceAnnotationValue(ns.metadata.name)}`
       return deleteObjectsBySelector({
         log,
@@ -370,7 +369,7 @@ export const deleteKubernetesDeploy: DeployActionHandler<"delete", KubernetesDep
         objectTypes: ["Namespace"],
         includeUninitialized: false,
       })
-    })
+    }))
   }
   if (otherManifests.length > 0) {
     await deleteObjectsBySelector({

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { extend } from "lodash"
 import { findByName } from "../../../util/util"
 import { ContainerIngressSpec, ContainerDeployAction } from "../../container/moduleConfig"
@@ -73,7 +72,7 @@ export async function createIngressResources(
 
   const allIngresses = await getIngressesWithCert(action, api, provider)
 
-  return Bluebird.map(allIngresses, async (ingress, index) => {
+  return Promise.all(allIngresses.map(async (ingress, index) => {
     const cert = ingress.certificate
 
     if (!!cert) {
@@ -162,7 +161,7 @@ export async function createIngressResources(
       }
       return ingressResource
     }
-  })
+  }))
 }
 
 async function getIngress(
@@ -203,7 +202,7 @@ async function getIngressesWithCert(
   provider: KubernetesProvider
 ): Promise<ServiceIngressWithCert[]> {
   const ingresses = action.getSpec("ingresses")
-  return Bluebird.map(ingresses, (spec) => getIngress(action, api, provider, spec))
+  return Promise.all(ingresses.map((spec) => getIngress(action, api, provider, spec)))
 }
 
 export async function getIngresses(

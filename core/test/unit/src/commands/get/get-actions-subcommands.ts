@@ -21,7 +21,6 @@ import { GetTestsCommand } from "../../../../../src/commands/get/get-tests"
 import { GetDeploysCommand } from "../../../../../src/commands/get/get-deploys"
 import { ActionKind } from "../../../../../src/plugin/action-types"
 import { sortBy } from "lodash"
-import Bluebird from "bluebird"
 
 const getCommandInstance = (
   kind: ActionKind
@@ -108,9 +107,9 @@ describe("GetActionsSubCommands", () => {
         const graph = await garden.getResolvedConfigGraph({ log, emit: false })
         const router = await garden.getActionRouter()
         const expected = sortBy(
-          await Bluebird.map(graph.getActionsByKind(kind), async (a) =>
+          await Promise.all(graph.getActionsByKind(kind).map(async (a) =>
             getActionsToSimpleWithStateOutput(a, router, graph, log)
-          ),
+          )),
           "name"
         )
         expect(command.outputsSchema().validate(result).error).to.be.undefined
@@ -132,9 +131,9 @@ describe("GetActionsSubCommands", () => {
         const graph = await garden.getResolvedConfigGraph({ log, emit: false })
         const router = await garden.getActionRouter()
         const expected = sortBy(
-          await Bluebird.map(graph.getActionsByKind(kind, { names: args.names }), async (a) =>
+          await Promise.all(graph.getActionsByKind(kind, { names: args.names }).map(async (a) =>
             getActionsToSimpleWithStateOutput(a, router, graph, log)
-          ),
+          )),
           "name"
         )
         expect(command.outputsSchema().validate(result).error).to.be.undefined
@@ -154,9 +153,9 @@ describe("GetActionsSubCommands", () => {
         const graph = await garden.getResolvedConfigGraph({ log, emit: false })
         const router = await garden.getActionRouter()
         const expected = sortBy(
-          await Bluebird.map(graph.getActionsByKind(kind), async (a) =>
+          await Promise.all(graph.getActionsByKind(kind).map(async (a) =>
             getActionsToDetailedWithStateOutput(a, garden, router, graph, log)
-          ),
+          )),
           "name"
         )
         expect(command.outputsSchema().validate(result).error).to.be.undefined

@@ -21,7 +21,6 @@ import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { buildHelmModules, getHelmLocalModeTestGarden, getHelmTestGarden } from "./common"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { isWorkload } from "../../../../../../src/plugins/kubernetes/util"
-import Bluebird from "bluebird"
 import { CloudApi } from "../../../../../../src/cloud/api"
 import { getRootLogger } from "../../../../../../src/logger/logger"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
@@ -338,7 +337,7 @@ describe("helmDeploy", () => {
       (resource) => isWorkload(resource) && resource.metadata.name === "api-release"
     )
     const apiDeployment = (
-      await Bluebird.all(
+      await Promise.all(
         workloads.map((workload) =>
           api.readBySpec({ log: gardenWithCloudApi.log, namespace: "helm-test-default", manifest: workload })
         )

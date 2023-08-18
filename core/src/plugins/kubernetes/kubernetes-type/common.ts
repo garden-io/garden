@@ -8,7 +8,6 @@
 
 import { resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
-import Bluebird from "bluebird"
 import { flatten, set } from "lodash"
 import { loadAll } from "js-yaml"
 
@@ -29,6 +28,7 @@ import { Resolved } from "../../../actions/types"
 import { KubernetesPodRunAction, KubernetesPodTestAction } from "./kubernetes-pod"
 import { glob } from "glob"
 import isGlob from "is-glob"
+import pFilter from "p-filter"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
@@ -72,7 +72,7 @@ export async function getManifests({
     return manifest
   })
 
-  return Bluebird.map(manifests, async (manifest) => {
+  return Promise.all(manifests.map(async (manifest) => {
     // Ensure a namespace is set, if not already set, and if required by the resource type
     if (!manifest.metadata?.namespace) {
       if (!manifest.metadata) {
@@ -104,7 +104,7 @@ export async function getManifests({
     set(manifest, ["metadata", "labels", gardenAnnotationKey("service")], annotationValue)
 
     return manifest
-  })
+  }))
 }
 
 const disallowedKustomizeArgs = ["-o", "--output", "-h", "--help"]
@@ -132,7 +132,7 @@ export async function readManifests(
   const specFiles = spec.files
 
   const regularPaths = specFiles.filter((f) => !isGlob(f))
-  const missingPaths = await Bluebird.filter(regularPaths, async (regularPath) => {
+  const missingPaths = await pFilter(regularPaths, async (regularPath) => {
     const resolvedPath = resolve(manifestPath, regularPath)
     return !(await pathExists(resolvedPath))
   })
@@ -176,13 +176,13 @@ export async function readManifests(
   }
 
   const fileManifests = flatten(
-    await Bluebird.map(resolvedFiles, async (path) => {
+    await Promise.all(resolvedFiles.map(async (path) => {
       const absPath = resolve(manifestPath, path)
       log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
       const str = (await readFile(absPath)).toString()
       const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
       return loadAll(resolved)
-    })
+    }))
   )
 
   let kustomizeManifests: any[] = []

@@ -13,7 +13,6 @@ import { getDefaultProfiler } from "../src/util/profiling"
 import { gardenEnv } from "../src/constants"
 import { testFlags } from "../src/util/util"
 import { initTestLogger, testProjectTempDirs } from "./helpers"
-import Bluebird from "bluebird"
 
 require("source-map-support").install()
 initTestLogger()
@@ -36,7 +35,7 @@ exports.mochaHooks = {
   async afterAll() {
     // eslint-disable-next-line no-console
     console.log(getDefaultProfiler().report())
-    await Bluebird.map(Object.values(testProjectTempDirs), (d) => d.cleanup())
+    await Promise.all(Object.values(testProjectTempDirs).map((d) => d.cleanup()))
   },
 
   beforeEach() {},

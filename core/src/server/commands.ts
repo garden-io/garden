@@ -28,7 +28,6 @@ import type { ServeCommand } from "../commands/serve"
 import { uuidv4 } from "../util/random"
 import type { GetSyncStatusResult } from "../plugin/handlers/Deploy/get-sync-status"
 import { getSyncStatuses } from "../commands/sync/sync-status"
-import Bluebird from "bluebird"
 import { ActionStatusPayload } from "../events/action-status-events"
 import { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status"
 import { DeployStatusForEventPayload } from "../types/service"
@@ -42,6 +41,7 @@ import {
 import { z } from "zod"
 import { exec } from "../util/util"
 import split2 from "split2"
+import pProps from "p-props"
 
 export interface CommandMap {
   [key: string]: {
@@ -281,7 +281,7 @@ export class _GetActionStatusesCommand extends ConsoleCommand {
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
     const sessionId = garden.sessionId
 
-    const actions = await Bluebird.props({
+    const actions = await pProps({
       build: getBuildStatusPayloads({ router, graph, log, sessionId }),
       deploy: getDeployStatusPayloads({ router, graph, log, sessionId }),
       test: getTestStatusPayloads({ router, graph, log, sessionId }),

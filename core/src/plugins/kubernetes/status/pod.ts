@@ -7,7 +7,6 @@
  */
 
 import { KubeApi, KubernetesError } from "../api"
-import Bluebird from "bluebird"
 import { KubernetesServerResource, KubernetesPod } from "../types"
 import { V1Pod, V1Status } from "@kubernetes/client-node"
 import { ResourceStatus } from "./status"
@@ -96,7 +95,7 @@ export async function getPodLogs({
     podContainers = podContainers.filter((name) => containerNames.includes(name))
   }
 
-  return Bluebird.map(podContainers, async (containerName) => {
+  return Promise.all(podContainers.map(async (containerName) => {
     const follow = false
     const insecureSkipTLSVerify = false
     const pretty = undefined
@@ -153,21 +152,21 @@ export async function getPodLogs({
 
     // the API returns undefined if no logs have been output, for some reason
     return { containerName, log: log || "" }
-  })
+  }))
 }
 
 /**
  * Get a formatted list of log tails for each of the specified pods. Used for debugging and error logs.
  */
 export async function getFormattedPodLogs(api: KubeApi, namespace: string, pods: KubernetesPod[]): Promise<string> {
-  const allLogs = await Bluebird.map(pods, async (pod) => {
+  const allLogs = await Promise.all(pods.map(async (pod) => {
     return {
       podName: pod.metadata.name,
       // Putting 5000 bytes as a length limit in addition to the line limit, just as a precaution in case someone
       // accidentally logs a binary file or something.
       containers: await getPodLogs({ api, namespace, pod, byteLimit: 5000, lineLimit: POD_LOG_LINES }),
     }
-  })
+  }))
 
   return allLogs
     .map(({ podName, containers }) => {

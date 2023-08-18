@@ -11,7 +11,7 @@ import { dumpLicenses } from "npm-license-crawler"
 import { join, resolve } from "path"
 import stripAnsi from "strip-ansi"
 import chalk from "chalk"
-import { promisify } from "bluebird"
+import { promisify } from "util"
 import { asTree } from "treeify"
 import { stringify } from "csv-stringify/sync"
 import { writeFile } from "fs-extra"
@@ -29,7 +29,14 @@ interface LicenseDump {
   }
 }
 
-const dumpLicensesAsync = promisify<LicenseDump, any>(dumpLicenses)
+type LicenseDumpOptions = {
+  start: string[]
+  exclude?: string[]
+  json?: string
+  unknown?: boolean
+}
+
+const dumpLicensesAsync = promisify<LicenseDumpOptions, LicenseDump>(dumpLicenses)
 
 async function checkPackageLicenses(root: string) {
   const res = await dumpLicensesAsync({ start: [root] })

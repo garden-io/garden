@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
 import { filterManifests, getReleaseName, getValueArgs, prepareManifests, prepareTemplates } from "./common"
@@ -81,7 +80,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     if (ctx.cloudApi) {
       try {
         const pausedResources = await getPausedResources({ ctx: k8sCtx, action, namespace, releaseName, log })
-        await Bluebird.all(
+        await Promise.all(
           pausedResources.map((resource) => {
             const { annotations } = resource.metadata
             if (annotations) {

@@ -25,7 +25,6 @@ import chalk from "chalk"
 import { deline, dedent, gardenAnnotationKey } from "../../util/string"
 import { combineStates, DeployState } from "../../types/service"
 import { ConfigurationError } from "../../exceptions"
-import Bluebird from "bluebird"
 import { readSecret } from "./secrets"
 import { systemDockerAuthSecretName, dockerAuthSecretKey } from "./constants"
 import { V1IngressClass, V1Secret, V1Toleration } from "@kubernetes/client-node"
@@ -388,67 +387,69 @@ export async function buildDockerAuthConfig(
   imagePullSecrets: ProviderSecretRef[],
   api: KubeApi
 ): Promise<DockerConfigJson> {
-  return Bluebird.reduce(
-    imagePullSecrets,
-    async (accumulator, secretRef) => {
-      const secret = await readSecret(api, secretRef)
-      if (secret.type !== dockerAuthSecretType) {
-        throw new ConfigurationError({
-          message: dedent`
+  const decodedSecrets = await Promise.all(imagePullSecrets.map(async (secretRef): Promise<DockerConfigJson> => {
+    const secret = await readSecret(api, secretRef)
+    if (secret.type !== dockerAuthSecretType) {
+      throw new ConfigurationError({
+        message: dedent`
         Configured imagePullSecret '${secret.metadata.name}' does not appear to be a valid registry secret, because
         it does not have \`type: ${dockerAuthSecretType}\`.
         ${dockerAuthDocsLink}
         `,
-          detail: { secretRef },
-        })
-      }
+        detail: { secretRef },
+      })
+    }
 
-      // Decode the secret
-      const encoded = secret.data && secret.data![dockerAuthSecretKey]
+    // Decode the secret
+    const encoded = secret.data && secret.data![dockerAuthSecretKey]
 
-      if (!encoded) {
-        throw new ConfigurationError({
-          message: dedent`
+    if (!encoded) {
+      throw new ConfigurationError({
+        message: dedent`
         Configured imagePullSecret '${secret.metadata.name}' does not appear to be a valid registry secret, because
         it does not contain a ${dockerAuthSecretKey} key.
         ${dockerAuthDocsLink}
         `,
-          detail: { secretRef },
-        })
-      }
+        detail: { secretRef },
+      })
+    }
 
-      let decoded: any
+    let decoded: any
 
-      try {
-        decoded = JSON.parse(Buffer.from(encoded, "base64").toString())
-      } catch (err) {
-        throw new ConfigurationError({
-          message: dedent`
+    try {
+      decoded = JSON.parse(Buffer.from(encoded, "base64").toString())
+    } catch (err) {
+      throw new ConfigurationError({
+        message: dedent`
         Could not parse configured imagePullSecret '${secret.metadata.name}' as a JSON docker authentication file:
         ${err.message}.
         ${dockerAuthDocsLink}
         `,
-          detail: { secretRef },
-        })
-      }
-      if (!decoded.auths && !decoded.credHelpers) {
-        throw new ConfigurationError({
-          message: dedent`
+        detail: { secretRef },
+      })
+    }
+    if (!decoded.auths && !decoded.credHelpers) {
+      throw new ConfigurationError({
+        message: dedent`
         Could not parse configured imagePullSecret '${secret.metadata.name}' as a valid docker authentication file,
         because it is missing an "auths" or "credHelpers" key.
         ${dockerAuthDocsLink}
         `,
-          detail: { secretRef },
-        })
-      }
-      return {
-        ...accumulator,
-        auths: { ...accumulator.auths, ...decoded.auths },
-        credHelpers: { ...accumulator.credHelpers, ...decoded.credHelpers },
-      }
-    },
-    { experimental: "enabled", auths: {}, credHelpers: {} }
-  )
+        detail: { secretRef },
+      })
+    }
+
+    return decoded
+  }))
+
+  let finalSecret = { experimental: "enabled", auths: {}, credHelpers: {} }
+
+  for (const { auths, credHelpers } of decodedSecrets) {
+    finalSecret.auths = { ...finalSecret.auths, ...auths }
+    finalSecret.credHelpers = { ...finalSecret.credHelpers, ...credHelpers }
+  }
+
+  return finalSecret
 }
 
 export async function prepareDockerAuth(

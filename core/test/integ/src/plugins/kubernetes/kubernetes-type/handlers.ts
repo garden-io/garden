@@ -28,7 +28,6 @@ import {
   kubernetesDeploy,
   getKubernetesDeployStatus,
 } from "../../../../../../src/plugins/kubernetes/kubernetes-type/handlers"
-import Bluebird from "bluebird"
 import { buildHelmModules } from "../helm/common"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
@@ -66,9 +65,9 @@ describe("kubernetes-type handlers", () => {
   }
 
   const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logCtx: Log) => {
-    const maybeDeployedObjects = await Bluebird.map(manifests, (resource) =>
+    const maybeDeployedObjects = await Promise.all(manifests.map((resource) =>
       getDeployedResource(ctx, ctx.provider, resource, logCtx)
-    )
+    ))
     return <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
   }
 

@@ -65,7 +65,6 @@ import {
 import { k8sSyncUtilImageName } from "./constants"
 import { templateStringLiteral } from "../../docs/common"
 import { relative, resolve } from "path"
-import Bluebird from "bluebird"
 import { Resolved } from "../../actions/types"
 import { isAbsolute } from "path"
 import { joinWithPosix } from "../../util/fs"
@@ -378,7 +377,7 @@ export async function configureSyncMode({
   const resolvedTargets: { [ref: string]: SyncableResource } = {}
   const updatedTargets: { [ref: string]: SyncableResource } = {}
 
-  await Bluebird.map(Object.values(dedupedTargets), async (t) => {
+  await Promise.all(Object.values(dedupedTargets).map(async (t) => {
     const resolved = await getTargetResource({
       ctx,
       log,
@@ -388,7 +387,7 @@ export async function configureSyncMode({
       query: t,
     })
     resolvedTargets[targetKey(t)] = resolved
-  })
+  }))
 
   for (const override of spec.overrides || []) {
     const target = override.target || defaultTarget
@@ -534,7 +533,7 @@ export async function startSyncs(params: StartSyncsParams) {
 
   const expectedKeys: string[] = []
 
-  await Bluebird.map(syncs, async (s) => {
+  await Promise.all(syncs.map(async (s) => {
     const resourceSpec = s.target || defaultTarget
 
     if (!resourceSpec) {
@@ -597,7 +596,7 @@ export async function startSyncs(params: StartSyncsParams) {
     await mutagen.flushSync(key)
 
     expectedKeys.push(key)
-  })
+  }))
 
   const allSyncs = expectedKeys.length === 0 ? [] : await mutagen.getActiveSyncSessions(log)
   const keyPrefix = getSyncKeyPrefix(ctx, action)
@@ -652,7 +651,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
   let failed = false
   const expectedKeys: string[] = []
 
-  await Bluebird.map(syncs, async (s) => {
+  await Promise.all(syncs.map(async (s) => {
     const resourceSpec = s.target || defaultTarget
 
     if (!resourceSpec) {
@@ -762,7 +761,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
         config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
       })
     }
-  })
+  }))
 
   if (monitor) {
     // TODO: emit log events instead of using Log instance on Mutagen instance
