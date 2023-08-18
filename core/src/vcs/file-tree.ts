@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { VcsFile } from "./vcs"
 import * as path from "path"
 
@@ -15,9 +23,7 @@ export class FileTreeNode {
   }
 
   addFile(file: VcsFile): boolean {
-    // console.log(`Adding file ${file.path} at path ${this.ownPath}`)
     if (!file.path.startsWith(`/${this.ownPath}`)) {
-      // console.log(`File ${file.path} is not a child of ${this.ownPath}`)
       return false
     }
 
@@ -41,8 +47,6 @@ export class FileTreeNode {
     } else {
       child = this.childrenBySubpath.get(subpathSegment)!
     }
-
-    // console.log(`Adding file ${file.path} to child at path ${subpathSegment}`)
 
     child.addFile(file)
 
