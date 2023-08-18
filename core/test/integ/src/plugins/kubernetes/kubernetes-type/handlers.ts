@@ -65,9 +65,9 @@ describe("kubernetes-type handlers", () => {
   }
 
   const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logCtx: Log) => {
-    const maybeDeployedObjects = await Promise.all(manifests.map((resource) =>
-      getDeployedResource(ctx, ctx.provider, resource, logCtx)
-    ))
+    const maybeDeployedObjects = await Promise.all(
+      manifests.map((resource) => getDeployedResource(ctx, ctx.provider, resource, logCtx))
+    )
     return <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
   }
 

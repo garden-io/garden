@@ -750,26 +750,28 @@ export class Garden {
       // Detect circular dependencies here
       const validationGraph = new DependencyGraph()
 
-      await Promise.all(rawConfigs.map(async (config) => {
-        const plugin = plugins[config.name]
+      await Promise.all(
+        rawConfigs.map(async (config) => {
+          const plugin = plugins[config.name]
 
-        if (!plugin) {
-          throw new ConfigurationError({
-            message: `Configured provider '${config.name}' has not been registered.`,
-            detail: {
-              name: config.name,
-              availablePlugins: Object.keys(plugins),
-            },
-          })
-        }
+          if (!plugin) {
+            throw new ConfigurationError({
+              message: `Configured provider '${config.name}' has not been registered.`,
+              detail: {
+                name: config.name,
+                availablePlugins: Object.keys(plugins),
+              },
+            })
+          }
 
-        validationGraph.addNode(plugin.name)
+          validationGraph.addNode(plugin.name)
 
-        for (const dep of await getAllProviderDependencyNames(plugin!, config!)) {
-          validationGraph.addNode(dep)
-          validationGraph.addDependency(plugin.name, dep)
-        }
-      }))
+          for (const dep of await getAllProviderDependencyNames(plugin!, config!)) {
+            validationGraph.addNode(dep)
+            validationGraph.addDependency(plugin.name, dep)
+          }
+        })
+      )
 
       const cycles = validationGraph.detectCircularDependencies()
 
@@ -826,13 +828,15 @@ export class Garden {
 
       const gotCachedResult = !!providers.find((p) => p.status.cached)
 
-      await Promise.all(providers.flatMap((provider) =>
-        provider.moduleConfigs.map(async (moduleConfig) => {
-          // Make sure module and all nested entities are scoped to the plugin
-          moduleConfig.plugin = provider.name
-          await this.addModuleConfig(moduleConfig)
-        })
-      ))
+      await Promise.all(
+        providers.flatMap((provider) =>
+          provider.moduleConfigs.map(async (moduleConfig) => {
+            // Make sure module and all nested entities are scoped to the plugin
+            moduleConfig.plugin = provider.name
+            await this.addModuleConfig(moduleConfig)
+          })
+        )
+      )
 
       for (const provider of providers) {
         this.resolvedProviders[provider.name] = provider
@@ -1086,33 +1090,35 @@ export class Garden {
       let updated = false
 
       // Resolve actions from augmentGraph specs and add to the list
-      await Promise.all((addActions || []).map(async (config) => {
-        // There is no actual config file for plugin modules (which the prepare function assumes)
-        delete config.internal?.configFilePath
+      await Promise.all(
+        (addActions || []).map(async (config) => {
+          // There is no actual config file for plugin modules (which the prepare function assumes)
+          delete config.internal?.configFilePath
 
-        if (!config.internal.basePath) {
-          config.internal.basePath = this.projectRoot
-        }
+          if (!config.internal.basePath) {
+            config.internal.basePath = this.projectRoot
+          }
 
-        const key = actionReferenceToString(config)
+          const key = actionReferenceToString(config)
 
-        const action = await actionFromConfig({
-          garden: this,
-          graph,
-          config,
-          router,
-          log: graphLog,
-          configsByKey: actionConfigs,
-          mode: actionModes[key] || "default",
-          linkedSources,
-          scanRoot: config.internal.basePath,
+          const action = await actionFromConfig({
+            garden: this,
+            graph,
+            config,
+            router,
+            log: graphLog,
+            configsByKey: actionConfigs,
+            mode: actionModes[key] || "default",
+            linkedSources,
+            scanRoot: config.internal.basePath,
+          })
+
+          graph.addAction(action)
+          actionConfigs[key] = config
+
+          updated = true
         })
-
-        graph.addAction(action)
-        actionConfigs[key] = config
-
-        updated = true
-      }))
+      )
 
       for (const dependency of addDependencies || []) {
         for (const key of ["by", "on"]) {
@@ -1294,14 +1300,16 @@ export class Garden {
       // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
       const linkedSources = await getLinkedSources(this, "project")
       const projectSources = this.getProjectSources()
-      const extSourcePaths = await Promise.all(projectSources.map(({ name, repositoryUrl }) => {
-        return this.resolveExtSourcePath({
-          name,
-          linkedSources,
-          repositoryUrl,
-          sourceType: "project",
+      const extSourcePaths = await Promise.all(
+        projectSources.map(({ name, repositoryUrl }) => {
+          return this.resolveExtSourcePath({
+            name,
+            linkedSources,
+            repositoryUrl,
+            sourceType: "project",
+          })
         })
-      }))
+      )
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
       const configPaths = flatten(await Promise.all(dirsToScan.map((path) => this.scanForConfigs(this.log, path))))
@@ -1359,9 +1367,11 @@ export class Garden {
       ] as RenderTemplateConfig[]
 
       // Resolve Render configs
-      const renderResults = await Promise.all(renderConfigs.map((config) =>
-        renderConfigTemplate({ garden: this, log: this.log, config, templates: templatesByName })
-      ))
+      const renderResults = await Promise.all(
+        renderConfigs.map((config) =>
+          renderConfigTemplate({ garden: this, log: this.log, config, templates: templatesByName })
+        )
+      )
 
       const actionsFromTemplates = renderResults.flatMap((r) => r.configs.filter(isActionConfig))
       const modulesFromTemplates = renderResults.flatMap((r) => r.modules)

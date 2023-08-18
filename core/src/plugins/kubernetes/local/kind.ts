@@ -41,18 +41,20 @@ export async function getKindImageStatus(config: KubernetesConfig, imageId: stri
   // Check if the image exists on all nodes
   let ready = true
 
-  await Promise.all(nodes.map(async (nodeName) => {
-    const imagesRes = await exec("docker", ["exec", "-i", nodeName, "crictl", "images", "--output=json", clusterId])
-    const images = JSON.parse(imagesRes.stdout)
-    for (const image of images.images) {
-      if (image.repoTags.includes(clusterId)) {
-        // Found it
-        return
+  await Promise.all(
+    nodes.map(async (nodeName) => {
+      const imagesRes = await exec("docker", ["exec", "-i", nodeName, "crictl", "images", "--output=json", clusterId])
+      const images = JSON.parse(imagesRes.stdout)
+      for (const image of images.images) {
+        if (image.repoTags.includes(clusterId)) {
+          // Found it
+          return
+        }
       }
-    }
-    // Didn't find it
-    ready = false
-  }))
+      // Didn't find it
+      ready = false
+    })
+  )
 
   if (ready) {
     log.debug(`Image ${imageId} has been loaded into kind cluster`)

@@ -203,10 +203,12 @@ export class LogsCommand extends Command<Args, Opts> {
       monitors.forEach((m) => garden.monitors.addAndSubscribe(m, this))
       return { result: [] }
     } else {
-      const entries = await Promise.all(monitors.map(async (m) => {
-        await m.start()
-        return m.getEntries().map((e) => ({ ...e, monitor: m }))
-      }))
+      const entries = await Promise.all(
+        monitors.map(async (m) => {
+          await m.start()
+          return m.getEntries().map((e) => ({ ...e, monitor: m }))
+        })
+      )
 
       const sorted = sortBy(
         entries.flatMap((e) => e),

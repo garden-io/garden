@@ -51,16 +51,18 @@ export class PortForwardMonitor extends Monitor {
   }
 
   async stopProxies() {
-    await Promise.all(this.proxies.map((proxy) =>
-      stopPortProxy({
-        garden: this.garden,
-        graph: this.graph,
-        log: this.log,
-        action: this.action,
-        proxy,
-        spec: proxy.spec,
-      })
-    ))
+    await Promise.all(
+      this.proxies.map((proxy) =>
+        stopPortProxy({
+          garden: this.garden,
+          graph: this.graph,
+          log: this.log,
+          action: this.action,
+          proxy,
+          spec: proxy.spec,
+        })
+      )
+    )
   }
 
   async start() {

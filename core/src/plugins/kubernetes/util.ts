@@ -70,17 +70,19 @@ export async function getAllPods(
   resources: KubernetesResource[]
 ): Promise<KubernetesPod[]> {
   const pods: KubernetesPod[] = flatten(
-    await Promise.all(resources.map(async (resource) => {
-      if (resource.apiVersion === "v1" && resource.kind === "Pod") {
-        return [<KubernetesServerResource<V1Pod>>resource]
-      }
+    await Promise.all(
+      resources.map(async (resource) => {
+        if (resource.apiVersion === "v1" && resource.kind === "Pod") {
+          return [<KubernetesServerResource<V1Pod>>resource]
+        }
 
-      if (isWorkload(resource)) {
-        return getWorkloadPods(api, resource.metadata?.namespace || defaultNamespace, <KubernetesWorkload>resource)
-      }
+        if (isWorkload(resource)) {
+          return getWorkloadPods(api, resource.metadata?.namespace || defaultNamespace, <KubernetesWorkload>resource)
+        }
 
-      return []
-    }))
+        return []
+      })
+    )
   )
 
   return pods

@@ -188,9 +188,11 @@ describe("GetActionsCommand", () => {
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
     const expected = sortBy(
-      await Promise.all(graph.getActions({ refs: args.names }).map(async (a) =>
-        getActionsToSimpleWithStateOutput(a, router, graph, log)
-      )),
+      await Promise.all(
+        graph
+          .getActions({ refs: args.names })
+          .map(async (a) => getActionsToSimpleWithStateOutput(a, router, graph, log))
+      ),
       "name"
     )
     expect(command.outputsSchema().validate(result).error).to.be.undefined
@@ -211,9 +213,9 @@ describe("GetActionsCommand", () => {
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
     const expected = sortBy(
-      await Promise.all(graph.getActions().map(async (a) =>
-        getActionsToDetailedWithStateOutput(a, garden, router, graph, log)
-      )),
+      await Promise.all(
+        graph.getActions().map(async (a) => getActionsToDetailedWithStateOutput(a, garden, router, graph, log))
+      ),
       "name"
     )
     expect(command.outputsSchema().validate(result).error).to.be.undefined

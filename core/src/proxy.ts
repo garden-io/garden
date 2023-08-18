@@ -59,9 +59,11 @@ export async function startPortProxies({
   status: ServiceStatus
   events?: PluginEventBroker
 }) {
-  return Promise.all((status.forwardablePorts || []).map((spec) => {
-    return startPortProxy({ garden, graph, log, action, spec, events })
-  }))
+  return Promise.all(
+    (status.forwardablePorts || []).map((spec) => {
+      return startPortProxy({ garden, graph, log, action, spec, events })
+    })
+  )
 }
 
 interface StartPortProxyParams {

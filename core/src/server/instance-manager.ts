@@ -221,9 +221,11 @@ export class GardenInstanceManager {
     await this.clear()
 
     // Reload context for each project root
-    await Promise.all(projectRoots.map(async (projectRoot) => {
-      await this.updateProjectRootContext(log, projectRoot)
-    }))
+    await Promise.all(
+      projectRoots.map(async (projectRoot) => {
+        await this.updateProjectRootContext(log, projectRoot)
+      })
+    )
   }
 
   set(log: Log, garden: Garden) {

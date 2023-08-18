@@ -80,25 +80,27 @@ describe("util", () => {
     const router = await helmGarden.getActionRouter()
     const { actions } = await convertModules(helmGarden, helmGarden.log, modules, graph.moduleGraph)
 
-    const tasks = await Promise.all(actions.map(async (rawAction) => {
-      const action = (await actionFromConfig({
-        garden: helmGarden,
-        graph,
-        config: rawAction,
-        log: helmGarden.log,
-        configsByKey: {},
-        router,
-        mode: "default",
-        linkedSources: {},
-      })) as BuildAction
-      return new BuildTask({
-        garden: helmGarden,
-        graph: helmGraph,
-        log,
-        action,
-        force: false,
+    const tasks = await Promise.all(
+      actions.map(async (rawAction) => {
+        const action = (await actionFromConfig({
+          garden: helmGarden,
+          graph,
+          config: rawAction,
+          log: helmGarden.log,
+          configsByKey: {},
+          router,
+          mode: "default",
+          linkedSources: {},
+        })) as BuildAction
+        return new BuildTask({
+          garden: helmGarden,
+          graph: helmGraph,
+          log,
+          action,
+          force: false,
+        })
       })
-    }))
+    )
     const results = await helmGarden.processTasks({ tasks })
 
     const err = first(Object.values(results).map((r) => r && r.error))

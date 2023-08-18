@@ -358,18 +358,20 @@ export const deleteKubernetesDeploy: DeployActionHandler<"delete", KubernetesDep
   const [namespaceManifests, otherManifests] = partition(manifests, (m) => m.kind === "Namespace")
 
   if (namespaceManifests.length > 0) {
-    await Promise.all(namespaceManifests.map((ns) => {
-      const selector = `${gardenAnnotationKey("service")}=${gardenNamespaceAnnotationValue(ns.metadata.name)}`
-      return deleteObjectsBySelector({
-        log,
-        ctx,
-        provider,
-        namespace,
-        selector,
-        objectTypes: ["Namespace"],
-        includeUninitialized: false,
+    await Promise.all(
+      namespaceManifests.map((ns) => {
+        const selector = `${gardenAnnotationKey("service")}=${gardenNamespaceAnnotationValue(ns.metadata.name)}`
+        return deleteObjectsBySelector({
+          log,
+          ctx,
+          provider,
+          namespace,
+          selector,
+          objectTypes: ["Namespace"],
+          includeUninitialized: false,
+        })
       })
-    }))
+    )
   }
   if (otherManifests.length > 0) {
     await deleteObjectsBySelector({

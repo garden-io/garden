@@ -83,49 +83,51 @@ export class BuildStaging {
   async syncDependencyProducts(action: BuildAction, log: Log) {
     const buildPath = action.getBuildPath()
 
-    await Promise.all((action.getConfig("copyFrom") || []).map(async (copy) => {
-      const sourceBuild = action.getDependency({ kind: "Build", name: copy.build })
+    await Promise.all(
+      (action.getConfig("copyFrom") || []).map(async (copy) => {
+        const sourceBuild = action.getDependency({ kind: "Build", name: copy.build })
 
-      if (!sourceBuild) {
-        throw new ConfigurationError({
-          message: `${action.longDescription()} specifies build '${
-            copy.build
-          }' in \`copyFrom\` which could not be found.`,
-          detail: { actionKey: action.key(), copy },
+        if (!sourceBuild) {
+          throw new ConfigurationError({
+            message: `${action.longDescription()} specifies build '${
+              copy.build
+            }' in \`copyFrom\` which could not be found.`,
+            detail: { actionKey: action.key(), copy },
+          })
+        }
+
+        if (isAbsolute(copy.sourcePath)) {
+          throw new ConfigurationError({
+            message: `Source path in build dependency copy spec must be a relative path`,
+            detail: {
+              copySpec: copy,
+            },
+          })
+        }
+
+        if (isAbsolute(copy.targetPath)) {
+          throw new ConfigurationError({
+            message: `Target path in build dependency copy spec must be a relative path`,
+            detail: {
+              copySpec: copy,
+            },
+          })
+        }
+
+        // init .garden/build directory of the source build before syncing it to the build directory of the target action
+        // here we do not want to remove any existing files produce by the source build action
+        await this.syncFromSrc({ action: sourceBuild, log, withDelete: false })
+
+        return this.sync({
+          sourceRoot: sourceBuild.getBuildPath(),
+          targetRoot: buildPath,
+          sourceRelPath: copy.sourcePath,
+          targetRelPath: copy.targetPath,
+          withDelete: false,
+          log,
         })
-      }
-
-      if (isAbsolute(copy.sourcePath)) {
-        throw new ConfigurationError({
-          message: `Source path in build dependency copy spec must be a relative path`,
-          detail: {
-            copySpec: copy,
-          },
-        })
-      }
-
-      if (isAbsolute(copy.targetPath)) {
-        throw new ConfigurationError({
-          message: `Target path in build dependency copy spec must be a relative path`,
-          detail: {
-            copySpec: copy,
-          },
-        })
-      }
-
-      // init .garden/build directory of the source build before syncing it to the build directory of the target action
-      // here we do not want to remove any existing files produce by the source build action
-      await this.syncFromSrc({ action: sourceBuild, log, withDelete: false })
-
-      return this.sync({
-        sourceRoot: sourceBuild.getBuildPath(),
-        targetRoot: buildPath,
-        sourceRelPath: copy.sourcePath,
-        targetRelPath: copy.targetPath,
-        withDelete: false,
-        log,
       })
-    }))
+    )
   }
 
   async clear() {

@@ -155,9 +155,11 @@ export async function checkResourceStatuses(
   log: Log,
   waitForJobs?: boolean
 ): Promise<ResourceStatus[]> {
-  return Promise.all(manifests.map(async (manifest) => {
-    return checkResourceStatus({ api, namespace, manifest, log, waitForJobs })
-  }))
+  return Promise.all(
+    manifests.map(async (manifest) => {
+      return checkResourceStatus({ api, namespace, manifest, log, waitForJobs })
+    })
+  )
 }
 
 export async function checkResourceStatus({
@@ -369,9 +371,9 @@ export async function compareDeployedResources({
   manifests = flatten(manifests.map((r: any) => (r.apiVersion === "v1" && r.kind === "List" ? r.items : [r])))
 
   // Check if any resources are missing from the cluster.
-  const maybeDeployedObjects = await Promise.all(manifests.map((resource) =>
-    getDeployedResource(ctx, ctx.provider, resource, log)
-  ))
+  const maybeDeployedObjects = await Promise.all(
+    manifests.map((resource) => getDeployedResource(ctx, ctx.provider, resource, log))
+  )
   const deployedResources = <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
   const manifestsMap = keyBy(manifests, (m) => getResourceKey(m))
   const manifestKeys = Object.keys(manifestsMap)
@@ -403,9 +405,9 @@ export async function compareDeployedResources({
   // From here, the state can only be "ready" or "outdated", so we proceed to compare the old & new specs.
   log.debug(`Getting currently deployed resource statuses...`)
 
-  const deployedObjectStatuses: ResourceStatus[] = await Promise.all(deployedResources.map( async (resource) =>
-    checkResourceStatus({ api, namespace, manifest: resource, log })
-  ))
+  const deployedObjectStatuses: ResourceStatus[] = await Promise.all(
+    deployedResources.map(async (resource) => checkResourceStatus({ api, namespace, manifest: resource, log }))
+  )
 
   const deployedStates = deployedObjectStatuses.map((s) => s.state)
   if (deployedStates.find((s) => s !== "ready")) {
@@ -606,9 +608,9 @@ export async function getDeployedResources<ResourceKind extends KubernetesObject
   manifests: KubernetesResource<ResourceKind>[]
   log: Log
 }): Promise<KubernetesResource<ResourceKind>[]> {
-  const maybeDeployedObjects = await Promise.all(manifests.map(async (resource) =>
-    getDeployedResource(ctx, ctx.provider, resource, log)
-  ))
+  const maybeDeployedObjects = await Promise.all(
+    manifests.map(async (resource) => getDeployedResource(ctx, ctx.provider, resource, log))
+  )
   return maybeDeployedObjects.filter(isTruthy)
 }
 

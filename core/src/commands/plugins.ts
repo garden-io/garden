@@ -132,32 +132,34 @@ async function listPlugins(garden: Garden, log: Log, pluginsToList: string[]) {
   ${chalk.white.bold("PLUGIN COMMANDS")}
   `)
 
-  const plugins = await Promise.all(pluginsToList.map(async (pluginName) => {
-    const plugin = await garden.getPlugin(pluginName)
+  const plugins = await Promise.all(
+    pluginsToList.map(async (pluginName) => {
+      const plugin = await garden.getPlugin(pluginName)
 
-    const commands = plugin.commands
-    if (commands.length === 0) {
-      return plugin
-    }
+      const commands = plugin.commands
+      if (commands.length === 0) {
+        return plugin
+      }
 
-    const rows = commands.map((command) => {
-      return [` ${chalk.cyan(pluginName + " " + command.name)}`, command.description]
-    })
-
-    const maxCommandLengthAnsi = max(rows.map((r) => r[0].length))!
-
-    log.info(
-      renderTable(rows, {
-        ...tablePresets["no-borders"],
-        colWidths: [null, getTerminalWidth() - maxCommandLengthAnsi],
+      const rows = commands.map((command) => {
+        return [` ${chalk.cyan(pluginName + " " + command.name)}`, command.description]
       })
-    )
 
-    // Line between different plugins
-    log.info("")
+      const maxCommandLengthAnsi = max(rows.map((r) => r[0].length))!
 
-    return plugin
-  }))
+      log.info(
+        renderTable(rows, {
+          ...tablePresets["no-borders"],
+          colWidths: [null, getTerminalWidth() - maxCommandLengthAnsi],
+        })
+      )
+
+      // Line between different plugins
+      log.info("")
+
+      return plugin
+    })
+  )
 
   const result = fromPairs(zip(pluginsToList, plugins))
   return { result }

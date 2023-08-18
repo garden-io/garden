@@ -384,11 +384,13 @@ async function prepareRemoteGarden({
 
   await mkdirp(sourcesPath)
   // Copy the sources to the `.garden/sources` dir and git init them
-  await Promise.all(sourceNames.map(async (name) => {
-    const targetPath = getRemoteSourceLocalPath({ gardenDirPath: garden.gardenDirPath, name, url: testGitUrl, type })
-    await copy(join(extSourcesRoot, name), targetPath)
-    await execa("git", ["init", "--initial-branch=main"], { cwd: targetPath })
-  }))
+  await Promise.all(
+    sourceNames.map(async (name) => {
+      const targetPath = getRemoteSourceLocalPath({ gardenDirPath: garden.gardenDirPath, name, url: testGitUrl, type })
+      await copy(join(extSourcesRoot, name), targetPath)
+      await execa("git", ["init", "--initial-branch=main"], { cwd: targetPath })
+    })
+  )
 
   return garden
 }

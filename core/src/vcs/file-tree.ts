@@ -1,7 +1,6 @@
 import { VcsFile } from "./vcs"
 import * as path from "path"
 
-
 type FileTreeNodeOptions = {
   ownPath: string
 }

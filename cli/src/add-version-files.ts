@@ -27,24 +27,26 @@ async function addVersionFiles() {
 
   const moduleConfigs = await garden.getRawModuleConfigs()
 
-  return Promise.all(moduleConfigs.map(async (config) => {
-    const path = config.path
-    const versionFilePath = resolve(path, GARDEN_VERSIONFILE_NAME)
+  return Promise.all(
+    moduleConfigs.map(async (config) => {
+      const path = config.path
+      const versionFilePath = resolve(path, GARDEN_VERSIONFILE_NAME)
 
-    const vcsHandler = new GitHandler({
-      garden,
-      projectRoot: STATIC_DIR,
-      gardenDirPath: garden.gardenDirPath,
-      ignoreFile: garden.dotIgnoreFile,
-      cache: new TreeCache(),
+      const vcsHandler = new GitHandler({
+        garden,
+        projectRoot: STATIC_DIR,
+        gardenDirPath: garden.gardenDirPath,
+        ignoreFile: garden.dotIgnoreFile,
+        cache: new TreeCache(),
+      })
+      const treeVersion = await vcsHandler.getTreeVersion({ log: garden.log, projectName: garden.projectName, config })
+
+      // eslint-disable-next-line no-console
+      console.log(`${config.name} -> ${relative(STATIC_DIR, versionFilePath)}`)
+
+      return writeTreeVersionFile(path, treeVersion)
     })
-    const treeVersion = await vcsHandler.getTreeVersion({ log: garden.log, projectName: garden.projectName, config })
-
-    // eslint-disable-next-line no-console
-    console.log(`${config.name} -> ${relative(STATIC_DIR, versionFilePath)}`)
-
-    return writeTreeVersionFile(path, treeVersion)
-  }))
+  )
 }
 
 if (require.main === module) {

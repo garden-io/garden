@@ -59,31 +59,37 @@ describe("System services", () => {
     const router = await systemGarden.getActionRouter()
     const tests = actions.actions.filter((a) => a.kind === "Test")
 
-    await Promise.all(tests.map(async (testConfig) => {
-      const action = (await actionFromConfig({
-        config: testConfig,
-        configsByKey: {},
-        garden: systemGarden,
-        graph,
-        log: systemGarden.log,
-        router,
-        mode: "default",
-        linkedSources: {},
-      })) as TestAction<any, any>
-      const resolved = await systemGarden.resolveAction<TestAction>({ action, graph, log: systemGarden.log })
-      const testTask = new TestTask({
-        garden: systemGarden,
-        log: garden.log,
-        action: resolved,
+    await Promise.all(
+      tests.map(async (testConfig) => {
+        const action = (await actionFromConfig({
+          config: testConfig,
+          configsByKey: {},
+          garden: systemGarden,
+          graph,
+          log: systemGarden.log,
+          router,
+          mode: "default",
+          linkedSources: {},
+        })) as TestAction<any, any>
+        const resolved = await systemGarden.resolveAction<TestAction>({ action, graph, log: systemGarden.log })
+        const testTask = new TestTask({
+          garden: systemGarden,
+          log: garden.log,
+          action: resolved,
 
-        force: false,
+          force: false,
 
-        graph,
+          graph,
+        })
+        const key = testTask.getBaseKey()
+        const result = await systemGarden.processTasks({
+          tasks: [testTask],
+          throwOnError: false,
+          log: systemGarden.log,
+        })
+        expect(result[key]).to.exist
+        expect(result[key]?.error).to.not.exist
       })
-      const key = testTask.getBaseKey()
-      const result = await systemGarden.processTasks({ tasks: [testTask], throwOnError: false, log: systemGarden.log })
-      expect(result[key]).to.exist
-      expect(result[key]?.error).to.not.exist
-    }))
+    )
   })
 })

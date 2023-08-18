@@ -564,13 +564,15 @@ export class Mutagen {
    */
   async flushAllSyncs(log: Log) {
     const active = await this.getActiveSyncSessions(log)
-    await Promise.all(active.map(async (session) => {
-      try {
-        await this.flushSync(session.name)
-      } catch (err) {
-        log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err.message}`))
-      }
-    }))
+    await Promise.all(
+      active.map(async (session) => {
+        try {
+          await this.flushSync(session.name)
+        } catch (err) {
+          log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err.message}`))
+        }
+      })
+    )
   }
 
   /**
@@ -650,10 +652,12 @@ export class Mutagen {
   }
 
   async terminateSyncs() {
-    await Promise.all(Object.keys(this.activeSyncs).map(async (key) => {
-      await this.execCommand(["sync", "terminate", key])
-      delete this.activeSyncs[key]
-    }))
+    await Promise.all(
+      Object.keys(this.activeSyncs).map(async (key) => {
+        await this.execCommand(["sync", "terminate", key])
+        delete this.activeSyncs[key]
+      })
+    )
   }
 
   async restartDaemonProc() {

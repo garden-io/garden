@@ -108,11 +108,13 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
     })
 
     const paths = fromPairs(
-      await Promise.all(toolsNeeded.map(async ({ plugin, tool }) => {
-        const fullName = `${plugin.name}.${tool.name}`
-        const path = await tool.ensurePath(log)
-        return [fullName, { type: tool.type, path }]
-      }))
+      await Promise.all(
+        toolsNeeded.map(async ({ plugin, tool }) => {
+          const fullName = `${plugin.name}.${tool.name}`
+          const path = await tool.ensurePath(log)
+          return [fullName, { type: tool.type, path }]
+        })
+      )
     )
 
     printFooter(log)

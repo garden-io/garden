@@ -126,13 +126,15 @@ export async function mergeVariables({
   variables?: DeepPrimitiveMap
   varfiles?: string[]
 }) {
-  const varsByFile = await Promise.all((varfiles || []).map((path) => {
-    return loadVarfile({
-      configRoot: basePath,
-      path,
-      defaultPath: undefined,
+  const varsByFile = await Promise.all(
+    (varfiles || []).map((path) => {
+      return loadVarfile({
+        configRoot: basePath,
+        path,
+        defaultPath: undefined,
+      })
     })
-  }))
+  )
 
   const output: DeepPrimitiveMap = {}
 

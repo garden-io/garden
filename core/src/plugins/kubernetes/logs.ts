@@ -77,12 +77,14 @@ export async function streamK8sLogs(params: GetAllLogsParams) {
       params.log.debug(`Tail parameter not set explicitly. Setting to ${tail} to prevent log overflow.`)
     }
     const { stream } = params
-    await Promise.all(pods.map(async (pod) => {
-      const serviceLogEntries = await readLogs({ ...omit(params, "pods", "stream"), entryConverter, pod, tail, api })
-      for (const entry of sortBy(serviceLogEntries, "timestamp")) {
-        void stream.write(entry)
-      }
-    }))
+    await Promise.all(
+      pods.map(async (pod) => {
+        const serviceLogEntries = await readLogs({ ...omit(params, "pods", "stream"), entryConverter, pod, tail, api })
+        for (const entry of sortBy(serviceLogEntries, "timestamp")) {
+          void stream.write(entry)
+        }
+      })
+    )
   }
   return {}
 }
@@ -370,94 +372,96 @@ export class K8sLogFollower<T extends LogEntryBase> {
       )
     }
 
-    await Promise.all(containers.map(async ({ pod, containerName }) => {
-      const connection = this.createConnectionIfMissing(pod, containerName)
+    await Promise.all(
+      containers.map(async ({ pod, containerName }) => {
+        const connection = this.createConnectionIfMissing(pod, containerName)
 
-      if (disconnectedStatuses.includes(connection.status) && connection.shouldRetry) {
-        // The connection has been registered but is not active
-        this.log.silly(
-          `<Connecting to container ${connection.containerName} in Pod ${connection.pod.metadata.name}, because current connection status is ${connection.status}>`
-        )
-        connection.status = "connecting"
-      } else {
-        // nothing to do
-        return
-      }
-
-      let req: request.Request
-
-      const makeTimeout = () => {
-        const idleTimeout = 60000
-        return setTimeout(async () => {
-          await this.handleConnectionClose(
-            connection,
-            "timed-out",
-            `Connection has been idle for ${idleTimeout / 1000} seconds.`
+        if (disconnectedStatuses.includes(connection.status) && connection.shouldRetry) {
+          // The connection has been registered but is not active
+          this.log.silly(
+            `<Connecting to container ${connection.containerName} in Pod ${connection.pod.metadata.name}, because current connection status is ${connection.status}>`
           )
-          req?.abort()
-        }, idleTimeout)
-      }
+          connection.status = "connecting"
+        } else {
+          // nothing to do
+          return
+        }
 
-      const _self = this
-      // The ts-stream library that we use for service logs entries doesn't properly implement
-      // a writeable stream which the K8s API expects so we wrap it here.
-      const writableStream = new Writable({
-        write(chunk: Buffer | undefined, _encoding: BufferEncoding, next) {
-          // clear the timeout, as we have activity on the socket
-          clearTimeout(connection.timeout)
-          connection.timeout = makeTimeout()
+        let req: request.Request
 
-          // we do not use the encoding parameter, because it is invalid
-          // we can assume that we receive utf-8 encoded strings from k8s
-          const line = chunk?.toString()?.trimEnd()
-
-          if (!line) {
-            next()
-            return
-          }
-
-          const { timestamp, msg } = parseTimestampAndMessage(line)
-
-          // If we can't parse the timestamp, we encountered a kubernetes error
-          if (!timestamp) {
-            _self.log.debug(
-              `Encountered a log message without timestamp. This is probably an error message from the Kubernetes API: ${line}`
+        const makeTimeout = () => {
+          const idleTimeout = 60000
+          return setTimeout(async () => {
+            await this.handleConnectionClose(
+              connection,
+              "timed-out",
+              `Connection has been idle for ${idleTimeout / 1000} seconds.`
             )
-          } else if (_self.isDuplicate({ connection, timestamp, msg })) {
-            _self.log.silly(`Dropping duplicate log message: ${line}`)
-          } else {
-            _self.updateLastLogEntries({ connection, timestamp, msg })
-            _self.write({
-              msg,
-              containerName,
-              timestamp,
-            })
-          }
+            req?.abort()
+          }, idleTimeout)
+        }
 
-          next()
-        },
-      })
+        const _self = this
+        // The ts-stream library that we use for service logs entries doesn't properly implement
+        // a writeable stream which the K8s API expects so we wrap it here.
+        const writableStream = new Writable({
+          write(chunk: Buffer | undefined, _encoding: BufferEncoding, next) {
+            // clear the timeout, as we have activity on the socket
+            clearTimeout(connection.timeout)
+            connection.timeout = makeTimeout()
 
-      try {
-        req = await this.streamPodLogs({
-          connection,
-          stream: writableStream,
-          tail: tail || Math.floor(maxLogLinesInMemory / containers.length),
-          since,
-          sinceOnRetry,
+            // we do not use the encoding parameter, because it is invalid
+            // we can assume that we receive utf-8 encoded strings from k8s
+            const line = chunk?.toString()?.trimEnd()
+
+            if (!line) {
+              next()
+              return
+            }
+
+            const { timestamp, msg } = parseTimestampAndMessage(line)
+
+            // If we can't parse the timestamp, we encountered a kubernetes error
+            if (!timestamp) {
+              _self.log.debug(
+                `Encountered a log message without timestamp. This is probably an error message from the Kubernetes API: ${line}`
+              )
+            } else if (_self.isDuplicate({ connection, timestamp, msg })) {
+              _self.log.silly(`Dropping duplicate log message: ${line}`)
+            } else {
+              _self.updateLastLogEntries({ connection, timestamp, msg })
+              _self.write({
+                msg,
+                containerName,
+                timestamp,
+              })
+            }
+
+            next()
+          },
         })
-        this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
-      } catch (err) {
-        await this.handleConnectionClose(connection, "error", err)
-        return
-      }
-      connection.request = req
-      connection.status = "connected"
-      connection.timeout = makeTimeout()
 
-      req.on("error", async (error) => await this.handleConnectionClose(connection, "error", error))
-      req.on("close", async () => await this.handleConnectionClose(connection, "closed", "Request closed"))
-    }))
+        try {
+          req = await this.streamPodLogs({
+            connection,
+            stream: writableStream,
+            tail: tail || Math.floor(maxLogLinesInMemory / containers.length),
+            since,
+            sinceOnRetry,
+          })
+          this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
+        } catch (err) {
+          await this.handleConnectionClose(connection, "error", err)
+          return
+        }
+        connection.request = req
+        connection.status = "connected"
+        connection.timeout = makeTimeout()
+
+        req.on("error", async (error) => await this.handleConnectionClose(connection, "error", error))
+        req.on("close", async () => await this.handleConnectionClose(connection, "closed", "Request closed"))
+      })
+    )
   }
 
   private async streamPodLogs({

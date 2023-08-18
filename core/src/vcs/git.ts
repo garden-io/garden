@@ -814,19 +814,21 @@ export async function augmentGlobs(basePath: string, globs?: string[]) {
     return globs
   }
 
-  return Promise.all(globs.map(async (pattern) => {
-    if (isGlob(pattern, { strict: false })) {
-      // Pass globs through directly (they won't match a specific directory)
-      return pattern
-    }
+  return Promise.all(
+    globs.map(async (pattern) => {
+      if (isGlob(pattern, { strict: false })) {
+        // Pass globs through directly (they won't match a specific directory)
+        return pattern
+      }
 
-    try {
-      const isDir = (await stat(joinWithPosix(basePath, pattern))).isDirectory()
-      return isDir ? posix.join(pattern, "**", "*") : pattern
-    } catch {
-      return pattern
-    }
-  }))
+      try {
+        const isDir = (await stat(joinWithPosix(basePath, pattern))).isDirectory()
+        return isDir ? posix.join(pattern, "**", "*") : pattern
+      } catch {
+        return pattern
+      }
+    })
+  )
 }
 
 const parseLine = (data: Buffer): GitEntry | undefined => {

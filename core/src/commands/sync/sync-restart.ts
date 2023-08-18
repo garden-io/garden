@@ -106,10 +106,12 @@ export class SyncRestartCommand extends Command<Args, Opts> {
 
     syncControlLog.info({ symbol: "info", msg: "Stopping active syncs..." })
 
-    await Promise.all(actions.map(async (action) => {
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-      await router.deploy.stopSync({ log: actionLog, action, graph })
-    }))
+    await Promise.all(
+      actions.map(async (action) => {
+        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        await router.deploy.stopSync({ log: actionLog, action, graph })
+      })
+    )
     syncControlLog.info({ symbol: "success", msg: chalk.green("Active syncs stopped") })
 
     syncControlLog.info({ symbol: "info", msg: "Starting stopped syncs..." })

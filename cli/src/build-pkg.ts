@@ -94,48 +94,52 @@ async function buildBinaries(args: string[]) {
   const workspaces = JSON.parse(JSON.parse(res).data)
 
   console.log(chalk.cyan("Copying packages"))
-  await Promise.all(Object.entries(workspaces).map(async ([name, info]: [string, any]) => {
-    const sourcePath = resolve(repoRoot, info.location)
-    const targetPath = resolve(tmpDirPath, info.location)
-    await remove(targetPath)
-    await mkdirp(targetPath)
-    await exec("rsync", [
-      "-r",
-      "-L",
-      "--exclude=node_modules",
-      "--exclude=tmp",
-      "--exclude=test",
-      sourcePath,
-      resolve(targetPath, ".."),
-    ])
+  await Promise.all(
+    Object.entries(workspaces).map(async ([name, info]: [string, any]) => {
+      const sourcePath = resolve(repoRoot, info.location)
+      const targetPath = resolve(tmpDirPath, info.location)
+      await remove(targetPath)
+      await mkdirp(targetPath)
+      await exec("rsync", [
+        "-r",
+        "-L",
+        "--exclude=node_modules",
+        "--exclude=tmp",
+        "--exclude=test",
+        sourcePath,
+        resolve(targetPath, ".."),
+      ])
 
-    console.log(chalk.green(" ✓ " + name))
-  }))
+      console.log(chalk.green(" ✓ " + name))
+    })
+  )
 
   // Edit all the packages to have them directly link any internal dependencies
   console.log(chalk.cyan("Modifying package.json files for direct installation"))
-  await Promise.all(Object.entries(workspaces).map(async ([name, info]: [string, any]) => {
-    const packageRoot = resolve(tmpDirPath, info.location)
-    const packageJsonPath = resolve(packageRoot, "package.json")
-    const packageJson = require(packageJsonPath)
+  await Promise.all(
+    Object.entries(workspaces).map(async ([name, info]: [string, any]) => {
+      const packageRoot = resolve(tmpDirPath, info.location)
+      const packageJsonPath = resolve(packageRoot, "package.json")
+      const packageJson = require(packageJsonPath)
 
-    for (const depName of info.workspaceDependencies) {
-      const depInfo = workspaces[depName]
-      const targetRoot = resolve(tmpDirPath, depInfo.location)
-      const relPath = relative(packageRoot, targetRoot)
-      packageJson.dependencies[depName] = "file:" + relPath
-    }
+      for (const depName of info.workspaceDependencies) {
+        const depInfo = workspaces[depName]
+        const targetRoot = resolve(tmpDirPath, depInfo.location)
+        const relPath = relative(packageRoot, targetRoot)
+        packageJson.dependencies[depName] = "file:" + relPath
+      }
 
-    if (version === "edge" || version.startsWith("edge-")) {
-      const gitHash = await exec("git", ["rev-parse", "--short", "HEAD"])
-      packageJson.version = `${packageJson.version}-${version}-${gitHash.stdout}`
-      console.log("Set package version to " + packageJson.version)
-    }
+      if (version === "edge" || version.startsWith("edge-")) {
+        const gitHash = await exec("git", ["rev-parse", "--short", "HEAD"])
+        packageJson.version = `${packageJson.version}-${version}-${gitHash.stdout}`
+        console.log("Set package version to " + packageJson.version)
+      }
 
-    await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2))
+      await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2))
 
-    console.log(chalk.green(" ✓ " + name))
-  }))
+      console.log(chalk.green(" ✓ " + name))
+    })
+  )
 
   // Run yarn install in the cli package
   console.log(chalk.cyan("Installing packages in @garden-io/cli package"))
@@ -145,11 +149,13 @@ async function buildBinaries(args: string[]) {
   // Run pkg and pack up each platform binary
   console.log(chalk.cyan("Packaging garden binaries"))
 
-  await Promise.all(Object.entries(selected).map(async ([targetName, spec]) => {
-    await spec.handler({ targetName, sourcePath: cliPath, pkgType: spec.pkgType, version })
-    await sleep(5000) // Work around concurrency bug in pkg...
-    console.log(chalk.green(" ✓ " + targetName))
-  }))
+  await Promise.all(
+    Object.entries(selected).map(async ([targetName, spec]) => {
+      await spec.handler({ targetName, sourcePath: cliPath, pkgType: spec.pkgType, version })
+      await sleep(5000) // Work around concurrency bug in pkg...
+      console.log(chalk.green(" ✓ " + targetName))
+    })
+  )
 
   console.log(chalk.green.bold("Done!"))
 }

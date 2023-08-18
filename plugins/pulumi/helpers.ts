@@ -246,9 +246,11 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   const pulumiVars = spec.pulumiVariables
   let varfileContents: DeepPrimitiveMap[]
   try {
-    varfileContents = await Promise.all(spec.pulumiVarfiles.map(async (varfilePath: string) => {
-      return loadPulumiVarfile({ action, ctx, log, varfilePath })
-    }))
+    varfileContents = await Promise.all(
+      spec.pulumiVarfiles.map(async (varfilePath: string) => {
+        return loadPulumiVarfile({ action, ctx, log, varfilePath })
+      })
+    )
   } catch (err) {
     throw new FilesystemError({
       message: `An error occurred while reading pulumi varfiles for action ${action.name}: ${err.message}`,

@@ -171,10 +171,12 @@ export class GetActionsCommand extends Command {
 
     if (includeStateInOutput) {
       // get state of each action if --include-state flag is set
-      actions = await Promise.all(actions.map(async (a) => {
-        a.state = await getActionState(a, router, graph, log)
-        return a
-      }))
+      actions = await Promise.all(
+        actions.map(async (a) => {
+          a.state = await getActionState(a, router, graph, log)
+          return a
+        })
+      )
     }
 
     let getActionsOutput: GetActionsCommandResultItem[] = []

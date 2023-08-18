@@ -377,17 +377,19 @@ export async function configureSyncMode({
   const resolvedTargets: { [ref: string]: SyncableResource } = {}
   const updatedTargets: { [ref: string]: SyncableResource } = {}
 
-  await Promise.all(Object.values(dedupedTargets).map(async (t) => {
-    const resolved = await getTargetResource({
-      ctx,
-      log,
-      provider,
-      manifests,
-      action,
-      query: t,
+  await Promise.all(
+    Object.values(dedupedTargets).map(async (t) => {
+      const resolved = await getTargetResource({
+        ctx,
+        log,
+        provider,
+        manifests,
+        action,
+        query: t,
+      })
+      resolvedTargets[targetKey(t)] = resolved
     })
-    resolvedTargets[targetKey(t)] = resolved
-  }))
+  )
 
   for (const override of spec.overrides || []) {
     const target = override.target || defaultTarget
@@ -533,70 +535,74 @@ export async function startSyncs(params: StartSyncsParams) {
 
   const expectedKeys: string[] = []
 
-  await Promise.all(syncs.map(async (s) => {
-    const resourceSpec = s.target || defaultTarget
+  await Promise.all(
+    syncs.map(async (s) => {
+      const resourceSpec = s.target || defaultTarget
 
-    if (!resourceSpec) {
-      // This will have been caught and warned about elsewhere
-      return
-    }
-    const target = await getTargetResource({
-      ctx,
-      log,
-      provider,
-      manifests: deployedResources,
-      action,
-      query: resourceSpec,
+      if (!resourceSpec) {
+        // This will have been caught and warned about elsewhere
+        return
+      }
+      const target = await getTargetResource({
+        ctx,
+        log,
+        provider,
+        manifests: deployedResources,
+        action,
+        query: resourceSpec,
+      })
+
+      const { key, description, sourceDescription, targetDescription, resourceName, containerName } = await prepareSync(
+        {
+          ...params,
+          resourceSpec,
+          target,
+          spec: s,
+        }
+      )
+
+      // Validate the target
+      if (!isConfiguredForSyncMode(target)) {
+        log.warn(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
+        return
+      }
+
+      if (!containerName) {
+        log.warn(chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`))
+        return
+      }
+
+      const namespace = target.metadata.namespace || defaultNamespace
+
+      const localPath = getLocalSyncPath(s.sourcePath, basePath)
+      const remoteDestination = await getKubectlExecDestination({
+        ctx,
+        log,
+        namespace,
+        containerName,
+        resourceName,
+        targetPath: s.containerPath,
+      })
+
+      const mode = s.mode || defaultSyncMode
+
+      log.info(`Syncing ${description} (${mode})`)
+
+      await mutagen.ensureSync({
+        log,
+        key,
+        logSection: action.key(),
+        sourceDescription,
+        targetDescription,
+        config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
+      })
+
+      // Wait for initial sync to complete
+      await mutagen.flushSync(key)
+
+      expectedKeys.push(key)
     })
-
-    const { key, description, sourceDescription, targetDescription, resourceName, containerName } = await prepareSync({
-      ...params,
-      resourceSpec,
-      target,
-      spec: s,
-    })
-
-    // Validate the target
-    if (!isConfiguredForSyncMode(target)) {
-      log.warn(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
-      return
-    }
-
-    if (!containerName) {
-      log.warn(chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`))
-      return
-    }
-
-    const namespace = target.metadata.namespace || defaultNamespace
-
-    const localPath = getLocalSyncPath(s.sourcePath, basePath)
-    const remoteDestination = await getKubectlExecDestination({
-      ctx,
-      log,
-      namespace,
-      containerName,
-      resourceName,
-      targetPath: s.containerPath,
-    })
-
-    const mode = s.mode || defaultSyncMode
-
-    log.info(`Syncing ${description} (${mode})`)
-
-    await mutagen.ensureSync({
-      log,
-      key,
-      logSection: action.key(),
-      sourceDescription,
-      targetDescription,
-      config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
-    })
-
-    // Wait for initial sync to complete
-    await mutagen.flushSync(key)
-
-    expectedKeys.push(key)
-  }))
+  )
 
   const allSyncs = expectedKeys.length === 0 ? [] : await mutagen.getActiveSyncSessions(log)
   const keyPrefix = getSyncKeyPrefix(ctx, action)
@@ -651,117 +657,119 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
   let failed = false
   const expectedKeys: string[] = []
 
-  await Promise.all(syncs.map(async (s) => {
-    const resourceSpec = s.target || defaultTarget
+  await Promise.all(
+    syncs.map(async (s) => {
+      const resourceSpec = s.target || defaultTarget
 
-    if (!resourceSpec) {
-      // This will have been caught and warned about elsewhere
-      return
-    }
+      if (!resourceSpec) {
+        // This will have been caught and warned about elsewhere
+        return
+      }
 
-    let targetResource: SyncableResource
-    try {
-      targetResource = await getTargetResource({
+      let targetResource: SyncableResource
+      try {
+        targetResource = await getTargetResource({
+          ctx,
+          log,
+          provider,
+          manifests: deployedResources,
+          action,
+          query: resourceSpec,
+        })
+      } catch (err) {
+        log.debug(`Could not find deployed resource - returning not-active status for sync ${JSON.stringify(s)}.`)
+        const oriented = orientEndpoints({
+          mode: s.mode,
+          localPath: s.sourcePath,
+          localPathDescription: s.sourcePath,
+          remoteDestination: s.containerPath,
+          remoteDestinationDescription: s.containerPath,
+        })
+        syncStatuses.push({
+          source: oriented.source,
+          target: oriented.target,
+          state: "not-deployed",
+          mode: s.mode,
+        })
+        allActive = false
+        return
+      }
+
+      const { key, source, target, sourceDescription, targetDescription, resourceName, containerName } =
+        await prepareSync({
+          ...params,
+          resourceSpec,
+          target: targetResource,
+          spec: s,
+        })
+
+      if (!isConfiguredForSyncMode(targetResource) || !containerName) {
+        syncStatuses.push({
+          source,
+          target,
+          state: "not-active",
+          mode: s.mode,
+          syncCount: session?.successfulCycles,
+        })
+        return
+      }
+
+      const namespace = targetResource.metadata.namespace || defaultNamespace
+
+      const localPath = getLocalSyncPath(s.sourcePath, basePath)
+      const remoteDestination = await getKubectlExecDestination({
         ctx,
         log,
-        provider,
-        manifests: deployedResources,
-        action,
-        query: resourceSpec,
-      })
-    } catch (err) {
-      log.debug(`Could not find deployed resource - returning not-active status for sync ${JSON.stringify(s)}.`)
-      const oriented = orientEndpoints({
-        mode: s.mode,
-        localPath: s.sourcePath,
-        localPathDescription: s.sourcePath,
-        remoteDestination: s.containerPath,
-        remoteDestinationDescription: s.containerPath,
-      })
-      syncStatuses.push({
-        source: oriented.source,
-        target: oriented.target,
-        state: "not-deployed",
-        mode: s.mode,
-      })
-      allActive = false
-      return
-    }
-
-    const { key, source, target, sourceDescription, targetDescription, resourceName, containerName } =
-      await prepareSync({
-        ...params,
-        resourceSpec,
-        target: targetResource,
-        spec: s,
+        namespace,
+        containerName,
+        resourceName,
+        targetPath: s.containerPath,
       })
 
-    if (!isConfiguredForSyncMode(targetResource) || !containerName) {
-      syncStatuses.push({
+      if (syncsByName[key]) {
+        session = syncsByName[key]
+      }
+      let syncState: SyncStatus["state"] = "active"
+
+      if (session) {
+        if (session.status && ["disconnected", ...haltedStatuses].includes(session.status)) {
+          failed = true
+          syncState = "failed"
+        } else {
+          someActive = true
+        }
+      } else {
+        syncState = "not-active"
+        allActive = false
+      }
+
+      const syncStatus: SyncStatus = {
         source,
         target,
-        state: "not-active",
+        state: syncState,
         mode: s.mode,
         syncCount: session?.successfulCycles,
-      })
-      return
-    }
-
-    const namespace = targetResource.metadata.namespace || defaultNamespace
-
-    const localPath = getLocalSyncPath(s.sourcePath, basePath)
-    const remoteDestination = await getKubectlExecDestination({
-      ctx,
-      log,
-      namespace,
-      containerName,
-      resourceName,
-      targetPath: s.containerPath,
-    })
-
-    if (syncsByName[key]) {
-      session = syncsByName[key]
-    }
-    let syncState: SyncStatus["state"] = "active"
-
-    if (session) {
-      if (session.status && ["disconnected", ...haltedStatuses].includes(session.status)) {
-        failed = true
-        syncState = "failed"
-      } else {
-        someActive = true
       }
-    } else {
-      syncState = "not-active"
-      allActive = false
-    }
 
-    const syncStatus: SyncStatus = {
-      source,
-      target,
-      state: syncState,
-      mode: s.mode,
-      syncCount: session?.successfulCycles,
-    }
+      if (session?.status) {
+        syncStatus.message = mutagenStatusDescriptions[session?.status]
+      }
 
-    if (session?.status) {
-      syncStatus.message = mutagenStatusDescriptions[session?.status]
-    }
+      syncStatuses.push(syncStatus)
 
-    syncStatuses.push(syncStatus)
+      expectedKeys.push(key)
 
-    expectedKeys.push(key)
-
-    if (monitor) {
-      mutagen.monitorSync({
-        key,
-        logSection: action.key(),
-        sourceDescription,
-        targetDescription,
-        config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
-      })
-    }
-  }))
+      if (monitor) {
+        mutagen.monitorSync({
+          key,
+          logSection: action.key(),
+          sourceDescription,
+          targetDescription,
+          config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
+        })
+      }
+    })
+  )
 
   if (monitor) {
     // TODO: emit log events instead of using Log instance on Mutagen instance

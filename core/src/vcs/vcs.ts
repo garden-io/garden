@@ -275,15 +275,17 @@ export abstract class VcsHandler {
     const outputs: { [path: string]: string } = {}
     const rootsToPaths: { [repoRoot: string]: string[] } = {}
 
-    await Promise.all(paths.map(async (path) => {
-      const repoRoot = await this.getRepoRoot(log, path)
-      repoRoots[path] = repoRoot
-      if (rootsToPaths[repoRoot]) {
-        rootsToPaths[repoRoot].push(path)
-      } else {
-        rootsToPaths[repoRoot] = [path]
-      }
-    }))
+    await Promise.all(
+      paths.map(async (path) => {
+        const repoRoot = await this.getRepoRoot(log, path)
+        repoRoots[path] = repoRoot
+        if (rootsToPaths[repoRoot]) {
+          rootsToPaths[repoRoot].push(path)
+        } else {
+          rootsToPaths[repoRoot] = [path]
+        }
+      })
+    )
 
     for (const path of paths) {
       const repoRoot = repoRoots[path]

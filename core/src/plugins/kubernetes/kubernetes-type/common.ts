@@ -72,39 +72,41 @@ export async function getManifests({
     return manifest
   })
 
-  return Promise.all(manifests.map(async (manifest) => {
-    // Ensure a namespace is set, if not already set, and if required by the resource type
-    if (!manifest.metadata?.namespace) {
-      if (!manifest.metadata) {
-        // TODO: Type system complains that name is missing
-        ;(manifest as any).metadata = {}
+  return Promise.all(
+    manifests.map(async (manifest) => {
+      // Ensure a namespace is set, if not already set, and if required by the resource type
+      if (!manifest.metadata?.namespace) {
+        if (!manifest.metadata) {
+          // TODO: Type system complains that name is missing
+          ;(manifest as any).metadata = {}
+        }
+
+        const info = await api.getApiResourceInfo(log, manifest.apiVersion, manifest.kind)
+
+        if (info?.namespaced) {
+          manifest.metadata.namespace = defaultNamespace
+        }
       }
 
-      const info = await api.getApiResourceInfo(log, manifest.apiVersion, manifest.kind)
+      /**
+       * Set Garden annotations.
+       *
+       * For namespace resources, we use the namespace's name as the annotation value, to ensure that namespace resources
+       * with different names aren't considered by Garden to be the same resource.
+       *
+       * This is relevant e.g. in the context of a shared dev cluster, where several users might create their own
+       * copies of a namespace resource (each named e.g. "${username}-some-namespace") through deploying a `kubernetes`
+       * module that includes a namespace resource in its manifests.
+       */
+      const annotationValue =
+        manifest.kind === "Namespace" ? gardenNamespaceAnnotationValue(manifest.metadata.name) : action.name
+      set(manifest, ["metadata", "annotations", gardenAnnotationKey("service")], annotationValue)
+      set(manifest, ["metadata", "annotations", gardenAnnotationKey("mode")], action.mode())
+      set(manifest, ["metadata", "labels", gardenAnnotationKey("service")], annotationValue)
 
-      if (info?.namespaced) {
-        manifest.metadata.namespace = defaultNamespace
-      }
-    }
-
-    /**
-     * Set Garden annotations.
-     *
-     * For namespace resources, we use the namespace's name as the annotation value, to ensure that namespace resources
-     * with different names aren't considered by Garden to be the same resource.
-     *
-     * This is relevant e.g. in the context of a shared dev cluster, where several users might create their own
-     * copies of a namespace resource (each named e.g. "${username}-some-namespace") through deploying a `kubernetes`
-     * module that includes a namespace resource in its manifests.
-     */
-    const annotationValue =
-      manifest.kind === "Namespace" ? gardenNamespaceAnnotationValue(manifest.metadata.name) : action.name
-    set(manifest, ["metadata", "annotations", gardenAnnotationKey("service")], annotationValue)
-    set(manifest, ["metadata", "annotations", gardenAnnotationKey("mode")], action.mode())
-    set(manifest, ["metadata", "labels", gardenAnnotationKey("service")], annotationValue)
-
-    return manifest
-  }))
+      return manifest
+    })
+  )
 }
 
 const disallowedKustomizeArgs = ["-o", "--output", "-h", "--help"]
@@ -176,13 +178,15 @@ export async function readManifests(
   }
 
   const fileManifests = flatten(
-    await Promise.all(resolvedFiles.map(async (path) => {
-      const absPath = resolve(manifestPath, path)
-      log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
-      const str = (await readFile(absPath)).toString()
-      const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
-      return loadAll(resolved)
-    }))
+    await Promise.all(
+      resolvedFiles.map(async (path) => {
+        const absPath = resolve(manifestPath, path)
+        log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
+        const str = (await readFile(absPath)).toString()
+        const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
+        return loadAll(resolved)
+      })
+    )
   )
 
   let kustomizeManifests: any[] = []

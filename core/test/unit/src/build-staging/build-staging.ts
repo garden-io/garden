@@ -39,11 +39,13 @@ const makeGarden = async (opts: TestGardenOpts = {}) => {
 }
 
 async function populateDirectory(root: string, posixPaths: string[]) {
-  await Promise.all(posixPaths.map(async (path) => {
-    const absPath = joinWithPosix(root, path)
-    await ensureFile(absPath)
-    await writeFile(absPath, basename(path))
-  }))
+  await Promise.all(
+    posixPaths.map(async (path) => {
+      const absPath = joinWithPosix(root, path)
+      await ensureFile(absPath)
+      await writeFile(absPath, basename(path))
+    })
+  )
 }
 
 async function listFiles(path: string) {
@@ -55,13 +57,15 @@ async function assertIdentical(sourceRoot: string, targetRoot: string, posixPath
     posixPaths = await listFiles(sourceRoot)
   }
 
-  await Promise.all(posixPaths.map(async (path) => {
-    const sourcePath = joinWithPosix(sourceRoot, path)
-    const targetPath = joinWithPosix(targetRoot, path)
-    const sourceData = (await readFile(sourcePath)).toString()
-    const targetData = (await readFile(targetPath)).toString()
-    expect(sourceData).to.equal(targetData)
-  }))
+  await Promise.all(
+    posixPaths.map(async (path) => {
+      const sourcePath = joinWithPosix(sourceRoot, path)
+      const targetPath = joinWithPosix(targetRoot, path)
+      const sourceData = (await readFile(sourcePath)).toString()
+      const targetData = (await readFile(targetPath)).toString()
+      expect(sourceData).to.equal(targetData)
+    })
+  )
 }
 
 describe("BuildStaging", () => {

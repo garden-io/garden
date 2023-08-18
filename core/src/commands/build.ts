@@ -105,17 +105,17 @@ export class BuildCommand extends Command<Args, Opts> {
 
     await warnOnLinkedActions(garden, log, actions)
 
-    const tasks = actions.flatMap((action) =>
-      new BuildTask({
-        garden,
-        graph,
-        log,
-        action,
-        force: opts.force,
-        forceActions: [],
-      })
+    const tasks = actions.flatMap(
+      (action) =>
+        new BuildTask({
+          garden,
+          graph,
+          log,
+          action,
+          force: opts.force,
+          forceActions: [],
+        })
     )
-
 
     const result = await garden.processTasks({ tasks, log })
 

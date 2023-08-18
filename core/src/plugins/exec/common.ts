@@ -100,12 +100,14 @@ export async function copyArtifacts(
   from: string,
   artifactsPath: string
 ) {
-  return Promise.all((artifacts || []).map(async (spec) => {
-    log.verbose(`→ Copying artifacts ${spec.source}`)
+  return Promise.all(
+    (artifacts || []).map(async (spec) => {
+      log.verbose(`→ Copying artifacts ${spec.source}`)
 
-    // Note: lazy-loading for startup performance
-    const cpy = require("cpy")
+      // Note: lazy-loading for startup performance
+      const cpy = require("cpy")
 
-    await cpy(spec.source, join(artifactsPath, spec.target || "."), { cwd: from })
-  }))
+      await cpy(spec.source, join(artifactsPath, spec.target || "."), { cwd: from })
+    })
+  )
 }

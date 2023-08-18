@@ -406,7 +406,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
  * walking through all object keys and array items.
  */
 type Resolvable<R> = R | PromiseLike<R>
-type ResolvableProps<T> = object & {[K in keyof T]: Resolvable<T[K]>}
+type ResolvableProps<T> = object & { [K in keyof T]: Resolvable<T[K]> }
 
 export async function deepResolve<T>(
   value: T | Iterable<T> | Iterable<PromiseLike<T>> | ResolvableProps<T>
