@@ -13,6 +13,7 @@ import chalk from "chalk"
 import { naturalList } from "./string"
 import dedent from "dedent"
 import { isTruthy } from "./util"
+import { InternalError } from "../exceptions"
 
 export const moduleOverlapTypes = ["path", "generateFiles"] as const
 export type ModuleOverlapType = typeof moduleOverlapTypes[number]
@@ -23,7 +24,7 @@ export type ModuleOverlapType = typeof moduleOverlapTypes[number]
 export interface ModuleOverlap {
   module: ModuleConfig
   overlaps: ModuleConfig[]
-  type?: ModuleOverlapType
+  type: ModuleOverlapType
 }
 
 type ModuleOverlapFinder = (c: ModuleConfig) => { matches: ModuleConfig[]; type?: ModuleOverlapType }
@@ -97,6 +98,15 @@ export function detectModuleOverlap({
     for (const moduleOverlapFinder of moduleOverlapFinders) {
       const { matches, type } = moduleOverlapFinder(config)
       if (matches.length > 0) {
+        if (!type) {
+          throw new InternalError(
+            "Got some module overlap errors with undefined type. This is a bug, please report it.",
+            {
+              module: config,
+              overlaps: matches,
+            }
+          )
+        }
         overlaps.push({
           module: config,
           overlaps: matches,
