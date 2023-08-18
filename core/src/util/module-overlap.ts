@@ -132,13 +132,33 @@ export interface OverlapErrorDescription {
 type ModuleOverlapRenderer = (projectRoot: string, moduleOverlaps: ModuleOverlap[]) => OverlapErrorDescription
 
 const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
-  _projectRoot: string,
+  projectRoot: string,
   moduleOverlaps: ModuleOverlap[]
 ): OverlapErrorDescription => {
+  const moduleOverlapList = sortBy(moduleOverlaps, (o) => o.module.name).map(({ module, overlaps }) => {
+    const formatted = overlaps.map((o) => {
+      return `${chalk.bold(o.name)}`
+    })
+    // const generateFilesOverlapList =
+    return `Module ${chalk.bold(module.name)} overlaps with module(s) ${naturalList(formatted)}.`
+  })
+
+  const message = chalk.red(dedent`
+      Found multiple enabled modules that share the same value(s) in ${chalk.bold("generateFiles[].targetPath")}:
+
+      ${moduleOverlapList.join("\n\n")}
+    `)
+  // Sanitize error details
+  const overlappingModules = moduleOverlaps.map(({ module, overlaps }) => {
+    return {
+      module: { name: module.name, path: resolve(projectRoot, module.path) },
+      overlaps: overlaps.map(({ name, path }) => ({ name, path: resolve(projectRoot, path) })),
+    }
+  })
   // TODO: more details
   return {
-    message: "Found intersection targetPath values in generatedFiles",
-    detail: { overlappingModules: moduleOverlaps },
+    message,
+    detail: { overlappingModules },
   }
 }
 
@@ -146,19 +166,17 @@ const makePathOverlapError: ModuleOverlapRenderer = (
   projectRoot: string,
   moduleOverlaps: ModuleOverlap[]
 ): OverlapErrorDescription => {
-  const overlapList = sortBy(moduleOverlaps, (o) => o.module.name)
-    .map(({ module, overlaps }) => {
-      const formatted = overlaps.map((o) => {
-        const detail = o.path === module.path ? "same path" : "nested"
-        return `${chalk.bold(o.name)} (${detail})`
-      })
-      return `Module ${chalk.bold(module.name)} overlaps with module(s) ${naturalList(formatted)}.`
+  const overlapList = sortBy(moduleOverlaps, (o) => o.module.name).map(({ module, overlaps }) => {
+    const formatted = overlaps.map((o) => {
+      const detail = o.path === module.path ? "same path" : "nested"
+      return `${chalk.bold(o.name)} (${detail})`
     })
-    .join("\n\n")
+    return `Module ${chalk.bold(module.name)} overlaps with module(s) ${naturalList(formatted)}.`
+  })
   const message = chalk.red(dedent`
       Found multiple enabled modules that share the same garden.yml file or are nested within another:
 
-      ${overlapList}
+      ${overlapList.join("\n\n")}
 
       If this was intentional, there are two options to resolve this error:
 
