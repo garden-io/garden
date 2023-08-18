@@ -79,8 +79,6 @@ import {
   findConfigPathsInPath,
   getWorkingCopyId,
   fixedProjectExcludes,
-  detectModuleOverlap,
-  ModuleOverlap,
   defaultConfigFilename,
   defaultDotIgnoreFile,
 } from "./util/fs"
@@ -154,6 +152,7 @@ import { OtelTraced } from "./util/open-telemetry/decorators"
 import { wrapActiveSpan } from "./util/open-telemetry/spans"
 import { GitRepoHandler } from "./vcs/git-repo"
 import { configureNoOpExporter } from "./util/open-telemetry/tracing"
+import { detectModuleOverlap, ModuleOverlap } from "./util/module-overlap"
 
 const defaultLocalAddress = "localhost"
 
