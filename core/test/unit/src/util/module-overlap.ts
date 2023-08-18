@@ -276,4 +276,46 @@ describe("detectModuleOverlap", () => {
       })
     })
   })
+
+  context("for homogeneous overlaps of ModuleOverlapType = 'generateFiles'", () => {
+    it("should detect if modules have the same resolved path in generateFiles[].targetPath", () => {
+      const path = join(projectRoot, "foo")
+      const sourcePath = "manifests.yml"
+      const targetPath = "./.manifests/manifests.yaml"
+
+      // here we use include to avoid errors on intersecting module paths
+      const moduleA = {
+        name: "module-a",
+        path: path,
+        include: [""],
+        generateFiles: [{ sourcePath, targetPath, resolveTemplates: true }],
+      } as ModuleConfig
+
+      const moduleB = {
+        name: "module-b",
+        path: path,
+        include: [""],
+        generateFiles: [{ sourcePath, targetPath, resolveTemplates: true }],
+      } as ModuleConfig
+
+      const expectedGenerateFilesOverlaps = [join(path, targetPath)]
+      const expectedOverlaps: ModuleOverlap[] = [
+        {
+          config: moduleA,
+          overlaps: [moduleB],
+          type: "generateFiles",
+          generateFilesOverlaps: expectedGenerateFilesOverlaps,
+        },
+        {
+          config: moduleB,
+          overlaps: [moduleA],
+          type: "generateFiles",
+          generateFilesOverlaps: expectedGenerateFilesOverlaps,
+        },
+      ]
+      expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB] })).to.eql(
+        expectedOverlaps
+      )
+    })
+  })
 })
