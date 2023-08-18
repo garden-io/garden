@@ -27,6 +27,12 @@ export interface ModuleOverlap {
 
 type ModuleOverlapFinder = (c: ModuleConfig) => { matches: ModuleConfig[]; type?: ModuleOverlapType }
 
+const moduleNameComparator = (a, b) => (a.name > b.name ? 1 : -1)
+
+function resolveGenerateFilesTargetPaths(modulePath: string, generateFiles: ModuleFileSpec[]): string[] {
+  return generateFiles.map((f) => f.targetPath).map((p) => resolve(modulePath, ...p.split(posix.sep)))
+}
+
 /**
  * Returns a list of overlapping modules.
  *
@@ -47,8 +53,6 @@ export function detectModuleOverlap({
 }): ModuleOverlap[] {
   // Don't consider overlap between disabled modules, or where one of the modules is disabled
   const enabledModules = moduleConfigs.filter((m) => !m.disabled)
-
-  const moduleNameComparator = (a, b) => (a.name > b.name ? 1 : -1)
 
   const findModulePathOverlaps: ModuleOverlapFinder = (config: ModuleConfig) => {
     if (!!config.include || !!config.exclude) {
@@ -72,17 +76,13 @@ export function detectModuleOverlap({
       return { matches: [] }
     }
 
-    function resolveTargetPaths(modulePath: string, generateFiles: ModuleFileSpec[]): string[] {
-      return generateFiles.map((f) => f.targetPath).map((p) => resolve(modulePath, ...p.split(posix.sep)))
-    }
-
-    const targetPaths = resolveTargetPaths(config.path, config.generateFiles)
+    const targetPaths = resolveGenerateFilesTargetPaths(config.path, config.generateFiles)
     const targetPathsOverlap = (compare: ModuleConfig) => {
       // Skip the modules without `generateFiles`.
       if (!compare.generateFiles) {
         return false
       }
-      const compareTargetPaths = resolveTargetPaths(compare.path, compare.generateFiles)
+      const compareTargetPaths = resolveGenerateFilesTargetPaths(compare.path, compare.generateFiles)
       const overlappingTargetPaths = intersection(targetPaths, compareTargetPaths)
       return overlappingTargetPaths.length > 0
     }
