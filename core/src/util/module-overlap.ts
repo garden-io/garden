@@ -12,6 +12,7 @@ import { intersection, sortBy } from "lodash"
 import chalk from "chalk"
 import { naturalList } from "./string"
 import dedent from "dedent"
+import { isTruthy } from "./util"
 
 export const moduleOverlapTypes = ["path", "generateFiles"] as const
 export type ModuleOverlapType = typeof moduleOverlapTypes[number]
@@ -114,7 +115,12 @@ export interface OverlapErrorDescription {
   message: string
 }
 
-function makeGenerateFilesOverlapError(_projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription {
+type ModuleOverlapRenderer = (projectRoot: string, moduleOverlaps: ModuleOverlap[]) => OverlapErrorDescription
+
+const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
+  _projectRoot: string,
+  moduleOverlaps: ModuleOverlap[]
+): OverlapErrorDescription => {
   // TODO: more details
   return {
     message: "Found intersection targetPath values in generatedFiles",
@@ -122,7 +128,10 @@ function makeGenerateFilesOverlapError(_projectRoot: string, moduleOverlaps: Mod
   }
 }
 
-function makePathOverlapError(projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription {
+const makePathOverlapError: ModuleOverlapRenderer = (
+  projectRoot: string,
+  moduleOverlaps: ModuleOverlap[]
+): OverlapErrorDescription => {
   const overlapList = sortBy(moduleOverlaps, (o) => o.module.name)
     .map(({ module, overlaps }) => {
       const formatted = overlaps.map((o) => {
@@ -156,32 +165,37 @@ function makePathOverlapError(projectRoot: string, moduleOverlaps: ModuleOverlap
   return { message, detail: { overlappingModules } }
 }
 
-export function makeOverlapErrors(projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription[] {
-  const errors: OverlapErrorDescription[] = []
+// This explicit type ensures that every `ModuleOverlapType` has a defined renderer
+const moduleOverlapRenderers: { [k in ModuleOverlapType]: ModuleOverlapRenderer } = {
+  path: makePathOverlapError,
+  generateFiles: makeGenerateFilesOverlapError,
+}
 
-  let filteredOverlaps: ModuleOverlap[] = []
-  let errorDesc: OverlapErrorDescription
-  for (const moduleOverlapType of moduleOverlapTypes) {
-    switch (moduleOverlapType) {
-      case "generateFiles":
-        filteredOverlaps = moduleOverlaps.filter((m) => m.type === moduleOverlapType)
-        if (filteredOverlaps.length > 0) {
-          errorDesc = makeGenerateFilesOverlapError(projectRoot, filteredOverlaps)
-          errors.push(errorDesc)
-        }
-        break
-      case "path":
-        filteredOverlaps = moduleOverlaps.filter((m) => m.type === moduleOverlapType)
-        if (filteredOverlaps.length > 0) {
-          errorDesc = makePathOverlapError(projectRoot, filteredOverlaps)
-          errors.push(errorDesc)
-        }
-        break
-      default:
-        const _exhaustiveCheck: never = moduleOverlapType
-        return _exhaustiveCheck
-    }
+function renderOverlapForType({
+  projectRoot,
+  moduleOverlaps,
+  moduleOverlapType,
+}: {
+  moduleOverlapType: ModuleOverlapType
+  moduleOverlaps: ModuleOverlap[]
+  projectRoot: string
+}): OverlapErrorDescription | undefined {
+  const filteredOverlaps = moduleOverlaps.filter((m) => m.type === moduleOverlapType)
+  if (filteredOverlaps.length === 0) {
+    return undefined
   }
+  const renderer = moduleOverlapRenderers[moduleOverlapType]
+  return renderer(projectRoot, filteredOverlaps)
+}
 
-  return errors
+export function makeOverlapErrors(projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription[] {
+  return moduleOverlapTypes
+    .map((moduleOverlapType) =>
+      renderOverlapForType({
+        moduleOverlapType,
+        moduleOverlaps,
+        projectRoot,
+      })
+    )
+    .filter(isTruthy)
 }
