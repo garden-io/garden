@@ -11,16 +11,17 @@ import klaw = require("klaw")
 import glob from "glob"
 import tmp from "tmp-promise"
 import { pathExists, readFile, writeFile, lstat, realpath, Stats } from "fs-extra"
-import { join, basename, win32, posix } from "path"
+import { join, basename, win32, posix, resolve } from "path"
 import { platform } from "os"
 
 import { FilesystemError } from "../exceptions"
 import { VcsHandler } from "../vcs/vcs"
 import { LogEntry } from "../logger/log-entry"
-import { ModuleConfig } from "../config/module"
+import { ModuleConfig, ModuleFileSpec } from "../config/module"
 import pathIsInside from "path-is-inside"
 import { uuidv4, exec } from "./util"
 import type Micromatch from "micromatch"
+import { intersection } from "lodash"
 
 export const defaultConfigFilename = "garden.yml"
 export const configFilenamePattern = "*garden.y*ml"
@@ -77,6 +78,9 @@ type ModuleOverlapFinder = (c: ModuleConfig) => ModuleConfig[]
  *
  * If a module does not set `include` or `exclude`, and another module is in its path (including
  * when the other module has the same path), the module overlaps with the other module.
+ *
+ * If two modules have `generateFiles`, and at least one `generateFiles.targetPath` is the same in both modules,
+ * then the modules overlap.
  */
 export function detectModuleOverlap({
   projectRoot,
@@ -105,14 +109,40 @@ export function detectModuleOverlap({
       .sort((a, b) => (a.name > b.name ? 1 : -1))
   }
 
+  const findGenerateFilesOverlaps: ModuleOverlapFinder = (config: ModuleConfig) => {
+    // Nothing to return if the current module has no `generateFiles` defined.
+    if (!config.generateFiles) {
+      return []
+    }
+
+    function resolveTargetPaths(modulePath: string, generateFiles: ModuleFileSpec[]): string[] {
+      return generateFiles.map((f) => f.targetPath).map((p) => resolve(modulePath, ...p.split(posix.sep)))
+    }
+
+    const targetPaths = resolveTargetPaths(config.path, config.generateFiles)
+    const targetPathsOverlap = (compare: ModuleConfig) => {
+      // Skip the modules without `generateFiles`.
+      if (!compare.generateFiles) {
+        return false
+      }
+      const compareTargetPaths = resolveTargetPaths(compare.path, compare.generateFiles)
+      const overlappingTargetPaths = intersection(targetPaths, compareTargetPaths)
+      return overlappingTargetPaths.length > 0
+    }
+    return enabledModules.filter(targetPathsOverlap).sort((a, b) => (a.name > b.name ? 1 : -1))
+  }
+
+  const moduleOverlapFinders: ModuleOverlapFinder[] = [findModulePathOverlaps, findGenerateFilesOverlaps]
   let overlaps: ModuleOverlap[] = []
   for (const config of enabledModules) {
-    const matches = findModulePathOverlaps(config)
-    if (matches.length > 0) {
-      overlaps.push({
-        module: config,
-        overlaps: matches,
-      })
+    for (const moduleOverlapFinder of moduleOverlapFinders) {
+      const matches = moduleOverlapFinder(config)
+      if (matches.length > 0) {
+        overlaps.push({
+          module: config,
+          overlaps: matches,
+        })
+      }
     }
   }
   return overlaps
