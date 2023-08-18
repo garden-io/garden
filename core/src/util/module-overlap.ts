@@ -73,14 +73,18 @@ export function detectModuleOverlap({
   }
 
   const findGenerateFilesOverlaps: ModuleOverlapFinder = (config: ModuleConfig) => {
-    // Nothing to return if the current module has no `generateFiles` defined.
+    // Nothing to return if the current module has no `generateFiles` defined
     if (!config.generateFiles) {
       return { matches: [] }
     }
 
     const targetPaths = resolveGenerateFilesTargetPaths(config.path, config.generateFiles)
     const targetPathsOverlap = (compare: ModuleConfig) => {
-      // Skip the modules without `generateFiles`.
+      // Do not compare module against itself
+      if (config.name === compare.name) {
+        return false
+      }
+      // Skip the modules without `generateFiles`
       if (!compare.generateFiles) {
         return false
       }
