@@ -114,7 +114,7 @@ export interface OverlapErrorDescription {
   message: string
 }
 
-export function makeOverlapError(projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription {
+function makePathOverlapError(projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription {
   const overlapList = sortBy(moduleOverlaps, (o) => o.module.name)
     .map(({ module, overlaps }) => {
       const formatted = overlaps.map((o) => {
@@ -146,4 +146,10 @@ export function makeOverlapError(projectRoot: string, moduleOverlaps: ModuleOver
     }
   })
   return { message, detail: { overlappingModules } }
+}
+
+export function makeOverlapErrors(projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription[] {
+  const errors: OverlapErrorDescription[] = []
+  errors.push(makePathOverlapError(projectRoot, moduleOverlaps))
+  return errors
 }

@@ -151,7 +151,7 @@ import { OtelTraced } from "./util/open-telemetry/decorators"
 import { wrapActiveSpan } from "./util/open-telemetry/spans"
 import { GitRepoHandler } from "./vcs/git-repo"
 import { configureNoOpExporter } from "./util/open-telemetry/tracing"
-import { detectModuleOverlap, makeOverlapError } from "./util/module-overlap"
+import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap"
 
 const defaultLocalAddress = "localhost"
 
@@ -988,7 +988,8 @@ export class Garden {
       moduleConfigs: resolvedModules,
     })
     if (overlaps.length > 0) {
-      const { message, detail } = makeOverlapError(this.projectRoot, overlaps)
+      // Always throw the first found error to avoid too heavy error message
+      const { message, detail } = makeOverlapErrors(this.projectRoot, overlaps)[0]
       throw new ConfigurationError({ message, detail })
     }
 
@@ -1260,8 +1261,8 @@ export class Garden {
     })
   }
 
-  /*
-    Scans the project root for modules and workflows and adds them to the context.
+  /**
+   * Scans the project root for modules and workflows and adds them to the context.
    */
   @OtelTraced({
     name: "scanAndAddConfigs",
