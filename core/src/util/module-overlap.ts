@@ -113,7 +113,7 @@ export function detectModuleOverlap({
   }
 
   const moduleOverlapFinders: ModuleOverlapFinder[] = [findModulePathOverlaps, findGenerateFilesOverlaps]
-  let overlaps: ModuleOverlap[] = []
+  let foundOverlaps: ModuleOverlap[] = []
   for (const config of enabledModules) {
     for (const moduleOverlapFinder of moduleOverlapFinders) {
       const { matches, type, generateFilesOverlaps } = moduleOverlapFinder(config)
@@ -124,11 +124,11 @@ export function detectModuleOverlap({
             { config, overlaps: matches }
           )
         }
-        overlaps.push({ config, overlaps: matches, type, generateFilesOverlaps })
+        foundOverlaps.push({ config, overlaps: matches, type, generateFilesOverlaps })
       }
     }
   }
-  return overlaps
+  return foundOverlaps
 }
 
 export interface OverlapErrorDescription {
