@@ -25,9 +25,16 @@ export interface ModuleOverlap {
   module: ModuleConfig
   overlaps: ModuleConfig[]
   type: ModuleOverlapType
+  generateFilesOverlaps?: string[]
 }
 
-type ModuleOverlapFinder = (c: ModuleConfig) => { matches: ModuleConfig[]; type?: ModuleOverlapType }
+type ModuleOverlapFinder = (
+  c: ModuleConfig
+) => {
+  matches: ModuleConfig[]
+  type?: ModuleOverlapType
+  generateFilesOverlaps?: string[]
+}
 
 const moduleNameComparator = (a, b) => (a.name > b.name ? 1 : -1)
 
@@ -79,28 +86,37 @@ export function detectModuleOverlap({
     }
 
     const targetPaths = resolveGenerateFilesTargetPaths(config.path, config.generateFiles)
-    const targetPathsOverlap = (compare: ModuleConfig) => {
+    const findTargetPathOverlaps = (compare: ModuleConfig): string[] => {
       // Do not compare module against itself
       if (config.name === compare.name) {
-        return false
+        return []
       }
       // Skip the modules without `generateFiles`
       if (!compare.generateFiles) {
-        return false
+        return []
       }
       const compareTargetPaths = resolveGenerateFilesTargetPaths(compare.path, compare.generateFiles)
-      const overlappingTargetPaths = intersection(targetPaths, compareTargetPaths)
-      return overlappingTargetPaths.length > 0
+      return intersection(targetPaths, compareTargetPaths)
     }
-    const matches = enabledModules.filter(targetPathsOverlap).sort(moduleNameComparator)
-    return { matches, type: "generateFiles" }
+
+    const matches: ModuleConfig[] = []
+    const generateFilesOverlaps: string[] = []
+    for (const enabledModule of enabledModules) {
+      const targetPathOverlaps = findTargetPathOverlaps(enabledModule)
+      if (targetPathOverlaps.length > 0) {
+        matches.push(enabledModule)
+      }
+      generateFilesOverlaps.push(...targetPathOverlaps)
+    }
+
+    return { matches: matches.sort(moduleNameComparator), type: "generateFiles", generateFilesOverlaps }
   }
 
   const moduleOverlapFinders: ModuleOverlapFinder[] = [findModulePathOverlaps, findGenerateFilesOverlaps]
   let overlaps: ModuleOverlap[] = []
   for (const config of enabledModules) {
     for (const moduleOverlapFinder of moduleOverlapFinders) {
-      const { matches, type } = moduleOverlapFinder(config)
+      const { matches, type, generateFilesOverlaps } = moduleOverlapFinder(config)
       if (matches.length > 0) {
         if (!type) {
           throw new InternalError(
@@ -115,6 +131,7 @@ export function detectModuleOverlap({
           module: config,
           overlaps: matches,
           type,
+          generateFilesOverlaps,
         })
       }
     }
@@ -135,13 +152,17 @@ const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
   projectRoot: string,
   moduleOverlaps: ModuleOverlap[]
 ): OverlapErrorDescription => {
-  const moduleOverlapList = sortBy(moduleOverlaps, (o) => o.module.name).map(({ module, overlaps }) => {
-    const formatted = overlaps.map((o) => {
-      return `${chalk.bold(o.name)}`
-    })
-    // const generateFilesOverlapList =
-    return `Module ${chalk.bold(module.name)} overlaps with module(s) ${naturalList(formatted)}.`
-  })
+  const moduleOverlapList = sortBy(moduleOverlaps, (o) => o.module.name).map(
+    ({ module, overlaps, generateFilesOverlaps }) => {
+      const formatted = overlaps.map((o) => {
+        return `${chalk.bold(o.name)}`
+      })
+      // const generateFilesOverlapList =
+      return `Module ${chalk.bold(module.name)} overlaps with module(s) ${naturalList(formatted)} in ${naturalList(
+        generateFilesOverlaps || []
+      )}.`
+    }
+  )
 
   const message = chalk.red(dedent`
       Found multiple enabled modules that share the same value(s) in ${chalk.bold("generateFiles[].targetPath")}:
