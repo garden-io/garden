@@ -34,17 +34,17 @@ describe("detectModuleOverlap", () => {
     } as ModuleConfig
     const expectedOverlaps: ModuleOverlap[] = [
       {
-        module: moduleA,
+        config: moduleA,
         overlaps: [moduleB, moduleC],
         type: "path",
       },
       {
-        module: moduleB,
+        config: moduleB,
         overlaps: [moduleA, moduleC],
         type: "path",
       },
       {
-        module: moduleC,
+        config: moduleC,
         overlaps: [moduleA, moduleB],
         type: "path",
       },
@@ -73,12 +73,12 @@ describe("detectModuleOverlap", () => {
     } as ModuleConfig
     const expectedOverlaps: ModuleOverlap[] = [
       {
-        module: moduleA,
+        config: moduleA,
         overlaps: [moduleB, moduleC],
         type: "path",
       },
       {
-        module: moduleB,
+        config: moduleB,
         overlaps: [moduleC],
         type: "path",
       },
@@ -101,7 +101,7 @@ describe("detectModuleOverlap", () => {
       } as ModuleConfig
       const expectedOverlaps: ModuleOverlap[] = [
         {
-          module: moduleB,
+          config: moduleB,
           overlaps: [moduleA],
           type: "path",
         },
@@ -127,7 +127,7 @@ describe("detectModuleOverlap", () => {
       } as ModuleConfig
       const expectedOverlaps: ModuleOverlap[] = [
         {
-          module: moduleB,
+          config: moduleB,
           overlaps: [moduleA],
           type: "path",
         },
@@ -216,7 +216,7 @@ describe("detectModuleOverlap", () => {
       } as ModuleConfig
       const expectedOverlapsA1B1: ModuleOverlap[] = [
         {
-          module: moduleA1,
+          config: moduleA1,
           overlaps: [moduleB1],
           type: "path",
         },
@@ -230,7 +230,7 @@ describe("detectModuleOverlap", () => {
       ).to.eql(expectedOverlapsA1B1)
       const expectedOverlapsA2B2: ModuleOverlap[] = [
         {
-          module: moduleA2,
+          config: moduleA2,
           overlaps: [moduleB2],
           type: "path",
         },

@@ -22,7 +22,7 @@ export type ModuleOverlapType = typeof moduleOverlapTypes[number]
  * Data structure to describe overlapping modules.
  */
 export interface ModuleOverlap {
-  module: ModuleConfig
+  config: ModuleConfig
   overlaps: ModuleConfig[]
   type: ModuleOverlapType
   generateFilesOverlaps?: string[]
@@ -121,18 +121,10 @@ export function detectModuleOverlap({
         if (!type) {
           throw new InternalError(
             "Got some module overlap errors with undefined type. This is a bug, please report it.",
-            {
-              module: config,
-              overlaps: matches,
-            }
+            { config, overlaps: matches }
           )
         }
-        overlaps.push({
-          module: config,
-          overlaps: matches,
-          type,
-          generateFilesOverlaps,
-        })
+        overlaps.push({ config, overlaps: matches, type, generateFilesOverlaps })
       }
     }
   }
@@ -152,13 +144,13 @@ const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
   projectRoot: string,
   moduleOverlaps: ModuleOverlap[]
 ): OverlapErrorDescription => {
-  const moduleOverlapList = sortBy(moduleOverlaps, (o) => o.module.name).map(
-    ({ module, overlaps, generateFilesOverlaps }) => {
+  const moduleOverlapList = sortBy(moduleOverlaps, (o) => o.config.name).map(
+    ({ config, overlaps, generateFilesOverlaps }) => {
       const formatted = overlaps.map((o) => {
         return `${chalk.bold(o.name)}`
       })
       // const generateFilesOverlapList =
-      return `Module ${chalk.bold(module.name)} overlaps with module(s) ${naturalList(formatted)} in ${naturalList(
+      return `Module ${chalk.bold(config.name)} overlaps with module(s) ${naturalList(formatted)} in ${naturalList(
         generateFilesOverlaps || []
       )}.`
     }
@@ -170,9 +162,9 @@ const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
       ${moduleOverlapList.join("\n\n")}
     `)
   // Sanitize error details
-  const overlappingModules = moduleOverlaps.map(({ module, overlaps }) => {
+  const overlappingModules = moduleOverlaps.map(({ config, overlaps }) => {
     return {
-      module: { name: module.name, path: resolve(projectRoot, module.path) },
+      module: { name: config.name, path: resolve(projectRoot, config.path) },
       overlaps: overlaps.map(({ name, path }) => ({ name, path: resolve(projectRoot, path) })),
     }
   })
@@ -187,12 +179,12 @@ const makePathOverlapError: ModuleOverlapRenderer = (
   projectRoot: string,
   moduleOverlaps: ModuleOverlap[]
 ): OverlapErrorDescription => {
-  const overlapList = sortBy(moduleOverlaps, (o) => o.module.name).map(({ module, overlaps }) => {
+  const overlapList = sortBy(moduleOverlaps, (o) => o.config.name).map(({ config, overlaps }) => {
     const formatted = overlaps.map((o) => {
-      const detail = o.path === module.path ? "same path" : "nested"
+      const detail = o.path === config.path ? "same path" : "nested"
       return `${chalk.bold(o.name)} (${detail})`
     })
-    return `Module ${chalk.bold(module.name)} overlaps with module(s) ${naturalList(formatted)}.`
+    return `Module ${chalk.bold(config.name)} overlaps with module(s) ${naturalList(formatted)}.`
   })
   const message = chalk.red(dedent`
       Found multiple enabled modules that share the same garden.yml file or are nested within another:
@@ -209,9 +201,9 @@ const makePathOverlapError: ModuleOverlapRenderer = (
         environment.
     `)
   // Sanitize error details
-  const overlappingModules = moduleOverlaps.map(({ module, overlaps }) => {
+  const overlappingModules = moduleOverlaps.map(({ config, overlaps }) => {
     return {
-      module: { name: module.name, path: resolve(projectRoot, module.path) },
+      module: { name: config.name, path: resolve(projectRoot, config.path) },
       overlaps: overlaps.map(({ name, path }) => ({ name, path: resolve(projectRoot, path) })),
     }
   })
