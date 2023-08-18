@@ -37,16 +37,19 @@ describe("detectModuleOverlap", () => {
         config: moduleA,
         overlaps: [moduleB, moduleC],
         type: "path",
+        generateFilesOverlaps: undefined,
       },
       {
         config: moduleB,
         overlaps: [moduleA, moduleC],
         type: "path",
+        generateFilesOverlaps: undefined,
       },
       {
         config: moduleC,
         overlaps: [moduleA, moduleB],
         type: "path",
+        generateFilesOverlaps: undefined,
       },
     ]
     expect(
@@ -76,11 +79,13 @@ describe("detectModuleOverlap", () => {
         config: moduleA,
         overlaps: [moduleB, moduleC],
         type: "path",
+        generateFilesOverlaps: undefined,
       },
       {
         config: moduleB,
         overlaps: [moduleC],
         type: "path",
+        generateFilesOverlaps: undefined,
       },
     ]
     expect(
@@ -104,6 +109,7 @@ describe("detectModuleOverlap", () => {
           config: moduleB,
           overlaps: [moduleA],
           type: "path",
+          generateFilesOverlaps: undefined,
         },
       ]
       expect(
@@ -130,6 +136,7 @@ describe("detectModuleOverlap", () => {
           config: moduleB,
           overlaps: [moduleA],
           type: "path",
+          generateFilesOverlaps: undefined,
         },
       ]
       expect(
@@ -219,6 +226,7 @@ describe("detectModuleOverlap", () => {
           config: moduleA1,
           overlaps: [moduleB1],
           type: "path",
+          generateFilesOverlaps: undefined,
         },
       ]
       expect(
@@ -233,6 +241,7 @@ describe("detectModuleOverlap", () => {
           config: moduleA2,
           overlaps: [moduleB2],
           type: "path",
+          generateFilesOverlaps: undefined,
         },
       ]
       expect(
