@@ -5,6 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
 import { posix, resolve } from "path"
 import { ModuleConfig, ModuleFileSpec } from "../config/module"
 import pathIsInside from "path-is-inside"
@@ -28,13 +29,10 @@ export interface ModuleOverlap {
   generateFilesOverlaps?: string[]
 }
 
-type ModuleOverlapFinder = (
-  c: ModuleConfig
-) => {
-  overlaps: ModuleConfig[]
-  type?: ModuleOverlapType
-  generateFilesOverlaps?: string[]
-}
+// Here `type` can be undefined if no overlap found; `config` is not necessary in the return value.
+type ModuleOverlapFinderResult = Omit<ModuleOverlap, "config" | "type"> & { type?: ModuleOverlapType }
+
+type ModuleOverlapFinder = (c: ModuleConfig) => ModuleOverlapFinderResult
 
 const moduleNameComparator = (a, b) => (a.name > b.name ? 1 : -1)
 
