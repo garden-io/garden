@@ -139,6 +139,15 @@ export interface OverlapErrorDescription {
 
 type ModuleOverlapRenderer = (projectRoot: string, moduleOverlaps: ModuleOverlap[]) => OverlapErrorDescription
 
+function sanitizeErrorDetails(projectRoot: string, moduleOverlaps: ModuleOverlap[]) {
+  return moduleOverlaps.map(({ config, overlaps }) => {
+    return {
+      module: { name: config.name, path: resolve(projectRoot, config.path) },
+      overlaps: overlaps.map(({ name, path }) => ({ name, path: resolve(projectRoot, path) })),
+    }
+  })
+}
+
 const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
   projectRoot: string,
   moduleOverlaps: ModuleOverlap[]
@@ -148,25 +157,17 @@ const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
       const formatted = overlaps.map((o) => {
         return `${chalk.bold(o.name)}`
       })
-      // const generateFilesOverlapList =
       return `Module ${chalk.bold(config.name)} overlaps with module(s) ${naturalList(formatted)} in ${naturalList(
         generateFilesOverlaps || []
       )}.`
     }
   )
-
   const message = chalk.red(dedent`
       Found multiple enabled modules that share the same value(s) in ${chalk.bold("generateFiles[].targetPath")}:
 
       ${moduleOverlapList.join("\n\n")}
     `)
-  // Sanitize error details
-  const overlappingModules = moduleOverlaps.map(({ config, overlaps }) => {
-    return {
-      module: { name: config.name, path: resolve(projectRoot, config.path) },
-      overlaps: overlaps.map(({ name, path }) => ({ name, path: resolve(projectRoot, path) })),
-    }
-  })
+  const overlappingModules = sanitizeErrorDetails(projectRoot, moduleOverlaps)
   return {
     message,
     detail: { overlappingModules },
@@ -198,13 +199,7 @@ const makePathOverlapError: ModuleOverlapRenderer = (
         in any given moment. For example, you can make sure that the modules are enabled only in their exclusive
         environment.
     `)
-  // Sanitize error details
-  const overlappingModules = moduleOverlaps.map(({ config, overlaps }) => {
-    return {
-      module: { name: config.name, path: resolve(projectRoot, config.path) },
-      overlaps: overlaps.map(({ name, path }) => ({ name, path: resolve(projectRoot, path) })),
-    }
-  })
+  const overlappingModules = sanitizeErrorDetails(projectRoot, moduleOverlaps)
   return { message, detail: { overlappingModules } }
 }
 
