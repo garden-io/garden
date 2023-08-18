@@ -64,16 +64,21 @@ export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIt
 }
 
 /**
- * Returns a list of overlapping modules.
- *
- * If a module does not set `include` or `exclude`, and another module is in its path (including
- * when the other module has the same path), the module overlaps with the other module.
+ * Data structure to describe overlapping modules.
  */
 export interface ModuleOverlap {
   module: ModuleConfig
   overlaps: ModuleConfig[]
 }
 
+type ModuleOverlapFinder = (c: ModuleConfig) => ModuleConfig[]
+
+/**
+ * Returns a list of overlapping modules.
+ *
+ * If a module does not set `include` or `exclude`, and another module is in its path (including
+ * when the other module has the same path), the module overlaps with the other module.
+ */
 export function detectModuleOverlap({
   projectRoot,
   gardenDirPath,
@@ -86,21 +91,24 @@ export function detectModuleOverlap({
   // Don't consider overlap between disabled modules, or where one of the modules is disabled
   const enabledModules = moduleConfigs.filter((m) => !m.disabled)
 
-  let overlaps: ModuleOverlap[] = []
-  for (const config of enabledModules) {
+  const findModulePathOverlaps: ModuleOverlapFinder = (config: ModuleConfig) => {
     if (!!config.include || !!config.exclude) {
-      continue
+      return []
     }
-    const matches = enabledModules
+    return enabledModules
       .filter(
         (compare) =>
           config.name !== compare.name &&
-          pathIsInside(compare.path, config.path) &&
           // Don't consider overlap between modules in root and those in the .garden directory
+          pathIsInside(compare.path, config.path) &&
           !(config.path === projectRoot && pathIsInside(compare.path, gardenDirPath))
       )
       .sort((a, b) => (a.name > b.name ? 1 : -1))
+  }
 
+  let overlaps: ModuleOverlap[] = []
+  for (const config of enabledModules) {
+    const matches = findModulePathOverlaps(config)
     if (matches.length > 0) {
       overlaps.push({
         module: config,
