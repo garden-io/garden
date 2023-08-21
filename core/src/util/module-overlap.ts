@@ -193,7 +193,7 @@ const makePathOverlapError: ModuleOverlapRenderer = (
       If this was intentional, there are two options to resolve this error:
 
       - You can add ${chalk.bold("include")} and/or ${chalk.bold("exclude")} directives on the affected modules.
-        With explicitly including / excluding files, the modules are actually allowed to overlap in case that is
+        By explicitly including / excluding files, the modules are actually allowed to overlap in case that is
         what you want.
       - You can use the ${chalk.bold("disabled")} directive to make sure that only one of the modules is enabled
         in any given moment. For example, you can make sure that the modules are enabled only in their exclusive
