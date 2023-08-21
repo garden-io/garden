@@ -320,7 +320,7 @@ describe("detectModuleOverlap", () => {
   })
 
   context("for heterogeneous overlaps of mixed ModuleOverlapType", () => {
-    it("should detect if modules have the same resolved path in generateFiles[].targetPath", () => {
+    it("should detect different kinds of overlaps", () => {
       const path = join(projectRoot, "foo")
       const sourcePath = "manifests.yml"
       const targetPath = "./.manifests/manifests.yaml"
