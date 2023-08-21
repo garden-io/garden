@@ -7,7 +7,7 @@
  */
 
 import { posix, resolve } from "path"
-import { ModuleConfig, ModuleFileSpec } from "../config/module"
+import { GenerateFileSpec, ModuleConfig } from "../config/module"
 import pathIsInside from "path-is-inside"
 import { intersection, sortBy } from "lodash"
 import chalk from "chalk"
@@ -17,7 +17,7 @@ import { isTruthy } from "./util"
 import { InternalError } from "../exceptions"
 
 export const moduleOverlapTypes = ["path", "generateFiles"] as const
-export type ModuleOverlapType = typeof moduleOverlapTypes[number]
+export type ModuleOverlapType = (typeof moduleOverlapTypes)[number]
 
 /**
  * Data structure to describe overlapping modules.
@@ -36,7 +36,7 @@ type ModuleOverlapFinder = (c: ModuleConfig) => ModuleOverlapFinderResult
 
 const moduleNameComparator = (a, b) => (a.name > b.name ? 1 : -1)
 
-function resolveGenerateFilesTargetPaths(modulePath: string, generateFiles: ModuleFileSpec[]): string[] {
+function resolveGenerateFilesTargetPaths(modulePath: string, generateFiles: GenerateFileSpec[]): string[] {
   return generateFiles.map((f) => f.targetPath).map((p) => resolve(modulePath, ...p.split(posix.sep)))
 }
 
@@ -118,10 +118,10 @@ export function detectModuleOverlap({
       const { overlaps, type, generateFilesOverlaps } = moduleOverlapFinder(config)
       if (overlaps.length > 0) {
         if (!type) {
-          throw new InternalError(
-            "Got some module overlap errors with undefined type. This is a bug, please report it.",
-            { config, overlaps }
-          )
+          throw new InternalError({
+            message: "Got some module overlap errors with undefined type. This is a bug, please report it.",
+            detail: { config, overlaps },
+          })
         }
         foundOverlaps.push({ config, overlaps, type, generateFilesOverlaps })
       }

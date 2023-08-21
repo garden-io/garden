@@ -41,7 +41,7 @@ import {
   getCloudDistributionName,
   getCloudLogSectionName,
 } from "./util/util"
-import { ConfigurationError, isGardenError, GardenError, PluginError, RuntimeError } from "./exceptions"
+import { ConfigurationError, isGardenError, GardenError, InternalError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
@@ -366,7 +366,10 @@ export class Garden {
     }
 
     if (!SUPPORTED_ARCHITECTURES.includes(currentArch)) {
-      throw new RuntimeError({ message: `Unsupported CPU architecture: ${currentArch}`, detail: { arch: currentArch } })
+      throw new RuntimeError({
+        message: `Unsupported CPU architecture: ${currentArch}`,
+        detail: { arch: currentArch },
+      })
     }
 
     this.state.configsScanned = false
@@ -1864,7 +1867,12 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         try {
           secrets = await wrapActiveSpan(
             "getSecrets",
-            async () => await cloudApi.getSecrets({ log: cloudLog, projectId: cloudProject!.id, environmentName })
+            async () =>
+              await cloudApi.getSecrets({
+                log: cloudLog,
+                projectId: cloudProject!.id,
+                environmentName,
+              })
           )
           cloudLog.verbose(chalk.green("Ready"))
           cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
