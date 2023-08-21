@@ -768,7 +768,7 @@ export class Garden {
       moduleConfigs: resolvedModules,
     })
     if (overlaps.length > 0) {
-      // Always throw the first found error to avoid too heavy error message
+      // Always throw the first found error to avoid overly verbose error messages
       const { message, detail } = makeOverlapErrors(this.projectRoot, overlaps)[0]
       throw new ConfigurationError(message, detail)
     }
