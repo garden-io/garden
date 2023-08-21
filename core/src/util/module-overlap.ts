@@ -133,7 +133,7 @@ export function detectModuleOverlap({
           if (!type) {
             throw new InternalError(
               "Got some module overlap errors with undefined type. This is a bug, please report it.",
-              { config: leftConfig, overlap: overlap }
+              { config: leftConfig, overlap }
             )
           }
           foundOverlaps.push({ config: leftConfig, overlaps: [overlap], type, generateFilesOverlaps })
