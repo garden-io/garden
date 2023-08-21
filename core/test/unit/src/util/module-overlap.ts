@@ -286,14 +286,14 @@ describe("detectModuleOverlap", () => {
       // here we use include to avoid errors on intersecting module paths
       const moduleA = {
         name: "module-a",
-        path: path,
+        path,
         include: [""],
         generateFiles: [{ sourcePath, targetPath, resolveTemplates: true }],
       } as ModuleConfig
 
       const moduleB = {
         name: "module-b",
-        path: path,
+        path,
         include: [""],
         generateFiles: [{ sourcePath, targetPath, resolveTemplates: true }],
       } as ModuleConfig
@@ -328,13 +328,13 @@ describe("detectModuleOverlap", () => {
       // here we use don't use include/exclude to get different types of module overlaps
       const moduleA = {
         name: "module-a",
-        path: path,
+        path,
         generateFiles: [{ sourcePath, targetPath, resolveTemplates: true }],
       } as ModuleConfig
 
       const moduleB = {
         name: "module-b",
-        path: path,
+        path,
         generateFiles: [{ sourcePath, targetPath, resolveTemplates: true }],
       } as ModuleConfig
 
