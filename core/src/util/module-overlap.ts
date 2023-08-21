@@ -32,7 +32,7 @@ export interface ModuleOverlap {
 // Here `type` can be undefined if no overlap found; `config` is not necessary in the return value.
 type ModuleOverlapFinderResult = Omit<ModuleOverlap, "config" | "type"> & { type?: ModuleOverlapType }
 
-type ModuleOverlapFinder = (c: ModuleConfig) => ModuleOverlapFinderResult
+type ModuleOverlapFinder = (left: ModuleConfig, right: ModuleConfig) => ModuleOverlapFinderResult
 
 const moduleNameComparator = (a, b) => (a.name > b.name ? 1 : -1)
 
@@ -59,71 +59,63 @@ export function detectModuleOverlap({
   moduleConfigs: ModuleConfig[]
 }): ModuleOverlap[] {
   // Don't consider overlap between disabled modules, or where one of the modules is disabled
-  const enabledModules = moduleConfigs.filter((m) => !m.disabled)
-
-  const findModulePathOverlaps: ModuleOverlapFinder = (config: ModuleConfig) => {
-    if (!!config.include || !!config.exclude) {
-      return { overlaps: [] }
-    }
-    const overlaps = enabledModules
-      .filter(
-        (compare) =>
-          config.name !== compare.name &&
-          // Don't consider overlap between modules in root and those in the .garden directory
-          pathIsInside(compare.path, config.path) &&
-          !(config.path === projectRoot && pathIsInside(compare.path, gardenDirPath))
-      )
-      .sort(moduleNameComparator)
-    return { overlaps, type: "path" }
+  const enabledModules = moduleConfigs.filter((m) => !m.disabled).sort(moduleNameComparator)
+  if (enabledModules.length < 2) {
+    return []
   }
 
-  const findGenerateFilesOverlaps: ModuleOverlapFinder = (config: ModuleConfig) => {
+  const findModulePathOverlaps: ModuleOverlapFinder = (left: ModuleConfig, right: ModuleConfig) => {
+    // Do not compare module against itself
+    if (left.name === right.name) {
+      return { overlaps: [] }
+    }
+    if (!!left.include || !!left.exclude) {
+      return { overlaps: [] }
+    }
+    if (
+      // Don't consider overlap between modules in root and those in the .garden directory
+      pathIsInside(right.path, left.path) &&
+      !(left.path === projectRoot && pathIsInside(right.path, gardenDirPath))
+    ) {
+      return { overlaps: [right], type: "path" }
+    }
+    return { overlaps: [] }
+  }
+
+  const findGenerateFilesOverlaps: ModuleOverlapFinder = (left: ModuleConfig, right: ModuleConfig) => {
+    // Do not compare module against itself
+    if (left.name === right.name) {
+      return { overlaps: [] }
+    }
     // Nothing to return if the current module has no `generateFiles` defined
-    if (!config.generateFiles) {
+    if (!left.generateFiles || !right.generateFiles) {
       return { overlaps: [] }
     }
 
-    const targetPaths = resolveGenerateFilesTargetPaths(config.path, config.generateFiles)
-    const findTargetPathOverlaps = (compare: ModuleConfig): string[] => {
-      // Do not compare module against itself
-      if (config.name === compare.name) {
-        return []
-      }
-      // Skip the modules without `generateFiles`
-      if (!compare.generateFiles) {
-        return []
-      }
-      const compareTargetPaths = resolveGenerateFilesTargetPaths(compare.path, compare.generateFiles)
-      return intersection(targetPaths, compareTargetPaths)
-    }
+    const leftTargetPaths = resolveGenerateFilesTargetPaths(left.path, left.generateFiles)
+    const rightTargetPaths = resolveGenerateFilesTargetPaths(right.path, right.generateFiles)
+    const generateFilesOverlaps = intersection(leftTargetPaths, rightTargetPaths)
 
-    const overlaps: ModuleConfig[] = []
-    const generateFilesOverlaps: string[] = []
-    for (const enabledModule of enabledModules) {
-      const targetPathOverlaps = findTargetPathOverlaps(enabledModule)
-      if (targetPathOverlaps.length > 0) {
-        overlaps.push(enabledModule)
-      }
-      generateFilesOverlaps.push(...targetPathOverlaps)
-    }
-    overlaps.sort(moduleNameComparator)
-
-    return { overlaps, type: "generateFiles", generateFilesOverlaps }
+    return { overlaps: [right], type: "generateFiles", generateFilesOverlaps }
   }
 
   const moduleOverlapFinders: ModuleOverlapFinder[] = [findModulePathOverlaps, findGenerateFilesOverlaps]
-  let foundOverlaps: ModuleOverlap[] = []
-  for (const config of enabledModules) {
-    for (const moduleOverlapFinder of moduleOverlapFinders) {
-      const { overlaps, type, generateFilesOverlaps } = moduleOverlapFinder(config)
-      if (overlaps.length > 0) {
-        if (!type) {
-          throw new InternalError(
-            "Got some module overlap errors with undefined type. This is a bug, please report it.",
-            { config, overlaps }
-          )
+  const foundOverlaps: ModuleOverlap[] = []
+  for (let i = 0; i < enabledModules.length; i++) {
+    const leftConfig = enabledModules[i]
+    for (let j = i + 1; j < enabledModules.length; j++) {
+      const rightConfig = enabledModules[j]
+      for (const moduleOverlapFinder of moduleOverlapFinders) {
+        const { overlaps, type, generateFilesOverlaps } = moduleOverlapFinder(leftConfig, rightConfig)
+        if (overlaps.length > 0) {
+          if (!type) {
+            throw new InternalError(
+              "Got some module overlap errors with undefined type. This is a bug, please report it.",
+              { config: leftConfig, overlaps }
+            )
+          }
+          foundOverlaps.push({ config: leftConfig, overlaps, type, generateFilesOverlaps })
         }
-        foundOverlaps.push({ config, overlaps, type, generateFilesOverlaps })
       }
     }
   }
