@@ -196,7 +196,7 @@ const makePathOverlapError: ModuleOverlapRenderer = (
         By explicitly including / excluding files, the modules are actually allowed to overlap in case that is
         what you want.
       - You can use the ${chalk.bold("disabled")} directive to make sure that only one of the modules is enabled
-        in any given moment. For example, you can make sure that the modules are enabled only in their exclusive
+        at any given time. For example, you can make sure that the modules are enabled only in a certain
         environment.
     `)
   const overlappingModules = sanitizeErrorDetails(projectRoot, moduleOverlaps)
