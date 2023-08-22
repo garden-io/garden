@@ -111,7 +111,7 @@ import { getSecrets } from "./cloud/get-secrets"
 import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
-import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap"
+import { detectModuleOverlap, makeOverlapErrors, ModuleOverlapDescription } from "./util/module-overlap"
 
 const defaultLocalAddress = "localhost"
 
@@ -768,9 +768,15 @@ export class Garden {
       moduleConfigs: resolvedModules,
     })
     if (overlaps.length > 0) {
-      // Always throw the first found error to avoid overly verbose error messages
-      const { message, detail } = makeOverlapErrors(this.projectRoot, overlaps)[0]
-      throw new ConfigurationError(message, detail)
+      const overlapErrors = makeOverlapErrors(this.projectRoot, overlaps)
+      const messages: string[] = []
+      const overlappingModules: ModuleOverlapDescription[] = []
+      for (const overlapError of overlapErrors) {
+        const { message, detail } = overlapError
+        messages.push(message)
+        overlappingModules.push(...detail.overlappingModules)
+      }
+      throw new ConfigurationError(messages.join("\n\n"), { overlappingModules })
     }
 
     const actions = await this.getActionRouter()

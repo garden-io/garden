@@ -168,7 +168,7 @@ interface ModuleDesc {
   name: string
 }
 
-interface ModuleOverlapDescription {
+export interface ModuleOverlapDescription {
   module: ModuleDesc
   overlaps: ModuleDesc[]
 }
