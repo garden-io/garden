@@ -38,12 +38,17 @@ interface ModuleOverlapFinderParams {
 
 // Here `type` and `overlap` can be undefined if no overlap found
 interface ModuleOverlapFinderResult {
+  pivot: ModuleConfig
   overlap: ModuleConfig | undefined
   type: ModuleOverlapType | undefined
   generateFilesOverlaps?: string[]
 }
 
+// The implementation must a commutative function
 type ModuleOverlapMatcher = (params: ModuleOverlapFinderParams) => ModuleOverlapFinderResult
+
+const hasInclude = (m: ModuleConfig) => !!m.include
+const hasExclude = (m: ModuleConfig) => !!m.exclude
 
 const isModulePathOverlap: ModuleOverlapMatcher = ({
   leftConfig,
@@ -53,36 +58,51 @@ const isModulePathOverlap: ModuleOverlapMatcher = ({
 }: ModuleOverlapFinderParams) => {
   // Do not compare module against itself
   if (leftConfig.name === rightConfig.name) {
-    return { overlap: undefined, type: undefined }
+    return { pivot: leftConfig, overlap: undefined, type: undefined }
   }
-  if (!!leftConfig.include || !!leftConfig.exclude) {
-    return { overlap: undefined, type: undefined }
+
+  const leftIsOverlapSafe = hasInclude(leftConfig) || hasExclude(leftConfig)
+  const rightIsOverlapSafe = hasInclude(rightConfig) || hasExclude(rightConfig)
+  if (leftIsOverlapSafe && rightIsOverlapSafe) {
+    return { pivot: leftConfig, overlap: undefined, type: undefined }
   }
+
+  // Here only one or none of 2 configs can have 'include'/'exclude' files defined.
+  // Let's re-assign the values if necessary to ensure commutativity of the function.
+  let leftResolved = leftConfig
+  let rightResolved = rightConfig
+
+  // Let's always use the config without 'include'/'exclude' files as a left argument.
+  if (leftIsOverlapSafe) {
+    leftResolved = rightConfig
+    rightResolved = leftConfig
+  }
+
   if (
     // Don't consider overlap between modules in root and those in the .garden directory
-    pathIsInside(rightConfig.path, leftConfig.path) &&
-    !(leftConfig.path === projectRoot && pathIsInside(rightConfig.path, gardenDirPath))
+    pathIsInside(rightResolved.path, leftResolved.path) &&
+    !(leftResolved.path === projectRoot && pathIsInside(rightResolved.path, gardenDirPath))
   ) {
-    return { overlap: rightConfig, type: "path" }
+    return { pivot: leftResolved, overlap: rightResolved, type: "path" }
   }
-  return { overlap: undefined, type: undefined }
+  return { pivot: leftConfig, overlap: undefined, type: undefined }
 }
 
 const isGenerateFilesOverlap: ModuleOverlapMatcher = ({ leftConfig, rightConfig }: ModuleOverlapFinderParams) => {
   // Do not compare module against itself
   if (leftConfig.name === rightConfig.name) {
-    return { overlap: undefined, type: undefined }
+    return { pivot: leftConfig, overlap: undefined, type: undefined }
   }
   // Nothing to return if the current module has no `generateFiles` defined
   if (!leftConfig.generateFiles || !rightConfig.generateFiles) {
-    return { overlap: undefined, type: undefined }
+    return { pivot: leftConfig, overlap: undefined, type: undefined }
   }
 
   const leftTargetPaths = resolveGenerateFilesTargetPaths(leftConfig.path, leftConfig.generateFiles)
   const rightTargetPaths = resolveGenerateFilesTargetPaths(rightConfig.path, rightConfig.generateFiles)
   const generateFilesOverlaps = intersection(leftTargetPaths, rightTargetPaths)
 
-  return { overlap: rightConfig, type: "generateFiles", generateFilesOverlaps }
+  return { pivot: leftConfig, overlap: rightConfig, type: "generateFiles", generateFilesOverlaps }
 }
 
 const moduleOverlapMatchers: ModuleOverlapMatcher[] = [isModulePathOverlap, isGenerateFilesOverlap]
@@ -123,7 +143,7 @@ export function detectModuleOverlap({
     for (let j = i + 1; j < enabledModules.length; j++) {
       const rightConfig = enabledModules[j]
       for (const moduleOverlapMatcher of moduleOverlapMatchers) {
-        const { overlap, type, generateFilesOverlaps } = moduleOverlapMatcher({
+        const { pivot, overlap, type, generateFilesOverlaps } = moduleOverlapMatcher({
           leftConfig,
           rightConfig,
           projectRoot,
@@ -133,10 +153,10 @@ export function detectModuleOverlap({
           if (!type) {
             throw new InternalError({
               message: "Got some module overlap errors with undefined type. This is a bug, please report it.",
-              detail: { config: leftConfig, overlap },
+              detail: { config: pivot, overlap },
             })
           }
-          foundOverlaps.push({ config: leftConfig, overlaps: [overlap], type, generateFilesOverlaps })
+          foundOverlaps.push({ config: pivot, overlaps: [overlap], type, generateFilesOverlaps })
         }
       }
     }

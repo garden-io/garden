@@ -36,19 +36,19 @@ describe("detectModuleOverlap", () => {
       const expectedOverlaps: ModuleOverlap[] = [
         {
           config: moduleA,
-          overlaps: [moduleB, moduleC],
+          overlaps: [moduleB],
+          type: "path",
+          generateFilesOverlaps: undefined,
+        },
+        {
+          config: moduleA,
+          overlaps: [moduleC],
           type: "path",
           generateFilesOverlaps: undefined,
         },
         {
           config: moduleB,
-          overlaps: [moduleA, moduleC],
-          type: "path",
-          generateFilesOverlaps: undefined,
-        },
-        {
-          config: moduleC,
-          overlaps: [moduleA, moduleB],
+          overlaps: [moduleC],
           type: "path",
           generateFilesOverlaps: undefined,
         },
@@ -78,7 +78,13 @@ describe("detectModuleOverlap", () => {
       const expectedOverlaps: ModuleOverlap[] = [
         {
           config: moduleA,
-          overlaps: [moduleB, moduleC],
+          overlaps: [moduleB],
+          type: "path",
+          generateFilesOverlaps: undefined,
+        },
+        {
+          config: moduleA,
+          overlaps: [moduleC],
           type: "path",
           generateFilesOverlaps: undefined,
         },
@@ -306,12 +312,6 @@ describe("detectModuleOverlap", () => {
           type: "generateFiles",
           generateFilesOverlaps: expectedGenerateFilesOverlaps,
         },
-        {
-          config: moduleB,
-          overlaps: [moduleA],
-          type: "generateFiles",
-          generateFilesOverlaps: expectedGenerateFilesOverlaps,
-        },
       ]
       expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB] })).to.eql(
         expectedOverlaps
@@ -349,18 +349,6 @@ describe("detectModuleOverlap", () => {
         {
           config: moduleA,
           overlaps: [moduleB],
-          type: "generateFiles",
-          generateFilesOverlaps: expectedGenerateFilesOverlaps,
-        },
-        {
-          config: moduleB,
-          overlaps: [moduleA],
-          type: "path",
-          generateFilesOverlaps: undefined,
-        },
-        {
-          config: moduleB,
-          overlaps: [moduleA],
           type: "generateFiles",
           generateFilesOverlaps: expectedGenerateFilesOverlaps,
         },
