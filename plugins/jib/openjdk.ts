@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { ToolBuildSpec } from "@garden-io/core/src/plugin/tools"
 import { PluginToolSpec } from "@garden-io/sdk/types"
 import { posix } from "path"
 
@@ -123,7 +124,7 @@ const jdk17Version: JdkVersion = {
 }
 
 function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
-  const macBuilds = [
+  const macBuilds: ToolBuildSpec[] = [
     {
       platform: "darwin",
       architecture: "amd64",
