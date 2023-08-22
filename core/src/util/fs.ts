@@ -17,8 +17,6 @@ import { platform } from "os"
 import { FilesystemError } from "../exceptions"
 import { VcsHandler } from "../vcs/vcs"
 import { Log } from "../logger/log-entry"
-import { ModuleConfig } from "../config/module"
-import pathIsInside from "path-is-inside"
 import { exec } from "./util"
 import type Micromatch from "micromatch"
 import { uuidv4 } from "./random"
@@ -61,54 +59,6 @@ export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIt
 
     yield await promise
   }
-}
-
-/**
- * Returns a list of overlapping modules.
- *
- * If a module does not set `include` or `exclude`, and another module is in its path (including
- * when the other module has the same path), the module overlaps with the other module.
- */
-export interface ModuleOverlap {
-  module: ModuleConfig
-  overlaps: ModuleConfig[]
-}
-
-export function detectModuleOverlap({
-  projectRoot,
-  gardenDirPath,
-  moduleConfigs,
-}: {
-  projectRoot: string
-  gardenDirPath: string
-  moduleConfigs: ModuleConfig[]
-}): ModuleOverlap[] {
-  // Don't consider overlap between disabled modules, or where one of the modules is disabled
-  const enabledModules = moduleConfigs.filter((m) => !m.disabled)
-
-  let overlaps: ModuleOverlap[] = []
-  for (const config of enabledModules) {
-    if (!!config.include || !!config.exclude) {
-      continue
-    }
-    const matches = enabledModules
-      .filter(
-        (compare) =>
-          config.name !== compare.name &&
-          pathIsInside(compare.path, config.path) &&
-          // Don't consider overlap between modules in root and those in the .garden directory
-          !(config.path === projectRoot && pathIsInside(compare.path, gardenDirPath))
-      )
-      .sort((a, b) => (a.name > b.name ? 1 : -1))
-
-    if (matches.length > 0) {
-      overlaps.push({
-        module: config,
-        overlaps: matches,
-      })
-    }
-  }
-  return overlaps
 }
 
 /**

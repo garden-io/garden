@@ -9,7 +9,6 @@
 import Bluebird from "bluebird"
 import chalk from "chalk"
 import { ensureDir } from "fs-extra"
-import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve } from "path"
 import cloneDeep from "fast-copy"
@@ -42,7 +41,7 @@ import {
   getCloudDistributionName,
   getCloudLogSectionName,
 } from "./util/util"
-import { ConfigurationError, InternalError, isGardenError, GardenError, PluginError, RuntimeError } from "./exceptions"
+import { ConfigurationError, isGardenError, GardenError, InternalError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
@@ -79,8 +78,6 @@ import {
   findConfigPathsInPath,
   getWorkingCopyId,
   fixedProjectExcludes,
-  detectModuleOverlap,
-  ModuleOverlap,
   defaultConfigFilename,
   defaultDotIgnoreFile,
 } from "./util/fs"
@@ -154,6 +151,7 @@ import { OtelTraced } from "./util/open-telemetry/decorators"
 import { wrapActiveSpan } from "./util/open-telemetry/spans"
 import { GitRepoHandler } from "./vcs/git-repo"
 import { configureNoOpExporter } from "./util/open-telemetry/tracing"
+import { detectModuleOverlap, makeOverlapErrors, ModuleOverlapDescription } from "./util/module-overlap"
 
 const defaultLocalAddress = "localhost"
 
@@ -368,7 +366,10 @@ export class Garden {
     }
 
     if (!SUPPORTED_ARCHITECTURES.includes(currentArch)) {
-      throw new RuntimeError({ message: `Unsupported CPU architecture: ${currentArch}`, detail: { arch: currentArch } })
+      throw new RuntimeError({
+        message: `Unsupported CPU architecture: ${currentArch}`,
+        detail: { arch: currentArch },
+      })
     }
 
     this.state.configsScanned = false
@@ -990,8 +991,18 @@ export class Garden {
       moduleConfigs: resolvedModules,
     })
     if (overlaps.length > 0) {
-      const { message, detail } = this.makeOverlapError(overlaps)
-      throw new ConfigurationError({ message, detail })
+      const overlapErrors = makeOverlapErrors(this.projectRoot, overlaps)
+      const messages: string[] = []
+      const overlappingModules: ModuleOverlapDescription[] = []
+      for (const overlapError of overlapErrors) {
+        const { message, detail } = overlapError
+        messages.push(message)
+        overlappingModules.push(...detail.overlappingModules)
+      }
+      throw new ConfigurationError({
+        message: messages.join("\n\n"),
+        detail: { overlappingModules },
+      })
     }
 
     // Convert modules to actions
@@ -1262,8 +1273,8 @@ export class Garden {
     })
   }
 
-  /*
-    Scans the project root for modules and workflows and adds them to the context.
+  /**
+   * Scans the project root for modules and workflows and adds them to the context.
    */
   @OtelTraced({
     name: "scanAndAddConfigs",
@@ -1546,40 +1557,6 @@ export class Garden {
     })
 
     return path
-  }
-
-  public makeOverlapError(moduleOverlaps: ModuleOverlap[]) {
-    const overlapList = sortBy(moduleOverlaps, (o) => o.module.name)
-      .map(({ module, overlaps }) => {
-        const formatted = overlaps.map((o) => {
-          const detail = o.path === module.path ? "same path" : "nested"
-          return `${chalk.bold(o.name)} (${detail})`
-        })
-        return `Module ${chalk.bold(module.name)} overlaps with module(s) ${naturalList(formatted)}.`
-      })
-      .join("\n\n")
-    const message = chalk.red(dedent`
-      Found multiple enabled modules that share the same garden.yml file or are nested within another:
-
-      ${overlapList}
-
-      If this was intentional, there are two options to resolve this error:
-
-      - You can add ${chalk.bold("include")} and/or ${chalk.bold("exclude")} directives on the affected modules.
-        With explicitly including / encluding files, the modules are actually allowed to overlap in case that is
-        what you want.
-      - You can use the ${chalk.bold("disabled")} directive to make sure that only one of the modules is enabled
-        in any given moment. For example, you can make sure that the modules are enabled only in their exclusive
-        environment.
-    `)
-    // Sanitize error details
-    const overlappingModules = moduleOverlaps.map(({ module, overlaps }) => {
-      return {
-        module: { name: module.name, path: resolve(this.projectRoot, module.path) },
-        overlaps: overlaps.map(({ name, path }) => ({ name, path: resolve(this.projectRoot, path) })),
-      }
-    })
-    return { message, detail: { overlappingModules } }
   }
 
   public getEnvironmentConfig() {
@@ -1899,7 +1876,12 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         try {
           secrets = await wrapActiveSpan(
             "getSecrets",
-            async () => await cloudApi.getSecrets({ log: cloudLog, projectId: cloudProject!.id, environmentName })
+            async () =>
+              await cloudApi.getSecrets({
+                log: cloudLog,
+                projectId: cloudProject!.id,
+                environmentName,
+              })
           )
           cloudLog.verbose(chalk.green("Ready"))
           cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
