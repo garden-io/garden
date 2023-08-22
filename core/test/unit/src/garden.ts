@@ -2637,8 +2637,11 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "found multiple enabled modules that share the same garden.yml file or are nested within another",
-          "Module module-no-include-b overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-a (same path).",
-          "Module module-no-include-a overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-b (same path).",
+          "Module module-no-include-a overlaps with module(s) module-a1 (nested).",
+          "Module module-no-include-a overlaps with module(s) module-a2 (nested).",
+          "Module module-no-include-a overlaps with module(s) module-no-include-b (same path).",
+          "Module module-no-include-b overlaps with module(s) module-a1 (nested).",
+          "Module module-no-include-b overlaps with module(s) module-a2 (nested).",
           "if this was intentional, there are two options to resolve this error",
           "you can add include and/or exclude directives on the affected modules",
           "you can use the disabled directive to make sure that only one of the modules is enabled",
