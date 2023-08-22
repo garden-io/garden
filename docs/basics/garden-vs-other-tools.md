@@ -1,3 +1,8 @@
+---
+title: Garden vs other tools & platforms
+order: 3
+---
+
 # Garden vs other tools & platforms
 
 The tooling landscape for cloud development has gotten a lot more crowded over the past few years. In this doc, we’ll

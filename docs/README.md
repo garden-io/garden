@@ -7,6 +7,7 @@
 * [How Garden Works](./basics/how-garden-works.md)
 * [Quickstart Guide](./basics/quickstart.md)
 * [The Stack Graph (Terminology)](./basics/stack-graph.md)
+* [Garden vs other tools & platforms](./basics/garden-vs-other-tools.md)
 
 ## 🌻 Garden Seeds
 
