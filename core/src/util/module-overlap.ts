@@ -9,7 +9,7 @@
 import { posix, resolve } from "path"
 import { ModuleConfig, ModuleFileSpec } from "../config/module"
 import pathIsInside from "path-is-inside"
-import { groupBy, intersection, sortBy } from "lodash"
+import { groupBy, intersection } from "lodash"
 import chalk from "chalk"
 import { naturalList } from "./string"
 import dedent from "dedent"
@@ -200,16 +200,14 @@ const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
   projectRoot: string,
   moduleOverlaps: ModuleOverlap[]
 ): OverlapErrorDescription => {
-  const moduleOverlapList = sortBy(moduleOverlaps, (o) => o.config.name).map(
-    ({ config, overlaps, generateFilesOverlaps }) => {
-      const formatted = overlaps.map((o) => {
-        return `${chalk.bold(o.name)}`
-      })
-      return `Module ${chalk.bold(config.name)} overlaps with module(s) ${naturalList(formatted)} in ${naturalList(
-        generateFilesOverlaps || []
-      )}.`
-    }
-  )
+  const moduleOverlapList = moduleOverlaps.map(({ config, overlaps, generateFilesOverlaps }) => {
+    const formatted = overlaps.map((o) => {
+      return `${chalk.bold(o.name)}`
+    })
+    return `Module ${chalk.bold(config.name)} overlaps with module(s) ${naturalList(formatted)} in ${naturalList(
+      generateFilesOverlaps || []
+    )}.`
+  })
   const message = chalk.red(dedent`
       Found multiple enabled modules that share the same value(s) in ${chalk.bold("generateFiles[].targetPath")}:
 
@@ -226,7 +224,7 @@ const makePathOverlapError: ModuleOverlapRenderer = (
   projectRoot: string,
   moduleOverlaps: ModuleOverlap[]
 ): OverlapErrorDescription => {
-  const overlapList = sortBy(moduleOverlaps, (o) => o.config.name).map(({ config, overlaps }) => {
+  const overlapList = moduleOverlaps.map(({ config, overlaps }) => {
     const formatted = overlaps.map((o) => {
       const detail = o.path === config.path ? "same path" : "nested"
       return `${chalk.bold(o.name)} (${detail})`
