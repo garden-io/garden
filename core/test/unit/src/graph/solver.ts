@@ -621,7 +621,7 @@ describe("GraphSolver", () => {
   //   const thirdProcess = graph.process([t3])
   //   await sleep(200) // TODO: Get rid of this?
   //   t1DoneResolver()
-  //   await Bluebird.all([firstProcess, secondProcess, thirdProcess])
+  //   await Promise.all([firstProcess, secondProcess, thirdProcess])
   //   expect(processedVersions).to.eql(["1", "3"])
   // })
 
@@ -660,7 +660,7 @@ describe("GraphSolver", () => {
   //   const secondProcess = graph.process([taskB, taskBDep])
   //   const thirdProcess = graph.process([taskC])
   //   aDoneResolver()
-  //   await Bluebird.all([firstProcess, secondProcess, thirdProcess])
+  //   await Promise.all([firstProcess, secondProcess, thirdProcess])
   //   expect(resultOrder).to.eql(["c", "a-dep1", "a-dep2", "b-dep", "a", "b"])
   // })
 
@@ -694,7 +694,7 @@ describe("GraphSolver", () => {
   //   const firstProcess = graph.process([taskA, taskADep])
   //   const secondProcess = graph.process([repeatTaskBDep])
   //   aDoneResolver()
-  //   await Bluebird.all([firstProcess, secondProcess])
+  //   await Promise.all([firstProcess, secondProcess])
   //   expect(resultOrder).to.eql(["b-dep", "a-dep1", "a"])
   // })
 

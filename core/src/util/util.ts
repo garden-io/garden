@@ -23,7 +23,6 @@ import {
   trimEnd,
   uniqBy,
 } from "lodash"
-import type { ResolvableProps } from "bluebird"
 import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
 import _spawn from "cross-spawn"
 import { readFile } from "fs-extra"
@@ -38,9 +37,10 @@ import { isAbsolute, relative } from "path"
 import { getDefaultProfiler } from "./profiling"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants"
 import split2 = require("split2")
-import Bluebird = require("bluebird")
 import execa = require("execa")
 import { execSync } from "child_process"
+import pMap from "p-map"
+import pProps from "p-props"
 
 export { apply as jsonMerge } from "json-merge-patch"
 
@@ -405,13 +405,16 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
  * Recursively resolves all promises in the given input,
  * walking through all object keys and array items.
  */
+type Resolvable<R> = R | PromiseLike<R>
+type ResolvableProps<T> = object & { [K in keyof T]: Resolvable<T[K]> }
+
 export async function deepResolve<T>(
   value: T | Iterable<T> | Iterable<PromiseLike<T>> | ResolvableProps<T>
 ): Promise<T | Iterable<T> | { [K in keyof T]: T[K] }> {
   if (isArray(value)) {
-    return await Bluebird.map(value, deepResolve)
+    return await pMap(value, deepResolve)
   } else if (isPlainObject(value)) {
-    return await Bluebird.props(<ResolvableProps<T>>mapValues(<ResolvableProps<T>>value, deepResolve))
+    return await pProps(<ResolvableProps<T>>mapValues(<ResolvableProps<T>>value, deepResolve))
   } else {
     return Promise.resolve(<T>value)
   }
@@ -426,14 +429,14 @@ type DeepMappable = any | ArrayLike<DeepMappable> | { [k: string]: DeepMappable 
 export async function asyncDeepMap<T extends DeepMappable>(
   obj: T,
   mapper: (value) => Promise<any>,
-  options?: Bluebird.ConcurrencyOption
+  options?: pMap.Options
 ): Promise<T> {
   if (isArray(obj)) {
-    return <any>Bluebird.map(obj, (v) => asyncDeepMap(v, mapper, options), options)
+    return <any>pMap(obj, (v) => asyncDeepMap(v, mapper, options), options)
   } else if (isPlainObject(obj)) {
     return <T>(
       fromPairs(
-        await Bluebird.map(
+        await pMap(
           Object.entries(obj as { [k: string]: DeepMappable }),
           async ([key, value]) => [key, await asyncDeepMap(value, mapper, options)],
           options

@@ -12,7 +12,6 @@ import { printHeader } from "../../logger/util"
 import { DeployTask } from "../../tasks/deploy"
 import { dedent, naturalList } from "../../util/string"
 import { Command, CommandParams, CommandResult, PrepareParams } from "../base"
-import Bluebird from "bluebird"
 import chalk from "chalk"
 import { ParameterError, RuntimeError } from "../../exceptions"
 import { SyncMonitor } from "../../monitors/sync"
@@ -219,44 +218,48 @@ export async function startSyncWithoutDeploy({
 
   const router = await garden.getActionRouter()
 
-  await Bluebird.map(tasks, async (task) => {
-    const action = task.action
-    const result = statusResult.results.getResult(task)
+  await Promise.all(
+    tasks.map(async (task) => {
+      const action = task.action
+      const result = statusResult.results.getResult(task)
 
-    const mode = result?.result?.detail?.mode
-    const state = result?.result?.detail?.state
-    const executedAction = result?.result?.executedAction
-    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const mode = result?.result?.detail?.mode
+      const state = result?.result?.detail?.state
+      const executedAction = result?.result?.executedAction
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
-    if (executedAction && (state === "outdated" || state === "ready")) {
-      if (mode !== "sync") {
-        actionLog.warn(
-          chalk.yellow(`Not deployed in sync mode, cannot start sync. Try running this command with \`--deploy\` set.`)
-        )
-        return
-      }
-      // Attempt to start sync even if service is outdated but in sync mode
-      try {
-        await router.deploy.startSync({ log: actionLog, action: executedAction, graph })
-        someSyncStarted = true
-
-        if (monitor) {
-          const m = new SyncMonitor({ garden, log, action: executedAction, graph, stopOnExit })
-          garden.monitors.addAndSubscribe(m, command)
+      if (executedAction && (state === "outdated" || state === "ready")) {
+        if (mode !== "sync") {
+          actionLog.warn(
+            chalk.yellow(
+              `Not deployed in sync mode, cannot start sync. Try running this command with \`--deploy\` set.`
+            )
+          )
+          return
         }
-      } catch (error) {
-        actionLog.warn(
-          chalk.yellow(dedent`
+        // Attempt to start sync even if service is outdated but in sync mode
+        try {
+          await router.deploy.startSync({ log: actionLog, action: executedAction, graph })
+          someSyncStarted = true
+
+          if (monitor) {
+            const m = new SyncMonitor({ garden, log, action: executedAction, graph, stopOnExit })
+            garden.monitors.addAndSubscribe(m, command)
+          }
+        } catch (error) {
+          actionLog.warn(
+            chalk.yellow(dedent`
             Failed starting sync for ${action.longDescription()}: ${error}
 
             You may need to re-deploy the action. Try running this command with \`--deploy\` set, or running \`garden deploy --sync\` before running this command again.
           `)
-        )
+          )
+        }
+      } else {
+        actionLog.warn(chalk.yellow(`${action.longDescription()} is not deployed, cannot start sync.`))
       }
-    } else {
-      actionLog.warn(chalk.yellow(`${action.longDescription()} is not deployed, cannot start sync.`))
-    }
-  })
+    })
+  )
 
   if (!someSyncStarted) {
     throw new RuntimeError({

@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird = require("bluebird")
-
 import chalk from "chalk"
 import { fromPairs, mapValues, omit } from "lodash"
+import pProps from "p-props"
 
 import { validateSchema } from "../config/validation"
 import { defaultProvider } from "../config/provider"
@@ -175,10 +174,10 @@ export class ProviderRouter extends BaseRouter {
     const environmentStatuses: EnvironmentStatusMap = {}
 
     const providers = await this.garden.resolveProviders(log)
-    await Bluebird.each(Object.values(providers), async (provider) => {
+    for (const provider of Object.values(providers)) {
       await this.cleanupEnvironment({ pluginName: provider.name, log, events: undefined })
       environmentStatuses[provider.name] = { ready: false, outputs: {} }
-    })
+    }
 
     log.success("Done")
 
@@ -187,11 +186,14 @@ export class ProviderRouter extends BaseRouter {
 
   async getDebugInfo({ log, includeProject }: { log: Log; includeProject: boolean }): Promise<DebugInfoMap> {
     const handlers = await this.getPluginHandlers("getDebugInfo")
-    return Bluebird.props(
+
+    const debugInfoMap = pProps(
       mapValues(handlers, async (h) =>
         h({ ...(await this.commonParams(h, log, undefined, undefined)), includeProject })
       )
     )
+
+    return debugInfoMap
   }
 
   //endregion

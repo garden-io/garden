@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { countBy, flatten, isEmpty, uniq } from "lodash"
 import { load } from "js-yaml"
 import stripAnsi from "strip-ansi"
@@ -247,9 +246,11 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   const pulumiVars = spec.pulumiVariables
   let varfileContents: DeepPrimitiveMap[]
   try {
-    varfileContents = await Bluebird.map(spec.pulumiVarfiles, async (varfilePath: string) => {
-      return loadPulumiVarfile({ action, ctx, log, varfilePath })
-    })
+    varfileContents = await Promise.all(
+      spec.pulumiVarfiles.map(async (varfilePath: string) => {
+        return loadPulumiVarfile({ action, ctx, log, varfilePath })
+      })
+    )
   } catch (err) {
     throw new FilesystemError({
       message: `An error occurred while reading pulumi varfiles for action ${action.name}: ${err.message}`,

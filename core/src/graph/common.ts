@@ -14,7 +14,6 @@ import { GraphNodes, ConfigGraphNode } from "./config-graph"
 import { Profile } from "../util/profiling"
 import type { ModuleDependencyGraphNode, ModuleDependencyGraphNodeKind, ModuleGraphNodes } from "./modules"
 import { ActionKind } from "../plugin/action-types"
-import Bluebird from "bluebird"
 import { loadVarfile } from "../config/base"
 import { DeepPrimitiveMap } from "../config/common"
 import { Task } from "../tasks/base"
@@ -127,13 +126,15 @@ export async function mergeVariables({
   variables?: DeepPrimitiveMap
   varfiles?: string[]
 }) {
-  const varsByFile = await Bluebird.map(varfiles || [], (path) => {
-    return loadVarfile({
-      configRoot: basePath,
-      path,
-      defaultPath: undefined,
+  const varsByFile = await Promise.all(
+    (varfiles || []).map((path) => {
+      return loadVarfile({
+        configRoot: basePath,
+        path,
+        defaultPath: undefined,
+      })
     })
-  })
+  )
 
   const output: DeepPrimitiveMap = {}
 

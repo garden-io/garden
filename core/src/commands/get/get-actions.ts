@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import chalk from "chalk"
 import { getActionState, getRelativeActionConfigPath } from "../../actions/helpers"
 import { ActionKind, ActionState, ResolvedAction, actionKinds, actionStateTypes } from "../../actions/types"
@@ -172,10 +171,12 @@ export class GetActionsCommand extends Command {
 
     if (includeStateInOutput) {
       // get state of each action if --include-state flag is set
-      actions = await Bluebird.map(actions, async (a) => {
-        a.state = await getActionState(a, router, graph, log)
-        return a
-      })
+      actions = await Promise.all(
+        actions.map(async (a) => {
+          a.state = await getActionState(a, router, graph, log)
+          return a
+        })
+      )
     }
 
     let getActionsOutput: GetActionsCommandResultItem[] = []

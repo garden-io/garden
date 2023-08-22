@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import chalk from "chalk"
 
 import { BooleanParameter, StringsParameter } from "../../cli/params"
@@ -23,6 +22,7 @@ import { Garden } from "../.."
 import { ResolvedDeployAction } from "../../actions/deploy"
 import { ResolvedConfigGraph } from "../../graph/config-graph"
 import { DOCS_BASE_URL } from "../../constants"
+import pMap from "p-map"
 
 const syncStatusArgs = {
   names: new StringsParameter({
@@ -150,7 +150,7 @@ export async function getSyncStatuses({
   // This is fairly arbitrary
   const concurrency = 5
 
-  await Bluebird.map(
+  await pMap(
     deployActions,
     async (action) => {
       const events = new PluginEventBroker(garden)

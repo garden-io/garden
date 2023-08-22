@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import cloneDeep from "fast-copy"
 import { isEqual, mapValues, memoize, omit, pick, uniq } from "lodash"
 import {
@@ -135,70 +134,74 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({ actions: [], moduleGraph, groups: groupConfigs })
 
-  await Bluebird.map(Object.entries(configsByKey), async ([key, config]) => {
-    // Apply action modes
-    let mode: ActionMode = "default"
-    let explicitMode = false // set if a key is explicitly set (as opposed to a wildcard match)
+  await Promise.all(
+    Object.entries(configsByKey).map(async ([key, config]) => {
+      // Apply action modes
+      let mode: ActionMode = "default"
+      let explicitMode = false // set if a key is explicitly set (as opposed to a wildcard match)
 
-    for (const pattern of actionModes.sync || []) {
-      if (key === pattern) {
-        explicitMode = true
-        mode = "sync"
-        log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
-        break
-      } else if (minimatch(key, pattern)) {
-        mode = "sync"
-        log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
-        break
-      }
-    }
-
-    // Local mode takes precedence over sync
-    // TODO: deduplicate
-    for (const pattern of actionModes.local || []) {
-      if (key === pattern) {
-        explicitMode = true
-        mode = "local"
-        log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
-        break
-      } else if (minimatch(key, pattern)) {
-        mode = "local"
-        log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
-        break
-      }
-    }
-
-    try {
-      const action = await actionFromConfig({
-        garden,
-        graph,
-        config,
-        router,
-        log,
-        configsByKey,
-        mode,
-        linkedSources,
-        scanRoot: minimalRoots[getConfigBasePath(config)],
-      })
-
-      if (!action.supportsMode(mode)) {
-        if (explicitMode) {
-          log.warn(chalk.yellow(`${action.longDescription()} is not configured for or does not support ${mode} mode`))
+      for (const pattern of actionModes.sync || []) {
+        if (key === pattern) {
+          explicitMode = true
+          mode = "sync"
+          log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
+          break
+        } else if (minimatch(key, pattern)) {
+          mode = "sync"
+          log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
+          break
         }
       }
 
-      graph.addAction(action)
-    } catch (error) {
-      throw new ConfigurationError({
-        message:
-          chalk.redBright(
-            `\nError processing config for ${chalk.white.bold(config.kind)} action ${chalk.white.bold(config.name)}:\n`
-          ) + chalk.red(error.message),
-        detail: { config },
-        wrappedErrors: [error],
-      })
-    }
-  })
+      // Local mode takes precedence over sync
+      // TODO: deduplicate
+      for (const pattern of actionModes.local || []) {
+        if (key === pattern) {
+          explicitMode = true
+          mode = "local"
+          log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
+          break
+        } else if (minimatch(key, pattern)) {
+          mode = "local"
+          log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
+          break
+        }
+      }
+
+      try {
+        const action = await actionFromConfig({
+          garden,
+          graph,
+          config,
+          router,
+          log,
+          configsByKey,
+          mode,
+          linkedSources,
+          scanRoot: minimalRoots[getConfigBasePath(config)],
+        })
+
+        if (!action.supportsMode(mode)) {
+          if (explicitMode) {
+            log.warn(chalk.yellow(`${action.longDescription()} is not configured for or does not support ${mode} mode`))
+          }
+        }
+
+        graph.addAction(action)
+      } catch (error) {
+        throw new ConfigurationError({
+          message:
+            chalk.redBright(
+              `\nError processing config for ${chalk.white.bold(config.kind)} action ${chalk.white.bold(
+                config.name
+              )}:\n`
+            ) + chalk.red(error.message),
+          detail: { config },
+          wrappedErrors: [error],
+        })
+      }
+    })
+  )
 
   graph.validate()
 

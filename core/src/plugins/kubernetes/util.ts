@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { get, flatten, sortBy, omit, chain, sample, isEmpty, find, cloneDeep } from "lodash"
 import { V1Pod, V1EnvVar, V1Container, V1PodSpec, CoreV1Event } from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
@@ -71,17 +70,19 @@ export async function getAllPods(
   resources: KubernetesResource[]
 ): Promise<KubernetesPod[]> {
   const pods: KubernetesPod[] = flatten(
-    await Bluebird.map(resources, async (resource) => {
-      if (resource.apiVersion === "v1" && resource.kind === "Pod") {
-        return [<KubernetesServerResource<V1Pod>>resource]
-      }
+    await Promise.all(
+      resources.map(async (resource) => {
+        if (resource.apiVersion === "v1" && resource.kind === "Pod") {
+          return [<KubernetesServerResource<V1Pod>>resource]
+        }
 
-      if (isWorkload(resource)) {
-        return getWorkloadPods(api, resource.metadata?.namespace || defaultNamespace, <KubernetesWorkload>resource)
-      }
+        if (isWorkload(resource)) {
+          return getWorkloadPods(api, resource.metadata?.namespace || defaultNamespace, <KubernetesWorkload>resource)
+        }
 
-      return []
-    })
+        return []
+      })
+    )
   )
 
   return pods

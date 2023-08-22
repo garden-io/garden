@@ -12,7 +12,6 @@ import dedent from "dedent"
 import { GardenPluginSpec } from "../../plugin/plugin"
 import { findProjectConfig } from "../../config/base"
 import { Garden, DummyGarden } from "../../garden"
-import Bluebird from "bluebird"
 import { PluginTool } from "../../util/ext-tools"
 import { fromPairs, omit, uniqBy } from "lodash"
 import { printHeader, printFooter } from "../../logger/util"
@@ -109,11 +108,13 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
     })
 
     const paths = fromPairs(
-      await Bluebird.map(toolsNeeded, async ({ plugin, tool }) => {
-        const fullName = `${plugin.name}.${tool.name}`
-        const path = await tool.ensurePath(log)
-        return [fullName, { type: tool.type, path }]
-      })
+      await Promise.all(
+        toolsNeeded.map(async ({ plugin, tool }) => {
+          const fullName = `${plugin.name}.${tool.name}`
+          const path = await tool.ensurePath(log)
+          return [fullName, { type: tool.type, path }]
+        })
+      )
     )
 
     printFooter(log)

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { mapValues } from "lodash"
 import { join } from "path"
 import split2 = require("split2")
@@ -101,12 +100,14 @@ export async function copyArtifacts(
   from: string,
   artifactsPath: string
 ) {
-  return Bluebird.map(artifacts || [], async (spec) => {
-    log.verbose(`→ Copying artifacts ${spec.source}`)
+  return Promise.all(
+    (artifacts || []).map(async (spec) => {
+      log.verbose(`→ Copying artifacts ${spec.source}`)
 
-    // Note: lazy-loading for startup performance
-    const cpy = require("cpy")
+      // Note: lazy-loading for startup performance
+      const cpy = require("cpy")
 
-    await cpy(spec.source, join(artifactsPath, spec.target || "."), { cwd: from })
-  })
+      await cpy(spec.source, join(artifactsPath, spec.target || "."), { cwd: from })
+    })
+  )
 }

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { extend } from "lodash"
 import { findByName } from "../../../util/util"
 import { ContainerIngressSpec, ContainerDeployAction } from "../../container/moduleConfig"
@@ -73,96 +72,98 @@ export async function createIngressResources(
 
   const allIngresses = await getIngressesWithCert(action, api, provider)
 
-  return Bluebird.map(allIngresses, async (ingress, index) => {
-    const cert = ingress.certificate
+  return Promise.all(
+    allIngresses.map(async (ingress, index) => {
+      const cert = ingress.certificate
 
-    if (!!cert) {
-      // make sure the TLS secrets exist in this namespace
-      await ensureSecret(api, cert.secretRef, namespace, log)
-    }
+      if (!!cert) {
+        // make sure the TLS secrets exist in this namespace
+        await ensureSecret(api, cert.secretRef, namespace, log)
+      }
 
-    if (apiVersion === "networking.k8s.io/v1") {
-      // The V1 API has a different shape than the beta API
-      const ingressResource: KubernetesResource<V1Ingress> = {
-        apiVersion,
-        kind: "Ingress",
-        metadata: {
-          name: `${action.name}-${index}`,
-          annotations: {
-            "ingress.kubernetes.io/force-ssl-redirect": !!cert + "",
-            ...ingress.spec.annotations,
+      if (apiVersion === "networking.k8s.io/v1") {
+        // The V1 API has a different shape than the beta API
+        const ingressResource: KubernetesResource<V1Ingress> = {
+          apiVersion,
+          kind: "Ingress",
+          metadata: {
+            name: `${action.name}-${index}`,
+            annotations: {
+              "ingress.kubernetes.io/force-ssl-redirect": !!cert + "",
+              ...ingress.spec.annotations,
+            },
+            namespace,
           },
-          namespace,
-        },
-        spec: {
-          ingressClassName: provider.config.ingressClass,
-          rules: [
-            {
-              host: ingress.hostname,
-              http: {
-                paths: [
-                  {
-                    path: ingress.path,
-                    pathType: "Prefix",
-                    backend: {
-                      service: {
-                        name: action.name,
-                        port: {
-                          number: findByName(ports, ingress.spec.port)!.servicePort,
+          spec: {
+            ingressClassName: provider.config.ingressClass,
+            rules: [
+              {
+                host: ingress.hostname,
+                http: {
+                  paths: [
+                    {
+                      path: ingress.path,
+                      pathType: "Prefix",
+                      backend: {
+                        service: {
+                          name: action.name,
+                          port: {
+                            number: findByName(ports, ingress.spec.port)!.servicePort,
+                          },
                         },
                       },
                     },
-                  },
-                ],
+                  ],
+                },
               },
-            },
-          ],
-          tls: cert ? [{ hosts: [ingress.hostname], secretName: cert.secretRef.name }] : undefined,
-        },
-      }
-      return ingressResource
-    } else {
-      const annotations = {
-        "ingress.kubernetes.io/force-ssl-redirect": !!cert + "",
-      }
+            ],
+            tls: cert ? [{ hosts: [ingress.hostname], secretName: cert.secretRef.name }] : undefined,
+          },
+        }
+        return ingressResource
+      } else {
+        const annotations = {
+          "ingress.kubernetes.io/force-ssl-redirect": !!cert + "",
+        }
 
-      if (provider.config.ingressClass) {
-        annotations["kubernetes.io/ingress.class"] = provider.config.ingressClass
-      }
+        if (provider.config.ingressClass) {
+          annotations["kubernetes.io/ingress.class"] = provider.config.ingressClass
+        }
 
-      extend(annotations, ingress.spec.annotations)
+        extend(annotations, ingress.spec.annotations)
 
-      const ingressResource: KubernetesResource<any> = {
-        apiVersion: apiVersion!,
-        kind: "Ingress",
-        metadata: {
-          name: `${action.name}-${index}`,
-          annotations,
-          namespace,
-        },
-        spec: {
-          rules: [
-            {
-              host: ingress.hostname,
-              http: {
-                paths: [
-                  {
-                    path: ingress.path,
-                    backend: {
-                      serviceName: action.name,
-                      servicePort: <any>findByName(ports, ingress.spec.port)!.servicePort,
+        const ingressResource: KubernetesResource<any> = {
+          apiVersion: apiVersion!,
+          kind: "Ingress",
+          metadata: {
+            name: `${action.name}-${index}`,
+            annotations,
+            namespace,
+          },
+          spec: {
+            rules: [
+              {
+                host: ingress.hostname,
+                http: {
+                  paths: [
+                    {
+                      path: ingress.path,
+                      backend: {
+                        serviceName: action.name,
+                        servicePort: <any>findByName(ports, ingress.spec.port)!.servicePort,
+                      },
                     },
-                  },
-                ],
+                  ],
+                },
               },
-            },
-          ],
-          tls: cert ? [{ secretName: cert.secretRef.name }] : undefined,
-        },
+            ],
+            tls: cert ? [{ secretName: cert.secretRef.name }] : undefined,
+          },
+        }
+        return ingressResource
       }
-      return ingressResource
-    }
-  })
+    })
+  )
 }
 
 async function getIngress(
@@ -203,7 +204,7 @@ async function getIngressesWithCert(
   provider: KubernetesProvider
 ): Promise<ServiceIngressWithCert[]> {
   const ingresses = action.getSpec("ingresses")
-  return Bluebird.map(ingresses, (spec) => getIngress(action, api, provider, spec))
+  return Promise.all(ingresses.map((spec) => getIngress(action, api, provider, spec)))
 }
 
 export async function getIngresses(

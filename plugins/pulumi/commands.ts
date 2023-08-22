@@ -7,7 +7,6 @@
  */
 
 import chalk from "chalk"
-import Bluebird from "bluebird"
 import {
   ConfigGraph,
   Garden,
@@ -343,28 +342,30 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
 
       const actions = graph.getDeploys({ names }).filter((a) => a.type === "pulumi")
 
-      const tasks = await Bluebird.map(actions, async (action) => {
-        const templateContext = new TemplatableConfigContext(garden, action.getConfig())
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const tasks = await Promise.all(
+        actions.map(async (action) => {
+          const templateContext = new TemplatableConfigContext(garden, action.getConfig())
+          const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
-        const pulumiParams: PulumiBaseParams = {
-          ctx: await garden.getPluginContext({ provider, templateContext, events: ctx.events }),
-          provider,
-          log: actionLog,
-        }
+          const pulumiParams: PulumiBaseParams = {
+            ctx: await garden.getPluginContext({ provider, templateContext, events: ctx.events }),
+            provider,
+            log: actionLog,
+          }
 
-        return new PulumiPluginCommandTask({
-          garden,
-          graph,
-          log: actionLog,
-          action,
-          commandName: name,
-          commandDescription,
-          skipRuntimeDependencies,
-          runFn,
-          pulumiParams,
+          return new PulumiPluginCommandTask({
+            garden,
+            graph,
+            log: actionLog,
+            action,
+            commandName: name,
+            commandDescription,
+            skipRuntimeDependencies,
+            runFn,
+            pulumiParams,
+          })
         })
-      })
+      )
 
       const results = (await garden.processTasks({ log, tasks, throwOnError: true })).results
 

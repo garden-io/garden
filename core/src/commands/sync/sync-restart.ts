@@ -11,7 +11,6 @@ import { joi } from "../../config/common"
 import { printHeader } from "../../logger/util"
 import { dedent, naturalList } from "../../util/string"
 import { Command, CommandParams, CommandResult } from "../base"
-import Bluebird from "bluebird"
 import chalk from "chalk"
 import { createActionLog } from "../../logger/log-entry"
 import { startSyncWithoutDeploy } from "./sync-start"
@@ -107,10 +106,12 @@ export class SyncRestartCommand extends Command<Args, Opts> {
 
     syncControlLog.info({ symbol: "info", msg: "Stopping active syncs..." })
 
-    await Bluebird.map(actions, async (action) => {
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-      await router.deploy.stopSync({ log: actionLog, action, graph })
-    })
+    await Promise.all(
+      actions.map(async (action) => {
+        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        await router.deploy.stopSync({ log: actionLog, action, graph })
+      })
+    )
     syncControlLog.info({ symbol: "success", msg: chalk.green("Active syncs stopped") })
 
     syncControlLog.info({ symbol: "info", msg: "Starting stopped syncs..." })

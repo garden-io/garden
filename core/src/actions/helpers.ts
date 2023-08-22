@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import chalk from "chalk"
 import { fromPairs, memoize } from "lodash"
 import { joi } from "../config/common"
@@ -158,22 +157,24 @@ export async function getDeployStatusPayloads({
   const actions = graph.getDeploys()
 
   return fromPairs(
-    await Bluebird.map(actions, async (action) => {
-      const startedAt = new Date().toISOString()
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-      const { result } = await router.deploy.getStatus({ action, log: actionLog, graph })
+    await Promise.all(
+      actions.map(async (action) => {
+        const startedAt = new Date().toISOString()
+        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const { result } = await router.deploy.getStatus({ action, log: actionLog, graph })
 
-      const payload = makeActionCompletePayload({
-        result,
-        operation: "getStatus",
-        startedAt,
-        force: false,
-        action,
-        sessionId,
-      }) as ActionStatusPayload<DeployStatusForEventPayload>
+        const payload = makeActionCompletePayload({
+          result,
+          operation: "getStatus",
+          startedAt,
+          force: false,
+          action,
+          sessionId,
+        }) as ActionStatusPayload<DeployStatusForEventPayload>
 
-      return [action.name, payload]
-    })
+        return [action.name, payload]
+      })
+    )
   )
 }
 
@@ -191,22 +192,24 @@ export async function getBuildStatusPayloads({
   const actions = graph.getBuilds()
 
   return fromPairs(
-    await Bluebird.map(actions, async (action) => {
-      const startedAt = new Date().toISOString()
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-      const { result } = await router.build.getStatus({ action, log: actionLog, graph })
+    await Promise.all(
+      actions.map(async (action) => {
+        const startedAt = new Date().toISOString()
+        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const { result } = await router.build.getStatus({ action, log: actionLog, graph })
 
-      const payload = makeActionCompletePayload({
-        result,
-        operation: "getStatus",
-        startedAt,
-        force: false,
-        action,
-        sessionId,
-      }) as ActionStatusPayload<BuildStatusForEventPayload>
+        const payload = makeActionCompletePayload({
+          result,
+          operation: "getStatus",
+          startedAt,
+          force: false,
+          action,
+          sessionId,
+        }) as ActionStatusPayload<BuildStatusForEventPayload>
 
-      return [action.name, payload]
-    })
+        return [action.name, payload]
+      })
+    )
   )
 }
 
@@ -224,20 +227,22 @@ export async function getTestStatusPayloads({
   const actions = graph.getTests()
 
   return fromPairs(
-    await Bluebird.map(actions, async (action) => {
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-      const startedAt = new Date().toISOString()
-      const { result } = await router.test.getResult({ action, log: actionLog, graph })
-      const payload = makeActionCompletePayload({
-        result,
-        operation: "getStatus",
-        startedAt,
-        force: false,
-        action,
-        sessionId,
-      }) as ActionStatusPayload<RunStatusForEventPayload>
-      return [action.name, payload]
-    })
+    await Promise.all(
+      actions.map(async (action) => {
+        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const startedAt = new Date().toISOString()
+        const { result } = await router.test.getResult({ action, log: actionLog, graph })
+        const payload = makeActionCompletePayload({
+          result,
+          operation: "getStatus",
+          startedAt,
+          force: false,
+          action,
+          sessionId,
+        }) as ActionStatusPayload<RunStatusForEventPayload>
+        return [action.name, payload]
+      })
+    )
   )
 }
 
@@ -255,21 +260,23 @@ export async function getRunStatusPayloads({
   const actions = graph.getRuns()
 
   return fromPairs(
-    await Bluebird.map(actions, async (action) => {
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-      const startedAt = new Date().toISOString()
-      const { result } = await router.run.getResult({ action, log: actionLog, graph })
+    await Promise.all(
+      actions.map(async (action) => {
+        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const startedAt = new Date().toISOString()
+        const { result } = await router.run.getResult({ action, log: actionLog, graph })
 
-      const payload = makeActionCompletePayload({
-        result,
-        operation: "getStatus",
-        startedAt,
-        force: false,
-        action,
-        sessionId,
-      }) as ActionStatusPayload<RunStatusForEventPayload>
+        const payload = makeActionCompletePayload({
+          result,
+          operation: "getStatus",
+          startedAt,
+          force: false,
+          action,
+          sessionId,
+        }) as ActionStatusPayload<RunStatusForEventPayload>
 
-      return [action.name, payload]
-    })
+        return [action.name, payload]
+      })
+    )
   )
 }

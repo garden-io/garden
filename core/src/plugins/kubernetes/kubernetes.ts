@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
-
 import { createGardenPlugin } from "../../plugin/plugin"
 import { helmModuleHandlers } from "./helm/handlers"
 import { getAppNamespace, getSystemNamespace } from "./namespace"
@@ -108,18 +106,20 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
     const appNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
     namespacesList.push(appNamespace)
   }
-  const namespaces = await Bluebird.map(namespacesList, async (ns) => {
-    const nsLog = providerLog.createLog({ name: ns, showDuration: true }).info("collecting namespace configuration")
-    const out = await kubectl(ctx, provider).stdout({
-      log,
-      args: ["get", "all", "--namespace", ns, "--output", "json"],
+  const namespaces = await Promise.all(
+    namespacesList.map(async (ns) => {
+      const nsLog = providerLog.createLog({ name: ns, showDuration: true }).info("collecting namespace configuration")
+      const out = await kubectl(ctx, provider).stdout({
+        log,
+        args: ["get", "all", "--namespace", ns, "--output", "json"],
+      })
+      nsLog.success(`Done`)
+      return {
+        namespace: ns,
+        output: JSON.parse(out),
+      }
     })
-    nsLog.success(`Done`)
-    return {
-      namespace: ns,
-      output: JSON.parse(out),
-    }
-  })
+  )
   providerLog.success(`Done`)
 
   const version = await kubectl(ctx, provider).stdout({ log, args: ["version", "--output", "json"] })
