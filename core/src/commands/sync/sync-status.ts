@@ -22,7 +22,7 @@ import { Garden } from "../.."
 import { ResolvedDeployAction } from "../../actions/deploy"
 import { ResolvedConfigGraph } from "../../graph/config-graph"
 import { DOCS_BASE_URL } from "../../constants"
-import pLimit from "p-limit"
+import pMap from "p-map"
 
 const syncStatusArgs = {
   names: new StringsParameter({
@@ -149,76 +149,76 @@ export async function getSyncStatuses({
   const syncStatuses: { [actionName: string]: GetSyncStatusResult } = {}
   // This is fairly arbitrary
   const concurrency = 5
-  const limit = pLimit(concurrency)
 
-  await Promise.all(
-    deployActions.map((action) =>
-      limit(async () => {
-        const events = new PluginEventBroker(garden)
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
-        const { result: status } = await router.deploy.getStatus({
-          graph,
-          action,
-          log: actionLog,
-        })
-        const executedAction = resolvedActionToExecuted(action, { status })
-        const syncStatus = omit(
-          (
-            await router.deploy.getSyncStatus({
-              log: actionLog,
-              action: executedAction,
-              monitor: false,
-              graph,
-              events,
-            })
-          ).result,
-          skipDetail ? "detail" : ""
-        )
-
-        const syncs = syncStatus.syncs
-        if (!syncs || syncs.length === 0) {
-          return
-        }
-
-        // Return the syncs sorted
-        const sorted = syncs.sort((a, b) => {
-          const keyA = a.source + a.target + a.mode
-          const keyB = b.source + b.target + b.mode
-          return keyA > keyB ? 1 : -1
-        })
-        syncStatus["syncs"] = sorted
-
-        const verbMap = {
-          "active": "is",
-          "failed": "has",
-          "not-active": "is",
-        }
-
-        const syncCount = syncStatus.syncs.length
-        const pluralizedSyncs = syncCount === 1 ? "sync" : "syncs"
-        log.info(
-          `The ${chalk.cyan(action.name)} Deploy action has ${chalk.cyan(syncCount)} ${pluralizedSyncs} configured:`
-        )
-        const leftPad = "  →"
-        syncs.forEach((sync, idx) => {
-          const state = sync.state
-          log.info(
-            `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.target)} ${
-              verbMap[state]
-            } ${stateStyle(state, describeState(state))}`
-          )
-          sync.mode && log.info(chalk.bold(`${leftPad} Mode: ${sync.mode}`))
-          sync.syncCount && log.info(chalk.bold(`${leftPad} Number of completed syncs: ${sync.syncCount}`))
-          if (state === "failed" && sync.message) {
-            log.info(`${chalk.bold(leftPad)} ${chalk.yellow(sync.message)}`)
-          }
-          idx !== syncs.length - 1 && log.info("")
-        })
-        log.info("")
-
-        syncStatuses[action.name] = syncStatus
+  await pMap(
+    deployActions,
+    async (action) => {
+      const events = new PluginEventBroker(garden)
+      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const { result: status } = await router.deploy.getStatus({
+        graph,
+        action,
+        log: actionLog,
       })
-    )
+      const executedAction = resolvedActionToExecuted(action, { status })
+      const syncStatus = omit(
+        (
+          await router.deploy.getSyncStatus({
+            log: actionLog,
+            action: executedAction,
+            monitor: false,
+            graph,
+            events,
+          })
+        ).result,
+        skipDetail ? "detail" : ""
+      )
+
+      const syncs = syncStatus.syncs
+      if (!syncs || syncs.length === 0) {
+        return
+      }
+
+      // Return the syncs sorted
+      const sorted = syncs.sort((a, b) => {
+        const keyA = a.source + a.target + a.mode
+        const keyB = b.source + b.target + b.mode
+        return keyA > keyB ? 1 : -1
+      })
+      syncStatus["syncs"] = sorted
+
+      const verbMap = {
+        "active": "is",
+        "failed": "has",
+        "not-active": "is",
+      }
+
+      const syncCount = syncStatus.syncs.length
+      const pluralizedSyncs = syncCount === 1 ? "sync" : "syncs"
+      log.info(
+        `The ${chalk.cyan(action.name)} Deploy action has ${chalk.cyan(syncCount)} ${pluralizedSyncs} configured:`
+      )
+      const leftPad = "  →"
+      syncs.forEach((sync, idx) => {
+        const state = sync.state
+        log.info(
+          `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.target)} ${verbMap[state]} ${stateStyle(
+            state,
+            describeState(state)
+          )}`
+        )
+        sync.mode && log.info(chalk.bold(`${leftPad} Mode: ${sync.mode}`))
+        sync.syncCount && log.info(chalk.bold(`${leftPad} Number of completed syncs: ${sync.syncCount}`))
+        if (state === "failed" && sync.message) {
+          log.info(`${chalk.bold(leftPad)} ${chalk.yellow(sync.message)}`)
+        }
+        idx !== syncs.length - 1 && log.info("")
+      })
+      log.info("")
+
+      syncStatuses[action.name] = syncStatus
+    },
+    { concurrency }
   )
 
   return syncStatuses
