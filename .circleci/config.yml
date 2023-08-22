@@ -505,11 +505,18 @@ jobs:
             # GitHub timelines
             VERSION=<<parameters.version>>
 
-            # Update the release hash
+            # Update the prerelease tag to the current sha
+            # Github's release edit only changes metadata
+            # but does not update the underlying tag itself
+            git tag -f ${VERSION} ${CIRCLE_SHA1}
+            git push origin --tags --force
+
+            # Update the release to the now updated tag and target
             gh release edit ${VERSION} \
               -R ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME} \
               --prerelease \
               --target ${CIRCLE_SHA1}
+              --tag ${VERSION}
 
             # Replace release artifacts
             ghr \
