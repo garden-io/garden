@@ -43,9 +43,9 @@ interface ModuleOverlapFinderResult {
   generateFilesOverlaps?: string[]
 }
 
-type ModuleOverlapFinder = (params: ModuleOverlapFinderParams) => ModuleOverlapFinderResult
+type ModuleOverlapMatcher = (params: ModuleOverlapFinderParams) => ModuleOverlapFinderResult
 
-const findModulePathOverlaps: ModuleOverlapFinder = ({
+const isModulePathOverlap: ModuleOverlapMatcher = ({
   leftConfig,
   rightConfig,
   projectRoot,
@@ -68,7 +68,7 @@ const findModulePathOverlaps: ModuleOverlapFinder = ({
   return { overlap: undefined, type: undefined }
 }
 
-const findGenerateFilesOverlaps: ModuleOverlapFinder = ({ leftConfig, rightConfig }: ModuleOverlapFinderParams) => {
+const isGenerateFilesOverlap: ModuleOverlapMatcher = ({ leftConfig, rightConfig }: ModuleOverlapFinderParams) => {
   // Do not compare module against itself
   if (leftConfig.name === rightConfig.name) {
     return { overlap: undefined, type: undefined }
@@ -85,7 +85,7 @@ const findGenerateFilesOverlaps: ModuleOverlapFinder = ({ leftConfig, rightConfi
   return { overlap: rightConfig, type: "generateFiles", generateFilesOverlaps }
 }
 
-const moduleOverlapFinders: ModuleOverlapFinder[] = [findModulePathOverlaps, findGenerateFilesOverlaps]
+const moduleOverlapMatchers: ModuleOverlapMatcher[] = [isModulePathOverlap, isGenerateFilesOverlap]
 
 const moduleNameComparator = (a, b) => (a.name > b.name ? 1 : -1)
 
@@ -122,8 +122,8 @@ export function detectModuleOverlap({
     const leftConfig = enabledModules[i]
     for (let j = i + 1; j < enabledModules.length; j++) {
       const rightConfig = enabledModules[j]
-      for (const moduleOverlapFinder of moduleOverlapFinders) {
-        const { overlap, type, generateFilesOverlaps } = moduleOverlapFinder({
+      for (const moduleOverlapMatcher of moduleOverlapMatchers) {
+        const { overlap, type, generateFilesOverlaps } = moduleOverlapMatcher({
           leftConfig,
           rightConfig,
           projectRoot,
