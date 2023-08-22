@@ -86,7 +86,7 @@ gardenPlugin.addTool({
     },
     {
       platform: "linux",
-      architecture: "arm4",
+      architecture: "arm64",
       url: "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.80.0/otelcol-contrib_0.80.0_linux_arm64.tar.gz",
       sha256: "19d878166dbc39821f11b6a7c2ed896726c8d5ac6c15108b66d8e874efa8db85",
       extract: {
