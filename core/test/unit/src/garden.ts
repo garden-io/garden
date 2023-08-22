@@ -2601,10 +2601,14 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveModules({ log: garden.log }),
         (err) => {
-          expect(stripAnsi(err.message)).to.include(dedent`
-          Module module-no-include-b overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-a (same path).
-
-          If this was intentional, there are two options to resolve this error`)
+          const fullMessage = stripAnsi(err.message)
+          expect(fullMessage).to.include("Module module-no-include-a overlaps with module(s) module-a1 (nested).")
+          expect(fullMessage).to.include("Module module-no-include-a overlaps with module(s) module-a2 (nested).")
+          expect(fullMessage).to.include(
+            "Module module-no-include-a overlaps with module(s) module-no-include-b (same path)."
+          )
+          expect(fullMessage).to.include("Module module-no-include-b overlaps with module(s) module-a1 (nested).")
+          expect(fullMessage).to.include("Module module-no-include-b overlaps with module(s) module-a2 (nested).")
         }
       )
     })
