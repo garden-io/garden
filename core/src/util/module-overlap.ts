@@ -196,30 +196,6 @@ function sanitizeErrorDetails(projectRoot: string, moduleOverlaps: ModuleOverlap
   })
 }
 
-const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
-  projectRoot: string,
-  moduleOverlaps: ModuleOverlap[]
-): OverlapErrorDescription => {
-  const moduleOverlapList = moduleOverlaps.map(({ config, overlaps, generateFilesOverlaps }) => {
-    const formatted = overlaps.map((o) => {
-      return `${chalk.bold(o.name)}`
-    })
-    return `Module ${chalk.bold(config.name)} overlaps with module(s) ${naturalList(formatted)} in ${naturalList(
-      generateFilesOverlaps || []
-    )}.`
-  })
-  const message = chalk.red(dedent`
-      Found multiple enabled modules that share the same value(s) in ${chalk.bold("generateFiles[].targetPath")}:
-
-      ${moduleOverlapList.join("\n\n")}
-    `)
-  const overlappingModules = sanitizeErrorDetails(projectRoot, moduleOverlaps)
-  return {
-    message,
-    detail: { overlappingModules },
-  }
-}
-
 const makePathOverlapError: ModuleOverlapRenderer = (
   projectRoot: string,
   moduleOverlaps: ModuleOverlap[]
@@ -247,6 +223,30 @@ const makePathOverlapError: ModuleOverlapRenderer = (
     `)
   const overlappingModules = sanitizeErrorDetails(projectRoot, moduleOverlaps)
   return { message, detail: { overlappingModules } }
+}
+
+const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
+  projectRoot: string,
+  moduleOverlaps: ModuleOverlap[]
+): OverlapErrorDescription => {
+  const moduleOverlapList = moduleOverlaps.map(({ config, overlaps, generateFilesOverlaps }) => {
+    const formatted = overlaps.map((o) => {
+      return `${chalk.bold(o.name)}`
+    })
+    return `Module ${chalk.bold(config.name)} overlaps with module(s) ${naturalList(formatted)} in ${naturalList(
+      generateFilesOverlaps || []
+    )}.`
+  })
+  const message = chalk.red(dedent`
+      Found multiple enabled modules that share the same value(s) in ${chalk.bold("generateFiles[].targetPath")}:
+
+      ${moduleOverlapList.join("\n\n")}
+    `)
+  const overlappingModules = sanitizeErrorDetails(projectRoot, moduleOverlaps)
+  return {
+    message,
+    detail: { overlappingModules },
+  }
 }
 
 // This explicit type ensures that every `ModuleOverlapType` has a defined renderer
