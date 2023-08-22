@@ -163,16 +163,24 @@ export function detectModuleOverlap({
   return foundOverlaps
 }
 
+interface ModuleDesc {
+  path: string
+  name: string
+}
+
+interface ModuleOverlapDescription {
+  module: ModuleDesc
+  overlaps: ModuleDesc[]
+}
+
 export interface OverlapErrorDescription {
-  detail: {
-    overlappingModules: { module: { path: string; name: string }; overlaps: { path: string; name: string }[] }[]
-  }
+  detail: { overlappingModules: ModuleOverlapDescription[] }
   message: string
 }
 
 type ModuleOverlapRenderer = (projectRoot: string, moduleOverlaps: ModuleOverlap[]) => OverlapErrorDescription
 
-function sanitizeErrorDetails(projectRoot: string, moduleOverlaps: ModuleOverlap[]) {
+function sanitizeErrorDetails(projectRoot: string, moduleOverlaps: ModuleOverlap[]): ModuleOverlapDescription[] {
   return moduleOverlaps.map(({ config, overlaps }) => {
     return {
       module: { name: config.name, path: resolve(projectRoot, config.path) },
