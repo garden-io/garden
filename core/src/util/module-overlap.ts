@@ -92,13 +92,16 @@ const isGenerateFilesOverlap: ModuleOverlapMatcher = ({ leftConfig, rightConfig 
   if (leftConfig.name === rightConfig.name) {
     return { pivot: leftConfig, overlap: undefined, type: undefined }
   }
+
+  const leftGenerateFiles = leftConfig.generateFiles || []
+  const rightGenerateFiles = rightConfig.generateFiles || []
   // Nothing to return if the current module has no `generateFiles` defined
-  if (!leftConfig.generateFiles || !rightConfig.generateFiles) {
+  if (leftGenerateFiles.length === 0 || rightGenerateFiles.length === 0) {
     return { pivot: leftConfig, overlap: undefined, type: undefined }
   }
 
-  const leftTargetPaths = resolveGenerateFilesTargetPaths(leftConfig.path, leftConfig.generateFiles)
-  const rightTargetPaths = resolveGenerateFilesTargetPaths(rightConfig.path, rightConfig.generateFiles)
+  const leftTargetPaths = resolveGenerateFilesTargetPaths(leftConfig.path, leftGenerateFiles)
+  const rightTargetPaths = resolveGenerateFilesTargetPaths(rightConfig.path, rightGenerateFiles)
   const generateFilesOverlaps = intersection(leftTargetPaths, rightTargetPaths)
 
   return { pivot: leftConfig, overlap: rightConfig, type: "generateFiles", generateFilesOverlaps }
