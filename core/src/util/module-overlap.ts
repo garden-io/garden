@@ -9,11 +9,10 @@
 import { posix, resolve } from "path"
 import { ModuleConfig, ModuleFileSpec } from "../config/module"
 import pathIsInside from "path-is-inside"
-import { intersection, sortBy } from "lodash"
+import { groupBy, intersection, sortBy } from "lodash"
 import chalk from "chalk"
 import { naturalList } from "./string"
 import dedent from "dedent"
-import { isTruthy } from "./util"
 import { InternalError } from "../exceptions"
 
 export const moduleOverlapTypes = ["path", "generateFiles"] as const
@@ -243,31 +242,10 @@ const moduleOverlapRenderers: { [k in ModuleOverlapType]: ModuleOverlapRenderer 
   generateFiles: makeGenerateFilesOverlapError,
 }
 
-function renderOverlapForType({
-  projectRoot,
-  moduleOverlaps,
-  moduleOverlapType,
-}: {
-  moduleOverlapType: ModuleOverlapType
-  moduleOverlaps: ModuleOverlap[]
-  projectRoot: string
-}): OverlapErrorDescription | undefined {
-  const filteredOverlaps = moduleOverlaps.filter((m) => m.type === moduleOverlapType)
-  if (filteredOverlaps.length === 0) {
-    return undefined
-  }
-  const renderer = moduleOverlapRenderers[moduleOverlapType]
-  return renderer(projectRoot, filteredOverlaps)
-}
-
 export function makeOverlapErrors(projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription[] {
-  return moduleOverlapTypes
-    .map((moduleOverlapType) =>
-      renderOverlapForType({
-        moduleOverlapType,
-        moduleOverlaps,
-        projectRoot,
-      })
-    )
-    .filter(isTruthy)
+  return Object.entries(groupBy(moduleOverlaps, "type")).map(([type, overlaps]) => {
+    const moduleOverlapType = type as ModuleOverlapType
+    const renderer = moduleOverlapRenderers[moduleOverlapType]
+    return renderer(projectRoot, overlaps)
+  })
 }
