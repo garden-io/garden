@@ -399,7 +399,8 @@ jobs:
             bash support/docker-bake-test.sh $CIRCLE_BRANCH
 
             # build all images in the end, so circleci cache picks them up and subsequent invocations are faster.
-            docker buildx bake --progress=plain -f support/docker-bake.hcl all
+            MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
+              docker buildx bake --progress=plain -f support/docker-bake.hcl all
   dockerhub-release:
     <<: *node-config
     steps:
