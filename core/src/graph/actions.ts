@@ -42,7 +42,7 @@ import { ConfigurationError, InternalError, PluginError, ValidationError } from 
 import { overrideVariables, type Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
 import type { ActionTypeDefinition } from "../plugin/action-types"
-import { getActionTypeBases } from "../plugins"
+import { ActionDefinitionMap, getActionTypeBases } from "../plugins"
 import type { ActionRouter } from "../router/router"
 import { getExecuteTaskForAction } from "../tasks/helpers"
 import { ResolveActionTask } from "../tasks/resolve-action"
@@ -297,7 +297,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     })
   }
 
-  const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
+  const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext, actionTypes)
 
   if (config.exclude?.includes("**/*")) {
     if (config.include && config.include.length !== 0) {
@@ -664,7 +664,8 @@ function dependenciesFromActionConfig(
   config: ActionConfig,
   configsByKey: ActionConfigsByKey,
   definition: MaybeUndefined<ActionTypeDefinition<any>>,
-  templateContext: ConfigContext
+  templateContext: ConfigContext,
+  actionTypes: ActionDefinitionMap
 ) {
   const description = describeActionConfig(config)
 
@@ -726,7 +727,7 @@ function dependenciesFromActionConfig(
   for (const ref of getActionTemplateReferences(config)) {
     let needsExecuted = false
 
-    const outputKey = ref.fullRef[4]
+    const outputKey = ref.fullRef[4] as string
 
     if (maybeTemplateString(ref.name)) {
       try {
@@ -738,8 +739,24 @@ function dependenciesFromActionConfig(
         continue
       }
     }
+    // also avoid execution when referencing the static output keys of the ref action type.
+    // e.g. if a helm deploy is referencing container build static output
+    // deploymentImageName: ${actions.build.my-container.outputs.deploymentImageName}
+    const refActionType = configsByKey[`${ref.kind.toLowerCase()}.${ref.name.toLowerCase()}`]?.type
+    let staticOutputKeysForRef: string[] = []
+    if (refActionType) {
+      const refDefinition = actionTypes[ref.kind][refActionType]?.spec
+      staticOutputKeysForRef = refDefinition?.staticOutputsSchema
+        ? describeSchema(refDefinition.staticOutputsSchema).keys
+        : []
+    }
 
-    if (ref.fullRef[3] === "outputs" && outputKey && !staticKeys?.includes(<string>outputKey)) {
+    if (
+      ref.fullRef[3] === "outputs" &&
+      outputKey &&
+      !staticKeys?.includes(outputKey) &&
+      !staticOutputKeysForRef?.includes(outputKey)
+    ) {
       needsExecuted = true
     }
 
