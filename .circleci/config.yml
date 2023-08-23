@@ -516,7 +516,7 @@ jobs:
             gh release edit ${VERSION} \
               -R ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME} \
               --prerelease \
-              --target ${CIRCLE_SHA1}
+              --target ${CIRCLE_SHA1} \
               --tag ${VERSION}
 
             # Replace release artifacts
