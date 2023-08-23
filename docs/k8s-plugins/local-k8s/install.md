@@ -104,9 +104,9 @@ Alternatively, if you don't need an ingress controller, you can set `setupIngres
 
 Note that in-cluster building is currently not supported with kind clusters.
 
-### K3s
+### k3s
 
-Use this command to install K3s so it is compatible with Garden. This command tells K3s to use the docker, disables the traefik ingress controller, takes care to make the kubeconfig user-accessible and sets the kubernetes context as the current one via the `KUBECONFIG` variable.
+Use this command to install k3s so it is compatible with Garden. This command tells k3s to use the docker, disables the traefik ingress controller, takes care to make the kubeconfig user-accessible and sets the kubernetes context as the current one via the `KUBECONFIG` variable.
 
 ```
 curl -sfL https://get.k3s.io | sh -s - --docker --disable=traefik --write-kubeconfig-mode=644
@@ -118,12 +118,37 @@ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 Follow the [official instructions](https://docs.rancherdesktop.io/getting-started/installation/) to install Rancher Desktop for your OS.
 Once installed open "Preferences" in the Rancher Desktop UI. In the "Container Engine" section choose dockerd and in the "Kubernetes" section untick the box that says "Enable Traefik".
 
-### A note on networking for K3s, K3ds and Rancher Desktop
+### k3d
 
-K3s uses the [service load balancer](https://docs.k3s.io/networking#service-load-balancer) to create a daemonset with a `nodePort` for each service of type `LoadBalancer`. Garden installs an nginx ingress controller and serviceLB will create the `nodePort` on the ports 80 and 443 as specified by the ingress controller. To successfully access your ingress links fetch the IP address of the corresponding service of type `LoadBalancer` and update your `/etc/hosts` file with the according entries.
+[k3d](https://k3d.io) is a lightweight wrapper to run k3s in containers. Its image registry also runs as a container. To expose it to Garden, you need to map the registry port to the host. The following commands will create a k3d cluster with the name k3d-k3s-default and with the registry exposed on port 12345.
+
+```shell
+k3d registry create myregistry.localhost --port 12345
+
+k3d cluster create \
+  --agents 1 \
+  --k3s-arg "--disable=traefik@server:0" \
+  --registry-use k3d-myregistry.localhost:12345 \
+  --wait
+```
+
+In your `project.garden.yml` file, add the following configuration under your `local-kubernetes` provider` block:
+
+```yaml
+    context: k3d-k3s-default
+    deploymentRegistry:
+      hostname: k3d-myregistry.localhost
+      port: 12345
+      insecure: true
+      namespace: ${kebabCase(local.username)}
+```
+
+### A note on networking for k3s, k3d and Rancher Desktop
+
+K3s uses the [service load balancer](https://docs.k3s.io/networking#service-load-balancer) to create a daemonset with a `nodePort` for each service of type `LoadBalancer`. Garden installs an NGINX ingress controller. ServiceLB will create the `nodePort` on the ports 80 and 443 as specified by the ingress controller. To successfully access any domain aliases for localhost, follow the official Rancher Desktop doc, [Setup NGINX Ingress Controller](https://docs.rancherdesktop.io/how-to-guides/setup-NGINX-Ingress-Controller/), and add your aliased domain to your `/etc/hosts` file, mapping to localhost. Unless you have `setupIngressController: false` set in your Garden project file, you can safely skip the step to install the NGINX ingress controller. 
+
+For example, if you have a domain alias `vote.local.demo.garden`, add the following to your `/etc/hosts` file:
 
 ```
-$ kubectl get svc garden-nginx-ingress-nginx-controller -n garden-system -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
-198.19.249.189
-$ echo "198.19.249.189 vote.local.demo.garden" >> /etc/hosts
+127.0.0.1 vote.local.demo.garden
 ```
