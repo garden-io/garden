@@ -104,3 +104,26 @@ Alternatively, if you don't need an ingress controller, you can set `setupIngres
 
 Note that in-cluster building is currently not supported with kind clusters.
 
+### K3s
+
+Use this command to install K3s so it is compatible with Garden. This command tells K3s to use the docker, disables the traefik ingress controller, takes care to make the kubeconfig user-accessible and sets the kubernetes context as the current one via the `KUBECONFIG` variable.
+
+```
+curl -sfL https://get.k3s.io | sh -s - --docker --disable=traefik --write-kubeconfig-mode=644
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+```
+
+### Rancher Desktop
+
+Follow the [official instructions](https://docs.rancherdesktop.io/getting-started/installation/) to install Rancher Desktop for your OS.
+Once installed open "Preferences" in the Rancher Desktop UI. In the "Container Engine" section choose dockerd and in the "Kubernetes" section untick the box that says "Enable Traefik".
+
+### A note on networking for K3s, K3ds and Rancher Desktop
+
+K3s uses the [service load balancer](https://docs.k3s.io/networking#service-load-balancer) to create a daemonset with a `nodePort` for each service of type `LoadBalancer`. Garden installs an nginx ingress controller and serviceLB will create the `nodePort` on the ports 80 and 443 as specified by the ingress controller. To successfully access your ingress links fetch the IP address of the corresponding service of type `LoadBalancer` and update your `/etc/hosts` file with the according entries.
+
+```
+$ kubectl get svc garden-nginx-ingress-nginx-controller -n garden-system -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+198.19.249.189
+$ echo "198.19.249.189 vote.local.demo.garden" >> /etc/hosts
+```

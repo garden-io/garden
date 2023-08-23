@@ -22,6 +22,7 @@ import { exec } from "../../../util/util"
 import { remove } from "lodash"
 import chalk from "chalk"
 import { isKindCluster } from "./kind"
+import { isK3sFamilyCluster } from "./k3s"
 import { getK8sClientServerVersions, K8sClientServerVersions } from "../util"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
@@ -97,6 +98,21 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
   if (!config.context) {
     config.context = supportedContexts[0]
     providerLog.debug(`No kubectl context configured, using default: ${config.context}`)
+  }
+
+  if (await isK3sFamilyCluster(ctx, provider, providerLog)) {
+    config.clusterType = "k3s"
+    if (config.setupIngressController === "nginx") {
+      providerLog.debug("Using k3s conformant nginx ingress controller")
+      remove(_systemServices, (s) => nginxServices.includes(s))
+      let versions: K8sClientServerVersions | undefined
+      try {
+        versions = await getK8sClientServerVersions(config.context)
+      } catch (err) {
+        providerLog.debug("failed to get k8s version with error: " + err)
+      }
+      _systemServices.push("nginx-k3s")
+    }
   }
 
   if (await isKindCluster(ctx, provider, providerLog)) {
