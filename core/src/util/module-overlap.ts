@@ -28,7 +28,7 @@ export interface ModuleOverlap {
   generateFilesOverlaps?: string[]
 }
 
-interface ModuleOverlapFinderParams {
+interface ModuleOverlapMatcherParams {
   leftConfig: ModuleConfig
   rightConfig: ModuleConfig
   projectRoot: string
@@ -36,15 +36,15 @@ interface ModuleOverlapFinderParams {
 }
 
 // Here `type` and `overlap` can be undefined if no overlap found
-interface ModuleOverlapFinderResult {
+interface ModuleOverlapMatcherResult {
   pivot: ModuleConfig
   overlap: ModuleConfig | undefined
   type: ModuleOverlapType | undefined
   generateFilesOverlaps?: string[]
 }
 
-// The implementation must a commutative function
-type ModuleOverlapMatcher = (params: ModuleOverlapFinderParams) => ModuleOverlapFinderResult
+// The implementation must be a commutative function
+type ModuleOverlapMatcher = (params: ModuleOverlapMatcherParams) => ModuleOverlapMatcherResult
 
 const hasInclude = (m: ModuleConfig) => !!m.include
 const hasExclude = (m: ModuleConfig) => !!m.exclude
@@ -54,7 +54,7 @@ const isModulePathOverlap: ModuleOverlapMatcher = ({
   rightConfig,
   projectRoot,
   gardenDirPath,
-}: ModuleOverlapFinderParams) => {
+}: ModuleOverlapMatcherParams) => {
   // Do not compare module against itself
   if (leftConfig.name === rightConfig.name) {
     return { pivot: leftConfig, overlap: undefined, type: undefined }
@@ -87,7 +87,7 @@ const isModulePathOverlap: ModuleOverlapMatcher = ({
   return { pivot: leftConfig, overlap: undefined, type: undefined }
 }
 
-const isGenerateFilesOverlap: ModuleOverlapMatcher = ({ leftConfig, rightConfig }: ModuleOverlapFinderParams) => {
+const isGenerateFilesOverlap: ModuleOverlapMatcher = ({ leftConfig, rightConfig }: ModuleOverlapMatcherParams) => {
   // Do not compare module against itself
   if (leftConfig.name === rightConfig.name) {
     return { pivot: leftConfig, overlap: undefined, type: undefined }
