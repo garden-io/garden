@@ -12,29 +12,26 @@ import { KubeApi } from "../api"
 import { KubernetesResource } from "../types"
 import { PluginContext } from "../../../plugin-context"
 
-
 export async function isK3sFamilyCluster(ctx: PluginContext, provider: KubernetesProvider, log: Log): Promise<boolean> {
-    return (await isK3sFamilyClusterContext(ctx, provider, log))
+  return await isK3sFamilyClusterContext(ctx, provider, log)
+}
+
+async function isK3sFamilyClusterContext(ctx: PluginContext, provider: KubernetesProvider, log: Log): Promise<boolean> {
+  const kubeApi = await KubeApi.factory(log, ctx, provider)
+
+  const manifest: KubernetesResource = {
+    apiVersion: "apiextensions.k8s.io/v1",
+    kind: "CustomResourceDefinition",
+    metadata: {
+      name: "addons.k3s.cattle.io",
+    },
+  }
+  try {
+    await kubeApi.readBySpec({ namespace: "kube-system", manifest, log })
+    return true
+  } catch (err) {
+    log.debug(`An attempt to get k3s addons crd failed with ${err}`)
   }
 
-  // eslint-disable-next-line max-len
-  async function isK3sFamilyClusterContext(ctx: PluginContext, provider: KubernetesProvider, log: Log): Promise<boolean> {
-    const kubeApi = await KubeApi.factory(log, ctx, provider)
-
-    const manifest: KubernetesResource = {
-      apiVersion: "apiextensions.k8s.io/v1",
-      kind: "CustomResourceDefinition",
-      metadata: {
-        name: "addons.k3s.cattle.io",
-      }
-    }
-    try {
-      await kubeApi.readBySpec({ namespace: "kube-system", manifest, log })
-      return true
-    } catch (err) {
-      log.debug(`An attempt to get k3s addons crd failed with ${err}`)
-    }
-
-    return false
-  }
-
+  return false
+}
