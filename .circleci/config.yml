@@ -397,6 +397,9 @@ jobs:
           name: Build and test docker images
           command: |
             bash support/docker-bake-test.sh $CIRCLE_BRANCH
+
+            # build all images in the end, so circleci cache picks them up and subsequent invocations are faster.
+            docker buildx bake --progress=plain -f support/docker-bake.hcl all
   dockerhub-release:
     <<: *node-config
     steps:

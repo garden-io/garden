@@ -57,7 +57,7 @@ should_fail() {
 
 before_each() {
   # Clean all docker image tags
-  docker images --format "{{.Repository}}:{{.Tag}}" | xargs docker rmi -f  || true
+  docker images --format "{{.Repository}}:{{.Tag}}" | xargs docker rmi --no-prune -f  || true
 }
 
 TEST() {
