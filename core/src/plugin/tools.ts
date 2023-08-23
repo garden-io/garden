@@ -9,10 +9,11 @@
 import { createSchema, joi, joiIdentifier } from "../config/common"
 import { deline } from "../util/string"
 import { PluginTool } from "../util/ext-tools"
+import { Architecture, Platform } from "../util/util"
 
 export interface ToolBuildSpec {
-  platform: string
-  architecture: string
+  platform: Platform
+  architecture: Architecture
   url: string
   sha256: string
   extract?: {

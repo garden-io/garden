@@ -617,7 +617,7 @@ export function isSubdir(path: string, ofPath: string): boolean {
 
 // Used to make the platforms more consistent with other tools
 const platformMap = {
-  win32: "windows",
+  win32: "windows" as const,
 }
 
 const archMap = {
@@ -626,8 +626,11 @@ const archMap = {
 }
 
 export type Architecture = Exclude<NodeJS.Architecture, keyof typeof archMap> | (typeof archMap)[keyof typeof archMap]
+export type Platform =
+  | Exclude<NodeJS.Platform, keyof typeof platformMap>
+  | (typeof platformMap)[keyof typeof platformMap]
 
-export function getPlatform() {
+export function getPlatform(): Platform {
   return platformMap[process.platform] || process.platform
 }
 
