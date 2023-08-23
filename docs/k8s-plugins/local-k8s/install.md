@@ -145,8 +145,6 @@ In your `project.garden.yml` file, add the following configuration under your `l
 
 ### A note on networking for k3s, k3d and Rancher Desktop
 
-### A note on networking for k3s, k3d and Rancher Desktop
-
 K3s uses the [service load balancer](https://docs.k3s.io/networking#service-load-balancer) to create a daemonset with a `nodePort` for each service of type `LoadBalancer`. Garden installs a NGINX ingress controller by default. ServiceLB will create the `nodePort` on the ports 80 and 443 as specified by the ingress controller. This `nodePort` is in most cases in the VM running rancher-desktop, K3s or K3ds. Therefore there are two options to make that endpoint reachable.
 
 1. Get the IP of the VM and add an entry to your computer's `/etc/hosts` file for your ingress domain:
