@@ -28,7 +28,7 @@ import { getK8sClientServerVersions, K8sClientServerVersions } from "../util"
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 // note: this is in order of preference, in case neither is set as the current kubectl context
 // and none is explicitly configured in the garden.yml
-const supportedContexts = ["docker-for-desktop", "docker-desktop", "microk8s", "minikube", "kind-kind", "colima"]
+const supportedContexts = ["docker-for-desktop", "docker-desktop", "microk8s", "minikube", "kind-kind", "colima", "rancher-desktop"]
 const nginxServices = ["ingress-controller", "default-backend"]
 
 function isSupportedContext(context: string) {
