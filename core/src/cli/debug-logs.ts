@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import moment from "moment"
 import { lstat, pathExists, remove } from "fs-extra"
 import { join } from "path"
@@ -24,18 +23,20 @@ export async function prepareDebugLogfiles(log: Log, logsDirPath: string, comman
     if (await pathExists(logsDirPath)) {
       const filenames = await listDirectory(logsDirPath, { recursive: false })
       // We don't want to slow down init, so we don't await this promise.
-      Bluebird.map(filenames, async (filename) => {
-        if (!filename.match(/debug.*\.log/) && !filename.match(/json.*\.log/)) {
-          return
-        }
-        const logfilePath = join(logsDirPath, filename)
-        const stat = await lstat(logfilePath)
-        // If the file is older than `logExpiryDays` days, delete it
-        if (moment(stat.birthtime).add(logfileExpiryDays, "days").isBefore(moment())) {
-          log.debug(`file ${filename} is older than ${logfileExpiryDays} days, deleting...`)
-          await remove(logfilePath)
-        }
-      }).catch((err) => {
+      Promise.all(
+        filenames.map(async (filename) => {
+          if (!filename.match(/debug.*\.log/) && !filename.match(/json.*\.log/)) {
+            return
+          }
+          const logfilePath = join(logsDirPath, filename)
+          const stat = await lstat(logfilePath)
+          // If the file is older than `logExpiryDays` days, delete it
+          if (moment(stat.birthtime).add(logfileExpiryDays, "days").isBefore(moment())) {
+            log.debug(`file ${filename} is older than ${logfileExpiryDays} days, deleting...`)
+            await remove(logfilePath)
+          }
+        })
+      ).catch((err) => {
         log.warn(`An error occurred while cleaning up debug logfiles: ${err.message}`)
       })
     }

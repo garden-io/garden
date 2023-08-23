@@ -34,12 +34,11 @@ COPY --from=ldid /usr/local/bin/ldid /usr/local/bin
 COPY --from=ghr /usr/bin/ghr /usr/bin/
 
 # install gh
-# NOTE: We pin to this version because the latest version does not support the fine-grained access tokens for editing issues (https://github.com/cli/cli/issues/6680)
-# When the issue has been resolved, we can go back to installing the latest version of gh.
-RUN wget https://github.com/cli/cli/releases/download/v2.14.7/gh_2.14.7_linux_amd64.deb && \
-  echo "b7ee6f6eb9fb75621bad26b8de7cf457700c33d2f93065a73a77bb3a7a135036  gh_2.14.7_linux_amd64.deb" | sha256sum -c && \
-  sudo dpkg -i gh_2.14.7_linux_amd64.deb && \
-  rm gh_2.14.7_linux_amd64.deb
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+  && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+  && sudo apt-get update \
+  && sudo apt-get install gh -y
 
 # install gcloud
 ENV CLOUDSDK_PYTHON=python3

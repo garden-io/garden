@@ -26,7 +26,7 @@ const mvndSpec = {
     sha256: "64acc68f2a3e25a0662eb62bf87cf2641706245505572ca1d20f933c7190f148",
     targetPath: `maven-mvnd-${mvndVersion}-linux-amd64/bin/mvnd`,
   },
-  darwin_aarch64: {
+  darwin_arm64: {
     filename: `maven-mvnd-${mvndVersion}-darwin-aarch64.tar.gz`,
     sha256: "bca67a44cc3716a7da46926acff41b3864d62e5da6982b9e998eca42d2f9bfac",
     targetPath: `maven-mvnd-${mvndVersion}-darwin-aarch64/bin/mvnd`,
@@ -71,12 +71,12 @@ export const mavendSpec: PluginToolSpec = {
     },
     {
       platform: "darwin",
-      architecture: "aarch64",
-      sha256: mvndSpec.darwin_aarch64.sha256,
-      url: `${mvndSpec.baseUrl}${mvndSpec.darwin_aarch64.filename}`,
+      architecture: "arm64",
+      sha256: mvndSpec.darwin_arm64.sha256,
+      url: `${mvndSpec.baseUrl}${mvndSpec.darwin_arm64.filename}`,
       extract: {
         format: "tar",
-        targetPath: mvndSpec.darwin_aarch64.targetPath,
+        targetPath: mvndSpec.darwin_arm64.targetPath,
       },
     },
     {

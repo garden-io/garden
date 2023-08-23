@@ -10,12 +10,12 @@ import { readlink, copyFile, constants, utimes } from "fs"
 import readdir from "@jsdevtools/readdir-enhanced"
 import { splitLast } from "../util/string"
 import { Minimatch } from "minimatch"
-import { promisify } from "bluebird"
 import { isAbsolute, parse, basename, resolve } from "path"
 import { ensureDir, Stats, lstat, remove } from "fs-extra"
 import { FilesystemError, InternalError } from "../exceptions"
 import async, { AsyncResultCallback } from "async"
 import { round } from "lodash"
+import { promisify } from "util"
 
 export type MappedPaths = [string, string][]
 
@@ -109,7 +109,7 @@ export function cloneFile({ from, to, allowDelete, statsHelper }: CloneFileParam
 }
 
 // For convenience in testing
-export const cloneFileAsync = promisify(cloneFile)
+export const cloneFileAsync = promisify(cloneFile) as (params: CloneFileParams) => Promise<SyncResult> // async marks the return type as optional
 
 interface CopyParams {
   from: string

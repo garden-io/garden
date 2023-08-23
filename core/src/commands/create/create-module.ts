@@ -25,7 +25,6 @@ import { flatten, keyBy } from "lodash"
 import { fixedPlugins } from "../../config/project"
 import { deline, wordWrap, truncate } from "../../util/string"
 import { joi } from "../../config/common"
-import Bluebird from "bluebird"
 import { ModuleTypeMap } from "../../types/module"
 import { Log } from "../../logger/log-entry"
 import { getProviderUrl, getModuleTypeUrl } from "../../docs/common"
@@ -276,14 +275,16 @@ export async function getModuleTypeSuggestions(
   defaultName: string
 ) {
   const allSuggestions = flatten(
-    await Bluebird.map(Object.values(moduleTypes), async (spec) => {
-      if (!spec.handlers.suggestModules) {
-        return []
-      }
+    await Promise.all(
+      Object.values(moduleTypes).map(async (spec) => {
+        if (!spec.handlers.suggestModules) {
+          return []
+        }
 
-      const { suggestions } = await spec.handlers.suggestModules({ log, name: defaultName, path })
-      return suggestions.map((suggestion) => ({ suggestion, pluginName: spec.plugin.name }))
-    })
+        const { suggestions } = await spec.handlers.suggestModules({ log, name: defaultName, path })
+        return suggestions.map((suggestion) => ({ suggestion, pluginName: spec.plugin.name }))
+      })
+    )
   )
 
   let choices = Object.keys(moduleTypes).map((moduleType) => ({

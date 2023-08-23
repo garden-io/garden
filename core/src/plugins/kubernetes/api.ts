@@ -8,7 +8,6 @@
 
 import { IncomingMessage } from "http"
 import { ReadStream } from "tty"
-import Bluebird from "bluebird"
 import {
   ApiextensionsV1Api,
   ApisApi,
@@ -473,31 +472,35 @@ export class KubeApi {
     versionedKinds: { apiVersion: string; kind: string }[]
     labelSelector?: { [label: string]: string }
   }): Promise<KubernetesResource[]> {
-    const resources = await Bluebird.map(versionedKinds, async ({ apiVersion, kind }) => {
-      try {
-        const resourceListForKind = await this.listResources({
-          log,
-          apiVersion,
-          kind,
-          namespace,
-          labelSelector,
-        })
-        return resourceListForKind.items
-      } catch (err) {
-        if (err.statusCode === 404) {
-          // Then this resource version + kind is not available in the cluster.
-          return []
+    const resources = await Promise.all(
+      versionedKinds.map(async ({ apiVersion, kind }) => {
+        try {
+          const resourceListForKind = await this.listResources({
+            log,
+            apiVersion,
+            kind,
+            namespace,
+            labelSelector,
+          })
+          return resourceListForKind.items
+        } catch (err) {
+          if (err.statusCode === 404) {
+            // Then this resource version + kind is not available in the cluster.
+            return []
+          }
+          // FIXME: OpenShift: developers have more restrictions on what they can list
+          // Ugly workaround right now, basically just shoving the problem under the rug.
+          const openShiftForbiddenList = ["Namespace", "PersistentVolume"]
+          if (err.statusCode === 403 && openShiftForbiddenList.includes(kind)) {
+            log.warn(
+              `No permissions to list resources of kind ${kind}. If you are using OpenShift, ignore this warning.`
+            )
+            return []
+          }
+          throw err
         }
-        // FIXME: OpenShift: developers have more restrictions on what they can list
-        // Ugly workaround right now, basically just shoving the problem under the rug.
-        const openShiftForbiddenList = ["Namespace", "PersistentVolume"]
-        if (err.statusCode === 403 && openShiftForbiddenList.includes(kind)) {
-          log.warn(`No permissions to list resources of kind ${kind}. If you are using OpenShift, ignore this warning.`)
-          return []
-        }
-        throw err
-      }
-    })
+      })
+    )
     return flatten(resources)
   }
 

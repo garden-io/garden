@@ -10,7 +10,6 @@ import dotenv = require("dotenv")
 import { Command, CommandResult, CommandParams, PrepareParams } from "./base"
 import chalk from "chalk"
 import { omit, sortBy } from "lodash"
-import Bluebird from "bluebird"
 import { DeployLogEntry } from "../types/service"
 import { LogLevel, parseLogLevel, VoidLogger } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
@@ -204,10 +203,12 @@ export class LogsCommand extends Command<Args, Opts> {
       monitors.forEach((m) => garden.monitors.addAndSubscribe(m, this))
       return { result: [] }
     } else {
-      const entries = await Bluebird.map(monitors, async (m) => {
-        await m.start()
-        return m.getEntries().map((e) => ({ ...e, monitor: m }))
-      })
+      const entries = await Promise.all(
+        monitors.map(async (m) => {
+          await m.start()
+          return m.getEntries().map((e) => ({ ...e, monitor: m }))
+        })
+      )
 
       const sorted = sortBy(
         entries.flatMap((e) => e),

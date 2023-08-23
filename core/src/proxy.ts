@@ -7,7 +7,6 @@
  */
 
 import { isEqual, invert } from "lodash"
-import Bluebird from "bluebird"
 import chalk = require("chalk")
 import { createServer, Server, Socket } from "net"
 const AsyncLock = require("async-lock")
@@ -60,9 +59,11 @@ export async function startPortProxies({
   status: ServiceStatus
   events?: PluginEventBroker
 }) {
-  return Bluebird.map(status.forwardablePorts || [], (spec) => {
-    return startPortProxy({ garden, graph, log, action, spec, events })
-  })
+  return Promise.all(
+    (status.forwardablePorts || []).map((spec) => {
+      return startPortProxy({ garden, graph, log, action, spec, events })
+    })
+  )
 }
 
 interface StartPortProxyParams {

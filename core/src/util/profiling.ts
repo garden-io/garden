@@ -194,6 +194,10 @@ export const profile = <T extends Array<any>, U>(fn: (...args: T) => U, profiler
     profiler = getDefaultProfiler()
   }
 
+  if (!profiler!.isEnabled()) {
+    return fn
+  }
+
   const timingKey = fn.name
 
   return (...args: T): U => {
@@ -216,6 +220,10 @@ export const profile = <T extends Array<any>, U>(fn: (...args: T) => U, profiler
 export const profileAsync = <T extends Array<any>, U>(fn: (...args: T) => Promise<U>, profiler?: Profiler) => {
   if (!profiler) {
     profiler = getDefaultProfiler()
+  }
+
+  if (!profiler!.isEnabled()) {
+    return fn
   }
 
   const timingKey = fn.name

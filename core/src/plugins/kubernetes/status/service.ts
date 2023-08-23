@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { flatten } from "lodash"
 import { KubeApi } from "../api"
 import { KubernetesServerResource } from "../types"
@@ -31,44 +30,46 @@ export async function waitForServiceEndpoints(
   const services = resources.filter((r) => r.apiVersion === "v1" && r.kind === "Service")
   const start = new Date().getTime()
 
-  return Bluebird.map(services, async (service) => {
-    const selector = service.spec.selector
+  return Promise.all(
+    services.map(async (service) => {
+      const selector = service.spec.selector
 
-    if (!selector) {
-      return
-    }
-
-    const serviceName = service.metadata.name
-    const serviceNamespace = service.metadata?.namespace || namespace
-
-    const pods = await getReadyPods(api, serviceNamespace, selector)
-    const readyPodNames = pods.map((p) => p.metadata.name)
-
-    while (true) {
-      const endpoints = await api.core.readNamespacedEndpoints(serviceName, serviceNamespace)
-
-      const addresses = flatten((endpoints.subsets || []).map((subset) => subset.addresses || []))
-      const routedPods = addresses.filter(
-        (a) => a.targetRef!.kind === "Pod" && readyPodNames.includes(a.targetRef!.name!)
-      )
-
-      if (routedPods.length === readyPodNames.length) {
-        // All endpoints routing nicely!
-        break
+      if (!selector) {
+        return
       }
 
-      if (new Date().getTime() - start > timeout) {
-        throw new TimeoutError({
-          message: `Timed out waiting for Service '${serviceName}' Endpoints to resolve to correct Pods`,
-          detail: {
-            service,
-            pods,
-          },
-        })
-      }
+      const serviceName = service.metadata.name
+      const serviceNamespace = service.metadata?.namespace || namespace
 
-      log.info(`Waiting for Service '${serviceName}' Endpoints to resolve...`)
-      await sleep(1000)
-    }
-  })
+      const pods = await getReadyPods(api, serviceNamespace, selector)
+      const readyPodNames = pods.map((p) => p.metadata.name)
+
+      while (true) {
+        const endpoints = await api.core.readNamespacedEndpoints(serviceName, serviceNamespace)
+
+        const addresses = flatten((endpoints.subsets || []).map((subset) => subset.addresses || []))
+        const routedPods = addresses.filter(
+          (a) => a.targetRef!.kind === "Pod" && readyPodNames.includes(a.targetRef!.name!)
+        )
+
+        if (routedPods.length === readyPodNames.length) {
+          // All endpoints routing nicely!
+          break
+        }
+
+        if (new Date().getTime() - start > timeout) {
+          throw new TimeoutError({
+            message: `Timed out waiting for Service '${serviceName}' Endpoints to resolve to correct Pods`,
+            detail: {
+              service,
+              pods,
+            },
+          })
+        }
+
+        log.info(`Waiting for Service '${serviceName}' Endpoints to resolve...`)
+        await sleep(1000)
+      }
+    })
+  )
 }

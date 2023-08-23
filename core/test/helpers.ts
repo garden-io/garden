@@ -42,7 +42,6 @@ import { profileAsync } from "../src/util/profiling"
 import { defaultDotIgnoreFile, makeTempDir } from "../src/util/fs"
 import tmp, { DirectoryResult } from "tmp-promise"
 import { ConfigurationError } from "../src/exceptions"
-import Bluebird from "bluebird"
 import execa from "execa"
 import timekeeper from "timekeeper"
 import { ManyActionTypeDefinitions } from "../src/plugin/action-types"
@@ -385,11 +384,13 @@ async function prepareRemoteGarden({
 
   await mkdirp(sourcesPath)
   // Copy the sources to the `.garden/sources` dir and git init them
-  await Bluebird.map(sourceNames, async (name) => {
-    const targetPath = getRemoteSourceLocalPath({ gardenDirPath: garden.gardenDirPath, name, url: testGitUrl, type })
-    await copy(join(extSourcesRoot, name), targetPath)
-    await execa("git", ["init", "--initial-branch=main"], { cwd: targetPath })
-  })
+  await Promise.all(
+    sourceNames.map(async (name) => {
+      const targetPath = getRemoteSourceLocalPath({ gardenDirPath: garden.gardenDirPath, name, url: testGitUrl, type })
+      await copy(join(extSourcesRoot, name), targetPath)
+      await execa("git", ["init", "--initial-branch=main"], { cwd: targetPath })
+    })
+  )
 
   return garden
 }

@@ -22,7 +22,7 @@ import { PathParameter, StringsParameter } from "../../../cli/params"
 import { StringMap } from "../../../config/common"
 import { chunk } from "lodash"
 import dotenv = require("dotenv")
-import Bluebird = require("bluebird")
+import pMap from "p-map"
 
 // This is the limit set by the API.
 const MAX_USERS_PER_REQUEST = 100
@@ -144,7 +144,8 @@ export class UsersCreateCommand extends Command<Args, Opts> {
 
     const errors: ApiCommandError[] = []
     const results: UserResult[] = []
-    await Bluebird.map(
+
+    await pMap(
       batches,
       async (userBatch) => {
         const asyncBatch = Math.ceil(count / nAsyncBatches)

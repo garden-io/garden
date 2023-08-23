@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import chalk from "chalk"
 import execa from "execa"
 import { apply as jsonMerge } from "json-merge-patch"
@@ -242,7 +241,7 @@ export async function getCustomCommands(log: Log, projectRoot: string) {
   const rootFiles = await listDirectory(projectRoot, { recursive: false })
   const paths = rootFiles.filter(isConfigFilename).map((p) => join(projectRoot, p))
 
-  const resources = flatten(await Bluebird.map(paths, (path) => loadConfigResources(log, projectRoot, path)))
+  const resources = flatten(await Promise.all(paths.map((path) => loadConfigResources(log, projectRoot, path))))
 
   const builtinNames = getBuiltinCommands().flatMap((c) => c.getPaths().map((p) => p.join(" ")))
 

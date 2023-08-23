@@ -23,7 +23,6 @@ import { Garden } from "../garden"
 import { ConfigurationError } from "../exceptions"
 import { resolve, posix } from "path"
 import { ensureDir } from "fs-extra"
-import Bluebird from "bluebird"
 import type { TemplatedModuleConfig } from "../plugins/templated"
 import { omit } from "lodash"
 import { EnvironmentConfigContext } from "./template-contexts/project"
@@ -189,52 +188,54 @@ async function renderModules({
   context: RenderTemplateConfigContext
   renderConfig: RenderTemplateConfig
 }): Promise<ModuleConfig[]> {
-  return Bluebird.map(template.modules || [], async (m) => {
-    // Run a partial template resolution with the parent+template info
-    const spec = resolveTemplateStrings(m, context, { allowPartial: true })
-    const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
+  return Promise.all(
+    (template.modules || []).map(async (m) => {
+      // Run a partial template resolution with the parent+template info
+      const spec = resolveTemplateStrings(m, context, { allowPartial: true })
+      const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
 
-    let moduleConfig: ModuleConfig
+      let moduleConfig: ModuleConfig
 
-    try {
-      moduleConfig = prepareModuleResource(spec, renderConfigPath, garden.projectRoot)
-    } catch (error) {
-      let msg = error.message
+      try {
+        moduleConfig = prepareModuleResource(spec, renderConfigPath, garden.projectRoot)
+      } catch (error) {
+        let msg = error.message
 
-      if (spec.name && spec.name.includes && spec.name.includes("${")) {
-        msg +=
-          ". Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
+        if (spec.name && spec.name.includes && spec.name.includes("${")) {
+          msg +=
+            ". Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
+        }
+
+        throw new ConfigurationError({
+          message: `${configTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${renderConfig.name}: ${msg}`,
+          detail: {
+            moduleSpec: spec,
+            parent: renderConfig,
+            error,
+          },
+        })
       }
 
-      throw new ConfigurationError({
-        message: `${configTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${renderConfig.name}: ${msg}`,
-        detail: {
-          moduleSpec: spec,
-          parent: renderConfig,
-          error,
-        },
-      })
-    }
+      // Resolve the file source path to an absolute path, so that it can be used during module resolution
+      moduleConfig.generateFiles = (moduleConfig.generateFiles || []).map((f) => ({
+        ...f,
+        sourcePath: f.sourcePath && resolve(template.internal.basePath, ...f.sourcePath.split(posix.sep)),
+      }))
 
-    // Resolve the file source path to an absolute path, so that it can be used during module resolution
-    moduleConfig.generateFiles = (moduleConfig.generateFiles || []).map((f) => ({
-      ...f,
-      sourcePath: f.sourcePath && resolve(template.internal.basePath, ...f.sourcePath.split(posix.sep)),
-    }))
+      // If a path is set, resolve the path and ensure that directory exists
+      if (spec.path) {
+        moduleConfig.path = resolve(renderConfig.internal.basePath, ...spec.path.split(posix.sep))
+        await ensureDir(moduleConfig.path)
+      }
 
-    // If a path is set, resolve the path and ensure that directory exists
-    if (spec.path) {
-      moduleConfig.path = resolve(renderConfig.internal.basePath, ...spec.path.split(posix.sep))
-      await ensureDir(moduleConfig.path)
-    }
+      // Attach metadata
+      moduleConfig.parentName = renderConfig.name
+      moduleConfig.templateName = template.name
+      moduleConfig.inputs = renderConfig.inputs
 
-    // Attach metadata
-    moduleConfig.parentName = renderConfig.name
-    moduleConfig.templateName = template.name
-    moduleConfig.inputs = renderConfig.inputs
-
-    return moduleConfig
-  })
+      return moduleConfig
+    })
+  )
 }
 
 async function renderConfigs({
@@ -252,84 +253,86 @@ async function renderConfigs({
 }): Promise<TemplatableConfig[]> {
   const templateDescription = `${configTemplateKind} '${template.name}'`
 
-  return Bluebird.map(template.configs || [], async (m) => {
-    // Resolve just the name, which must be immediately resolvable
-    let resolvedName = m.name
+  return Promise.all(
+    (template.configs || []).map(async (m) => {
+      // Resolve just the name, which must be immediately resolvable
+      let resolvedName = m.name
 
-    try {
-      resolvedName = resolveTemplateString(m.name, context, { allowPartial: false })
-    } catch (error) {
-      throw new ConfigurationError({
-        message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error.message}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
-        detail: {
-          spec: m,
-          renderConfig,
-          error,
-        },
-      })
-    }
-
-    // TODO: validate this before?
-    for (const field of templateNoTemplateFields) {
-      if (maybeTemplateString(m[field])) {
+      try {
+        resolvedName = resolveTemplateString(m.name, context, { allowPartial: false })
+      } catch (error) {
         throw new ConfigurationError({
-          message: `${templateDescription} contains an invalid resource: Found a template string in '${field}' field (${m[field]}).`,
+          message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error.message}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
+          detail: {
+            spec: m,
+            renderConfig,
+            error,
+          },
+        })
+      }
+
+      // TODO: validate this before?
+      for (const field of templateNoTemplateFields) {
+        if (maybeTemplateString(m[field])) {
+          throw new ConfigurationError({
+            message: `${templateDescription} contains an invalid resource: Found a template string in '${field}' field (${m[field]}).`,
+            detail: {
+              spec: m,
+              renderConfig,
+            },
+          })
+        }
+      }
+
+      if (!templatableKinds.includes(m.kind)) {
+        throw new ConfigurationError({
+          message: `Unexpected kind '${m.kind}' found in ${templateDescription}. Supported kinds are: ${naturalList(
+            templatableKinds
+          )}`,
           detail: {
             spec: m,
             renderConfig,
           },
         })
       }
-    }
 
-    if (!templatableKinds.includes(m.kind)) {
-      throw new ConfigurationError({
-        message: `Unexpected kind '${m.kind}' found in ${templateDescription}. Supported kinds are: ${naturalList(
-          templatableKinds
-        )}`,
-        detail: {
-          spec: m,
-          renderConfig,
-        },
-      })
-    }
+      const spec = { ...m, name: resolvedName }
+      const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
 
-    const spec = { ...m, name: resolvedName }
-    const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
+      let resource: TemplatableConfig
 
-    let resource: TemplatableConfig
-
-    try {
-      resource = <TemplatableConfig>prepareResource({
-        log,
-        spec,
-        configFilePath: renderConfigPath,
-        projectRoot: garden.projectRoot,
-        description: `resource in Render ${renderConfig.name}`,
-        allowInvalid: false,
-      })!
-    } catch (error) {
-      throw new ConfigurationError({
-        message: `${templateDescription} returned an invalid config (named ${spec.name}) for Render ${renderConfig.name}: ${error.message}`,
-        detail: {
+      try {
+        resource = <TemplatableConfig>prepareResource({
+          log,
           spec,
-          renderConfig,
-        },
-        wrappedErrors: [error],
-      })
-    }
+          configFilePath: renderConfigPath,
+          projectRoot: garden.projectRoot,
+          description: `resource in Render ${renderConfig.name}`,
+          allowInvalid: false,
+        })!
+      } catch (error) {
+        throw new ConfigurationError({
+          message: `${templateDescription} returned an invalid config (named ${spec.name}) for Render ${renderConfig.name}: ${error.message}`,
+          detail: {
+            spec,
+            renderConfig,
+          },
+          wrappedErrors: [error],
+        })
+      }
 
-    // If a path is set, resolve the path and ensure that directory exists
-    if (spec.path) {
-      resource.internal.basePath = resolve(renderConfig.internal.basePath, ...spec.path.split(posix.sep))
-      await ensureDir(resource.internal.basePath)
-    }
+      // If a path is set, resolve the path and ensure that directory exists
+      if (spec.path) {
+        resource.internal.basePath = resolve(renderConfig.internal.basePath, ...spec.path.split(posix.sep))
+        await ensureDir(resource.internal.basePath)
+      }
 
-    // Attach metadata
-    resource.internal.parentName = renderConfig.name
-    resource.internal.templateName = template.name
-    resource.internal.inputs = renderConfig.inputs
+      // Attach metadata
+      resource.internal.parentName = renderConfig.name
+      resource.internal.templateName = template.name
+      resource.internal.inputs = renderConfig.inputs
 
-    return resource
-  })
+      return resource
+    })
+  )
 }

@@ -9,7 +9,6 @@ import { createWriteStream, readFile, writeFile } from "fs-extra"
 import { getPackages } from "./script-utils"
 import parseArgs = require("minimist")
 import deline = require("deline")
-import Bluebird = require("bluebird")
 
 const replace = require("replace-in-file")
 
@@ -74,7 +73,7 @@ async function release() {
   console.log(`Setting package versions to ${packageVersion}...`)
   const packages = await getPackages()
   const packageJsonPaths = Object.values(packages).map((p) => resolve(p.location, "package.json"))
-  await Bluebird.map(packageJsonPaths, async (p) => await updatePackageJsonVersion(p, packageVersion!))
+  await Promise.all(packageJsonPaths.map(async (p) => await updatePackageJsonVersion(p, packageVersion!)))
 
   const branchName = `release-${version}`
 

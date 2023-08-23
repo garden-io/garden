@@ -14,7 +14,6 @@ import { PluginEventBroker } from "../plugin-context"
 import { MonitorBaseParams, Monitor } from "./base"
 import { startPortProxies, PortProxy, stopPortProxy } from "../proxy"
 import chalk from "chalk"
-import Bluebird from "bluebird"
 
 interface PortForwardMonitorParams extends MonitorBaseParams {
   action: Executed<DeployAction>
@@ -52,15 +51,17 @@ export class PortForwardMonitor extends Monitor {
   }
 
   async stopProxies() {
-    await Bluebird.map(this.proxies, (proxy) =>
-      stopPortProxy({
-        garden: this.garden,
-        graph: this.graph,
-        log: this.log,
-        action: this.action,
-        proxy,
-        spec: proxy.spec,
-      })
+    await Promise.all(
+      this.proxies.map((proxy) =>
+        stopPortProxy({
+          garden: this.garden,
+          graph: this.graph,
+          log: this.log,
+          action: this.action,
+          proxy,
+          spec: proxy.spec,
+        })
+      )
     )
   }
 

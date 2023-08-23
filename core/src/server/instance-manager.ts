@@ -7,7 +7,6 @@
  */
 
 import AsyncLock from "async-lock"
-import Bluebird from "bluebird"
 import chalk from "chalk"
 import { Autocompleter, AutocompleteSuggestion } from "../cli/autocomplete"
 import { parseCliVarFlags } from "../cli/helpers"
@@ -207,9 +206,9 @@ export class GardenInstanceManager {
   async clear() {
     const instances = this.instances.values()
 
-    await Bluebird.map(instances, async ({ garden }) => {
+    for (const { garden } of instances) {
       garden.close()
-    })
+    }
 
     this.instances.clear()
     this.projectRoots.clear()
@@ -222,9 +221,11 @@ export class GardenInstanceManager {
     await this.clear()
 
     // Reload context for each project root
-    await Bluebird.map(projectRoots, async (projectRoot) => {
-      await this.updateProjectRootContext(log, projectRoot)
-    })
+    await Promise.all(
+      projectRoots.map(async (projectRoot) => {
+        await this.updateProjectRootContext(log, projectRoot)
+      })
+    )
   }
 
   set(log: Log, garden: Garden) {

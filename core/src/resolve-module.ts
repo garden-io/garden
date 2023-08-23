@@ -35,7 +35,6 @@ import { ActionReference, allowUnknown, DeepPrimitiveMap } from "./config/common
 import type { ProviderMap } from "./config/provider"
 import chalk from "chalk"
 import { DependencyGraph } from "./graph/common"
-import Bluebird from "bluebird"
 import { mkdirp, readFile } from "fs-extra"
 import type { Log } from "./logger/log-entry"
 import { ModuleConfigContext, ModuleConfigContextParams } from "./config/template-contexts/module"
@@ -243,7 +242,7 @@ export class ModuleResolver {
       }
 
       // Process each of the leaf node module configs.
-      await Bluebird.map(batch, processNode)
+      await Promise.all(batch.map(processNode))
     }
 
     // Iterate through dependency graph, a batch of leaves at a time. While there are items remaining:
@@ -522,61 +521,63 @@ export class ModuleResolver {
 
     let updatedFiles = false
 
-    await Bluebird.map(resolvedConfig.generateFiles || [], async (fileSpec) => {
-      let contents = fileSpec.value || ""
+    await Promise.all(
+      (resolvedConfig.generateFiles || []).map(async (fileSpec) => {
+        let contents = fileSpec.value || ""
 
-      if (fileSpec.sourcePath) {
-        const configDir = resolvedConfig.configPath ? dirname(resolvedConfig.configPath) : resolvedConfig.path
-        const sourcePath = resolve(configDir, fileSpec.sourcePath)
+        if (fileSpec.sourcePath) {
+          const configDir = resolvedConfig.configPath ? dirname(resolvedConfig.configPath) : resolvedConfig.path
+          const sourcePath = resolve(configDir, fileSpec.sourcePath)
+
+          try {
+            contents = (await readFile(sourcePath)).toString()
+          } catch (err) {
+            throw new ConfigurationError({
+              message: `Unable to read file at ${sourcePath}, specified under generateFiles in module ${resolvedConfig.name}: ${err}`,
+              detail: {
+                sourcePath,
+              },
+            })
+          }
+        }
+
+        const resolvedContents = fileSpec.resolveTemplates
+          ? resolveTemplateString(contents, configContext, { unescape: true })
+          : contents
+
+        const targetDir = resolve(resolvedConfig.path, ...posix.dirname(fileSpec.targetPath).split(posix.sep))
+        const targetPath = resolve(resolvedConfig.path, ...fileSpec.targetPath.split(posix.sep))
+
+        // Avoid unnecessary write + invalidating caches on the module path if no changes are made
+        try {
+          const prior = (await readFile(targetPath)).toString()
+          if (prior === resolvedContents) {
+            // No change, abort
+            return
+          } else {
+            // File is modified, proceed and flag for cache invalidation
+            updatedFiles = true
+          }
+        } catch {
+          // File doesn't exist, proceed and flag for cache invalidation
+          updatedFiles = true
+        }
 
         try {
-          contents = (await readFile(sourcePath)).toString()
-        } catch (err) {
-          throw new ConfigurationError({
-            message: `Unable to read file at ${sourcePath}, specified under generateFiles in module ${resolvedConfig.name}: ${err}`,
+          await mkdirp(targetDir)
+          // Use VcsHandler.writeFile() to make sure version is re-computed after writing new/updated files
+          await this.garden.vcs.writeFile(this.log, targetPath, resolvedContents)
+        } catch (error) {
+          throw new FilesystemError({
+            message: `Unable to write templated file ${fileSpec.targetPath} from ${resolvedConfig.name}: ${error.message}`,
             detail: {
-              sourcePath,
+              fileSpec,
+              error,
             },
           })
         }
-      }
-
-      const resolvedContents = fileSpec.resolveTemplates
-        ? resolveTemplateString(contents, configContext, { unescape: true })
-        : contents
-
-      const targetDir = resolve(resolvedConfig.path, ...posix.dirname(fileSpec.targetPath).split(posix.sep))
-      const targetPath = resolve(resolvedConfig.path, ...fileSpec.targetPath.split(posix.sep))
-
-      // Avoid unnecessary write + invalidating caches on the module path if no changes are made
-      try {
-        const prior = (await readFile(targetPath)).toString()
-        if (prior === resolvedContents) {
-          // No change, abort
-          return
-        } else {
-          // File is modified, proceed and flag for cache invalidation
-          updatedFiles = true
-        }
-      } catch {
-        // File doesn't exist, proceed and flag for cache invalidation
-        updatedFiles = true
-      }
-
-      try {
-        await mkdirp(targetDir)
-        // Use VcsHandler.writeFile() to make sure version is re-computed after writing new/updated files
-        await this.garden.vcs.writeFile(this.log, targetPath, resolvedContents)
-      } catch (error) {
-        throw new FilesystemError({
-          message: `Unable to write templated file ${fileSpec.targetPath} from ${resolvedConfig.name}: ${error.message}`,
-          detail: {
-            fileSpec,
-            error,
-          },
-        })
-      }
-    })
+      })
+    )
 
     // Make sure version is re-computed after writing new/updated files
     if (updatedFiles) {
@@ -687,113 +688,115 @@ export const convertModules = profileAsync(async function convertModules(
   const groups: GroupConfig[] = []
   const actions: BaseActionConfig[] = []
 
-  await Bluebird.map(modules, async (module) => {
-    const services = module.serviceConfigs.map((c) => serviceFromConfig(graph, module, c))
-    const tasks = module.taskConfigs.map((c) => taskFromConfig(module, c))
-    const tests = module.testConfigs.map((c) => testFromConfig(module, c, graph))
+  await Promise.all(
+    modules.map(async (module) => {
+      const services = module.serviceConfigs.map((c) => serviceFromConfig(graph, module, c))
+      const tasks = module.taskConfigs.map((c) => taskFromConfig(module, c))
+      const tests = module.testConfigs.map((c) => testFromConfig(module, c, graph))
 
-    const router = await garden.getActionRouter()
+      const router = await garden.getActionRouter()
 
-    const copyFrom: BuildCopyFrom[] = []
+      const copyFrom: BuildCopyFrom[] = []
 
-    for (const d of module.build.dependencies) {
-      if (d.copy) {
-        copyFrom.push(...d.copy.map((c) => ({ build: d.name, sourcePath: c.source, targetPath: c.target })))
-      }
-    }
-
-    const convertBuildDependency = (d: string | BuildDependencyConfig): ActionReference => {
-      if (typeof d === "string") {
-        return { kind: "Build", name: d }
-      } else {
-        return { kind: "Build", name: d.name }
-      }
-    }
-
-    const convertRuntimeDependencies = (deps: string[]): ActionReference[] => {
-      const resolved: ActionReference[] = []
-
-      for (const d of deps || []) {
-        if (allServices[d]) {
-          resolved.push({ kind: "Deploy", name: d })
-        } else if (allTasks[d]) {
-          resolved.push({ kind: "Run", name: d })
+      for (const d of module.build.dependencies) {
+        if (d.copy) {
+          copyFrom.push(...d.copy.map((c) => ({ build: d.name, sourcePath: c.source, targetPath: c.target })))
         }
       }
 
-      return resolved
-    }
-
-    let dummyBuild: ExecBuildConfig | undefined = undefined
-
-    if (copyFrom.length > 0) {
-      dummyBuild = makeDummyBuild({
-        module,
-        copyFrom,
-        dependencies: module.build.dependencies.map(convertBuildDependency),
-      })
-    }
-
-    log.debug(`Converting ${module.type} module ${module.name} to actions`)
-
-    const result = await router.module.convert({
-      log,
-      module,
-      services,
-      tasks,
-      tests,
-      dummyBuild,
-
-      baseFields: {
-        internal: {
-          basePath: module.basePath || module.path,
-        },
-        copyFrom,
-        disabled: module.disabled,
-        source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
-      },
-
-      convertBuildDependency,
-      convertTestName: (d: string) => {
-        return module.name + "-" + d
-      },
-
-      convertRuntimeDependencies,
-      prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig<string, any>) {
-        const resolved: ActionReference[] = convertRuntimeDependencies(deps)
-        if (build) {
-          resolved.push({ kind: "Build", name: build.name })
+      const convertBuildDependency = (d: string | BuildDependencyConfig): ActionReference => {
+        if (typeof d === "string") {
+          return { kind: "Build", name: d }
+        } else {
+          return { kind: "Build", name: d.name }
         }
+      }
+
+      const convertRuntimeDependencies = (deps: string[]): ActionReference[] => {
+        const resolved: ActionReference[] = []
+
+        for (const d of deps || []) {
+          if (allServices[d]) {
+            resolved.push({ kind: "Deploy", name: d })
+          } else if (allTasks[d]) {
+            resolved.push({ kind: "Run", name: d })
+          }
+        }
+
         return resolved
-      },
+      }
+
+      let dummyBuild: ExecBuildConfig | undefined = undefined
+
+      if (copyFrom.length > 0) {
+        dummyBuild = makeDummyBuild({
+          module,
+          copyFrom,
+          dependencies: module.build.dependencies.map(convertBuildDependency),
+        })
+      }
+
+      log.debug(`Converting ${module.type} module ${module.name} to actions`)
+
+      const result = await router.module.convert({
+        log,
+        module,
+        services,
+        tasks,
+        tests,
+        dummyBuild,
+
+        baseFields: {
+          internal: {
+            basePath: module.basePath || module.path,
+          },
+          copyFrom,
+          disabled: module.disabled,
+          source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
+        },
+
+        convertBuildDependency,
+        convertTestName: (d: string) => {
+          return module.name + "-" + d
+        },
+
+        convertRuntimeDependencies,
+        prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig<string, any>) {
+          const resolved: ActionReference[] = convertRuntimeDependencies(deps)
+          if (build) {
+            resolved.push({ kind: "Build", name: build.name })
+          }
+          return resolved
+        },
+      })
+
+      const totalReturned = (result.actions?.length || 0) + (result.group?.actions.length || 0)
+
+      log.debug(`Module ${module.name} converted to ${totalReturned} action(s)`)
+
+      if (result.group) {
+        for (const action of result.group.actions) {
+          action.internal.groupName = result.group.name
+          inheritModuleToAction(module, action)
+        }
+
+        if (!result.group.internal) {
+          result.group.internal = {}
+        }
+        result.group.internal.configFilePath = module.configPath
+
+        groups.push(result.group)
+      }
+
+      if (result.actions) {
+        for (const action of result.actions) {
+          inheritModuleToAction(module, action)
+        }
+
+        actions.push(...result.actions)
+      }
     })
-
-    const totalReturned = (result.actions?.length || 0) + (result.group?.actions.length || 0)
-
-    log.debug(`Module ${module.name} converted to ${totalReturned} action(s)`)
-
-    if (result.group) {
-      for (const action of result.group.actions) {
-        action.internal.groupName = result.group.name
-        inheritModuleToAction(module, action)
-      }
-
-      if (!result.group.internal) {
-        result.group.internal = {}
-      }
-      result.group.internal.configFilePath = module.configPath
-
-      groups.push(result.group)
-    }
-
-    if (result.actions) {
-      for (const action of result.actions) {
-        inheritModuleToAction(module, action)
-      }
-
-      actions.push(...result.actions)
-    }
-  })
+  )
 
   return { groups, actions }
 })

@@ -20,7 +20,6 @@ import {
   ContainerModuleConfig,
 } from "./moduleConfig"
 import { Writable } from "stream"
-import Bluebird from "bluebird"
 import { flatten, uniq, fromPairs, reduce } from "lodash"
 import { Log } from "../../logger/log-entry"
 import chalk from "chalk"
@@ -255,28 +254,30 @@ const helpers = {
    * Retrieves the docker client and server version.
    */
   getDockerVersion: pMemoize(async (cliPath = "docker"): Promise<DockerVersion> => {
-    const results = await Bluebird.map(["client", "server"], async (key) => {
-      let res: SpawnOutput
+    const results = await Promise.all(
+      ["client", "server"].map(async (key) => {
+        let res: SpawnOutput
 
-      try {
-        res = await spawn(cliPath, ["version", "-f", `{{ .${titleize(key)}.Version }}`])
-      } catch (err) {
-        return [key, undefined]
-      }
+        try {
+          res = await spawn(cliPath, ["version", "-f", `{{ .${titleize(key)}.Version }}`])
+        } catch (err) {
+          return [key, undefined]
+        }
 
-      const output = res.stdout.trim()
+        const output = res.stdout.trim()
 
-      if (!output) {
-        throw new RuntimeError({
-          message: `Unexpected docker version output: ${res.all.trim()}`,
-          detail: {
-            output,
-          },
-        })
-      }
+        if (!output) {
+          throw new RuntimeError({
+            message: `Unexpected docker version output: ${res.all.trim()}`,
+            detail: {
+              output,
+            },
+          })
+        }
 
-      return [key, output]
-    })
+        return [key, output]
+      })
+    )
 
     return fromPairs(results)
   }),
@@ -441,30 +442,32 @@ const helpers = {
     // Make sure to include the Dockerfile
     paths.push(config.spec.dockerfile || defaultDockerfileName)
 
-    return Bluebird.map(paths, async (path) => {
-      const absPath = join(config.path, path)
+    return Promise.all(
+      paths.map(async (path) => {
+        const absPath = join(config.path, path)
 
-      // Unescape escaped template strings
-      path = path.replace(/\\\$/g, "$")
+        // Unescape escaped template strings
+        path = path.replace(/\\\$/g, "$")
 
-      if (isGlob(path, { strict: false })) {
-        // Pass globs through directly
-        return path
-      } else if (await pathExists(absPath)) {
-        const stat = await lstat(absPath)
+        if (isGlob(path, { strict: false })) {
+          // Pass globs through directly
+          return path
+        } else if (await pathExists(absPath)) {
+          const stat = await lstat(absPath)
 
-        if (stat.isDirectory()) {
-          // If it's a directory, we want to match everything in the directory
-          return posix.join(path, "**", "*")
+          if (stat.isDirectory()) {
+            // If it's a directory, we want to match everything in the directory
+            return posix.join(path, "**", "*")
+          } else {
+            // If it's a file, pass it through as-is
+            return path
+          }
         } else {
-          // If it's a file, pass it through as-is
+          // Pass the file through directly if it can't be found (an error will occur in the build later)
           return path
         }
-      } else {
-        // Pass the file through directly if it can't be found (an error will occur in the build later)
-        return path
-      }
-    })
+      })
+    )
   },
 }
 

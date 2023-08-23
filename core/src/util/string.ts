@@ -198,6 +198,11 @@ export function splitFirst(s: string, delimiter: string) {
  * Splits the input string on the last occurrence of `delimiter`.
  */
 export function splitLast(s: string, delimiter: string) {
-  const parts = s.split(delimiter)
-  return [parts.slice(0, parts.length - 1).join(delimiter), parts[parts.length - 1]]
+  const lastIndex = s.lastIndexOf(delimiter)
+
+  if (lastIndex === -1) {
+    return ["", s]
+  }
+
+  return [s.slice(0, lastIndex), s.slice(lastIndex + delimiter.length)]
 }

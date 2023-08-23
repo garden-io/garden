@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { expect } from "chai"
 import { getActionState, getRelativeActionConfigPath } from "../../../../../src/actions/helpers"
 import { GetActionsCommand } from "../../../../../src/commands/get/get-actions"
@@ -166,7 +165,7 @@ describe("GetActionsCommand", () => {
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
     const expected = sortBy(
-      await Bluebird.map(graph.getActions(), async (a) => getActionsToSimpleWithStateOutput(a, router, graph, log)),
+      await Promise.all(graph.getActions().map(async (a) => getActionsToSimpleWithStateOutput(a, router, graph, log))),
       "name"
     )
     expect(command.outputsSchema().validate(result).error).to.be.undefined
@@ -189,8 +188,10 @@ describe("GetActionsCommand", () => {
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
     const expected = sortBy(
-      await Bluebird.map(graph.getActions({ refs: args.names }), async (a) =>
-        getActionsToSimpleWithStateOutput(a, router, graph, log)
+      await Promise.all(
+        graph
+          .getActions({ refs: args.names })
+          .map(async (a) => getActionsToSimpleWithStateOutput(a, router, graph, log))
       ),
       "name"
     )
@@ -212,8 +213,8 @@ describe("GetActionsCommand", () => {
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const router = await garden.getActionRouter()
     const expected = sortBy(
-      await Bluebird.map(graph.getActions(), async (a) =>
-        getActionsToDetailedWithStateOutput(a, garden, router, graph, log)
+      await Promise.all(
+        graph.getActions().map(async (a) => getActionsToDetailedWithStateOutput(a, garden, router, graph, log))
       ),
       "name"
     )

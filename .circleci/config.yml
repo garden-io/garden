@@ -24,7 +24,7 @@ orbs:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:18.15.0@sha256:cb54c072b823ddd605a24b7d497eb909c0c6a6672af5b8dfeebd45006038e4eb
+    image: gardendev/circleci-runner:18.15.0-1@sha256:c830e29ab30a1c5b08cba4d041d3325ef6958aebeba1b10b1ee9566d7b1a4d42
 
   # Configuration for our node jobs
   node-config: &node-config
@@ -495,6 +495,7 @@ jobs:
         description: The version tag/name to set
         type: string
     steps:
+      - checkout
       - *attach-workspace
       - run:
           name: Publish a pre-release on GitHub with the valid edge tag
@@ -505,11 +506,18 @@ jobs:
             # GitHub timelines
             VERSION=<<parameters.version>>
 
-            # Update the release hash
+            # Update the prerelease tag to the current sha
+            # Github's release edit only changes metadata
+            # but does not update the underlying tag itself
+            git tag -f ${VERSION} ${CIRCLE_SHA1}
+            git push origin --tags --force
+
+            # Update the release to the now updated tag and target
             gh release edit ${VERSION} \
               -R ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME} \
               --prerelease \
-              --target ${CIRCLE_SHA1}
+              --target ${CIRCLE_SHA1} \
+              --tag ${VERSION}
 
             # Replace release artifacts
             ghr \

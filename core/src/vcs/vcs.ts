@@ -32,7 +32,6 @@ import type { BaseActionConfig } from "../actions/types"
 import { Garden } from "../garden"
 import chalk from "chalk"
 import { Profile } from "../util/profiling"
-import Bluebird from "bluebird"
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
@@ -276,15 +275,17 @@ export abstract class VcsHandler {
     const outputs: { [path: string]: string } = {}
     const rootsToPaths: { [repoRoot: string]: string[] } = {}
 
-    await Bluebird.map(paths, async (path) => {
-      const repoRoot = await this.getRepoRoot(log, path)
-      repoRoots[path] = repoRoot
-      if (rootsToPaths[repoRoot]) {
-        rootsToPaths[repoRoot].push(path)
-      } else {
-        rootsToPaths[repoRoot] = [path]
-      }
-    })
+    await Promise.all(
+      paths.map(async (path) => {
+        const repoRoot = await this.getRepoRoot(log, path)
+        repoRoots[path] = repoRoot
+        if (rootsToPaths[repoRoot]) {
+          rootsToPaths[repoRoot].push(path)
+        } else {
+          rootsToPaths[repoRoot] = [path]
+        }
+      })
+    )
 
     for (const path of paths) {
       const repoRoot = repoRoots[path]

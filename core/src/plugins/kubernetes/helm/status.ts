@@ -17,7 +17,6 @@ import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getTargetResource, isWorkload } from "../util"
 import { getDeployedResource, isConfiguredForLocalMode } from "../status/status"
 import { KubeApi } from "../api"
-import Bluebird from "bluebird"
 import { getK8sIngresses } from "../status/ingress"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { HelmDeployAction } from "./config"
@@ -141,7 +140,7 @@ export async function getDeployedChartResources({
 }): Promise<KubernetesResource[]> {
   const manifests = await getRenderedResources({ ctx, action, releaseName, log })
   const deployedResources = (
-    await Bluebird.map(manifests, (resource) => getDeployedResource(ctx, ctx.provider, resource, log))
+    await Promise.all(manifests.map((resource) => getDeployedResource(ctx, ctx.provider, resource, log)))
   ).filter(isTruthy)
   return deployedResources
 }
@@ -271,7 +270,7 @@ export async function getPausedResources({
   const api = await KubeApi.factory(log, ctx, ctx.provider)
   const renderedResources = await getRenderedResources({ ctx, action, releaseName, log })
   const workloads = renderedResources.filter(isWorkload)
-  const deployedResources = await Bluebird.all(
+  const deployedResources = await Promise.all(
     workloads.map((workload) => api.readBySpec({ log, namespace, manifest: workload }))
   )
 

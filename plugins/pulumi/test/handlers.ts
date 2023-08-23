@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import type { Log, PluginContext } from "@garden-io/sdk/types"
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import execa from "execa"
@@ -27,12 +26,14 @@ const deploymentModuleRoot = join(projectRoot, "k8s-deployment")
 
 // Here, pulumi needs node modules to be installed (to use the TS SDK in the pulumi program).
 const ensureNodeModules = async () => {
-  await Bluebird.map([nsModuleRoot, deploymentModuleRoot], async (moduleRoot) => {
-    if (await pathExists(join(moduleRoot, "node_modules"))) {
-      return
-    }
-    await execa.command("yarn", { cwd: moduleRoot })
-  })
+  await Promise.all(
+    [nsModuleRoot, deploymentModuleRoot].map(async (moduleRoot) => {
+      if (await pathExists(join(moduleRoot, "node_modules"))) {
+        return
+      }
+      await execa.command("yarn", { cwd: moduleRoot })
+    })
+  )
 }
 
 // TODO: Write + finish unit and integ tests
