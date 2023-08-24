@@ -2022,14 +2022,14 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 })
 
 // Override variables, also allows to override nested variables using dot notation
-export function overrideVariables(variables: DeepPrimitiveMap, overrideVariables: DeepPrimitiveMap): DeepPrimitiveMap {
+export function overrideVariables(variables: DeepPrimitiveMap, overrides: DeepPrimitiveMap): DeepPrimitiveMap {
   let objNew = cloneDeep(variables)
-  Object.keys(overrideVariables).forEach((key) => {
+  Object.keys(overrides).forEach((key) => {
     if (objNew.hasOwnProperty(key)) {
       // if the original key itself is a string with a dot, then override that
-      objNew[key] = overrideVariables[key]
+      objNew[key] = overrides[key]
     } else {
-      set(objNew, key, overrideVariables[key])
+      set(objNew, key, overrides[key])
     }
   })
   return objNew

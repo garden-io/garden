@@ -505,7 +505,7 @@ export async function findProjectConfig({
     }
 
     if (allProjectSpecs.length > 1 && !allowInvalid) {
-      const configPaths = allProjectSpecs.map((i) => `- ${(i as ProjectConfig).configPath}`)
+      const configPaths = allProjectSpecs.map((c) => `- ${(c as ProjectConfig).configPath}`)
       throw new ConfigurationError({
         message: `Multiple project declarations found at paths:\n${configPaths.join("\n")}`,
         detail: {

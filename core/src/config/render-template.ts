@@ -192,7 +192,6 @@ export async function renderConfigTemplate({
 
 async function renderModules({
   garden,
-  log,
   template,
   context,
   renderConfig,
