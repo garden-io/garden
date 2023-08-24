@@ -14,7 +14,7 @@ import { uuidv4 } from "../util/random"
 import { metadataFromDescription } from "./common"
 import { profile } from "../util/profiling"
 import { BaseGardenResource, YamlDocumentWithSource } from "./base"
-import { ParsedNode } from "yaml"
+import { ParsedNode, Range } from "yaml"
 import { padEnd } from "lodash"
 
 export const joiPathPlaceholder = uuidv4()
@@ -172,43 +172,11 @@ export const validateSchema = profile(function $validateSchema<T>(
     const range = node?.range
 
     if (rawYaml && yamlDoc?.contents && range) {
-      // Get one line before the error location start, and the line including the error location end
-      const toStart = rawYaml.slice(0, range[0])
-      let lineNumber = toStart.split("\n").length + 1
-      let snippetLines = 1
-
-      const errorLineStart = toStart.lastIndexOf("\n") + 1
-
-      let snippetStart = errorLineStart
-      if (snippetStart > 0) {
-        snippetStart = rawYaml.slice(0, snippetStart - 1).lastIndexOf("\n") + 1
+      try {
+        e.message = addYamlContext({ rawYaml, range, message: e.message })
+      } catch {
+        // ignore
       }
-      if (snippetStart === 0) {
-        snippetStart = errorLineStart
-      } else {
-        snippetLines++
-      }
-
-      const snippetEnd = rawYaml.indexOf("\n", range[1] - 1) || rawYaml.length
-
-      const linePrefixLength = lineNumber.toString().length + 2
-      let snippet = rawYaml
-        .slice(snippetStart, snippetEnd)
-        .trimEnd()
-        .split("\n")
-        .map(
-          (l, i) => chalk.gray(padEnd("" + (lineNumber - snippetLines + i), linePrefixLength) + "| ") + chalk.cyan(l)
-        )
-        .join("\n")
-
-      if (snippetStart > 0) {
-        snippet = chalk.gray("...\n") + snippet
-      }
-
-      const errorLineOffset = range[0] - errorLineStart + linePrefixLength + 2
-      const marker = chalk.red("-".repeat(errorLineOffset)) + chalk.red.bold("^")
-
-      e.message = `\n${snippet}\n${marker}\n${chalk.red.bold(e.message)}`
     }
 
     return e
@@ -240,4 +208,42 @@ export const validateSchema = profile(function $validateSchema<T>(
 export interface ArtifactSpec {
   source: string
   target: string
+}
+
+function addYamlContext({ rawYaml, range, message }: { rawYaml: string; range: Range; message: string }): string {
+  // Get one line before the error location start, and the line including the error location end
+  const toStart = rawYaml.slice(0, range[0])
+  let lineNumber = toStart.split("\n").length + 1
+  let snippetLines = 1
+
+  const errorLineStart = toStart.lastIndexOf("\n") + 1
+
+  let snippetStart = errorLineStart
+  if (snippetStart > 0) {
+    snippetStart = rawYaml.slice(0, snippetStart - 1).lastIndexOf("\n") + 1
+  }
+  if (snippetStart === 0) {
+    snippetStart = errorLineStart
+  } else {
+    snippetLines++
+  }
+
+  const snippetEnd = rawYaml.indexOf("\n", range[1] - 1) || rawYaml.length
+
+  const linePrefixLength = lineNumber.toString().length + 2
+  let snippet = rawYaml
+    .slice(snippetStart, snippetEnd)
+    .trimEnd()
+    .split("\n")
+    .map((l, i) => chalk.gray(padEnd("" + (lineNumber - snippetLines + i), linePrefixLength) + "| ") + chalk.cyan(l))
+    .join("\n")
+
+  if (snippetStart > 0) {
+    snippet = chalk.gray("...\n") + snippet
+  }
+
+  const errorLineOffset = range[0] - errorLineStart + linePrefixLength + 2
+  const marker = chalk.red("-".repeat(errorLineOffset)) + chalk.red.bold("^")
+
+  return `\n${snippet}\n${marker}\n${chalk.red.bold(message)}`
 }
