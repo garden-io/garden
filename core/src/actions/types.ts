@@ -195,10 +195,6 @@ export type ExecutedActionWrapperParams<
 
 export type GetActionOutputType<T> = T extends BaseAction<any, infer O> ? O : any
 
-export function actionReferenceToString(ref: ActionReference) {
-  return `${ref.kind.toLowerCase()}.${ref.name}`
-}
-
 export type ActionConfig = ValuesType<ActionConfigTypes>
 export type Action = BuildAction | DeployAction | RunAction | TestAction
 export type ResolvedAction = ResolvedBuildAction | ResolvedDeployAction | ResolvedRunAction | ResolvedTestAction
