@@ -722,7 +722,7 @@ function dependenciesFromActionConfig(
 
   // Action template references in spec/variables
   // -> We avoid depending on action execution when referencing static output keys
-  const staticKeys = definition?.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
+  const staticOutputKeys = definition?.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
 
   for (const ref of getActionTemplateReferences(config)) {
     let needsExecuted = false
@@ -742,12 +742,12 @@ function dependenciesFromActionConfig(
     // also avoid execution when referencing the static output keys of the ref action type.
     // e.g. a helm deploy referencing container build static output deploymentImageName
     // ${actions.build.my-container.outputs.deploymentImageName}
-    const actionRefKey = actionReferenceToString(ref)
-    const refActionType = configsByKey[actionRefKey]?.type
-    let staticOutputKeysForRef: string[] = []
+    const refActionKey = actionReferenceToString(ref)
+    const refActionType = configsByKey[refActionKey]?.type
+    let refStaticOutputKeys: string[] = []
     if (refActionType) {
       const refActionSpec = actionTypes[ref.kind][refActionType]?.spec
-      staticOutputKeysForRef = refActionSpec?.staticOutputsSchema
+      refStaticOutputKeys = refActionSpec?.staticOutputsSchema
         ? describeSchema(refActionSpec.staticOutputsSchema).keys
         : []
     }
@@ -755,8 +755,8 @@ function dependenciesFromActionConfig(
     if (
       ref.fullRef[3] === "outputs" &&
       outputKey &&
-      !staticKeys?.includes(outputKey) &&
-      !staticOutputKeysForRef?.includes(outputKey)
+      !staticOutputKeys.includes(outputKey) &&
+      !refStaticOutputKeys.includes(outputKey)
     ) {
       needsExecuted = true
     }
