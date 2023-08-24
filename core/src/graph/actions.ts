@@ -742,7 +742,7 @@ function dependenciesFromActionConfig(
     // also avoid execution when referencing the static output keys of the ref action type.
     // e.g. a helm deploy referencing container build static output deploymentImageName
     // ${actions.build.my-container.outputs.deploymentImageName}
-    const actionRef = { name: ref.name, kind: ref.kind}
+    const actionRef = { name: ref.name, kind: ref.kind }
     const refActionType = configsByKey[actionReferenceToString(actionRef)]?.type
     let staticOutputKeysForRef: string[] = []
     if (refActionType) {
