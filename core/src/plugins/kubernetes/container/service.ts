@@ -16,7 +16,7 @@ import { Resolved } from "../../../actions/types"
 import { KubernetesConfig } from "../config"
 import { Provider } from "../../../config/provider"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "../ephemeral/ephemeral"
-import { addEphemeralClusterIngressAnnotation } from "../ephemeral/ingress"
+import { addEphemeralClusterIngressAnnotation, addEphemeralClusterIngressPortsAnnotation } from "../ephemeral/ingress"
 
 function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
   const port: V1ServicePort = {
@@ -57,6 +57,7 @@ export async function createServiceResources(
     const serviceMetadataAnnotations = containerAction.getSpec("annotations")
     if (provider?.name === EPHEMERAL_KUBERNETES_PROVIDER_NAME) {
       addEphemeralClusterIngressAnnotation(serviceMetadataAnnotations)
+      addEphemeralClusterIngressPortsAnnotation(servicePorts, serviceMetadataAnnotations)
     }
 
     return {

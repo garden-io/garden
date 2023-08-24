@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { V1ServicePort } from "@kubernetes/client-node"
 import { Resolved } from "../../../actions/types"
 import { ContainerDeployAction } from "../../container/config"
 import { KubernetesProvider } from "../config"
@@ -34,5 +35,17 @@ export function addEphemeralClusterIngressAnnotation(annotations: { [name: strin
   [name: string]: string
 } {
   annotations["kubernetes.namespace.so/expose"] = "true"
+  return annotations
+}
+
+export function addEphemeralClusterIngressPortsAnnotation(
+  servicePorts: V1ServicePort[],
+  annotations: { [name: string]: string }
+): {
+  [name: string]: string
+} {
+  servicePorts.forEach((servicePort) => {
+    annotations[`kubernetes.namespace.so/exposed-port-${servicePort.port}`] = "noauth"
+  })
   return annotations
 }
