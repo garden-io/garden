@@ -118,6 +118,12 @@ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 Follow the [official instructions](https://docs.rancherdesktop.io/getting-started/installation/) to install Rancher Desktop for your OS.
 Once installed open "Preferences" in the Rancher Desktop UI. In the "Container Engine" section choose dockerd and in the "Kubernetes" section untick the box that says "Enable Traefik".
 
+{% hint style="warning" %}
+If, on deploy, you encounter `error: Internal error occurred: error executing command in container: http: invalid Host header`, please downgrade your Kubernetes version to v1.27.2. This is an [upstream bug in Moby](https://github.com/moby/moby/issues/45935).
+{% endhint %}
+
+![Preferences in Rancher Desktop to downgrade Kubernetes version](https://github.com/garden-io/garden/assets/59834693/aaa3f477-ed6f-430a-85f8-f880a96c4f2a)
+
 ### k3d
 
 [k3d](https://k3d.io) is a lightweight wrapper to run k3s in containers. Its image registry also runs as a container. To expose it to Garden, you need to map the registry port to the host. The following commands will create a k3d cluster with the name k3d-k3s-default and with the registry exposed on port 12345.
@@ -145,11 +151,11 @@ In your `project.garden.yml` file, add the following configuration under your `l
 
 ### A note on networking for k3s, k3d and Rancher Desktop
 
-K3s and its derivatives use the [Service Load Balancer](https://docs.k3s.io/networking#service-load-balancer) (ServiceLB) as a LoadBalancer controller. ServiceLB is ingress controller agnostic. By default, Garden installs an NGINX ingress controller to expose domains on common ports. 
+K3s and its derivatives use the [Service Load Balancer](https://docs.k3s.io/networking#service-load-balancer) (ServiceLB) as a LoadBalancer controller. ServiceLB is ingress controller agnostic. By default, Garden installs an NGINX ingress controller to expose domains on common ports.
 
-On macOS and Windows, Rancher Desktop creates a bridged network to serve local domain URLs. This means that you can access your local domains on the host machine. 
+On macOS and Windows, Rancher Desktop creates a bridged network to serve local domain URLs. This means that you can access your local domains on the host machine.
 
-For users of k3d on any macOS or Linux you'll need to do some extra configuration to expose your local domains
+For users of k3d on macOS or Linux you'll need to do some extra configuration to expose your local domains.
 
 You can direct your ingress domain to the IP of the VM by adding an entry to the `/etc/hosts` file on your computer. Use the following command:
 
