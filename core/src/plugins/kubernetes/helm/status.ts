@@ -13,7 +13,7 @@ import { getReleaseName, loadTemplate } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
 import { KubernetesResource, KubernetesServerResource } from "../types"
-import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
+import { getActionNamespace } from "../namespace"
 import { getTargetResource, isWorkload } from "../util"
 import { getDeployedResource, isConfiguredForLocalMode } from "../status/status"
 import { KubeApi } from "../api"
@@ -51,13 +51,6 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   const detail: HelmStatusDetail = {}
   let state: DeployState
   let helmStatus: ServiceStatus
-
-  const namespaceStatus = await getActionNamespaceStatus({
-    ctx: k8sCtx,
-    log,
-    action,
-    provider,
-  })
 
   const mode = action.mode()
   let deployedMode: ActionMode = "default"
