@@ -145,23 +145,30 @@ In your `project.garden.yml` file, add the following configuration under your `l
 
 ### A note on networking for k3s, k3d and Rancher Desktop
 
-K3s uses the [service load balancer](https://docs.k3s.io/networking#service-load-balancer) to create a daemonset with a `nodePort` for each service of type `LoadBalancer`. Garden installs a NGINX ingress controller by default. ServiceLB will create the `nodePort` on the ports 80 and 443 as specified by the ingress controller. This `nodePort` is in most cases in the VM running rancher-desktop, K3s or K3ds. Therefore there are two options to make that endpoint reachable.
+K3s and its derivatives use the [Service Load Balancer](https://docs.k3s.io/networking#service-load-balancer) (ServiceLB) as a LoadBalancer controller. ServiceLB is ingress controller agnostic. By default, Garden installs an NGINX ingress controller to expose domains on common ports. 
 
-1. Get the IP of the VM and add an entry to your computer's `/etc/hosts` file for your ingress domain:
+On macOS and Windows, Rancher Desktop creates a bridged network to serve local domain URLs. This means that you can access your local domains on the host machine. 
 
-```
-$ kubectl get svc garden-nginx-ingress-nginx-controller -n garden-system -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
-198.19.249.189
-$ echo "198.19.249.189 vote.local.demo.garden" >> /etc/hosts
-```
+For users of k3d on any macOS or Linux you'll need to do some extra configuration to expose your local domains
 
-2. Port-forward nginx so you can access your ingresses on localhost:
+You can direct your ingress domain to the IP of the VM by adding an entry to the `/etc/hosts` file on your computer. Use the following command:
 
-```
-$ kubectl port-forward --namespace=garden-system service/garden-nginx-ingress-nginx-controller 8080:80
-$ echo "127.0.0.1 vote.local.demo.garden" >> /etc/hosts
+```bash
+echo "$(kubectl get node/lima-rancher-desktop -o json | jq -r '.status.addresses[] | select(.type=="InternalIP").address') vote.local.demo.garden" | sudo tee -a /etc/hosts
 ```
 
-See also [setup NGINX Ingress Controller](https://docs.rancherdesktop.io/how-to-guides/setup-NGINX-Ingress-Controller/) for more information.
+Replace `vote.local.demo.garden` with the domain you want to use.
 
-If you want to use the traefik ingress controller shipped with K3s distros make sure to remove the parts from the installation instructions where we disable traefik. In your Garden project configuration set `setupIngressController: false` set in your Garden project file. You will also need to apply one of the two methods described above, supplying traefik's service in approach two.
+For users of Rancher Desktop users _on Linux_ you'll need to port forward the NGINX ingress controller to access your local domains. Use the following command:
+
+```bash
+kubectl port-forward --namespace=garden-system service/garden-nginx-ingress-nginx-controller 8080:80
+```
+
+Then you can access your local domains on port 8080. For example, `http://vote.local.demo.garden:8080`.
+
+See also Rancher Desktop's [Setup NGINX Ingress Controller](https://docs.rancherdesktop.io/how-to-guides/setup-NGINX-Ingress-Controller/) for more information.
+
+#### Using an alternative ingress controller
+
+If you prefer to use the Traefik ingress controller included with k3s distributions, you must modify the installation instructions for [Rancher Desktop](#rancher-desktop) and [k3d](#k3d) by removing any parts where Traefik is disabled. In your Garden project configuration file, set `setupIngressController: false``. Additionally, apply one of the two methods described above, specifying Traefik's service in the second approach.
