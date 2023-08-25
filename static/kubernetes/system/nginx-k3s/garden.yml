@@ -14,7 +14,8 @@ values:
   controller:
     extraArgs:
       default-backend-service: ${var.namespace}/default-backend
-    kind: DaemonSet
+    kind: Deployment
+    replicaCount: 1
     updateStrategy:
       type: RollingUpdate
       rollingUpdate:
