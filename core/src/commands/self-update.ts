@@ -34,6 +34,7 @@ const selfUpdateArgs = {
 const selfUpdateOpts = {
   "force": new BooleanParameter({
     help: `Install the Garden CLI even if the specified or detected latest version is the same as the current version.`,
+    aliases: ["f"],
   }),
   "install-dir": new StringParameter({
     help: `Specify an installation directory, instead of using the directory of the Garden CLI being used. Implies --force.`,

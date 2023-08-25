@@ -50,7 +50,7 @@ export const deployArgs = {
 }
 
 export const deployOpts = {
-  "force": new BooleanParameter({ help: "Force re-deploy." }),
+  "force": new BooleanParameter({ help: "Force re-deploy.", aliases: ["f"] }),
   "force-build": new BooleanParameter({ help: "Force re-build of build dependencies." }),
   "watch": watchParameter,
   "sync": new StringsParameter({
