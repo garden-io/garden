@@ -178,3 +178,11 @@ See also Rancher Desktop's [Setup NGINX Ingress Controller](https://docs.rancher
 ### Using an alternative ingress controller
 
 If you prefer to use the Traefik ingress controller included with k3s distributions, you must modify the installation instructions for [Rancher Desktop](#rancher-desktop) and [k3d](#k3d) by removing any parts where Traefik is disabled. In your Garden project configuration file, set `setupIngressController: false``. Additionally, apply one of the two methods described above, specifying Traefik's service in the second approach.
+
+## Moving between Rancher Desktop and Docker Desktop
+
+If you wish to move from Rancher Desktop to Docker Desktop, or vice versa, you will need to follow a few steps:
+
+1. Uninstall either Rancher Desktop or Docker Desktop.
+2. Delete or back up your `~/.kube` directory. This is especially important for Windows users because Docker Desktop treats the `~/.kube` directory as a symlink.
+3. Delete or back up your `~/.docker` directory. Docker Desktop sets entries in the `~/.docker/config.json` file that expect Docker Desktop to be running. If you don't delete this file, you will get errors when you try to run `docker` build commands.
