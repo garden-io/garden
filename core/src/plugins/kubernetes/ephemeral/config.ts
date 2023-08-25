@@ -14,6 +14,8 @@ import { ConfigureProviderParams } from "../../../plugin/handlers/Provider/confi
 import { containerRegistryConfigSchema } from "../../container/config"
 import { KubernetesConfig, k8sContextSchema, kubernetesConfigBase } from "../config"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral"
+import chalk from "chalk"
+import moment from "moment"
 
 export const configSchema = () =>
   kubernetesConfigBase().keys({
@@ -24,7 +26,7 @@ export const configSchema = () =>
 
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
   const { base, log, projectName, ctx, config: baseConfig } = params
-  log.info(`Configuring ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider`)
+  log.info(`Configuring ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider for project ${projectName}`)
   if (!ctx.cloudApi) {
     throw new Error(
       `You are not logged in. You must be logged into Garden Cloud in order to use ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider.`
@@ -32,16 +34,18 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   }
   const ephemeralClusterDirPath = join(ctx.gardenDirPath, "ephemeral-kubernetes")
   await mkdirp(ephemeralClusterDirPath)
-  log.info("Getting ephemeral kubernetes cluster")
-  const newClusterResponse = await ctx.cloudApi.createEphemeralCluster()
-  const newClusterId = newClusterResponse.clustetId
-  log.info("Getting kubeconfig for the cluster")
-  const kubeConfig = await ctx.cloudApi.getKubeConfigForCluster(newClusterId)
+  log.info("Creating ephemeral kubernetes cluster")
+  const createEphemeralClusterResponse = await ctx.cloudApi.createEphemeralCluster()
+  const clusterId = createEphemeralClusterResponse.instanceMetadata.instanceId
+  log.info(`Ephemeral kubernetes cluster created successfully`)
+  log.info(chalk.white(`Ephemeral cluster will be destroyed at ${moment(createEphemeralClusterResponse.instanceMetadata.deadline).format('YYYY-MM-DD HH:mm:ss')}`))
+  log.info("Getting Kubeconfig for the cluster")
+  const kubeConfig = await ctx.cloudApi.getKubeConfigForCluster(clusterId)
 
-  const kubeconfigFileName = `${newClusterId}-kubeconfig.yaml`
+  const kubeconfigFileName = `${clusterId}-kubeconfig.yaml`
   const kubeConfigPath = join(ctx.gardenDirPath, "ephemeral-kubernetes", kubeconfigFileName)
   await writeFile(kubeConfigPath, kubeConfig)
-  log.info(`kubeconfig saved at path: ${kubeConfigPath}`)
+  log.info(`Kubeconfig for ephemeral cluster saved at path: ${chalk.underline(kubeConfigPath)}`)
 
   const parsedKubeConfig: any = load(kubeConfig)
   const currentContext = parsedKubeConfig["current-context"]
@@ -50,12 +54,12 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
 
   // set deployment registry
   baseConfig.deploymentRegistry = {
-    hostname: newClusterResponse.registry.endpointAddress,
-    namespace: newClusterResponse.registry.repository,
+    hostname: createEphemeralClusterResponse.registry.endpointAddress,
+    namespace: createEphemeralClusterResponse.registry.repository,
     insecure: false,
   }
   // set default hostname
-  baseConfig.defaultHostname = `${newClusterId}.fra1.namespaced.app`
+  baseConfig.defaultHostname = `${clusterId}.fra1.namespaced.app`
   // set imagePullSecrets
   baseConfig.imagePullSecrets = [
     {
@@ -68,14 +72,12 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   // set additional kaniko flags
   baseConfig.kaniko = {
     extraFlags: [
-      `--registry-mirror=${newClusterResponse.registry.endpointAddress}`,
-      "--registry-mirror=10.0.0.1:6001",
+      `--registry-mirror=${createEphemeralClusterResponse.registry.endpointAddress}`,
+      `--registry-mirror=${createEphemeralClusterResponse.registry.dockerRegistryMirror}`,
       "--insecure-pull",
       "--force",
     ],
   }
-
-  // baseConfig.setupIngressController = "nginx"
 
   params.config = baseConfig
   let { config: updatedConfig } = await base!(params)

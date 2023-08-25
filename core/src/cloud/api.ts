@@ -9,7 +9,7 @@
 import { IncomingHttpHeaders } from "http"
 
 import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
-import { CloudApiError } from "../exceptions"
+import { CloudApiError, InternalError } from "../exceptions"
 import { Log } from "../logger/log-entry"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
 import { Cookie } from "tough-cookie"
@@ -123,6 +123,33 @@ export interface GetSecretsParams {
   log: Log
   projectId: string
   environmentName: string
+}
+
+export interface GetEphemeralClusterKubeconfigResponse {
+  success: string
+  data: {
+    kubeconfig: string
+  }
+}
+export interface EphemeralClusterImageRegistry {
+  endpointAddress: string
+  repository: string
+  dockerRegistryMirror: string
+}
+export interface EphemeralClusterInstanceMetadata {
+  instanceId: string
+  status: string
+  createdAt: string
+  deadline: string
+  destroyedAt?: string
+}
+
+export interface CreateEphemeralClusterResponse {
+  success: string
+  data: {
+    instanceMetadata: EphemeralClusterInstanceMetadata
+    registry: EphemeralClusterImageRegistry
+  }
 }
 
 function toCloudProject(
@@ -772,37 +799,30 @@ export class CloudApi {
   }
 
   async createEphemeralCluster(): Promise<{
-    clustetId: string
-    registry: {
-      endpointAddress: string
-      repository: string
-    }
+    instanceMetadata: EphemeralClusterInstanceMetadata
+    registry: EphemeralClusterImageRegistry
   }> {
-    let response: any
     try {
-      response = await this.post(`/ephemeral-cluster/`)
+      const response = await this.post<CreateEphemeralClusterResponse>(`/ephemeral-clusters/`)
+      return {
+        instanceMetadata: response.data?.instanceMetadata,
+        registry: response.data?.registry,
+      }
     } catch (err) {
       this.log.debug(`Create ephemeral cluster failed with error, ${err}`)
       throw err
-    }
-    return {
-      clustetId: response.data?.metadata?.instanceId,
-      registry: {
-        endpointAddress: response.data?.registry?.endpointAddress,
-        repository: response.data?.registry?.repository,
-      },
     }
   }
 
-  async getKubeConfigForCluster(clusterId: string): Promise<any> {
-    let response: any
-
+  async getKubeConfigForCluster(clusterId: string): Promise<string> {
     try {
-      response = await this.get(`/ephemeral-cluster/${clusterId}/kubeconfig`)
+      const response = await this.get<GetEphemeralClusterKubeconfigResponse>(
+        `/ephemeral-clusters/${clusterId}/kubeconfig`
+      )
+      return response.data.kubeconfig
     } catch (err) {
-      this.log.debug(`Create ephemeral cluster failed with error, ${err}`)
-      throw err
+      this.log.debug(`Error in fetching Kubeconfig for the ephemeral cluster, ${err}`)
+      throw new InternalError({ message: "Error in fetching Kubeconfig for the ephemeral cluster", detail: clusterId })
     }
-    return response.data.kubeconfig
   }
 }
