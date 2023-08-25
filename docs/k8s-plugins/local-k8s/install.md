@@ -153,7 +153,7 @@ In your `project.garden.yml` file, add the following configuration under your `l
 
 K3s and its derivatives use the [Service Load Balancer](https://docs.k3s.io/networking#service-load-balancer) (ServiceLB) as a LoadBalancer controller. ServiceLB is ingress controller agnostic. By default, Garden installs an NGINX ingress controller to expose domains on common ports.
 
-On macOS and Windows, Rancher Desktop creates a bridged network to serve local domain URLs. This means that you can access your local domains on the host machine. Note that you need to [allow administrative](https://docs.rancherdesktop.io/ui/preferences/application/general/#administrative-access) access to rancher-desktop in order for this to work.
+On macOS and Windows, Rancher Desktop creates a bridged network to serve local domain URLs. This means that you can access your local domains on the host machine. Note that you need to [allow administrative access](https://docs.rancherdesktop.io/ui/preferences/application/general/#administrative-access) for rancher-desktop in order for this to work.
 
 For users of k3d on macOS or Linux you'll need to do some extra configuration to expose your local domains.
 
