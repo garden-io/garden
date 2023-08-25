@@ -38,7 +38,13 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   const createEphemeralClusterResponse = await ctx.cloudApi.createEphemeralCluster()
   const clusterId = createEphemeralClusterResponse.instanceMetadata.instanceId
   log.info(`Ephemeral kubernetes cluster created successfully`)
-  log.info(chalk.white(`Ephemeral cluster will be destroyed at ${moment(createEphemeralClusterResponse.instanceMetadata.deadline).format('YYYY-MM-DD HH:mm:ss')}`))
+  log.info(
+    chalk.white(
+      `Ephemeral cluster will be destroyed at ${moment(createEphemeralClusterResponse.instanceMetadata.deadline).format(
+        "YYYY-MM-DD HH:mm:ss"
+      )}`
+    )
+  )
   log.info("Getting Kubeconfig for the cluster")
   const kubeConfig = await ctx.cloudApi.getKubeConfigForCluster(clusterId)
 
