@@ -114,12 +114,6 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     if (config.setupIngressController === "nginx") {
       providerLog.debug("Using k3s conformant nginx ingress controller")
       remove(_systemServices, (s) => nginxServices.includes(s))
-      let versions: K8sClientServerVersions | undefined
-      try {
-        versions = await getK8sClientServerVersions(config.context)
-      } catch (err) {
-        providerLog.debug("failed to get k8s version with error: " + err)
-      }
       _systemServices.push("nginx-k3s")
     }
   }
