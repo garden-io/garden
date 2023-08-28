@@ -17,7 +17,7 @@ jobs:
   actionlint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # 3.0.2
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # 3.0.2
       - name: Download actionlint
         run: |
           curl -s -L -o actionlint.tar.gz "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
