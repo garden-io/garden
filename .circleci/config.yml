@@ -1098,7 +1098,7 @@ workflows:
           requires: [build]
           kindNodeImage: kindest/node:v1.26.3@sha256:61b92f38dff6ccc29969e7aa154d34e38b89443af1a2c14e6cfbd2df6419c66f
       - test-k3s:
-          name: vm-1.27-kind
+          name: vm-1.27-k3s
           requires: [build]
           k3sVersion: v1.27.4+k3s1
 
