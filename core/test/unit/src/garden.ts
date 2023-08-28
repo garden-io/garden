@@ -661,7 +661,6 @@ describe("Garden", () => {
               needsBuild: true,
               handlers: {
                 configure: async ({ moduleConfig }) => ({ moduleConfig }),
-                suggestModules: async () => ({ suggestions: [] }),
               },
             },
           ],
@@ -738,9 +737,6 @@ describe("Garden", () => {
         const getModuleOutputsHandler = spec.handlers.getModuleOutputs!
         expect(getModuleOutputsHandler).to.exist
         expect(getModuleOutputsHandler.base).to.not.exist
-
-        const suggestModulesHandler = spec.handlers.suggestModules!
-        expect(suggestModulesHandler).to.not.exist
       })
 
       it("should throw when a module type has a base that is not defined", async () => {

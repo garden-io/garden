@@ -657,35 +657,6 @@ Examples:
   | `--name` |  | string | Name of the project (defaults to current directory name).
 
 
-### garden create module
-
-**Create a new Garden module.**
-
-Creates a new Garden module configuration. The generated config includes some default values, as well as the
-schema of the config in the form of commentented-out fields.
-
-Examples:
-
-    garden create module                      # create a Garden module config in the current directory
-    garden create module --dir some-dir       # create a Garden module config in the ./some-dir directory
-    garden create module --name my-module     # set the module name to my-module
-    garden create module --interactive=false  # don't prompt for user inputs when creating the module
-
-#### Usage
-
-    garden create module [options]
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--dir` |  | path | Directory to place the module in (defaults to current directory).
-  | `--filename` |  | string | Filename to place the module config in (defaults to garden.yml).
-  | `--interactive` |  | boolean | Set to false to disable interactive prompts.
-  | `--name` |  | string | Name of the module (defaults to current directory name).
-  | `--type` |  | string | The module type to create. Required if --interactive&#x3D;false.
-
-
 ### garden cleanup namespace
 
 **Deletes a running namespace.**

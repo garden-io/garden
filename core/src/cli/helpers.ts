@@ -471,7 +471,6 @@ const popularCommandFullNames = memoize(() => {
     "cleanup deploy",
     "cleanup namespace",
     "community",
-    "create module",
     "create project",
     "options",
     "publish",
