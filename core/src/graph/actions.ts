@@ -586,7 +586,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   })
 
   function resolveTemplates() {
-    // Fully resolve built-in fields that only support ProjectConfigContext
+    // Fully resolve built-in fields that only support `ActionConfigContext`.
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
     const resolvedBuiltin = resolveTemplateStrings(pick(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: false,

@@ -166,9 +166,6 @@ export async function readConfigFile(configPath: string, projectRoot: string) {
   }
 }
 
-/**
- * Each YAML document in a garden.yml file defines a project, a module or a workflow.
- */
 export function prepareResource({
   log,
   spec,
