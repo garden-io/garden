@@ -748,6 +748,46 @@ jobs:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project
 
+  test-k3s:
+    machine:
+      <<: *shared-machine-config
+    resource_class: large
+    parameters:
+      k3sVersion:
+        description: The k3s version to use
+        type: string
+        default: v1.27.4+k3s1
+      skipTests:
+        description: Integ test groups to skip
+        type: string
+        default: "kaniko remote-only"
+    environment:
+      <<: *shared-env-config
+      INSTALL_K3S_VERSION: <<parameters.k3sVersion>>
+      KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      GARDEN_LOG_LEVEL: debug
+    steps:
+      - checkout
+      - install_kubectl
+      - docker_login
+      - configure_git
+      - npm_install:
+          context: vm
+      - *attach-workspace
+      - run:
+          name: Install K3s and start cluster
+          command: |
+            curl -sfL https://get.k3s.io | sh -s - --docker --disable=traefik --write-kubeconfig-mode=644
+      - run:
+          name: Integ tests
+          # Note: We skip tests that only work for remote environments
+          command: |
+            cd core
+            GARDEN_SKIP_TESTS="<<parameters.skipTests>>" yarn _integ
+      - run:
+          name: Deploy demo-project
+          command: ./bin/garden deploy --root examples/demo-project
+
   test-macos:
     macos:
       xcode: "13.4.1"
@@ -1057,6 +1097,11 @@ workflows:
           name: vm-1.26-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.26.3@sha256:61b92f38dff6ccc29969e7aa154d34e38b89443af1a2c14e6cfbd2df6419c66f
+      - test-k3s:
+          name: vm-1.27-k3s
+          requires: [build]
+          # version v1.27.4+k3s1 fails with this issue https://github.com/moby/moby/issues/45935
+          k3sVersion: v1.27.2+k3s1
 
       - test-plugins:
           requires: [build]

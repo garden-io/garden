@@ -1,0 +1,33 @@
+kind: Module
+description: Ingress controller for garden development
+name: nginx-k3s
+type: helm
+repo: https://kubernetes.github.io/ingress-nginx
+chart: ingress-nginx
+releaseName: garden-nginx
+atomicInstall: false
+dependencies:
+  - default-backend
+version: 4.0.13
+values:
+  name: ingress-controller
+  controller:
+    extraArgs:
+      default-backend-service: ${var.namespace}/default-backend
+    kind: Deployment
+    replicaCount: 1
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
+    minReadySeconds: 1
+    tolerations: ${var.system-tolerations}
+    nodeSelector: ${var.system-node-selector}
+    admissionWebhooks:
+      enabled: false
+    ingressClassResource:
+      name: nginx
+      enabled: true
+      default: true
+  defaultBackend:
+    enabled: false
