@@ -232,19 +232,7 @@ This bootstraps a boilerplate `garden.yml` with a project definition in the curr
 garden create project
 ```
 
-### Creating a module
-
-{% hint style="warning" %}
-Modules are deprecated and will be removed in version `0.14`. Please use [actions](#creating-an-action) instead.
-{% endhint %}
-
-This bootstraps a boilerplate `garden.yml` with a module definition in the current directory. You'll get an interactive menu to select a module type. You may get suggestions for appropriate module types, depending on which files are found in the directory (such as a `container` module when a `Dockerfile` is found).
-
-```sh
-garden create module
-```
-
-### Creating an action
+### Creating actions
 
 See the [actions guide](./actions.md) to learn more about actions and how to create them.
 

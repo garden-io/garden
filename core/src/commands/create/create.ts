@@ -8,11 +8,10 @@
 
 import { CommandGroup } from "../base"
 import { CreateProjectCommand } from "./create-project"
-import { CreateModuleCommand } from "./create-module"
 
 export class CreateCommand extends CommandGroup {
   name = "create"
-  help = "Create new project or module."
+  help = "Create new project."
 
-  subCommands = [CreateProjectCommand, CreateModuleCommand]
+  subCommands = [CreateProjectCommand]
 }
