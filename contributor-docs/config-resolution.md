@@ -5,13 +5,13 @@ This doc explains the high-level steps that Garden takes to go from config files
 This includes:
 * The steps involved in resolving Garden template strings into concrete values. For example:
   * E.g. `${environment.name}.mydomain.com` -> `dev.mydomain.com`
-  * or `${actions.build.api.deployment-image-id}` -> `some-registry.io/my-org/api:v-abf3f8dca`.
+  * or `${actions.build.api.outputs.deployment-image-id}` -> `some-registry.io/my-org/api:v-abf3f8dca`.
 * Applying structural template operators (e.g. `$merge` and `$concat`).
 * Garden's multi-pass approach to config resolution, including partial resolution.
 * The config graph and the process of creating it (from files on disk to resolved action configs).
 * How module configs are converted to action configs in 0.13.
 
-Like in the [graph execution doc](./graph-execution-overview.md), we'll start from the bottom up, looking at how template strings are resolved (and how structural operators are applied).
+Like in the [graph execution doc](./graph-execution.md), we'll start from the bottom up, looking at how template strings are resolved (and how structural operators are applied).
 
 Then we'll move on to describing the high-level resolution flow and how it provides the necessary template context data for the next resolution step.
 
@@ -130,7 +130,7 @@ At a high level, these are the steps that Garden takes to fully resolve a projec
   * For example, a security scanning plugin for container images might want to inject a validation `Test` action as a depedency for each matching `container` Build in the graph.
 * The config graph is converted into an immutable config graph (a `ConfigGraph` instance) and returned at the end of `Garden#getConfigGraph`.
 * Next, the command will usually call `garden.processTasks` on a list of tasks wrapping actions fetched from the config graph returned by the previous step.
-* The solver will then fully resolve any required actions in dependency order (phase 2 of action resolution), so that the outputs of dependency actions are made available for full template resolution of the `spec` field of the tasks' actions—see the [graph execution guide](./graph-execution-overview.md) for more details on the solver flow.
+* The solver will then fully resolve any required actions in dependency order (phase 2 of action resolution), so that the outputs of dependency actions are made available for full template resolution of the `spec` field of the tasks' actions—see the [graph execution guide](./graph-execution.md) for more details on the solver flow.
 
 Next, we'll take a deeper look at some of the more involved steps above.
 
@@ -175,7 +175,7 @@ We recommend closely reading the source for the finer details. The `actionFromCo
 
 ### Phase 2 of action resolution: Full resolution in solver just before task execution
 
-For more details on how the solver resolves and executes actions, see the [graph execution doc](./graph-execution-overview.md)—especially the section on status dependencies VS process dependencies, and implicit dependencies from template references.
+For more details on how the solver resolves and executes actions, see the [graph execution doc](./graph-execution.md)—especially the section on status dependencies VS process dependencies, and implicit dependencies from template references.
 
 The static and runtime outputs of dependency actions are populated into the `ActionSpecContext` used to fully resolve action specs and variables (see also: `ActionReferencesContext` and the `actions` and `runtime` keys under `ActionSpecContext`).
 
