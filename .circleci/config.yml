@@ -1100,7 +1100,8 @@ workflows:
       - test-k3s:
           name: vm-1.27-k3s
           requires: [build]
-          k3sVersion: v1.27.4+k3s1
+          # version v1.27.4+k3s1 fails with this issue https://github.com/moby/moby/issues/45935
+          k3sVersion: v1.27.2+k3s1
 
       - test-plugins:
           requires: [build]
