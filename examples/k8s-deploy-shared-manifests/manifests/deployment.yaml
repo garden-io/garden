@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${var.appName}
+  labels:
+    app: ${var.appName}
+spec:
+  replicas: ${var.replicas}
+  selector:
+    matchLabels:
+      app: ${var.appName}
+  template:
+    metadata:
+      labels:
+        app: ${var.appName}
+    spec:
+      imagePullSecrets:
+        - name: ${var.imagePullSecret}
+      containers:
+        - name: ${var.appName}
+          image: "${actions.build[var.appName].outputs.deployment-image-id}"
+          imagePullPolicy: IfNotPresent
+          args: ${jsonEncode(var.containerArgs)}
+          env: ${jsonEncode(var.env)}
+          ports: ${jsonEncode(var.containerPorts)}
+          livenessProbe:
+            failureThreshold: 30
+            httpGet:
+              path: ${var.healthCheckPath}
+              port: ${var.containerPorts[0].containerPort}
+              scheme: HTTP
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 3
+          readinessProbe:
+            failureThreshold: 90
+            httpGet:
+              path: ${var.healthCheckPath}
+              port: ${var.containerPorts[0].containerPort}
+              scheme: HTTP
+            initialDelaySeconds: 2
+            periodSeconds: 1
+            successThreshold: 2
+            timeoutSeconds: 3
+          resources: ${jsonEncode(var.resources)}
+          securityContext:
+            allowPrivilegeEscalation: false
