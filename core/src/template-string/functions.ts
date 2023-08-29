@@ -13,7 +13,7 @@ import { camelCase, escapeRegExp, isArrayLike, isEmpty, isString, kebabCase, key
 import { joi, JoiDescription, joiPrimitive, Primitive } from "../config/common"
 import Joi from "@hapi/joi"
 import { validateSchema } from "../config/validation"
-import { load, loadAll } from "js-yaml"
+import { load, safeLoadAll } from "js-yaml"
 import { safeDumpYaml } from "../util/serialization"
 import indentString from "indent-string"
 import { maybeTemplateString } from "./template-string"
@@ -375,7 +375,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
         ],
       },
     ],
-    fn: (str: string, multi?: boolean) => (multi ? loadAll(str) : load(str)),
+    fn: (str: string, multi?: boolean) => (multi ? safeLoadAll(str) : load(str)),
   },
   {
     name: "yamlEncode",

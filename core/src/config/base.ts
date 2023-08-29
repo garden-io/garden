@@ -8,7 +8,7 @@
 
 import dotenv = require("dotenv")
 import { sep, resolve, relative, basename, dirname, join } from "path"
-import { load, loadAll } from "js-yaml"
+import { load, safeLoadAll } from "js-yaml"
 import { lint } from "yaml-lint"
 import { pathExists, readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
@@ -89,7 +89,7 @@ export const allConfigKinds = ["Module", "Workflow", "Project", configTemplateKi
  */
 export async function loadAndValidateYaml(content: string, path: string): Promise<any[]> {
   try {
-    return loadAll(content) || []
+    return safeLoadAll(content) || []
   } catch (err) {
     // We try to find the error using a YAML linter
     try {

@@ -9,7 +9,7 @@
 import { resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
 import { flatten, set } from "lodash"
-import { loadAll } from "js-yaml"
+import { safeLoadAll } from "js-yaml"
 
 import { KubernetesModule } from "./module-config"
 import { KubernetesResource } from "../types"
@@ -184,7 +184,7 @@ export async function readManifests(
         log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
         const str = (await readFile(absPath)).toString()
         const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
-        return loadAll(resolved)
+        return safeLoadAll(resolved)
       })
     )
   )
@@ -214,7 +214,7 @@ export async function readManifests(
         log,
         args: ["build", spec.kustomize.path, ...extraArgs],
       })
-      kustomizeManifests = loadAll(kustomizeOutput)
+      kustomizeManifests = safeLoadAll(kustomizeOutput)
     } catch (error) {
       throw new PluginError({
         message: `Failed resolving kustomize manifests: ${error.message}`,
