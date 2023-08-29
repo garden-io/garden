@@ -14,7 +14,7 @@ import Router = require("koa-router")
 import type PTY from "node-pty-prebuilt-multiarch"
 import websockify from "koa-websocket"
 import bodyParser = require("koa-bodyparser")
-
+// TODO: switch from get-port-please to get-port once get-port is upgraded to v6.0+ which is ESM only
 const { getPort } = require("get-port-please")
 import { isArray, omit } from "lodash"
 
