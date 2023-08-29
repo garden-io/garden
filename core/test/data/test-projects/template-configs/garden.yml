@@ -15,6 +15,10 @@ kind: Module
 type: templated
 template: k8s-container
 name: templated-module-based
+inputs:
+  # If the template string isn't resolved ahead of input validation, it will fail
+  # (since the schema expects a boolean value here, not a string).
+  some_flag: ${environment.name == "default"}
 
 ---
 kind: RenderTemplate
