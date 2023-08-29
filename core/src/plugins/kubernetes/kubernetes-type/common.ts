@@ -116,7 +116,7 @@ export function gardenNamespaceAnnotationValue(namespaceName: string) {
 /**
  * Verifies that there are no duplicates for every name, kind and namespace.
  *
- * This verification is important because otherwise this would throw off the action cache.
+ * This verification is important because otherwise this error would lead to several kinds of undefined behaviour.
  */
 export function validateDeclaredManifests(declaredManifests: DeclaredManifest[]) {
   const renderManifestDeclaration = (m: DeclaredManifest): string => {
