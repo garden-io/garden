@@ -10,34 +10,51 @@ import nock from "nock"
 import { expect } from "chai"
 
 import { GardenCli } from "../../../../src/cli/cli"
-import { GlobalConfigStore } from "../../../../src/config-store/global"
 import { TestGarden, enableAnalytics, makeTestGardenA } from "../../../helpers"
 import { Command } from "../../../../src/commands/base"
 import { isEqual } from "lodash"
 import { TestGardenCli } from "../../../helpers/cli"
+import { AnalyticsHandler } from "../../../../src/analytics/analytics"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants"
+import { CloudApi, CloudUserProfile } from "../../../../src/cloud/api"
+import { uuidv4 } from "../../../../src/util/random"
+import { getRootLogger } from "../../../../src/logger/logger"
+import path from "path"
 
 // TODO: These tests are skipped because they fail repeatedly in CI, but works fine locally
 describe("cli analytics", () => {
   let cli: GardenCli
-  const globalConfigStore = new GlobalConfigStore()
+
+  let garden: TestGarden
+  let resetAnalyticsConfig: Function
+
+  before(async () => {
+    nock.disableNetConnect()
+  })
+
+  after(async () => {
+    nock.enableNetConnect()
+    nock.cleanAll()
+  })
 
   beforeEach(async () => {
-    cli = new TestGardenCli()
     garden = await makeTestGardenA()
+    const configStoreDir = path.dirname(garden.globalConfigStore.getConfigPath())
+    // initialize based on the garden project temp dir to avoid using the default global config
+    cli = new TestGardenCli({ globalConfigStoreDir: configStoreDir })
     resetAnalyticsConfig = await enableAnalytics(garden)
   })
 
   afterEach(async () => {
     if (cli.processRecord && cli.processRecord.pid) {
-      await globalConfigStore.delete("activeProcesses", String(cli.processRecord.pid))
+      await garden.globalConfigStore.delete("activeProcesses", String(cli.processRecord.pid))
     }
 
     await resetAnalyticsConfig()
+    // make sure we get a new analytics instance after each run
+    AnalyticsHandler.clearInstance()
     nock.cleanAll()
   })
-
-  let garden: TestGarden
-  let resetAnalyticsConfig: Function
 
   class TestCommand extends Command {
     name = "test-command"
@@ -51,29 +68,49 @@ describe("cli analytics", () => {
     }
   }
 
-  it("should access the version check service", async () => {
-    const scope = nock("https://get.garden.io")
-    scope.get("/version").query(true).reply(200)
+  describe("version check service", () => {
+    beforeEach(async () => {
+      // the version check service is mocked here so its safe to enable the check in tests
+      gardenEnv.GARDEN_DISABLE_VERSION_CHECK = false
+    })
 
-    const command = new TestCommand()
-    cli.addCommand(command)
+    afterEach(async () => {
+      gardenEnv.GARDEN_DISABLE_VERSION_CHECK = true
+    })
 
-    await cli.run({ args: ["test-command"], exitOnError: false })
+    it("should access the version check service", async () => {
+      const scope = nock("https://get.garden.io")
+      scope.get("/version").query(true).reply(200)
 
-    expect(scope.done()).to.not.throw
+      const command = new TestCommand()
+      cli.addCommand(command)
+
+      await cli.run({ args: ["test-command"], exitOnError: false, cwd: garden.projectRoot })
+
+      expect(scope.done()).to.not.throw
+    })
   })
 
   it("should wait for queued analytic events to flush", async () => {
     const scope = nock("https://api.segment.io")
 
+    // Initially there is always an identify
+    scope
+      .post(`/v1/batch`, (body) => {
+        const identify = body.batch.filter((event: any) => event.type === "identify").map((event: any) => event)
+        return identify.length === 1
+      })
+      .reply(200)
+
     // Each command run result in two events:
     // 'Run Command' and 'Command Result'
+
     scope
       .post(`/v1/batch`, (body) => {
         const events = body.batch.map((event: any) => ({
-          event: event.event,
+          event: event?.event,
           type: event.type,
-          name: event.properties.name,
+          name: event.properties?.name,
         }))
 
         return isEqual(events, [
@@ -94,7 +131,7 @@ describe("cli analytics", () => {
     const command = new TestCommand()
     cli.addCommand(command)
 
-    await cli.run({ args: ["test-command"], exitOnError: false })
+    await cli.run({ args: ["test-command"], exitOnError: false, cwd: garden.projectRoot })
 
     expect(scope.done()).to.not.throw
   })
@@ -102,15 +139,142 @@ describe("cli analytics", () => {
   it("should not send analytics if disabled for command", async () => {
     const scope = nock("https://api.segment.io")
 
-    scope.post(`/v1/batch`).reply(201)
+    scope.post(`/v1/batch`).reply(200)
 
     const command = new TestCommand()
     command.enableAnalytics = false
 
     cli.addCommand(command)
 
-    await cli.run({ args: ["test-command"], exitOnError: false })
+    await cli.run({ args: ["test-command"], exitOnError: false, cwd: garden.projectRoot })
 
     expect(scope.isDone()).to.equal(false)
+    expect(scope.pendingMocks().length).to.equal(1)
+  })
+
+  it("should include project name when noProject is set", async () => {
+    const scope = nock("https://api.segment.io")
+
+    // Each command run result in two events:
+    // 'Run Command' and 'Command Result'
+    scope
+      .post(`/v1/batch`, (body) => {
+        const identify = body.batch.filter((event: any) => event.type === "identify").map((event: any) => event)
+        return identify.length === 1
+      })
+      .reply(200)
+
+    scope
+      .post(`/v1/batch`, (body) => {
+        const events = body.batch.map((event: any) => ({
+          event: event.event,
+          type: event.type,
+          name: event.properties.name,
+          projectName: event.properties.projectNameV2,
+        }))
+
+        expect(events).to.eql([
+          {
+            event: "Run Command",
+            type: "track",
+            name: "test-command",
+            projectName: AnalyticsHandler.hashV2("test-project-a"),
+          },
+          {
+            event: "Command Result",
+            type: "track",
+            name: "test-command",
+            projectName: AnalyticsHandler.hashV2("test-project-a"),
+          },
+        ])
+        return true
+      })
+      .reply(200)
+
+    const command = new TestCommand()
+    cli.addCommand(command)
+
+    await cli.run({ args: ["test-command"], exitOnError: false, cwd: garden.projectRoot })
+
+    expect(scope.done()).to.not.throw
+  })
+
+  describe("with logged in user", () => {
+    const log = getRootLogger().createLog()
+    const domain = DEFAULT_GARDEN_CLOUD_DOMAIN
+    const cloudUserId = "user-id"
+    const cloudOrganizationName = "organization-name"
+    const uniqueCloudUserId = `${cloudOrganizationName}_${cloudUserId}`
+
+    beforeEach(async () => {
+      // Save the auth token
+      const testToken = {
+        token: uuidv4(),
+        refreshToken: uuidv4(),
+        tokenValidity: 9999,
+      }
+      const userProfile: CloudUserProfile = {
+        userId: cloudUserId,
+        organizationName: cloudOrganizationName,
+        domain,
+      }
+
+      await CloudApi.saveAuthToken(log, garden.globalConfigStore, testToken, domain, userProfile)
+    })
+
+    afterEach(async () => {
+      await CloudApi.clearAuthToken(log, garden.globalConfigStore, domain)
+    })
+
+    it("should include userId and organization name when noProject is set and the user has previously logged in", async () => {
+      const scope = nock("https://api.segment.io")
+
+      // Each command run result in two events:
+      // 'Run Command' and 'Command Result'
+      scope
+        .post(`/v1/batch`, (body) => {
+          const identify = body.batch.filter((event: any) => event.type === "identify").map((event: any) => event)
+          return identify.length === 1
+        })
+        .reply(200)
+
+      scope
+        .post(`/v1/batch`, (body) => {
+          const events = body.batch.map((event: any) => ({
+            event: event.event,
+            type: event.type,
+            name: event.properties.name,
+            cloudUserId: event.properties.cloudUserId,
+            organizationName: event.properties.organizationName,
+          }))
+
+          expect(events).to.eql([
+            {
+              event: "Run Command",
+              type: "track",
+              name: "test-command",
+              cloudUserId: uniqueCloudUserId,
+              organizationName: cloudOrganizationName,
+            },
+            {
+              event: "Command Result",
+              type: "track",
+              name: "test-command",
+              cloudUserId: uniqueCloudUserId,
+              organizationName: cloudOrganizationName,
+            },
+          ])
+
+          return true
+        })
+        .reply(200)
+
+      const command = new TestCommand()
+      cli.addCommand(command)
+
+      await cli.run({ args: ["test-command"], exitOnError: false, cwd: garden.projectRoot })
+
+      expect(scope.done()).to.not.throw
+    })
   })
 })

@@ -282,7 +282,7 @@ export class AnalyticsHandler {
   private systemConfig: SystemInfo
   private isCI: boolean
   private sessionId: string
-  private pendingEvents: Map<string, SegmentEvent>
+  private pendingEvents: Map<string, SegmentEvent | IdentifyEvent>
   protected garden: Garden
   private projectMetadata: ProjectMetadata
   public isEnabled: boolean
@@ -386,7 +386,7 @@ export class AnalyticsHandler {
 
     // A user can be logged in to the community tier
     if (cloudUser) {
-      this.cloudUserId = AnalyticsHandler.makeCloudUserId(cloudUser)
+      this.cloudUserId = AnalyticsHandler.makeUniqueCloudUserId(cloudUser)
       this.cloudOrganizationName = cloudUser.organizationName
       this.cloudDomain = cloudUser.domain
     }
@@ -579,7 +579,7 @@ export class AnalyticsHandler {
     }
   }
 
-  static makeCloudUserId(cloudUser: CloudUserProfile) {
+  static makeUniqueCloudUserId(cloudUser: CloudUserProfile) {
     return `${cloudUser.organizationName}_${cloudUser.userId}`
   }
 
@@ -597,6 +597,7 @@ export class AnalyticsHandler {
       enterpriseDomain: this.enterpriseDomain,
       enterpriseDomainV2: this.enterpriseDomainV2,
       isLoggedIn: this.isLoggedIn,
+      cloudUserId: this.cloudUserId,
       ciName: this.ciName,
       customer: this.cloudOrganizationName,
       organizationName: this.cloudOrganizationName,
@@ -658,7 +659,20 @@ export class AnalyticsHandler {
     if (!this.segment || !this.isEnabled) {
       return false
     }
-    this.segment.identify(event)
+
+    const eventUid = uuidv4()
+    this.pendingEvents.set(eventUid, event)
+    this.segment.identify(event, (err: any) => {
+      this.pendingEvents.delete(eventUid)
+
+      this.log.silly(dedent`Tracking identify event.
+          Payload:
+            ${JSON.stringify(event)}
+        `)
+      if (err && this.log) {
+        this.log.debug(`Error sending identify tracking event: ${err}`)
+      }
+    })
     return event
   }
 
@@ -825,7 +839,13 @@ export class AnalyticsHandler {
       if (this.pendingEvents.size === 0 || retry >= 3) {
         if (this.pendingEvents.size > 0) {
           const pendingEvents = Array.from(this.pendingEvents.values())
-            .map((event) => event.event)
+            .map((event: SegmentEvent | IdentifyEvent) => {
+              if ("event" in event) {
+                return event.event
+              } else {
+                return event
+              }
+            })
             .join(", ")
           this.log.debug(`Timed out while waiting for events to flush: ${pendingEvents}`)
         }

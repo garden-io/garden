@@ -66,6 +66,7 @@ export interface GardenCliParams {
   plugins?: GardenPluginReference[]
   initLogger?: boolean
   cloudApiFactory?: CloudApiFactory
+  globalConfigStoreDir?: string
 }
 
 function hasHelpFlag(argv: minimist.ParsedArgs) {
@@ -81,11 +82,18 @@ export class GardenCli {
   private initLogger: boolean
   public processRecord?: GardenProcess
   protected cloudApiFactory: CloudApiFactory
+  private globalConfigStore: GlobalConfigStore
 
-  constructor({ plugins, initLogger = false, cloudApiFactory = CloudApi.factory }: GardenCliParams = {}) {
+  constructor({
+    plugins,
+    globalConfigStoreDir: globalConfigStorePath,
+    initLogger = false,
+    cloudApiFactory = CloudApi.factory,
+  }: GardenCliParams = {}) {
     this.plugins = plugins || []
     this.initLogger = initLogger
     this.cloudApiFactory = cloudApiFactory
+    this.globalConfigStore = new GlobalConfigStore(globalConfigStorePath)
 
     const commands = sortBy(getBuiltinCommands(), (c) => c.name)
     commands.forEach((command) => this.addCommand(command))
@@ -222,9 +230,7 @@ ${renderCommands(commands)}
     const commandLoggerType = command.getTerminalWriterType({ opts: parsedOpts, args: parsedArgs })
     getRootLogger().setTerminalWriter(getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType }))
 
-    const globalConfigStore = new GlobalConfigStore()
-
-    await validateRuntimeRequirementsCached(log, globalConfigStore, checkRequirements)
+    await validateRuntimeRequirementsCached(log, this.globalConfigStore, checkRequirements)
 
     command.printHeader({ log, args: parsedArgs, opts: parsedOpts })
     const sessionId = uuidv4()
@@ -239,7 +245,7 @@ ${renderCommands(commands)}
         const distroName = getCloudDistributionName(cloudDomain)
 
         try {
-          cloudApi = await this.cloudApiFactory({ log, cloudDomain, globalConfigStore })
+          cloudApi = await this.cloudApiFactory({ log, cloudDomain, globalConfigStore: this.globalConfigStore })
         } catch (err) {
           if (err instanceof CloudApiTokenRefreshError) {
             log.warn(dedent`
@@ -273,6 +279,7 @@ ${renderCommands(commands)}
         forceRefresh,
         variableOverrides: parsedCliVars,
         plugins: this.plugins,
+        globalConfigStore: this.globalConfigStore,
         cloudApi,
       }
 
@@ -324,7 +331,7 @@ ${renderCommands(commands)}
 
           if (processRecord) {
             // Update the db record for the process
-            await globalConfigStore.update("activeProcesses", String(processRecord.pid), {
+            await this.globalConfigStore.update("activeProcesses", String(processRecord.pid), {
               command: command.name,
               sessionId,
               persistent,
@@ -338,7 +345,9 @@ ${renderCommands(commands)}
           }
         }
 
-        analytics = await garden.getAnalyticsHandler()
+        if (command.enableAnalytics) {
+          analytics = await garden.getAnalyticsHandler()
+        }
 
         // Register log file writers. We need to do this after the Garden class is initialised because
         // the file writers depend on the project root.
@@ -571,8 +580,7 @@ ${renderCommands(commands)}
     }
 
     if (!processRecord) {
-      const globalConfigStore = new GlobalConfigStore()
-      processRecord = await registerProcess(globalConfigStore, command.getFullName(), args)
+      processRecord = await registerProcess(this.globalConfigStore, command.getFullName(), args)
     }
 
     this.processRecord = processRecord!

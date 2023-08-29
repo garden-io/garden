@@ -13,11 +13,23 @@ import { CloudApi, CloudUserProfile } from "../../../../src/cloud/api"
 import { uuidv4 } from "../../../../src/util/random"
 import { randomString } from "../../../../src/util/string"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
+import { makeTempDir, TempDirectory } from "../../../helpers"
 
 describe("AuthToken", () => {
   const log = getRootLogger().createLog()
-  const domain = "https://garden." + randomString()
-  const globalConfigStore = new GlobalConfigStore()
+  let domain: string
+  let globalConfigStore: GlobalConfigStore
+  let tmpDir: TempDirectory
+
+  beforeEach(async () => {
+    domain = "https://garden." + randomString()
+    tmpDir = await makeTempDir({ git: false })
+    globalConfigStore = new GlobalConfigStore(tmpDir.path)
+  })
+
+  afterEach(async () => {
+    await tmpDir.cleanup()
+  })
 
   describe("getAuthToken", () => {
     it("should return null when no auth token is present", async () => {
