@@ -111,7 +111,7 @@ export async function apply({
 
   const input = Buffer.from(encodeYamlMulti(manifests))
 
-  log.verbose(`Applying Kubernetes manifests:\n${input.toString()}`)
+  log.debug(`Applying Kubernetes manifests:\n${input.toString()}`)
 
   let args = ["apply"]
   dryRun && args.push("--dry-run")
