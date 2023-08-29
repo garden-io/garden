@@ -59,8 +59,17 @@ describe("CreateProjectCommand", () => {
         apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name,
-        environments: [{ name: "default" }],
-        providers: [{ name: "local-kubernetes" }],
+        defaultEnvironment: "local",
+        environments: [
+          { name: "local", defaultNamespace: "garden-local" },
+          { name: "remote", defaultNamespace: "garden-remote-${local.username}" },
+          { name: "staging", production: true, defaultNamespace: "staging" },
+        ],
+        providers: [
+          { name: "local-kubernetes", environments: ["local"] },
+          { name: "kubernetes", environments: ["remote"], context: null },
+          { name: "kubernetes", environments: ["staging"], context: null },
+        ],
       },
     ])
   })
@@ -130,8 +139,17 @@ describe("CreateProjectCommand", () => {
         apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "foo",
-        environments: [{ name: "default" }],
-        providers: [{ name: "local-kubernetes" }],
+        defaultEnvironment: "local",
+        environments: [
+          { name: "local", defaultNamespace: "garden-local" },
+          { name: "remote", defaultNamespace: "garden-remote-${local.username}" },
+          { name: "staging", production: true, defaultNamespace: "staging" },
+        ],
+        providers: [
+          { name: "local-kubernetes", environments: ["local"] },
+          { name: "kubernetes", environments: ["remote"], context: null },
+          { name: "kubernetes", environments: ["staging"], context: null },
+        ],
       },
     ])
   })
@@ -164,8 +182,17 @@ describe("CreateProjectCommand", () => {
         apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name,
-        environments: [{ name: "default" }],
-        providers: [{ name: "local-kubernetes" }],
+        defaultEnvironment: "local",
+        environments: [
+          { name: "local", defaultNamespace: "garden-local" },
+          { name: "remote", defaultNamespace: "garden-remote-${local.username}" },
+          { name: "staging", production: true, defaultNamespace: "staging" },
+        ],
+        providers: [
+          { name: "local-kubernetes", environments: ["local"] },
+          { name: "kubernetes", environments: ["remote"], context: null },
+          { name: "kubernetes", environments: ["staging"], context: null },
+        ],
       },
     ])
   })

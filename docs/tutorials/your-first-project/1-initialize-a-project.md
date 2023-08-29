@@ -30,14 +30,37 @@ This will create a basic boilerplate project configuration in the current direct
 ```yaml
 apiVersion: garden.io/v1
 kind: Project
-name: demo-project
+name: demo-project-start
+
+defaultEnvironment: local
+
 environments:
-  - name: default
+  - name: local
+    defaultNamespace: garden-local
+
+  - name: remote
+    defaultNamespace: garden-remote-${local.username}
+
+  - name: staging
+    production: true
+    defaultNamespace: staging
+
 providers:
   - name: local-kubernetes
+    environments:
+      - local
+
+  - name: kubernetes
+    environments:
+      - remote
+  - name: kubernetes
+    environments:
+      - staging
 ```
 
-We have one environment (`default`) and a single provider. We'll get back to this later.
+We have three environments (`local`, `remote` and `staging`) and also three provider configurations, one for each environment.
+
+For this step, we'll focus on the `local` environment. You can ignore the others for now.
 
 Next, let's create action configs for each of our two applications, starting with `backend`.
 
