@@ -314,7 +314,7 @@ export class ModuleResolver {
    */
   async resolveModuleConfig(config: ModuleConfig, dependencies: GardenModule[]): Promise<ModuleConfig> {
     const garden = this.garden
-    let inputs = {}
+    let inputs = cloneDeep(config.inputs || {})
 
     const buildPath = this.garden.buildStaging.getBuildPath(config)
 
@@ -328,7 +328,7 @@ export class ModuleResolver {
       buildPath,
       parentName: config.parentName,
       templateName: config.templateName,
-      inputs: config.inputs,
+      inputs,
       graphResults: this.graphResults,
       partialRuntimeResolution: true,
     }
@@ -350,7 +350,7 @@ export class ModuleResolver {
       )
 
       inputs = validateWithPath({
-        config: cloneDeep(config.inputs || {}),
+        config: inputs,
         configType: `inputs for module ${config.name}`,
         path: config.configPath || config.path,
         schema: template.inputsSchema,
@@ -374,7 +374,7 @@ export class ModuleResolver {
     const configContext = new ModuleConfigContext({
       ...templateContextParams,
       variables: { ...garden.variables, ...resolvedModuleVariables },
-      inputs: { ...config.inputs },
+      inputs: { ...inputs },
     })
 
     config = resolveTemplateStrings({ ...config, inputs: {}, variables: {} }, configContext, {
