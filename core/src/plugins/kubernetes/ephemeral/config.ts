@@ -16,6 +16,10 @@ import { KubernetesConfig, k8sContextSchema, kubernetesConfigBase } from "../con
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral"
 import chalk from "chalk"
 import moment from "moment"
+import { remove } from "lodash"
+
+
+// block defaultHostname
 
 export const configSchema = () =>
   kubernetesConfigBase().keys({
@@ -27,6 +31,12 @@ export const configSchema = () =>
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
   const { base, log, projectName, ctx, config: baseConfig } = params
   log.info(`Configuring ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider for project ${projectName}`)
+
+  if (projectName === 'garden-system') {
+    return {
+      config: baseConfig,
+    }
+  }
   if (!ctx.cloudApi) {
     throw new Error(
       `You are not logged in. You must be logged into Garden Cloud in order to use ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider.`
@@ -84,9 +94,15 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       "--force",
     ],
   }
-
-  params.config = baseConfig
   let { config: updatedConfig } = await base!(params)
+
+  const _systemServices = updatedConfig._systemServices
+  const nginxServices = ["ingress-controller", "default-backend"]
+  remove(_systemServices, (s) => nginxServices.includes(s))
+  _systemServices.push("nginx-ephemeral")
+  updatedConfig.setupIngressController = "nginx"
+
+  params.config = updatedConfig
   return {
     config: updatedConfig,
   }

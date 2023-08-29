@@ -15,8 +15,8 @@ import { find } from "lodash"
 import { Resolved } from "../../../actions/types"
 import { KubernetesConfig } from "../config"
 import { Provider } from "../../../config/provider"
-import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "../ephemeral/ephemeral"
-import { addEphemeralClusterIngressAnnotation, addEphemeralClusterIngressPortsAnnotation } from "../ephemeral/ingress"
+// import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "../ephemeral/ephemeral"
+// import { addEphemeralClusterIngressAnnotation, addEphemeralClusterIngressPortsAnnotation } from "../ephemeral/ingress"
 
 function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
   const port: V1ServicePort = {
@@ -46,19 +46,14 @@ export async function createServiceResources(
   }
 
   const createServiceResource = (containerAction: Resolved<ContainerDeployAction>): KubernetesResource<V1Service> => {
-    const serviceType =
-      provider?.name === EPHEMERAL_KUBERNETES_PROVIDER_NAME
-        ? "LoadBalancer"
-        : !!find(specPorts, (portSpec) => !!portSpec.nodePort)
-        ? "NodePort"
-        : "ClusterIP"
+    const serviceType = !!find(specPorts, (portSpec) => !!portSpec.nodePort) ? "NodePort" : "ClusterIP"
     const servicePorts = specPorts.map(toServicePort)
 
     const serviceMetadataAnnotations = containerAction.getSpec("annotations")
-    if (provider?.name === EPHEMERAL_KUBERNETES_PROVIDER_NAME) {
-      addEphemeralClusterIngressAnnotation(serviceMetadataAnnotations)
-      addEphemeralClusterIngressPortsAnnotation(servicePorts, serviceMetadataAnnotations)
-    }
+    // if (provider?.name === EPHEMERAL_KUBERNETES_PROVIDER_NAME) {
+    //   addEphemeralClusterIngressAnnotation(serviceMetadataAnnotations)
+    //   addEphemeralClusterIngressPortsAnnotation(servicePorts, serviceMetadataAnnotations)
+    // }
 
     return {
       apiVersion: "v1",
