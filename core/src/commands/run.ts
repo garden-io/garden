@@ -45,6 +45,7 @@ const runArgs = {
 const runOpts = {
   "force": new BooleanParameter({
     help: "Run even if the action is disabled for the environment, and/or a successful result is found in cache.",
+    aliases: ["f"],
   }),
   "force-build": new BooleanParameter({
     help: "Force re-build of Build dependencies before running.",
