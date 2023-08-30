@@ -21,6 +21,7 @@ import {
   range,
   some,
   trimEnd,
+  truncate,
   uniqBy,
 } from "lodash"
 import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
@@ -840,10 +841,23 @@ export function userPrompt(params: {
 }
 
 export function getGitHubIssueLink(title: string, type: "bug" | "feature-request") {
+  try {
+    title = encodeURIComponent(
+      truncate(title, {
+        length: 80,
+        omission: encodeURIComponent("..."),
+      })
+    ).replaceAll("'", "%27")
+  } catch (e) {
+    // encodeURIComponent might throw URIError with malformed unicode strings.
+    // The title is not that important, we can also leave it empty in that case.
+    title = ""
+  }
+
   if (type === "feature-request") {
-    return `https://github.com/garden-io/garden/issues/new?assignees=&labels=feature+request&template=FEATURE_REQUEST.md&title=%5BFEATURE%5D%3A+${title}`
+    return `https://github.com/garden-io/garden/issues/new?labels=feature+request&template=FEATURE_REQUEST.md&title=%5BFEATURE%5D%3A+${title}`
   } else {
-    return `https://github.com/garden-io/garden/issues/new?assignees=&labels=&template=BUG_REPORT.md&title=${title}`
+    return `https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md&title=${title}`
   }
 }
 

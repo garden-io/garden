@@ -172,7 +172,10 @@ export class TreeCache {
       pairs = Array.from(node.entries).map((stringKey) => {
         const entry = this.cache.get(stringKey)
         if (!entry) {
-          throw new InternalError({ message: `Invalid reference found in cache: ${stringKey}`, detail: { stringKey } })
+          throw new InternalError({
+            message: `Invalid reference found in cache: ${stringKey}`,
+            detail: { stringKey },
+          })
         }
         return <[CacheKey, CacheValue]>[entry.key, entry.value]
       })

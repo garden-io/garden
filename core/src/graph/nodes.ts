@@ -7,7 +7,7 @@
  */
 
 import { Task, ValidResultType } from "../tasks/base"
-import { GardenBaseError, InternalError, isGardenError } from "../exceptions"
+import { GardenBaseError, InternalError, toGardenError } from "../exceptions"
 import { GraphResult, GraphResultFromTask, GraphResults } from "./results"
 import type { GraphSolver } from "./solver"
 import { ValuesType } from "utility-types"
@@ -345,12 +345,14 @@ export interface GraphNodeErrorDetail extends GraphResult {
 export interface GraphNodeErrorParams extends GraphNodeErrorDetail {}
 
 export class GraphNodeError extends GardenBaseError<GraphNodeErrorDetail> {
+  // TODO: type graph is already taken by the (two) GraphError(s)
   type = "graph"
 
   constructor(params: GraphNodeErrorParams) {
     const { node, failedDependency, error } = params
 
     let message = ""
+    let stack: string | undefined
 
     if (failedDependency) {
       message = `${node.describe()} aborted because a dependency could not be completed:`
@@ -371,15 +373,17 @@ export class GraphNodeError extends GardenBaseError<GraphNodeErrorDetail> {
           }
         } else if (result?.error) {
           message += chalk.red.bold(`\n↳ ${nextDep.describe()} [FAILED] - ${result.error.message}`)
+          stack = result.error.stack
           nextDep = null
         }
       }
     } else {
       message = `${node.describe()} failed: ${error}`
+      stack = error?.stack
     }
 
-    const wrappedErrors = isGardenError(error) ? [error] : []
-    super({ message, detail: params, wrappedErrors, context: { taskType: node.task.type } })
+    const wrappedErrors = [toGardenError(error)]
+    super({ message, stack, detail: params, wrappedErrors, context: { taskType: node.task.type } })
   }
 
   aborted() {

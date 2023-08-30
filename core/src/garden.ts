@@ -40,7 +40,14 @@ import {
   getCloudDistributionName,
   getCloudLogSectionName,
 } from "./util/util"
-import { ConfigurationError, isGardenError, GardenError, InternalError, PluginError, RuntimeError } from "./exceptions"
+import {
+  ConfigurationError,
+  isGardenError,
+  GardenError,
+  PluginError,
+  RuntimeError,
+  InternalError,
+} from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"

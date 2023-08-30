@@ -13,7 +13,7 @@ import { pathExists } from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands"
 import { shutdown, getPackageVersion, getCloudDistributionName } from "../util/util"
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
-import { PluginError, toGardenError, GardenBaseError } from "../exceptions"
+import { PluginError, toGardenError, GardenBaseError, explainGardenError } from "../exceptions"
 import { Garden, GardenOpts, makeDummyGarden } from "../garden"
 import { getRootLogger, getTerminalWriterType, LogLevel, parseLogLevel, RootLogger } from "../logger/logger"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
@@ -402,6 +402,11 @@ ${renderCommands(commands)}
     processRecord?: GardenProcess
     cwd?: string
   }): Promise<RunOutput> {
+    // for testing
+    if (args.includes("--test-cli-error")) {
+      throw new Error("Test")
+    }
+
     let argv = parseCliArgs({ stringArgs: args, cli: true })
 
     const errors: (GardenBaseError | Error)[] = []
@@ -443,14 +448,19 @@ ${renderCommands(commands)}
       "logger-type": loggerTypeOpt,
       "log-level": logLevelStr,
     } = argv
-    const logger = RootLogger.initialize({
-      level: parseLogLevel(logLevelStr),
-      storeEntries: false,
-      displayWriterType: getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType: null }),
-      useEmoji: emoji,
-      showTimestamps,
-      force: this.initLogger,
-    })
+    let logger: RootLogger
+    try {
+      logger = RootLogger.initialize({
+        level: parseLogLevel(logLevelStr),
+        storeEntries: false,
+        displayWriterType: getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType: null }),
+        useEmoji: emoji,
+        showTimestamps,
+        force: this.initLogger,
+      })
+    } catch (error) {
+      return done(1, explainGardenError(error, "Failed to initialize logger"))
+    }
 
     const log = logger.createLog()
     log.verbose(`garden version: ${getPackageVersion()}`)
@@ -562,7 +572,10 @@ ${renderCommands(commands)}
       if (gardenErrors.length > 0 || (commandResult.exitCode && commandResult.exitCode !== 0)) {
         return done(
           commandResult.exitCode || 1,
-          renderer({ success: false, errors: gardenErrors }),
+          renderer({
+            success: false,
+            errors: gardenErrors,
+          }),
           commandResult?.result
         )
       } else {

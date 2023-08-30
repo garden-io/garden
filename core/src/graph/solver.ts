@@ -8,7 +8,7 @@
 
 import type { BaseTask, Task, ValidResultType } from "../tasks/base"
 import type { Log } from "../logger/log-entry"
-import { GardenBaseError, GardenError, isGardenError, toGardenError } from "../exceptions"
+import { GardenBaseError, GardenError, explainGardenError, isGardenError, toGardenError } from "../exceptions"
 import { uuidv4 } from "../util/random"
 import { DependencyGraph, metadataForLog } from "./common"
 import { Profile } from "../util/profiling"
@@ -142,6 +142,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
               error: new GraphError({
                 message: `Failed to ${result.description}: ${result.error}`,
                 detail: { results },
+                wrappedErrors: [toGardenError(result.error)],
               }),
             })
             return
@@ -492,26 +493,29 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
   private logTaskError(node: TaskNode, err: Error) {
     const log = node.task.log
-    const prefix = `Failed ${node.describe()} ${renderDuration(log.getDuration())}. Here is the output:`
+    const prefix = `Failed ${node.describe()} ${renderDuration(log.getDuration())}. This is what happened:`
     this.logError(log, err, prefix)
   }
 
   private logInternalError(node: TaskNode, err: Error) {
-    const prefix = `An internal error occurred while ${node.describe()}. Here is the output:`
+    const prefix = `An internal error occurred while ${node.describe()}. This is what happened:`
     this.logError(node.task.log, err, prefix)
   }
 
   private logError(log: Log, err: Error, errMessagePrefix: string) {
     const error = toGardenError(err)
-    const errorMessage = error.message.trim()
     const msg = renderMessageWithDivider({
       prefix: errMessagePrefix,
-      msg: errorMessage,
+      msg: explainGardenError(error, errMessagePrefix),
       isError: true,
     })
     log.error({ msg, error, showDuration: false })
     const divider = renderDivider()
-    log.silly(chalk.gray(`Full error with stack trace:\n${divider}\n${formatGardenErrorWithDetail(error)}\n${divider}`))
+    log.silly(
+      chalk.gray(
+        `Full error with stack trace and details:\n${divider}\n${formatGardenErrorWithDetail(error)}\n${divider}`
+      )
+    )
   }
 }
 
@@ -548,6 +552,7 @@ interface GraphErrorDetail {
   results: GraphResults
 }
 
+// TODO: There are two different GraphError classes
 class GraphError extends GardenBaseError<GraphErrorDetail> {
   type = "graph"
 }

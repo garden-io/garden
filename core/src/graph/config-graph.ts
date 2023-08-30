@@ -55,6 +55,7 @@ interface GetActionsParams extends GetActionOpts {
   excludeNames?: string[] // Glob patterns to exclude. An action is returned if its name matches none of these.
 }
 
+// TODO: There are two different GraphError classes
 export class GraphError extends GardenBaseError {
   type = "graph"
 }

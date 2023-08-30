@@ -24,7 +24,7 @@ import {
 import { joi } from "../config/common"
 import { CustomCommandContext } from "../config/template-contexts/custom-command"
 import { validateWithPath } from "../config/validation"
-import { ConfigurationError, GardenBaseError, InternalError, RuntimeError, toGardenError } from "../exceptions"
+import { ConfigurationError, GardenBaseError, RuntimeError, InternalError, toGardenError } from "../exceptions"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { listDirectory, isConfigFilename } from "../util/fs"
 import { Command, CommandParams, CommandResult, PrintHeaderParams } from "./base"

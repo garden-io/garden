@@ -25,7 +25,7 @@ import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline, stableStringify, splitLast, truncate } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/moduleConfig"
-import { ConfigurationError, DeploymentError, InternalError, PluginError } from "../../exceptions"
+import { ConfigurationError, DeploymentError, PluginError, InternalError } from "../../exceptions"
 import { KubernetesProvider, KubernetesPluginContext, KubernetesTargetResourceSpec } from "./config"
 import { Log } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
@@ -726,7 +726,10 @@ export async function readTargetResource({
     return api.apps.readNamespacedStatefulSet(targetName, namespace)
   } else {
     // This should be caught in config/schema validation
-    throw new InternalError({ message: `Unsupported kind specified in resource/target query`, detail: { query } })
+    throw new InternalError({
+      message: `Unsupported kind specified in resource/target query`,
+      detail: { query },
+    })
   }
 }
 

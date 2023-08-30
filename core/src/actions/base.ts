@@ -37,7 +37,7 @@ import cloneDeep from "fast-copy"
 import { flatten, fromPairs, isString, memoize, omit, sortBy } from "lodash"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import { relative } from "path"
-import { InternalError } from "../exceptions"
+import { ConfigurationError } from "../exceptions"
 import {
   Action,
   ActionConfig,
@@ -731,7 +731,7 @@ export abstract class ResolvedRuntimeAction<
       const buildAction = this.getResolvedDependencies().find((a) => a.kind === "Build" && a.name === buildName)
 
       if (!buildAction) {
-        throw new InternalError({
+        throw new ConfigurationError({
           message: `Could not find build dependency '${buildName}' specified on the build field on ${this.longDescription()}.`,
           detail: { action: this.key(), buildName },
         })

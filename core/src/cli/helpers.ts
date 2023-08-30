@@ -19,7 +19,7 @@ import { maxBy, zip } from "lodash"
 import { Logger } from "../logger/logger"
 
 import { ParameterValues, Parameter, Parameters, globalDisplayOptions } from "./params"
-import { GardenBaseError, InternalError, ParameterError, toGardenError } from "../exceptions"
+import { GardenBaseError, ParameterError, RuntimeError, toGardenError } from "../exceptions"
 import { getPackageVersion, removeSlice } from "../util/util"
 import { Log } from "../logger/log-entry"
 import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv, ERROR_LOG_FILENAME } from "../constants"
@@ -58,7 +58,8 @@ export function helpTextMaxWidth() {
 
 export async function checkForStaticDir() {
   if (!(await pathExists(STATIC_DIR))) {
-    throw new InternalError({
+    // if this happens, this is most likely not a Garden bug but some kind of corrupted installation, and the user needs to do something about it.
+    throw new RuntimeError({
       message:
         `Could not find the static data directory. Garden is packaged with a data directory ` +
         `called 'static', which should be located next to your garden binary. Please try reinstalling, ` +
