@@ -32,6 +32,8 @@ values:
     service:
       annotations:
         "kubernetes.namespace.so/expose": "true"
+        "kubernetes.namespace.so/exposed-port-80": "wildcard"
+        "kubernetes.namespace.so/exposed-port-443": "wildcard"
       type: LoadBalancer
   defaultBackend:
     enabled: false
