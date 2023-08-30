@@ -106,7 +106,8 @@ execProvider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
       }
 
       throw new RuntimeError({
-        message: `exec provider init script exited with code ${error.exitCode}`,
+        message: dedent`exec provider init script exited with code ${error.exitCode}. Script output:
+        ${error.all}`,
         detail: {
           exitCode: error.exitCode,
           stdout: error.stdout,
