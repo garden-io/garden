@@ -149,9 +149,9 @@ In your `project.garden.yml` file, add the following configuration under your `l
       namespace: ${kebabCase(local.username)}
 ```
 
-## Orbstack
+## OrbStack
 
-[Orbstack's native Kubernetes offering](https://docs.orbstack.dev/kubernetes/) works seamlessly with Garden. Follow the official installation instructions [here](https://docs.orbstack.dev/quick-start).
+[OrbStack's native Kubernetes offering](https://docs.orbstack.dev/kubernetes/) works seamlessly with Garden. Follow OrbStack's official instructions [to spin up its native Kubernetes cluster](https://docs.orbstack.dev/kubernetes/).
 
 ## A note on networking for k3s, k3d and Rancher Desktop
 
