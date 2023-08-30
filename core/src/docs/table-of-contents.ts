@@ -127,14 +127,30 @@ function sortTree(tree: FileTree) {
 
 const emojiList = ["🌸", "🌳", "🌻", "💐", "🌿", "🌺", "☘️", "🌹", "🌼", "🌷", "🪷", "🎋"]
 
-function generateMarkdown(tree: FileTree, docsRoot: string, depth: number, emojis: Set<string>) {
+function generateMarkdown({
+  tree,
+  docsRoot,
+  depth = 0,
+  topLevelPageIdx = 0,
+}: {
+  tree: FileTree
+  docsRoot: string
+  /**
+   * How deeply nested the page is. Is 0 for top-level pages.
+   */
+  depth?: number
+  /**
+   * The index of the corresponding top-level page. Used for picking emojis for
+   * top-level pages.
+   */
+  topLevelPageIdx?: number
+}) {
   const path = tree.path.replace(docsRoot, ".")
   let output: string
 
   if (depth === 0) {
-    const emoji = emojis.values().next().value
+    const emoji = emojiList[topLevelPageIdx % emojiList.length]
     output = `\n## ${emoji} ${tree.title}\n\n`
-    emojis.delete(emoji)
   } else {
     output = repeat(indent, depth - 1) + `* [${tree.title}](${path})\n`
   }
@@ -148,8 +164,13 @@ function generateMarkdown(tree: FileTree, docsRoot: string, depth: number, emoji
   if (tree.name === "README.md" || tree.emptyDir === true || tree.name === "welcome.md") {
     output = ""
   }
+
   for (let item in tree.children) {
-    output += generateMarkdown(tree.children[item], docsRoot, depth + 1, emojis)
+    output += generateMarkdown({ tree: tree.children[item], docsRoot, depth: depth + 1, topLevelPageIdx })
+    // Bump the page idx for the top level pages
+    if (tree.topLevel) {
+      topLevelPageIdx += 1
+    }
   }
   return output
 }
@@ -171,7 +192,7 @@ export function generateTableOfContents(docsRoot: string): string {
     * [Welcome!](welcome.md)
     ` +
     "\n" +
-    generateMarkdown(preparedTree, docsRoot, 0, new Set(emojiList))
+    generateMarkdown({ tree: preparedTree, docsRoot })
   )
 }
 
