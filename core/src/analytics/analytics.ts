@@ -299,7 +299,6 @@ export class AnalyticsHandler {
     isEnabled,
     ciInfo,
     projectName,
-    fallbackCloudDomain,
   }: {
     garden: Garden
     log: Log
@@ -311,7 +310,6 @@ export class AnalyticsHandler {
     cloudUser?: CloudUserProfile
     ciInfo: CiInfo
     projectName: string
-    fallbackCloudDomain?: string
   }) {
     const segmentApiKey = gardenEnv.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
@@ -388,7 +386,7 @@ export class AnalyticsHandler {
     if (cloudUser) {
       this.cloudUserId = AnalyticsHandler.makeUniqueCloudUserId(cloudUser)
       this.cloudOrganizationName = cloudUser.organizationName
-      this.cloudDomain = cloudUser.domain
+      this.isLoggedIn = true
     }
 
     this.isRecurringUser = getIsRecurringUser(analyticsConfig.firstRunAt, analyticsConfig.latestRunAt)
@@ -551,7 +549,6 @@ export class AnalyticsHandler {
       ciInfo,
       anonymousUserId,
       projectName,
-      fallbackCloudDomain,
     })
   }
 

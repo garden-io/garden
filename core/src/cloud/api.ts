@@ -351,6 +351,10 @@ export class CloudApi {
       return undefined
     }
 
+    if (authToken.validity < new Date()) {
+      return undefined
+    }
+
     if (!authToken.userId || !authToken.organizationName) {
       return undefined
     }

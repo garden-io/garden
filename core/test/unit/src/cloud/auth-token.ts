@@ -68,6 +68,26 @@ describe("AuthToken", () => {
       expect(savedProfile).to.eql(userProfile)
     })
 
+    it("should not return a user profile when the token has expired", async () => {
+      const testToken = {
+        token: uuidv4(),
+        refreshToken: uuidv4(),
+        tokenValidity: -9999,
+      }
+      const userProfile: CloudUserProfile = {
+        userId: "some-uuid",
+        organizationName: "some-org-name",
+        domain,
+      }
+
+      await CloudApi.saveAuthToken(log, globalConfigStore, testToken, domain, userProfile)
+      const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
+      expect(savedToken).to.eql(testToken.token)
+
+      const savedProfile = await CloudApi.getAuthTokenUserProfile(log, globalConfigStore, domain)
+      expect(savedProfile).to.be.undefined
+    })
+
     it("should return the value of GARDEN_AUTH_TOKEN if it's present", async () => {
       const tokenBackup = gardenEnv.GARDEN_AUTH_TOKEN
       const testToken = "token-from-env"

@@ -68,29 +68,6 @@ describe("cli analytics", () => {
     }
   }
 
-  describe("version check service", () => {
-    beforeEach(async () => {
-      // the version check service is mocked here so its safe to enable the check in tests
-      gardenEnv.GARDEN_DISABLE_VERSION_CHECK = false
-    })
-
-    afterEach(async () => {
-      gardenEnv.GARDEN_DISABLE_VERSION_CHECK = true
-    })
-
-    it("should access the version check service", async () => {
-      const scope = nock("https://get.garden.io")
-      scope.get("/version").query(true).reply(200)
-
-      const command = new TestCommand()
-      cli.addCommand(command)
-
-      await cli.run({ args: ["test-command"], exitOnError: false, cwd: garden.projectRoot })
-
-      expect(scope.done()).to.not.throw
-    })
-  })
-
   it("should wait for queued analytic events to flush", async () => {
     const scope = nock("https://api.segment.io")
 
@@ -173,7 +150,7 @@ describe("cli analytics", () => {
           projectName: event.properties.projectNameV2,
         }))
 
-        expect(events).to.eql([
+        return isEqual(events, [
           {
             event: "Run Command",
             type: "track",
@@ -187,7 +164,6 @@ describe("cli analytics", () => {
             projectName: AnalyticsHandler.hashV2("test-project-a"),
           },
         ])
-        return true
       })
       .reply(200)
 
@@ -246,15 +222,17 @@ describe("cli analytics", () => {
             name: event.properties.name,
             cloudUserId: event.properties.cloudUserId,
             organizationName: event.properties.organizationName,
+            isLoggedIn: event.properties.isLoggedIn,
           }))
 
-          expect(events).to.eql([
+          return isEqual(events, [
             {
               event: "Run Command",
               type: "track",
               name: "test-command",
               cloudUserId: uniqueCloudUserId,
               organizationName: cloudOrganizationName,
+              isLoggedIn: true,
             },
             {
               event: "Command Result",
@@ -262,12 +240,34 @@ describe("cli analytics", () => {
               name: "test-command",
               cloudUserId: uniqueCloudUserId,
               organizationName: cloudOrganizationName,
+              isLoggedIn: true,
             },
           ])
-
-          return true
         })
         .reply(200)
+
+      const command = new TestCommand()
+      cli.addCommand(command)
+
+      await cli.run({ args: ["test-command"], exitOnError: false, cwd: garden.projectRoot })
+
+      expect(scope.done()).to.not.throw
+    })
+  })
+
+  describe("version check service", () => {
+    beforeEach(async () => {
+      // the version check service is mocked here so its safe to enable the check in tests
+      gardenEnv.GARDEN_DISABLE_VERSION_CHECK = false
+    })
+
+    afterEach(async () => {
+      gardenEnv.GARDEN_DISABLE_VERSION_CHECK = true
+    })
+
+    it("should access the version check service", async () => {
+      const scope = nock("https://get.garden.io")
+      scope.get("/version").query(true).reply(200)
 
       const command = new TestCommand()
       cli.addCommand(command)
