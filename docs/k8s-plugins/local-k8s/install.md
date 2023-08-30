@@ -149,6 +149,10 @@ In your `project.garden.yml` file, add the following configuration under your `l
       namespace: ${kebabCase(local.username)}
 ```
 
+## Orbstack
+
+[Orbstack's native Kubernetes offering](https://docs.orbstack.dev/kubernetes/) works seamlessly with Garden. Follow the official installation instructions [here](https://docs.orbstack.dev/quick-start).
+
 ## A note on networking for k3s, k3d and Rancher Desktop
 
 K3s and its derivatives use the [Service Load Balancer](https://docs.k3s.io/networking#service-load-balancer) (ServiceLB) as a LoadBalancer controller. ServiceLB is ingress controller agnostic. By default, Garden installs an NGINX ingress controller to expose domains on common ports.
