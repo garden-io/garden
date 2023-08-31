@@ -20,13 +20,9 @@ export class VersionCommand extends Command {
   override noProject = true
 
   override async action(params: CommandParams): Promise<CommandResult<VersionCommandResult>> {
-    const { log, opts } = params
+    const { log } = params
     const version = getPackageVersion()
     log.info(`garden version: ${version}`)
-
-    if (opts.env === "test-command-error") {
-      throw new Error("Test")
-    }
 
     return {
       result: { version },

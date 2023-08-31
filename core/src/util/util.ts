@@ -860,7 +860,7 @@ export function getGitHubIssueLink(title: string, type: "bug" | "crash" | "featu
     case "bug":
       return `https://github.com/garden-io/garden/issues/new?labels=bug&template=BUG_REPORT.md&title=${title}`
     case "crash":
-      return `https://github.com/garden-io/garden/issues/new?labels=bug,crashtemplate=CRASH.md&title=${title}`
+      return `https://github.com/garden-io/garden/issues/new?labels=bug,crash&template=CRASH.md&title=${title}`
   }
 }
 
