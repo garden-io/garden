@@ -840,7 +840,7 @@ export function userPrompt(params: {
   return require("inquirer").prompt(params)
 }
 
-export function getGitHubIssueLink(title: string, type: "bug" | "feature-request") {
+export function getGitHubIssueLink(title: string, type: "bug" | "crash" | "feature-request") {
   try {
     title = encodeURIComponent(
       truncate(title, {
@@ -854,10 +854,13 @@ export function getGitHubIssueLink(title: string, type: "bug" | "feature-request
     title = ""
   }
 
-  if (type === "feature-request") {
-    return `https://github.com/garden-io/garden/issues/new?labels=feature+request&template=FEATURE_REQUEST.md&title=%5BFEATURE%5D%3A+${title}`
-  } else {
-    return `https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md&title=${title}`
+  switch (type) {
+    case "feature-request":
+      return `https://github.com/garden-io/garden/issues/new?labels=feature+request&template=FEATURE_REQUEST.md&title=%5BFEATURE%5D%3A+${title}`
+    case "bug":
+      return `https://github.com/garden-io/garden/issues/new?labels=bug&template=BUG_REPORT.md&title=${title}`
+    case "crash":
+      return `https://github.com/garden-io/garden/issues/new?labels=bug,crashtemplate=CRASH.md&title=${title}`
   }
 }
 

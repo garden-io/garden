@@ -166,7 +166,8 @@ export class RuntimeError extends GardenBaseError {
  * In case the network is involved, we should *not* use the "InternalError", because that's usually a situation that the user needs to resolve.
  */
 export class InternalError extends GardenBaseError {
-  type = "unexpected-crash"
+  // we want it to be obvious in amplitude data that this is not a normal error condition
+  type = "crash"
 
   // not using object destructuring here on purpose, because errors are of type any and then the error might be passed as the params object accidentally.
   static wrapError(error: Error, detail?: unknown, prefix?: string): InternalError {
@@ -239,7 +240,7 @@ export function explainGardenError(error: GardenError, context?: string) {
     return chalk.red(dedent`
     ${chalk.bold("Encountered an unexpected Garden error. We are sorry for this. This is likely a bug 🍂")}
 
-    You can help by reporting this on GitHub: ${getGitHubIssueLink(`Unexpected Crash: ${errorMessage}`, "bug")}
+    You can help by reporting this on GitHub: ${getGitHubIssueLink(`Crash: ${errorMessage}`, "crash")}
 
     Please attach the following information to the bug report after making sure that the error message does not contain sensitive information:
 

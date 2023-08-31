@@ -274,6 +274,7 @@ class FilteredError<D> extends GardenBaseError {
   type: string
 
   constructor(params: FilteredErrorParams<D>) {
+    // TODO: strip ansi on the message?
     super(params)
     this.type = params.type
   }
