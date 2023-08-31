@@ -2,6 +2,19 @@
 <a name="0.13.13"></a>
 ## [0.13.13](https://github.com/garden-io/garden/compare/0.13.12...0.13.13) (2023-08-31)
 
+### Features
+* Add support for k3s family clusters like k3s, rancher-desktop and k3ds ([#4977](https://github.com/garden-io/garden/commit/9551684e13de6e5884e605e3e9c9fc2a17e2d0e3))
+
+### Improvements
+
+* more useful "create project" yaml ([#4985](https://github.com/garden-io/garden/issues/4985)) ([012d4ea77](https://github.com/garden-io/garden/commit/012d4ea77))
+* always offer -f as alias with --force ([#4986](https://github.com/garden-io/garden/issues/4986)) ([7e2c9d1bf](https://github.com/garden-io/garden/commit/7e2c9d1bf))
+* **server:** output more debug info ([#4613](https://github.com/garden-io/garden/issues/4613)) ([0222bcbe9](https://github.com/garden-io/garden/commit/0222bcbe9))
+
+### Performance Improvements
+
+* various performance improvements ([#4959](https://github.com/garden-io/garden/issues/4959)) ([a2c5f6e2f](https://github.com/garden-io/garden/commit/a2c5f6e2f))
+
 ### Bug Fixes
 
 * ensure using next free port for dev console ([#4984](https://github.com/garden-io/garden/issues/4984)) ([738828e66](https://github.com/garden-io/garden/commit/738828e66))
@@ -16,16 +29,6 @@
 * **docs:** fix 'undefined' string in ToC ([#4987](https://github.com/garden-io/garden/issues/4987)) ([3af6af60e](https://github.com/garden-io/garden/commit/3af6af60e))
 * **jib:** make native arm maven usable on ARM macs ([#4968](https://github.com/garden-io/garden/issues/4968)) ([491fe88e8](https://github.com/garden-io/garden/commit/491fe88e8))
 * **k8s:** detect duplicate manifest declarations ([#4993](https://github.com/garden-io/garden/issues/4993)) ([eca466b88](https://github.com/garden-io/garden/commit/eca466b88))
-
-### Improvements
-
-* more useful "create project" yaml ([#4985](https://github.com/garden-io/garden/issues/4985)) ([012d4ea77](https://github.com/garden-io/garden/commit/012d4ea77))
-* always offer -f as alias with --force ([#4986](https://github.com/garden-io/garden/issues/4986)) ([7e2c9d1bf](https://github.com/garden-io/garden/commit/7e2c9d1bf))
-* **server:** output more debug info ([#4613](https://github.com/garden-io/garden/issues/4613)) ([0222bcbe9](https://github.com/garden-io/garden/commit/0222bcbe9))
-
-### Performance Improvements
-
-* various performance improvements ([#4959](https://github.com/garden-io/garden/issues/4959)) ([a2c5f6e2f](https://github.com/garden-io/garden/commit/a2c5f6e2f))
 
 <a name="0.13.12"></a>
 ## [0.13.12](https://github.com/garden-io/garden/compare/0.13.11...0.13.12) (2023-08-16)
