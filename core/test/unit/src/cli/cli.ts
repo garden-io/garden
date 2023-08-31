@@ -848,7 +848,7 @@ describe("cli", () => {
       expect(JSON.parse(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
     })
 
-    it("should output YAML if --output=json", async () => {
+    it("should output YAML if --output=yaml", async () => {
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
@@ -984,6 +984,41 @@ describe("cli", () => {
 
         const lastLine = outputLines[outputLines.length - 2] // the last line is empty due to trailing newline
         expect(lastLine).to.eql("See .garden/error.log for detailed error message")
+      })
+
+      it("Handles crash on the command level with --output=yaml correctly", async () => {
+        class TestCommand extends Command {
+          name = "test-command"
+          help = "halp!"
+          override noProject = true
+
+          override printHeader() {}
+
+          async action({}): Promise<CommandResult> {
+            const err = new Error("Some unexpected error that leads to a crash")
+            // the stack makes this hard to compare below
+            err.stack = "stack"
+            throw err
+          }
+        }
+
+        const cmd = new TestCommand()
+        cli.addCommand(cmd)
+
+        const { code, consoleOutput } = await cli.run({ args: ["test-command", "-o", "yaml"], exitOnError: false })
+
+        expect(code).to.equal(1)
+        const resultData = load(consoleOutput!) as any
+        expect(resultData).to.eql({
+          success: false,
+          errors: [
+            {
+              type: "crash",
+              message: "Some unexpected error that leads to a crash",
+              stack: "stack",
+            },
+          ],
+        })
       })
     })
   })
