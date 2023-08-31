@@ -79,7 +79,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   // set imagePullSecrets
   baseConfig.imagePullSecrets = [
     {
-      name: "nscr-credentials",
+      name: "ephemeral-registry-credentials",
       namespace: "default",
     },
   ]
