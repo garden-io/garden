@@ -467,13 +467,17 @@ ${renderCommands(commands)}
 
     // Load custom commands from current project (if applicable) and see if any match the arguments
     if (!command) {
-      projectConfig = await this.getProjectConfig(log, workingDir)
+      try {
+        projectConfig = await this.getProjectConfig(log, workingDir)
 
-      if (projectConfig) {
-        const customCommands = await this.getCustomCommands(log, workingDir)
-        const picked = pickCommand(customCommands, argv._)
-        command = picked.command
-        matchedPath = picked.matchedPath
+        if (projectConfig) {
+          const customCommands = await this.getCustomCommands(log, workingDir)
+          const picked = pickCommand(customCommands, argv._)
+          command = picked.command
+          matchedPath = picked.matchedPath
+        }
+      } catch (error) {
+        return done(1, explainGardenError(error, "Failed to get custom commands"))
       }
     }
 

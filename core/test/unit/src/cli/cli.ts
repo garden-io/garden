@@ -22,7 +22,7 @@ import { getRootLogger, RootLogger } from "../../../../src/logger/logger"
 import { load } from "js-yaml"
 import { startServer } from "../../../../src/server/server"
 import { envSupportsEmoji } from "../../../../src/logger/util"
-import { expectError } from "../../../../src/util/testing"
+import { expectError, expectFuzzyMatch } from "../../../../src/util/testing"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
 import tmp from "tmp-promise"
 import { CloudCommand } from "../../../../src/commands/cloud/cloud"
@@ -162,15 +162,14 @@ describe("cli", () => {
       })
 
       it("errors if a Command resource is invalid", async () => {
-        return expectError(
-          () =>
-            cli.run({
-              args: ["echo", "foo"],
-              exitOnError: false,
-              cwd: getDataDir("test-projects", "custom-commands-invalid"),
-            }),
-          { contains: "Error validating custom Command 'invalid'" }
-        )
+        // cli.run should never throw – if it throws, it's a bug
+        const res = await cli.run({
+          args: ["echo", "foo"],
+          exitOnError: false,
+          cwd: getDataDir("test-projects", "custom-commands-invalid"),
+        })
+        expect(res.code).to.not.equal(0)
+        expectFuzzyMatch(res.consoleOutput!, "Error validating custom Command 'invalid'")
       })
 
       it("exits with code from exec command if it fails", async () => {
