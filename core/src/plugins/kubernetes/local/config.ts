@@ -37,6 +37,7 @@ const supportedContexts = [
   "colima",
   "rancher-desktop",
   "k3d-k3s-default",
+  "orbstack",
 ]
 const nginxServices = ["ingress-controller", "default-backend"]
 
