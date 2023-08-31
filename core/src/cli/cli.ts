@@ -13,7 +13,7 @@ import { pathExists } from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands"
 import { shutdown, getPackageVersion, getCloudDistributionName } from "../util/util"
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
-import { PluginError, toGardenError, GardenBaseError, explainGardenError } from "../exceptions"
+import { PluginError, toGardenError, GardenError, explainGardenError } from "../exceptions"
 import { Garden, GardenOpts, makeDummyGarden } from "../garden"
 import { getRootLogger, getTerminalWriterType, LogLevel, parseLogLevel, RootLogger } from "../logger/logger"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
@@ -55,7 +55,7 @@ import { JsonFileWriter } from "../logger/writers/json-file-writer"
 export interface RunOutput {
   argv: any
   code: number
-  errors: (GardenBaseError | Error)[]
+  errors: (GardenError | Error)[]
   result: any
   // Mainly used for testing
   consoleOutput?: string
@@ -409,7 +409,7 @@ ${renderCommands(commands)}
 
     let argv = parseCliArgs({ stringArgs: args, cli: true })
 
-    const errors: (GardenBaseError | Error)[] = []
+    const errors: (GardenError | Error)[] = []
     const _this = this
 
     async function done(abortCode: number, consoleOutput: string, result: any = {}) {
@@ -560,7 +560,7 @@ ${renderCommands(commands)}
 
     errors.push(...(commandResult.errors || []))
 
-    const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
+    const gardenErrors: GardenError[] = errors.map(toGardenError)
 
     // Flushes the Analytics events queue in case there are some remaining events.
     await analytics?.flush()

@@ -14,19 +14,6 @@ import dedent from "dedent"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
 
-export interface GardenError<D extends object = any> extends Error {
-  type: string
-  message: string
-  detail?: D
-  stack?: string
-  wrappedErrors?: GardenError[]
-  context?: GardenErrorContext
-}
-
-export function isGardenError(err: any): err is GardenError {
-  return "type" in err && "message" in err
-}
-
 export type StackTraceMetadata = {
   functionName: string
   relativeFileName?: string
@@ -49,8 +36,7 @@ export interface GardenErrorParams<D extends object = any> {
 export type GardenErrorContext = {
   taskType?: string
 }
-
-export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
+export abstract class GardenError<D extends object = any> extends Error {
   abstract type: string
   public override message: string
   public detail?: D
@@ -107,52 +93,92 @@ export abstract class GardenBaseError<D extends object = any> extends Error impl
   }
 }
 
-export class AuthenticationError extends GardenBaseError {
+export class AuthenticationError extends GardenError {
   type = "authentication"
 }
 
-export class BuildError extends GardenBaseError {
+export class BuildError extends GardenError {
   type = "build"
 }
 
-export class ConfigurationError extends GardenBaseError {
+export class ConfigurationError extends GardenError {
   type = "configuration"
 }
 
-export class CommandError extends GardenBaseError {
+export class CommandError extends GardenError {
   type = "command"
 }
 
-export class FilesystemError extends GardenBaseError {
+export class FilesystemError extends GardenError {
   type = "filesystem"
 }
 
-export class LocalConfigError extends GardenBaseError {
+export class LocalConfigError extends GardenError {
   type = "local-config"
 }
 
-export class ValidationError extends GardenBaseError {
+export class ValidationError extends GardenError {
   type = "validation"
 }
 
-export class PluginError extends GardenBaseError {
+export class PluginError extends GardenError {
   type = "plugin"
 }
 
-export class ParameterError extends GardenBaseError {
+export class ParameterError extends GardenError {
   type = "parameter"
 }
 
-export class NotImplementedError extends GardenBaseError {
+export class NotImplementedError extends GardenError {
   type = "not-implemented"
 }
 
-export class DeploymentError extends GardenBaseError {
+export class DeploymentError extends GardenError {
   type = "deployment"
 }
 
-export class RuntimeError extends GardenBaseError {
+export class RuntimeError extends GardenError {
   type = "runtime"
+}
+
+export class GraphError<D extends object> extends GardenError<D> {
+  type = "graph"
+}
+
+export class TimeoutError extends GardenError {
+  type = "timeout"
+}
+
+export class OutOfMemoryError extends GardenError {
+  type = "out-of-memory"
+}
+
+export class NotFoundError extends GardenError {
+  type = "not-found"
+}
+
+export class WorkflowScriptError extends GardenError {
+  type = "workflow-script"
+}
+
+export class CloudApiError extends GardenError {
+  type = "cloud-api"
+}
+
+export class TemplateStringError extends GardenError {
+  type = "template-string"
+}
+
+interface GenericGardenErrorParams extends GardenErrorParams {
+  type: string
+}
+export class GenericGardenError extends GardenError {
+  type: string
+
+  constructor(params: GenericGardenErrorParams) {
+    super(params)
+    this.type = params.type
+  }
 }
 
 /**
@@ -165,12 +191,12 @@ export class RuntimeError extends GardenBaseError {
  *
  * In case the network is involved, we should *not* use the "InternalError", because that's usually a situation that the user needs to resolve.
  */
-export class InternalError extends GardenBaseError {
+export class InternalError extends GardenError {
   // we want it to be obvious in amplitude data that this is not a normal error condition
   type = "crash"
 
   // not using object destructuring here on purpose, because errors are of type any and then the error might be passed as the params object accidentally.
-  static wrapError(error: Error, detail?: unknown, prefix?: string): InternalError {
+  static wrapError(error: Error | string | any, detail?: unknown, prefix?: string): InternalError {
     let message: string
     let stack: string | undefined
 
@@ -190,32 +216,8 @@ export class InternalError extends GardenBaseError {
   }
 }
 
-export class TimeoutError extends GardenBaseError {
-  type = "timeout"
-}
-
-export class OutOfMemoryError extends GardenBaseError {
-  type = "out-of-memory"
-}
-
-export class NotFoundError extends GardenBaseError {
-  type = "not-found"
-}
-
-export class WorkflowScriptError extends GardenBaseError {
-  type = "workflow-script"
-}
-
-export class CloudApiError extends GardenBaseError {
-  type = "cloud-api"
-}
-
-export class TemplateStringError extends GardenBaseError {
-  type = "template-string"
-}
-
-export function toGardenError(err: Error | GardenBaseError | string | any): GardenBaseError {
-  if (err instanceof GardenBaseError) {
+export function toGardenError(err: Error | GardenError | string | any): GardenError {
+  if (err instanceof GardenError) {
     return err
   } else {
     return InternalError.wrapError(err)
@@ -226,7 +228,9 @@ export function filterErrorDetail(detail: any) {
   return withoutInternalFields(sanitizeValue(detail))
 }
 
-export function explainGardenError(error: GardenError, context?: string) {
+export function explainGardenError(rawError: GardenError | Error | string, context?: string) {
+  const error = toGardenError(rawError)
+
   let errorMessage = error.message.trim()
 
   // If this is an unexpected error, we want to output more details by default and provide some guidance for the user.
@@ -249,7 +253,7 @@ export function explainGardenError(error: GardenError, context?: string) {
   }
 
   // In case this is another Garden error, the error message is already designed to be digestable as-is for the user.
-  return chalk.red(error.message)
+  return chalk.red(errorMessage)
 }
 
 export function formatGardenErrorWithDetail(error: GardenError) {

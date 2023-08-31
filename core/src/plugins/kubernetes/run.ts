@@ -14,7 +14,7 @@ import { Log } from "../../logger/log-entry"
 import { CoreV1Event } from "@kubernetes/client-node"
 import {
   PluginError,
-  GardenBaseError,
+  GardenError,
   TimeoutError,
   RuntimeError,
   ConfigurationError,
@@ -735,7 +735,7 @@ type RunParams = StartParams & {
   throwOnExitCode?: boolean
 }
 
-class PodRunnerError extends GardenBaseError {
+class PodRunnerError extends GardenError {
   type = "pod-runner"
 }
 
@@ -1222,7 +1222,7 @@ export class PodRunner extends PodRunnerParams {
     // Some types and predicates to identify known errors
     const knownErrorTypes = ["out-of-memory", "not-found", "timeout", "pod-runner", "kubernetes"] as const
     type KnownErrorType = (typeof knownErrorTypes)[number]
-    // A known error is always an instance of a subclass of GardenBaseError
+    // A known error is always an instance of a subclass of GardenError
     type KnownError = Error & {
       message: string
       type: KnownErrorType

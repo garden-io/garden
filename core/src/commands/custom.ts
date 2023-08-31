@@ -24,7 +24,7 @@ import {
 import { joi } from "../config/common"
 import { CustomCommandContext } from "../config/template-contexts/custom-command"
 import { validateWithPath } from "../config/validation"
-import { ConfigurationError, GardenBaseError, RuntimeError, InternalError, toGardenError } from "../exceptions"
+import { ConfigurationError, GardenError, RuntimeError, InternalError, toGardenError } from "../exceptions"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { listDirectory, isConfigFilename } from "../util/fs"
 import { Command, CommandParams, CommandResult, PrintHeaderParams } from "./base"
@@ -66,7 +66,7 @@ interface CustomCommandResult {
     completedAt: Date
     command: string[]
     result: any
-    errors: (Error | GardenBaseError)[]
+    errors: (Error | GardenError)[]
   }
 }
 
@@ -117,7 +117,7 @@ export class CustomCommandWrapper extends Command {
     const commandContext = new CustomCommandContext({ ...garden, args, opts, variables, rest })
 
     const result: CustomCommandResult = {}
-    const errors: GardenBaseError[] = []
+    const errors: GardenError[] = []
 
     // Run exec command
     if (this.spec.exec) {

@@ -40,14 +40,7 @@ import {
   getCloudDistributionName,
   getCloudLogSectionName,
 } from "./util/util"
-import {
-  ConfigurationError,
-  isGardenError,
-  GardenError,
-  PluginError,
-  RuntimeError,
-  InternalError,
-} from "./exceptions"
+import { ConfigurationError, GardenError, PluginError, RuntimeError, InternalError } from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
@@ -817,7 +810,7 @@ export class Garden {
         const failedNames = failed.map((r) => r!.name)
 
         const wrappedErrors: GardenError[] = failed.flatMap((f) => {
-          return f && f.error && isGardenError(f.error) ? [f.error as GardenError] : []
+          return f && f.error instanceof GardenError ? [f.error] : []
         })
 
         throw new PluginError({

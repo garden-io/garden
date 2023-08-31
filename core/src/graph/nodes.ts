@@ -7,7 +7,7 @@
  */
 
 import { Task, ValidResultType } from "../tasks/base"
-import { GardenBaseError, InternalError, toGardenError } from "../exceptions"
+import { GraphError, InternalError, toGardenError } from "../exceptions"
 import { GraphResult, GraphResultFromTask, GraphResults } from "./results"
 import type { GraphSolver } from "./solver"
 import { ValuesType } from "utility-types"
@@ -344,10 +344,7 @@ export interface GraphNodeErrorDetail extends GraphResult {
 
 export interface GraphNodeErrorParams extends GraphNodeErrorDetail {}
 
-export class GraphNodeError extends GardenBaseError<GraphNodeErrorDetail> {
-  // TODO: type graph is already taken by the (two) GraphError(s)
-  type = "graph"
-
+export class GraphNodeError extends GraphError<GraphNodeErrorDetail> {
   constructor(params: GraphNodeErrorParams) {
     const { node, failedDependency, error } = params
 

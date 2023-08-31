@@ -77,7 +77,7 @@ export async function configureProvider({
 
   if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {
     throw new ConfigurationError({
-      message: `Must specify deploymentRegistry in provider configuration`,
+      message: `kubernetes: must specify deploymentRegistry in config`,
       detail: {
         config,
       },

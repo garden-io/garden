@@ -8,7 +8,7 @@
 
 import type { BaseTask, Task, ValidResultType } from "../tasks/base"
 import type { Log } from "../logger/log-entry"
-import { GardenBaseError, GardenError, explainGardenError, isGardenError, toGardenError } from "../exceptions"
+import { GardenError, GraphError, explainGardenError, toGardenError } from "../exceptions"
 import { uuidv4 } from "../util/random"
 import { DependencyGraph, metadataForLog } from "./common"
 import { Profile } from "../util/profiling"
@@ -46,7 +46,7 @@ export interface SolveParams<T extends BaseTask = BaseTask> extends SolveOpts {
 }
 
 export interface SolveResult<T extends Task = Task> {
-  error: GraphError | null
+  error: GraphResultError | null
   results: GraphResults<T>
 }
 
@@ -139,7 +139,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
           if (throwOnError && result.error) {
             cleanup({
-              error: new GraphError({
+              error: new GraphResultError({
                 message: `Failed to ${result.description}: ${result.error}`,
                 detail: { results },
                 wrappedErrors: [toGardenError(result.error)],
@@ -158,7 +158,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           }
 
           // All requested results have been filled (i.e. none are null) so we're done.
-          let error: GraphError | null = null
+          let error: GraphResultError | null = null
 
           const failed = Object.entries(results.getMap()).filter(([_, r]) => !!r?.error || !!r?.aborted)
 
@@ -173,14 +173,14 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
                 continue
               }
 
-              if (isGardenError(r.error)) {
+              if (r.error instanceof GardenError) {
                 wrappedErrors.push(r.error)
               }
 
               msg += `\n ↳ ${r.description}: ${r?.error ? r.error.message : "[ABORTED]"}`
             }
 
-            error = new GraphError({ message: msg, detail: { results }, wrappedErrors })
+            error = new GraphResultError({ message: msg, detail: { results }, wrappedErrors })
           }
 
           cleanup({ error: null })
@@ -194,7 +194,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           resolve({ error, results })
         }
 
-        function cleanup({ error }: { error: GraphError | null }) {
+        function cleanup({ error }: { error: GraphResultError | null }) {
           // TODO: abort remaining pending tasks?
           aborted = true
           delete _this.requestedTasks[batchId]
@@ -525,7 +525,7 @@ interface TaskStartEvent extends TaskEventBase {
 
 interface SolverEvents {
   abort: {
-    error: GraphError | null
+    error: GraphResultError | null
   }
   loop: {}
   process: {
@@ -548,15 +548,8 @@ interface WrappedNodes {
   [key: string]: TaskNode
 }
 
-interface GraphErrorDetail {
+interface GraphResultErrorDetail {
   results: GraphResults
 }
 
-// TODO: There are two different GraphError classes
-class GraphError extends GardenBaseError<GraphErrorDetail> {
-  type = "graph"
-}
-
-// class CircularDependenciesError extends GardenBaseError {
-//   type = "circular-dependencies"
-// }
+class GraphResultError extends GraphError<GraphResultErrorDetail> {}

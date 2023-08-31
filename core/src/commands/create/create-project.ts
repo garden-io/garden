@@ -14,7 +14,7 @@ import { printHeader } from "../../logger/util"
 import { isDirectory } from "../../util/fs"
 import { loadConfigResources } from "../../config/base"
 import { resolve, basename, relative, join } from "path"
-import { GardenBaseError, ParameterError } from "../../exceptions"
+import { GardenError, ParameterError } from "../../exceptions"
 import { addConfig } from "./helpers"
 import { wordWrap } from "../../util/string"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
@@ -60,7 +60,7 @@ interface CreateProjectResult {
   name: string
 }
 
-class CreateError extends GardenBaseError {
+class CreateError extends GardenError {
   type: "create"
 }
 

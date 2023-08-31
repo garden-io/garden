@@ -22,7 +22,7 @@ import { BaseServerRequest, resolveRequest, serverRequestSchema, shellCommandPar
 import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
-import { toGardenError, GardenError, GardenBaseError } from "../exceptions"
+import { toGardenError, GardenError } from "../exceptions"
 import { EventName, Events, EventBus, shouldStreamWsEvent } from "../events/events"
 import type { ValueOf } from "../util/util"
 import { joi } from "../config/common"
@@ -832,7 +832,7 @@ export class GardenServer extends EventEmitter {
       })
 
       let graph: ConfigGraph | undefined
-      let errors: GardenBaseError[] = []
+      let errors: GardenError[] = []
 
       try {
         graph = await garden.getConfigGraph({ log, emit: true })

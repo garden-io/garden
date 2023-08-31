@@ -19,7 +19,7 @@ import { maxBy, zip } from "lodash"
 import { Logger } from "../logger/logger"
 
 import { ParameterValues, Parameter, Parameters, globalDisplayOptions } from "./params"
-import { GardenBaseError, ParameterError, RuntimeError, toGardenError } from "../exceptions"
+import { GardenError, ParameterError, RuntimeError, toGardenError } from "../exceptions"
 import { getPackageVersion, removeSlice } from "../util/util"
 import { Log } from "../logger/log-entry"
 import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv, ERROR_LOG_FILENAME } from "../constants"
@@ -550,7 +550,7 @@ function renderParameters(params: Parameters, formatName: (name: string, param: 
 }
 
 export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) {
-  const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
+  const gardenErrors: GardenError[] = errors.map(toGardenError)
 
   const errorLog = log || logger.createLog()
 

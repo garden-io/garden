@@ -34,7 +34,7 @@ import WebSocket from "isomorphic-ws"
 import pRetry from "p-retry"
 import { Omit, StringCollector } from "../../util/util"
 import { flatten, isObject, isPlainObject, keyBy, omitBy } from "lodash"
-import { ConfigurationError, GardenBaseError, RuntimeError } from "../../exceptions"
+import { ConfigurationError, GardenError, RuntimeError } from "../../exceptions"
 import {
   BaseResource,
   KubernetesList,
@@ -133,7 +133,7 @@ const crudMap = {
 type CrudMap = typeof crudMap
 type CrudMapTypes = { [T in keyof CrudMap]: CrudMap[T]["cls"] }
 
-export class KubernetesError extends GardenBaseError {
+export class KubernetesError extends GardenError {
   type = "kubernetes"
 
   statusCode?: number

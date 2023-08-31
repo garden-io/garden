@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import {
   ConfigurationError,
-  GardenBaseError,
+  GardenError,
   RuntimeError,
   StackTraceMetadata,
   getStackTraceMetadata,
@@ -28,7 +28,7 @@ describe("GardenError", () => {
   }
 
   it("should return stack trace metadata", async () => {
-    let error: GardenBaseError
+    let error: GardenError
 
     try {
       throw new RuntimeError({ message: "test exception" })

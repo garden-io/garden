@@ -8,7 +8,6 @@
 
 import toposort from "toposort"
 import { flatten, difference, mapValues, cloneDeep, find } from "lodash"
-import { GardenBaseError } from "../exceptions"
 import { naturalList } from "../util/string"
 import { Action, ActionDependencyAttributes, ActionKind, Resolved, ResolvedAction } from "../actions/types"
 import { actionReferenceToString } from "../actions/base"
@@ -23,6 +22,7 @@ import { RunAction } from "../actions/run"
 import { TestAction } from "../actions/test"
 import { GroupConfig } from "../config/group"
 import minimatch from "minimatch"
+import { GraphError } from "../exceptions"
 
 export type DependencyRelationFilterFn = (node: ConfigGraphNode) => boolean
 
@@ -53,11 +53,6 @@ interface GetActionsParams extends GetActionOpts {
   moduleNames?: string[] // If specified, the found actions must be from these modules
   includeNames?: string[] // Glob patterns to include. An action is returned if its name matches any of these.
   excludeNames?: string[] // Glob patterns to exclude. An action is returned if its name matches none of these.
-}
-
-// TODO: There are two different GraphError classes
-export class GraphError extends GardenBaseError {
-  type = "graph"
 }
 
 export type PickTypeByKind<

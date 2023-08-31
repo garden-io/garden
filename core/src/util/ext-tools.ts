@@ -7,7 +7,7 @@
  */
 
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
-import { ConfigurationError, ParameterError, GardenBaseError } from "../exceptions"
+import { ConfigurationError, ParameterError, GardenError } from "../exceptions"
 import { join, dirname, basename, posix } from "path"
 import { hashString, exec, getPlatform, getArchitecture, isDarwinARM } from "./util"
 import tar from "tar"
@@ -29,7 +29,7 @@ import { streamLogs, waitForProcess } from "./process"
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 const lock = new AsyncLock()
 
-export class DownloadError extends GardenBaseError {
+export class DownloadError extends GardenError {
   type = "download"
 }
 

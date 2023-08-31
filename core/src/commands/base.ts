@@ -20,7 +20,7 @@ import {
   joiStringMap,
   joiVariables,
 } from "../config/common"
-import { RuntimeError, GardenBaseError, GardenError, InternalError, toGardenError } from "../exceptions"
+import { RuntimeError, GardenError, InternalError, toGardenError } from "../exceptions"
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel, LogLevel } from "../logger/logger"
@@ -64,7 +64,7 @@ export interface CommandConstructor {
 
 export interface CommandResult<T = any> {
   result?: T
-  errors?: GardenBaseError[]
+  errors?: GardenError[]
   exitCode?: number
 }
 
