@@ -200,7 +200,7 @@ export class InternalError extends GardenError {
 
   // not using object destructuring here on purpose, because errors are of type any and then the error might be passed as the params object accidentally.
   static wrapError(error: Error | string | any, detail?: unknown, prefix?: string): InternalError {
-    let message: string
+    let message: string | undefined
     let stack: string | undefined
 
     if (error instanceof Error) {
@@ -208,12 +208,12 @@ export class InternalError extends GardenError {
       stack = error.stack
     } else if (isString(error)) {
       message = error
-    } else {
+    } else if (error) {
       message = error["message"]
       stack = error["stack"]
     }
 
-    message = stripAnsi(message)
+    message = message ? stripAnsi(message) : ""
 
     return new InternalError({ message: prefix ? `${stripAnsi(prefix)}: ${message}` : message, stack, detail })
   }
