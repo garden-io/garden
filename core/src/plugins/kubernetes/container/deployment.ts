@@ -584,7 +584,7 @@ function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec,
     container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
   } else {
     throw new ConfigurationError({
-      message: "Must specify type of health check when configuring health check."
+      message: "Must specify type of health check when configuring health check.",
     })
   }
 }

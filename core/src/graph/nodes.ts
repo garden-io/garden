@@ -7,7 +7,7 @@
  */
 
 import { Task, ValidResultType } from "../tasks/base"
-import { GardenError, GraphError, InternalError, toGardenError } from "../exceptions"
+import { GraphError, InternalError, toGardenError } from "../exceptions"
 import { GraphResult, GraphResultFromTask, GraphResults } from "./results"
 import type { GraphSolver } from "./solver"
 import { ValuesType } from "utility-types"

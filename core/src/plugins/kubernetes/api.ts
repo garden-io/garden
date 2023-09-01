@@ -918,7 +918,9 @@ function attachWebsocketKeepalive(ws: WebSocket): WebSocket {
       ws.emit(
         "error",
         new KubernetesError({
-          message: `Lost connection to the Kubernetes WebSocket API (Timed out after ${WEBSOCKET_PING_TIMEOUT / 1000}s)`
+          message: `Lost connection to the Kubernetes WebSocket API (Timed out after ${
+            WEBSOCKET_PING_TIMEOUT / 1000
+          }s)`,
         })
       )
       ws.terminate()
@@ -1003,7 +1005,7 @@ async function getContextConfig(log: Log, ctx: PluginContext, provider: Kubernet
     kc.setCurrentContext(context)
   } catch (err) {
     throw new KubernetesError({
-      message: `Could not parse kubeconfig: ${err}`
+      message: `Could not parse kubeconfig: ${err}`,
     })
   }
 
