@@ -735,7 +735,7 @@ type RunParams = StartParams & {
   throwOnExitCode?: boolean
 }
 
-class PodRunnerError extends GardenError {
+export class PodRunnerError extends GardenError<PodErrorDetails> {
   type = "pod-runner"
 }
 

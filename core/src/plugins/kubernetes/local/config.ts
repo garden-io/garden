@@ -24,6 +24,7 @@ import chalk from "chalk"
 import { isKindCluster } from "./kind"
 import { isK3sFamilyCluster } from "./k3s"
 import { getK8sClientServerVersions, K8sClientServerVersions } from "../util"
+import { ChildProcessError } from "../../../exceptions"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 // note: this is in order of preference, in case neither is set as the current kubectl context
@@ -154,7 +155,10 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
       try {
         await exec("minikube", ["addons", "enable", "ingress"])
       } catch (err) {
-        providerLog.warn(chalk.yellow(`Unable to enable minikube ingress addon: ${err.all}`))
+        if (!(err instanceof ChildProcessError)) {
+          throw err
+        }
+        providerLog.warn(chalk.yellow(`Unable to enable minikube ingress addon: ${err.detail.output}`))
       }
       remove(_systemServices, (s) => nginxServices.includes(s))
     }

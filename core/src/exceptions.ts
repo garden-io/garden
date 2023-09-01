@@ -36,10 +36,10 @@ export interface GardenErrorParams<D extends object = any> {
 export type GardenErrorContext = {
   taskType?: string
 }
-export abstract class GardenError<D extends object = any> extends Error {
+export abstract class GardenError<D extends object = any | undefined> extends Error {
   abstract type: string
   public override message: string
-  public detail?: D
+  public detail: D
   public wrappedErrors?: GardenError<any>[]
   public context?: GardenErrorContext
 
@@ -166,6 +166,8 @@ interface ChildProcessErrorDetails {
   args: string[]
   code: number
   output: string
+  stderr: string
+  stdout: string
   opts?: SpawnOpts
 }
 export class ChildProcessError extends GardenError<ChildProcessErrorDetails> {
