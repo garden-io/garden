@@ -93,6 +93,10 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     })
   }
 
+  toSanitizedValue() {
+    return "<Solver>"
+  }
+
   async solve(params: SolveParams): Promise<SolveResult> {
     const { statusOnly, tasks, throwOnError, log } = params
 
@@ -173,8 +177,8 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
                 continue
               }
 
-              if (r.error instanceof GardenError) {
-                wrappedErrors.push(r.error)
+              if (r.error) {
+                wrappedErrors.push(toGardenError(r.error))
               }
 
               msg += `\n ↳ ${r.description}: ${r?.error ? r.error.message : "[ABORTED]"}`

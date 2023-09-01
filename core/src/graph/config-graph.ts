@@ -624,4 +624,8 @@ export class ConfigGraphNode {
       return nodes
     }
   }
+
+  toSanitizedValue() {
+    return `<Node: ${this.name}`
+  }
 }

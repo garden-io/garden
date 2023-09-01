@@ -45,7 +45,8 @@ export abstract class GardenError<D extends object = any> extends Error {
 
   constructor({ message, detail, stack, wrappedErrors, context }: GardenErrorParams<D>) {
     super(message)
-    this.detail = detail
+    // We sanitize the details right here to avoid issues later down the line
+    this.detail = withoutInternalFields(sanitizeValue(detail))
     this.stack = stack || this.stack
     this.wrappedErrors = wrappedErrors
     this.context = context
@@ -76,15 +77,6 @@ export abstract class GardenError<D extends object = any> extends Error {
       stack: this.stack,
       detail: this.detail,
       wrappedErrors: this.wrappedErrors,
-    }
-  }
-
-  toSanitizedValue() {
-    return {
-      type: this.type,
-      message: this.message,
-      stack: this.stack,
-      detail: filterErrorDetail(this.detail),
     }
   }
 
@@ -224,10 +216,6 @@ export function toGardenError(err: Error | GardenError | string | any): GardenEr
   }
 }
 
-export function filterErrorDetail(detail: any) {
-  return withoutInternalFields(sanitizeValue(detail))
-}
-
 export function explainGardenError(rawError: GardenError | Error | string, context?: string) {
   const error = toGardenError(rawError)
 
@@ -261,12 +249,9 @@ export function formatGardenErrorWithDetail(error: GardenError) {
 
   let out = stack || message || ""
 
-  // We sanitize and recursively filter out internal fields (i.e. having names starting with _).
-  const filteredDetail = filterErrorDetail(detail)
-
-  if (!isEmpty(filteredDetail)) {
+  if (!isEmpty(detail || {})) {
     try {
-      const yamlDetail = stringify(filteredDetail, { blockQuote: "literal", lineWidth: 0 })
+      const yamlDetail = stringify(detail, { blockQuote: "literal", lineWidth: 0 })
       out += `\n\nError Details:\n\n${yamlDetail}`
     } catch (err) {
       out += `\n\nUnable to render error details:\n${err.message}`

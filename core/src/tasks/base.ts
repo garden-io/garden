@@ -204,6 +204,10 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
   isExecuteTask(): this is ExecuteTask {
     return this.executeTask
   }
+
+  toSanitizedValue() {
+    return `<Task: ${this.getDescription()}>`
+  }
 }
 
 export interface ActionTaskStatusParams<_ extends Action> extends TaskProcessParams {}

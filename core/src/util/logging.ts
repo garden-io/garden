@@ -11,10 +11,17 @@ import stripAnsi from "strip-ansi"
 import { isPrimitive } from "../config/common"
 import { deepFilter } from "./objects"
 
+let _callingToSanitizedValueOrToJSON = false
+
 /**
  * Strips undefined values, internal objects and circular references from an object.
  */
 export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
+  if (_callingToSanitizedValueOrToJSON) {
+    // I can't use InternalError here, because that calls sanitizeValue
+    throw new Error("`toSanitizedValue` and `toJSON` are not allowed to call `sanitizeValue` because that can cause infinite recursion.")
+  }
+
   if (!_parents) {
     _parents = new WeakSet()
   } else if (_parents.has(value)) {
@@ -45,7 +52,20 @@ export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
     // Looks to be a class instance
     if (value.toSanitizedValue) {
       // Special allowance for internal objects
-      return value.toSanitizedValue()
+      try {
+        _callingToSanitizedValueOrToJSON = true
+        return value.toSanitizedValue()
+      } finally {
+        _callingToSanitizedValueOrToJSON = false
+      }
+    } else if (value.toJSON) {
+      // Use existing JSON serialisation function
+      try {
+        _callingToSanitizedValueOrToJSON = true
+        return value.toJSON()
+      } finally {
+        _callingToSanitizedValueOrToJSON = false
+      }
     } else {
       // Any other class. Convert to plain object and sanitize attributes.
       _parents.add(value)
