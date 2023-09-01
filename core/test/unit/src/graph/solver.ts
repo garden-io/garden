@@ -12,6 +12,7 @@ import { makeTestGarden, freezeTime, TestGarden, getDataDir, expectError } from 
 import { MakeOptional } from "../../../../src/util/util"
 import { SolveOpts } from "../../../../src/graph/solver"
 import { ActionState } from "../../../../src/actions/types"
+import { GardenError, GenericGardenError } from "../../../../src/exceptions"
 
 const projectRoot = getDataDir("test-project-empty")
 
@@ -191,7 +192,7 @@ describe("GraphSolver", () => {
     expect(resultB?.outputs.callbackResult).to.equal(taskA.getId())
   })
 
-  it("returns an error when task processing fails", async () => {
+  it("returns an error when task processing fails due a crash (Non-garden error)", async () => {
     const task = makeTask({})
 
     task.process = async () => {
@@ -203,6 +204,35 @@ describe("GraphSolver", () => {
     expect(result).to.exist
     expect(result!.error).to.exist
     expect(result!.error?.message).to.include("Throwing error in process method")
+    expect(result!.error).to.be.instanceOf(GardenError)
+    const error = result!.error as GardenError
+    expect(error.type).to.eql("graph")
+    expect(error.wrappedErrors?.length).to.eql(1)
+    const rootCause = error.wrappedErrors![0]!
+    expect(rootCause.type).to.eql("crash")
+  })
+
+  it("returns an error when task processing fails due a GardenError", async () => {
+    const task = makeTask({})
+
+    task.process = async () => {
+      throw new GenericGardenError({
+        message: "non-crash error scenario",
+        type: "test"
+      })
+    }
+
+    const result = await processTask(task)
+
+    expect(result).to.exist
+    expect(result!.error).to.exist
+    expect(result!.error?.message).to.include("non-crash error scenario")
+    expect(result!.error).to.be.instanceOf(GardenError)
+    const error = result!.error as GardenError
+    expect(error.type).to.eql("graph")
+    expect(error.wrappedErrors?.length).to.eql(1)
+    const rootCause = error.wrappedErrors![0]!
+    expect(rootCause.type).to.eql("test")
   })
 
   it("throws an error when task processing fails and throwOnError=true", async () => {
