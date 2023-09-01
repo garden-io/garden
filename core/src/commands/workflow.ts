@@ -15,7 +15,7 @@ import { dedent, wordWrap, deline } from "../util/string"
 import { Garden } from "../garden"
 import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../config/workflow"
 import { Log } from "../logger/log-entry"
-import { formatGardenErrorWithDetail, GardenError, WorkflowScriptError } from "../exceptions"
+import { formatGardenErrorWithDetail, GardenError, RuntimeError, WorkflowScriptError } from "../exceptions"
 import {
   WorkflowConfigContext,
   WorkflowStepConfigContext,
@@ -206,11 +206,11 @@ export class WorkflowCommand extends Command<Args, {}> {
       const finalError = opts.output
         ? errors
         : [
-            new Error(
-              `workflow failed with ${errors.length} ${
+            new RuntimeError({
+              message: `workflow failed with ${errors.length} ${
                 errors.length > 1 ? "errors" : "error"
-              }, see logs above for more info`
-            ),
+              }, see logs above for more info`,
+            }),
           ]
       return { result, errors: finalError }
     }
