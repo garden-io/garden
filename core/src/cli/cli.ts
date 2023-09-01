@@ -402,11 +402,6 @@ ${renderCommands(commands)}
     processRecord?: GardenProcess
     cwd?: string
   }): Promise<RunOutput> {
-    // for testing
-    if (args.includes("--test-cli-error")) {
-      throw new Error("Test")
-    }
-
     let argv = parseCliArgs({ stringArgs: args, cli: true })
 
     const errors: (GardenError | Error)[] = []
