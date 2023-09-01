@@ -27,7 +27,7 @@ import {
 import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
 import _spawn from "cross-spawn"
 import { readFile } from "fs-extra"
-import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
+import { ChildProcessError, GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
 import { load } from "js-yaml"
 import { createHash } from "crypto"
 import { dedent, tailString } from "./string"
@@ -253,15 +253,21 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
     }
 
     const error = <execa.ExecaError>err
-    const message = makeErrorMsg({
-      cmd,
-      args,
-      code: error.exitCode || err.code || err.errno,
-      output: error.all || error.stdout || error.stderr || "",
-      error: error.stderr,
+    throw new ChildProcessError({
+      message: makeErrorMsg({
+        cmd,
+        args,
+        code: error.exitCode || err.code || err.errno,
+        output: error.all || error.stdout || error.stderr || "",
+        error: error.stderr,
+      }),
+      detail: {
+        cmd,
+        args,
+        code: error.exitCode || err.code || err.errno,
+        output: error.all || error.stdout || error.stderr || "",
+      },
     })
-    error.message = message
-    throw error
   }
 }
 
@@ -396,7 +402,12 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
           output: result.all || result.stdout || result.stderr || "",
           error: result.stderr || "",
         })
-        _reject(new RuntimeError({ message: msg, detail: { cmd, args, opts, result } }))
+        _reject(
+          new ChildProcessError({
+            message: msg,
+            detail: { cmd, args, opts, code: result.code, output: result.all },
+          })
+        )
       }
     })
   })

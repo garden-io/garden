@@ -9,7 +9,7 @@
 import { isEmpty, isString } from "lodash"
 import { stringify } from "yaml"
 import { withoutInternalFields, sanitizeValue } from "./util/logging"
-import { getGitHubIssueLink, testFlags } from "./util/util"
+import { SpawnOpts, getGitHubIssueLink, testFlags } from "./util/util"
 import dedent from "dedent"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
@@ -159,6 +159,17 @@ export class CloudApiError extends GardenError {
 
 export class TemplateStringError extends GardenError {
   type = "template-string"
+}
+
+interface ChildProcessErrorDetails {
+  cmd: string
+  args: string[]
+  code: number
+  output: string
+  opts?: SpawnOpts
+}
+export class ChildProcessError extends GardenError<ChildProcessErrorDetails> {
+  type = "childprocess"
 }
 
 interface GenericGardenErrorParams extends GardenErrorParams {

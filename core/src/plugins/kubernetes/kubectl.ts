@@ -11,13 +11,13 @@ import { ExecParams, PluginTool } from "../../util/ext-tools"
 import { Log } from "../../logger/log-entry"
 import { KubernetesProvider } from "./config"
 import { KubernetesResource } from "./types"
-import { gardenAnnotationKey } from "../../util/string"
+import { dedent, gardenAnnotationKey } from "../../util/string"
 import { getResourceKey, hashManifest } from "./util"
 import { PluginToolSpec } from "../../plugin/tools"
 import { PluginContext } from "../../plugin-context"
-import { KubeApi } from "./api"
+import { KubeApi, KubernetesError } from "./api"
 import { pathExists } from "fs-extra"
-import { ConfigurationError } from "../../exceptions"
+import { ChildProcessError, ConfigurationError } from "../../exceptions"
 import { requestWithRetry, RetryOpts } from "./retry"
 
 // Corresponds to the default prune whitelist in `kubectl`.
@@ -118,18 +118,35 @@ export async function apply({
   args.push("--output=json", "-f", "-")
   !validate && args.push("--validate=false")
 
-  const result = await requestWithRetry(
-    log,
-    `kubectl ${args.join(" ")}`,
-    () =>
-      kubectl(ctx, provider).stdout({
-        log,
-        namespace,
-        args,
-        input,
-      }),
-    KUBECTL_DEFAULT_RETRY_OPTS
-  )
+  let result: string
+  try {
+    result = await requestWithRetry(
+      log,
+      `kubectl ${args.join(" ")}`,
+      () =>
+        kubectl(ctx, provider).stdout({
+          log,
+          namespace,
+          args,
+          input,
+        }),
+      KUBECTL_DEFAULT_RETRY_OPTS
+    )
+  } catch (e) {
+    if (e instanceof ChildProcessError) {
+      throw new KubernetesError({
+        message: dedent`
+          Failed to apply Kubernetes manifests. This is the output of the kubectl command:
+
+          ${e.detail?.output}
+
+          Use the option "--log-level verbose" to see the kubernetes manifests that we attempted to apply through "kubectl apply".
+          `,
+        detail: e.detail
+      })
+    }
+    throw e
+  }
 
   if (namespace && resourcesToPrune.length > 0) {
     await deleteResources({
