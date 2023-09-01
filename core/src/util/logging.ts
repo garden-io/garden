@@ -19,7 +19,9 @@ let _callingToSanitizedValueOrToJSON = false
 export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
   if (_callingToSanitizedValueOrToJSON) {
     // I can't use InternalError here, because that calls sanitizeValue
-    throw new Error("`toSanitizedValue` and `toJSON` are not allowed to call `sanitizeValue` because that can cause infinite recursion.")
+    throw new Error(
+      "`toSanitizedValue` and `toJSON` are not allowed to call `sanitizeValue` because that can cause infinite recursion."
+    )
   }
 
   if (!_parents) {

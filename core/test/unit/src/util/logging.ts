@@ -164,7 +164,7 @@ describe("sanitizeValue", () => {
     class Foo {
       toJSON() {
         return {
-          foo: "bar"
+          foo: "bar",
         }
       }
     }
@@ -174,7 +174,7 @@ describe("sanitizeValue", () => {
     const res = sanitizeValue(obj)
     expect(res).to.eql({
       a: {
-        foo: "bar"
+        foo: "bar",
       },
     })
   })
@@ -183,7 +183,7 @@ describe("sanitizeValue", () => {
     class Foo {
       toSanitizedValue() {
         return sanitizeValue({
-          foo: "bar"
+          foo: "bar",
         })
       }
     }
@@ -192,14 +192,16 @@ describe("sanitizeValue", () => {
     }
     expect(() => {
       sanitizeValue(obj)
-    }).to.throw("`toSanitizedValue` and `toJSON` are not allowed to call `sanitizeValue` because that can cause infinite recursion.")
+    }).to.throw(
+      "`toSanitizedValue` and `toJSON` are not allowed to call `sanitizeValue` because that can cause infinite recursion."
+    )
   })
 
   it("prevents calling sanitizeValue from toJSON to prevent infinite recursion", async () => {
     class Foo {
       toJSON() {
         return sanitizeValue({
-          foo: "bar"
+          foo: "bar",
         })
       }
     }
@@ -208,7 +210,9 @@ describe("sanitizeValue", () => {
     }
     expect(() => {
       sanitizeValue(obj)
-    }).to.throw("`toSanitizedValue` and `toJSON` are not allowed to call `sanitizeValue` because that can cause infinite recursion.")
+    }).to.throw(
+      "`toSanitizedValue` and `toJSON` are not allowed to call `sanitizeValue` because that can cause infinite recursion."
+    )
   })
 
   it("replaces LogEntry instance on a class instance", async () => {

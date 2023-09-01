@@ -218,7 +218,7 @@ describe("GraphSolver", () => {
     task.process = async () => {
       throw new GenericGardenError({
         message: "non-crash error scenario",
-        type: "test"
+        type: "test",
       })
     }
 

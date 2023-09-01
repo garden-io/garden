@@ -142,7 +142,7 @@ export async function apply({
 
           Use the option "--log-level verbose" to see the kubernetes manifests that we attempted to apply through "kubectl apply".
           `,
-        detail: e.detail
+        detail: e.detail,
       })
     }
     throw e

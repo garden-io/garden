@@ -353,7 +353,7 @@ export class GraphNodeError extends GraphError<GraphNodeErrorDetail> {
     const message = `${node.describe()} failed: ${resultError}`
     const stack = resultError?.stack
     const detail = {
-      node
+      node,
     }
     const wrappedErrors = [toGardenError(resultError)]
     super({ message, stack, detail, wrappedErrors, context: { taskType: node.task.type } })
