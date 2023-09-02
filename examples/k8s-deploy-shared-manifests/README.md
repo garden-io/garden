@@ -13,7 +13,10 @@ At the root of the project there's a directory called `manifests` which contains
 The API and web components use these manifests by referencing them in their Garden config like so:
 
 ```yaml
-# In api.garden.yml
+# In api/garden.yml
+kind: Deploy
+type: kubernetes
+name: api
 source:
   path: ../ # <--- We set the source path of the action the root so that we can reference the manifest files
 
@@ -22,7 +25,10 @@ spec:
     - manifests/deployment.yaml
     - manifests/service.yaml
 
-# In web.garden.yml
+# In web/garden.yml
+kind: Deploy
+type: kubernetes
+name: web
 spec:
   files:
     - manifests/deployment.yaml
@@ -41,7 +47,7 @@ The manifests are shared between these components to keep the config DRY but val
 For example, here we set the name and replica number in the Garden config and reference it in the Kubernetes config:
 
 ```yaml
-# In api.garden.yml
+# In api/garden.yml
 variables:
   appName: api
   replicas: 1
@@ -61,7 +67,7 @@ spec:
 You can also set non primitive values like maps and arrays by using the `jsonEncode` templating function. Here's how we set the environment and the arguments to run the container for the API component:
 
 ```yaml
-# In api.garden.yml
+# In api/garden.yml
 variables:
   containerArgs: # <--- Non-primitive variables so we need the jsonEncode helper when we reference them below
     - python

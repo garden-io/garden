@@ -1,0 +1,184 @@
+{
+  "type": "object",
+  "properties": {
+    "relativeSourcePath": {
+      "type": "string"
+    },
+    "relativeProjectRoot": {
+      "type": "string"
+    },
+    "containerPath": {
+      "type": "string"
+    },
+    "healthCheckPath": {
+      "type": "string"
+    },
+    "replicas": {
+      "type": "integer",
+      "default": 1
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "syncCommand": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "enableIngress": {
+      "type": "boolean",
+      "default": false
+     },
+    "enableSync": {
+      "type": "boolean",
+      "default": false
+    },
+    "env": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ]
+      }
+    },
+    "containerPorts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": "http"
+          },
+          "containerPort": {
+            "type": "integer",
+            "default": 8080
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "TCP",
+              "UDP"
+            ],
+            "default": "TCP"
+          }
+        }
+      },
+      "default": [
+        {
+          "name": "http",
+          "containerPort": 8080,
+          "protocol": "TCP"
+        }
+      ]
+    },
+    "servicePorts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": "http"
+          },
+          "port": {
+            "type": "integer",
+            "default": 80
+          },
+          "targetPort": {
+            "type": "integer",
+            "default": 8080
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "TCP",
+              "UDP"
+            ],
+            "default": "TCP"
+          }
+        }
+      },
+      "default": [
+        {
+          "name": "http",
+          "port": 80,
+          "targetPort": 8080,
+          "protocol": "TCP"
+        }
+      ]
+    },
+    "containerArgs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "resources": {
+      "type": "object",
+      "default": {},
+      "properties": {
+        "limits": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "default": "1"
+            },
+            "memory": {
+              "type": "string",
+              "default": "1Gi"
+            }
+          }
+        },
+        "requests": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "default": "10m"
+            },
+            "memory": {
+              "type": "string",
+              "default": "90Mi"
+            }
+          }
+        }
+      }
+    },
+    "default": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "10m",
+        "memory": "90Mi"
+      }
+    }
+  },
+  "required": [
+    "relativeSourcePath",
+    "relativeProjectRoot",
+    "containerPath",
+    "healthCheckPath",
+    "syncCommand",
+    "containerArgs"
+  ]
+}

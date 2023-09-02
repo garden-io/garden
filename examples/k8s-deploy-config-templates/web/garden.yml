@@ -1,0 +1,25 @@
+kind: RenderTemplate
+template: k8s-deploy
+name: web
+inputs:
+  relativeSourcePath: .
+  relativeProjectRoot: ../
+  containerPath: /app
+  healthCheckPath: /
+  enableSync: true
+  enableIngress: true
+
+  containerArgs:
+    - npm
+    - run
+    - serve
+
+  syncCommand:
+    - npm
+    - run
+    - dev
+
+  env:
+    - name: HOSTNAME
+      value: ${variables.baseHostname}
+
