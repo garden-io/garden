@@ -1,0 +1,85 @@
+kind: Deploy
+description: Postgres container for storing voting results
+type: container
+name: postgres
+spec:
+  image: postgres:11.7-alpine
+  volumes:
+    - name: data
+      containerPath: /db-data
+  ports:
+    - name: postgres
+      containerPort: 5432
+  env:
+    POSTGRES_DATABASE: ${var.postgresDatabase}
+    POSTGRES_USERNAME: ${var.postgresUsername}
+    POSTGRES_PASSWORD: ${var.postgresPassword}
+  healthCheck:
+    command:
+      [
+        psql,
+        -w,
+        -U,
+        "${var.postgresUsername}",
+        -d,
+        "${var.postgresDatabase}",
+        -c,
+        "SELECT 1",
+      ]
+
+---
+kind: Run
+name: db-init
+type: container
+dependencies: [deploy.postgres]
+spec:
+  image: postgres:11.7-alpine
+  # The postgres health check appears to go through before the server accepts remote connections, so we need to
+  # sleep for a while.
+  # https://github.com/CrunchyData/crunchy-containers/issues/653
+  command:
+    [
+      /bin/sh,
+      -c,
+      "sleep 15 && psql -w -U ${var.postgresUsername} --host=postgres --port=5432 -d ${var.postgresDatabase} -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'",
+    ]
+  env:
+    PGDATABASE: ${var.postgresDatabase}
+    PGUSER: ${var.postgresUsername}
+    PGPASSWORD: ${var.postgresPassword}
+
+---
+kind: Run
+name: db-delete-votes
+type: container
+dependencies: [deploy.postgres]
+spec:
+  image: postgres:11.7-alpine
+  command:
+    [
+      "/bin/sh",
+      "-c",
+      "psql -w -U ${var.postgresUsername} --host=postgres --port=5432 -d ${var.postgresDatabase} -c 'DROP TABLE IF EXISTS votes'",
+    ]
+  env:
+    PGDATABASE: ${var.postgresDatabase}
+    PGUSER: ${var.postgresUsername}
+    PGPASSWORD: ${var.postgresPassword}
+
+---
+kind: Run
+name: db-clear
+type: container
+dependencies: [deploy.postgres]
+spec:
+  image: postgres:11.7-alpine
+  command:
+    [
+      "/bin/sh",
+      "-c",
+      "psql -w -U ${var.postgresUsername} --host=postgres --port=5432 -d ${var.postgresDatabase} -c 'TRUNCATE votes'",
+    ]
+  env:
+    PGDATABASE: ${var.postgresDatabase}
+    PGUSER: ${var.postgresUsername}
+    PGPASSWORD: ${var.postgresPassword}

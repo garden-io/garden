@@ -1,0 +1,86 @@
+kind: Build
+type: container
+name: api
+
+---
+kind: Deploy
+type: kubernetes
+name: api
+description: The backend for the voting UI
+# Set the source path to the root so that we can reference manifest
+# files that are in the parent directory
+source:
+  path: ../
+
+dependencies:
+  - build.api
+  - run.db-init
+
+spec:
+  files:
+    - manifests/deployment.yaml
+    - manifests/service.yaml
+
+  # Default target for syncs and exec commands
+  defaultTarget:
+    kind: Deployment
+    name: api
+
+  sync:
+    paths:
+      - sourcePath: ./api
+        containerPath: /app
+        mode: "one-way-replica"
+    overrides:
+      - command:
+          ["/bin/sh", "-c", "ls /app/app.py | entr -r -n python /app/app.py"]
+
+# Variables that are used in the K8s manifests
+variables:
+  appName: api
+  healthCheckPath: /health
+  replicas: 1
+
+  env:
+    - name: PGDATABASE
+      value: ${var.postgresDatabase}
+    - name: PGUSER
+      value: ${var.postgresUsername}
+    - name: PGPASSWORD
+      value: ${var.postgresPassword}
+
+  containerPorts:
+    - name: http
+      containerPort: 8080
+      protocol: TCP
+
+  servicePorts:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+
+  containerArgs:
+    - python
+    - app.py
+
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 10m
+      memory: 90Mi
+
+---
+kind: Test
+name: api-unit
+type: container
+build: api
+timeout: 200
+
+dependencies:
+  - deploy.api
+
+spec:
+  args: [echo, ok]
