@@ -1,14 +1,16 @@
 kind: Build
 type: container
 name: api
-source:
-  path: api
 
 ---
 kind: Deploy
 type: kubernetes
 name: api
 description: The backend for the voting UI
+# Set the source path to the root so that we can reference manifest
+# files that are in the parent directory
+source:
+  path: ../
 
 dependencies:
   - build.api

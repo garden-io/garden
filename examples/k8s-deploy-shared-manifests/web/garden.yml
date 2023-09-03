@@ -1,14 +1,16 @@
 kind: Build
 name: web
 type: container
-source:
-  path: web
 
 ---
 kind: Deploy
 type: kubernetes
 name: web
 description: The voting UI
+# Set the source path to the root so that we can reference manifest
+# files that are in the parent directory
+source:
+  path: ../
 
 dependencies:
   - build.web
