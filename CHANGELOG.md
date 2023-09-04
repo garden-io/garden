@@ -1,13 +1,20 @@
 
+<a name="0.12.64"></a>
+## [0.12.64](https://github.com/garden-io/garden/compare/0.12.63...0.12.64) (2023-08-22)
+
+### Bug Fixes
+
+* detect overlapping `targetPath` in `generateFiles` ([#4958](https://github.com/garden-io/garden/issues/4958)) ([34eb11a57](https://github.com/garden-io/garden/commit/34eb11a57))
+
 <a name="0.12.63"></a>
-## [0.12.63](https://github.com/garden-io/garden/compare/0.13.8...0.12.63) (2023-07-18)
+## [0.12.63](https://github.com/garden-io/garden/compare/0.12.62...0.12.63) (2023-07-18)
 
 ### Improvements
 
 * update docker to v24.0.4 ([13db6076f](https://github.com/garden-io/garden/commit/13db6076f))
 
 <a name="0.12.62"></a>
-## [0.12.62](https://github.com/garden-io/garden/compare/0.12.62...0.12.61) (2023-07-12)
+## [0.12.62](https://github.com/garden-io/garden/compare/0.12.61...0.12.62) (2023-07-12)
 
 ### Bug Fixes
 
