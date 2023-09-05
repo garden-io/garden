@@ -461,14 +461,14 @@ describe("kubernetes-type handlers", () => {
     })
   })
 
-  describe("deleteService", () => {
+  describe("deleteKubernetesDeploy", () => {
     it("should only delete namespace resources having the current name in the manifests", async () => {
       // First, we verify that the namespaces created in the preceding test case are still there.
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.exist
 
       const graph = await garden.getConfigGraph({ log, emit: false })
-      const deleteServiceTask = new DeleteDeployTask({
+      const deleteDeployTask = new DeleteDeployTask({
         garden,
         graph,
         log,
@@ -477,7 +477,7 @@ describe("kubernetes-type handlers", () => {
       })
 
       // This should only delete kubernetes-type-ns-2.
-      await garden.processTasks({ tasks: [deleteServiceTask], throwOnError: true })
+      await garden.processTasks({ tasks: [deleteDeployTask], throwOnError: true })
 
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.not.exist
