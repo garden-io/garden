@@ -1,0 +1,90 @@
+kind: Deploy
+type: kubernetes
+name: duplicates-inline
+spec:
+  manifests:
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: silly-demo
+      spec:
+        type: ClusterIP
+        ports:
+        - port: 8080
+          targetPort: 8080
+          protocol: TCP
+          name: http
+        selector:
+          app: silly-demo
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: silly-demo
+      spec:
+        type: ClusterIP
+        ports:
+        - port: 9090
+          targetPort: 9090
+          protocol: TCP
+          name: http
+        selector:
+          app: silly-demo
+
+---
+
+kind: Deploy
+type: kubernetes
+name: duplicates-inline-kustomize
+spec:
+  kustomize:
+    path: ./k8s
+  manifests:
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: silly-demo
+      spec:
+        type: ClusterIP
+        ports:
+        - port: 8080
+          targetPort: 8080
+          protocol: TCP
+          name: http
+        selector:
+          app: silly-demo
+
+---
+
+kind: Deploy
+type: kubernetes
+name: duplicates-files-inline
+spec:
+  manifests:
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: silly-demo
+      spec:
+        type: ClusterIP
+        ports:
+        - port: 8080
+          targetPort: 8080
+          protocol: TCP
+          name: http
+        selector:
+          app: silly-demo
+
+  files:
+   - ./k8s/manifest.yaml
+
+---
+
+kind: Deploy
+type: kubernetes
+name: duplicates-files-kustomize
+spec:
+  kustomize:
+    path: ./k8s
+  files:
+   - ./k8s/manifest.yaml
+

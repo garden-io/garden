@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { keyBy, omit } from "lodash"
 
 import { ConfigurationError } from "../../exceptions"
@@ -24,8 +23,6 @@ import {
 } from "./moduleConfig"
 import { buildContainer, getContainerBuildActionOutputs, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../plugin/handlers/Module/configure"
-import { SuggestModulesParams, SuggestModulesResult } from "../../plugin/handlers/Module/suggest"
-import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
 import { GetModuleOutputsParams } from "../../plugin/handlers/Module/get-outputs"
@@ -163,26 +160,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
   }
 
   return { moduleConfig }
-}
-
-async function suggestModules({ name, path }: SuggestModulesParams): Promise<SuggestModulesResult> {
-  const dockerfiles = (await listDirectory(path, { recursive: false })).filter(
-    (filename) => filename.startsWith(defaultDockerfileName) || filename.endsWith(defaultDockerfileName)
-  )
-
-  return {
-    suggestions: dockerfiles.map((dockerfileName) => {
-      return {
-        description: `based on found ${chalk.white(dockerfileName)}`,
-        module: {
-          kind: "Module",
-          type: "container",
-          name,
-          dockerfile: dockerfileName,
-        },
-      }
-    }),
-  }
 }
 
 export async function getContainerModuleOutputs({ moduleConfig, version }: GetModuleOutputsParams) {
@@ -532,7 +509,6 @@ export const gardenPlugin = () =>
         needsBuild: true,
         handlers: {
           configure: configureContainerModule,
-          suggestModules,
           getModuleOutputs: getContainerModuleOutputs,
           convert: convertContainerModule,
         },

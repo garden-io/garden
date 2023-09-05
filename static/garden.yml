@@ -4,7 +4,7 @@ name: garden-framework
 environments:
   - name: local
     variables:
-      # these are dummy variables, only used when resolving module versions
+      # these are dummy variables, only used when resolving action versions
       gateway-hostname: foo
       function-namespace: boo
 providers:

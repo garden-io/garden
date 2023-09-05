@@ -16,7 +16,6 @@ import { defaultTerraformVersion, terraformCliSpecs } from "./cli"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import { configureTerraformModule, TerraformModule, terraformModuleSchema } from "./module"
 import { docsBaseUrl } from "@garden-io/sdk/constants"
-import { listDirectory } from "@garden-io/sdk/util/fs"
 import { getTerraformCommands } from "./commands"
 import { TerraformDeployConfig, terraformDeployOutputsSchema, terraformDeploySchema } from "./action"
 import { deleteTerraformModule, deployTerraform, getTerraformStatus } from "./handlers"
@@ -185,27 +184,6 @@ export const gardenPlugin = () =>
                 path: module.path,
                 actions,
               },
-            }
-          },
-
-          async suggestModules({ name, path }) {
-            const files = await listDirectory(path, { recursive: false })
-
-            if (files.filter((f) => f.endsWith(".tf")).length > 0) {
-              return {
-                suggestions: [
-                  {
-                    description: `based on found .tf files`,
-                    module: {
-                      type: "terraform",
-                      name,
-                      autoApply: false,
-                    },
-                  },
-                ],
-              }
-            } else {
-              return { suggestions: [] }
             }
           },
         },

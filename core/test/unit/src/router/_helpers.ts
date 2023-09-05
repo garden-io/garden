@@ -368,10 +368,6 @@ function getRouterUnitTestPlugins() {
             validateParams(params, moduleActionDescriptions.getModuleOutputs.paramsSchema)
             return { outputs: { foo: "bar" } }
           },
-
-          suggestModules: async () => {
-            return { suggestions: [] }
-          },
         },
       },
     ],

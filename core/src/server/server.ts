@@ -14,7 +14,8 @@ import Router = require("koa-router")
 import type PTY from "node-pty-prebuilt-multiarch"
 import websockify from "koa-websocket"
 import bodyParser = require("koa-bodyparser")
-import getPort = require("get-port")
+// TODO: switch from get-port-please to get-port once get-port is upgraded to v6.0+ which is ESM only
+const { getPort } = require("get-port-please")
 import { isArray, omit } from "lodash"
 
 import { BaseServerRequest, resolveRequest, serverRequestSchema, shellCommandParamsSchema } from "./commands"
@@ -195,7 +196,11 @@ export class GardenServer extends EventEmitter {
     } else {
       do {
         try {
-          this.port = await getPort({ port: defaultWatchServerPort })
+          this.port = await getPort({
+            port: defaultWatchServerPort,
+            portRange: [defaultWatchServerPort + 1, defaultWatchServerPort + 50],
+            alternativePortRange: [defaultWatchServerPort - 1, defaultWatchServerPort - 50],
+          })
           await _start()
         } catch {}
       } while (!this.server)
@@ -274,7 +279,7 @@ export class GardenServer extends EventEmitter {
       if (error.status) {
         throw error
       }
-      this.log.error({ error })
+      this.log.error({ msg: error.message, error })
       return ctx.throw(500, `Unable to process request: ${error.message}`)
     }
   }
@@ -303,6 +308,8 @@ export class GardenServer extends EventEmitter {
      * means we can keep a consistent format across mechanisms.
      */
     http.post("/api", async (ctx) => {
+      this.debugLog.debug(`Received request: ${JSON.stringify(ctx.request.body)}`)
+
       const { garden, command, log, args, opts } = await this.resolveRequest(ctx, ctx.request.body as BaseServerRequest)
 
       if (!command) {
@@ -322,6 +329,8 @@ export class GardenServer extends EventEmitter {
         return ctx.throw(400, "Attempted to run persistent command (e.g. a dev/follow command). Aborting.")
       }
 
+      this.debugLog.debug(`Running command '${command.name}'`)
+
       await command.prepare(prepareParams)
 
       ctx.status = 200
@@ -333,6 +342,7 @@ export class GardenServer extends EventEmitter {
           sessionId: uuidv4(),
           parentSessionId: this.sessionId,
         })
+        this.debugLog.debug(`Command '${command.name}' completed successfully`)
 
         ctx.response.body = sanitizeValue(result)
       } catch (error) {

@@ -20,16 +20,16 @@ describe("table of contents", () => {
 
       * [Welcome!](welcome.md)
 
-      ## 🌳 Directory 3
+      ## 🌸 Directory 3
 
 
-      ## 🌻 Directory 2
+      ## 🌳 Directory 2
 
 
-      ## 💐 Directory 1
+      ## 🌻 Directory 1
 
 
-      ## 🌿 Directory 4
+      ## 💐 Directory 4
 
       * [This goes first.](./4/2.md)
       * [This goes second.](./4/1.md)

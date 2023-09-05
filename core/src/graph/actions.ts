@@ -42,7 +42,7 @@ import { ConfigurationError, InternalError, PluginError, ValidationError } from 
 import { overrideVariables, type Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
 import type { ActionTypeDefinition } from "../plugin/action-types"
-import { getActionTypeBases } from "../plugins"
+import { ActionDefinitionMap, getActionTypeBases } from "../plugins"
 import type { ActionRouter } from "../router/router"
 import { getExecuteTaskForAction } from "../tasks/helpers"
 import { ResolveActionTask } from "../tasks/resolve-action"
@@ -297,7 +297,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     })
   }
 
-  const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
+  const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext, actionTypes)
 
   if (config.exclude?.includes("**/*")) {
     if (config.include && config.include.length !== 0) {
@@ -586,7 +586,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   })
 
   function resolveTemplates() {
-    // Fully resolve built-in fields that only support ProjectConfigContext
+    // Fully resolve built-in fields that only support `ActionConfigContext`.
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
     const resolvedBuiltin = resolveTemplateStrings(pick(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: false,
@@ -664,7 +664,8 @@ function dependenciesFromActionConfig(
   config: ActionConfig,
   configsByKey: ActionConfigsByKey,
   definition: MaybeUndefined<ActionTypeDefinition<any>>,
-  templateContext: ConfigContext
+  templateContext: ConfigContext,
+  actionTypes: ActionDefinitionMap
 ) {
   const description = describeActionConfig(config)
 
@@ -721,12 +722,12 @@ function dependenciesFromActionConfig(
 
   // Action template references in spec/variables
   // -> We avoid depending on action execution when referencing static output keys
-  const staticKeys = definition?.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
+  const staticOutputKeys = definition?.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
 
   for (const ref of getActionTemplateReferences(config)) {
     let needsExecuted = false
 
-    const outputKey = ref.fullRef[4]
+    const outputKey = ref.fullRef[4] as string
 
     if (maybeTemplateString(ref.name)) {
       try {
@@ -738,8 +739,25 @@ function dependenciesFromActionConfig(
         continue
       }
     }
+    // also avoid execution when referencing the static output keys of the ref action type.
+    // e.g. a helm deploy referencing container build static output deploymentImageName
+    // ${actions.build.my-container.outputs.deploymentImageName}
+    const refActionKey = actionReferenceToString(ref)
+    const refActionType = configsByKey[refActionKey]?.type
+    let refStaticOutputKeys: string[] = []
+    if (refActionType) {
+      const refActionSpec = actionTypes[ref.kind][refActionType]?.spec
+      refStaticOutputKeys = refActionSpec?.staticOutputsSchema
+        ? describeSchema(refActionSpec.staticOutputsSchema).keys
+        : []
+    }
 
-    if (ref.fullRef[3] === "outputs" && outputKey && !staticKeys?.includes(<string>outputKey)) {
+    if (
+      ref.fullRef[3] === "outputs" &&
+      outputKey &&
+      !staticOutputKeys.includes(outputKey) &&
+      !refStaticOutputKeys.includes(outputKey)
+    ) {
       needsExecuted = true
     }
 

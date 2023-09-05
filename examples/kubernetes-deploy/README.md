@@ -1,4 +1,4 @@
-# `kubernetes` action type example
+# `kubernetes` Deploy action type example
 
 This is a simple example demonstrating the `kubernetes` action type.
 The `kubernetes` action type is useful when you want to deploy your own manifests to Kubernetes, but don't need the
