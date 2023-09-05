@@ -57,14 +57,14 @@ describe("kubernetes-type handlers", () => {
   let moduleConfigBackup: ModuleConfig[]
   let nsModuleConfig: ModuleConfig
 
-  const withNamespace = (moduleConfig: ModuleConfig, nsName: string): ModuleConfig => {
+  function withNamespace(moduleConfig: ModuleConfig, nsName: string): ModuleConfig {
     const cloned = cloneDeep(moduleConfig)
     cloned.spec.manifests[0].metadata.name = nsName
     cloned.spec.manifests[0].metadata.labels.name = nsName
     return cloned
   }
 
-  const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logCtx: Log) => {
+  async function findDeployedResources(manifests: KubernetesResource<BaseResource>[], logCtx: Log) {
     const maybeDeployedObjects = await Promise.all(
       manifests.map((resource) => getDeployedResource(ctx, ctx.provider, resource, logCtx))
     )
