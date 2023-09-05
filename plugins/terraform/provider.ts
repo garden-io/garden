@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "@garden-io/sdk/util/string"
+import { dedent } from "@worldofgeese/sdk/util/string"
 import { defaultTerraformVersion, supportedVersions } from "./cli"
 import { TerraformBaseSpec, variablesSchema } from "./helpers"
-import { docsBaseUrl } from "@garden-io/sdk/constants"
+import { docsBaseUrl } from "@worldofgeese/sdk/constants"
 
-import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
-import { joi } from "@garden-io/core/build/src/config/common"
+import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@worldofgeese/core/build/src/config/provider"
+import { joi } from "@worldofgeese/core/build/src/config/common"
 
 export type TerraformProviderConfig = GenericProviderConfig &
   TerraformBaseSpec & {

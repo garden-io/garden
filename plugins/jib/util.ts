@@ -7,17 +7,17 @@
  */
 
 import { resolve } from "path"
-import { GardenModule } from "@garden-io/sdk/types"
-import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
-import { getDockerBuildArgs } from "@garden-io/core/build/src/plugins/container/build"
+import { GardenModule } from "@worldofgeese/sdk/types"
+import { ConfigurationError } from "@worldofgeese/core/build/src/exceptions"
+import { getDockerBuildArgs } from "@worldofgeese/core/build/src/plugins/container/build"
 import {
   ContainerBuildActionSpec,
   ContainerModuleBuildSpec,
   ContainerModuleSpec,
-} from "@garden-io/core/build/src/plugins/container/moduleConfig"
-import { BuildAction, BuildActionConfig } from "@garden-io/core/build/src/actions/build"
-import { ContainerBuildOutputs } from "@garden-io/core/build/src/plugins/container/config"
-import { Resolved } from "@garden-io/core/build/src/actions/types"
+} from "@worldofgeese/core/build/src/plugins/container/moduleConfig"
+import { BuildAction, BuildActionConfig } from "@worldofgeese/core/build/src/actions/build"
+import { ContainerBuildOutputs } from "@worldofgeese/core/build/src/plugins/container/config"
+import { Resolved } from "@worldofgeese/core/build/src/actions/types"
 
 interface JibBuildSpec {
   dockerBuild?: boolean

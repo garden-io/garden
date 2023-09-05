@@ -12,9 +12,9 @@ import {
   joi,
   joiSparseArray,
   joiVariables,
-} from "@garden-io/core/build/src/config/common"
-import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
-import { dedent } from "@garden-io/sdk/util/string"
+} from "@worldofgeese/core/build/src/config/common"
+import { DeployAction, DeployActionConfig } from "@worldofgeese/core/build/src/actions/deploy"
+import { dedent } from "@worldofgeese/sdk/util/string"
 
 export interface PulumiDeploySpec {
   allowDestroy: boolean

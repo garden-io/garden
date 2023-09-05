@@ -8,9 +8,9 @@
 
 import which from "which"
 
-import { CliWrapper } from "@garden-io/sdk/util/ext-tools"
-import { ConfigurationError, RuntimeError } from "@garden-io/sdk/exceptions"
-import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { CliWrapper } from "@worldofgeese/sdk/util/ext-tools"
+import { ConfigurationError, RuntimeError } from "@worldofgeese/sdk/exceptions"
+import { Log, PluginContext, PluginToolSpec } from "@worldofgeese/sdk/types"
 import { PulumiProvider } from "./provider"
 
 export const defaultPulumiEnv = {

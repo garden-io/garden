@@ -8,14 +8,14 @@
 
 import { join } from "path"
 
-import { GardenModule } from "@garden-io/sdk/types"
+import { GardenModule } from "@worldofgeese/sdk/types"
 import { expect } from "chai"
-import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
+import { makeTestGarden, TestGarden } from "@worldofgeese/sdk/testing"
 import { gardenPlugin } from ".."
 import { JibBuildAction } from "../util"
-import { Resolved } from "@garden-io/core/build/src/actions/types"
-import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
-import { createActionLog } from "@garden-io/core/build/src/logger/log-entry"
+import { Resolved } from "@worldofgeese/core/build/src/actions/types"
+import { ResolvedConfigGraph } from "@worldofgeese/core/build/src/graph/config-graph"
+import { createActionLog } from "@worldofgeese/core/build/src/logger/log-entry"
 
 describe("jib-container", function () {
   // eslint-disable-next-line no-invalid-this

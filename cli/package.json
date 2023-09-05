@@ -22,13 +22,13 @@
     "garden": "bin/garden"
   },
   "dependencies": {
-    "@garden-io/core": "*",
-    "@garden-io/garden-conftest": "*",
-    "@garden-io/garden-conftest-container": "*",
-    "@garden-io/garden-conftest-kubernetes": "*",
-    "@garden-io/garden-jib": "*",
-    "@garden-io/garden-pulumi": "*",
-    "@garden-io/garden-terraform": "*",
+    "@worldofgeese/core": "*",
+    "@worldofgeese/garden-conftest": "*",
+    "@worldofgeese/garden-conftest-container": "*",
+    "@worldofgeese/garden-conftest-kubernetes": "*",
+    "@worldofgeese/garden-jib": "*",
+    "@worldofgeese/garden-pulumi": "*",
+    "@worldofgeese/garden-terraform": "*",
     "chalk": "^4.1.2",
     "patch-package": "^6.5.1",
     "pkg": "5.8.1"
@@ -63,7 +63,7 @@
     "scripts": [
       "package.json",
       "build/src/cli.js",
-      "node_modules/@garden-io/**/*.js",
+      "node_modules/@worldofgeese/**/*.js",
       "node_modules/es-get-iterator/**/*.js"
     ]
   },

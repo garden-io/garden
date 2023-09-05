@@ -9,15 +9,15 @@
 import chalk from "chalk"
 import { getAbi } from "node-abi"
 import { resolve, relative, join } from "path"
-import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants"
+import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@worldofgeese/core/build/src/constants"
 import { remove, mkdirp, copy, writeFile } from "fs-extra"
-import { exec, getPackageVersion, sleep } from "@garden-io/core/build/src/util/util"
-import { dedent, randomString } from "@garden-io/core/build/src/util/string"
+import { exec, getPackageVersion, sleep } from "@worldofgeese/core/build/src/util/util"
+import { dedent, randomString } from "@worldofgeese/core/build/src/util/string"
 import { pick } from "lodash"
 import minimist from "minimist"
 import { createHash } from "crypto"
 import { createReadStream } from "fs"
-import { makeTempDir } from "@garden-io/core/build/test/helpers"
+import { makeTempDir } from "@worldofgeese/core/build/test/helpers"
 
 require("source-map-support").install()
 
@@ -142,8 +142,8 @@ async function buildBinaries(args: string[]) {
   )
 
   // Run yarn install in the cli package
-  console.log(chalk.cyan("Installing packages in @garden-io/cli package"))
-  const cliPath = resolve(tmpDirPath, workspaces["@garden-io/cli"].location)
+  console.log(chalk.cyan("Installing packages in @worldofgeese/cli package"))
+  const cliPath = resolve(tmpDirPath, workspaces["@worldofgeese/cli"].location)
   await exec("yarn", ["--production"], { cwd: cliPath })
 
   // Run pkg and pack up each platform binary

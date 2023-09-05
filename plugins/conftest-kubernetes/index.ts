@@ -8,12 +8,12 @@
 
 import slash from "slash"
 import { relative, resolve } from "path"
-import { createGardenPlugin } from "@garden-io/sdk"
-import { ConftestProvider } from "@garden-io/garden-conftest"
+import { createGardenPlugin } from "@worldofgeese/sdk"
+import { ConftestProvider } from "@worldofgeese/garden-conftest"
 
-// TODO: remove direct references to @garden-io/core
-import { dedent } from "@garden-io/core/build/src/util/string"
-import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
+// TODO: remove direct references to @worldofgeese/core
+import { dedent } from "@worldofgeese/core/build/src/util/string"
+import { getGitHubUrl } from "@worldofgeese/core/build/src/docs/common"
 
 const gitHubUrl = getGitHubUrl("examples/conftest")
 

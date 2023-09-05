@@ -56,7 +56,7 @@ async function release() {
   /**
    * For prereleases, we omit the prerelease suffix for all package.json-s except the top-level one.
    *
-   * This is to make references to internal packages (e.g. "@garden-io/core@*") work during the build process in CI.
+   * This is to make references to internal packages (e.g. "@worldofgeese/core@*") work during the build process in CI.
    */
   const packageReleaseTypeMap = { preminor: "minor", prepatch: "patch" }
   const incrementedPackageVersion = semver.inc(prevVersion, packageReleaseTypeMap[releaseType] || releaseType)

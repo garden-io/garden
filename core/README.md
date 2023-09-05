@@ -1,4 +1,4 @@
-# @garden-io/core
+# @worldofgeese/core
 
 ---
 

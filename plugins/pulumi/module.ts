@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi } from "@garden-io/core/build/src/config/common"
-import { GardenModule, ModuleActionHandlers, PluginContext } from "@garden-io/sdk/types"
-import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
-import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
+import { joi } from "@worldofgeese/core/build/src/config/common"
+import { GardenModule, ModuleActionHandlers, PluginContext } from "@worldofgeese/sdk/types"
+import { baseBuildSpecSchema } from "@worldofgeese/core/build/src/config/module"
+import { dependenciesSchema } from "@worldofgeese/core/build/src/config/service"
 import { pulumiDeploySchemaKeys, PulumiDeploySpec } from "./action"
 import { PulumiProvider, PulumiProviderConfig } from "./provider"
 import { join } from "path"
 import { pathExists } from "fs-extra"
-import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
+import { ConfigurationError } from "@worldofgeese/core/build/src/exceptions"
 
 export interface PulumiModuleSpec extends PulumiDeploySpec {
   dependencies: string[]

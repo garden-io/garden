@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Log, PluginContext } from "@garden-io/sdk/types"
-import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
+import type { Log, PluginContext } from "@worldofgeese/sdk/types"
+import { makeTestGarden, TestGarden } from "@worldofgeese/sdk/testing"
 import execa from "execa"
 import { pathExists } from "fs-extra"
 import { join, resolve } from "path"
@@ -17,7 +17,7 @@ import { gardenPlugin as pulumiPlugin } from ".."
 import { expect } from "chai"
 import { getStackVersionTag } from "../helpers"
 import { getPulumiCommands } from "../commands"
-import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
+import { ResolvedConfigGraph } from "@worldofgeese/core/build/src/graph/config-graph"
 
 const projectRoot = resolve(__dirname, "test-project-k8s")
 

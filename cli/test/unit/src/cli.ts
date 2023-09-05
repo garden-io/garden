@@ -13,12 +13,12 @@ import { resolve } from "path"
 import { runCli, getBundledPlugins } from "../../../src/cli"
 import { testRoot } from "../../helpers"
 
-import { projectRootA } from "@garden-io/core/build/test/helpers"
-import { TestGardenCli } from "@garden-io/core/build/test/helpers/cli"
-import { Command, CommandParams } from "@garden-io/core/build/src/commands/base"
-import { randomString } from "@garden-io/core/build/src/util/string"
-import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global"
-import { testFlags } from "@garden-io/core/build/src/util/util"
+import { projectRootA } from "@worldofgeese/core/build/test/helpers"
+import { TestGardenCli } from "@worldofgeese/core/build/test/helpers/cli"
+import { Command, CommandParams } from "@worldofgeese/core/build/src/commands/base"
+import { randomString } from "@worldofgeese/core/build/src/util/string"
+import { GlobalConfigStore } from "@worldofgeese/core/build/src/config-store/global"
+import { testFlags } from "@worldofgeese/core/build/src/util/util"
 
 describe("runCli", () => {
   const globalConfigStore = new GlobalConfigStore()

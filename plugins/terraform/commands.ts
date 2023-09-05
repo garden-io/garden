@@ -9,12 +9,12 @@
 import chalk from "chalk"
 import { terraform } from "./cli"
 import { TerraformProvider } from "./provider"
-import { ConfigurationError, ParameterError } from "@garden-io/sdk/exceptions"
+import { ConfigurationError, ParameterError } from "@worldofgeese/sdk/exceptions"
 import { prepareVariables, setWorkspace, tfValidate } from "./helpers"
-import { ConfigGraph, PluginCommand, PluginCommandParams } from "@garden-io/sdk/types"
+import { ConfigGraph, PluginCommand, PluginCommandParams } from "@worldofgeese/sdk/types"
 import { join } from "path"
 import { remove } from "fs-extra"
-import { getProviderStatusCachePath } from "@garden-io/core/build/src/tasks/resolve-provider"
+import { getProviderStatusCachePath } from "@worldofgeese/core/build/src/tasks/resolve-provider"
 import { TerraformDeploy } from "./action"
 
 const commandsToWrap = ["apply", "plan", "destroy"]

@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { makeTestGarden } from "@garden-io/sdk/testing"
+import { makeTestGarden } from "@worldofgeese/sdk/testing"
 import { join } from "path"
 import { gardenPlugin } from ".."
 import { defaultTerraformVersion } from "../cli"
-import { ValidateCommand } from "@garden-io/core/build/src/commands/validate"
-import { withDefaultGlobalOpts } from "@garden-io/core/build/test/helpers"
+import { ValidateCommand } from "@worldofgeese/core/build/src/commands/validate"
+import { withDefaultGlobalOpts } from "@worldofgeese/core/build/test/helpers"
 
 describe("terraform validation", () => {
   for (const project of ["test-project", "test-project-action", "test-project-module"]) {

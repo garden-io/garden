@@ -1,6 +1,6 @@
 {
-  "name": "@garden-io/sdk",
-  "version": "0.13.13",
+  "name": "@worldofgeese/sdk",
+  "version": "0.13.13-preview.6",
   "description": "TypeScript plugin SDK for Garden",
   "repository": {
     "type": "git",
@@ -14,10 +14,7 @@
     "npm": ">=8"
   },
   "preferGlobal": true,
-  "private": true,
-  "files": [
-    "build"
-  ],
+  "private": false,
   "main": "index.js",
   "dependencies": {
     "@garden-io/core": "*",

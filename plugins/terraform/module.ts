@@ -8,13 +8,13 @@
 
 import { join } from "path"
 import { pathExists } from "fs-extra"
-import { joi } from "@garden-io/core/build/src/config/common"
-import { GardenModule, ModuleActionHandlers, PluginContext } from "@garden-io/sdk/types"
-import { ConfigurationError } from "@garden-io/sdk/exceptions"
-import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
+import { joi } from "@worldofgeese/core/build/src/config/common"
+import { GardenModule, ModuleActionHandlers, PluginContext } from "@worldofgeese/sdk/types"
+import { ConfigurationError } from "@worldofgeese/sdk/exceptions"
+import { dependenciesSchema } from "@worldofgeese/core/build/src/config/service"
 import { TerraformBaseSpec } from "./helpers"
 import { TerraformProvider, TerraformProviderConfig } from "./provider"
-import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
+import { baseBuildSpecSchema } from "@worldofgeese/core/build/src/config/module"
 import { terraformDeploySchemaKeys } from "./action"
 
 export interface TerraformModuleSpec extends TerraformBaseSpec {

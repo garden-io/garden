@@ -7,13 +7,13 @@
  */
 
 import { join } from "path"
-import { deline } from "@garden-io/core/build/src/util/string"
+import { deline } from "@worldofgeese/core/build/src/util/string"
 import { terraform } from "./cli"
 import { applyStack, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers"
 import { TerraformProvider } from "./provider"
-import { DeployActionHandler } from "@garden-io/core/build/src/plugin/action-types"
-import { DeployState } from "@garden-io/core/build/src/types/service"
-import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status"
+import { DeployActionHandler } from "@worldofgeese/core/build/src/plugin/action-types"
+import { DeployState } from "@worldofgeese/core/build/src/types/service"
+import { deployStateToActionState } from "@worldofgeese/core/build/src/plugin/handlers/Deploy/get-status"
 import { TerraformDeploy, TerraformDeploySpec } from "./action"
 import chalk = require("chalk")
 

@@ -9,8 +9,8 @@
 import { TerraformProvider } from "./provider"
 import { applyStack, getRoot, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers"
 import chalk from "chalk"
-import { deline } from "@garden-io/sdk/util/string"
-import { ProviderHandlers } from "@garden-io/sdk/types"
+import { deline } from "@worldofgeese/sdk/util/string"
+import { ProviderHandlers } from "@worldofgeese/sdk/types"
 import { terraform } from "./cli"
 
 export const getEnvironmentStatus: ProviderHandlers["getEnvironmentStatus"] = async ({ ctx, log }) => {

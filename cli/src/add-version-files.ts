@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GitHandler } from "@garden-io/core/build/src/vcs/git"
-import { Garden } from "@garden-io/core/build/src/garden"
-import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger"
+import { GitHandler } from "@worldofgeese/core/build/src/vcs/git"
+import { Garden } from "@worldofgeese/core/build/src/garden"
+import { LogLevel, RootLogger } from "@worldofgeese/core/build/src/logger/logger"
 import { resolve, relative } from "path"
-import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "@garden-io/core/build/src/constants"
-import { writeTreeVersionFile } from "@garden-io/core/build/src/vcs/vcs"
-import { TreeCache } from "@garden-io/core/build/src/cache"
+import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "@worldofgeese/core/build/src/constants"
+import { writeTreeVersionFile } from "@worldofgeese/core/build/src/vcs/vcs"
+import { TreeCache } from "@worldofgeese/core/build/src/cache"
 
 require("source-map-support").install()
 

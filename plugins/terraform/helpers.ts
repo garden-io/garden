@@ -9,14 +9,14 @@
 import { resolve } from "path"
 import { mapValues, startCase } from "lodash"
 
-import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/exceptions"
-import { Log, PluginContext } from "@garden-io/sdk/types"
-import { dedent } from "@garden-io/sdk/util/string"
+import { ConfigurationError, PluginError, RuntimeError } from "@worldofgeese/sdk/exceptions"
+import { Log, PluginContext } from "@worldofgeese/sdk/types"
+import { dedent } from "@worldofgeese/sdk/util/string"
 import { terraform } from "./cli"
 import { TerraformProvider } from "./provider"
 import { writeFile } from "fs-extra"
 import chalk from "chalk"
-import { joi, joiStringMap, PrimitiveMap } from "@garden-io/core/build/src/config/common"
+import { joi, joiStringMap, PrimitiveMap } from "@worldofgeese/core/build/src/config/common"
 import split2 = require("split2")
 
 export const variablesSchema = () => joiStringMap(joi.any())

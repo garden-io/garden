@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { generateDocs } from "@garden-io/core/build/src/docs/generate"
+import { generateDocs } from "@worldofgeese/core/build/src/docs/generate"
 import { resolve } from "path"
-import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger"
-import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants"
+import { LogLevel, RootLogger } from "@worldofgeese/core/build/src/logger/logger"
+import { GARDEN_CLI_ROOT } from "@worldofgeese/core/build/src/constants"
 import { getBundledPlugins } from "./cli"
-import { getSupportedPlugins } from "@garden-io/core/build/src/plugins/plugins"
+import { getSupportedPlugins } from "@worldofgeese/core/build/src/plugins/plugins"
 import { gracefulExit } from "@scg82/exit-hook"
 
 require("source-map-support").install()

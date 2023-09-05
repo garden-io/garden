@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { createGardenPlugin } from "@garden-io/sdk"
-import { ConftestProvider } from "@garden-io/garden-conftest"
-import { dedent } from "@garden-io/sdk/util/string"
+import { createGardenPlugin } from "@worldofgeese/sdk"
+import { ConftestProvider } from "@worldofgeese/garden-conftest"
+import { dedent } from "@worldofgeese/sdk/util/string"
 
 /**
  * Auto-generates a conftest module for each container module in your project

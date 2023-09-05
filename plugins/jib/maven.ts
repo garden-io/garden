@@ -7,9 +7,9 @@
  */
 
 import AsyncLock from "async-lock"
-import { PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { PluginContext, PluginToolSpec } from "@worldofgeese/sdk/types"
 import { find } from "lodash"
-import { PluginError } from "@garden-io/core/build/src/exceptions"
+import { PluginError } from "@worldofgeese/core/build/src/exceptions"
 import { BuildToolParams, runBuildTool, verifyBinaryPath, VerifyBinaryParams } from "./build-tool-base"
 
 const buildLock = new AsyncLock()

@@ -7,7 +7,7 @@
  */
 
 import { pulumi } from "./cli"
-import { ProviderHandlers } from "@garden-io/sdk/types"
+import { ProviderHandlers } from "@worldofgeese/sdk/types"
 import {
   applyConfig,
   clearStackVersionTag,
@@ -23,9 +23,9 @@ import {
 import { PulumiDeploy } from "./action"
 import { PulumiProvider } from "./provider"
 import chalk from "chalk"
-import { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types"
-import { DeployState } from "@garden-io/core/build/src/types/service"
-import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status"
+import { DeployActionHandlers } from "@worldofgeese/core/build/src/plugin/action-types"
+import { DeployState } from "@worldofgeese/core/build/src/types/service"
+import { deployStateToActionState } from "@worldofgeese/core/build/src/plugin/handlers/Deploy/get-status"
 
 export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async (_params) => {
   // To properly implement this handler, we'd need access to the config graph (or at least the list of pulumi services

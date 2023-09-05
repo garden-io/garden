@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError, makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
+import { expectError, makeTestGarden, TestGarden } from "@worldofgeese/sdk/testing"
 import { expect } from "chai"
 import { detectProjectType, getBuildFlags, JibBuildAction } from "../util"
 import { join } from "path"
-import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
-import { Resolved } from "@garden-io/core/build/src/actions/types"
+import { ResolvedConfigGraph } from "@worldofgeese/core/build/src/graph/config-graph"
+import { Resolved } from "@worldofgeese/core/build/src/actions/types"
 import { gardenPlugin } from "../index"
 
 describe("util", function () {

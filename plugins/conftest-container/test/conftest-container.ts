@@ -9,15 +9,15 @@
 import { expect } from "chai"
 import { join } from "path"
 
-import { createGardenPlugin } from "@garden-io/sdk"
-import { makeTestGarden } from "@garden-io/sdk/testing"
+import { createGardenPlugin } from "@worldofgeese/sdk"
+import { makeTestGarden } from "@worldofgeese/sdk/testing"
 import { gardenPlugin } from ".."
-import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest"
+import { gardenPlugin as conftestPlugin } from "@worldofgeese/garden-conftest"
 
-import { ProjectConfig, defaultNamespace } from "@garden-io/core/build/src/config/project"
-import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
-import { defaultDockerfileName } from "@garden-io/core/build/src/plugins/container/config"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "@garden-io/core/build/src/constants"
+import { ProjectConfig, defaultNamespace } from "@worldofgeese/core/build/src/config/project"
+import { defaultDotIgnoreFile } from "@worldofgeese/core/build/src/util/fs"
+import { defaultDockerfileName } from "@worldofgeese/core/build/src/plugins/container/config"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "@worldofgeese/core/build/src/constants"
 
 describe.skip("conftest-container provider", () => {
   const projectRoot = join(__dirname, "test-project")

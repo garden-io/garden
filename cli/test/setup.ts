@@ -7,4 +7,4 @@
  */
 
 // Borrow the basic test setup from core
-require("@garden-io/core/build/test/setup")
+require("@worldofgeese/core/build/test/setup")

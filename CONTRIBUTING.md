@@ -31,7 +31,7 @@ The project code is composed of several components, most of which are written in
 | `images` | Supporting container images, used by e.g. the `kubernetes` provider. |
 | `plugins` | Plugins that are bundled with Garden. We are in the process of moving plugins out of `core` and into separate packages here. |
 | `scripts` | Various scripts for builds, releases and development. |
-| `sdk` | The `@garden-io/sdk` package, used for Garden plugin development. |
+| `sdk` | The `@worldofgeese/sdk` package, used for Garden plugin development. |
 | `secrets` | Encrypted files, used for integ/e2e testing. Only accessible to Garden maintainers. |
 | `static` | Static files that are bundled with the CLI. |
 | `support` | Supporting files for development, builds, releases etc. |

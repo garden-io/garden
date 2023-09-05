@@ -7,8 +7,8 @@
  */
 
 import { find } from "lodash"
-import { PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
-import { PluginError } from "@garden-io/core/build/src/exceptions"
+import { PluginContext, PluginToolSpec } from "@worldofgeese/sdk/types"
+import { PluginError } from "@worldofgeese/core/build/src/exceptions"
 import { resolve } from "path"
 import { pathExists } from "fs-extra"
 import { runBuildTool, BuildToolParams, verifyBinaryPath, VerifyBinaryParams } from "./build-tool-base"

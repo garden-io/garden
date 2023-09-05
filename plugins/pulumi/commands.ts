@@ -15,11 +15,11 @@ import {
   PluginCommand,
   PluginCommandParams,
   PluginContext,
-} from "@garden-io/sdk/types"
+} from "@worldofgeese/sdk/types"
 
 import { PulumiDeploy } from "./action"
 import { PulumiProvider } from "./provider"
-import { Profile } from "@garden-io/core/build/src/util/profiling"
+import { Profile } from "@worldofgeese/core/build/src/util/profiling"
 import {
   cancelUpdate,
   getModifiedPlansDirPath,
@@ -31,16 +31,16 @@ import {
   reimportStack,
   selectStack,
 } from "./helpers"
-import { dedent, deline } from "@garden-io/sdk/util/string"
-import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/util/cli"
+import { dedent, deline } from "@worldofgeese/sdk/util/string"
+import { BooleanParameter, parsePluginCommandArgs } from "@worldofgeese/sdk/util/cli"
 import { copy, emptyDir } from "fs-extra"
 import { join } from "path"
-import { isDeployAction } from "@garden-io/core/build/src/actions/deploy"
-import { TemplatableConfigContext } from "@garden-io/core/build/src/config/template-contexts/project"
-import { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base"
+import { isDeployAction } from "@worldofgeese/core/build/src/actions/deploy"
+import { TemplatableConfigContext } from "@worldofgeese/core/build/src/config/template-contexts/project"
+import { ActionTaskProcessParams, ValidResultType } from "@worldofgeese/core/build/src/tasks/base"
 import { deletePulumiDeploy } from "./handlers"
-import { ActionLog, createActionLog, Log } from "@garden-io/core/build/src/logger/log-entry"
-import { ActionConfigContext } from "@garden-io/core/build/src/config/template-contexts/actions"
+import { ActionLog, createActionLog, Log } from "@worldofgeese/core/build/src/logger/log-entry"
+import { ActionConfigContext } from "@worldofgeese/core/build/src/config/template-contexts/actions"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 

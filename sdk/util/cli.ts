@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Parameters } from "@garden-io/core/build/src/cli/params"
-import { prepareMinimistOpts } from "@garden-io/core/build/src/cli/helpers"
+import { Parameters } from "@worldofgeese/core/build/src/cli/params"
+import { prepareMinimistOpts } from "@worldofgeese/core/build/src/cli/helpers"
 import minimist from "minimist"
 
 export {
@@ -20,7 +20,7 @@ export {
   StringOption,
   StringsParameter,
   TagsOption,
-} from "@garden-io/core/build/src/cli/params"
+} from "@worldofgeese/core/build/src/cli/params"
 
 /**
  * Parses the given CLI arguments using minimist, according to the CLI options spec provided. Useful for plugin commands

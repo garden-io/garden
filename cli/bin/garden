@@ -6,7 +6,7 @@ if (process.env.GARDEN_ENABLE_PROFILING === "1" || process.env.GARDEN_ENABLE_PRO
   const Mod = require("module")
   const { performance } = require("perf_hooks")
   const { basename } = require("path")
-  const { getDefaultProfiler } = require("@garden-io/core/build/src/util/profiling")
+  const { getDefaultProfiler } = require("@worldofgeese/core/build/src/util/profiling")
 
   const req = Mod.prototype.require
   const profiler = getDefaultProfiler()
@@ -35,7 +35,7 @@ if (process.env.GARDEN_ENABLE_PROFILING === "1" || process.env.GARDEN_ENABLE_PRO
   }
 }
 
-const { initTracing } = require("@garden-io/core/build/src/util/open-telemetry/tracing")
+const { initTracing } = require("@worldofgeese/core/build/src/util/open-telemetry/tracing")
 initTracing()
 
 const cli = require("../build/src/cli")

@@ -8,9 +8,9 @@
 
 import { TerraformProvider } from "./provider"
 import which from "which"
-import { ConfigurationError, RuntimeError } from "@garden-io/sdk/exceptions"
-import { CliWrapper, PluginToolSpec } from "@garden-io/sdk/util/ext-tools"
-import { Log, PluginContext } from "@garden-io/sdk/types"
+import { ConfigurationError, RuntimeError } from "@worldofgeese/sdk/exceptions"
+import { CliWrapper, PluginToolSpec } from "@worldofgeese/sdk/util/ext-tools"
+import { Log, PluginContext } from "@worldofgeese/sdk/types"
 
 export function terraform(ctx: PluginContext, provider: TerraformProvider) {
   const version = provider.config.version

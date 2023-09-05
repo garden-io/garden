@@ -11,11 +11,11 @@ import stripAnsi from "strip-ansi"
 import { join } from "path"
 
 import { gardenPlugin } from ".."
-import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest"
-import { dedent } from "@garden-io/sdk/util/string"
-import { makeTestGarden } from "@garden-io/sdk/testing"
+import { gardenPlugin as conftestPlugin } from "@worldofgeese/garden-conftest"
+import { dedent } from "@worldofgeese/sdk/util/string"
+import { makeTestGarden } from "@worldofgeese/sdk/testing"
 
-import { TestTask } from "@garden-io/core/build/src/tasks/test"
+import { TestTask } from "@worldofgeese/core/build/src/tasks/test"
 
 describe.skip("conftest-kubernetes provider", () => {
   const projectRoot = join(__dirname, "test-project")
