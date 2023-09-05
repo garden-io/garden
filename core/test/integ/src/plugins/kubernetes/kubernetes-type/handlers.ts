@@ -56,10 +56,6 @@ describe("kubernetes-type handlers", () => {
    */
   let moduleConfigBackup: ModuleConfig[]
   let nsModuleConfig: ModuleConfig
-  let ns1Manifest: KubernetesResource<BaseResource> | undefined
-  let ns1Resource: KubernetesResource<BaseResource> | null
-  let ns2Manifest: KubernetesResource<BaseResource> | undefined
-  let ns2Resource: KubernetesResource<BaseResource> | null
 
   const withNamespace = (moduleConfig: ModuleConfig, nsName: string): ModuleConfig => {
     const cloned = cloneDeep(moduleConfig)
@@ -109,6 +105,28 @@ describe("kubernetes-type handlers", () => {
       defaultNamespace: namespace,
     })
     return { action, resolvedAction, deployParams, manifests }
+  }
+
+  async function deployInNamespace({ nsName, deployName }: { nsName: string; deployName: string }) {
+    garden.setModuleConfigs([withNamespace(nsModuleConfig, nsName)])
+    const graph = await garden.getConfigGraph({ log, emit: false })
+    const action = graph.getDeploy(deployName)
+    const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
+    const defaultNamespace = await getActionNamespace({ ctx, log, action: resolvedAction, provider: ctx.provider })
+    const manifests = await getManifests({ ctx, api, log, action: resolvedAction, defaultNamespace })
+    const manifest = manifests.find((resource) => resource.kind === "Namespace")
+
+    const deployTask = new DeployTask({
+      garden,
+      graph,
+      log,
+      action,
+      force: true,
+      forceBuild: false,
+    })
+    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+    const resource = await getDeployedResource(ctx, ctx.provider, manifest!, log)
+    return { manifest, resource, graph, action, resolvedAction }
   }
 
   before(async () => {
@@ -391,24 +409,10 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should not delete previously deployed namespace resources", async () => {
-      garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-type-ns-1")])
-      let graph = await garden.getConfigGraph({ log, emit: false })
-      let action = graph.getDeploy("namespace-resource")
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
-      const defaultNamespace = await getActionNamespace({ ctx, log, action: resolvedAction, provider: ctx.provider })
-      let manifests = await getManifests({ ctx, api, log, action: resolvedAction, defaultNamespace })
-      ns1Manifest = manifests.find((resource) => resource.kind === "Namespace")
-
-      const deployTask = new DeployTask({
-        garden,
-        graph,
-        log,
-        action,
-        force: true,
-        forceBuild: false,
+      const { manifest: ns1Manifest, resource: ns1Resource } = await deployInNamespace({
+        nsName: "kubernetes-type-ns-1",
+        deployName: "namespace-resource",
       })
-      const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-      ns1Resource = await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log)
 
       expect(ns1Manifest, "ns1Manifest").to.exist
       expect(ns1Manifest!.metadata.name).to.match(/ns-1/)
@@ -417,27 +421,10 @@ describe("kubernetes-type handlers", () => {
       // this module.
 
       // This should result in a new namespace with a new name being deployed.
-      garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-type-ns-2")])
-      graph = await garden.getConfigGraph({ log, emit: false })
-      action = graph.getDeploy("namespace-resource")
-      manifests = await getManifests({
-        ctx,
-        api,
-        log,
-        action: await garden.resolveAction({ action, log: garden.log, graph }),
-        defaultNamespace,
+      const { manifest: ns2Manifest, resource: ns2Resource } = await deployInNamespace({
+        nsName: "kubernetes-type-ns-2",
+        deployName: "namespace-resource",
       })
-      ns2Manifest = manifests.find((resource) => resource.kind === "Namespace")
-      const deployTask2 = new DeployTask({
-        garden,
-        graph,
-        log,
-        action,
-        force: true,
-        forceBuild: true,
-      })
-      await garden.processTasks({ tasks: [deployTask2], throwOnError: true })
-      ns2Resource = await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log)
 
       expect(ns2Manifest, "ns2Manifest").to.exist
       expect(ns2Manifest!.metadata.name).to.match(/ns-2/)
@@ -463,16 +450,29 @@ describe("kubernetes-type handlers", () => {
 
   describe("deleteKubernetesDeploy", () => {
     it("should only delete namespace resources having the current name in the manifests", async () => {
-      // First, we verify that the namespaces created in the preceding test case are still there.
+      const { manifest: ns1Manifest, resource: ns1Resource } = await deployInNamespace({
+        nsName: "kubernetes-type-ns-1",
+        deployName: "namespace-resource",
+      })
+      // Verify the presence of the namespace
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
+
+      const {
+        graph: ns2Graph,
+        manifest: ns2Manifest,
+        resource: ns2Resource,
+      } = await deployInNamespace({
+        nsName: "kubernetes-type-ns-2",
+        deployName: "namespace-resource",
+      })
+      // Verify the presence of the namespace
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.exist
 
-      const graph = await garden.getConfigGraph({ log, emit: false })
       const deleteDeployTask = new DeleteDeployTask({
         garden,
-        graph,
+        graph: ns2Graph,
         log,
-        action: graph.getDeploy("namespace-resource"),
+        action: ns2Graph.getDeploy("namespace-resource"),
         force: false,
       })
 
