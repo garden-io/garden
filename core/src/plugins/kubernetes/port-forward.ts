@@ -9,6 +9,7 @@
 import { ChildProcess } from "child_process"
 
 import getPort = require("get-port")
+
 const AsyncLock = require("async-lock")
 import { V1ContainerPort, V1Deployment, V1PodTemplate, V1Service } from "@kubernetes/client-node"
 
@@ -27,7 +28,7 @@ import { KubernetesDeployAction } from "./kubernetes-type/config"
 import { HelmDeployAction } from "./helm/config"
 import { DeployAction } from "../../actions/deploy"
 import { GetPortForwardResult } from "../../plugin/handlers/Deploy/get-port-forward"
-import { Resolved } from "../../actions/types"
+import { ActionMode, Resolved } from "../../actions/types"
 
 // TODO: implement stopPortForward handler
 
@@ -220,11 +221,21 @@ function getTargetResourceName(action: SupportedRuntimeAction, targetName?: stri
 /**
  * Returns a list of forwardable ports based on the specified resources.
  */
-export function getForwardablePorts(
-  resources: KubernetesResource[],
+export function getForwardablePorts({
+  resources,
+  parentAction,
+  mode,
+}: {
+  resources: KubernetesResource[]
   parentAction: Resolved<KubernetesDeployAction | HelmDeployAction> | undefined
-): ForwardablePort[] {
+  mode: ActionMode
+}): ForwardablePort[] {
   const spec = parentAction?.getSpec()
+
+  // Note: Local mode has its own port-forwarding configuration
+  if (mode === "local" && !!spec?.localMode) {
+    return []
+  }
 
   if (spec?.portForwards) {
     return spec?.portForwards.map((p) => ({
