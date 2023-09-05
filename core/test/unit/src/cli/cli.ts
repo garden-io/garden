@@ -971,7 +971,7 @@ describe("cli", () => {
 
         const firstSevenLines = outputLines.slice(0, 7).join("\n")
         expect(firstSevenLines).to.eql(dedent`
-        Encountered an unexpected Garden error. We are sorry for this. This is likely a bug 🍂
+        Encountered an unexpected Garden error. This is likely a bug 🍂
 
         You can help by reporting this on GitHub: https://github.com/garden-io/garden/issues/new?labels=bug,crash&template=CRASH.md&title=Crash%3A%20Cannot%20read%20property%20foo%20of%20undefined.
 

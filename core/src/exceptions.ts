@@ -243,7 +243,7 @@ export function explainGardenError(rawError: GardenError | Error | string, conte
     }
 
     return chalk.red(dedent`
-    ${chalk.bold("Encountered an unexpected Garden error. We are sorry for this. This is likely a bug 🍂")}
+    ${chalk.bold("Encountered an unexpected Garden error. This is likely a bug 🍂")}
 
     You can help by reporting this on GitHub: ${getGitHubIssueLink(`Crash: ${errorMessage}`, "crash")}
 

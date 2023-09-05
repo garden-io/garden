@@ -9,7 +9,7 @@ assignees: ''
 
 ## Crash report
 
-<!-- First of all: Thank you for helping us improve Garden! 💚 And sorry. 🍂 -->
+<!-- First of all: Thank you for helping us improve Garden! 💚 -->
 
 ### Error message
 
