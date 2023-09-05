@@ -99,13 +99,12 @@ export async function getManifests({
     return { manifest, declaration }
   }
 
-  const declaredManifests: DeclaredManifest[] = await Promise.all(
-    (await readManifests(ctx, action, log, readFromSrcDir)).map(postProcessManifest)
-  )
+  const declaredManifests = await readManifests(ctx, action, log, readFromSrcDir)
+  const postProcessedManifests: DeclaredManifest[] = await Promise.all(declaredManifests.map(postProcessManifest))
 
-  validateDeclaredManifests(declaredManifests)
+  validateDeclaredManifests(postProcessedManifests)
 
-  return declaredManifests.map((m) => m.manifest)
+  return postProcessedManifests.map((m) => m.manifest)
 }
 
 /**
