@@ -75,6 +75,42 @@ describe("kubernetes-type handlers", () => {
     return <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
   }
 
+  async function prepareActionDeployParams(actionName: string, mode: ActionModeMap) {
+    const graph = await garden.getConfigGraph({
+      log: garden.log,
+      emit: false,
+      actionModes: mode,
+    })
+    const action = graph.getDeploy(actionName)
+    const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
+    const deployParams = {
+      ctx,
+      log: actionLog,
+      action: resolvedAction,
+      force: false,
+    }
+    return { action, resolvedAction, deployParams }
+  }
+
+  async function prepareActionDeployParamsWithManifests(actionName: string, mode: ActionModeMap) {
+    const { action, resolvedAction, deployParams } = await prepareActionDeployParams(actionName, mode)
+    const namespace = await getActionNamespace({
+      ctx,
+      log,
+      action: resolvedAction,
+      provider: ctx.provider,
+      skipCreate: true,
+    })
+    const manifests = await getManifests({
+      ctx,
+      api,
+      log,
+      action: resolvedAction,
+      defaultNamespace: namespace,
+    })
+    return { action, resolvedAction, deployParams, manifests }
+  }
+
   before(async () => {
     garden = await getKubernetesTestGarden()
     moduleConfigBackup = await garden.getRawModuleConfigs()
@@ -239,42 +275,6 @@ describe("kubernetes-type handlers", () => {
       expect(status.state).to.equal("not-ready")
     })
   })
-
-  async function prepareActionDeployParams(actionName: string, mode: ActionModeMap) {
-    const graph = await garden.getConfigGraph({
-      log: garden.log,
-      emit: false,
-      actionModes: mode,
-    })
-    const action = graph.getDeploy(actionName)
-    const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
-    const deployParams = {
-      ctx,
-      log: actionLog,
-      action: resolvedAction,
-      force: false,
-    }
-    return { action, resolvedAction, deployParams }
-  }
-
-  async function prepareActionDeployParamsWithManifests(actionName: string, mode: ActionModeMap) {
-    const { action, resolvedAction, deployParams } = await prepareActionDeployParams(actionName, mode)
-    const namespace = await getActionNamespace({
-      ctx,
-      log,
-      action: resolvedAction,
-      provider: ctx.provider,
-      skipCreate: true,
-    })
-    const manifests = await getManifests({
-      ctx,
-      api,
-      log,
-      action: resolvedAction,
-      defaultNamespace: namespace,
-    })
-    return { action, resolvedAction, deployParams, manifests }
-  }
 
   describe("kubernetesDeploy", () => {
     it("gets the correct manifests when `build` is set", async () => {
