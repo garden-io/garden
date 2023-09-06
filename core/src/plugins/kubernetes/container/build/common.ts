@@ -18,7 +18,7 @@ import {
 } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../../config"
-import { PodRunner } from "../../run"
+import { PodRunner, PodRunnerError } from "../../run"
 import { PluginContext } from "../../../../plugin-context"
 import { hashString, sleep } from "../../../../util/util"
 import { InternalError, RuntimeError } from "../../../../exceptions"
@@ -230,20 +230,25 @@ export async function skopeoBuildStatus({
     })
     return { state: "ready", outputs, detail: {} }
   } catch (err) {
-    const res = err.detail?.result || {}
+    if (err instanceof PodRunnerError) {
+      const res = err.detail.result
 
-    // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
-    if (res.exitCode !== 0 && !skopeoManifestUnknown(res.stderr)) {
-      const output = res.allLogs || err.message
+      // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
+      if (res?.exitCode !== 0 && !skopeoManifestUnknown(res?.stderr)) {
+        const output = res?.allLogs || err.message
 
-      throw new RuntimeError({
-        message: `Unable to query registry for image status: ${output}`,
-        detail: {
-          command: skopeoCommand,
-          output,
-        },
-      })
+        throw new RuntimeError({
+          message: `Unable to query registry for image status: ${output}`,
+          detail: {
+            command: skopeoCommand,
+            output,
+          },
+        })
+      }
     }
+
+    // TODO: Do we really want to return state: "unknown" with no details on any error, even on TypeError etc?
+    // NOTE(steffen): I'd have expected us to throw here
     return { state: "unknown", outputs, detail: {} }
   }
 }

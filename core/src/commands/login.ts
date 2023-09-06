@@ -11,7 +11,7 @@ import { printHeader } from "../logger/util"
 import dedent = require("dedent")
 import { AuthTokenResponse, CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { Log } from "../logger/log-entry"
-import { ConfigurationError, InternalError, TimeoutError } from "../exceptions"
+import { ConfigurationError, TimeoutError, InternalError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
 import { EventBus } from "../events/events"
 import { getCloudDistributionName } from "../util/util"

@@ -525,7 +525,7 @@ export async function compareDeployedResources({
       // console.log(JSON.stringify(resource, null, 4))
       // console.log(JSON.stringify(existingSpec, null, 4))
       // console.log("----------------------------------------------------")
-      // throw new Error("bla")
+      // throw new InternalError("bla")
       result.state = "outdated"
       return result
     }

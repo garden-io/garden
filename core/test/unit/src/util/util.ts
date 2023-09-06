@@ -24,6 +24,7 @@ import { splitLast, splitFirst } from "../../../../src/util/string"
 import { getRootLogger } from "../../../../src/logger/logger"
 import { dedent } from "../../../../src/util/string"
 import { safeDumpYaml } from "../../../../src/util/serialization"
+import { ChildProcessError } from "../../../../src/exceptions"
 
 function isLinuxOrDarwin() {
   return process.platform === "darwin" || process.platform === "linux"
@@ -153,6 +154,8 @@ describe("util", () => {
         // Using "sh -c" to get consistent output between operating systems
         await exec(`sh -c "echo hello error; exit 1"`, [], { shell: true })
       } catch (err) {
+        expect(err).to.be.instanceOf(ChildProcessError)
+        expect(err.type).to.eql("childprocess")
         expect(err.message).to.equal(
           makeErrorMsg({
             code: 1,
@@ -178,6 +181,10 @@ describe("util", () => {
       try {
         await spawn("ls", ["scottiepippen"])
       } catch (err) {
+        // Spawn does not throw ChildProcessError at the moment.
+        expect(err).to.be.instanceOf(ChildProcessError)
+        expect(err.type).to.eql("childprocess")
+
         // We're not using "sh -c" here since the output is not added to stdout|stderr if `tty: true` and
         // we therefore can't test the entire error message.
         if (process.platform === "darwin") {

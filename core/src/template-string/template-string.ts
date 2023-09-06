@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { ConfigurationError, GardenBaseError, TemplateStringError } from "../exceptions"
+import { ConfigurationError, GardenError, TemplateStringError } from "../exceptions"
 import {
   ConfigContext,
   ContextKeySegment,
@@ -48,11 +48,11 @@ const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
 const escapePrefix = "$${"
 
-export class TemplateStringMissingKeyException extends GardenBaseError {
+export class TemplateStringMissingKeyException extends GardenError {
   type = missingKeyExceptionType
 }
 
-export class TemplateStringPassthroughException extends GardenBaseError {
+export class TemplateStringPassthroughException extends GardenError {
   type = passthroughExceptionType
 }
 

@@ -54,7 +54,6 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     //       sets a `build.dependencies[].copy` directive.
 
     let deployAction: HelmDeployConfig | null = null
-    let deployDep: string | null = null
 
     // If this Helm module has `skipDeploy = true`, there won't be a service config for us to convert here.
     if (service) {
@@ -66,7 +65,6 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         convertBuildDependency,
         prepareRuntimeDependencies,
       })
-      deployDep = `deploy.${deployAction.name}`
       actions.push(deployAction)
     }
 

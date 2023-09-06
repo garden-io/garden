@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenBaseError, GardenError, getStackTraceMetadata } from "../exceptions"
+import { GardenError, getStackTraceMetadata } from "../exceptions"
 import { AnalyticsGardenError, AnalyticsGardenErrorDetail } from "./analytics"
 
 function getErrorDetail(error: GardenError): AnalyticsGardenErrorDetail {
@@ -39,7 +39,7 @@ function getAnalyticsError(error: GardenError): AnalyticsGardenError {
   }
 }
 
-export function getResultErrorProperties(errors: GardenBaseError[]): {
+export function getResultErrorProperties(errors: GardenError[]): {
   errors: string[]
   lastError?: AnalyticsGardenError
 } {

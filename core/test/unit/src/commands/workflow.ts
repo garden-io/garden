@@ -813,6 +813,7 @@ describe("RunWorkflowCommand", () => {
 
     const { errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
 
+    expect(errors![0].type).to.equal("runtime")
     expect(errors![0].message).to.equal("workflow failed with 1 error, see logs above for more info")
     // no details because log is set to human-readable output and details are logged above
     expect(errors![0].detail).to.equal(undefined)

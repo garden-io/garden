@@ -12,7 +12,7 @@ import { isString } from "lodash"
 import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
 import { PassThrough } from "stream"
 import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsHandlerParams, VcsInfo } from "./vcs"
-import { ConfigurationError, RuntimeError } from "../exceptions"
+import { ChildProcessError, ConfigurationError, RuntimeError } from "../exceptions"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
 import { dedent, deline, splitLast } from "../util/string"
 import { defer, exec } from "../util/util"
@@ -88,6 +88,9 @@ export class GitHandler extends VcsHandler {
   }
 
   gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
+    /**
+     * @throws ChildProcessError
+     */
     return async (...args: (string | undefined)[]) => {
       log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
       const { stdout } = await exec("git", args.filter(isString), {
@@ -103,7 +106,7 @@ export class GitHandler extends VcsHandler {
     try {
       return await git("diff-index", "--name-only", "HEAD", path)
     } catch (err) {
-      if (err.exitCode === 128) {
+      if (err instanceof ChildProcessError && err.detail.code === 128) {
         // no commit in repo
         return []
       } else {
@@ -165,8 +168,12 @@ export class GitHandler extends VcsHandler {
         await git("status")
         gitSafeDirs.add(path)
       } catch (err) {
+        if (!(err instanceof ChildProcessError)) {
+          throw err
+        }
+
         // Git has stricter repo ownerships checks since 2.36.0
-        if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
+        if (err.detail.code === 128 && err.detail.stderr.toLowerCase().includes("fatal: unsafe repository")) {
           log.warn(
             chalk.yellow(
               `It looks like you're using Git 2.36.0 or newer and the directory "${path}" is owned by someone else. It will be added to safe.directory list in the .gitconfig.`
@@ -187,11 +194,11 @@ export class GitHandler extends VcsHandler {
           }
 
           return
-        } else if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: not a git repository")) {
+        } else if (err.detail.code === 128 && err.detail.stderr.toLowerCase().includes("fatal: not a git repository")) {
           throw new RuntimeError({ message: notInRepoRootErrorMessage(path), detail: { path } })
         } else {
           log.error(
-            `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.exitCode}. Error message: ${err.stderr}`
+            `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.detail.code}. Error message: ${err.detail.stderr}`
           )
           throw err
         }
@@ -224,17 +231,23 @@ export class GitHandler extends VcsHandler {
         this.repoRoots.set(path, repoRoot)
         return repoRoot
       } catch (err) {
-        if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
+        if (!(err instanceof ChildProcessError)) {
+          throw err
+        }
+        if (err.detail.code === 128 && err.detail.stderr.toLowerCase().includes("fatal: unsafe repository")) {
           // Throw nice error when we detect that we're not in a repo root
           throw new RuntimeError({
             message:
-              err.stderr +
+              err.detail.stderr +
               `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
             detail: { path },
           })
-        } else if (err.exitCode === 128) {
+        } else if (err.detail.code === 128) {
           // Throw nice error when we detect that we're not in a repo root
-          throw new RuntimeError({ message: notInRepoRootErrorMessage(path), detail: { path, exitCode: err.exitCode } })
+          throw new RuntimeError({
+            message: notInRepoRootErrorMessage(path),
+            detail: { path, exitCode: err.detail.code },
+          })
         } else {
           throw err
         }
@@ -291,8 +304,7 @@ export class GitHandler extends VcsHandler {
         return []
       }
     } catch (err) {
-      // 128 = File no longer exists
-      if (err.exitCode === 128 || err.code === "ENOENT") {
+      if (err.code === "ENOENT") {
         gitLog.warn(`Attempted to scan directory at ${path}, but it does not exist.`)
         return []
       } else {
@@ -386,8 +398,7 @@ export class GitHandler extends VcsHandler {
             return []
           }
         } catch (err) {
-          // 128 = File no longer exists
-          if (err.exitCode === 128 || err.code === "ENOENT") {
+          if (err.code === "ENOENT") {
             gitLog.warn(
               `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
             )
@@ -783,7 +794,7 @@ export class GitHandler extends VcsHandler {
       output.branch = (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
       output.commitHash = (await git("rev-parse", "HEAD"))[0]
     } catch (err) {
-      if (err.exitCode !== 128) {
+      if (err instanceof ChildProcessError && err.detail.code !== 128) {
         throw err
       }
     }

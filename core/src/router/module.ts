@@ -297,9 +297,7 @@ export class ModuleRouter extends BaseRouter {
 
         // This should never happen
         throw new InternalError({
-          message:
-            `Unable to find any matching configuration when selecting ${moduleType}/${handlerType} handler ` +
-            `(please report this as a bug).`,
+          message: `Unable to find any matching configuration when selecting ${moduleType}/${handlerType} handler.`,
           detail: { handlers, configs },
         })
       } else {

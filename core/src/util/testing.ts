@@ -16,7 +16,7 @@ import { WorkflowConfig } from "../config/workflow"
 import { Log, LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
 import { findByName, getNames } from "./util"
-import { GardenBaseError, GardenError, InternalError } from "../exceptions"
+import { GardenError, InternalError } from "../exceptions"
 import { EventBus, EventName, Events } from "../events/events"
 import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
@@ -37,7 +37,7 @@ import { mkdirp, remove } from "fs-extra"
 import { GlobalConfigStore } from "../config-store/global"
 import { isPromise } from "./objects"
 
-export class TestError extends GardenBaseError {
+export class TestError extends GardenError {
   type = "_test"
 }
 
@@ -491,4 +491,28 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
   }
 
   return handleNonError(false)
+}
+
+// adapted from https://stackoverflow.com/a/18543419/1518423
+export function captureStream(stream: NodeJS.WritableStream) {
+  const oldWrite = stream.write
+  let buf: string = ""
+
+  class FakeWrite {
+    write(chunk, _callback)
+    write(chunk, _encoding?, _callback?) {
+      buf += chunk.toString()
+    }
+  }
+
+  stream["write"] = FakeWrite.prototype.write
+
+  return {
+    unhook: function unhook() {
+      stream.write = oldWrite
+    },
+    captured: () => {
+      return buf
+    },
+  }
 }
