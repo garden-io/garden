@@ -133,18 +133,7 @@ describe("kubernetes-type handlers", () => {
 
   describe("getKubernetesDeployStatus", () => {
     it("returns ready status and correct detail for a ready deployment", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
-        action: graph.getDeploy("module-simple"),
-        log: garden.log,
-        graph,
-      })
-      const deployParams = {
-        ctx,
-        log: actionLog,
-        action: resolvedAction,
-        force: false,
-      }
+      const { deployParams } = await prepareActionDeployParams("module-simple", {})
 
       await kubernetesDeploy(deployParams)
 
@@ -168,18 +157,7 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should return missing status when metadata ConfigMap is missing", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
-        action: graph.getDeploy("module-simple"),
-        log: garden.log,
-        graph,
-      })
-      const deployParams = {
-        ctx,
-        log: actionLog,
-        action: resolvedAction,
-        force: false,
-      }
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
 
       await kubernetesDeploy(deployParams)
 
@@ -201,18 +179,7 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should return outdated status when metadata ConfigMap has different version", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
-        action: graph.getDeploy("module-simple"),
-        log: garden.log,
-        graph,
-      })
-      const deployParams = {
-        ctx,
-        log: actionLog,
-        action: resolvedAction,
-        force: false,
-      }
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
 
       await kubernetesDeploy(deployParams)
 
@@ -235,18 +202,7 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should return outdated status when metadata ConfigMap has different mode", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
-        action: graph.getDeploy("module-simple"),
-        log: garden.log,
-        graph,
-      })
-      const deployParams = {
-        ctx,
-        log: actionLog,
-        action: resolvedAction,
-        force: false,
-      }
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
 
       await kubernetesDeploy(deployParams)
 
@@ -269,18 +225,7 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should return not-ready status for a manifest with a missing resource type", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
-        action: graph.getDeploy("module-simple"),
-        log: garden.log,
-        graph,
-      })
-      const deployParams = {
-        ctx,
-        log: actionLog,
-        action: resolvedAction,
-        force: false,
-      }
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
       resolvedAction["_config"].spec.manifests = [
         {
           apiVersion: "foo.bar/baz",
@@ -333,15 +278,7 @@ describe("kubernetes-type handlers", () => {
 
   describe("kubernetesDeploy", () => {
     it("gets the correct manifests when `build` is set", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = graph.getDeploy("with-build-action")
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
-      const deployParams = {
-        ctx,
-        log: actionLog,
-        action: resolvedAction,
-        force: false,
-      }
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("with-build-action", {})
 
       const status = await kubernetesDeploy(deployParams)
       expect(status.state).to.eql("ready")
@@ -354,15 +291,7 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should successfully deploy when serviceResource doesn't have a containerModule", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = graph.getDeploy("module-simple")
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
-      const deployParams = {
-        ctx,
-        log: actionLog,
-        action: resolvedAction,
-        force: false,
-      }
+      const { deployParams } = await prepareActionDeployParams("module-simple", {})
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
       let namespaceStatus: NamespaceStatus | null = null
@@ -374,15 +303,8 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("creates a metadata ConfigMap describing what was last deployed", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = graph.getDeploy("module-simple")
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
-      const deployParams = {
-        ctx,
-        log: actionLog,
-        action: resolvedAction,
-        force: false,
-      }
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
+
       const status = await kubernetesDeploy(deployParams)
       expect(status.state).to.eql("ready")
 
