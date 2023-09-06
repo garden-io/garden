@@ -29,8 +29,9 @@ import { ModuleConfig } from "../../../../../../src/config/module"
 import { BaseResource, KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy"
 import {
-  kubernetesDeploy,
+  deleteKubernetesDeploy,
   getKubernetesDeployStatus,
+  kubernetesDeploy,
 } from "../../../../../../src/plugins/kubernetes/kubernetes-type/handlers"
 import { buildHelmModules } from "../helm/common"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
@@ -481,6 +482,32 @@ describe("kubernetes-type handlers", () => {
 
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.not.exist
+    })
+
+    it("deletes all resources including a metadata ConfigMap describing what was last deployed", async () => {
+      const { resolvedAction, deployParams, manifests } = await prepareActionDeployParamsWithManifests(
+        "module-simple",
+        {}
+      )
+
+      const status = await kubernetesDeploy(deployParams)
+      expect(status.state).to.eql("ready")
+
+      const namespace = await getActionNamespace({
+        ctx,
+        log,
+        action: resolvedAction,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+
+      const deleteDeployParams = { ctx, action: resolvedAction, log: actionLog }
+      await deleteKubernetesDeploy(deleteDeployParams)
+
+      for (const manifest of manifests) {
+        const metadataResource = await api.readBySpecOrNull({ log, namespace, manifest })
+        expect(metadataResource).to.be.null
+      }
     })
   })
 })
