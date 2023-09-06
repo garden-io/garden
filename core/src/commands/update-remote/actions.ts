@@ -113,19 +113,21 @@ export async function updateRemoteActions({
     })
   }
 
-  await pMap(
-    actionSources,
-    ({ name, repositoryUrl }) => {
-      return garden.vcs.updateRemoteSource({
-        name,
-        url: repositoryUrl,
-        sourceType: "action",
-        log,
-        failOnPrompt: opts.parallel,
-      })
-    },
-    { concurrency: opts.parallel ? actionSources.length : 1 }
-  )
+  if (actionSources.length > 0) {
+    await pMap(
+      actionSources,
+      ({ name, repositoryUrl }) => {
+        return garden.vcs.updateRemoteSource({
+          name,
+          url: repositoryUrl,
+          sourceType: "action",
+          log,
+          failOnPrompt: opts.parallel,
+        })
+      },
+      { concurrency: opts.parallel ? actionSources.length : 1 }
+    )
+  }
 
   await pruneRemoteSources({
     gardenDirPath: garden.gardenDirPath,
