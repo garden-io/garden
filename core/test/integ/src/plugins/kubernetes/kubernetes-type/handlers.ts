@@ -295,7 +295,7 @@ describe("kubernetes-type handlers", () => {
     })
   })
 
-  async function getTestData(actionName: string, mode: ActionModeMap) {
+  async function prepareActionDeployParams(actionName: string, mode: ActionModeMap) {
     const graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,
@@ -309,6 +309,11 @@ describe("kubernetes-type handlers", () => {
       action: resolvedAction,
       force: false,
     }
+    return { action, resolvedAction, deployParams }
+  }
+
+  async function prepareActionDeployParamsWithManifests(actionName: string, mode: ActionModeMap) {
+    const { action, resolvedAction, deployParams } = await prepareActionDeployParams(actionName, mode)
     const namespace = await getActionNamespace({
       ctx,
       log,
@@ -323,7 +328,7 @@ describe("kubernetes-type handlers", () => {
       action: resolvedAction,
       defaultNamespace: namespace,
     })
-    return { deployParams, manifests }
+    return { action, resolvedAction, deployParams, manifests }
   }
 
   describe("kubernetesDeploy", () => {
@@ -409,10 +414,10 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should toggle sync mode", async () => {
-      const syncData = await getTestData("with-source-module", {
+      const syncData = await prepareActionDeployParamsWithManifests("with-source-module", {
         sync: ["deploy.with-source-module"],
       })
-      const defaultData = await getTestData("with-source-module", {
+      const defaultData = await prepareActionDeployParamsWithManifests("with-source-module", {
         default: ["deploy.with-source-module"],
       })
 
@@ -434,10 +439,10 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should handle local mode", async () => {
-      const localData = await getTestData("with-source-module", {
+      const localData = await prepareActionDeployParamsWithManifests("with-source-module", {
         local: ["deploy.with-source-module"],
       })
-      const defaultData = await getTestData("with-source-module", {
+      const defaultData = await prepareActionDeployParamsWithManifests("with-source-module", {
         default: ["deploy.with-source-module"],
       })
 
@@ -521,7 +526,7 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should successfully deploy List manifest kinds", async () => {
-      const configMapList = await getTestData("config-map-list", {})
+      const configMapList = await prepareActionDeployParamsWithManifests("config-map-list", {})
 
       // this should be 4, and not 2 (including the metadata manifest),
       // as we transform *List objects to separate manifests
