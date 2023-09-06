@@ -681,13 +681,20 @@ export async function runScript({
   script: string
   envVars?: PrimitiveMap
 }) {
-  const env = envVars ? mapValues(envVars, (v) => String(v)) : {}
+  const env = toEnvVars(envVars || {})
   const outputStream = split2()
   outputStream.on("error", (line: Buffer) => {
     log.error(line.toString())
   })
   outputStream.on("data", (line: Buffer) => {
-    log.verbose(line.toString())
+    log.info(line.toString())
+  })
+  const errorStream = split2()
+  errorStream.on("error", (line: Buffer) => {
+    log.error(line.toString())
+  })
+  errorStream.on("data", (line: Buffer) => {
+    log.error(line.toString())
   })
   // Workaround for https://github.com/vercel/pkg/issues/897
   env.PKG_EXECPATH = ""
@@ -698,7 +705,7 @@ export async function runScript({
     cwd,
     env,
     stdout: outputStream,
-    stderr: outputStream,
+    stderr: errorStream,
   })
   return result
 }
