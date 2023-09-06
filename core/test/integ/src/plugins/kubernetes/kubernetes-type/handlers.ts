@@ -179,11 +179,14 @@ describe("kubernetes-type handlers", () => {
   })
 
   after(async () => {
-    garden.setModuleConfigs(moduleConfigBackup)
     await tmpDir.cleanup()
     if (garden) {
       garden.close()
     }
+  })
+
+  afterEach(() => {
+    garden.setModuleConfigs(moduleConfigBackup)
   })
 
   describe("getKubernetesDeployStatus", () => {
