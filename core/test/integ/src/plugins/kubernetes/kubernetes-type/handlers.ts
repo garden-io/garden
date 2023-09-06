@@ -295,38 +295,38 @@ describe("kubernetes-type handlers", () => {
     })
   })
 
-  describe("kubernetesDeploy", () => {
-    async function getTestData(actionName: string, mode: ActionModeMap) {
-      const graph = await garden.getConfigGraph({
-        log: garden.log,
-        emit: false,
-        actionModes: mode,
-      })
-      const action = graph.getDeploy(actionName)
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
-      const deployParams = {
-        ctx,
-        log: actionLog,
-        action: resolvedAction,
-        force: false,
-      }
-      const namespace = await getActionNamespace({
-        ctx,
-        log,
-        action: resolvedAction,
-        provider: ctx.provider,
-        skipCreate: true,
-      })
-      const manifests = await getManifests({
-        ctx,
-        api,
-        log,
-        action: resolvedAction,
-        defaultNamespace: namespace,
-      })
-      return { deployParams, manifests }
+  async function getTestData(actionName: string, mode: ActionModeMap) {
+    const graph = await garden.getConfigGraph({
+      log: garden.log,
+      emit: false,
+      actionModes: mode,
+    })
+    const action = graph.getDeploy(actionName)
+    const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
+    const deployParams = {
+      ctx,
+      log: actionLog,
+      action: resolvedAction,
+      force: false,
     }
+    const namespace = await getActionNamespace({
+      ctx,
+      log,
+      action: resolvedAction,
+      provider: ctx.provider,
+      skipCreate: true,
+    })
+    const manifests = await getManifests({
+      ctx,
+      api,
+      log,
+      action: resolvedAction,
+      defaultNamespace: namespace,
+    })
+    return { deployParams, manifests }
+  }
 
+  describe("kubernetesDeploy", () => {
     it("gets the correct manifests when `build` is set", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const action = graph.getDeploy("with-build-action")
