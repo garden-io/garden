@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa from "execa"
 import { exec } from "../../../util/util"
+import { ChildProcessError } from "../../../exceptions"
 
 /**
  * Automatically set docker environment variables for minikube
@@ -19,7 +19,10 @@ export async function setMinikubeDockerEnv() {
   try {
     minikubeEnv = (await exec("minikube", ["docker-env", "--shell=bash"])).stdout
   } catch (err) {
-    if ((<execa.ExecaError>err).stderr?.includes("driver does not support")) {
+    if (!(err instanceof ChildProcessError)) {
+      throw err
+    }
+    if (err.detail.output?.includes("driver does not support")) {
       return
     }
     throw err

@@ -8,7 +8,7 @@
 
 import type { BaseTask, Task, ValidResultType } from "../tasks/base"
 import type { Log } from "../logger/log-entry"
-import { GardenBaseError, GardenError, isGardenError, toGardenError } from "../exceptions"
+import { GardenError, GraphError, explainGardenError, toGardenError } from "../exceptions"
 import { uuidv4 } from "../util/random"
 import { DependencyGraph, metadataForLog } from "./common"
 import { Profile } from "../util/profiling"
@@ -46,7 +46,7 @@ export interface SolveParams<T extends BaseTask = BaseTask> extends SolveOpts {
 }
 
 export interface SolveResult<T extends Task = Task> {
-  error: GraphError | null
+  error: GraphResultError | null
   results: GraphResults<T>
 }
 
@@ -91,6 +91,10 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       this.log.silly(`GraphSolver: loop`)
       this.loop()
     })
+  }
+
+  toSanitizedValue() {
+    return "<Solver>"
   }
 
   async solve(params: SolveParams): Promise<SolveResult> {
@@ -139,9 +143,10 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
           if (throwOnError && result.error) {
             cleanup({
-              error: new GraphError({
+              error: new GraphResultError({
                 message: `Failed to ${result.description}: ${result.error}`,
                 detail: { results },
+                wrappedErrors: [toGardenError(result.error)],
               }),
             })
             return
@@ -157,7 +162,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           }
 
           // All requested results have been filled (i.e. none are null) so we're done.
-          let error: GraphError | null = null
+          let error: GraphResultError | null = null
 
           const failed = Object.entries(results.getMap()).filter(([_, r]) => !!r?.error || !!r?.aborted)
 
@@ -172,14 +177,14 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
                 continue
               }
 
-              if (isGardenError(r.error)) {
-                wrappedErrors.push(r.error)
+              if (r.error) {
+                wrappedErrors.push(toGardenError(r.error))
               }
 
               msg += `\n ↳ ${r.description}: ${r?.error ? r.error.message : "[ABORTED]"}`
             }
 
-            error = new GraphError({ message: msg, detail: { results }, wrappedErrors })
+            error = new GraphResultError({ message: msg, detail: { results }, wrappedErrors })
           }
 
           cleanup({ error: null })
@@ -193,7 +198,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           resolve({ error, results })
         }
 
-        function cleanup({ error }: { error: GraphError | null }) {
+        function cleanup({ error }: { error: GraphResultError | null }) {
           // TODO: abort remaining pending tasks?
           aborted = true
           delete _this.requestedTasks[batchId]
@@ -492,26 +497,29 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
   private logTaskError(node: TaskNode, err: Error) {
     const log = node.task.log
-    const prefix = `Failed ${node.describe()} ${renderDuration(log.getDuration())}. Here is the output:`
+    const prefix = `Failed ${node.describe()} ${renderDuration(log.getDuration())}. This is what happened:`
     this.logError(log, err, prefix)
   }
 
   private logInternalError(node: TaskNode, err: Error) {
-    const prefix = `An internal error occurred while ${node.describe()}. Here is the output:`
+    const prefix = `An internal error occurred while ${node.describe()}. This is what happened:`
     this.logError(node.task.log, err, prefix)
   }
 
   private logError(log: Log, err: Error, errMessagePrefix: string) {
     const error = toGardenError(err)
-    const errorMessage = error.message.trim()
     const msg = renderMessageWithDivider({
       prefix: errMessagePrefix,
-      msg: errorMessage,
+      msg: explainGardenError(error, errMessagePrefix),
       isError: true,
     })
     log.error({ msg, error, showDuration: false })
     const divider = renderDivider()
-    log.silly(chalk.gray(`Full error with stack trace:\n${divider}\n${formatGardenErrorWithDetail(error)}\n${divider}`))
+    log.silly(
+      chalk.gray(
+        `Full error with stack trace and details:\n${divider}\n${formatGardenErrorWithDetail(error)}\n${divider}`
+      )
+    )
   }
 }
 
@@ -521,7 +529,7 @@ interface TaskStartEvent extends TaskEventBase {
 
 interface SolverEvents {
   abort: {
-    error: GraphError | null
+    error: GraphResultError | null
   }
   loop: {}
   process: {
@@ -544,14 +552,8 @@ interface WrappedNodes {
   [key: string]: TaskNode
 }
 
-interface GraphErrorDetail {
+interface GraphResultErrorDetail {
   results: GraphResults
 }
 
-class GraphError extends GardenBaseError<GraphErrorDetail> {
-  type = "graph"
-}
-
-// class CircularDependenciesError extends GardenBaseError {
-//   type = "circular-dependencies"
-// }
+class GraphResultError extends GraphError<GraphResultErrorDetail> {}

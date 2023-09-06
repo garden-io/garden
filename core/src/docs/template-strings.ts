@@ -21,10 +21,10 @@ import { ModuleConfigContext, OutputConfigContext } from "../config/template-con
 import { WorkflowStepConfigContext } from "../config/template-contexts/workflow"
 import { getHelperFunctions } from "../template-string/functions"
 import { isEqual, kebabCase, sortBy } from "lodash"
-import { InternalError } from "../exceptions"
 import { CustomCommandContext } from "../config/template-contexts/custom-command"
 import Joi from "@hapi/joi"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
+import { InternalError } from "../exceptions"
 
 interface ContextSpec {
   schema: Joi.ObjectSchema
