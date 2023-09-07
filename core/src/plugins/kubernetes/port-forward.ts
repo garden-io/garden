@@ -136,11 +136,7 @@ export async function getPortForward({
         if (!resolved) {
           reject(
             new RuntimeError({
-              message: `Port forward exited with code ${code} before establishing connection:\n\n${output}`,
-              detail: {
-                code,
-                portForward,
-              },
+              message: `Port forward command ("${kubectlPath} ${portForwardArgs.join(" ")}") exited with code ${code} before establishing connection:\n\n${output}`,
             })
           )
         }

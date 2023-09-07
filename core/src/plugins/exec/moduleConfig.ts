@@ -67,10 +67,6 @@ export async function configureExecModule({
 
       A local exec module cannot have a build dependency with a copy spec.
     `,
-      detail: {
-        buildDependenciesWithCopySpec,
-        buildConfig: moduleConfig.build,
-      },
     })
   }
 

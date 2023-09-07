@@ -177,8 +177,7 @@ async function getIngress(
   if (!hostname) {
     // this should be caught when parsing the module
     throw new PluginError({
-      message: `Missing hostname in ingress spec`,
-      detail: { deploySpec: action.getSpec(), ingressSpec: spec },
+      message: `No hostname configured for one of the ingresses on ${action.longDescription()}. Please configure a default hostname or specify a hostname for the ingress.`,
     })
   }
 
@@ -238,7 +237,6 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
       if (err.statusCode === 404) {
         throw new ConfigurationError({
           message: `Cannot find Secret ${cert.secretRef.name} configured for TLS certificate ${cert.name}`,
-          detail: cert,
         })
       } else {
         throw err
@@ -250,7 +248,6 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
     if (!data["tls.crt"] || !data["tls.key"]) {
       throw new ConfigurationError({
         message: `Secret '${cert.secretRef.name}' is not a valid TLS secret (missing tls.crt and/or tls.key).`,
-        detail: cert,
       })
     }
 
@@ -260,11 +257,7 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
       return getHostnamesFromPem(crtData)
     } catch (error) {
       throw new ConfigurationError({
-        message: `Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate`,
-        detail: {
-          ...cert,
-          error,
-        },
+        message: `Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate: ${error.message || error}`,
       })
     }
   }
@@ -292,10 +285,6 @@ async function pickCertificate(
       message:
         `Could not find certificate for hostname '${hostname}' ` +
         `configured on service '${action.name}' and forceSsl flag is set.`,
-      detail: {
-        actionName: action.name,
-        hostname,
-      },
     })
   }
 

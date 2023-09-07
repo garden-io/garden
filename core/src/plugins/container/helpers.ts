@@ -11,7 +11,7 @@ import { readFile, pathExists, lstat } from "fs-extra"
 import semver from "semver"
 import { parse, CommandEntry } from "docker-file-parser"
 import isGlob from "is-glob"
-import { ConfigurationError, RuntimeError } from "../../exceptions"
+import { ConfigurationError, GardenError, RuntimeError } from "../../exceptions"
 import { spawn, SpawnOutput } from "../../util/util"
 import {
   ContainerRegistryConfig,
@@ -320,13 +320,12 @@ const helpers = {
       })
       return res
     } catch (err) {
+      if (!(err instanceof GardenError)) {
+        throw err
+      }
       throw new RuntimeError({
-        message: `Unable to run docker command: ${err.message}`,
-        detail: {
-          err,
-          args,
-          cwd,
-        },
+        message: `Unable to run docker command "${args.join(" ")}" in ${cwd}: ${err.message}`,
+        wrappedErrors: [err]
       })
     }
   },

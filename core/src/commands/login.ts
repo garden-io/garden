@@ -66,9 +66,6 @@ export class LoginCommand extends Command<{}, Opts> {
       if (!projectConfig) {
         throw new ConfigurationError({
           message: `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-          detail: {
-            root: garden.projectRoot,
-          },
         })
       }
     }
@@ -134,7 +131,6 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
       reject(
         new TimeoutError({
           message: `Timed out after ${loginTimeoutSec} seconds, waiting for web login response.`,
-          detail: {},
         })
       )
     }, loginTimeoutSec * 1000)

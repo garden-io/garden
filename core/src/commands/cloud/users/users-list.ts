@@ -66,7 +66,6 @@ export class UsersListCommand extends Command<{}, Opts> {
     if (!project) {
       throw new CloudApiError({
         message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
-        detail: {},
       })
     }
 

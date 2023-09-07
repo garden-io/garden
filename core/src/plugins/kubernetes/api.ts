@@ -222,10 +222,6 @@ export class KubeApi {
     if (!cluster) {
       throw new ConfigurationError({
         message: `Could not read cluster from kubeconfig for context ${context}`,
-        detail: {
-          context,
-          config,
-        },
       })
     }
 
@@ -285,24 +281,6 @@ export class KubeApi {
 
       return cachedApiInfo[this.context]
     })
-  }
-
-  async getApiGroup(resource: KubernetesResource) {
-    const apiInfo = await this.getApiInfo()
-    const apiVersion = resource.apiVersion
-    const group = apiInfo.groupMap[apiVersion]
-
-    if (!group) {
-      throw new KubernetesError({
-        message: `Unrecognized apiVersion: ${apiVersion}`,
-        detail: {
-          apiVersion,
-          resource,
-        },
-      })
-    }
-
-    return group
   }
 
   async getApiResourceInfo(log: Log, apiVersion: string, kind: string): Promise<V1APIResource> {
@@ -562,10 +540,6 @@ export class KubeApi {
     if (!resourceInfo) {
       const err = new KubernetesError({
         message: `Unrecognized resource type ${apiVersion}/${kind}`,
-        detail: {
-          apiVersion,
-          kind,
-        },
       })
       err.statusCode = 404
       throw err
@@ -591,10 +565,7 @@ export class KubeApi {
 
     if (!apiVersion) {
       throw new KubernetesError({
-        message: `Missing apiVersion on resource`,
-        detail: {
-          manifest,
-        },
+        message: `Missing apiVersion on ${manifest.kind} resource named ${manifest.metadata.name}`,
       })
     }
 
@@ -604,10 +575,7 @@ export class KubeApi {
 
     if (!namespace) {
       throw new KubernetesError({
-        message: `Missing namespace on resource and no namespace specified`,
-        detail: {
-          manifest,
-        },
+        message: `Missing namespace on on ${manifest.kind} resource named ${manifest.metadata.name} and no namespace specified`,
       })
     }
 
@@ -892,7 +860,6 @@ export class KubeApi {
 
           throw new KubernetesError({
             message: `Failed to create Pod ${pod.metadata.name}: ${error.message}`,
-            detail: { error },
           })
         },
       }
@@ -980,9 +947,6 @@ export async function getKubeConfig(log: Log, ctx: PluginContext, provider: Kube
   } catch (error) {
     throw new RuntimeError({
       message: `Unable to load kubeconfig: ${error}`,
-      detail: {
-        error,
-      },
     })
   }
 }

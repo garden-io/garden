@@ -9,7 +9,7 @@
 import fs from "fs"
 import tmp from "tmp-promise"
 import { KubernetesPluginContext } from "../config"
-import { PluginError, ParameterError } from "../../../exceptions"
+import { PluginError, ParameterError, GardenError } from "../../../exceptions"
 import { PluginCommand } from "../../../plugin/command"
 import chalk from "chalk"
 import { KubeApi } from "../api"
@@ -43,9 +43,6 @@ export const pullImage: PluginCommand = {
     if (provider.config.buildMode === "local-docker") {
       throw new PluginError({
         message: `Cannot pull images with buildMode=local-docker`,
-        detail: {
-          provider,
-        },
       })
     }
 
@@ -54,9 +51,6 @@ export const pullImage: PluginCommand = {
       if (!valid && args.includes(b.name)) {
         throw new ParameterError({
           message: chalk.red(`Build ${chalk.white(b.name)} is not a container build.`),
-          detail: {
-            name: b.name,
-          },
         })
       }
       return valid
@@ -195,13 +189,12 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
     log.debug(`Loading image to local docker with ID ${localId}`)
     await loadImage({ ctx, runner, log })
   } catch (err) {
+    if (!(err instanceof GardenError)) {
+      throw err
+    }
     throw new RuntimeError({
-      message: `Failed pulling image ${remoteId}: ${err.message}`,
-      detail: {
-        err,
-        remoteId,
-        localId,
-      },
+      message: `Failed pulling image ${remoteId} to local docker with ID ${localId}: ${err.message}`,
+      wrappedErrors: [err]
     })
   } finally {
     await runner.stop()

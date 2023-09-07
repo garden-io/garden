@@ -565,7 +565,7 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
   let { name } = spec
 
   if (schemaRegistry[name]) {
-    throw new InternalError({ message: `Object schema ${name} defined multiple times`, detail: { name } })
+    throw new InternalError({ message: `Object schema ${name} defined multiple times` })
   }
 
   schemaRegistry[name] = { spec }

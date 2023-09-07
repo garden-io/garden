@@ -50,7 +50,7 @@ function convertArgSpec(spec: CustomCommandOption) {
   } else if (spec.type === "boolean") {
     return new BooleanParameter(params)
   } else {
-    throw new ConfigurationError({ message: `Unexpected parameter type '${spec.type}'`, detail: { spec } })
+    throw new ConfigurationError({ message: `Unexpected parameter type '${spec.type}'` })
   }
 }
 
@@ -154,8 +154,7 @@ export class CustomCommandWrapper extends Command {
           exitCode: res.exitCode,
           errors: [
             new RuntimeError({
-              message: `Command exited with code ${res.exitCode}`,
-              detail: { exitCode: res.exitCode, command },
+              message: `Command "${command.join(" ")}" exited with code ${res.exitCode}`,
             }),
           ],
         }

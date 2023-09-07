@@ -49,6 +49,7 @@ import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod"
 import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kubernetes-type/kubernetes-pod"
 import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec"
 import { makeDocsLink } from "../../docs/common"
+import { DOCS_BASE_URL } from "../../constants"
 
 export async function configureProvider({
   namespace,
@@ -76,11 +77,12 @@ export async function configureProvider({
   }
 
   if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {
+    const remoteK8sDocs = `${DOCS_BASE_URL}/kubernetes-plugins/remote-k8s`
     throw new ConfigurationError({
-      message: `kubernetes: must specify deploymentRegistry in config`,
-      detail: {
-        config,
-      },
+      message: dedent`
+        Configuring a 'deploymentRegistry' in the kubernetes provider section of the project configuration is required when working with remote Kubernetes clusters.
+
+        See also ${remoteK8sDocs}`,
     })
   }
 
