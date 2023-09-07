@@ -309,7 +309,7 @@ export class ErrorContext extends ConfigContext {
   }
 
   override resolve({}): ContextResolveOutput {
-    throw new ConfigurationError({ message: this.message, detail: {} })
+    throw new ConfigurationError({ message: this.message })
   }
 }
 

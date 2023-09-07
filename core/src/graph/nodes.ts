@@ -336,26 +336,26 @@ export interface CompleteTaskParams {
   result: ValidResultType | null
   aborted: boolean
 }
-
-export interface GraphNodeErrorDetail {
-  node: TaskNode
-}
-
 export interface GraphNodeErrorParams {
   resultError: Error
   node: TaskNode
 }
 
-export class GraphNodeError extends GraphError<GraphNodeErrorDetail> {
-  constructor(params: GraphNodeErrorParams) {
-    const { resultError, node } = params
+export class GraphNodeError extends GraphError {
+  node: TaskNode
 
+  constructor({ resultError, node }: GraphNodeErrorParams) {
     const message = `${node.describe()} failed: ${resultError}`
-    const stack = resultError?.stack
-    const detail = {
-      node,
-    }
     const wrappedErrors = [toGardenError(resultError)]
-    super({ message, stack, detail, wrappedErrors, context: { taskType: node.task.type } })
+    const stack = resultError.stack
+
+    super({
+      message,
+      stack,
+      wrappedErrors,
+      taskType: node.task.type
+    })
+
+    this.node = node
   }
 }

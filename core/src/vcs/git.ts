@@ -56,8 +56,7 @@ export function parseGitUrl(url: string) {
     throw new ConfigurationError({
       message: deline`
         Repository URLs must contain a hash part pointing to a specific branch or tag
-        (e.g. https://github.com/org/repo.git#main)`,
-      detail: { repositoryUrl: url },
+        (e.g. https://github.com/org/repo.git#main). Actually got: '${url}'`,
     })
   }
   const parsed = { repositoryUrl: parts[0], hash: parts[1] }
@@ -106,7 +105,7 @@ export class GitHandler extends VcsHandler {
     try {
       return await git("diff-index", "--name-only", "HEAD", path)
     } catch (err) {
-      if (err instanceof ChildProcessError && err.detail.code === 128) {
+      if (err instanceof ChildProcessError && err.details.code === 128) {
         // no commit in repo
         return []
       } else {
@@ -173,7 +172,7 @@ export class GitHandler extends VcsHandler {
         }
 
         // Git has stricter repo ownerships checks since 2.36.0
-        if (err.detail.code === 128 && err.detail.stderr.toLowerCase().includes("fatal: unsafe repository")) {
+        if (err.details.code === 128 && err.details.stderr.toLowerCase().includes("fatal: unsafe repository")) {
           log.warn(
             chalk.yellow(
               `It looks like you're using Git 2.36.0 or newer and the directory "${path}" is owned by someone else. It will be added to safe.directory list in the .gitconfig.`
@@ -194,11 +193,11 @@ export class GitHandler extends VcsHandler {
           }
 
           return
-        } else if (err.detail.code === 128 && err.detail.stderr.toLowerCase().includes("fatal: not a git repository")) {
-          throw new RuntimeError({ message: notInRepoRootErrorMessage(path), detail: { path } })
+        } else if (err.details.code === 128 && err.details.stderr.toLowerCase().includes("fatal: not a git repository")) {
+          throw new RuntimeError({ message: notInRepoRootErrorMessage(path) })
         } else {
           log.error(
-            `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.detail.code}. Error message: ${err.detail.stderr}`
+            `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.details.code}. Error message: ${err.details.stderr}`
           )
           throw err
         }
@@ -234,19 +233,18 @@ export class GitHandler extends VcsHandler {
         if (!(err instanceof ChildProcessError)) {
           throw err
         }
-        if (err.detail.code === 128 && err.detail.stderr.toLowerCase().includes("fatal: unsafe repository")) {
+        if (err.details.code === 128 && err.details.stderr.toLowerCase().includes("fatal: unsafe repository")) {
           // Throw nice error when we detect that we're not in a repo root
           throw new RuntimeError({
             message:
-              err.detail.stderr +
+              err.details.stderr +
               `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
-            detail: { path },
           })
-        } else if (err.detail.code === 128) {
+        } else if (err.details.code === 128) {
           // Throw nice error when we detect that we're not in a repo root
           throw new RuntimeError({
             message: notInRepoRootErrorMessage(path),
-            detail: { path, exitCode: err.detail.code },
+            details: { path, exitCode: err.details.code },
           })
         } else {
           throw err
@@ -794,7 +792,7 @@ export class GitHandler extends VcsHandler {
       output.branch = (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
       output.commitHash = (await git("rev-parse", "HEAD"))[0]
     } catch (err) {
-      if (err instanceof ChildProcessError && err.detail.code !== 128) {
+      if (err instanceof ChildProcessError && err.details.code !== 128) {
         throw err
       }
     }

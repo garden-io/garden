@@ -14,61 +14,63 @@ import {
   getEnvVarName,
   exec,
   createOutputStream,
-  makeErrorMsg,
   spawn,
   relationshipClasses,
   isValidDateInstance,
+  ChildProcessError,
 } from "../../../../src/util/util"
 import { expectError } from "../../../helpers"
 import { splitLast, splitFirst } from "../../../../src/util/string"
 import { getRootLogger } from "../../../../src/logger/logger"
 import { dedent } from "../../../../src/util/string"
 import { safeDumpYaml } from "../../../../src/util/serialization"
-import { ChildProcessError } from "../../../../src/exceptions"
 
 function isLinuxOrDarwin() {
   return process.platform === "darwin" || process.platform === "linux"
 }
 
 describe("util", () => {
-  describe("makeErrorMsg", () => {
-    it("should return an error message", () => {
-      const msg = makeErrorMsg({
+  describe("ChildProcessError", () => {
+    it("formats an appropriate error message", () => {
+      const err = new ChildProcessError({
         code: 1,
         cmd: "ls",
         args: ["some-dir"],
-        error: "dir not found",
+        stderr: "dir not found",
+        stdout: "",
         output: "dir not found",
       })
-      expect(msg).to.equal(dedent`
+      expect(err.message).to.equal(dedent`
         Command "ls some-dir" failed with code 1:
 
         dir not found
       `)
     })
     it("should ignore emtpy args", () => {
-      const msg = makeErrorMsg({
+      const err = new ChildProcessError({
         code: 1,
         cmd: "ls",
         args: [],
-        error: "dir not found",
+        stderr: "dir not found",
+        stdout: "",
         output: "dir not found",
       })
-      expect(msg).to.equal(dedent`
+      expect(err.message).to.equal(dedent`
         Command "ls" failed with code 1:
 
         dir not found
       `)
     })
     it("should include output if it's not the same as the error", () => {
-      const msg = makeErrorMsg({
+      const err = new ChildProcessError({
         code: 1,
         cmd: "ls some-dir",
         args: [],
-        error: "dir not found",
+        stderr: "dir not found",
+        stdout: " and some more output",
         output: "dir not found and some more output",
       })
-      expect(msg).to.equal(dedent`
+      expect(err.message).to.equal(dedent`
         Command "ls some-dir" failed with code 1:
 
         dir not found
@@ -83,14 +85,15 @@ describe("util", () => {
       const outputFull = output.repeat(102)
       const outputPartial = output.repeat(99) // This makes 100 lines in total
 
-      const msg = makeErrorMsg({
+      const err = new ChildProcessError({
         code: 1,
         cmd: "ls some-dir",
         args: [],
-        error: "dir not found",
+        stderr: "dir not found",
+        stdout: outputFull,
         output: outputFull,
       })
-      expect(msg).to.equal(dedent`
+      expect(err.message).to.equal(dedent`
         Command "ls some-dir" failed with code 1:
 
         dir not found
@@ -157,13 +160,14 @@ describe("util", () => {
         expect(err).to.be.instanceOf(ChildProcessError)
         expect(err.type).to.eql("childprocess")
         expect(err.message).to.equal(
-          makeErrorMsg({
+          new ChildProcessError({
             code: 1,
             cmd: `sh -c "echo hello error; exit 1"`,
             args: [],
             output: "hello error",
-            error: "",
-          })
+            stdout: "hello error",
+            stderr: "",
+          }).message
         )
       }
     })
@@ -189,22 +193,24 @@ describe("util", () => {
         // we therefore can't test the entire error message.
         if (process.platform === "darwin") {
           expect(err.message).to.equal(
-            makeErrorMsg({
+            new ChildProcessError({
               code: 1,
               cmd: "ls scottiepippen",
               args: [],
               output: "ls: scottiepippen: No such file or directory",
-              error: "ls: scottiepippen: No such file or directory",
+              stderr: "ls: scottiepippen: No such file or directory",
+              stdout: "",
             })
           )
         } else {
           expect(err.message).to.equal(
-            makeErrorMsg({
+            new ChildProcessError({
               code: 2,
               cmd: "ls scottiepippen",
               args: [],
               output: "ls: cannot access 'scottiepippen': No such file or directory",
-              error: "ls: cannot access 'scottiepippen': No such file or directory",
+              stderr: "ls: cannot access 'scottiepippen': No such file or directory",
+              stdout: "",
             })
           )
         }

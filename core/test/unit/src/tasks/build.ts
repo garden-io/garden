@@ -48,7 +48,7 @@ describe("BuildTask", () => {
                 }
               },
               build: async (_) => {
-                return { state: "ready", detail: {}, outputs: {} }
+                return { state: "ready", outputs: {} }
               },
             },
           },

@@ -185,7 +185,7 @@ export class CustomCommandWrapper extends Command {
 
       // Doing runtime check to avoid updating hundreds of test invocations with a new required param, sorry. - JE
       if (!cli) {
-        throw new InternalError({ message: `Missing cli argument in custom command wrapperd.`, detail: {} })
+        throw new InternalError({ message: `Missing cli argument in custom command wrapperd.` })
       }
 
       // Pass explicitly set global opts with the command, if they're not set in the command itself.

@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { max, omit, sortBy } from "lodash"
-import { dedent, renderTable, tablePresets } from "../util/string"
+import { dedent, naturalList, renderTable, tablePresets } from "../util/string"
 import { Log } from "../logger/log-entry"
 import { Garden, DummyGarden } from "../garden"
 import { Command, CommandParams } from "./base"
@@ -104,8 +104,7 @@ export class ToolsCommand extends Command<Args, Opts> {
       toolName = split[1]
     } else {
       throw new ParameterError({
-        message: `Invalid tool name argument. Please specify either a tool name (no periods) or <plugin name>.<tool name>.`,
-        detail: { args },
+        message: `Invalid tool name argument. Please specify either a tool name (no periods) or <plugin name>.<tool name>. Got: '${args.tool}'`,
       })
     }
 
@@ -117,7 +116,12 @@ export class ToolsCommand extends Command<Args, Opts> {
       plugins = plugins.filter((p) => p.name === pluginName)
 
       if (plugins.length === 0) {
-        throw new ParameterError({ message: `Could not find plugin ${pluginName}.`, detail: { availablePlugins } })
+        throw new ParameterError({ message: dedent`
+          Could not find plugin ${pluginName}.
+
+          Available plugins: ${naturalList(availablePlugins.map((p) => p.name))}
+          `,
+        })
       }
     } else {
       // Place configured providers at the top for preference, if applicable
@@ -145,7 +149,7 @@ export class ToolsCommand extends Command<Args, Opts> {
     const matchedNames = matchedTools.map(({ plugin, tool }) => `${plugin.name}.${tool.name}`)
 
     if (matchedTools.length === 0) {
-      throw new ParameterError({ message: `Could not find tool ${args.tool}.`, detail: { args } })
+      throw new ParameterError({ message: `Could not find tool ${args.tool}.` })
     }
 
     if (matchedTools.length > 1) {

@@ -22,7 +22,7 @@ export async function setMinikubeDockerEnv() {
     if (!(err instanceof ChildProcessError)) {
       throw err
     }
-    if (err.detail.output?.includes("driver does not support")) {
+    if (err.details.output.includes("driver does not support")) {
       return
     }
     throw err

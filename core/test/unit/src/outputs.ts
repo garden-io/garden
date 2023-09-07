@@ -141,7 +141,7 @@ describe("resolveProjectOutputs", () => {
             handlers: {
               getOutputs: async (params) => ({ outputs: params.action.getSpec().outputs }),
               getStatus: async (params) => ({
-                detail: { outputs: params.action.getSpec().outputs, state: "ready", detail: {} },
+                detail: { outputs: params.action.getSpec().outputs, state: "ready" },
                 outputs: params.action.getSpec().outputs,
                 state: "ready",
               }),

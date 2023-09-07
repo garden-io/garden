@@ -175,7 +175,6 @@ export const kanikoBuild: BuildHandler = async (params) => {
   if (kanikoBuildFailed(buildRes)) {
     throw new BuildError({
       message: `Failed building ${chalk.bold(action.name)}:\n\n${buildLog}`,
-      detail: { buildLog },
     })
   }
 

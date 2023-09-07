@@ -23,7 +23,7 @@ import {
 } from "./moduleConfig"
 import { buildContainer, getContainerBuildActionOutputs, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../plugin/handlers/Module/configure"
-import { dedent } from "../../util/string"
+import { dedent, naturalList } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
 import { GetModuleOutputsParams } from "../../plugin/handlers/Module/get-outputs"
 import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
@@ -60,16 +60,14 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
     const definedPorts = spec.ports
     const portsByName = keyBy(spec.ports, "name")
 
+    const definedPortsDescription = definedPorts.length > 0 ? ` Ports declared in service spec: ${naturalList(definedPorts.map((p) => p.name))}` : ""
+
     for (const ingress of spec.ingresses) {
       const ingressPort = ingress.port
 
       if (!portsByName[ingressPort]) {
         throw new ConfigurationError({
-          message: `Service ${name} does not define port ${ingressPort} defined in ingress`,
-          detail: {
-            definedPorts,
-            ingressPort,
-          },
+          message: `Service ${name} does not define port ${ingressPort} defined in ingress.${definedPortsDescription}`,
         })
       }
     }
@@ -79,8 +77,7 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
 
       if (!portsByName[healthCheckHttpPort]) {
         throw new ConfigurationError({
-          message: `Service ${name} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
-          detail: { definedPorts, healthCheckHttpPort },
+          message: `Service ${name} does not define port ${healthCheckHttpPort} defined in httpGet health check.${definedPortsDescription}`,
         })
       }
     }
@@ -90,8 +87,7 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
 
       if (!portsByName[healthCheckTcpPort]) {
         throw new ConfigurationError({
-          message: `Service ${name} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
-          detail: { definedPorts, healthCheckTcpPort },
+          message: `Service ${name} does not define port ${healthCheckTcpPort} defined in tcpPort health check.${definedPortsDescription}`,
         })
       }
     }
@@ -402,16 +398,14 @@ export const gardenPlugin = () =>
               const definedPorts = spec.ports
               const portsByName = keyBy(spec.ports, "name")
 
+              const definedPortsDescription = definedPorts.length > 0 ? ` Ports declared in Deploy spec: ${naturalList(definedPorts.map((p) => p.name))}` : ""
+
               for (const ingress of spec.ingresses) {
                 const ingressPort = ingress.port
 
                 if (!portsByName[ingressPort]) {
                   throw new ConfigurationError({
-                    message: `${action.longDescription()} does not define port ${ingressPort} defined in ingress`,
-                    detail: {
-                      definedPorts,
-                      ingressPort,
-                    },
+                    message: `${action.longDescription()} does not define port ${ingressPort} defined in ingress.${definedPortsDescription}`,
                   })
                 }
               }
@@ -421,8 +415,7 @@ export const gardenPlugin = () =>
 
                 if (!portsByName[healthCheckHttpPort]) {
                   throw new ConfigurationError({
-                    message: `${action.longDescription()} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
-                    detail: { definedPorts, healthCheckHttpPort },
+                    message: `${action.longDescription()} does not define port ${healthCheckHttpPort} defined in httpGet health check.${definedPortsDescription}`,
                   })
                 }
               }
@@ -432,8 +425,7 @@ export const gardenPlugin = () =>
 
                 if (!portsByName[healthCheckTcpPort]) {
                   throw new ConfigurationError({
-                    message: `${action.longDescription()} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
-                    detail: { definedPorts, healthCheckTcpPort },
+                    message: `${action.longDescription()} does not define port ${healthCheckTcpPort} defined in tcpPort health check.${definedPortsDescription}`,
                   })
                 }
               }
@@ -585,26 +577,16 @@ function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
   if (!build && !image) {
     throw new ConfigurationError({
       message: `${action.longDescription()} must specify one of \`build\` or \`spec.image\``,
-      detail: {
-        actionKey: action.key(),
-      },
     })
   } else if (build && image) {
     throw new ConfigurationError({
       message: `${action.longDescription()} specifies both \`build\` and \`spec.image\`. Only one may be specified.`,
-      detail: {
-        actionKey: action.key(),
-      },
     })
   } else if (build) {
     const buildAction = action.getDependency({ kind: "Build", name: build }, { includeDisabled: true })
     if (buildAction && !buildAction?.isCompatible("container")) {
       throw new ConfigurationError({
-        message: `${action.longDescription()} build field must specify a container Build, or a compatible type.`,
-        detail: {
-          actionKey: action.key(),
-          buildActionName: build,
-        },
+        message: `${action.longDescription()} build field must specify a container Build, or a compatible type. Got Build action type: ${buildAction.getConfig().type}`,
       })
     }
   }
@@ -615,7 +597,6 @@ function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
         message: `${action.longDescription()} references action ${
           volume.action
         } under \`spec.volumes\` but does not declare a dependency on it. Please add an explicit dependency on the volume action.`,
-        detail: { volume },
       })
     }
   }

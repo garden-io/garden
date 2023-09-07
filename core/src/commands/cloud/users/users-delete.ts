@@ -46,9 +46,6 @@ export class UsersDeleteCommand extends Command<Args> {
     if (usersToDelete.length === 0) {
       throw new CommandError({
         message: `No user IDs provided.`,
-        detail: {
-          args,
-        },
       })
     }
 
@@ -58,7 +55,7 @@ export class UsersDeleteCommand extends Command<Args> {
 
     const api = garden.cloudApi
     if (!api) {
-      throw new ConfigurationError({ message: noApiMsg("delete", "user"), detail: {} })
+      throw new ConfigurationError({ message: noApiMsg("delete", "user") })
     }
 
     const cmdLog = log.createLog({ name: "users-command" })

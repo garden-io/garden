@@ -13,7 +13,7 @@ import { GardenService, serviceFromConfig } from "../types/service"
 import { GardenTask, taskFromConfig } from "../types/task"
 import { TestConfig } from "../config/test"
 import { uniqByName, pickKeys } from "../util/util"
-import { ConfigurationError } from "../exceptions"
+import { CircularDependenciesError, ConfigurationError } from "../exceptions"
 import { deline } from "../util/string"
 import { DependencyGraph } from "./common"
 import { ServiceConfig } from "../config/service"
@@ -267,9 +267,12 @@ export class ModuleGraph {
     const cycles = validationGraph.detectCircularDependencies()
 
     if (cycles.length > 0) {
-      const description = validationGraph.cyclesToString(cycles)
-      const errMsg = `\nCircular dependencies detected: \n\n${description}\n`
-      throw new ConfigurationError({ message: errMsg, detail: { "circular-dependencies": description } })
+      const cyclesSummary = validationGraph.cyclesToString(cycles)
+      throw new CircularDependenciesError({
+        messagePrefix: "Circular dependencies detected",
+        cycles,
+        cyclesSummary
+      })
     }
   }
 

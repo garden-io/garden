@@ -9,7 +9,7 @@
 import { DepGraph } from "dependency-graph"
 import { flatten, merge, uniq } from "lodash"
 import { get, isEqual, join, set, uniqWith } from "lodash"
-import { ConfigurationError } from "../exceptions"
+import { CircularDependenciesError } from "../exceptions"
 import { GraphNodes, ConfigGraphNode } from "./config-graph"
 import { Profile } from "../util/profiling"
 import type { ModuleDependencyGraphNode, ModuleDependencyGraphNodeKind, ModuleGraphNodes } from "./modules"
@@ -58,10 +58,14 @@ export class DependencyGraph<T> extends DepGraph<T> {
     try {
       return super.overallOrder(leavesOnly)
     } catch {
+      // TODO: catching everything here is a code smell. We should narrow the error type instead.
       const cycles = this.detectMinimalCircularDependencies()
-      const description = cyclesToString(cycles)
-      const errMsg = `\nCircular dependencies detected: \n\n${description}\n`
-      throw new ConfigurationError({ message: errMsg, detail: { "circular-dependencies": description, cycles } })
+      const cyclesSummary = cyclesToString(cycles)
+      throw new CircularDependenciesError({
+        messagePrefix: "Circular dependencies detected",
+        cycles,
+        cyclesSummary,
+       })
     }
   }
 
@@ -101,7 +105,7 @@ export class DependencyGraph<T> extends DepGraph<T> {
   }
 }
 
-type Cycle = string[]
+export type Cycle = string[]
 
 interface DependencyEdge {
   from: string

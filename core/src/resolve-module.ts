@@ -7,7 +7,7 @@
  */
 
 import cloneDeep from "fast-copy"
-import { isArray, isString, keyBy } from "lodash"
+import { flatMap, isArray, isString, keyBy } from "lodash"
 import { validateWithPath } from "./config/validation"
 import {
   getModuleTemplateReferences,
@@ -18,7 +18,7 @@ import {
 import { ContextResolveOpts, GenericContext } from "./config/template-contexts/base"
 import { dirname, posix, relative, resolve } from "path"
 import type { Garden } from "./garden"
-import { ConfigurationError, FilesystemError, PluginError } from "./exceptions"
+import { CircularDependenciesError, ConfigurationError, FilesystemError, PluginError, toGardenError } from "./exceptions"
 import { dedent, deline } from "./util/string"
 import {
   GardenModule,
@@ -208,8 +208,11 @@ export class ModuleResolver {
 
         const msg = `Failed resolving one or more modules:\n\n${errorStr}`
 
-        const combined = new ConfigurationError({ message: chalk.red(msg), detail: { ...errors } })
-        combined.stack = errorStack
+        const combined = new ConfigurationError({
+          message: chalk.red(msg),
+          stack: errorStack,
+          wrappedErrors: flatMap(Object.values(errors)).map(toGardenError),
+        })
         throw combined
       }
 
@@ -219,14 +222,11 @@ export class ModuleResolver {
       try {
         batch = processingGraph.overallOrder(true).filter((n) => !inFlight.has(n))
       } catch (err) {
-        throw new ConfigurationError({
-          message: dedent`
-            Detected circular dependencies between module configurations:
+        if (err instanceof CircularDependenciesError) {
+          err.messagePrefix = "Detected circular dependencies between module configurations"
+        }
 
-            ${err.detail?.["circular-dependencies"] || err.message}
-          `,
-          detail: { cycles: err.detail?.cycles },
-        })
+        throw err
       }
 
       this.log.silly(`ModuleResolver: Process ${batch.length} leaves`)
@@ -391,11 +391,11 @@ export class ModuleResolver {
       const configPath = relative(garden.projectRoot, config.configPath || config.path)
 
       throw new ConfigurationError({
-        message: deline`
-        Unrecognized module type '${config.type}' (defined at ${configPath}).
-        Are you missing a provider configuration?
+        message: dedent`
+          Unrecognized module type '${config.type}' (defined at ${configPath}). Are you missing a provider configuration?
+
+          Currently available module types: ${Object.keys(moduleTypeDefinitions)}
         `,
-        detail: { config, configuredModuleTypes: Object.keys(moduleTypeDefinitions) },
       })
     }
 
@@ -534,9 +534,6 @@ export class ModuleResolver {
           } catch (err) {
             throw new ConfigurationError({
               message: `Unable to read file at ${sourcePath}, specified under generateFiles in module ${resolvedConfig.name}: ${err}`,
-              detail: {
-                sourcePath,
-              },
             })
           }
         }
@@ -570,10 +567,6 @@ export class ModuleResolver {
         } catch (error) {
           throw new FilesystemError({
             message: `Unable to write templated file ${fileSpec.targetPath} from ${resolvedConfig.name}: ${error.message}`,
-            detail: {
-              fileSpec,
-              error,
-            },
           })
         }
       })
@@ -890,6 +883,5 @@ function missingBuildDependency(moduleName: string, dependencyName: string) {
       `Could not find build dependency ${chalk.white(dependencyName)}, ` +
         `configured in module ${chalk.white(moduleName)}`
     ),
-    detail: { moduleName, dependencyName },
   })
 }

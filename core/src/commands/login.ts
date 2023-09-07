@@ -150,7 +150,7 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
   })
   await server.close()
   if (!response) {
-    throw new InternalError({ message: `Error: Did not receive an auth token after logging in.`, detail: {} })
+    throw new InternalError({ message: `Error: Did not receive an auth token after logging in.` })
   }
 
   return response

@@ -213,11 +213,11 @@ testPluginDeploy.addHandler("configure", async ({ config }) => {
   return { config, supportedModes: { sync: !!config.spec.persistent, local: true } }
 })
 testPluginDeploy.addHandler("deploy", async ({}) => {
-  return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+  return { state: "ready", detail: { state: "ready" }, outputs: {} }
 })
 testPluginDeploy.addHandler("getStatus", async ({ ctx, action }) => {
   const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
-  return result || { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+  return result || { state: "ready", detail: { state: "ready" }, outputs: {} }
 })
 testPluginDeploy.addHandler("exec", async ({ command }) => {
   return { code: 0, output: "Ran command: " + command.join(" ") }

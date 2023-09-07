@@ -145,7 +145,7 @@ execDeploy.addHandler("getStatus", async (params) => {
 
     return {
       state: deployStateToActionState(state),
-      detail: { state, version: action.versionString(), detail: {} },
+      detail: { state, version: action.versionString() },
       outputs: {
         log: "",
       },
@@ -349,7 +349,7 @@ execDeploy.addHandler("delete", async (params) => {
     }
   } else {
     log.warn(`Missing cleanupCommand, unable to clean up service`)
-    return { state: "unknown", detail: { state: "unknown" as const, detail: {} }, outputs: {} }
+    return { state: "unknown", detail: { state: "unknown" as const }, outputs: {} }
   }
 })
 

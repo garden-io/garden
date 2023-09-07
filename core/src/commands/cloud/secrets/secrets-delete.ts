@@ -45,9 +45,6 @@ export class SecretsDeleteCommand extends Command<Args> {
     if (secretsToDelete.length === 0) {
       throw new CommandError({
         message: `No secret IDs provided.`,
-        detail: {
-          args,
-        },
       })
     }
 
@@ -57,7 +54,7 @@ export class SecretsDeleteCommand extends Command<Args> {
 
     const api = garden.cloudApi
     if (!api) {
-      throw new ConfigurationError({ message: noApiMsg("delete", "secrets"), detail: {} })
+      throw new ConfigurationError({ message: noApiMsg("delete", "secrets") })
     }
 
     const cmdLog = log.createLog({ name: "secrets-command" })

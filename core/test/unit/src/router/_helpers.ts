@@ -129,7 +129,7 @@ function getRouterUnitTestPlugins() {
           name: "base-action-type",
           docs: "asd",
           handlers: {
-            getStatus: async (_) => ({ state: "ready", detail: {}, outputs: { foo: "bar", plugin: "base" } }),
+            getStatus: async (_) => ({ state: "ready", outputs: { foo: "bar", plugin: "base" } }),
           },
           schema: joi.object(),
         },
@@ -422,7 +422,7 @@ function getRouterUnitTestPlugins() {
             getStatus: async (params) => {
               return {
                 state: "ready",
-                detail: { state: "ready", detail: {} },
+                detail: { state: "ready" },
                 outputs: getTestPluginOutputs(params),
               }
             },
@@ -431,13 +431,13 @@ function getRouterUnitTestPlugins() {
               // validateParams(params, moduleActionDescriptions.deployService.paramsSchema)
               return {
                 state: "ready",
-                detail: { state: "ready", detail: {} },
+                detail: { state: "ready" },
                 outputs: getTestPluginOutputs(params),
               }
             },
 
             delete: async (_params) => {
-              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+              return { state: "ready", detail: { state: "ready" }, outputs: {} }
             },
 
             exec: async (_params) => {

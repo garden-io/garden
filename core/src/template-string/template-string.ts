@@ -188,7 +188,7 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
       }
 
       if (currentNode.type === "if" || currentNode.type === "else") {
-        throw new TemplateStringError({ message: "Missing ${endif} after ${if ...} block.", detail: {} })
+        throw new TemplateStringError({ message: "Missing ${endif} after ${if ...} block." })
       }
 
       // Walk down tree and resolve the output string
@@ -212,7 +212,7 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
     const prefix = `Invalid template string (${chalk.white(truncate(string, 35).replace(/\n/g, "\\n"))}): `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 
-    throw new TemplateStringError({ message, detail: {} })
+    throw new TemplateStringError({ message })
   }
 }
 

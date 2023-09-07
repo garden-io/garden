@@ -289,11 +289,10 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     }
 
     throw new ConfigurationError({
-      message: deline`
-      Unrecognized action type '${config.type}' (defined at ${configPath}).
-      Are you missing a provider configuration?
-      `,
-      detail: { config, configuredActionTypes: Object.keys(actionTypes) },
+      message: dedent`
+        Unrecognized action type '${config.type}' (defined at ${configPath}). Are you missing a provider configuration?
+
+        Currently available action types: ${Object.keys(actionTypes).join(", ")}`,
     })
   }
 

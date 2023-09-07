@@ -307,23 +307,13 @@ export class ProviderRouter extends BaseRouter {
       return null
     }
 
-    const errorDetails = {
-      requestedHandlerType: handlerType,
-      environment: this.garden.environmentName,
-      pluginName,
-    }
-
     if (pluginName) {
       throw new PluginError({
         message: `Plugin '${pluginName}' does not have a '${handlerType}' handler.`,
-        detail: errorDetails,
       })
     } else {
       throw new ParameterError({
-        message:
-          `No '${handlerType}' handler configured in environment '${this.garden.environmentName}'. ` +
-          `Are you missing a provider configuration?`,
-        detail: errorDetails,
+        message: `No '${handlerType}' handler configured in environment '${this.garden.environmentName}'. Are you missing a provider configuration?`,
       })
     }
   }

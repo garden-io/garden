@@ -18,6 +18,8 @@ import { ConfigGraph } from "../../graph/config-graph"
 import { GardenModule, moduleTestNameToActionName } from "../../types/module"
 import { findByName, getNames } from "../../util/util"
 import { createActionLog } from "../../logger/log-entry"
+import dedent from "dedent"
+import { naturalList } from "../../util/string"
 
 const getTestResultArgs = {
   name: new StringParameter({
@@ -112,11 +114,9 @@ export function getTestActionFromArgs(graph: ConfigGraph, args: ParameterValues<
       module = graph.getModule(args.name, true)
     } catch (err) {
       throw new ParameterError({
-        message: `Two arguments were provided, so we looked for a Module named '${moduleName}, but could not find it.`,
-        detail: {
-          moduleName,
-          testName,
-        },
+        message: dedent`
+          Could not find module "${moduleName}" to run test "${testName}" from.
+        `
       })
     }
 
@@ -124,12 +124,10 @@ export function getTestActionFromArgs(graph: ConfigGraph, args: ParameterValues<
 
     if (!testConfig) {
       throw new ParameterError({
-        message: `Could not find test "${testName}" in module ${moduleName}`,
-        detail: {
-          moduleName,
-          testName,
-          availableTests: getNames(module.testConfigs),
-        },
+        message: dedent`
+          Could not find test "${testName}" in module "${moduleName}".
+          Available tests: ${naturalList(getNames(module.testConfigs))}
+        `,
       })
     }
 

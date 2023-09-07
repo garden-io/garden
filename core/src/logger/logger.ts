@@ -294,7 +294,7 @@ export abstract class LoggerBase implements Logger {
    */
   getLogEntries(): LogEntry[] {
     if (!this.storeEntries) {
-      throw new InternalError({ message: `Cannot get entries when storeEntries=false`, detail: {} })
+      throw new InternalError({ message: `Cannot get entries when storeEntries=false` })
     }
     return this.entries
   }
@@ -306,7 +306,7 @@ export abstract class LoggerBase implements Logger {
    */
   getLatestEntry() {
     if (!this.storeEntries) {
-      throw new InternalError({ message: `Cannot get entries when storeEntries=false`, detail: {} })
+      throw new InternalError({ message: `Cannot get entries when storeEntries=false` })
     }
     return this.entries.slice(-1)[0]
   }
@@ -342,7 +342,7 @@ export class RootLogger extends LoggerBase {
    */
   static getInstance() {
     if (!RootLogger.instance) {
-      throw new InternalError({ message: "Logger not initialized", detail: {} })
+      throw new InternalError({ message: "Logger not initialized" })
     }
     return RootLogger.instance
   }
@@ -363,7 +363,7 @@ export class RootLogger extends LoggerBase {
       try {
         config.level = parseLogLevel(gardenEnv.GARDEN_LOG_LEVEL)
       } catch (err) {
-        throw new CommandError({ message: `Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}`, detail: {} })
+        throw new CommandError({ message: `Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}` })
       }
     }
 

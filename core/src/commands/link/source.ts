@@ -19,6 +19,7 @@ import { printHeader } from "../../logger/util"
 import { joiArray, joi } from "../../config/common"
 import { linkedSourceSchema } from "../../config/project"
 import { StringParameter, PathParameter } from "../../cli/params"
+import { naturalList } from "../../util/string"
 
 const linkSourceArguments = {
   source: new StringParameter({
@@ -75,13 +76,12 @@ export class LinkSourceCommand extends Command<Args> {
       const availableRemoteSources = projectSources.map((s) => s.name).sort()
 
       throw new ParameterError({
-        message:
-          `Remote source ${chalk.underline(sourceName)} not found in project config.` +
-          ` Did you mean to use the "link module" command?`,
-        detail: {
-          availableRemoteSources,
-          input: sourceName,
-        },
+        message: dedent`
+          Remote source ${chalk.underline(sourceName)} not found in project config. Did you mean to use the "link module" command?${
+            availableRemoteSources.length > 0 ? `\n\nAvailable remote sources: ${
+              naturalList(availableRemoteSources)
+            }` : ""
+          }`,
       })
     }
 

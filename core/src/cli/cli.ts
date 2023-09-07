@@ -13,7 +13,7 @@ import { pathExists } from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands"
 import { shutdown, getPackageVersion, getCloudDistributionName } from "../util/util"
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
-import { PluginError, toGardenError, GardenError, explainGardenError } from "../exceptions"
+import { PluginError, toGardenError, GardenError } from "../exceptions"
 import { Garden, GardenOpts, makeDummyGarden } from "../garden"
 import { getRootLogger, getTerminalWriterType, LogLevel, parseLogLevel, RootLogger } from "../logger/logger"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
@@ -163,7 +163,7 @@ ${renderCommands(commands)}
 
     if (this.commands[fullName]) {
       // For now we don't allow multiple definitions of the same command. We may want to revisit this later.
-      throw new PluginError({ message: `Multiple definitions of command "${fullName}"`, detail: {} })
+      throw new PluginError({ message: `Multiple definitions of command "${fullName}"` })
     }
 
     this.commands[fullName] = command
@@ -175,7 +175,7 @@ ${renderCommands(commands)}
     const dupKeys: string[] = intersection(optKeys, globalKeys)
 
     if (dupKeys.length > 0) {
-      throw new PluginError({ message: `Global option(s) ${dupKeys.join(" ")} cannot be redefined`, detail: {} })
+      throw new PluginError({ message: `Global option(s) ${dupKeys.join(" ")} cannot be redefined` })
     }
   }
 
@@ -454,7 +454,7 @@ ${renderCommands(commands)}
         force: this.initLogger,
       })
     } catch (error) {
-      return done(1, explainGardenError(error, "Failed to initialize logger"))
+      return done(1, toGardenError(error).explain("Failed to initialize logger"))
     }
 
     const log = logger.createLog()
@@ -472,7 +472,7 @@ ${renderCommands(commands)}
           matchedPath = picked.matchedPath
         }
       } catch (error) {
-        return done(1, explainGardenError(error, "Failed to get custom commands"))
+        return done(1, toGardenError(error).explain("Failed to get custom commands"))
       }
     }
 

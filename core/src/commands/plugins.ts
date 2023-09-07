@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import { max, fromPairs, zip } from "lodash"
 import { findByName, getNames } from "../util/util"
-import { dedent, renderTable, tablePresets } from "../util/string"
+import { dedent, naturalList, renderTable, tablePresets } from "../util/string"
 import { ParameterError, toGardenError } from "../exceptions"
 import { Log } from "../logger/log-entry"
 import { Garden } from "../garden"
@@ -78,14 +78,16 @@ export class PluginsCommand extends Command<Args> {
     const command = findByName(plugin.commands, args.command)
 
     if (!command) {
+      const availableCommands = plugin.commands.map((c) => c.name)
       return {
         errors: [
           new ParameterError({
-            message: `Could not find command '${args.command}' on plugin ${args.plugin}`,
-            detail: {
-              args,
-              availableCommands: plugin.commands.map((c) => c.name),
-            },
+            message: dedent`
+              Could not find command '${args.command}' on plugin ${args.plugin}${
+                availableCommands ? `\n\nAvailable commands: ${
+                  naturalList(availableCommands)
+                }` : ""
+              }`,
           }),
         ],
       }

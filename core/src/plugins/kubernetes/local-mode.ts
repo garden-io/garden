@@ -149,7 +149,7 @@ export class ProxySshKeystore {
 
   private constructor() {
     if (!!ProxySshKeystore.instance) {
-      throw new RuntimeError({ message: "Cannot init singleton twice, use ProxySshKeystore.getInstance()", detail: {} })
+      throw new RuntimeError({ message: "Cannot init singleton twice, use ProxySshKeystore.getInstance()" })
     }
     this.serviceKeyPairs = new Map<string, KeyPair>()
     this.localSshPorts = new Set<number>()

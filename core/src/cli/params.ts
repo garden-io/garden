@@ -202,11 +202,7 @@ export class DurationParameter extends Parameter<string> {
     `
     if (parts.length !== 2) {
       throw new ParameterError({
-        message: `Could not parse "${input}" as duration`,
-        detail: {
-          expectedType,
-          input,
-        },
+        message: `Could not parse "${input}" as duration. Expected: ${expectedType}`,
       })
     }
     const length = parseInt(parts[0], 10)
@@ -214,10 +210,6 @@ export class DurationParameter extends Parameter<string> {
     if (isNaN(length)) {
       throw new ParameterError({
         message: `Could not parse "${input}" as duration, length must be an integer. Received ${length}`,
-        detail: {
-          expectedType,
-          input,
-        },
       })
     }
     if (!validDurationUnits.includes(unit)) {
@@ -225,10 +217,6 @@ export class DurationParameter extends Parameter<string> {
         message: `Could not parse "${input}" as duration, unit must be one of ${validDurationUnits.join(
           ", "
         )}. Received ${unit}`,
-        detail: {
-          expectedType,
-          input,
-        },
       })
     }
     return input
@@ -253,10 +241,6 @@ export class IntegerParameter extends Parameter<number> {
     if (isNaN(output)) {
       throw new ParameterError({
         message: `Could not parse "${input}" as integer`,
-        detail: {
-          expectedType: "integer",
-          input,
-        },
       })
     }
     return output
@@ -294,10 +278,6 @@ export class ChoicesParameter extends Parameter<string> {
         message: `"${input}" is not a valid argument (should be any of ${this.choices
           .map((c) => `"${c}"`)
           .join(", ")})`,
-        detail: {
-          expectedType: `One of: ${this.choices.join(", ")}`,
-          input,
-        },
       })
     }
   }
@@ -322,7 +302,7 @@ export class BooleanParameter extends Parameter<boolean> {
     } else if (input === false || input === "false" || input === "0" || input === "no" || input === 0) {
       return false
     } else {
-      throw new ParameterError({ message: `Invalid boolean value: '${input}'`, detail: { input } })
+      throw new ParameterError({ message: `Invalid boolean value: '${input}'`, })
     }
   }
 }

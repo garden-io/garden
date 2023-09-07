@@ -170,10 +170,7 @@ const helpers = {
       return moduleConfig.spec.image
     } else {
       throw new ConfigurationError({
-        message: `Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`,
-        detail: {
-          spec: moduleConfig.spec,
-        },
+        message: `Module ${moduleConfig.name} neither specifies image nor can a Dockerfile be found in the module directory.`,
       })
     }
   },
@@ -220,9 +217,6 @@ const helpers = {
     } else {
       throw new ConfigurationError({
         message: `Invalid container image tag: ${imageId}`,
-        detail: {
-          imageId,
-        },
       })
     }
   },
@@ -269,9 +263,6 @@ const helpers = {
         if (!output) {
           throw new RuntimeError({
             message: `Unexpected docker version output: ${res.all.trim()}`,
-            detail: {
-              output,
-            },
           })
         }
 
@@ -287,13 +278,10 @@ const helpers = {
    */
   checkDockerServerVersion(version: DockerVersion) {
     if (!version.server) {
-      throw new RuntimeError({ message: `Docker server is not running or cannot be reached.`, detail: version })
+      throw new RuntimeError({ message: `Failed to check Docker server version: Docker server is not running or cannot be reached.` })
     } else if (!checkMinDockerVersion(version.server, minDockerVersion.server!)) {
       throw new RuntimeError({
         message: `Docker server needs to be version ${minDockerVersion.server} or newer (got ${version.server})`,
-        detail: {
-          ...version,
-        },
       })
     }
   },

@@ -228,7 +228,7 @@ export async function skopeoBuildStatus({
       containerName,
       buffer: true,
     })
-    return { state: "ready", outputs, detail: {} }
+    return { state: "ready", outputs }
   } catch (err) {
     if (err instanceof PodRunnerError) {
       const res = err.detail.result
@@ -249,7 +249,7 @@ export async function skopeoBuildStatus({
 
     // TODO: Do we really want to return state: "unknown" with no details on any error, even on TypeError etc?
     // NOTE(steffen): I'd have expected us to throw here
-    return { state: "unknown", outputs, detail: {} }
+    return { state: "unknown", outputs }
   }
 }
 

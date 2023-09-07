@@ -47,7 +47,7 @@ const testProvider = () => {
     },
     "service-c": {
       state: "ready",
-      detail: { state: "ready", detail: {} },
+      detail: { state: "ready" },
       outputs: {},
     },
   }
@@ -62,7 +62,7 @@ const testProvider = () => {
           schema: zodObjectToJoi(testDeploySchema),
           handlers: {
             deploy: async (params) => {
-              const newStatus: DeployStatus = { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+              const newStatus: DeployStatus = { state: "ready", detail: { state: "ready" }, outputs: {} }
               testStatuses[params.action.name] = newStatus
               return newStatus
             },
@@ -70,7 +70,7 @@ const testProvider = () => {
               return (
                 testStatuses[params.action.name] || {
                   state: "unknown",
-                  detail: { state: "unknown", detail: {} },
+                  detail: { state: "unknown" },
                   outputs: {},
                 }
               )

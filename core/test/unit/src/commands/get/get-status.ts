@@ -172,7 +172,7 @@ describe("GetStatusCommand", () => {
         name: "service-a",
         status: {
           state: "unknown",
-          detail: { state: "unknown", detail: {} },
+          detail: { state: "unknown" },
           outputs: {},
         },
       })

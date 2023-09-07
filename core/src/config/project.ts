@@ -440,11 +440,10 @@ export function getDefaultEnvironmentName(defaultName: string, config: ProjectCo
   } else {
     if (!findByName(environments, defaultName)) {
       throw new ConfigurationError({
-        message: `The specified default environment ${defaultName} is not defined`,
-        detail: {
-          defaultEnvironment: defaultName,
-          availableEnvironments: getNames(environments),
-        },
+        message: dedent`
+          The default environment '${defaultName}' (specified in the project configuration) does not exist.
+
+          Available environments: ${naturalList(getNames(environments))}`,
       })
     }
     return defaultName

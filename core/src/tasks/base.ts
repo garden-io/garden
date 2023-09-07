@@ -407,7 +407,7 @@ export function emitGetStatusEvents<
   const method = descriptor.value
 
   if (!method) {
-    throw new RuntimeError({ message: "No method to decorate", detail: {} })
+    throw new RuntimeError({ message: "No method to decorate" })
   }
 
   descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskStatusParams<A>]) {
@@ -494,7 +494,7 @@ export function emitProcessingEvents<
   const method = descriptor.value
 
   if (!method) {
-    throw new RuntimeError({ message: "No method to decorate", detail: {} })
+    throw new RuntimeError({ message: "No method to decorate" })
   }
 
   descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskStatusParams<A>]) {

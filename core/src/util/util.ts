@@ -27,7 +27,7 @@ import {
 import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
 import _spawn from "cross-spawn"
 import { readFile } from "fs-extra"
-import { ChildProcessError, GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
+import { GardenError, InternalError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
 import { load } from "js-yaml"
 import { createHash } from "crypto"
 import { dedent, tailString } from "./string"
@@ -182,39 +182,6 @@ export function createOutputStream(log: Log, origin?: string) {
 
   return outputStream
 }
-
-export function makeErrorMsg({
-  code,
-  cmd,
-  args,
-  output,
-  error,
-}: {
-  code: number
-  cmd: string
-  args: string[]
-  error: string
-  output: string
-}) {
-  const nLinesToShow = 100
-  const lines = output.split("\n")
-  const out = lines.slice(-nLinesToShow).join("\n")
-  const cmdStr = args.length > 0 ? `${cmd} ${args.join(" ")}` : cmd
-  let msg = dedent`
-    Command "${cmdStr}" failed with code ${code}:
-
-    ${trimEnd(error, "\n")}
-  `
-  if (output && output !== error) {
-    msg +=
-      lines.length > nLinesToShow
-        ? `\n\nHere are the last ${nLinesToShow} lines of the output:`
-        : `\n\nHere's the full output:`
-    msg += `\n\n${trimEnd(out, "\n")}`
-  }
-  return msg
-}
-
 export interface ExecOpts extends execa.Options {
   stdout?: Writable
   stderr?: Writable
@@ -251,27 +218,17 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
 
         This can also be due to limits on open file descriptors being too low. Here is one guide on how to configure those limits for different platforms: https://docs.riak.com/riak/kv/latest/using/performance/open-files-limit/index.html
         `,
-        detail: { error: err },
       })
     }
 
     const error = <execa.ExecaError>err
     throw new ChildProcessError({
-      message: makeErrorMsg({
-        cmd,
-        args,
-        code: error.exitCode || err.code || err.errno,
-        output: error.all || error.stdout || error.stderr || "",
-        error: error.stderr,
-      }),
-      detail: {
-        cmd,
-        args,
-        code: error.exitCode || err.code || err.errno,
-        output: error.all || error.stdout || error.stderr || "",
-        stderr: error.stderr || "",
-        stdout: error.stdout || "",
-      },
+      cmd,
+      args,
+      code: error.exitCode || err.code || err.errno,
+      output: error.all || error.stdout || error.stderr || "",
+      stderr: error.stderr || "",
+      stdout: error.stdout || "",
     })
   }
 }
@@ -335,7 +292,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 
   if (tty) {
     if (data) {
-      throw new ParameterError({ message: `Cannot pipe to stdin when tty=true`, detail: { cmd, args, opts } })
+      throw new InternalError({ message: `Cannot pipe to stdin when tty=true. (spawn(${JSON.stringify(cmd)}, ${JSON.stringify(args)})` })
     }
     _process.stdin.setEncoding("utf8")
     // raw mode is not available if we're running without a TTY
@@ -403,30 +360,61 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
       if (code === 0 || ignoreError) {
         resolve(result)
       } else {
-        const msg = makeErrorMsg({
-          code: code!,
-          cmd,
-          args,
-          output: result.all || result.stdout || result.stderr || "",
-          error: result.stderr || "",
-        })
         _reject(
           new ChildProcessError({
-            message: msg,
-            detail: {
-              cmd,
-              args,
-              opts,
-              code: result.code,
-              output: result.all,
-              stderr: result.stderr,
-              stdout: result.stdout,
-            },
+            cmd,
+            args,
+            code: result.code,
+            opts,
+            output: result.all,
+            stderr: result.stderr,
+            stdout: result.stdout,
           })
         )
       }
     })
   })
+}
+
+type ChildProcessErrorDetails = {
+  cmd: string
+  args: string[]
+  code: number
+  output: string
+  stderr: string
+  stdout: string
+  opts?: SpawnOpts
+}
+export class ChildProcessError extends GardenError {
+  type = "childprocess"
+
+  // The details do not need to be exposed in toString() or toJSON(), because they are included in the message.
+  readonly details: ChildProcessErrorDetails
+
+  constructor(details: ChildProcessErrorDetails) {
+    super({ message: ChildProcessError.formatMessage(details) })
+    this.details = details
+  }
+
+  private static formatMessage({cmd, args, code, output, stderr}: ChildProcessErrorDetails): string {
+    const nLinesToShow = 100
+    const lines = output.split("\n")
+    const out = lines.slice(-nLinesToShow).join("\n")
+    const cmdStr = args.length > 0 ? `${cmd} ${args.join(" ")}` : cmd
+    let msg = dedent`
+      Command "${cmdStr}" failed with code ${code}:
+
+      ${trimEnd(stderr, "\n")}
+    `
+    if (output && output !== stderr) {
+      msg +=
+        lines.length > nLinesToShow
+          ? `\n\nHere are the last ${nLinesToShow} lines of the output:`
+          : `\n\nHere's the full output:`
+      msg += `\n\n${trimEnd(out, "\n")}`
+    }
+    return msg
+  }
 }
 
 /**
@@ -752,6 +740,10 @@ export async function streamToString(stream: Readable) {
     stream.on("error", reject)
     stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")))
   })
+}
+
+export function isExecaError(error: any): error is execa.ExecaError {
+  return error.exitCode !== undefined
 }
 
 /**

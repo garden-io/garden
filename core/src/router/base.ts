@@ -486,27 +486,19 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         pluginName: defaultProvider.name,
       })
     } else {
-      // Nothing matched, throw error.
-      const errorDetails = {
-        requestedHandlerType: handlerType,
-        requestedActionType: actionType,
-        environment: this.garden.environmentName,
-        pluginName,
-      }
-
       if (pluginName) {
         throw new PluginError({
           message: `Plugin '${pluginName}' does not have a '${String(
             handlerType
           )}' handler for action type '${actionType}'.`,
-          detail: errorDetails,
         })
       } else {
         throw new ParameterError({
-          message:
-            `No '${String(handlerType)}' handler configured for ${this.kind} type '${actionType}' in environment ` +
-            `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
-          detail: errorDetails,
+          message: `No '${String(handlerType)}' handler configured for ${
+            this.kind
+          } type '${actionType}' in environment '${
+            this.garden.environmentName
+          }'. Are you missing a provider configuration?`,
         })
       }
     }

@@ -212,10 +212,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
         if (key in this.arguments) {
           throw new InternalError({
             message: `Key ${key} is defined in both options and arguments for command ${commandName}`,
-            detail: {
-              commandName,
-              key,
-            },
           })
         }
       }
@@ -231,10 +227,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
       if (arg.defaultValue) {
         throw new InternalError({
           message: `A positional argument cannot have a default value`,
-          detail: {
-            commandName,
-            arg,
-          },
         })
       }
 
@@ -243,10 +235,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
         if (foundOptional) {
           throw new InternalError({
             message: `A required argument cannot follow an optional one`,
-            detail: {
-              commandName,
-              arg,
-            },
           })
         }
       } else {
@@ -257,10 +245,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
       if (arg.spread && i < args.length - 1) {
         throw new InternalError({
           message: `Only the last command argument can set spread to true`,
-          detail: {
-            commandName,
-            arg,
-          },
         })
       }
     }
@@ -1084,7 +1068,6 @@ export async function handleProcessResults(
 
     const error = new RuntimeError({
       message: `${failedCount} ${taskType} action(s) failed!`,
-      detail: { results: failed },
       wrappedErrors,
     })
     return { result, errors: [error] }
