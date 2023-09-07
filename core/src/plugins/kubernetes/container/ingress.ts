@@ -24,7 +24,7 @@ import { Resolved } from "../../../actions/types"
 // Ingress API versions in descending order of preference
 export const supportedIngressApiVersions = ["networking.k8s.io/v1", "networking.k8s.io/v1beta1", "extensions/v1beta1"]
 
-export interface ServiceIngressWithCert extends ServiceIngress {
+interface ServiceIngressWithCert extends ServiceIngress {
   spec: ContainerIngressSpec
   certificate?: IngressTlsCertificate
 }

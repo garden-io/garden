@@ -191,7 +191,7 @@ export async function createContainerManifests({
     log,
     production,
   })
-  const kubeServices = await createServiceResources(action, namespace, provider)
+  const kubeServices = await createServiceResources(action, namespace)
   const manifests = [workload, ...kubeServices, ...ingresses]
 
   for (const obj of manifests) {

@@ -43,7 +43,7 @@ export class FakeCloudApi extends CloudApi {
       accessTokens: [],
       groups: [],
       meta: {},
-      singleProjectId: ''
+      singleProjectId: ""
     }
   }
 
