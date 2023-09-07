@@ -223,9 +223,6 @@ function isOutdated({
 
 export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", KubernetesDeployAction> = async (params) => {
   const { ctx, action, log } = params
-
-  const mode = action.mode()
-
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const namespaceStatus = await getActionNamespaceStatus({
