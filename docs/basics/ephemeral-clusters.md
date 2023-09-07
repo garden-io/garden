@@ -36,9 +36,9 @@ The CLI will automatically provision an ephemeral Kubernetes cluster for your pr
 
 The ephemeral Kubernetes clusters are provided for free to all users. The ephemeral clusters are designed for short-term use and allow you to run and test your applications on Kubernetes.
 
-Each user is granted a maximum of 20 hours per month of ephemeral cluster usage where each cluster has a maximum lifetime of 4 hours. After this period, the cluster is automatically destroyed.
+Each user is granted a maximum of **20 hours per month** of ephemeral cluster usage where each cluster has a maximum lifetime of **4 hours**. After this period, the cluster is automatically destroyed.
 
-If you need to destroy the cluster before its maximum lifetime of 4 hours expires, you can do so by visiting https://app.garden.io and selecting the option to destroy the ephemeral cluster from there. This allows you to release resources and terminate the cluster when it's no longer needed.
+If you need to destroy the cluster before its maximum lifetime of 4 hours expires, you can do so by visiting [Garden Cloud](https://app.garden.io) and selecting the option to destroy the ephemeral cluster from there. This allows you to release resources and terminate the cluster when it's no longer needed.
 
 ## Ingresses
 
