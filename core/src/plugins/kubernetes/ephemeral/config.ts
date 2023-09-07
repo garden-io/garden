@@ -31,7 +31,9 @@ export const configSchema = () =>
         .string()
         .allow("nginx", false, null)
         .default("nginx")
-        .description(dedent`Set this to null or false to skip installing/enabling the \`nginx\` ingress controller. Note: if you skip installing the \`nginx\` ingress controller for ephemeral cluster, your ingresses may not function properly.`),
+        .description(
+          dedent`Set this to null or false to skip installing/enabling the \`nginx\` ingress controller. Note: if you skip installing the \`nginx\` ingress controller for ephemeral cluster, your ingresses may not function properly.`
+        ),
     })
     .description(`The provider configuration for the ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} plugin.`)
 

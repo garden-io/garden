@@ -120,7 +120,6 @@ export function validateDeploySpec(
             ingressSpec,
           },
         })
-
       } else {
         throw new ConfigurationError({
           message:

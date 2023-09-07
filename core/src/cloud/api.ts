@@ -128,7 +128,6 @@ export interface GetSecretsParams {
   environmentName: string
 }
 
-
 function toCloudProject(
   project: GetProjectResponse["data"] | ListProjectsResponse["data"][0] | CreateProjectsForRepoResponse["data"][0]
 ): CloudProject {
@@ -781,7 +780,7 @@ export class CloudApi {
       return {
         instanceMetadata: response.data?.instanceMetadata,
         registry: response.data?.registry,
-        ingressesHostname: response.data?.ingressesHostname
+        ingressesHostname: response.data?.ingressesHostname,
       }
     } catch (err) {
       this.log.debug(`Create ephemeral cluster failed with error, ${err}`)
@@ -791,9 +790,7 @@ export class CloudApi {
 
   async getKubeConfigForCluster(clusterId: string): Promise<string> {
     try {
-      const response = await this.get<GetKubeconfigResponse>(
-        `/ephemeral-clusters/${clusterId}/kubeconfig`
-      )
+      const response = await this.get<GetKubeconfigResponse>(`/ephemeral-clusters/${clusterId}/kubeconfig`)
       return response.data.kubeconfig
     } catch (err) {
       this.log.debug(`Error in fetching Kubeconfig for the ephemeral cluster, ${err}`)
