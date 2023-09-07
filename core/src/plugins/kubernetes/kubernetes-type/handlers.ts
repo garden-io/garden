@@ -256,7 +256,6 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   const deployedMetadata = parseMetadataResource(log, remoteMetadataResource)
   const deployedMode = deployedMetadata.mode
   let remoteResources: KubernetesResource[] = []
-  let forwardablePorts: ForwardablePort[] = []
   let state: DeployState = "ready"
 
   if (isOutdated({ action, deployedMetadata })) {
@@ -299,11 +298,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     }
   }
 
-  try {
-    forwardablePorts = getForwardablePorts({ resources: remoteResources, parentAction: action, mode: deployedMode })
-  } catch (error) {
-    log.debug({ msg: `Unable to extract forwardable ports: ${error.message}`, error })
-  }
+  const forwardablePorts = getForwardablePorts({ resources: remoteResources, parentAction: action, mode: deployedMode })
 
   return composeKubernetesDeployStatus({
     action,
