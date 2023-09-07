@@ -15,7 +15,7 @@ import { dedent, wordWrap, deline } from "../util/string"
 import { Garden } from "../garden"
 import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../config/workflow"
 import { Log } from "../logger/log-entry"
-import { formatGardenErrorWithDetail, GardenError, RuntimeError, WorkflowScriptError } from "../exceptions"
+import { ChildProcessError, formatGardenErrorWithDetail, GardenError, RuntimeError, WorkflowScriptError } from "../exceptions"
 import {
   WorkflowConfigContext,
   WorkflowStepConfigContext,
@@ -27,7 +27,6 @@ import { posix, join } from "path"
 import { ensureDir, writeFile } from "fs-extra"
 import { getDurationMsec, toEnvVars } from "../util/util"
 import { runScript } from "../util/util"
-import { ExecaError } from "execa"
 import { LogLevel } from "../logger/logger"
 import { registerWorkflowRun } from "../cloud/workflow-lifecycle"
 import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
@@ -376,28 +375,26 @@ export async function runStepScript({ garden, bodyLog, step }: RunStepParams): P
   try {
     await runScript({ log: bodyLog, cwd: garden.projectRoot, script: step.script!, envVars: step.envVars })
     return { result: {} }
-  } catch (_err) {
-    const error = _err as ExecaError
-
+  } catch (err) {
     // Unexpected error (failed to execute script, as opposed to script returning an error code)
-    if (!error.exitCode) {
-      throw error
+    if (!(err instanceof ChildProcessError)) {
+      throw err
     }
 
     const scriptError = new WorkflowScriptError({
-      message: `Script exited with code ${error.exitCode}`,
+      message: `Script exited with code ${err.detail.code}`,
       detail: {
-        message: error.stderr,
-        exitCode: error.exitCode,
-        stdout: error.stdout,
-        stderr: error.stderr,
+        message: err.detail.stderr,
+        exitCode: err.detail.code,
+        stdout: err.detail.stdout,
+        stderr: err.detail.stderr,
       },
     })
 
     bodyLog.error("")
     bodyLog.error({ msg: `Script failed with the following error:`, error: scriptError })
     bodyLog.error("")
-    bodyLog.error(error.stderr)
+    bodyLog.error(err.detail.stderr)
 
     throw scriptError
   }
