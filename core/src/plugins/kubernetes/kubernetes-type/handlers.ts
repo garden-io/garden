@@ -225,7 +225,13 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   const remoteMetadataResource = await getDeployedResource(ctx, provider, metadataManifest, log)
 
   if (!remoteMetadataResource) {
-    state = "missing"
+    return composeKubernetesDeployStatus({
+      action,
+      deployedMode: "default",
+      state: "missing",
+      remoteResources: [],
+      forwardablePorts: [],
+    })
   } else {
     const deployedMetadata = parseMetadataResource(log, remoteMetadataResource)
     deployedMode = deployedMetadata.mode
