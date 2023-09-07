@@ -21,6 +21,9 @@ import {
   CreateProjectsForRepoResponse,
   ListProjectsResponse,
   BaseResponse,
+  CreateEphemeralClusterResponse,
+  EphemeralClusterWithRegistry,
+  GetKubeconfigResponse,
 } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
@@ -125,32 +128,6 @@ export interface GetSecretsParams {
   environmentName: string
 }
 
-export interface GetEphemeralClusterKubeconfigResponse {
-  success: string
-  data: {
-    kubeconfig: string
-  }
-}
-export interface EphemeralClusterImageRegistry {
-  endpointAddress: string
-  repository: string
-  dockerRegistryMirror: string
-}
-export interface EphemeralClusterInstanceMetadata {
-  instanceId: string
-  status: string
-  createdAt: string
-  deadline: string
-  destroyedAt?: string
-}
-
-export interface CreateEphemeralClusterResponse {
-  success: string
-  data: {
-    instanceMetadata: EphemeralClusterInstanceMetadata
-    registry: EphemeralClusterImageRegistry
-  }
-}
 
 function toCloudProject(
   project: GetProjectResponse["data"] | ListProjectsResponse["data"][0] | CreateProjectsForRepoResponse["data"][0]
@@ -798,15 +775,13 @@ export class CloudApi {
     return secrets
   }
 
-  async createEphemeralCluster(): Promise<{
-    instanceMetadata: EphemeralClusterInstanceMetadata
-    registry: EphemeralClusterImageRegistry
-  }> {
+  async createEphemeralCluster(): Promise<EphemeralClusterWithRegistry> {
     try {
       const response = await this.post<CreateEphemeralClusterResponse>(`/ephemeral-clusters/`)
       return {
         instanceMetadata: response.data?.instanceMetadata,
         registry: response.data?.registry,
+        ingressesHostname: response.data?.ingressesHostname
       }
     } catch (err) {
       this.log.debug(`Create ephemeral cluster failed with error, ${err}`)
@@ -816,7 +791,7 @@ export class CloudApi {
 
   async getKubeConfigForCluster(clusterId: string): Promise<string> {
     try {
-      const response = await this.get<GetEphemeralClusterKubeconfigResponse>(
+      const response = await this.get<GetKubeconfigResponse>(
         `/ephemeral-clusters/${clusterId}/kubeconfig`
       )
       return response.data.kubeconfig

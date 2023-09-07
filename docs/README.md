@@ -8,6 +8,7 @@
 * [Quickstart Guide](./basics/quickstart.md)
 * [The Stack Graph (Terminology)](./basics/stack-graph.md)
 * [Garden vs Other Tools](./basics/garden-vs-other-tools.md)
+* [Ephemeral Kubernetes Clusters](./basics/ephemeral-clusters.md)
 
 ## 🌳 Garden Seeds
 
@@ -105,6 +106,7 @@
   * [`conftest-kubernetes`](./reference/providers/conftest-kubernetes.md)
   * [`conftest`](./reference/providers/conftest.md)
   * [`container`](./reference/providers/container.md)
+  * [`ephemeral-kubernetes`](./reference/providers/ephemeral-kubernetes.md)
   * [`exec`](./reference/providers/exec.md)
   * [`hadolint`](./reference/providers/hadolint.md)
   * [`jib`](./reference/providers/jib.md)

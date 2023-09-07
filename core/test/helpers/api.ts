@@ -42,6 +42,8 @@ export class FakeCloudApi extends CloudApi {
       cachedPermissions: {},
       accessTokens: [],
       groups: [],
+      meta: {},
+      singleProjectId: ''
     }
   }
 

@@ -22,6 +22,7 @@ import { getContainerModuleOutputs } from "../../container/container"
 import { getContainerBuildActionOutputs } from "../../container/build"
 import { Resolved } from "../../../actions/types"
 import { splitFirst } from "../../../util/string"
+import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "../ephemeral/ephemeral"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   let { moduleConfig } = await params.base!(params)
@@ -109,15 +110,28 @@ export function validateDeploySpec(
     const hostname = ingressSpec.hostname || provider.config.defaultHostname
 
     if (!hostname) {
-      throw new ConfigurationError({
-        message:
-          `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
-          `Please configure a default hostname or specify a hostname for the ingress.`,
-        detail: {
-          name,
-          ingressSpec,
-        },
-      })
+      if (provider.name === EPHEMERAL_KUBERNETES_PROVIDER_NAME && !provider.config.setupIngressController) {
+        throw new ConfigurationError({
+          message:
+            `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
+            `You are using ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider and and have disabled ingress controller setup by specifying setupIngressController=false in the provider configuration. In order for ingresses to function correctly on ephemeral clusters, Garden must deploy an ingress controller`,
+          detail: {
+            name,
+            ingressSpec,
+          },
+        })
+
+      } else {
+        throw new ConfigurationError({
+          message:
+            `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
+            `Please configure a default hostname or specify a hostname for the ingress.`,
+          detail: {
+            name,
+            ingressSpec,
+          },
+        })
+      }
     }
 
     // make sure the hostname is set
