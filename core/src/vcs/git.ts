@@ -692,11 +692,7 @@ export class GitHandler extends VcsHandler {
         } catch (err) {
           gitLog.error(`Failed fetching from ${url}`)
           throw new RuntimeError({
-            message: `Updating remote ${sourceType} failed with error: \n\n${err}`,
-            detail: {
-              repositoryUrl: url,
-              message: err.message,
-            },
+            message: `Updating remote ${sourceType} (at url: ${url}) failed with error: \n\n${err.message || err}`,
           })
         }
 

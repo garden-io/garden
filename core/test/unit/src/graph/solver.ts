@@ -219,7 +219,6 @@ describe("GraphSolver", () => {
       throw new GenericGardenError({
         message: "non-crash error scenario",
         type: "test",
-        detail: {},
       })
     }
 
