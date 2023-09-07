@@ -300,7 +300,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   }
 
   // Note: Local mode has its own port-forwarding configuration
-  if (deployedMode !== "local" && remoteResources && remoteResources.length > 0) {
+  if (deployedMode !== "local") {
     try {
       forwardablePorts = getForwardablePorts({ resources: remoteResources, parentAction: action, mode: deployedMode })
     } catch (error) {

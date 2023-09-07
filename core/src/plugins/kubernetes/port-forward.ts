@@ -228,6 +228,10 @@ export function getForwardablePorts({
   parentAction: Resolved<KubernetesDeployAction | HelmDeployAction> | undefined
   mode: ActionMode
 }): ForwardablePort[] {
+  if (resources.length === 0) {
+    return []
+  }
+
   const spec = parentAction?.getSpec()
 
   // Note: Local mode has its own port-forwarding configuration
