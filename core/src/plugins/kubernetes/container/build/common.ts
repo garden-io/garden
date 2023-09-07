@@ -228,10 +228,10 @@ export async function skopeoBuildStatus({
       containerName,
       buffer: true,
     })
-    return { state: "ready", outputs }
+    return { state: "ready", outputs, detail: {} }
   } catch (err) {
     if (err instanceof PodRunnerError) {
-      const res = err.detail.result
+      const res = err.details.result
 
       // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
       if (res?.exitCode !== 0 && !skopeoManifestUnknown(res?.stderr)) {
@@ -249,7 +249,7 @@ export async function skopeoBuildStatus({
 
     // TODO: Do we really want to return state: "unknown" with no details on any error, even on TypeError etc?
     // NOTE(steffen): I'd have expected us to throw here
-    return { state: "unknown", outputs }
+    return { state: "unknown", outputs, detail: {} }
   }
 }
 
