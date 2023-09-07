@@ -14,10 +14,11 @@ import moment from "moment"
 import { join } from "path"
 import { joi, joiProviderName } from "../../../config/common"
 import { providerConfigBaseSchema } from "../../../config/provider"
+import { ConfigurationError } from "../../../exceptions"
 import { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider"
+import { dedent } from "../../../util/string"
 import { KubernetesConfig, namespaceSchema } from "../config"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral"
-import { dedent } from "../../../util/string"
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -47,14 +48,14 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   }
   log.info(`Configuring ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider for project ${projectName}`)
   if (!ctx.cloudApi) {
-    throw new Error(
-      `You are not logged in. You must be logged into Garden Cloud in order to use ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider.`
-    )
+    throw new ConfigurationError({
+      message: `You are not logged in. You must be logged into Garden Cloud in order to use ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider.`,
+    })
   }
-  if (ctx.cloudApi && ctx.cloudApi.domain) {
-    throw new Error(
-      `${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider is currently not supported for ${ctx.cloudApi.distroName}.`
-    )
+  if (ctx.cloudApi && ctx.cloudApi?.domain !== "https://app.garden.io") {
+    throw new ConfigurationError({
+      message: `${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider is currently not supported for ${ctx.cloudApi.distroName}.`,
+    })
   }
   // creating tmp dir .garden/ephemeral-kubernetes for storing kubeconfig
   const ephemeralClusterDirPath = join(ctx.gardenDirPath, "ephemeral-kubernetes")
