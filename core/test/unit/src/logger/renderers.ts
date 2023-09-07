@@ -22,7 +22,7 @@ import {
   renderSection,
   warningStyle,
 } from "../../../../src/logger/renderers"
-import { GardenError } from "../../../../src/exceptions"
+import { GenericGardenError } from "../../../../src/exceptions"
 
 import { createActionLog, TaskMetadata } from "../../../../src/logger/log-entry"
 import logSymbols = require("log-symbols")
@@ -55,15 +55,14 @@ describe("renderers", () => {
   })
   describe("renderError", () => {
     it("should render error object if present", () => {
-      const error: GardenError<{ foo: string; _internal: string }> = {
-        name: "test",
+      const error = new GenericGardenError({
         message: "hello error",
         type: "a",
         detail: {
           foo: "bar",
           _internal: "no show",
         },
-      }
+      })
       const log = logger.createLog().info({ msg: "foo", error })
       const rendered = renderError(log.entries[0])
       expect(rendered).to.include("hello error")

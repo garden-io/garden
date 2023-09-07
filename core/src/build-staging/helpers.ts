@@ -370,13 +370,7 @@ export class FileStatsHelper {
         // Symlink target not found, so we ignore it
         return cb(null, null)
       } else if (readlinkErr) {
-        return cb(
-          new InternalError({
-            message: `Error reading symlink: ${readlinkErr.message}`,
-            detail: { path, readlinkErr },
-          }),
-          null
-        )
+        return cb(InternalError.wrapError(readlinkErr, { path, readlinkErr }, "Error reading symlink"), null)
       }
 
       // Ignore absolute symlinks unless specifically allowed

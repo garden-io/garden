@@ -583,7 +583,9 @@ function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec,
     }
     container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
   } else {
-    throw new Error("Must specify type of health check when configuring health check.")
+    throw new ConfigurationError({
+      message: "Must specify type of health check when configuring health check.",
+    })
   }
 }
 
@@ -599,7 +601,7 @@ export function configureVolumes(
     const volumeName = volume.name
 
     if (!volumeName) {
-      throw new Error("Must specify volume name")
+      throw new ConfigurationError({ message: "Must specify volume name" })
     }
 
     volumeMounts.push({

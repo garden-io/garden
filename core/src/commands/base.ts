@@ -20,7 +20,7 @@ import {
   joiStringMap,
   joiVariables,
 } from "../config/common"
-import { InternalError, RuntimeError, GardenBaseError, GardenError, isGardenError } from "../exceptions"
+import { RuntimeError, GardenError, InternalError, toGardenError } from "../exceptions"
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel, LogLevel } from "../logger/logger"
@@ -64,7 +64,7 @@ export interface CommandConstructor {
 
 export interface CommandResult<T = any> {
   result?: T
-  errors?: GardenBaseError[]
+  errors?: GardenError[]
   exitCode?: number
 }
 
@@ -1079,7 +1079,7 @@ export async function handleProcessResults(
 
   if (!success) {
     const wrappedErrors: GardenError[] = flatMap(failed, (f) => {
-      return f && f.error && isGardenError(f.error) ? [f.error as GardenError] : []
+      return f && f.error ? [toGardenError(f.error)] : []
     })
 
     const error = new RuntimeError({

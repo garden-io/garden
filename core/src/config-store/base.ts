@@ -9,9 +9,9 @@
 import { ensureFile, readFile } from "fs-extra"
 import { z, ZodType } from "zod"
 import { lock } from "proper-lockfile"
-import { InternalError } from "../exceptions"
 import { dump } from "js-yaml"
 import writeFileAtomic from "write-file-atomic"
+import { InternalError } from "../exceptions"
 
 // Just a shorthand to make the code below a little more compact
 type I<T extends ZodType<any>> = z.infer<T>

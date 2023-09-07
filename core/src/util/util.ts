@@ -21,12 +21,13 @@ import {
   range,
   some,
   trimEnd,
+  truncate,
   uniqBy,
 } from "lodash"
 import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
 import _spawn from "cross-spawn"
 import { readFile } from "fs-extra"
-import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
+import { ChildProcessError, GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
 import { load } from "js-yaml"
 import { createHash } from "crypto"
 import { dedent, tailString } from "./string"
@@ -224,6 +225,9 @@ export interface ExecOpts extends execa.Options {
  * Enforces `buffer: true` (which is the default execa behavior).
  *
  * Also adds the ability to pipe stdout|stderr to an output stream.
+ *
+ * @throws RuntimeError on EMFILE (Too many open files)
+ * @throws ChildProcessError on any other error condition
  */
 export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
   // Ensure buffer is always set to true so that we can read the error output
@@ -252,15 +256,23 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
     }
 
     const error = <execa.ExecaError>err
-    const message = makeErrorMsg({
-      cmd,
-      args,
-      code: error.exitCode || err.code || err.errno,
-      output: error.all || error.stdout || error.stderr || "",
-      error: error.stderr,
+    throw new ChildProcessError({
+      message: makeErrorMsg({
+        cmd,
+        args,
+        code: error.exitCode || err.code || err.errno,
+        output: error.all || error.stdout || error.stderr || "",
+        error: error.stderr,
+      }),
+      detail: {
+        cmd,
+        args,
+        code: error.exitCode || err.code || err.errno,
+        output: error.all || error.stdout || error.stderr || "",
+        stderr: error.stderr || "",
+        stdout: error.stdout || "",
+      },
     })
-    error.message = message
-    throw error
   }
 }
 
@@ -290,6 +302,9 @@ export interface SpawnOutput {
 /**
  * Note: For line-by-line stdout/stderr streaming, both `opts.stdout` and `opts.stderr` must be defined. This is a
  * result of how Node's child process spawning works (which this function wraps).
+ *
+ * @throws RuntimeError on ENOENT (command not found)
+ * @throws ChildProcessError on any other error condition
  */
 export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   const {
@@ -395,7 +410,20 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
           output: result.all || result.stdout || result.stderr || "",
           error: result.stderr || "",
         })
-        _reject(new RuntimeError({ message: msg, detail: { cmd, args, opts, result } }))
+        _reject(
+          new ChildProcessError({
+            message: msg,
+            detail: {
+              cmd,
+              args,
+              opts,
+              code: result.code,
+              output: result.all,
+              stderr: result.stderr,
+              stdout: result.stdout,
+            },
+          })
+        )
       }
     })
   })
@@ -681,40 +709,33 @@ export async function runScript({
   script: string
   envVars?: PrimitiveMap
 }) {
-  envVars = envVars || {}
-
+  const env = toEnvVars(envVars || {})
+  const outputStream = split2()
+  outputStream.on("error", (line: Buffer) => {
+    log.error(line.toString())
+  })
+  outputStream.on("data", (line: Buffer) => {
+    log.info(line.toString())
+  })
+  const errorStream = split2()
+  errorStream.on("error", (line: Buffer) => {
+    log.error(line.toString())
+  })
+  errorStream.on("data", (line: Buffer) => {
+    log.error(line.toString())
+  })
   // Workaround for https://github.com/vercel/pkg/issues/897
-  envVars.PKG_EXECPATH = ""
-
-  // Run the script, capturing any errors
-  const proc = execa("bash", ["-s"], {
-    all: true,
+  env.PKG_EXECPATH = ""
+  // script can be either a command or path to an executable
+  // shell script since we use the shell option.
+  const result = await exec(script, [], {
+    shell: true,
     cwd,
-    // The script is piped to stdin
-    input: script,
-    // Set a very large max buffer (we only hold one of these at a time, and want to avoid overflow errors)
-    buffer: true,
-    maxBuffer: 100 * 1024 * 1024,
-    env: toEnvVars(envVars || {}),
+    env,
+    stdout: outputStream,
+    stderr: errorStream,
   })
-
-  // Stream output to `log`, splitting by line
-  const stdout = split2()
-  const stderr = split2()
-
-  stdout.on("error", () => {})
-  stdout.on("data", (line: Buffer) => {
-    log.info(line.toString())
-  })
-  stderr.on("error", () => {})
-  stderr.on("data", (line: Buffer) => {
-    log.info(line.toString())
-  })
-
-  proc.stdout!.pipe(stdout)
-  proc.stderr!.pipe(stderr)
-
-  return await proc
+  return result
 }
 
 export async function streamToString(stream: Readable) {
@@ -839,11 +860,27 @@ export function userPrompt(params: {
   return require("inquirer").prompt(params)
 }
 
-export function getGitHubIssueLink(title: string, type: "bug" | "feature-request") {
-  if (type === "feature-request") {
-    return `https://github.com/garden-io/garden/issues/new?assignees=&labels=feature+request&template=FEATURE_REQUEST.md&title=%5BFEATURE%5D%3A+${title}`
-  } else {
-    return `https://github.com/garden-io/garden/issues/new?assignees=&labels=&template=BUG_REPORT.md&title=${title}`
+export function getGitHubIssueLink(title: string, type: "bug" | "crash" | "feature-request") {
+  try {
+    title = encodeURIComponent(
+      truncate(title, {
+        length: 80,
+        omission: encodeURIComponent("..."),
+      })
+    ).replaceAll("'", "%27")
+  } catch (e) {
+    // encodeURIComponent might throw URIError with malformed unicode strings.
+    // The title is not that important, we can also leave it empty in that case.
+    title = ""
+  }
+
+  switch (type) {
+    case "feature-request":
+      return `https://github.com/garden-io/garden/issues/new?labels=feature+request&template=FEATURE_REQUEST.md&title=%5BFEATURE%5D%3A+${title}`
+    case "bug":
+      return `https://github.com/garden-io/garden/issues/new?labels=bug&template=BUG_REPORT.md&title=${title}`
+    case "crash":
+      return `https://github.com/garden-io/garden/issues/new?labels=bug,crash&template=CRASH.md&title=${title}`
   }
 }
 

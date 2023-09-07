@@ -16,8 +16,8 @@ import { ResolvedDeployAction } from "../../../../../src/actions/deploy"
 
 describe("getForwardablePorts", () => {
   it("returns all ports for Service resources", () => {
-    const ports = getForwardablePorts(
-      [
+    const ports = getForwardablePorts({
+      resources: [
         {
           apiVersion: "v1",
           kind: "Service",
@@ -29,8 +29,9 @@ describe("getForwardablePorts", () => {
           },
         },
       ],
-      undefined
-    )
+      parentAction: undefined,
+      mode: "default",
+    })
 
     expect(ports).to.eql([
       {
@@ -63,8 +64,8 @@ describe("getForwardablePorts", () => {
       },
     }
 
-    const ports = getForwardablePorts(
-      [
+    const ports = getForwardablePorts({
+      resources: [
         {
           apiVersion: "v1",
           kind: "Service",
@@ -76,8 +77,9 @@ describe("getForwardablePorts", () => {
           },
         },
       ],
-      action
-    )
+      parentAction: action,
+      mode: "default",
+    })
 
     expect(ports).to.eql([
       {
@@ -91,8 +93,8 @@ describe("getForwardablePorts", () => {
   })
 
   it("returns all ports for Deployment resources", () => {
-    const ports = getForwardablePorts(
-      [
+    const ports = getForwardablePorts({
+      resources: [
         {
           apiVersion: "apps/v1",
           kind: "Deployment",
@@ -112,8 +114,9 @@ describe("getForwardablePorts", () => {
           },
         },
       ],
-      undefined
-    )
+      parentAction: undefined,
+      mode: "default",
+    })
 
     expect(ports).to.eql([
       {
@@ -126,8 +129,8 @@ describe("getForwardablePorts", () => {
   })
 
   it("returns all ports for DaemonSet resources", () => {
-    const ports = getForwardablePorts(
-      [
+    const ports = getForwardablePorts({
+      resources: [
         {
           apiVersion: "apps/v1",
           kind: "DaemonSet",
@@ -147,8 +150,9 @@ describe("getForwardablePorts", () => {
           },
         },
       ],
-      undefined
-    )
+      parentAction: undefined,
+      mode: "default",
+    })
 
     expect(ports).to.eql([
       {
@@ -161,8 +165,8 @@ describe("getForwardablePorts", () => {
   })
 
   it("omits a Deployment port that is already pointed to by a Service resource", () => {
-    const ports = getForwardablePorts(
-      [
+    const ports = getForwardablePorts({
+      resources: [
         {
           apiVersion: "v1",
           kind: "Service",
@@ -200,8 +204,9 @@ describe("getForwardablePorts", () => {
           },
         },
       ],
-      undefined
-    )
+      parentAction: undefined,
+      mode: "default",
+    })
 
     expect(ports).to.eql([
       {

@@ -31,7 +31,7 @@ import {
   ActionTypeClasses,
   GetActionTypeParams,
 } from "../plugin/action-types"
-import { InternalError, ParameterError, PluginError } from "../exceptions"
+import { ParameterError, PluginError, InternalError } from "../exceptions"
 import { validateSchema } from "../config/validation"
 import { getActionTypeBases, getPluginBases, getPluginDependencies } from "../plugins"
 import { getNames, MaybeUndefined } from "../util/util"
@@ -467,9 +467,9 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
         // This should never happen
         throw new InternalError({
-          message:
-            `Unable to find any matching configuration when selecting ${actionType}/${String(handlerType)} handler ` +
-            `(please report this as a bug).`,
+          message: `Unable to find any matching configuration when selecting ${actionType}/${String(
+            handlerType
+          )} handler.`,
           detail: { handlers, configs },
         })
       } else {

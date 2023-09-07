@@ -7,7 +7,7 @@
  */
 
 import { getPackageVersion } from "../util/util"
-import { Command, CommandResult } from "./base"
+import { Command, CommandParams, CommandResult } from "./base"
 
 interface VersionCommandResult {
   version: string
@@ -19,7 +19,8 @@ export class VersionCommand extends Command {
   help = "Shows the current garden version."
   override noProject = true
 
-  async action({ log }): Promise<CommandResult<VersionCommandResult>> {
+  override async action(params: CommandParams): Promise<CommandResult<VersionCommandResult>> {
+    const { log } = params
     const version = getPackageVersion()
     log.info(`garden version: ${version}`)
 

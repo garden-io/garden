@@ -9,20 +9,10 @@
 import { isEmpty, isString } from "lodash"
 import { stringify } from "yaml"
 import { withoutInternalFields, sanitizeValue } from "./util/logging"
-import { testFlags } from "./util/util"
-
-export interface GardenError<D extends object = any> extends Error {
-  type: string
-  message: string
-  detail?: D
-  stack?: string
-  wrappedErrors?: GardenError[]
-  context?: GardenErrorContext
-}
-
-export function isGardenError(err: any): err is GardenError {
-  return "type" in err && "message" in err
-}
+import { SpawnOpts, getGitHubIssueLink, testFlags } from "./util/util"
+import dedent from "dedent"
+import chalk from "chalk"
+import stripAnsi from "strip-ansi"
 
 export type StackTraceMetadata = {
   functionName: string
@@ -46,17 +36,17 @@ export interface GardenErrorParams<D extends object = any> {
 export type GardenErrorContext = {
   taskType?: string
 }
-
-export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
+export abstract class GardenError<D extends object = any | undefined> extends Error {
   abstract type: string
   public override message: string
-  public detail?: D
+  public detail: D
   public wrappedErrors?: GardenError<any>[]
   public context?: GardenErrorContext
 
   constructor({ message, detail, stack, wrappedErrors, context }: GardenErrorParams<D>) {
     super(message)
-    this.detail = detail
+    // We sanitize the details right here to avoid issues later down the line
+    this.detail = withoutInternalFields(sanitizeValue(detail))
     this.stack = stack || this.stack
     this.wrappedErrors = wrappedErrors
     this.context = context
@@ -80,12 +70,13 @@ export abstract class GardenBaseError<D extends object = any> extends Error impl
     }
   }
 
-  toSanitizedValue() {
+  toJSON() {
     return {
       type: this.type,
       message: this.message,
       stack: this.stack,
-      detail: filterErrorDetail(this.detail),
+      detail: this.detail,
+      wrappedErrors: this.wrappedErrors,
     }
   }
 
@@ -94,124 +85,186 @@ export abstract class GardenBaseError<D extends object = any> extends Error impl
   }
 }
 
-export class AuthenticationError extends GardenBaseError {
+export class AuthenticationError extends GardenError {
   type = "authentication"
 }
 
-export class BuildError extends GardenBaseError {
+export class BuildError extends GardenError {
   type = "build"
 }
 
-export class ConfigurationError extends GardenBaseError {
+export class ConfigurationError extends GardenError {
   type = "configuration"
 }
 
-export class CommandError extends GardenBaseError {
+export class CommandError extends GardenError {
   type = "command"
 }
 
-export class FilesystemError extends GardenBaseError {
+export class FilesystemError extends GardenError {
   type = "filesystem"
 }
 
-export class LocalConfigError extends GardenBaseError {
+export class LocalConfigError extends GardenError {
   type = "local-config"
 }
 
-export class ValidationError extends GardenBaseError {
+export class ValidationError extends GardenError {
   type = "validation"
 }
 
-export class PluginError extends GardenBaseError {
+export class PluginError extends GardenError {
   type = "plugin"
 }
 
-export class ParameterError extends GardenBaseError {
+export class ParameterError extends GardenError {
   type = "parameter"
 }
 
-export class NotImplementedError extends GardenBaseError {
+export class NotImplementedError extends GardenError {
   type = "not-implemented"
 }
 
-export class DeploymentError extends GardenBaseError {
+export class DeploymentError extends GardenError {
   type = "deployment"
 }
 
-export class RuntimeError extends GardenBaseError {
+export class RuntimeError extends GardenError {
   type = "runtime"
 }
 
-export class InternalError extends GardenBaseError {
-  type = "internal"
-
-  constructor({ message, detail }: { message: string; detail: any }) {
-    super({ message: message + "\nThis is a bug. Please report it!", detail })
-  }
+export class GraphError<D extends object> extends GardenError<D> {
+  type = "graph"
 }
 
-export class TimeoutError extends GardenBaseError {
+export class TimeoutError extends GardenError {
   type = "timeout"
 }
 
-export class OutOfMemoryError extends GardenBaseError {
+export class OutOfMemoryError extends GardenError {
   type = "out-of-memory"
 }
 
-export class NotFoundError extends GardenBaseError {
+export class NotFoundError extends GardenError {
   type = "not-found"
 }
 
-export class WorkflowScriptError extends GardenBaseError {
+export class WorkflowScriptError extends GardenError {
   type = "workflow-script"
 }
 
-export class CloudApiError extends GardenBaseError {
+export class CloudApiError extends GardenError {
   type = "cloud-api"
 }
 
-export class TemplateStringError extends GardenBaseError {
+export class TemplateStringError extends GardenError {
   type = "template-string"
 }
 
-export class WrappedNativeError extends GardenBaseError {
-  type = "wrapped-native-error"
+interface ChildProcessErrorDetails {
+  cmd: string
+  args: string[]
+  code: number
+  output: string
+  stderr: string
+  stdout: string
+  opts?: SpawnOpts
+}
+export class ChildProcessError extends GardenError<ChildProcessErrorDetails> {
+  type = "childprocess"
+}
 
-  constructor(error: Error) {
-    super({ message: error.message, stack: error.stack })
+interface GenericGardenErrorParams extends GardenErrorParams {
+  type: string
+}
+export class GenericGardenError extends GardenError {
+  type: string
+
+  constructor(params: GenericGardenErrorParams) {
+    super(params)
+    this.type = params.type
   }
 }
 
-export function toGardenError(err: Error | GardenBaseError | string): GardenBaseError {
-  if (err instanceof GardenBaseError) {
+/**
+ * Throw this error only when this error condition is definitely a Garden bug.
+ *
+ * Examples where throwing this error is appropriate:
+ * - A Javascript TypeError has occurred, e.g. reading property on undefined.
+ * - "This should not happen" kind of situations, e.g. internal data structures are in an invalid state.
+ * - An unhandled exception has been thrown by a library. If you don't know what to do with this exception and it is most likely not due to user error, wrap it with "InternalError".
+ *
+ * In case the network is involved, we should *not* use the "InternalError", because that's usually a situation that the user needs to resolve.
+ */
+export class InternalError extends GardenError {
+  // we want it to be obvious in amplitude data that this is not a normal error condition
+  type = "crash"
+
+  // not using object destructuring here on purpose, because errors are of type any and then the error might be passed as the params object accidentally.
+  static wrapError(error: Error | string | any, detail?: unknown, prefix?: string): InternalError {
+    let message: string | undefined
+    let stack: string | undefined
+
+    if (error instanceof Error) {
+      message = error.message
+      stack = error.stack
+    } else if (isString(error)) {
+      message = error
+    } else if (error) {
+      message = error["message"]
+      stack = error["stack"]
+    }
+
+    message = message ? stripAnsi(message) : ""
+
+    return new InternalError({ message: prefix ? `${stripAnsi(prefix)}: ${message}` : message, stack, detail })
+  }
+}
+
+export function toGardenError(err: Error | GardenError | string | any): GardenError {
+  if (err instanceof GardenError) {
     return err
-  } else if (err instanceof Error) {
-    const wrappedError = new WrappedNativeError(err)
-    const out = new RuntimeError({ message: err.message, wrappedErrors: [wrappedError] })
-    out.stack = err.stack
-    return out
-  } else if (isString(err)) {
-    return new RuntimeError({ message: err })
   } else {
-    const msg = err["message"]
-    return new RuntimeError({ message: msg })
+    return InternalError.wrapError(err)
   }
 }
 
-function filterErrorDetail(detail: any) {
-  return withoutInternalFields(sanitizeValue(detail))
+export function explainGardenError(rawError: GardenError | Error | string, context?: string) {
+  const error = toGardenError(rawError)
+
+  let errorMessage = error.message.trim()
+
+  // If this is an unexpected error, we want to output more details by default and provide some guidance for the user.
+  if (error instanceof InternalError) {
+    let bugReportInformation = formatGardenErrorWithDetail(error)
+
+    if (context) {
+      bugReportInformation = `${stripAnsi(context)}\n${bugReportInformation}`
+    }
+
+    return chalk.red(dedent`
+    ${chalk.bold("Encountered an unexpected Garden error. This is likely a bug 🍂")}
+
+    You can help by reporting this on GitHub: ${getGitHubIssueLink(`Crash: ${errorMessage}`, "crash")}
+
+    Please attach the following information to the bug report after making sure that the error message does not contain sensitive information:
+
+    ${chalk.gray(bugReportInformation)}
+    `)
+  }
+
+  // In case this is another Garden error, the error message is already designed to be digestable as-is for the user.
+  return chalk.red(errorMessage)
 }
 
 export function formatGardenErrorWithDetail(error: GardenError) {
   const { detail, message, stack } = error
+
   let out = stack || message || ""
 
-  // We sanitize and recursively filter out internal fields (i.e. having names starting with _).
-  const filteredDetail = filterErrorDetail(detail)
-
-  if (!isEmpty(filteredDetail)) {
+  if (!isEmpty(detail || {})) {
     try {
-      const yamlDetail = stringify(filteredDetail, { blockQuote: "literal", lineWidth: 0 })
+      const yamlDetail = stringify(detail, { blockQuote: "literal", lineWidth: 0 })
       out += `\n\nError Details:\n\n${yamlDetail}`
     } catch (err) {
       out += `\n\nUnable to render error details:\n${err.message}`

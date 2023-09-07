@@ -17,7 +17,7 @@ import { LogEntry } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, safeDumpYaml } from "../util/serialization"
 import { Logger, logLevelMap, LogLevel } from "./logger"
-import { toGardenError, formatGardenErrorWithDetail } from "../exceptions"
+import { toGardenError, formatGardenErrorWithDetail, explainGardenError } from "../exceptions"
 
 type RenderFn = (entry: LogEntry, logger: Logger) => string
 
@@ -48,7 +48,9 @@ export function renderError(entry: LogEntry): string {
 
   let out = ""
 
-  if (error) {
+  if (!msg && error) {
+    out = explainGardenError(error)
+  } else if (error) {
     const noAnsiErr = stripAnsi(error.message || "")
     const noAnsiMsg = stripAnsi(msg || "")
     // render error only if message doesn't already contain it

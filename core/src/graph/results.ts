@@ -7,10 +7,10 @@
  */
 
 import { BaseTask, Task, ValidResultType } from "../tasks/base"
-import { InternalError } from "../exceptions"
 import { fromPairs, omit, pick } from "lodash"
 import { toGraphResultEventPayload } from "../events/events"
 import CircularJSON from "circular-json"
+import { GardenError, GenericGardenError, InternalError } from "../exceptions"
 
 export interface TaskEventBase {
   type: string
@@ -227,7 +227,7 @@ function filterOutputsForExport(outputs: any) {
   return omit(outputs, "resolvedAction", "executedAction")
 }
 
-function filterErrorForExport(error: any) {
+function filterErrorForExport(error: any): GardenError | null {
   if (!error) {
     return null
   }
@@ -258,9 +258,10 @@ function filterErrorForExport(error: any) {
     }
   })
 
-  return {
+  // we can't just return a plain object here, because otherwise the error will not be recognizable as a GardenError and that means it's handled as InternalError (crash)
+  return new GenericGardenError({
     ...pick(error, "message", "type", "stack"),
     detail: filteredDetail,
     wrappedErrors: filteredWrappedErrors,
-  }
+  })
 }

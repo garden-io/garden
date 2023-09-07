@@ -8,7 +8,7 @@
 
 import { LogMetadata, LogEntry, CoreLog, CoreLogContext } from "./log-entry"
 import { Writer } from "./writers/base"
-import { CommandError, InternalError, ParameterError } from "../exceptions"
+import { CommandError, ParameterError, InternalError } from "../exceptions"
 import { TerminalWriter } from "./writers/terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { EventBus } from "../events/events"
@@ -51,7 +51,8 @@ export function parseLogLevel(level: string): LogLevel {
     lvl = LogLevel[level]
   }
   if (!getNumericLogLevels().includes(lvl)) {
-    throw new InternalError({
+    // This should be validated on a different level
+    throw new ParameterError({
       message: `Unexpected log level, expected one of ${getLogLevelChoices().join(", ")}, got ${level}`,
       detail: {},
     })

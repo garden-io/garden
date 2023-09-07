@@ -54,20 +54,16 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         })
       })
 
-      try {
-        const output = await router.callHandler({
-          params,
-          handlerType: "build",
-          defaultHandler: async () => ({ state: "unknown" as const, outputs: {}, detail: {} }),
-        })
-        const { result } = output
+      const output = await router.callHandler({
+        params,
+        handlerType: "build",
+        defaultHandler: async () => ({ state: "unknown" as const, outputs: {}, detail: {} }),
+      })
+      const { result } = output
 
-        await router.validateActionOutputs(action, "runtime", result.outputs)
+      await router.validateActionOutputs(action, "runtime", result.outputs)
 
-        return output
-      } catch (err) {
-        throw err
-      }
+      return output
     },
 
     publish: async (params) => {

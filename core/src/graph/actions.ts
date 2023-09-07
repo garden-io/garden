@@ -38,7 +38,7 @@ import { ActionReference, describeSchema, JoiDescription, parseActionReference }
 import type { GroupConfig } from "../config/group"
 import { ActionConfigContext } from "../config/template-contexts/actions"
 import { validateWithPath } from "../config/validation"
-import { ConfigurationError, InternalError, PluginError, ValidationError } from "../exceptions"
+import { ConfigurationError, PluginError, InternalError, ValidationError } from "../exceptions"
 import { overrideVariables, type Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
 import type { ActionTypeDefinition } from "../plugin/action-types"
