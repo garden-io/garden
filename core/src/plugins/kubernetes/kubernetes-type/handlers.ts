@@ -31,6 +31,7 @@ import {
   gardenNamespaceAnnotationValue,
   getManifests,
   getMetadataManifest,
+  ManifestMetadata,
   ParsedMetadataManifestData,
   parseMetadataResource,
 } from "./common"
@@ -221,6 +222,44 @@ function isOutdated({
   return false
 }
 
+async function getResourceStatuses({
+  deployedMetadata,
+  namespace,
+  api,
+  log,
+}: {
+  deployedMetadata: ParsedMetadataManifestData
+  namespace: string
+  api: KubeApi
+  log: ActionLog
+}): Promise<ResourceStatus[]> {
+  const manifestMetadata = Object.values(deployedMetadata.manifestMetadata)
+  if (manifestMetadata.length === 0) {
+    return []
+  }
+
+  const maybeDeployedResources: [ManifestMetadata, any][] = await Promise.all(
+    manifestMetadata.map(async (m) => {
+      return [m, await api.readOrNull({ log, ...m })]
+    })
+  )
+
+  return Promise.all(
+    maybeDeployedResources.map(async ([m, resource]) => {
+      if (!resource) {
+        const missingResource: KubernetesResource = {
+          apiVersion: m.apiVersion,
+          kind: m.kind,
+          metadata: { name: m.name, namespace: m.namespace },
+        }
+        return { resource: missingResource, state: "missing" } as ResourceStatus
+      } else {
+        return await resolveResourceStatus({ api, namespace, resource, log })
+      }
+    })
+  )
+}
+
 export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", KubernetesDeployAction> = async (params) => {
   const { ctx, action, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -252,47 +291,33 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
 
   const deployedMetadata = parseMetadataResource(log, remoteMetadataResource)
   const deployedMode = deployedMetadata.mode
-  let remoteResources: KubernetesResource[] = []
+  const remoteResources: KubernetesResource[] = []
   let state: DeployState = "ready"
 
   if (isOutdated({ action, deployedMetadata })) {
     state = "outdated"
   }
 
-  const manifestMetadata = Object.values(deployedMetadata.manifestMetadata)
+  try {
+    const resourceStatuses = await getResourceStatuses({
+      deployedMetadata,
+      namespace: defaultNamespace,
+      api,
+      log,
+    })
 
-  if (manifestMetadata.length > 0) {
-    try {
-      const maybeDeployedResources = await Promise.all(
-        manifestMetadata.map(async (m) => {
-          return [m, await api.readOrNull({ log, ...m })]
-        })
-      )
-
-      const statuses: ResourceStatus[] = await Promise.all(
-        maybeDeployedResources.map(async ([m, resource]) => {
-          if (!resource) {
-            return {
-              state: "missing" as const,
-              resource: {
-                apiVersion: m.apiVersion,
-                kind: m.kind,
-                metadata: { name: m.name, namespace: m.namespace },
-              },
-            }
-          }
-          remoteResources.push(resource)
-          return resolveResourceStatus({ api, namespace: defaultNamespace, resource, log })
-        })
-      )
-
-      if (state !== "outdated") {
-        state = resolveResourceStatuses(log, statuses)
+    resourceStatuses.forEach((rs) => {
+      if (rs.state !== "missing") {
+        remoteResources.push(rs.resource)
       }
-    } catch (error) {
-      log.debug({ msg: `Failed querying for remote resources: ${error.message}`, error })
-      state = "unknown"
+    })
+
+    if (state !== "outdated") {
+      state = resolveResourceStatuses(log, resourceStatuses)
     }
+  } catch (error) {
+    log.debug({ msg: `Failed querying for remote resources: ${error.message}`, error })
+    state = "unknown"
   }
 
   const forwardablePorts = getForwardablePorts({ resources: remoteResources, parentAction: action, mode: deployedMode })
