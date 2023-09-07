@@ -31,6 +31,7 @@ import {
   gardenNamespaceAnnotationValue,
   getManifests,
   getMetadataManifest,
+  ParsedMetadataManifestData,
   parseMetadataResource,
 } from "./common"
 import { configureKubernetesModule, KubernetesModule } from "./module-config"
@@ -41,6 +42,7 @@ import type { DeployActionHandler } from "../../../plugin/action-types"
 import type { ActionLog } from "../../../logger/log-entry"
 import type { ActionMode, Resolved } from "../../../actions/types"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
+import { ResolvedDeployAction } from "../../../actions/deploy"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -196,9 +198,32 @@ function composeKubernetesDeployStatus({
   }
 }
 
+function isOutdated({
+  action,
+  deployedMetadata,
+}: {
+  action: ResolvedDeployAction
+  deployedMetadata: ParsedMetadataManifestData
+}): boolean {
+  const spec = action.getSpec()
+  const actionMode = action.mode()
+  const deployedMode = deployedMetadata.mode
+
+  if (deployedMetadata.resolvedVersion !== action.versionString()) {
+    return true
+  } else if (actionMode === "local" && spec.localMode && deployedMode !== "local") {
+    return true
+  } else if (actionMode === "sync" && spec.sync?.paths && deployedMode !== "sync") {
+    return true
+  } else if (actionMode === "default" && deployedMode !== actionMode) {
+    return true
+  }
+  return false
+}
+
 export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", KubernetesDeployAction> = async (params) => {
   const { ctx, action, log } = params
-  const spec = action.getSpec()
+
   const mode = action.mode()
 
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -234,13 +259,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   let forwardablePorts: ForwardablePort[] = []
   let state: DeployState = "ready"
 
-  if (deployedMetadata.resolvedVersion !== action.versionString()) {
-    state = "outdated"
-  } else if (mode === "local" && spec.localMode && deployedMode !== "local") {
-    state = "outdated"
-  } else if (mode === "sync" && spec.sync?.paths && deployedMode !== "sync") {
-    state = "outdated"
-  } else if (mode === "default" && deployedMode !== mode) {
+  if (isOutdated({ action, deployedMetadata })) {
     state = "outdated"
   }
 
