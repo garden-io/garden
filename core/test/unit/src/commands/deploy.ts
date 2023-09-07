@@ -47,7 +47,7 @@ const testProvider = () => {
     },
     "service-c": {
       state: "ready",
-      detail: { state: "ready" },
+      detail: { state: "ready", detail: {} },
       outputs: {},
     },
   }
@@ -70,7 +70,7 @@ const testProvider = () => {
               return (
                 testStatuses[params.action.name] || {
                   state: "unknown",
-                  detail: { state: "unknown" },
+                  detail: { state: "unknown", detail: {} },
                   outputs: {},
                 }
               )

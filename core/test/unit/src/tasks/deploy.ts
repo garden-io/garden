@@ -41,7 +41,7 @@ describe("DeployTask", () => {
             docs: "asd",
             schema: joi.object(),
             handlers: {
-              build: async (_) => ({ state: "ready", outputs: {} }),
+              build: async (_) => ({ state: "ready", detail: {}, outputs: {} }),
             },
           },
         ],
