@@ -188,7 +188,7 @@ spec:
 ## Linking container builds and kubernetes deploy actions
 
 When your project also contains one or more `container` build actions that build the images used by a `kubernetes` deploy,
-you want to make sure the containers are built ahead of deploying the Helm chart, and that the correct image tag is used when deploying.
+you want to make sure the containers are built ahead of deploying the Kubernetes manifest, and that the correct image tag is used when deploying.
 
 ```yaml
 kind: Build
@@ -200,7 +200,7 @@ name: worker-image
 ```yaml
 kind: Deploy
 description: Kubernetes deploy for the worker container
-type: helm
+type: kubernetes
 name: worker-deploy
 dependencies: [build.worker-image]
 spec:
