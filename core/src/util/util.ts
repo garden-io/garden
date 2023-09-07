@@ -709,40 +709,33 @@ export async function runScript({
   script: string
   envVars?: PrimitiveMap
 }) {
-  envVars = envVars || {}
-
+  const env = toEnvVars(envVars || {})
+  const outputStream = split2()
+  outputStream.on("error", (line: Buffer) => {
+    log.error(line.toString())
+  })
+  outputStream.on("data", (line: Buffer) => {
+    log.info(line.toString())
+  })
+  const errorStream = split2()
+  errorStream.on("error", (line: Buffer) => {
+    log.error(line.toString())
+  })
+  errorStream.on("data", (line: Buffer) => {
+    log.error(line.toString())
+  })
   // Workaround for https://github.com/vercel/pkg/issues/897
-  envVars.PKG_EXECPATH = ""
-
-  // Run the script, capturing any errors
-  const proc = execa("bash", ["-s"], {
-    all: true,
+  env.PKG_EXECPATH = ""
+  // script can be either a command or path to an executable
+  // shell script since we use the shell option.
+  const result = await exec(script, [], {
+    shell: true,
     cwd,
-    // The script is piped to stdin
-    input: script,
-    // Set a very large max buffer (we only hold one of these at a time, and want to avoid overflow errors)
-    buffer: true,
-    maxBuffer: 100 * 1024 * 1024,
-    env: toEnvVars(envVars || {}),
+    env,
+    stdout: outputStream,
+    stderr: errorStream,
   })
-
-  // Stream output to `log`, splitting by line
-  const stdout = split2()
-  const stderr = split2()
-
-  stdout.on("error", () => {})
-  stdout.on("data", (line: Buffer) => {
-    log.info(line.toString())
-  })
-  stderr.on("error", () => {})
-  stderr.on("data", (line: Buffer) => {
-    log.info(line.toString())
-  })
-
-  proc.stdout!.pipe(stdout)
-  proc.stderr!.pipe(stderr)
-
-  return await proc
+  return result
 }
 
 export async function streamToString(stream: Readable) {

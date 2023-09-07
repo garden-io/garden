@@ -9,9 +9,8 @@
 import { joi } from "../../config/common"
 import { dedent } from "../../util/string"
 import { runScript } from "../../util/util"
-import { RuntimeError } from "../../exceptions"
+import { ChildProcessError, RuntimeError } from "../../exceptions"
 import { GenericProviderConfig, Provider } from "../../config/provider"
-import { ExecaError } from "execa"
 import { configureExecModule, execModuleSpecSchema } from "./moduleConfig"
 import { convertExecModule } from "./convert"
 import { sdk } from "../../plugin/sdk"
@@ -97,20 +96,19 @@ execProvider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
         script: ctx.provider.config.initScript,
       })
       return { status: { ready: true, outputs: { initScript: { log: result.stdout.trim() } } } }
-    } catch (_err) {
-      const error = _err as ExecaError
-
+    } catch (err) {
       // Unexpected error (failed to execute script, as opposed to script returning an error code)
-      if (!error.exitCode) {
-        throw error
+      if (!(err instanceof ChildProcessError)) {
+        throw err
       }
 
       throw new RuntimeError({
-        message: `exec provider init script exited with code ${error.exitCode}`,
+        message: dedent`exec provider init script exited with code ${err.detail.code}. Script output:
+        ${err.detail.output}`,
         detail: {
-          exitCode: error.exitCode,
-          stdout: error.stdout,
-          stderr: error.stderr,
+          exitCode: err.detail.code,
+          stdout: err.detail.stdout,
+          stderr: err.detail.stderr,
         },
       })
     }
