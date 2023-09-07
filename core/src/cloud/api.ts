@@ -8,30 +8,30 @@
 
 import { IncomingHttpHeaders } from "http"
 
-import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
-import { CloudApiError, InternalError } from "../exceptions"
-import { Log } from "../logger/log-entry"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
-import { Cookie } from "tough-cookie"
-import { isObject } from "lodash"
-import { deline } from "../util/string"
 import {
-  GetProjectResponse,
-  GetProfileResponse,
-  CreateProjectsForRepoResponse,
-  ListProjectsResponse,
   BaseResponse,
   CreateEphemeralClusterResponse,
+  CreateProjectsForRepoResponse,
   EphemeralClusterWithRegistry,
   GetKubeconfigResponse,
+  GetProfileResponse,
+  GetProjectResponse,
+  ListProjectsResponse,
 } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
-import { CommandInfo } from "../plugin-context"
-import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
 import { add } from "date-fns"
-import { LogLevel } from "../logger/logger"
-import { makeAuthHeader } from "./auth"
+import { isObject } from "lodash"
+import { Cookie } from "tough-cookie"
+import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
 import { StringMap } from "../config/common"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
+import { CloudApiError } from "../exceptions"
+import { Log } from "../logger/log-entry"
+import { LogLevel } from "../logger/logger"
+import { CommandInfo } from "../plugin-context"
+import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
+import { deline } from "../util/string"
+import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
+import { makeAuthHeader } from "./auth"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
