@@ -11,7 +11,7 @@ import { printHeader } from "../logger/util"
 import dedent = require("dedent")
 import { AuthTokenResponse, CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { Log } from "../logger/log-entry"
-import { ConfigurationError, TimeoutError, InternalError } from "../exceptions"
+import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
 import { EventBus } from "../events/events"
 import { getCloudDistributionName } from "../util/util"
@@ -95,6 +95,9 @@ export class LoginCommand extends Command<{}, Opts> {
         return {}
       }
     } catch (err) {
+      if (!(err instanceof CloudApiError)) {
+        throw err
+      }
       if (err?.detail?.statusCode === 401) {
         const msg = dedent`
           Looks like your session token is invalid. If you were previously logged into a different instance

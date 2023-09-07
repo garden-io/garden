@@ -237,7 +237,7 @@ export async function getReleaseStatus({
     }
   } catch (err) {
     if (err.message.includes("release: not found")) {
-      return { state: "missing" }
+      return { state: "missing", detail: {} }
     } else {
       throw err
     }

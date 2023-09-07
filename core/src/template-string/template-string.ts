@@ -247,9 +247,6 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
           )
           throw new ConfigurationError({
             message: `A list item with a ${arrayConcatKey} key cannot have any other keys (found ${extraKeys})`,
-            detail: {
-              value: v,
-            },
           })
         }
 
@@ -263,10 +260,6 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
         } else {
           throw new ConfigurationError({
             message: `Value of ${arrayConcatKey} key must be (or resolve to) an array (got ${typeof resolved})`,
-            detail: {
-              value,
-              resolved,
-            },
           })
         }
       } else {
@@ -297,10 +290,6 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
           } else {
             throw new ConfigurationError({
               message: `Value of ${objectSpreadKey} key must be (or resolve to) a mapping object (got ${typeof resolved})`,
-              detail: {
-                value,
-                resolved,
-              },
             })
           }
         } else {

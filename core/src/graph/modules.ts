@@ -14,7 +14,7 @@ import { GardenTask, taskFromConfig } from "../types/task"
 import { TestConfig } from "../config/test"
 import { uniqByName, pickKeys } from "../util/util"
 import { CircularDependenciesError, ConfigurationError } from "../exceptions"
-import { deline } from "../util/string"
+import { dedent, deline, naturalList } from "../util/string"
 import { DependencyGraph } from "./common"
 import { ServiceConfig } from "../config/service"
 import { TaskConfig } from "../config/task"
@@ -114,11 +114,6 @@ export class ModuleGraph {
             message: deline`
             Service names must be unique - the service name '${serviceName}' is declared multiple times
             (in modules '${moduleA}' and '${moduleB}')`,
-            detail: {
-              serviceName,
-              moduleA,
-              moduleB,
-            },
           })
         }
 
@@ -149,11 +144,6 @@ export class ModuleGraph {
             message: deline`
             Task names must be unique - the task name '${taskName}' is declared multiple times (in modules
             '${moduleA}' and '${moduleB}')`,
-            detail: {
-              taskName,
-              moduleA,
-              moduleB,
-            },
           })
         }
 
@@ -747,12 +737,12 @@ export function detectMissingDependencies(moduleConfigs: ModuleConfig[]) {
     const errMsg = "Unknown dependencies detected.\n\n" + indentString(missingDepDescriptions.join("\n\n"), 2) + "\n"
 
     throw new ConfigurationError({
-      message: errMsg,
-      detail: {
-        unknownDependencies: missingDepDescriptions,
-        availableModules: Array.from(moduleNames),
-        availableServicesAndTasks: Array.from(runtimeNames),
-      },
+      message: dedent`
+        ${errMsg}
+
+        Available modules: ${naturalList(Array.from(moduleNames))}
+        Available services and tasks: ${naturalList(Array.from(runtimeNames))}
+        `,
     })
   }
 }
@@ -775,10 +765,5 @@ function serviceTaskConflict(conflictingName: string, moduleWithTask: string, mo
     message: deline`
     Service and task names must be mutually unique - the name '${conflictingName}' is used for a task in
     '${moduleWithTask}' and for a service in '${moduleWithService}'`,
-    detail: {
-      conflictingName,
-      moduleWithTask,
-      moduleWithService,
-    },
   })
 }

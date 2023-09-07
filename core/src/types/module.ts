@@ -28,6 +28,7 @@ import type { ModuleTypeDefinition } from "../plugin/module-types"
 import type { GardenPluginSpec } from "../plugin/plugin"
 import { join } from "path"
 import { RuntimeError } from "../exceptions"
+import { naturalList } from "../util/string"
 
 export interface FileCopySpec {
   source: string
@@ -210,11 +211,7 @@ export function getModuleTypeBases(
   if (!base) {
     const name = moduleType.name
     throw new RuntimeError({
-      message: `Unable to find base module type '${moduleType.base}' for module type '${name}'`,
-      detail: {
-        name,
-        moduleTypes,
-      },
+      message: `Unable to find base module type '${moduleType.base}' for module type '${name}'. Available module types: ${naturalList(Object.keys(moduleTypes))}`,
     })
   }
 

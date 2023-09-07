@@ -7,7 +7,7 @@
  */
 
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
-import { ConfigurationError, ParameterError, GardenError } from "../exceptions"
+import { ConfigurationError, GardenError, InternalError } from "../exceptions"
 import { join, dirname, basename, posix } from "path"
 import { hashString, exec, getPlatform, getArchitecture, isDarwinARM } from "./util"
 import tar from "tar"
@@ -223,13 +223,7 @@ export class PluginTool extends CliWrapper {
 
     if (!buildSpec) {
       throw new ConfigurationError({
-        message: `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture})`,
-        detail: {
-          spec,
-          platform,
-          architecture,
-          darwinARM,
-        },
+        message: `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture}${darwinARM ? "; without emulation: darwin-arm" : ""})`,
       })
     }
 
@@ -287,9 +281,9 @@ export class PluginTool extends CliWrapper {
         await this.fetch(tmpPath, log)
 
         if (this.buildSpec.extract && !(await pathExists(targetAbsPath))) {
-          throw new ConfigurationError({
-            message: `Archive ${this.buildSpec.url} does not contain a file or directory at ${this.targetSubpath}`,
-            detail: { name: this.name, spec: this.spec },
+          // if this happens, it's a bug!
+          throw new InternalError({
+            message: `Error while downloading ${this.name}: Archive ${this.buildSpec.url} does not contain a file or directory at ${this.targetSubpath}`,
           })
         }
 
@@ -340,13 +334,9 @@ export class PluginTool extends CliWrapper {
 
         if (this.buildSpec.sha256 && sha256 !== this.buildSpec.sha256) {
           reject(
-            new DownloadError({
-              message: `Invalid checksum from ${this.buildSpec.url} (got ${sha256})`,
-              detail: {
-                name: this.name,
-                spec: this.spec,
-                sha256,
-              },
+            // if this happens, it's a bug!
+            new InternalError({
+              message: `Failed to download ${this.name}: Invalid checksum from ${this.buildSpec.url} (expected ${this.buildSpec.sha256}, actually got ${sha256})`,
             })
           )
         }
@@ -373,12 +363,9 @@ export class PluginTool extends CliWrapper {
           extractor.on("close", () => resolve())
         } else {
           reject(
-            new ParameterError({
-              message: `Invalid archive format: ${format}`,
-              detail: {
-                name: this.name,
-                spec: this.spec,
-              },
+            // If this happens, it's a bug!
+            new InternalError({
+              message: `Failed to extract ${this.name}: Invalid archive format: ${format}`,
             })
           )
           return

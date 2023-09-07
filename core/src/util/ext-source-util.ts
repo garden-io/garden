@@ -14,7 +14,7 @@ import { ParameterError } from "../exceptions"
 import { GardenModule } from "../types/module"
 import { Garden } from "../garden"
 import { hashString } from "./util"
-import { titleize } from "./string"
+import { naturalList, titleize } from "./string"
 import { join } from "path"
 
 export type ExternalSourceType = "project" | "module" | "action"
@@ -114,7 +114,7 @@ export async function removeLinkedSources({
     if (!currentNames.includes(name)) {
       const msgType = sourceType === "project" ? "source" : titleize(sourceType)
       const msg = `${titleize(msgType)} ${chalk.underline(name)} is not linked. Did you mean to unlink a ${msgType}?`
-      throw new ParameterError({ message: msg, detail: { currentlyLinked: currentNames, input: names } })
+      throw new ParameterError({ message: `${msg}${ currentNames.length ? ` Currently linked: ${naturalList(currentNames)}` : ""}` })
     }
   }
 

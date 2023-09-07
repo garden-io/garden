@@ -18,13 +18,12 @@ import { joiProviderName, joi } from "../../../config/common"
 import { getKubeConfig } from "../api"
 import { configureMicrok8sAddons } from "./microk8s"
 import { setMinikubeDockerEnv } from "./minikube"
-import { exec } from "../../../util/util"
+import { ChildProcessError, exec } from "../../../util/util"
 import { remove } from "lodash"
 import chalk from "chalk"
 import { isKindCluster } from "./kind"
 import { isK3sFamilyCluster } from "./k3s"
 import { getK8sClientServerVersions, K8sClientServerVersions } from "../util"
-import { ChildProcessError } from "../../../exceptions"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 // note: this is in order of preference, in case neither is set as the current kubectl context

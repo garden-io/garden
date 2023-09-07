@@ -244,12 +244,7 @@ export class ProviderRouter extends BaseRouter {
         const result = await handler.apply(plugin, args)
         if (result === undefined) {
           throw new PluginError({
-            message: `Got empty response from ${handlerType} handler on ${pluginName} provider`,
-            detail: {
-              args,
-              handlerType,
-              pluginName,
-            },
+            message: `Got empty response from ${handlerType} handler on ${pluginName} provider. Called with ${args.length} args.`,
           })
         }
         return validateSchema(result, schema, { context: `${handlerType} output from plugin ${pluginName}` })

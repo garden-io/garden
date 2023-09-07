@@ -233,7 +233,6 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     if (config.kind !== this.kind) {
       throw new InternalError({
         message: `Attempted to call ${this.kind} handler for ${config.kind} action`,
-        detail: {},
       })
     }
 
@@ -281,7 +280,6 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     if (action.kind !== this.kind) {
       throw new InternalError({
         message: `Attempted to call ${this.kind} handler for ${action.kind} action`,
-        detail: {},
       })
     }
 
@@ -369,12 +367,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         const result = await handler["apply"](plugin, args)
         if (result === undefined) {
           throw new PluginError({
-            message: `Got empty response from ${actionType}.${String(handlerType)} handler on ${pluginName} provider`,
-            detail: {
-              args,
-              handlerType,
-              pluginName,
-            },
+            message: `Got empty response from ${actionType}.${String(handlerType)} handler on ${pluginName} provider. Called with ${args.length} arguments.`,
           })
         }
         const kind = this.kind
@@ -470,7 +463,6 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           message: `Unable to find any matching configuration when selecting ${actionType}/${String(
             handlerType
           )} handler.`,
-          detail: { handlers, configs },
         })
       } else {
         return filtered[0]

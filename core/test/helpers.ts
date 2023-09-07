@@ -211,7 +211,6 @@ export const makeTestGarden = profileAsync(async function _makeTestGarden(
       if (opts.config?.configPath) {
         throw new ConfigurationError({
           message: `Please don't set the configPath here :) Messes with the temp dir business.`,
-          detail: {},
         })
       }
     }

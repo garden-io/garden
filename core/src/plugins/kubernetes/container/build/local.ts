@@ -26,7 +26,7 @@ export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
 
   const outputs = k8sGetContainerBuildActionOutputs({ provider: k8sCtx.provider, action })
 
-  const result: BuildStatusResult = { state: "not-ready", outputs }
+  const result: BuildStatusResult = { state: "not-ready", outputs, detail: {} }
 
   if (deploymentRegistry) {
     const args = await getManifestInspectArgs(outputs.deploymentImageId, deploymentRegistry)

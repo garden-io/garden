@@ -22,7 +22,7 @@ import {
 } from "./types"
 import { findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
-import { gardenAnnotationKey, base64, deline, stableStringify, splitLast, truncate } from "../../util/string"
+import { gardenAnnotationKey, base64, deline, stableStringify, splitLast, truncate, dedent, naturalList } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/moduleConfig"
 import { ConfigurationError, DeploymentError, PluginError, InternalError } from "../../exceptions"
@@ -111,9 +111,6 @@ export function getSelectorFromResource(resource: KubernetesWorkload): { [key: s
   // No selector found.
   throw new ConfigurationError({
     message: `No selector found for ${resource.metadata.name} while retrieving pods.`,
-    detail: {
-      resource,
-    },
   })
 }
 
@@ -276,9 +273,6 @@ export async function execInWorkload({
     // This should not happen because of the prior status check, but checking to be sure
     throw new DeploymentError({
       message: `Could not find running pod for ${getResourceKey(workload)}`,
-      detail: {
-        workload,
-      },
     })
   }
 
@@ -406,13 +400,7 @@ export async function upsertConfigMap({
 
   if (base64(JSON.stringify(serializedData)).length > MAX_CONFIGMAP_DATA_SIZE) {
     throw new KubernetesError({
-      message: `Attempting to store too much data in ConfigMap ${key}`,
-      detail: {
-        key,
-        namespace,
-        labels,
-        data,
-      },
+      message: `Attempting to store too much data in ConfigMap ${key} (namespace: ${namespace})`,
     })
   }
 
@@ -470,10 +458,6 @@ export function prepareEnvVars(env: ContainerEnvVars): V1EnvVar[] {
         if (!value.secretRef.key) {
           throw new ConfigurationError({
             message: `kubernetes: Must specify \`key\` on secretRef for env variable ${name}`,
-            detail: {
-              name,
-              value,
-            },
           })
         }
         return {
@@ -508,11 +492,7 @@ export async function getRunningDeploymentPod({
   const pod = sample(pods.filter((p) => checkPodStatus(p) === "ready"))
   if (!pod) {
     throw new PluginError({
-      message: `Could not find a running Pod in Deployment ${deploymentName}`,
-      detail: {
-        deploymentName,
-        namespace,
-      },
+      message: `Could not find a running Pod in Deployment ${deploymentName} in namespace ${namespace}`,
     })
   }
 
@@ -608,7 +588,6 @@ export async function getTargetResource({
           `Could not find any Pod matching provided podSelector (${selectorStr}) for target in ` +
             `${action.longDescription()}`
         ),
-        detail: { query },
       })
     }
     return pod
@@ -620,7 +599,7 @@ export async function getTargetResource({
 
   if (!targetKind) {
     // This should be caught in config/schema validation
-    throw new InternalError({ message: `Neither kind nor podSelector set in resource query`, detail: { query } })
+    throw new InternalError({ message: `Neither kind nor podSelector set in resource query defined in ${action.longDescription()}` })
   }
 
   // Look in the specified manifests, if provided
@@ -648,21 +627,21 @@ export async function getTargetResource({
 
       if (!target) {
         throw new ConfigurationError({
-          message: chalk.red(
-            deline`${action.longDescription()} does not contain specified ${targetKind}
-            ${chalk.white(targetName)}`
-          ),
-          detail: { query, chartResourceNames },
+          message: dedent`
+            ${action.longDescription()} does not contain specified ${targetKind} ${chalk.white(targetName)}
+
+            The chart does declare the following resources: ${naturalList(chartResourceNames)}
+            `,
         })
       }
     } else {
       if (applicableChartResources.length === 0) {
         throw new ConfigurationError({
-          message: `${action.longDescription()} contains no ${targetKind}s.`,
-          detail: {
-            query,
-            chartResourceNames,
-          },
+          message: dedent`
+            ${action.longDescription()} contains no ${targetKind}s.
+
+            The chart does declare the following resources: ${naturalList(chartResourceNames)}
+            `,
         })
       }
 
@@ -671,9 +650,11 @@ export async function getTargetResource({
           message: chalk.red(
             deline`${action.longDescription()} contains multiple ${targetKind}s.
             You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
-            to use.`
+            to use.
+
+            The chart declares the following resources: ${naturalList(chartResourceNames)}
+            `
           ),
-          detail: { query, chartResourceNames },
         })
       }
 
@@ -693,7 +674,6 @@ export async function getTargetResource({
         message: chalk.red(
           deline`${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.`
         ),
-        detail: { query, namespace },
       })
     } else {
       throw err
@@ -715,7 +695,7 @@ export async function readTargetResource({
 
   if (!targetName) {
     // This should be caught in config/schema validation
-    throw new InternalError({ message: `Must specify name in resource/target query`, detail: { query } })
+    throw new InternalError({ message: `Must specify name in resource/target query`})
   }
 
   if (targetKind === "Deployment") {
@@ -727,8 +707,7 @@ export async function readTargetResource({
   } else {
     // This should be caught in config/schema validation
     throw new InternalError({
-      message: `Unsupported kind specified in resource/target query`,
-      detail: { query },
+      message: dedent`Unsupported kind ${targetKind} specified in resource/target query`,
     })
   }
 }
@@ -746,7 +725,6 @@ export function getResourceContainer(resource: SyncableResource, containerName?:
   if (containers.length === 0) {
     throw new ConfigurationError({
       message: `${kind} ${resource.metadata.name} has no containers configured.`,
-      detail: { resource },
     })
   }
 
@@ -755,10 +733,6 @@ export function getResourceContainer(resource: SyncableResource, containerName?:
   if (!container) {
     throw new ConfigurationError({
       message: `Could not find container '${containerName}' in ${kind} '${name}'`,
-      detail: {
-        resource,
-        containerName,
-      },
     })
   }
 
@@ -801,10 +775,7 @@ export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
 
   if (!provider) {
     throw new ConfigurationError({
-      message: `Could not find a configured kubernetes (or local-kubernetes) provider`,
-      detail: {
-        configuredProviders: Object.keys(providers),
-      },
+      message: `Could not find a configured kubernetes (or local-kubernetes) provider. Configured providers: ${naturalList(Object.keys(providers))}`,
     })
   }
 

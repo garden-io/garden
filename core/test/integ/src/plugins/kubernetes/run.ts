@@ -629,7 +629,6 @@ describe("kubernetes Pod runner functions", () => {
         command: ["echo", "foo"],
         envVars: {},
         description: "Helm module",
-        errorMetadata: {},
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
@@ -686,7 +685,6 @@ describe("kubernetes Pod runner functions", () => {
         envVars: {},
         resources, // <---
         description: "Helm module",
-        errorMetadata: {},
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
@@ -743,7 +741,6 @@ describe("kubernetes Pod runner functions", () => {
         envVars: {},
         resources, // <---
         description: "Helm module",
-        errorMetadata: {},
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
@@ -800,7 +797,6 @@ describe("kubernetes Pod runner functions", () => {
         envVars: {},
         resources, // <---
         description: "Helm module",
-        errorMetadata: {},
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
@@ -887,7 +883,6 @@ describe("kubernetes Pod runner functions", () => {
 
         envVars: {},
         description: "Helm module",
-        errorMetadata: {},
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
@@ -967,7 +962,6 @@ describe("kubernetes Pod runner functions", () => {
 
         envVars: {},
         description: "Helm module",
-        errorMetadata: {},
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,

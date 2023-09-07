@@ -24,9 +24,6 @@ export async function readSecret(api: KubeApi, secretRef: ProviderSecretRef) {
         message:
           `Could not find secret '${secretRef.name}' in namespace '${secretRef.namespace}'. ` +
           `Have you correctly configured your secrets?`,
-        detail: {
-          secretRef,
-        },
       })
     } else {
       throw err

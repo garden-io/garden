@@ -18,7 +18,7 @@ import { GardenModule } from "../types/module"
 import { findByName, getNames } from "./util"
 import { GardenError, InternalError } from "../exceptions"
 import { EventBus, EventName, Events } from "../events/events"
-import { dedent } from "./string"
+import { dedent, naturalList } from "./string"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants"
@@ -137,7 +137,6 @@ export class TestEventBus extends EventBus {
       Logged events:
       ${this.eventLog.map((e) => JSON.stringify(e)).join("\n")}
     `,
-      detail: { name, payload },
     })
   }
 }
@@ -346,8 +345,7 @@ export class TestGarden extends Garden {
 
     if (!config) {
       throw new TestError({
-        message: `Could not find module config ${name}`,
-        detail: { name, available: getNames(modules) },
+        message: `Could not find module config ${name}. Available modules: ${naturalList(getNames(modules))}`,
       })
     }
 

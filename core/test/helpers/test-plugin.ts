@@ -213,7 +213,7 @@ testPluginDeploy.addHandler("configure", async ({ config }) => {
   return { config, supportedModes: { sync: !!config.spec.persistent, local: true } }
 })
 testPluginDeploy.addHandler("deploy", async ({}) => {
-  return { state: "ready", detail: { state: "ready" }, outputs: {} }
+  return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
 })
 testPluginDeploy.addHandler("getStatus", async ({ ctx, action }) => {
   const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])

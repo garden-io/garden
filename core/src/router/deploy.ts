@@ -68,7 +68,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
           p.log.error(msg)
           return {
             state: "not-ready" as ActionState,
-            detail: { state: "missing" as DeployState },
+            detail: { state: "missing" as DeployState, detail: {} },
             outputs: {},
           }
         },

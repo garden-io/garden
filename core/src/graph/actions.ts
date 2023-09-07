@@ -38,7 +38,7 @@ import { ActionReference, describeSchema, JoiDescription, parseActionReference }
 import type { GroupConfig } from "../config/group"
 import { ActionConfigContext } from "../config/template-contexts/actions"
 import { validateWithPath } from "../config/validation"
-import { ConfigurationError, PluginError, InternalError, ValidationError } from "../exceptions"
+import { ConfigurationError, PluginError, InternalError, ValidationError, GardenError } from "../exceptions"
 import { overrideVariables, type Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
 import type { ActionTypeDefinition } from "../plugin/action-types"
@@ -90,7 +90,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
   function addConfig(config: ActionConfig) {
     if (!actionKinds.includes(config.kind)) {
-      throw new ConfigurationError({ message: `Unknown action kind: ${config.kind}`, detail: { config } })
+      throw new ConfigurationError({ message: `Unknown action kind: ${config.kind}` })
     }
 
     const key = actionReferenceToString(config)
@@ -196,7 +196,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
                 config.name
               )}:\n`
             ) + chalk.red(error.message),
-          detail: { config },
           wrappedErrors: [error],
         })
       }
@@ -284,7 +283,6 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
           trailingWord: "or a",
         })} action(s)?
         `,
-        detail: { config, configuredActionTypes: Object.keys(actionTypes) },
       })
     }
 
@@ -364,7 +362,6 @@ export function actionNameConflictError(configA: ActionConfig, configB: ActionCo
       - ${describeActionConfigWithPath(configB, rootPath)}
     Please rename or disable one of the two to avoid the conflict.
     `,
-    detail: { configA, configB },
   })
 }
 
@@ -557,9 +554,8 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     if (!template) {
       throw new InternalError({
         message: `${description} references template '${
-          config.internal.templateName
+          templateName
         }' which cannot be found. Available templates: ${naturalList(Object.keys(garden.configTemplates)) || "(none)"}`,
-        detail: { templateName },
       })
     }
 
@@ -627,8 +623,14 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   for (const field of noTemplateFields) {
     if (!isEqual(config[field], updatedConfig[field])) {
       throw new PluginError({
-        message: `Configure handler for ${description} attempted to modify the ${field} field, which is not allowed. Please report this as a bug.`,
-        detail: { config, field, original: config[field], modified: updatedConfig[field] },
+        message: dedent`
+          Configure handler for ${description} attempted to modify the ${field} field, which is not allowed.
+
+          Original: ${config[field]}
+          Modified: ${updatedConfig[field]}
+
+          Please report this as a bug.
+          `,
       })
     }
   }
@@ -649,9 +651,12 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   try {
     resolveTemplates()
   } catch (error) {
+    if (!(error instanceof GardenError)) {
+      throw error
+    }
     throw new ConfigurationError({
       message: `Configure handler for ${config.type} ${config.kind} set a templated value on a config field which could not be resolved. This may be a bug in the plugin, please report this. Error: ${error}`,
-      detail: { config, error },
+      wrappedErrors: [error]
     })
   }
 
@@ -679,7 +684,6 @@ function dependenciesFromActionConfig(
     } catch (error) {
       throw new ValidationError({
         message: `Invalid dependency specified: ${error.message}`,
-        detail: { error, config },
       })
     }
   })
@@ -698,7 +702,6 @@ function dependenciesFromActionConfig(
       if (!configsByKey[buildKey]) {
         throw new ConfigurationError({
           message: `${description} references Build ${copyFrom.build} in the \`copyFrom\` field, but no such Build action could be found`,
-          detail: { config, buildName: copyFrom.build },
         })
       }
 
@@ -712,7 +715,6 @@ function dependenciesFromActionConfig(
     if (!configsByKey[buildKey]) {
       throw new ConfigurationError({
         message: `${description} references Build ${config.build} in the \`build\` field, but no such Build action could be found`,
-        detail: { config, buildName: config.build },
       })
     }
 

@@ -46,7 +46,7 @@ export type ExecBuildConfig = typeof execBuild.T.Config
 export type ExecBuild = typeof execBuild.T.Action
 
 export const execBuildHandler = execBuild.addHandler("build", async ({ action, log, ctx }) => {
-  const output: sdk.types.BuildStatus = { state: "ready", outputs: {} }
+  const output: sdk.types.BuildStatus = { state: "ready", outputs: {}, detail: {} }
   const command = action.getSpec("command")
 
   const { chalk } = sdk.util

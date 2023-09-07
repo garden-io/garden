@@ -17,8 +17,9 @@ import { PluginToolSpec } from "../../plugin/tools"
 import { PluginContext } from "../../plugin-context"
 import { KubeApi, KubernetesError } from "./api"
 import { pathExists } from "fs-extra"
-import { ChildProcessError, ConfigurationError } from "../../exceptions"
+import { ConfigurationError } from "../../exceptions"
 import { requestWithRetry, RetryOpts } from "./retry"
+import { ChildProcessError } from "../../util/util"
 
 // Corresponds to the default prune whitelist in `kubectl`.
 // See: https://github.com/kubernetes/kubectl/blob/master/pkg/cmd/apply/prune.go#L176-L192
@@ -265,7 +266,6 @@ class Kubectl extends PluginTool {
       if (!exists) {
         throw new ConfigurationError({
           message: `Could not find configured kubectlPath: ${override}`,
-          detail: { kubectlPath: override },
         })
       }
 

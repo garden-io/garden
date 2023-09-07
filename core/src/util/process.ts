@@ -100,12 +100,7 @@ export function waitForProcess({ proc, errorPrefix }: { proc: ChildProcess; erro
         const errOutput = stderr.length > 0 ? stderr : stdout
         reject(
           new RuntimeError({
-            message: `${errorPrefix}:\n${errOutput}`,
-            detail: {
-              stdout,
-              stderr,
-              code,
-            },
+            message: `${errorPrefix}:\n${errOutput}\n\nExit code: ${code}`,
           })
         )
       }

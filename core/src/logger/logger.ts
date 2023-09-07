@@ -20,6 +20,7 @@ import { InkTerminalWriter } from "./writers/ink-terminal-writer"
 import { QuietWriter } from "./writers/quiet-writer"
 import { PluginEventBroker } from "../plugin-context"
 import { EventLogWriter } from "./writers/event-writer"
+import { naturalList } from "../util/string"
 
 export type LoggerType = "quiet" | "default" | "basic" | "json" | "ink"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "default", "basic", "json", "ink"])
@@ -54,7 +55,6 @@ export function parseLogLevel(level: string): LogLevel {
     // This should be validated on a different level
     throw new ParameterError({
       message: `Unexpected log level, expected one of ${getLogLevelChoices().join(", ")}, got ${level}`,
-      detail: {},
     })
   }
   return lvl
@@ -373,11 +373,7 @@ export class RootLogger extends LoggerBase {
 
       if (!LOGGER_TYPES.has(loggerTypeFromEnv)) {
         throw new ParameterError({
-          message: `Invalid logger type specified: ${loggerTypeFromEnv}`,
-          detail: {
-            loggerType: gardenEnv.GARDEN_LOGGER_TYPE,
-            availableTypes: LOGGER_TYPES,
-          },
+          message: `Invalid logger type specified: ${loggerTypeFromEnv}. Available types: ${naturalList(Array.from(LOGGER_TYPES))}`,
         })
       }
 

@@ -122,7 +122,6 @@ export class ResolveProviderTask extends BaseTask<Provider> {
           message:
             `Provider '${this.config.name}' depends on provider '${dep.name}', which is not configured. ` +
             `You need to add '${dep.name}' to your project configuration for the '${this.config.name}' to work.`,
-          detail: { config: this.config, missingProviderName: dep.name },
         })
       }
     })
@@ -409,7 +408,6 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     if (!status.ready) {
       throw new PluginError({
         message: `Provider ${pluginName} reports status as not ready and could not prepare the configured environment.`,
-        detail: { name: pluginName, status, provider: tmpProvider },
       })
     }
 

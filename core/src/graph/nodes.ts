@@ -262,9 +262,6 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
     if (statusResult === undefined) {
       throw new InternalError({
         message: `Attempted to execute ${this.describe()} before resolving status.`,
-        detail: {
-          nodeKey: this.getKey(),
-        },
       })
     }
 

@@ -145,7 +145,7 @@ execDeploy.addHandler("getStatus", async (params) => {
 
     return {
       state: deployStateToActionState(state),
-      detail: { state, version: action.versionString() },
+      detail: { state, version: action.versionString(), detail: {} },
       outputs: {
         log: "",
       },
@@ -285,7 +285,7 @@ export async function deployPersistentExecService({
         throw new TimeoutError({
           message: dedent`Timed out waiting for local service ${deployName} to be ready.
 
-          Garden timed out waiting for the command ${chalk.gray(spec.statusCommand)}
+          Garden timed out waiting for the command ${chalk.gray(spec.statusCommand)} (pid: ${proc.pid})
           to return status code 0 (success) after waiting for ${spec.statusTimeout} seconds.
           ${lastResultDescription}
           Possible next steps:
@@ -295,12 +295,6 @@ export async function deployPersistentExecService({
           In case the service just needs more time to become ready, you can adjust the ${chalk.gray("timeout")} value
           in your service definition to a value that is greater than the time needed for your service to become ready.
           `,
-          detail: {
-            deployName,
-            statusCommand: spec.statusCommand,
-            pid: proc.pid,
-            statusTimeout: spec.statusTimeout,
-          },
         })
       }
 
@@ -349,7 +343,7 @@ execDeploy.addHandler("delete", async (params) => {
     }
   } else {
     log.warn(`Missing cleanupCommand, unable to clean up service`)
-    return { state: "unknown", detail: { state: "unknown" as const }, outputs: {} }
+    return { state: "unknown", detail: { state: "unknown" as const, detail: {} }, outputs: {} }
   }
 })
 

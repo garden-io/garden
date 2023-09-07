@@ -7,9 +7,9 @@
  */
 
 import tmp from "tmp-promise"
-import { ChildProcessError, RuntimeError } from "../../../exceptions"
+import { RuntimeError } from "../../../exceptions"
 import { Log } from "../../../logger/log-entry"
-import { exec } from "../../../util/util"
+import { ChildProcessError, exec } from "../../../util/util"
 import { containerHelpers } from "../../container/helpers"
 import { ContainerBuildAction } from "../../container/moduleConfig"
 import chalk from "chalk"
@@ -46,11 +46,7 @@ export async function configureMicrok8sAddons(log: Log, addons: string[]) {
 
   if (!status.includes("microk8s is running")) {
     throw new RuntimeError({
-      message: `Unable to get microk8s status. Is the cluster installed and running?`,
-      detail: {
-        status,
-        statusCommandResult,
-      },
+      message: `Unexpected microk8s status '${status}'.  Is the cluster installed and running?`,
     })
   }
 
