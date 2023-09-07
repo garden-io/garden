@@ -237,7 +237,7 @@ export function parseMetadataResource(log: Log, resource: KubernetesResource<V1C
 /**
  * Read the manifests from the module config, as well as any referenced files in the config.
  */
-async function readManifests(
+export async function readManifests(
   ctx: PluginContext,
   action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
   log: Log

@@ -19,6 +19,7 @@ import {
   getManifests,
   getMetadataManifest,
   parseMetadataResource,
+  readManifests,
 } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { ActionLog, createActionLog, Log } from "../../../../../../src/logger/log-entry"
@@ -249,7 +250,9 @@ describe("kubernetes-type handlers", () => {
         skipCreate: true,
       })
 
-      const metadataManifest = getMetadataManifest(resolvedAction, namespace, [])
+      const declaredManifests = await readManifests(ctx, resolvedAction, log)
+      // It's critical to pass in the existing manifests here, otherwise the code will not check their statuses
+      const metadataManifest = getMetadataManifest(resolvedAction, namespace, declaredManifests)
       metadataManifest.data!.resolvedVersion = "v-foo"
 
       await api.replace({ log, namespace, resource: metadataManifest })
