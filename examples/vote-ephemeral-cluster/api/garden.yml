@@ -1,0 +1,41 @@
+kind: Build
+type: container
+name: api
+
+---
+kind: Deploy
+description: The backend for the voting UI
+name: api
+type: kubernetes
+build: api
+include: ["manifests"]
+dependencies:
+  - run.db-init
+
+spec:
+  files: [manifests/manifests.yaml]
+
+  # Default target for syncs and exec commands
+  defaultTarget:
+    kind: Deployment
+    name: api
+
+  sync:
+    paths:
+      - containerPath: /app
+        mode: "one-way-replica"
+    overrides:
+      - command:
+          ["/bin/sh", "-c", "ls /app/app.py | entr -r -n python /app/app.py"]
+
+---
+kind: Test
+name: api-unit
+type: container
+build: api
+dependencies:
+  - deploy.api
+timeout: 200
+
+spec:
+  args: [echo, ok]

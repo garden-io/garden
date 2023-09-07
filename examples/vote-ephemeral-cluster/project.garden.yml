@@ -1,0 +1,18 @@
+apiVersion: "garden.io/v1"
+kind: Project
+name: ephemeral-cluster-vote-demo
+defaultEnvironment: remote
+variables:
+  postgres-username: postgres
+  postgres-database: postgres
+  postgres-password: postgres
+
+environments:
+  - name: remote
+
+providers:
+  # set ephemeral-kubernetes provider
+  - name: ephemeral-kubernetes
+    environments: [remote]
+
+---
