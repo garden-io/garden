@@ -299,13 +299,10 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     }
   }
 
-  // Note: Local mode has its own port-forwarding configuration
-  if (deployedMode !== "local") {
-    try {
-      forwardablePorts = getForwardablePorts({ resources: remoteResources, parentAction: action, mode: deployedMode })
-    } catch (error) {
-      log.debug({ msg: `Unable to extract forwardable ports: ${error.message}`, error })
-    }
+  try {
+    forwardablePorts = getForwardablePorts({ resources: remoteResources, parentAction: action, mode: deployedMode })
+  } catch (error) {
+    log.debug({ msg: `Unable to extract forwardable ports: ${error.message}`, error })
   }
 
   return composeKubernetesDeployStatus({
