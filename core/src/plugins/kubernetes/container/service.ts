@@ -30,10 +30,7 @@ function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
 }
 
 // todo: consider returning Promise<KubernetesResource<V1Service>[]>
-export async function createServiceResources(
-  action: Resolved<ContainerDeployAction>,
-  namespace: string,
-): Promise<any> {
+export async function createServiceResources(action: Resolved<ContainerDeployAction>, namespace: string): Promise<any> {
   const specPorts = action.getSpec("ports")
 
   if (!specPorts.length) {
