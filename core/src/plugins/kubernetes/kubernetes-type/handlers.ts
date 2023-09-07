@@ -216,12 +216,6 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   // Note: This is analogous to how we version check Helm charts, i.e. we don't check every resource individually.
   // Users can always force deploy, much like with Helm Deploys.
   const metadataManifest = getMetadataManifest(action, defaultNamespace, [])
-
-  let deployedMode: ActionMode = "default"
-  let state: DeployState = "ready"
-  let remoteResources: KubernetesResource[] = []
-  let forwardablePorts: ForwardablePort[] = []
-
   const remoteMetadataResource = await getDeployedResource(ctx, provider, metadataManifest, log)
 
   if (!remoteMetadataResource) {
@@ -235,7 +229,10 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   }
 
   const deployedMetadata = parseMetadataResource(log, remoteMetadataResource)
-  deployedMode = deployedMetadata.mode
+  const deployedMode = deployedMetadata.mode
+  let remoteResources: KubernetesResource[] = []
+  let forwardablePorts: ForwardablePort[] = []
+  let state: DeployState = "ready"
 
   if (deployedMetadata.resolvedVersion !== action.versionString()) {
     state = "outdated"
