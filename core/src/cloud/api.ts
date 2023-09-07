@@ -797,7 +797,7 @@ export class CloudApi {
       return response.data.kubeconfig
     } catch (err) {
       this.log.debug(`Error in fetching Kubeconfig for the ephemeral cluster, ${err}`)
-      throw new InternalError({ message: "Error in fetching Kubeconfig for the ephemeral cluster", detail: clusterId })
+      throw new CloudApiError({ message: "Error in fetching Kubeconfig for the ephemeral cluster", detail: clusterId })
     }
   }
 }
