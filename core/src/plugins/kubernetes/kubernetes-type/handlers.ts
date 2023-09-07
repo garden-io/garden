@@ -232,63 +232,63 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       remoteResources: [],
       forwardablePorts: [],
     })
-  } else {
-    const deployedMetadata = parseMetadataResource(log, remoteMetadataResource)
-    deployedMode = deployedMetadata.mode
+  }
 
-    if (deployedMetadata.resolvedVersion !== action.versionString()) {
-      state = "outdated"
-    } else if (mode === "local" && spec.localMode && deployedMode !== "local") {
-      state = "outdated"
-    } else if (mode === "sync" && spec.sync?.paths && deployedMode !== "sync") {
-      state = "outdated"
-    } else if (mode === "default" && deployedMode !== mode) {
-      state = "outdated"
-    }
+  const deployedMetadata = parseMetadataResource(log, remoteMetadataResource)
+  deployedMode = deployedMetadata.mode
 
-    const manifestMetadata = Object.values(deployedMetadata.manifestMetadata)
+  if (deployedMetadata.resolvedVersion !== action.versionString()) {
+    state = "outdated"
+  } else if (mode === "local" && spec.localMode && deployedMode !== "local") {
+    state = "outdated"
+  } else if (mode === "sync" && spec.sync?.paths && deployedMode !== "sync") {
+    state = "outdated"
+  } else if (mode === "default" && deployedMode !== mode) {
+    state = "outdated"
+  }
 
-    if (manifestMetadata.length > 0) {
-      try {
-        const maybeDeployedResources = await Promise.all(
-          manifestMetadata.map(async (m) => {
-            return [m, await api.readOrNull({ log, ...m })]
-          })
-        )
+  const manifestMetadata = Object.values(deployedMetadata.manifestMetadata)
 
-        const statuses: ResourceStatus[] = await Promise.all(
-          maybeDeployedResources.map(async ([m, resource]) => {
-            if (!resource) {
-              return {
-                state: "missing" as const,
-                resource: {
-                  apiVersion: m.apiVersion,
-                  kind: m.kind,
-                  metadata: { name: m.name, namespace: m.namespace },
-                },
-              }
+  if (manifestMetadata.length > 0) {
+    try {
+      const maybeDeployedResources = await Promise.all(
+        manifestMetadata.map(async (m) => {
+          return [m, await api.readOrNull({ log, ...m })]
+        })
+      )
+
+      const statuses: ResourceStatus[] = await Promise.all(
+        maybeDeployedResources.map(async ([m, resource]) => {
+          if (!resource) {
+            return {
+              state: "missing" as const,
+              resource: {
+                apiVersion: m.apiVersion,
+                kind: m.kind,
+                metadata: { name: m.name, namespace: m.namespace },
+              },
             }
-            remoteResources.push(resource)
-            return resolveResourceStatus({ api, namespace: defaultNamespace, resource, log })
-          })
-        )
+          }
+          remoteResources.push(resource)
+          return resolveResourceStatus({ api, namespace: defaultNamespace, resource, log })
+        })
+      )
 
-        if (state !== "outdated") {
-          state = resolveResourceStatuses(log, statuses)
-        }
-      } catch (error) {
-        log.debug({ msg: `Failed querying for remote resources: ${error.message}`, error })
-        state = "unknown"
+      if (state !== "outdated") {
+        state = resolveResourceStatuses(log, statuses)
       }
+    } catch (error) {
+      log.debug({ msg: `Failed querying for remote resources: ${error.message}`, error })
+      state = "unknown"
     }
+  }
 
-    // Note: Local mode has its own port-forwarding configuration
-    if (deployedMode !== "local" && remoteResources && remoteResources.length > 0) {
-      try {
-        forwardablePorts = getForwardablePorts({ resources: remoteResources, parentAction: action, mode: deployedMode })
-      } catch (error) {
-        log.debug({ msg: `Unable to extract forwardable ports: ${error.message}`, error })
-      }
+  // Note: Local mode has its own port-forwarding configuration
+  if (deployedMode !== "local" && remoteResources && remoteResources.length > 0) {
+    try {
+      forwardablePorts = getForwardablePorts({ resources: remoteResources, parentAction: action, mode: deployedMode })
+    } catch (error) {
+      log.debug({ msg: `Unable to extract forwardable ports: ${error.message}`, error })
     }
   }
 
