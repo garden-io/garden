@@ -7,7 +7,7 @@
  */
 
 import { diffString } from "json-diff"
-import { DeploymentError } from "../../../exceptions"
+import { DeploymentError, GardenError, GardenErrorParams } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi, KubernetesError } from "../api"
 import { getAppNamespace } from "../namespace"
@@ -43,6 +43,15 @@ export interface ResourceStatus<T extends BaseResource | KubernetesObject = Base
   lastMessage?: string
   warning?: true
   logs?: string
+}
+
+export class DeploymentResourceStatusError extends DeploymentError {
+  status: ResourceStatus<BaseResource>
+
+  constructor(params: GardenErrorParams & { status: ResourceStatus<BaseResource> }) {
+    super(params)
+    this.status = params.status
+  }
 }
 
 export interface StatusHandlerParams<T extends BaseResource | KubernetesObject = BaseResource> {
@@ -298,8 +307,9 @@ export async function waitForResources({
         }
 
         emitLog(msg)
-        throw new DeploymentError({
+        throw new DeploymentResourceStatusError({
           message: msg,
+          status,
         })
       }
 

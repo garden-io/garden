@@ -12,7 +12,7 @@ import cloneDeep from "fast-copy"
 import { omit, pick, some } from "lodash"
 import { Log } from "../../logger/log-entry"
 import { CoreV1Event } from "@kubernetes/client-node"
-import { PluginError, GardenError, RuntimeError, ConfigurationError, GardenErrorParams } from "../../exceptions"
+import { PluginError, GardenError, RuntimeError, ConfigurationError, GardenErrorParams, DeploymentError } from "../../exceptions"
 import { KubernetesProvider } from "./config"
 import { Writable, Readable, PassThrough } from "stream"
 import { uniqByName, sleep } from "../../util/util"
@@ -26,7 +26,7 @@ import { ArtifactSpec } from "../../config/validation"
 import { prepareSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
 import { PluginContext, PluginEventBroker, PluginEventLogContext } from "../../plugin-context"
-import { waitForResources, ResourceStatus } from "./status/status"
+import { waitForResources, ResourceStatus, DeploymentResourceStatusError } from "./status/status"
 import { getResourceRequirements, getSecurityContext } from "./container/util"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { copy } from "fs-extra"
@@ -523,13 +523,13 @@ async function runWithArtifacts({
     // Start the Pod
     try {
       await runner.start({ log, timeoutSec })
-    } catch (err) {
-      if (err.type !== "deployment") {
+    } catch (err: unknown) {
+      if (!(err instanceof DeploymentResourceStatusError)) {
         throw err
       }
 
       // Specifically look for deployment error indicating `sh` is missing, and report with more helpful message.
-      const status = err.detail.status
+      const status = err.status
 
       if (status.state !== "ready") {
         const containerStatus = status.resource.status.containerStatuses![0]
@@ -577,8 +577,6 @@ async function runWithArtifacts({
       //   stdout,
       //   stderr,
       // })
-      ///       /// { actionName: action.name, description, args, artifacts }
-
       throw new ConfigurationError({
         message: deline`
         ${description} specifies artifacts to export, but the image doesn't
