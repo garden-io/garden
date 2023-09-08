@@ -114,7 +114,7 @@ export function validateDeploySpec(
         throw new ConfigurationError({
           message:
             `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
-            `You are using ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider and and have disabled ingress controller setup by specifying setupIngressController=false in the provider configuration. In order for ingresses to function correctly on ephemeral clusters, Garden must deploy an ingress controller`,
+            `You are using ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider and and have disabled ingress controller setup by specifying setupIngressController=false in the provider configuration. Either allow Garden to deploy an ingress controller for using the dynamically assigned hostname, or specify the hostname yourself.`,
           detail: {
             name,
             ingressSpec,

@@ -47,6 +47,10 @@ function is401Error(error: any): error is GotHttpError {
   return isGotError(error, 401)
 }
 
+function extractErrorMessageBodyFromGotError(error: any): error is GotHttpError {
+  return error?.response?.body?.message
+}
+
 function stripLeadingSlash(str: string) {
   return str.replace(/^\/+/, "")
 }
@@ -777,14 +781,11 @@ export class CloudApi {
   async createEphemeralCluster(): Promise<EphemeralClusterWithRegistry> {
     try {
       const response = await this.post<CreateEphemeralClusterResponse>(`/ephemeral-clusters/`)
-      return {
-        instanceMetadata: response.data?.instanceMetadata,
-        registry: response.data?.registry,
-        ingressesHostname: response.data?.ingressesHostname,
-      }
+      return response.data
     } catch (err) {
-      this.log.debug(`Create ephemeral cluster failed with error, ${err}`)
-      throw err
+      throw new CloudApiError({
+        message: `${extractErrorMessageBodyFromGotError(err) ?? "Creating an ephemeral cluster failed."}`,
+      })
     }
   }
 
@@ -793,8 +794,12 @@ export class CloudApi {
       const response = await this.get<GetKubeconfigResponse>(`/ephemeral-clusters/${clusterId}/kubeconfig`)
       return response.data.kubeconfig
     } catch (err) {
-      this.log.debug(`Error in fetching Kubeconfig for the ephemeral cluster, ${err}`)
-      throw new CloudApiError({ message: "Error in fetching Kubeconfig for the ephemeral cluster", detail: clusterId })
+      throw new CloudApiError({
+        message: `${
+          extractErrorMessageBodyFromGotError(err) ?? "Fetching the Kubeconfig for ephemeral cluster failed."
+        }`,
+        detail: clusterId,
+      })
     }
   }
 }
