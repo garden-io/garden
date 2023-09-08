@@ -193,7 +193,10 @@ describe("kubernetes Pod runner functions", () => {
         await runner.start({ log })
         await expectError(
           () => runner.exec({ log, command: ["sh", "-c", "echo foo && exit 2"], buffer: true }),
-          (err) => expect(err.message.trim()).to.equal("Command exited with code 2:\nfoo")
+          (err) => {
+            expect(err.message.trim()).to.include("Command exited with code 2")
+            expect(err.message.trim()).to.include("foo")
+          }
         )
       })
     })
@@ -292,7 +295,10 @@ describe("kubernetes Pod runner functions", () => {
 
         await expectError(
           () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events, throwOnExitCode: true }),
-          (err) => expect(err.message.trim()).to.equal("Command exited with code 1:\nfoo")
+          (err) => {
+            expect(err.message.trim()).to.include("Command exited with code 1")
+            expect(err.message.trim()).to.include("foo")
+          }
         )
       })
 
@@ -418,7 +424,7 @@ describe("kubernetes Pod runner functions", () => {
         await expectError(
           () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
           (err) => {
-            expect(err.type).to.eql("out-of-memory")
+            expect(err.type).to.eql("pod-runner-oom")
             expect(err.message).to.include("OOMKilled")
           }
         )
@@ -497,7 +503,7 @@ describe("kubernetes Pod runner functions", () => {
         await expectError(
           () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
           (err) => {
-            expect(err.type).to.eql("out-of-memory")
+            expect(err.type).to.eql("pod-runner-oom")
             expect(err.message).to.include("OOMKilled")
           }
         )

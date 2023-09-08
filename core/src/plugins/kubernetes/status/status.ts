@@ -7,7 +7,7 @@
  */
 
 import { diffString } from "json-diff"
-import { DeploymentError, GardenError, GardenErrorParams } from "../../../exceptions"
+import { DeploymentError, GardenErrorParams } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi, KubernetesError } from "../api"
 import { getAppNamespace } from "../namespace"

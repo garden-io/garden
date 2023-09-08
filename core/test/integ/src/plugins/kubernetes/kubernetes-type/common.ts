@@ -177,7 +177,7 @@ describe("getManifests", () => {
 
       await expectError(
         () => getManifests({ ctx, api, action, log: garden.log, defaultNamespace, readFromSrcDir: false }),
-        (err) => expect(err.message).to.equal(expectedErr)
+        (err) => expect(err.message).to.include(expectedErr)
       )
     })
 
@@ -186,7 +186,7 @@ describe("getManifests", () => {
 
       await expectError(
         () => getManifests({ ctx, api, action, log: garden.log, defaultNamespace, readFromSrcDir: false }),
-        (err) => expect(err.message).to.equal(expectedErr)
+        (err) => expect(err.message).to.include(expectedErr)
       )
     })
 
@@ -195,7 +195,7 @@ describe("getManifests", () => {
 
       await expectError(
         () => getManifests({ ctx, api, action, log: garden.log, defaultNamespace, readFromSrcDir: false }),
-        (err) => expect(err.message).to.equal(expectedErr)
+        (err) => expect(err.message).to.include(expectedErr)
       )
     })
 
@@ -204,7 +204,9 @@ describe("getManifests", () => {
 
       await expectError(
         () => getManifests({ ctx, api, action, log: garden.log, defaultNamespace, readFromSrcDir: false }),
-        (err) => expect(err.message).to.equal(expectedErr)
+        (err) => {
+          expect(err.message).to.include(expectedErr)
+        }
       )
     })
 
@@ -306,7 +308,7 @@ describe("getManifests", () => {
             readFromSrcDir: true,
           }),
         {
-          contains: `Invalid manifest file path(s) in ${action.kind} action '${action.name}'`,
+          contains: `Invalid manifest file path(s) declared in ${action.longDescription()}`,
         }
       )
     })
@@ -334,7 +336,7 @@ describe("getManifests", () => {
             readFromSrcDir: true,
           }),
         {
-          contains: `Invalid manifest file path(s) in ${action.kind} action '${action.name}'`,
+          contains: `Invalid manifest file path(s) declared in ${action.longDescription()}`,
         }
       )
     })

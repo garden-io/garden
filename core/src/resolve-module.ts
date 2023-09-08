@@ -25,7 +25,7 @@ import {
   PluginError,
   toGardenError,
 } from "./exceptions"
-import { dedent, deline } from "./util/string"
+import { dedent } from "./util/string"
 import {
   GardenModule,
   getModuleTypeBases,
