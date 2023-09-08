@@ -169,7 +169,10 @@ export async function namespaceExists(api: KubeApi, ctx: KubernetesPluginContext
     await api.core.readNamespace(name)
     return true
   } catch (err) {
-    if (err.statusCode === 404) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       return false
     } else {
       throw err
@@ -298,9 +301,12 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
       // Note: Need to call the delete method with an empty object
       // TODO: any cast is required until https://github.com/kubernetes-client/javascript/issues/52 is fixed
       await api.core.deleteNamespace(ns, <any>{})
-    } catch (err) {
+    } catch (err: unknown) {
+      if (!(err instanceof KubernetesError)) {
+        throw err
+      }
       // Ignore not found errors.
-      if (err.statusCode !== 404) {
+      if (err.responseStatusCode !== 404) {
         throw err
       }
     }

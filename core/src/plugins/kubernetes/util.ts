@@ -421,8 +421,11 @@ export async function upsertConfigMap({
 
   try {
     await api.core.createNamespacedConfigMap(namespace, <any>body)
-  } catch (err) {
-    if (err.statusCode === 409) {
+  } catch (err: unknown) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 409) {
       await api.core.patchNamespacedConfigMap(key, namespace, body)
     } else {
       throw err
@@ -668,8 +671,11 @@ export async function getTargetResource({
   try {
     target = await readTargetResource({ api, namespace, query })
     return target
-  } catch (err) {
-    if (err.statusCode === 404) {
+  } catch (err: unknown) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       throw new ConfigurationError({
         message: chalk.red(
           deline`${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.`

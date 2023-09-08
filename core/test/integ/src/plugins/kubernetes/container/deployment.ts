@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
+import { KubeApi, KubernetesError } from "../../../../../../src/plugins/kubernetes/api"
 import {
   createContainerManifests,
   createWorkloadManifest,
@@ -864,7 +864,10 @@ describe("kubernetes container deployment handlers", () => {
         await api.apps.readNamespacedDeployment(action.name, provider.config.namespace!.name)
         return true
       } catch (err) {
-        if (err.statusCode === 404) {
+        if (!(err instanceof KubernetesError)) {
+          throw err
+        }
+        if (err.responseStatusCode === 404) {
           return false
         } else {
           throw err

@@ -141,15 +141,21 @@ export class KubernetesError extends GardenError {
   responseStatusCode: number | undefined
 
   /**
+   * If the Kubernetes API response body contained a message, it will be stored here.
+   */
+  apiMessage: string | undefined
+
+  /**
    * See also https://nodejs.org/api/errors.html#nodejs-error-codes
    */
   osCode: string | undefined
 
-  constructor(params: GardenErrorParams & { responseStatusCode?: number; osCode?: string }) {
+  constructor(params: GardenErrorParams & { responseStatusCode?: number; osCode?: string; apiMessage?: string }) {
     super(params)
 
     this.responseStatusCode = params.responseStatusCode
     this.osCode = params.osCode
+    this.apiMessage = params.apiMessage
   }
 }
 
@@ -206,8 +212,11 @@ async function nullIfNotFound<T>(fn: () => Promise<T>) {
   try {
     const resource = await fn()
     return resource
-  } catch (err) {
-    if (err.statusCode === 404) {
+  } catch (err: unknown) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       return null
     } else {
       throw err
@@ -321,8 +330,11 @@ export class KubeApi {
 
           apiResources[apiVersion] = keyBy(resources, "kind")
           return apiResources[apiVersion]
-        } catch (err) {
-          if (err.statusCode === 404) {
+        } catch (err: unknown) {
+          if (!(err instanceof KubernetesError)) {
+            throw err
+          }
+          if (err.responseStatusCode === 404) {
             // Could not find the resource type
             return {}
           } else {
@@ -472,15 +484,18 @@ export class KubeApi {
             labelSelector,
           })
           return resourceListForKind.items
-        } catch (err) {
-          if (err.statusCode === 404) {
+        } catch (err: unknown) {
+          if (!(err instanceof KubernetesError)) {
+            throw err
+          }
+          if (err.responseStatusCode === 404) {
             // Then this resource version + kind is not available in the cluster.
             return []
           }
           // FIXME: OpenShift: developers have more restrictions on what they can list
           // Ugly workaround right now, basically just shoving the problem under the rug.
           const openShiftForbiddenList = ["Namespace", "PersistentVolume"]
-          if (err.statusCode === 403 && openShiftForbiddenList.includes(kind)) {
+          if (err.responseStatusCode === 403 && openShiftForbiddenList.includes(kind)) {
             log.warn(
               `No permissions to list resources of kind ${kind}. If you are using OpenShift, ignore this warning.`
             )
@@ -528,8 +543,11 @@ export class KubeApi {
 
     try {
       await this.request({ log, path: apiPath, opts: { method: "delete" } })
-    } catch (err) {
-      if (err.statusCode !== 404) {
+    } catch (err: unknown) {
+      if (!(err instanceof KubernetesError)) {
+        throw err
+      }
+      if (err.responseStatusCode !== 404) {
         throw err
       }
     }
@@ -629,20 +647,26 @@ export class KubeApi {
 
     try {
       await replace()
-    } catch (error) {
-      if (error.statusCode === 404) {
+    } catch (replaceError: unknown) {
+      if (!(replaceError instanceof KubernetesError)) {
+        throw replaceError
+      }
+      if (replaceError.responseStatusCode === 404) {
         try {
           await api[crudMap[kind].create](namespace, <any>obj)
           log.debug(`Created ${kind} ${namespace}/${name}`)
-        } catch (err) {
-          if (err.statusCode === 409 || err.statusCode === 422) {
+        } catch (createError: unknown) {
+          if (!(createError instanceof KubernetesError)) {
+            throw createError
+          }
+          if (createError.responseStatusCode === 409 || createError.responseStatusCode === 422) {
             await replace()
           } else {
-            throw err
+            throw createError
           }
         }
       } else {
-        throw error
+        throw replaceError
       }
     }
   }

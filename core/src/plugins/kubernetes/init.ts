@@ -310,8 +310,11 @@ export async function cleanupEnvironment({
           try {
             const annotations = (await api.core.readNamespace(ns)).metadata.annotations || {}
             return annotations[gardenAnnotationKey("generated")] === "true" ? ns : null
-          } catch (err) {
-            if (err.statusCode === 404) {
+          } catch (err: unknown) {
+            if (!(err instanceof KubernetesError)) {
+              throw err
+            }
+            if (err.responseStatusCode === 404) {
               return null
             } else {
               throw err

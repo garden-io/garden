@@ -9,7 +9,7 @@
 import { diffString } from "json-diff"
 import { DeploymentError } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
-import { KubeApi } from "../api"
+import { KubeApi, KubernetesError } from "../api"
 import { getAppNamespace } from "../namespace"
 import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
 import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
@@ -188,7 +188,10 @@ export async function checkResourceStatus({
     resource = await api.readBySpec({ namespace, manifest, log })
     resourceVersion = parseInt(resource.metadata.resourceVersion!, 10)
   } catch (err) {
-    if (err.statusCode === 404) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       return { state: <DeployState>"missing", resource: manifest }
     } else {
       throw err
@@ -584,7 +587,10 @@ export async function getDeployedResource<ResourceKind extends KubernetesObject>
     const res = await api.readBySpec({ namespace, manifest, log })
     return <KubernetesResource<ResourceKind>>res
   } catch (err) {
-    if (err.statusCode === 404) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       return null
     } else {
       throw err

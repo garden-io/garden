@@ -1239,8 +1239,11 @@ export class PodRunner extends PodRunnerParams {
   async stop() {
     try {
       await this.api.core.deleteNamespacedPod(this.podName, this.namespace, undefined, undefined, 0)
-    } catch (err) {
-      if (err.statusCode !== 404) {
+    } catch (err: unknown) {
+      if (!(err instanceof KubernetesError)) {
+        throw err
+      }
+      if (err.responseStatusCode !== 404) {
         throw err
       }
     }

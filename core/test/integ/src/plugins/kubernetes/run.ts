@@ -16,7 +16,7 @@ import { Garden } from "../../../../../src/garden"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { deline, randomString, dedent } from "../../../../../src/util/string"
 import { runAndCopy, PodRunner, prepareRunPodSpec } from "../../../../../src/plugins/kubernetes/run"
-import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
+import { KubeApi, KubernetesError } from "../../../../../src/plugins/kubernetes/api"
 import {
   KubernetesPluginContext,
   KubernetesProvider,
@@ -1062,7 +1062,10 @@ describe("kubernetes Pod runner functions", () => {
 
       await expectError(
         () => api.core.readNamespacedPod(podName, namespace),
-        (err) => expect(err.statusCode).to.equal(404)
+        (err) => {
+          expect(err).to.be.instanceOf(KubernetesError)
+          expect(err.responseStatusCode).to.equal(404)
+        }
       )
     })
 
@@ -1139,8 +1142,10 @@ describe("kubernetes Pod runner functions", () => {
 
         await expectError(
           () => api.core.readNamespacedPod(podName, namespace),
-          (err) => expect(err.statusCode).to.equal(404)
-        )
+          (err) => {
+            expect(err).to.be.instanceOf(KubernetesError)
+            expect(err.responseStatusCode).to.equal(404)
+          })
       })
 
       it("should handle globs when copying artifacts out of the container", async () => {

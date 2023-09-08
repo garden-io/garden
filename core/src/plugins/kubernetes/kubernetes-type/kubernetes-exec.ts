@@ -19,7 +19,7 @@ import { PluginContext } from "../../../plugin-context"
 import { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types"
 import { RunResult } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
-import { KubeApi } from "../api"
+import { KubeApi, KubernetesError } from "../api"
 import {
   KubernetesPluginContext,
   KubernetesTargetResourceSpec,
@@ -146,8 +146,11 @@ async function readAndExec({
       namespace,
       query: resource,
     })
-  } catch (err) {
-    if (err.statusCode === 404) {
+  } catch (err: unknown) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       throw new ConfigurationError({
         message: chalk.red(
           dedent`

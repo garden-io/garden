@@ -11,7 +11,7 @@ import { findByName } from "../../../util/util"
 import { ContainerIngressSpec, ContainerDeployAction } from "../../container/moduleConfig"
 import { IngressTlsCertificate, KubernetesProvider } from "../config"
 import { ServiceIngress, ServiceProtocol } from "../../../types/service"
-import { KubeApi } from "../api"
+import { KubeApi, KubernetesError } from "../api"
 import { ConfigurationError, PluginError } from "../../../exceptions"
 import { ensureSecret } from "../secrets"
 import { getHostnamesFromPem } from "../../../util/tls"
@@ -233,8 +233,11 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
 
     try {
       secret = await api.core.readNamespacedSecret(cert.secretRef.name, cert.secretRef.namespace)
-    } catch (err) {
-      if (err.statusCode === 404) {
+    } catch (err: unknown) {
+      if (!(err instanceof KubernetesError)) {
+        throw err
+      }
+      if (err.responseStatusCode === 404) {
         throw new ConfigurationError({
           message: `Cannot find Secret ${cert.secretRef.name} configured for TLS certificate ${cert.name}`,
         })

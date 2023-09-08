@@ -75,7 +75,7 @@ export async function requestWithRetry<R>(
 
 type OSError = {
   code: string
-}
+} & Error
 
 function isOSError(err: any): err is OSError {
   return typeof err?.code === "string"
@@ -89,36 +89,44 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
   let errorType: string
   let response: KubernetesClientHttpError["response"] | undefined
   let body: any | undefined
-  let statusCode: number | undefined
+  let responseStatusCode: number | undefined
   let osCode: string | undefined
 
-  if (isOSError(err)) {
-    osCode = err.code
-  }
 
   if (err instanceof KubernetesClientHttpError) {
     errorType = "HttpError"
     response = err.response || {}
     body = err.body
-    statusCode = err.statusCode
+    responseStatusCode = err.statusCode
   } else if (err instanceof requestErrors.StatusCodeError) {
     errorType = "StatusCodeError"
     response = err.response
-    statusCode = err.statusCode
+    responseStatusCode = err.statusCode
+  } else if (isOSError(err)) {
+    errorType = "Error"
+    osCode = err.code
   } else {
     // In all other cases, we don't know what this is, so let's just throw an InternalError
-    throw InternalError.wrapError(err, `wrapKubernetesError encountered a ${typeof err} unexpectedly during ${context}`)
+    throw InternalError.wrapError(err, `wrapKubernetesError encountered an unknown error unexpectedly during ${context}`)
+  }
+
+  let apiMessage: string | undefined
+  if (body && typeof body.message === "string") {
+    apiMessage = body.message
   }
 
   return new KubernetesError({
     message: dedent`
-      Got ${errorType} from Kubernetes API (${context})${err.message ? `: ${err.message}` : ""}
+      Error while performing Kubernetes API operation ${context}:
 
-      Request URL: ${response?.url}
-      Response status code: ${response.statusCode}
-      ${body?.message ? `Kubernetes Message: ${body?.message}` : `Response body: ${JSON.stringify(body)}`}`,
-    responseStatusCode: err.statusCode,
+      ${errorType}${err.message ? `: ${err.message}` : ""}
+
+      ${response?.url ? `Request URL: ${response?.url}` : ""}
+      ${responseStatusCode ? `Response status code: ${responseStatusCode}` : ""}
+      ${apiMessage ? `Kubernetes Message: ${apiMessage}` : ""}`,
+    responseStatusCode,
     osCode,
+    apiMessage
   })
 }
 
@@ -133,6 +141,10 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
  */
 export function shouldRetry(error: unknown, context: string): boolean {
   const err = toKubernetesError(error, context)
+
+  if (err.osCode === "ECONNRESET") {
+    return true
+  }
 
   if (err.responseStatusCode && statusCodesForRetry.includes(err.responseStatusCode)) {
     return true
