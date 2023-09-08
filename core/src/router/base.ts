@@ -367,7 +367,9 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         const result = await handler["apply"](plugin, args)
         if (result === undefined) {
           throw new PluginError({
-            message: `Got empty response from ${actionType}.${String(handlerType)} handler on ${pluginName} provider. Called with ${args.length} arguments.`,
+            message: `Got empty response from ${actionType}.${String(
+              handlerType
+            )} handler on ${pluginName} provider. Called with ${args.length} arguments.`,
           })
         }
         const kind = this.kind

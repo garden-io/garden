@@ -49,7 +49,6 @@ export abstract class GardenError extends Error {
   public override message: string
   public wrappedErrors?: GardenError[]
 
-
   constructor({ message, stack, wrappedErrors, taskType }: GardenErrorParams) {
     super(message.trim())
     this.stack = stack || this.stack
@@ -68,10 +67,12 @@ export abstract class GardenError extends Error {
           Error type: ${this.type}
 
           Wrapped errors:
-          ${this.wrappedErrors?.map((e) => (dedent`
+          ${this.wrappedErrors?.map(
+            (e) => dedent`
             ⮑ ${indentString(e.toString(verbose), 3).trim()}
 
-          `))}
+          `
+          )}
         `
       } else {
         return errorDetails
@@ -201,10 +202,12 @@ export class WorkflowScriptError extends GardenError {
   details: WorkflowScriptErrorDetails
 
   constructor(details: WorkflowScriptErrorDetails) {
-    super({ message: dedent`
+    super({
+      message: dedent`
       Script exited with code ${details.exitCode}. This is what happened:
 
-      ${details.stderr || details.output}` })
+      ${details.stderr || details.output}`,
+    })
     this.details = details
   }
 }
@@ -256,7 +259,7 @@ export class ChildProcessError extends GardenError {
     this.details = details
   }
 
-  private static formatMessage({cmd, args, code, output, stderr}: ChildProcessErrorDetails): string {
+  private static formatMessage({ cmd, args, code, output, stderr }: ChildProcessErrorDetails): string {
     const nLinesToShow = 100
     const lines = output.split("\n")
     const out = lines.slice(-nLinesToShow).join("\n")

@@ -261,7 +261,7 @@ export class ModuleGraph {
       throw new CircularDependenciesError({
         messagePrefix: "Circular dependencies detected",
         cycles,
-        cyclesSummary
+        cyclesSummary,
       })
     }
   }

@@ -302,7 +302,7 @@ export class BooleanParameter extends Parameter<boolean> {
     } else if (input === false || input === "false" || input === "0" || input === "no" || input === 0) {
       return false
     } else {
-      throw new ParameterError({ message: `Invalid boolean value: '${input}'`, })
+      throw new ParameterError({ message: `Invalid boolean value: '${input}'` })
     }
   }
 }

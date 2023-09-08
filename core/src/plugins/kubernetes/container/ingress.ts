@@ -260,7 +260,9 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
       return getHostnamesFromPem(crtData)
     } catch (error) {
       throw new ConfigurationError({
-        message: `Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate: ${error.message || error}`,
+        message: `Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate: ${
+          error.message || error
+        }`,
       })
     }
   }

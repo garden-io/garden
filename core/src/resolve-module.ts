@@ -18,7 +18,13 @@ import {
 import { ContextResolveOpts, GenericContext } from "./config/template-contexts/base"
 import { dirname, posix, relative, resolve } from "path"
 import type { Garden } from "./garden"
-import { CircularDependenciesError, ConfigurationError, FilesystemError, PluginError, toGardenError } from "./exceptions"
+import {
+  CircularDependenciesError,
+  ConfigurationError,
+  FilesystemError,
+  PluginError,
+  toGardenError,
+} from "./exceptions"
 import { dedent, deline } from "./util/string"
 import {
   GardenModule,
@@ -392,7 +398,9 @@ export class ModuleResolver {
 
       throw new ConfigurationError({
         message: dedent`
-          Unrecognized module type '${config.type}' (defined at ${configPath}). Are you missing a provider configuration?
+          Unrecognized module type '${
+            config.type
+          }' (defined at ${configPath}). Are you missing a provider configuration?
 
           Currently available module types: ${Object.keys(moduleTypeDefinitions)}
         `,

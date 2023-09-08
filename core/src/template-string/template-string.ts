@@ -308,7 +308,9 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
   // Validate input object
   if (value[arrayForEachReturnKey] === undefined) {
     throw new ConfigurationError({
-      message: `Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field. Got ${naturalList(Object.keys(value))}`,
+      message: `Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field. Got ${naturalList(
+        Object.keys(value)
+      )}`,
     })
   }
 
@@ -318,7 +320,9 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
     const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
 
     throw new ConfigurationError({
-      message: `Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}. Expected keys: ${naturalList(expectedForEachKeys)}`,
+      message: `Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}. Expected keys: ${naturalList(
+        expectedForEachKeys
+      )}`,
     })
   }
 
@@ -408,7 +412,9 @@ function handleConditional(value: any, context: ConfigContext, opts: ContextReso
 
   if (thenExpression === undefined) {
     throw new ConfigurationError({
-      message: `Missing ${conditionalThenKey} field next to ${conditionalKey} field. Got: ${naturalList(Object.keys(value))}`,
+      message: `Missing ${conditionalThenKey} field next to ${conditionalKey} field. Got: ${naturalList(
+        Object.keys(value)
+      )}`,
     })
   }
 
@@ -418,7 +424,9 @@ function handleConditional(value: any, context: ConfigContext, opts: ContextReso
     const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
 
     throw new ConfigurationError({
-      message: `Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}. Expected: ${naturalList(expectedConditionalKeys)}`,
+      message: `Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}. Expected: ${naturalList(
+        expectedConditionalKeys
+      )}`,
     })
   }
 

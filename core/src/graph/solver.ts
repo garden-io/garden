@@ -515,9 +515,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     log.error({ msg, error, showDuration: false })
     const divider = renderDivider()
     log.silly(
-      chalk.gray(
-        `Full error with stack trace and wrapped errors:\n${divider}\n${error.toString(true)}\n${divider}`
-      )
+      chalk.gray(`Full error with stack trace and wrapped errors:\n${divider}\n${error.toString(true)}\n${divider}`)
     )
   }
 }

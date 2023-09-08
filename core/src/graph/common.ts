@@ -65,7 +65,7 @@ export class DependencyGraph<T> extends DepGraph<T> {
         messagePrefix: "Circular dependencies detected",
         cycles,
         cyclesSummary,
-       })
+      })
     }
   }
 

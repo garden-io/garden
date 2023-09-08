@@ -35,7 +35,9 @@ function makeRootCommand(commandName: string): PluginCommand {
 
       if (!provider.config.initRoot) {
         throw new ConfigurationError({
-          message: `terraform provider does not have an ${chalk.underline("initRoot")} configured in the provider section of the project configuration`,
+          message: `terraform provider does not have an ${chalk.underline(
+            "initRoot"
+          )} configured in the provider section of the project configuration`,
         })
       }
 

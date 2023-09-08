@@ -79,7 +79,7 @@ export async function loadImageToKind(imageId: string, config: KubernetesConfig,
     }
     throw new RuntimeError({
       message: `An attempt to load image ${imageId} into the kind cluster failed: ${err.message}`,
-      wrappedErrors: [err]
+      wrappedErrors: [err],
     })
   }
 }

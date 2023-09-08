@@ -262,11 +262,7 @@ export async function startSyncWithoutDeploy({
   if (!someSyncStarted) {
     throw new RuntimeError({
       message: dedent`
-        Could not start any syncs. Aborting.${
-          actionKeys ? `\n\nActions: ${
-            naturalList(actionKeys)
-          }` : ""
-        }`,
+        Could not start any syncs. Aborting.${actionKeys ? `\n\nActions: ${naturalList(actionKeys)}` : ""}`,
     })
   }
 }

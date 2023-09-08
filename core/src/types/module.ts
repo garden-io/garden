@@ -211,7 +211,9 @@ export function getModuleTypeBases(
   if (!base) {
     const name = moduleType.name
     throw new RuntimeError({
-      message: `Unable to find base module type '${moduleType.base}' for module type '${name}'. Available module types: ${naturalList(Object.keys(moduleTypes))}`,
+      message: `Unable to find base module type '${
+        moduleType.base
+      }' for module type '${name}'. Available module types: ${naturalList(Object.keys(moduleTypes))}`,
     })
   }
 

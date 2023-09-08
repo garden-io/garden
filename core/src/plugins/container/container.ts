@@ -60,7 +60,8 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
     const definedPorts = spec.ports
     const portsByName = keyBy(spec.ports, "name")
 
-    const definedPortsDescription = definedPorts.length > 0 ? ` Ports declared in service spec: ${naturalList(definedPorts.map((p) => p.name))}` : ""
+    const definedPortsDescription =
+      definedPorts.length > 0 ? ` Ports declared in service spec: ${naturalList(definedPorts.map((p) => p.name))}` : ""
 
     for (const ingress of spec.ingresses) {
       const ingressPort = ingress.port
@@ -398,7 +399,10 @@ export const gardenPlugin = () =>
               const definedPorts = spec.ports
               const portsByName = keyBy(spec.ports, "name")
 
-              const definedPortsDescription = definedPorts.length > 0 ? ` Ports declared in Deploy spec: ${naturalList(definedPorts.map((p) => p.name))}` : ""
+              const definedPortsDescription =
+                definedPorts.length > 0
+                  ? ` Ports declared in Deploy spec: ${naturalList(definedPorts.map((p) => p.name))}`
+                  : ""
 
               for (const ingress of spec.ingresses) {
                 const ingressPort = ingress.port
@@ -586,7 +590,9 @@ function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
     const buildAction = action.getDependency({ kind: "Build", name: build }, { includeDisabled: true })
     if (buildAction && !buildAction?.isCompatible("container")) {
       throw new ConfigurationError({
-        message: `${action.longDescription()} build field must specify a container Build, or a compatible type. Got Build action type: ${buildAction.getConfig().type}`,
+        message: `${action.longDescription()} build field must specify a container Build, or a compatible type. Got Build action type: ${
+          buildAction.getConfig().type
+        }`,
       })
     }
   }

@@ -12,13 +12,7 @@ import cloneDeep from "fast-copy"
 import { omit, pick, some } from "lodash"
 import { Log } from "../../logger/log-entry"
 import { CoreV1Event } from "@kubernetes/client-node"
-import {
-  PluginError,
-  GardenError,
-  RuntimeError,
-  ConfigurationError,
-  GardenErrorParams,
-} from "../../exceptions"
+import { PluginError, GardenError, RuntimeError, ConfigurationError, GardenErrorParams } from "../../exceptions"
 import { KubernetesProvider } from "./config"
 import { Writable, Readable, PassThrough } from "stream"
 import { uniqByName, sleep } from "../../util/util"
@@ -738,7 +732,7 @@ export abstract class PodRunnerError extends GardenError {
 class PodRunnerWorkloadError extends PodRunnerError {
   override type = "pod-runner-exit-code"
 
-  constructor ({ message, details }: PodRunnerErrorParams) {
+  constructor({ message, details }: PodRunnerErrorParams) {
     let errorDesc = message + "\n\n"
 
     const containerState = details.containerStatus?.state
@@ -771,7 +765,7 @@ class PodRunnerWorkloadError extends PodRunnerError {
 
     super({
       message: errorDesc,
-      details
+      details,
     })
   }
 }
@@ -779,10 +773,12 @@ class PodRunnerOutOfMemoryError extends PodRunnerError {
   override type = "pod-runner-oom"
 
   constructor({ message, details }: PodRunnerErrorParams) {
-    const logsMessage = details.logs ? ` Here are the logs until the out-of-memory event occurred:\n\n${details.logs}` : ""
+    const logsMessage = details.logs
+      ? ` Here are the logs until the out-of-memory event occurred:\n\n${details.logs}`
+      : ""
     super({
       message: `${message}${logsMessage}`,
-      details
+      details,
     })
   }
 }
@@ -804,10 +800,9 @@ class PodRunnerNotFoundError extends PodRunnerError {
           events?.length ? `\n\n${renderPodEvents(events)}` : ""
         }
       `,
-      details
+      details,
     })
   }
-
 }
 
 class PodRunnerTimeoutError extends PodRunnerError {
@@ -815,10 +810,10 @@ class PodRunnerTimeoutError extends PodRunnerError {
 
   //
   constructor({ message, details }: PodRunnerErrorParams) {
-    const logsMessage = (details.logs ? ` Here are the logs until the timeout occurred:\n\n${details.logs}` : "")
+    const logsMessage = details.logs ? ` Here are the logs until the timeout occurred:\n\n${details.logs}` : ""
     super({
       message: `${message}${logsMessage}`,
-      details
+      details,
     })
   }
 }
@@ -1025,7 +1020,10 @@ export class PodRunner extends PodRunnerParams {
       // Garden computes is "stopped". However, in those instances the exitReason is still "OOMKilled"
       // and we handle that case specifically here.
       if (exitCode === 137 || exitReason === "OOMKilled") {
-        throw new PodRunnerOutOfMemoryError({ message: "Pod container was OOMKilled.", details: await podErrorDetails() })
+        throw new PodRunnerOutOfMemoryError({
+          message: "Pod container was OOMKilled.",
+          details: await podErrorDetails(),
+        })
       }
 
       if (state === "unhealthy") {
@@ -1038,12 +1036,18 @@ export class PodRunner extends PodRunnerParams {
           // Successfully ran the command in the main container, but returned non-zero exit code.
           if (throwOnExitCode === true) {
             // Consider it as a task execution error inside the Pod.
-            throw new PodRunnerWorkloadError({ message: "Failed with non-zero exit code.", details: await podErrorDetails() })
+            throw new PodRunnerWorkloadError({
+              message: "Failed with non-zero exit code.",
+              details: await podErrorDetails(),
+            })
           } else {
             return exitCode
           }
         } else {
-          throw new PodRunnerWorkloadError({ message: `Failed to start Pod ${podName}.`, details: await podErrorDetails() })
+          throw new PodRunnerWorkloadError({
+            message: `Failed to start Pod ${podName}.`,
+            details: await podErrorDetails(),
+          })
         }
       }
 
@@ -1051,7 +1055,10 @@ export class PodRunner extends PodRunnerParams {
       if (state === "stopped" || exitReason === "Completed") {
         if (exitCode !== undefined && exitCode !== 0) {
           if (throwOnExitCode === true) {
-            throw new PodRunnerWorkloadError({ message: "Failed with non-zero exit code.", details: await podErrorDetails() })
+            throw new PodRunnerWorkloadError({
+              message: "Failed with non-zero exit code.",
+              details: await podErrorDetails(),
+            })
           } else {
             return exitCode
           }
@@ -1158,7 +1165,10 @@ export class PodRunner extends PodRunnerParams {
 
     if (result.timedOut) {
       const errorDetails: PodErrorDetails = { logs: await collectLogs(), result }
-      throw new PodRunnerTimeoutError({ message: `Command timed out after ${timeoutSec} seconds.`, details: errorDetails })
+      throw new PodRunnerTimeoutError({
+        message: `Command timed out after ${timeoutSec} seconds.`,
+        details: errorDetails,
+      })
     }
 
     if (result.exitCode === 137) {
@@ -1272,13 +1282,7 @@ export class PodRunner extends PodRunnerParams {
     await this.api.createPod(this.namespace, pod)
   }
 
-  handlePodError({
-    err,
-    startedAt,
-  }: {
-    err: GardenError
-    startedAt: Date
-  }): RunResult {
+  handlePodError({ err, startedAt }: { err: GardenError; startedAt: Date }): RunResult {
     let message: string
     let diagnosticErrorMsg: string | undefined
     let exitCode: number | undefined

@@ -43,7 +43,7 @@ function parseVersionOutput(versionOutput: string, params: BinaryVersionCheckPar
   if (!match || match.length < 2) {
     throw versionCheckError(
       params,
-      `Could not detect ${params.name} binary version in the version command's output: "${versionOutputFirstLine}": Failed to match regex "${params.versionRegex}".`,
+      `Could not detect ${params.name} binary version in the version command's output: "${versionOutputFirstLine}": Failed to match regex "${params.versionRegex}".`
     )
   }
   return match[1]
@@ -53,7 +53,10 @@ function validateVersionNumber(version: string, params: BinaryVersionCheckParams
   try {
     return semver.gte(version, params.minVersion)
   } catch (error) {
-    throw versionCheckError(params, `Could not parse the ${params.name} version ${version} as a valid semver value: ${error.message || error}`)
+    throw versionCheckError(
+      params,
+      `Could not parse the ${params.name} version ${version} as a valid semver value: ${error.message || error}`
+    )
   }
 }
 

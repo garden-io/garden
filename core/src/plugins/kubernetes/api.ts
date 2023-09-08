@@ -373,7 +373,10 @@ export class KubeApi {
     await this.config.applyToRequest(requestOpts)
 
     const context = `Kubernetes API: ${path}`
-    return await requestWithRetry(log, context, async () => {
+    return await requestWithRetry(
+      log,
+      context,
+      async () => {
         try {
           log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
           return await request(requestOpts)
@@ -1012,4 +1015,3 @@ async function getContextConfig(log: Log, ctx: PluginContext, provider: Kubernet
 
   return kc
 }
-

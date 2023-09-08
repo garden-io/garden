@@ -290,7 +290,9 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 
   if (tty) {
     if (data) {
-      throw new InternalError({ message: `Cannot pipe to stdin when tty=true. (spawn(${JSON.stringify(cmd)}, ${JSON.stringify(args)})` })
+      throw new InternalError({
+        message: `Cannot pipe to stdin when tty=true. (spawn(${JSON.stringify(cmd)}, ${JSON.stringify(args)})`,
+      })
     }
     _process.stdin.setEncoding("utf8")
     // raw mode is not available if we're running without a TTY
@@ -331,9 +333,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
     if (timeout > 0) {
       _timeout = setTimeout(() => {
         proc.kill("SIGKILL")
-        reject(
-          new TimeoutError({ message: `${cmd} timed out after ${timeout} seconds.` })
-        )
+        reject(new TimeoutError({ message: `${cmd} timed out after ${timeout} seconds.` }))
       }, timeout * 1000)
     }
 
@@ -506,7 +506,9 @@ export function pickKeys<T extends object, U extends keyof T>(obj: T, keys: U[],
 
   if (missing.length) {
     throw new ParameterError({
-      message: `Could not find ${description}(s): ${missing.map((k, _) => k).join(", ")}. Available: ${naturalList(Object.keys(obj))}`,
+      message: `Could not find ${description}(s): ${missing.map((k, _) => k).join(", ")}. Available: ${naturalList(
+        Object.keys(obj)
+      )}`,
     })
   }
 

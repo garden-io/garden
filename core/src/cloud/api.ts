@@ -277,10 +277,13 @@ export class CloudApi {
         redactedResponse.token = "<Redacted>"
       }
       // If we get here, this is a bug.
-      throw InternalError.wrapError(error, dedent`
+      throw InternalError.wrapError(
+        error,
+        dedent`
         An error occurred while saving client auth token to local config db.
 
-        Token response: ${JSON.stringify(redactedResponse)}`)
+        Token response: ${JSON.stringify(redactedResponse)}`
+      )
     }
   }
 
@@ -550,7 +553,7 @@ export class CloudApi {
           Response code: ${res?.statusCode}
           Response body: ${JSON.stringify(res?.body)}
         `,
-        responseStatusCode: res?.statusCode
+        responseStatusCode: res?.statusCode,
       })
     }
 
@@ -710,7 +713,7 @@ export class CloudApi {
           message: `An error occurred while verifying client auth token with ${getCloudDistributionName(
             this.domain
           )}: ${err.message}`,
-          responseStatusCode: err.response.statusCode
+          responseStatusCode: err.response.statusCode,
         })
       }
     }

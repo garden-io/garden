@@ -193,7 +193,10 @@ export class GitHandler extends VcsHandler {
           }
 
           return
-        } else if (err.details.code === 128 && err.details.stderr.toLowerCase().includes("fatal: not a git repository")) {
+        } else if (
+          err.details.code === 128 &&
+          err.details.stderr.toLowerCase().includes("fatal: not a git repository")
+        ) {
           throw new RuntimeError({ message: notInRepoRootErrorMessage(path) })
         } else {
           log.error(

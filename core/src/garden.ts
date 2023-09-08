@@ -40,7 +40,15 @@ import {
   getCloudDistributionName,
   getCloudLogSectionName,
 } from "./util/util"
-import { ConfigurationError, GardenError, PluginError, RuntimeError, InternalError, toGardenError, CircularDependenciesError } from "./exceptions"
+import {
+  ConfigurationError,
+  GardenError,
+  PluginError,
+  RuntimeError,
+  InternalError,
+  toGardenError,
+  CircularDependenciesError,
+} from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
@@ -702,7 +710,7 @@ export class Garden {
         message: dedent`
           Could not find provider '${name}' in environment '${this.environmentName}'
           (configured providers: ${providerNames.join(", ") || "<none>"})
-        `
+        `,
       })
     }
 
@@ -1546,7 +1554,9 @@ export class Garden {
     }
 
     throw new InternalError({
-      message: `Could not find environment config ${this.environmentName}. Available environments: ${naturalList(this.projectConfig.environments.map((e) => e.name))}`,
+      message: `Could not find environment config ${this.environmentName}. Available environments: ${naturalList(
+        this.projectConfig.environments.map((e) => e.name)
+      )}`,
     })
   }
 

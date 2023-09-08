@@ -257,7 +257,9 @@ async function renderConfigs({
         resolvedName = resolveTemplateString(m.name, context, { allowPartial: false })
       } catch (error) {
         throw new ConfigurationError({
-          message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error.message || error}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
+          message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${
+            error.message || error
+          }\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
         })
       }
 
@@ -297,8 +299,10 @@ async function renderConfigs({
           throw error
         }
         throw new ConfigurationError({
-          message: `${templateDescription} returned an invalid config (named ${spec.name}) for Render ${renderConfig.name}: ${error.message || error}}`,
-          wrappedErrors: [error]
+          message: `${templateDescription} returned an invalid config (named ${spec.name}) for Render ${
+            renderConfig.name
+          }: ${error.message || error}}`,
+          wrappedErrors: [error],
         })
       }
 

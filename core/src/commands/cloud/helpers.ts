@@ -154,7 +154,10 @@ export function handleBulkOperationResult<T>({
   // Ensure command exits with code 1.
   if (errors.length > 0) {
     const errorMessages = errors.map((e) => e.message).join("\n\n")
-    throw new CommandError({ message: `Command failed. Errors: \n${errorMessages}`, wrappedErrors: errors.map(toGardenError) })
+    throw new CommandError({
+      message: `Command failed. Errors: \n${errorMessages}`,
+      wrappedErrors: errors.map(toGardenError),
+    })
   }
 
   return { result: results }

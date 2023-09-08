@@ -84,9 +84,7 @@ export class PluginsCommand extends Command<Args> {
           new ParameterError({
             message: dedent`
               Could not find command '${args.command}' on plugin ${args.plugin}${
-                availableCommands ? `\n\nAvailable commands: ${
-                  naturalList(availableCommands)
-                }` : ""
+                availableCommands ? `\n\nAvailable commands: ${naturalList(availableCommands)}` : ""
               }`,
           }),
         ],

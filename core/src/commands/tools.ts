@@ -116,7 +116,8 @@ export class ToolsCommand extends Command<Args, Opts> {
       plugins = plugins.filter((p) => p.name === pluginName)
 
       if (plugins.length === 0) {
-        throw new ParameterError({ message: dedent`
+        throw new ParameterError({
+          message: dedent`
           Could not find plugin ${pluginName}.
 
           Available plugins: ${naturalList(availablePlugins.map((p) => p.name))}

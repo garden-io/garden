@@ -553,9 +553,9 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     // Note: This shouldn't happen in normal user flows
     if (!template) {
       throw new InternalError({
-        message: `${description} references template '${
-          templateName
-        }' which cannot be found. Available templates: ${naturalList(Object.keys(garden.configTemplates)) || "(none)"}`,
+        message: `${description} references template '${templateName}' which cannot be found. Available templates: ${
+          naturalList(Object.keys(garden.configTemplates)) || "(none)"
+        }`,
       })
     }
 
@@ -656,7 +656,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     }
     throw new ConfigurationError({
       message: `Configure handler for ${config.type} ${config.kind} set a templated value on a config field which could not be resolved. This may be a bug in the plugin, please report this. Error: ${error}`,
-      wrappedErrors: [error]
+      wrappedErrors: [error],
     })
   }
 

@@ -223,7 +223,9 @@ export class PluginTool extends CliWrapper {
 
     if (!buildSpec) {
       throw new ConfigurationError({
-        message: `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture}${darwinARM ? "; without emulation: darwin-arm" : ""})`,
+        message: `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture}${
+          darwinARM ? "; without emulation: darwin-arm" : ""
+        })`,
       })
     }
 

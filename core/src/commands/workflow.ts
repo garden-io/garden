@@ -218,7 +218,7 @@ export class WorkflowCommand extends Command<Args, {}> {
               message: `workflow failed with ${errors.length} ${
                 errors.length > 1 ? "errors" : "error"
               }, see logs above for more info`,
-              wrappedErrors: errors.map(toGardenError)
+              wrappedErrors: errors.map(toGardenError),
             }),
           ]
       return { result, errors: finalError }
@@ -368,7 +368,9 @@ export async function runStepCommand(params: RunStepCommandParams): Promise<Comm
 
   if (persistent) {
     throw new ConfigurationError({
-      message: `Cannot run Garden command '${rawArgs.join(" ")}'${step.name ? ` (Step ${step.name}) ` : ""}: Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, interactive commands, commands with monitor flags set etc.)`,
+      message: `Cannot run Garden command '${rawArgs.join(" ")}'${
+        step.name ? ` (Step ${step.name}) ` : ""
+      }: Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, interactive commands, commands with monitor flags set etc.)`,
     })
   }
 

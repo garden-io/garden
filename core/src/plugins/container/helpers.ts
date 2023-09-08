@@ -278,7 +278,9 @@ const helpers = {
    */
   checkDockerServerVersion(version: DockerVersion) {
     if (!version.server) {
-      throw new RuntimeError({ message: `Failed to check Docker server version: Docker server is not running or cannot be reached.` })
+      throw new RuntimeError({
+        message: `Failed to check Docker server version: Docker server is not running or cannot be reached.`,
+      })
     } else if (!checkMinDockerVersion(version.server, minDockerVersion.server!)) {
       throw new RuntimeError({
         message: `Docker server needs to be version ${minDockerVersion.server} or newer (got ${version.server})`,
@@ -325,7 +327,7 @@ const helpers = {
       }
       throw new RuntimeError({
         message: `Unable to run docker command "${args.join(" ")}" in ${cwd}: ${err.message}`,
-        wrappedErrors: [err]
+        wrappedErrors: [err],
       })
     }
   },

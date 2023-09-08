@@ -1145,7 +1145,8 @@ describe("kubernetes Pod runner functions", () => {
           (err) => {
             expect(err).to.be.instanceOf(KubernetesError)
             expect(err.responseStatusCode).to.equal(404)
-          })
+          }
+        )
       })
 
       it("should handle globs when copying artifacts out of the container", async () => {

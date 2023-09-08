@@ -76,7 +76,9 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
 
   if (!tarPath) {
     throw new PluginError({
-      message: `Expected details.tarPath from the jib-container build handler. Got: ${naturalList(Object.keys(baseResult.details || {}))}`,
+      message: `Expected details.tarPath from the jib-container build handler. Got: ${naturalList(
+        Object.keys(baseResult.details || {})
+      )}`,
     })
   }
 

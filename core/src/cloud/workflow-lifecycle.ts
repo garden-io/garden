@@ -66,7 +66,7 @@ export async function registerWorkflowRun({
           Request body: ${JSON.stringify(requestData)}
           Response body: ${err.response.rawBody}
         `,
-        responseStatusCode: err.response.statusCode
+          responseStatusCode: err.response.statusCode,
         })
       } else {
         log.error(`An error occurred while registering workflow run: ${err.message}`)

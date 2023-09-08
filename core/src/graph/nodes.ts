@@ -350,7 +350,7 @@ export class GraphNodeError extends GraphError {
       message,
       stack,
       wrappedErrors,
-      taskType: node.task.type
+      taskType: node.task.type,
     })
 
     this.node = node

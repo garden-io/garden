@@ -22,7 +22,16 @@ import {
 } from "./types"
 import { findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
-import { gardenAnnotationKey, base64, deline, stableStringify, splitLast, truncate, dedent, naturalList } from "../../util/string"
+import {
+  gardenAnnotationKey,
+  base64,
+  deline,
+  stableStringify,
+  splitLast,
+  truncate,
+  dedent,
+  naturalList,
+} from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/moduleConfig"
 import { ConfigurationError, DeploymentError, PluginError, InternalError } from "../../exceptions"
@@ -602,7 +611,9 @@ export async function getTargetResource({
 
   if (!targetKind) {
     // This should be caught in config/schema validation
-    throw new InternalError({ message: `Neither kind nor podSelector set in resource query defined in ${action.longDescription()}` })
+    throw new InternalError({
+      message: `Neither kind nor podSelector set in resource query defined in ${action.longDescription()}`,
+    })
   }
 
   // Look in the specified manifests, if provided
@@ -701,7 +712,7 @@ export async function readTargetResource({
 
   if (!targetName) {
     // This should be caught in config/schema validation
-    throw new InternalError({ message: `Must specify name in resource/target query`})
+    throw new InternalError({ message: `Must specify name in resource/target query` })
   }
 
   if (targetKind === "Deployment") {
@@ -781,7 +792,9 @@ export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
 
   if (!provider) {
     throw new ConfigurationError({
-      message: `Could not find a configured kubernetes (or local-kubernetes) provider. Configured providers: ${naturalList(Object.keys(providers))}`,
+      message: `Could not find a configured kubernetes (or local-kubernetes) provider. Configured providers: ${naturalList(
+        Object.keys(providers)
+      )}`,
     })
   }
 

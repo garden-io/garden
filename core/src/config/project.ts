@@ -602,7 +602,9 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     const definedEnvironments = getNames(environments)
 
     throw new ParameterError({
-      message: `Project ${projectName} does not specify environment ${environment} (Available environments: ${naturalList(definedEnvironments)})`,
+      message: `Project ${projectName} does not specify environment ${environment} (Available environments: ${naturalList(
+        definedEnvironments
+      )})`,
     })
   }
 
@@ -690,7 +692,9 @@ export function getNamespace(environmentConfig: EnvironmentConfig, namespace: st
     const exampleFlag = chalk.white(`--env=${chalk.bold("some-namespace.")}${envName}`)
 
     throw new ParameterError({
-      message: `Environment ${chalk.white.bold(envName)} has defaultNamespace set to null in the project configuration, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. ${exampleFlag}).`,
+      message: `Environment ${chalk.white.bold(
+        envName
+      )} has defaultNamespace set to null in the project configuration, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. ${exampleFlag}).`,
     })
   }
 

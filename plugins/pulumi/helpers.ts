@@ -253,7 +253,9 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
     )
   } catch (err) {
     throw new FilesystemError({
-      message: `An error occurred while reading specified pulumi varfiles (${naturalList(spec.pulumiVarfiles)}) for action ${action.name}: ${err.message}`,
+      message: `An error occurred while reading specified pulumi varfiles (${naturalList(
+        spec.pulumiVarfiles
+      )}) for action ${action.name}: ${err.message}`,
     })
   }
 

@@ -116,7 +116,7 @@ export function getTestActionFromArgs(graph: ConfigGraph, args: ParameterValues<
       throw new ParameterError({
         message: dedent`
           Could not find module "${moduleName}" to run test "${testName}" from.
-        `
+        `,
       })
     }
 

@@ -84,9 +84,11 @@ export function resolvePlugins(
       if (!base) {
         throw new PluginError({
           message: dedent`
-            Plugin '${plugin.name}' specifies plugin '${plugin.base}' as a base, but that plugin has not been registered.
+            Plugin '${plugin.name}' specifies plugin '${
+              plugin.base
+            }' as a base, but that plugin has not been registered.
             Registered plugins: ${naturalList(Object.keys(loadedPlugins))}
-          `
+          `,
         })
       }
 
@@ -104,7 +106,7 @@ export function resolvePlugins(
           message: dedent`
             Plugin '${plugin.name}' lists plugin '${dep.name}' as a dependency, but that plugin has not been registered.
             Registered plugins: ${naturalList(Object.keys(loadedPlugins))}
-          `
+          `,
         })
       }
     }
@@ -249,7 +251,7 @@ export function getDependencyOrder(loadedPlugins: PluginMap): string[] {
     throw new CircularDependenciesError({
       messagePrefix: `Found a circular dependency between registered plugins`,
       cycles,
-      cyclesSummary
+      cyclesSummary,
     })
   }
 

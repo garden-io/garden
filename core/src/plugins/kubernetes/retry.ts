@@ -92,7 +92,6 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
   let responseStatusCode: number | undefined
   let osCode: string | undefined
 
-
   if (err instanceof KubernetesClientHttpError) {
     errorType = "HttpError"
     response = err.response || {}
@@ -107,7 +106,10 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
     osCode = err.code
   } else {
     // In all other cases, we don't know what this is, so let's just throw an InternalError
-    throw InternalError.wrapError(err, `wrapKubernetesError encountered an unknown error unexpectedly during ${context}`)
+    throw InternalError.wrapError(
+      err,
+      `wrapKubernetesError encountered an unknown error unexpectedly during ${context}`
+    )
   }
 
   let apiMessage: string | undefined
@@ -126,7 +128,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
       ${apiMessage ? `Kubernetes Message: ${apiMessage}` : ""}`,
     responseStatusCode,
     osCode,
-    apiMessage
+    apiMessage,
   })
 }
 

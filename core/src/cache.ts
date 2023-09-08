@@ -110,7 +110,9 @@ export class TreeCache {
 
       if (context.length === 0) {
         throw new ParameterError({
-          message: `Could not set key '${key.join(".")}': All context keys must have at least one part. At least one of them is an empty list.`,
+          message: `Could not set key '${key.join(
+            "."
+          )}': All context keys must have at least one part. At least one of them is an empty list.`,
         })
       }
 

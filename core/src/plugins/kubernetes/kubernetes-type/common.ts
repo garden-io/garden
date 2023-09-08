@@ -218,7 +218,9 @@ async function readKustomizeManifests(
   for (const arg of disallowedKustomizeArgs) {
     if (extraArgs.includes(arg)) {
       throw new ConfigurationError({
-        message: `Invalid spec on ${action.longDescription()}: kustomize.extraArgs must not include any of ${disallowedKustomizeArgs.join(", ")}. Got: ${naturalList(extraArgs)}`,
+        message: `Invalid spec on ${action.longDescription()}: kustomize.extraArgs must not include any of ${disallowedKustomizeArgs.join(
+          ", "
+        )}. Got: ${naturalList(extraArgs)}`,
       })
     }
   }
@@ -244,7 +246,7 @@ async function readKustomizeManifests(
     }
     throw new PluginError({
       message: `Failed resolving kustomize manifests: ${error.message}`,
-      wrappedErrors: [error]
+      wrappedErrors: [error],
     })
   }
 }
@@ -264,14 +266,18 @@ async function readFileManifests(
   })
   if (missingPaths.length) {
     throw new ConfigurationError({
-      message: `Invalid manifest file path(s) declared in ${action.longDescription()}. Cannot find manifest file(s) at ${naturalList(missingPaths)} in ${manifestPath} directory.`,
+      message: `Invalid manifest file path(s) declared in ${action.longDescription()}. Cannot find manifest file(s) at ${naturalList(
+        missingPaths
+      )} in ${manifestPath} directory.`,
     })
   }
 
   const resolvedFiles = await glob(specFiles, { cwd: manifestPath })
   if (specFiles.length > 0 && resolvedFiles.length === 0) {
     throw new ConfigurationError({
-      message: `Invalid manifest file path(s) declared in ${action.longDescription()}'. Cannot find any manifest files for paths ${naturalList(specFiles)} in ${manifestPath} directory.`,
+      message: `Invalid manifest file path(s) declared in ${action.longDescription()}'. Cannot find any manifest files for paths ${naturalList(
+        specFiles
+      )} in ${manifestPath} directory.`,
     })
   }
 
@@ -308,7 +314,9 @@ function expandListManifests(manifests: KubernetesResource[]): KubernetesResourc
       } else {
         // This should be extremely rare. If this happens, consider adding a validation layer before reading Kubernetes manifests from a file and changing this to an InternalError.
         throw new PluginError({
-          message: `Failed to read Kubernetes manifest: Encountered an invalid List manifest: ${JSON.stringify(manifest)}`,
+          message: `Failed to read Kubernetes manifest: Encountered an invalid List manifest: ${JSON.stringify(
+            manifest
+          )}`,
         })
       }
     }

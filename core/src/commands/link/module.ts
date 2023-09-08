@@ -77,10 +77,12 @@ export class LinkModuleCommand extends Command<Args> {
 
       throw new ParameterError({
         message: dedent`
-          Expected module(s) ${chalk.underline(moduleName)} to have a remote source. Did you mean to use the "link source" command? ${
-            modulesWithRemoteSource.length > 0 ? `\n\nModules with remote sources: ${
-              naturalList(modulesWithRemoteSource.map((m) => m.name))
-            }` : ""
+          Expected module(s) ${chalk.underline(
+            moduleName
+          )} to have a remote source. Did you mean to use the "link source" command? ${
+            modulesWithRemoteSource.length > 0
+              ? `\n\nModules with remote sources: ${naturalList(modulesWithRemoteSource.map((m) => m.name))}`
+              : ""
           }`,
       })
     }

@@ -64,7 +64,7 @@ export async function checkForStaticDir() {
         Could not find the static data directory. Garden is packaged with a data directory
         called 'static', which should be located next to your garden binary. Please try reinstalling,
         and make sure the release archive is fully extracted to the target directory.
-      `
+      `,
     })
   }
 }

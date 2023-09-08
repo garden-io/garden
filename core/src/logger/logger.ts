@@ -373,7 +373,9 @@ export class RootLogger extends LoggerBase {
 
       if (!LOGGER_TYPES.has(loggerTypeFromEnv)) {
         throw new ParameterError({
-          message: `Invalid logger type specified: ${loggerTypeFromEnv}. Available types: ${naturalList(Array.from(LOGGER_TYPES))}`,
+          message: `Invalid logger type specified: ${loggerTypeFromEnv}. Available types: ${naturalList(
+            Array.from(LOGGER_TYPES)
+          )}`,
         })
       }
 

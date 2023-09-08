@@ -194,7 +194,7 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
     }
     throw new RuntimeError({
       message: `Failed pulling image ${remoteId} to local docker with ID ${localId}: ${err.message}`,
-      wrappedErrors: [err]
+      wrappedErrors: [err],
     })
   } finally {
     await runner.stop()

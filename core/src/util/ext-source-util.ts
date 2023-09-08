@@ -114,7 +114,9 @@ export async function removeLinkedSources({
     if (!currentNames.includes(name)) {
       const msgType = sourceType === "project" ? "source" : titleize(sourceType)
       const msg = `${titleize(msgType)} ${chalk.underline(name)} is not linked. Did you mean to unlink a ${msgType}?`
-      throw new ParameterError({ message: `${msg}${ currentNames.length ? ` Currently linked: ${naturalList(currentNames)}` : ""}` })
+      throw new ParameterError({
+        message: `${msg}${currentNames.length ? ` Currently linked: ${naturalList(currentNames)}` : ""}`,
+      })
     }
   }
 
