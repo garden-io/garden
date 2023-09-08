@@ -151,8 +151,6 @@ describe("util", () => {
         () => pickKeys(obj, <any>["a", "foo", "bar"]),
         (err) => {
           expect(err.message).to.equal("Could not find key(s): foo, bar. Available: a, b and c")
-          expect(err.detail.missing).to.eql(["foo", "bar"])
-          expect(err.detail.available).to.eql(["a", "b", "c"])
         }
       )
     })

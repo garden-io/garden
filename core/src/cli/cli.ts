@@ -515,9 +515,9 @@ ${renderCommands(commands)}
         const parseResults = processCliArgs({ rawArgs: args, parsedArgs: argv, command, matchedPath, cli: true })
         parsedArgs = parseResults.args
         parsedOpts = parseResults.opts
-      } catch (err) {
-        errors.push(...(err.detail?.errors || []).map(toGardenError))
-        return done(1, err.message + "\n" + command.renderHelp())
+      } catch (err: unknown) {
+        errors.push(toGardenError(err))
+        return done(1, `${err}\n` + command.renderHelp())
       }
     }
 

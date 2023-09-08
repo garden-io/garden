@@ -158,7 +158,6 @@ describe("validate", () => {
 
     await expectError(() => validateSchema(obj, schema), {
       contains: "key .A is required, key .B.b is required",
-      errorMessageGetter: (err) => err.detail.errorDescription,
     })
   })
 
@@ -183,7 +182,6 @@ describe("validate", () => {
 
     await expectError(() => validateSchema(obj, schema), {
       contains: "key .A.B[c].C is required",
-      errorMessageGetter: (err) => err.detail.errorDescription,
     })
   })
 
@@ -196,7 +194,6 @@ describe("validate", () => {
 
     await expectError(() => validateSchema(obj, schema), {
       contains: 'key "123" is not allowed at path .',
-      errorMessageGetter: (err) => err.detail.errorDescription,
     })
   })
 
@@ -206,7 +203,6 @@ describe("validate", () => {
 
     await expectError(() => validateSchema(obj, schema), {
       contains: 'key "123" is not allowed at path .a',
-      errorMessageGetter: (err) => err.detail.errorDescription,
     })
   })
 
@@ -222,7 +218,6 @@ describe("validate", () => {
 
     await expectError(() => validateSchema(obj, schema), {
       contains: "object at . can only contain one of [a, b]",
-      errorMessageGetter: (err) => err.detail.errorDescription,
     })
   })
 })

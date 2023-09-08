@@ -160,25 +160,6 @@ describe("sanitizeValue", () => {
     })
   })
 
-  it("calls toJSON method if present", async () => {
-    class Foo {
-      toJSON() {
-        return {
-          foo: "bar",
-        }
-      }
-    }
-    const obj = {
-      a: new Foo(),
-    }
-    const res = sanitizeValue(obj)
-    expect(res).to.eql({
-      a: {
-        foo: "bar",
-      },
-    })
-  })
-
   it("prevents calling sanitizeValue from toSanitizeValue to prevent infinite recursion", async () => {
     class Foo {
       toSanitizedValue() {
@@ -193,25 +174,7 @@ describe("sanitizeValue", () => {
     expect(() => {
       sanitizeValue(obj)
     }).to.throw(
-      "`toSanitizedValue` and `toJSON` are not allowed to call `sanitizeValue` because that can cause infinite recursion."
-    )
-  })
-
-  it("prevents calling sanitizeValue from toJSON to prevent infinite recursion", async () => {
-    class Foo {
-      toJSON() {
-        return sanitizeValue({
-          foo: "bar",
-        })
-      }
-    }
-    const obj = {
-      a: new Foo(),
-    }
-    expect(() => {
-      sanitizeValue(obj)
-    }).to.throw(
-      "`toSanitizedValue` and `toJSON` are not allowed to call `sanitizeValue` because that can cause infinite recursion."
+      "`toSanitizedValue` is not allowed to call `sanitizeValue` because that can cause infinite recursion."
     )
   })
 
