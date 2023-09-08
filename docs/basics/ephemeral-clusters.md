@@ -5,7 +5,7 @@ order: 4
 
 # Ephemeral Kubernetes Clusters
 
-At Garden, we're committed to reducing the friction in onboarding and trying out our platform for your own projects. To make Kubernetes adoption more accessible and convenient, we introduce **Ephemeral Kubernetes Clusters**. These clusters are designed to provide you with a hassle-free way to explore Garden.io's capabilities and Kubernetes without the need of an existing Kubernetes cluster.
+At Garden, we're committed to reducing the friction in onboarding and trying out our platform for your own projects. To make Kubernetes adoption more accessible and convenient, we introduce **Ephemeral Kubernetes Clusters**. These ephemeral clusters are designed to provide you with a hassle-free way to explore Garden's capabilities and Kubernetes without the need of an existing Kubernetes cluster.
 
 ## Configuring your projects to use ephemeral Kubernetes cluster
 
@@ -24,7 +24,7 @@ In the above configuration, we configure ephemeral-kubernetes for the `remote` e
 
 ## Deploy your project on ephemeral cluster
 
-With the ephemeral-kubernetes provider configured, you can now deploy your project using the Garden CLI. Simply run the following command:
+With the ephemeral-kubernetes provider configured, you can now deploy your project using the Garden CLI by running the following command:
 
 ```
 garden deploy --env remote
@@ -32,7 +32,7 @@ garden deploy --env remote
 
 The CLI will automatically provision an ephemeral Kubernetes cluster for your project and deploy your application to it.
 
-### Usage quota and managing clusters
+## Usage quota and managing clusters
 
 The ephemeral Kubernetes clusters are provided for free to all users. The ephemeral clusters are designed for short-term use and allow you to run and test your applications on Kubernetes.
 
@@ -46,10 +46,10 @@ Ephemeral Kubernetes Clusters fully support ingresses and each cluster is assign
 
 The ingress URLs are not publicly accessible and require authentication via GitHub. To preview an ingress URL, you must authenticate with GitHub and authorize the "Garden Ephemeral Environment Previews" app.
 
+> [!NOTE]
+> Ingress URLs can only be previewed by the user who was logged in to Garden Cloud when a deployment was done using the ephemeral-kubernetes provider.
 
-Note: Ingress URLs can only be previewed by the user who was logged in to Garden Cloud when a deployment was done using the ephemeral-kubernetes provider.
-
-### Referring to the dynamic hostname in your Garden configs
+## Referring to the dynamic hostname in your Garden configs
 
 If you want to refer to the hostname that is assigned dynamically when the cluster is created, you can refer to that using the output `${providers.ephemeral-kubernetes.outputs.default-hostname}`. This can be useful if, for example, you want to expose an ingress on a subdomain of the default hostname. e.g. You want to expose api on api.<default-hostname>.
 
