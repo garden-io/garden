@@ -15,7 +15,14 @@ import { dedent, wordWrap, deline, naturalList } from "../util/string"
 import { Garden } from "../garden"
 import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../config/workflow"
 import { Log } from "../logger/log-entry"
-import { GardenError, InternalError, RuntimeError, WorkflowScriptError, toGardenError } from "../exceptions"
+import {
+  ChildProcessError,
+  GardenError,
+  InternalError,
+  RuntimeError,
+  WorkflowScriptError,
+  toGardenError,
+} from "../exceptions"
 import {
   WorkflowConfigContext,
   WorkflowStepConfigContext,
@@ -25,7 +32,7 @@ import { resolveTemplateStrings, resolveTemplateString } from "../template-strin
 import { ConfigurationError, FilesystemError } from "../exceptions"
 import { posix, join } from "path"
 import { ensureDir, writeFile } from "fs-extra"
-import { getDurationMsec, isExecaError, toEnvVars } from "../util/util"
+import { getDurationMsec, toEnvVars } from "../util/util"
 import { runScript } from "../util/util"
 import { LogLevel } from "../logger/logger"
 import { registerWorkflowRun } from "../cloud/workflow-lifecycle"
@@ -167,8 +174,8 @@ export class WorkflowCommand extends Command<Args, {}> {
             message: `Workflow steps must specify either a command or a script. Got: ${JSON.stringify(step)}`,
           })
         }
-      } catch (_err) {
-        const err = toGardenError(_err)
+      } catch (rawErr) {
+        const err = toGardenError(rawErr)
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
         stepErrors[index] = [err]
         printStepDuration({ ...stepParams, success: false })
@@ -372,22 +379,23 @@ export async function runStepScript({ garden, bodyLog, step }: RunStepParams): P
   try {
     await runScript({ log: bodyLog, cwd: garden.projectRoot, script: step.script!, envVars: step.envVars })
     return { result: {} }
-  } catch (error) {
-    if (!isExecaError(error)) {
-      throw error
+  } catch (err) {
+    // Unexpected error (failed to execute script, as opposed to script returning an error code)
+    if (!(err instanceof ChildProcessError)) {
+      throw err
     }
 
     const scriptError = new WorkflowScriptError({
-      output: error.all || "",
-      exitCode: error.exitCode,
-      stdout: error.stdout,
-      stderr: error.stderr,
+      output: err.details.output,
+      exitCode: err.details.code,
+      stdout: err.details.stdout,
+      stderr: err.details.stderr,
     })
 
     bodyLog.error("")
     bodyLog.error({ msg: `Script failed with the following error:`, error: scriptError })
     bodyLog.error("")
-    bodyLog.error(error.stderr)
+    bodyLog.error(err.details.stderr)
 
     throw scriptError
   }
