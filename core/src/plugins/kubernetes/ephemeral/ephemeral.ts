@@ -29,6 +29,6 @@ export const gardenPlugin = () =>
     },
   })
 
-  export function isProviderEphemeralKubernetes(provider: KubernetesProvider) {
-    return provider?.name === EPHEMERAL_KUBERNETES_PROVIDER_NAME
-  }
+export function isProviderEphemeralKubernetes(provider: KubernetesProvider) {
+  return provider?.name === EPHEMERAL_KUBERNETES_PROVIDER_NAME
+}
