@@ -53,7 +53,7 @@ describe("validateInstall", () => {
           versionCommand: { cmd: "this-binary-does-not-exist", args: ["--version"] }, // <--
           versionRegex: gitVersionRegex,
         }),
-      { contains: "Could not find name-of-the-thing binary." }
+      { contains: "Could not find name-of-the-thing binary:" }
     )
   })
 })

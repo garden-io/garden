@@ -79,23 +79,16 @@ describe("util", () => {
     })
 
     it("should throw a standardised error message on error", async () => {
-      try {
-        // Using "sh -c" to get consistent output between operating systems
+      await expect(async () => {
         await exec(`sh -c "echo hello error; exit 1"`, [], { shell: true })
-      } catch (err) {
-        expect(err).to.be.instanceOf(ChildProcessError)
-        expect(err.type).to.eql("childprocess")
-        expect(err.message).to.equal(
-          new ChildProcessError({
-            code: 1,
-            cmd: `sh -c "echo hello error; exit 1"`,
-            args: [],
-            output: "hello error",
-            stdout: "hello error",
-            stderr: "",
-          }).message
-        )
-      }
+      }).to.throw(new ChildProcessError({
+        code: 1,
+        cmd: `sh -c "echo hello error; exit 1"`,
+        args: [],
+        output: "hello error",
+        stdout: "hello error",
+        stderr: "",
+      }))
     })
   })
 
@@ -108,39 +101,32 @@ describe("util", () => {
       }
     })
     it("should throw a standardised error message on error", async () => {
-      try {
-        await spawn("ls", ["scottiepippen"])
-      } catch (err) {
-        // Spawn does not throw ChildProcessError at the moment.
-        expect(err).to.be.instanceOf(ChildProcessError)
-        expect(err.type).to.eql("childprocess")
-
-        // We're not using "sh -c" here since the output is not added to stdout|stderr if `tty: true` and
-        // we therefore can't test the entire error message.
-        if (process.platform === "darwin") {
-          expect(err.message).to.equal(
-            new ChildProcessError({
-              code: 1,
-              cmd: "ls scottiepippen",
-              args: [],
-              output: "ls: scottiepippen: No such file or directory",
-              stderr: "ls: scottiepippen: No such file or directory",
-              stdout: "",
-            })
-          )
-        } else {
-          expect(err.message).to.equal(
-            new ChildProcessError({
-              code: 2,
-              cmd: "ls scottiepippen",
-              args: [],
-              output: "ls: cannot access 'scottiepippen': No such file or directory",
-              stderr: "ls: cannot access 'scottiepippen': No such file or directory",
-              stdout: "",
-            })
-          )
-        }
+      let expectedError: ChildProcessError
+      // We're not using "sh -c" here since the output is not added to stdout|stderr if `tty: true` and
+      // we therefore can't test the entire error message.
+      if (process.platform === "darwin") {
+        expectedError = new ChildProcessError({
+          code: 1,
+          cmd: "ls scottiepippen",
+          args: [],
+          output: "ls: scottiepippen: No such file or directory",
+          stderr: "ls: scottiepippen: No such file or directory",
+          stdout: "",
+        })
+      } else {
+        expectedError = new ChildProcessError({
+          code: 2,
+          cmd: "ls scottiepippen",
+          args: [],
+          output: "ls: cannot access 'scottiepippen': No such file or directory",
+          stderr: "ls: cannot access 'scottiepippen': No such file or directory",
+          stdout: "",
+        })
       }
+
+      await expect(async () => {
+        await spawn("ls", ["scottiepippen"])
+      }).to.throw(expectedError)
     })
   })
 
@@ -161,7 +147,7 @@ describe("util", () => {
       await expectError(
         () => pickKeys(obj, <any>["a", "foo", "bar"]),
         (err) => {
-          expect(err.message).to.equal("Could not find key(s): foo, bar")
+          expect(err.message).to.equal("Could not find key(s): foo, bar. Available: a, b and c")
           expect(err.detail.missing).to.eql(["foo", "bar"])
           expect(err.detail.available).to.eql(["a", "b", "c"])
         }
