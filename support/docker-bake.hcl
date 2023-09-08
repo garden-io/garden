@@ -18,6 +18,14 @@ variable "PRERELEASE" {
   default = ""
 }
 
+variable "ALL_SUPPORTED_DISTROS" {
+  default = ["alpine", "buster", "bullseye", "bookworm"]
+}
+
+variable "DEBIAN_DISTROS" {
+  default = ["buster", "bullseye", "bookworm"]
+}
+
 ##
 ## Helpers
 ##
@@ -38,8 +46,8 @@ function "isEdgeRelease" {
 }
 
 function "withLatest" {
-  params = [tags]
-  result = "${isProductionRelease() ? concat(tags, ["latest"]) : tags}"
+  params = [condition, tags]
+  result = "${isProductionRelease() && condition ? concat(tags, ["latest"]) : tags}"
 }
 
 function "tags" {
@@ -72,13 +80,67 @@ function "repository" {
 ##
 
 group "all" {
-  targets = ["alpine", "buster"]
+  targets = ALL_SUPPORTED_DISTROS
+}
+
+group "debian" {
+  targets = DEBIAN_DISTROS
+}
+
+group "bookworm" {
+  targets = [
+    # Root bookworm
+    "bookworm-base",
+    "bookworm-aws",
+    "bookworm-azure",
+    "bookworm-gcloud",
+    "bookworm-aws-gcloud",
+    "bookworm-aws-gcloud-azure",
+    # Rootless bookworm
+    "bookworm-rootless",
+    "bookworm-aws-rootless",
+    "bookworm-azure-rootless",
+    "bookworm-gcloud-rootless",
+    "bookworm-aws-gcloud-rootless",
+    "bookworm-aws-gcloud-azure-rootless",
+  ]
+}
+
+group "bullseye" {
+  targets = [
+    # Root bullseye
+    "bullseye-base",
+    "bullseye-aws",
+    "bullseye-azure",
+    "bullseye-gcloud",
+    "bullseye-aws-gcloud",
+    "bullseye-aws-gcloud-azure",
+    # Rootless bullseye
+    "bullseye-rootless",
+    "bullseye-aws-rootless",
+    "bullseye-azure-rootless",
+    "bullseye-gcloud-rootless",
+    "bullseye-aws-gcloud-rootless",
+    "bullseye-aws-gcloud-azure-rootless",
+  ]
 }
 
 group "buster" {
   targets = [
+    # Root buster
     "buster-base",
+    "buster-aws",
+    "buster-azure",
+    "buster-gcloud",
+    "buster-aws-gcloud",
+    "buster-aws-gcloud-azure",
+    # Rootless buster
     "buster-rootless",
+    "buster-aws-rootless",
+    "buster-azure-rootless",
+    "buster-gcloud-rootless",
+    "buster-aws-gcloud-rootless",
+    "buster-aws-gcloud-azure-rootless",
   ]
 }
 
@@ -102,100 +164,139 @@ group "alpine" {
 }
 
 ##
-## Buster Images
+## Images
 ##
 
-target "buster-base" {
-  dockerfile = "../../support/buster.Dockerfile"
-  target     = "buster-base"
+target "debian-base" {
+  name = "${distro}-base"
+  matrix = {
+    distro = DEBIAN_DISTROS
+  }
+  dockerfile = "../../support/debian.Dockerfile"
+  target     = "garden-base"
   platforms  = ["linux/amd64"]
   context    = "dist/linux-amd64"
-  tags       = repository("gardendev/garden", tags("buster"))
-}
-
-target "buster-rootless" {
-  inherits = ["buster-base"]
-  tags     = repository("gardendev/garden", tags("buster-rootless"))
+  tags       = repository("gardendev/garden", tags(distro))
   args = {
-    VARIANT: "rootless"
+    DEBIAN_RELEASE: distro
   }
 }
-
-##
-## Alpine Images
-##
 
 target "alpine-base" {
   dockerfile = "../../support/alpine.Dockerfile"
-  target     = "garden-alpine-base"
+  target     = "garden-base"
   platforms  = ["linux/amd64"]
   context    = "dist/alpine-amd64"
-  tags       = repository("gardendev/garden", withLatest(tags("alpine")))
+  tags       = repository("gardendev/garden", tags("alpine"))
 }
 
-target "alpine-aws" {
-  inherits   = ["alpine-base"]
+target "aws" {
+  name = "${distro}-aws"
+  matrix = {
+    distro = ALL_SUPPORTED_DISTROS
+  }
+  inherits   = ["${distro}-base"]
   target     = "garden-aws"
-  tags       = repository("gardendev/garden-aws", withLatest(tags("alpine")))
+  tags       = repository("gardendev/garden-aws", withLatest(distro=="alpine", tags(distro)))
 }
 
-target "alpine-azure" {
-  inherits   = ["alpine-base"]
+target "azure" {
+  name = "${distro}-azure"
+  matrix = {
+    distro = ALL_SUPPORTED_DISTROS
+  }
+  inherits   = ["${distro}-base"]
   target     = "garden-azure"
-  tags       = repository("gardendev/garden-azure", withLatest(tags("alpine")))
+  tags       = repository("gardendev/garden-azure", withLatest(distro=="alpine", tags(distro)))
 }
 
-target "alpine-gcloud" {
-  inherits   = ["alpine-base"]
+target "gcloud" {
+  name = "${distro}-gcloud"
+  matrix = {
+    distro = ALL_SUPPORTED_DISTROS
+  }
+  inherits   = ["${distro}-base"]
   target     = "garden-gcloud"
-  tags       = repository("gardendev/garden-gcloud", withLatest(tags("alpine")))
+  tags       = repository("gardendev/garden-gcloud", withLatest(distro=="alpine", tags(distro)))
 }
 
-target "alpine-aws-gcloud" {
-  inherits   = ["alpine-base"]
+target "aws-gcloud" {
+  name = "${distro}-aws-gcloud"
+  matrix = {
+    distro = ALL_SUPPORTED_DISTROS
+  }
+  inherits   = ["${distro}-base"]
   target     = "garden-aws-gcloud"
-  tags       = repository("gardendev/garden-aws-gcloud", withLatest(tags("alpine")))
+  tags       = repository("gardendev/garden-aws-gcloud", withLatest(distro=="alpine", tags(distro)))
 }
 
-target "alpine-aws-gcloud-azure" {
-  inherits   = ["alpine-base"]
+target "aws-gcloud-azure" {
+  name = "${distro}-aws-gcloud-azure"
+  matrix = {
+    distro = ALL_SUPPORTED_DISTROS
+  }
+  inherits   = ["${distro}-base"]
   target     = "garden-aws-gcloud-azure"
-  tags       = repository("gardendev/garden-aws-gcloud-azure", withLatest(tags("alpine")))
+  tags       = repository("gardendev/garden-aws-gcloud-azure", withLatest(distro=="alpine", tags(distro)))
 }
 
 ##
-## Alpine Images (Rootless)
+## Images (Rootless)
 ##
 
-target "alpine-rootless" {
-  inherits   = ["alpine-base"]
-  tags       = repository("gardendev/garden", tags("alpine-rootless"))
+target "rootless" {
+  name = "${distro}-rootless"
+  matrix = {
+    distro = ALL_SUPPORTED_DISTROS
+  }
+  inherits   = ["${distro}-base"]
+  tags     = repository("gardendev/garden", tags("${distro}-rootless"))
   args = {
     VARIANT: "rootless"
   }
 }
 
-target "alpine-aws-rootless" {
-  inherits   = ["alpine-rootless", "alpine-aws"]
-  tags       = repository("gardendev/garden-aws", tags("alpine-rootless"))
+target "aws-rootless" {
+  name       = "${distro}-aws-rootless"
+  matrix = {
+    distro = ALL_SUPPORTED_DISTROS
+  }
+  inherits   = ["${distro}-rootless", "${distro}-aws"]
+  tags       = repository("gardendev/garden-aws", tags("${distro}-rootless"))
 }
 
-target "alpine-azure-rootless" {
-  inherits   = ["alpine-rootless", "alpine-azure"]
-  tags       = repository("gardendev/garden-azure", tags("alpine-rootless"))
+target "azure-rootless" {
+  name       = "${distro}-azure-rootless"
+  matrix = {
+    distro = ALL_SUPPORTED_DISTROS
+  }
+  inherits   = ["${distro}-rootless", "${distro}-azure"]
+  tags       = repository("gardendev/garden-azure", tags("${distro}-rootless"))
 }
 
-target "alpine-gcloud-rootless" {
-  inherits   = ["alpine-rootless", "alpine-gcloud"]
-  tags       = repository("gardendev/garden-gcloud", tags("alpine-rootless"))
+target "gcloud-rootless" {
+  name       = "${distro}-gcloud-rootless"
+  matrix = {
+    distro = ALL_SUPPORTED_DISTROS
+  }
+  inherits   = ["${distro}-rootless", "${distro}-gcloud"]
+  tags       = repository("gardendev/garden-gcloud", tags("${distro}-rootless"))
 }
 
-target "alpine-aws-gcloud-rootless" {
-  inherits   = ["alpine-rootless", "alpine-aws-gcloud"]
-  tags       = repository("gardendev/garden-aws-gcloud", tags("alpine-rootless"))
+target "aws-gcloud-rootless" {
+  name       = "${distro}-aws-gcloud-rootless"
+  matrix = {
+    distro = ALL_SUPPORTED_DISTROS
+  }
+  inherits   = ["${distro}-rootless", "${distro}-aws-gcloud"]
+  tags       = repository("gardendev/garden-aws-gcloud", tags("${distro}-rootless"))
 }
 
-target "alpine-aws-gcloud-azure-rootless" {
-  inherits   = ["alpine-rootless", "alpine-aws-gcloud-azure"]
-  tags       = repository("gardendev/garden-aws-gcloud-azure", tags("alpine-rootless"))
+target "aws-gcloud-azure-rootless" {
+  name       = "${distro}-aws-gcloud-azure-rootless"
+  matrix = {
+    distro = ALL_SUPPORTED_DISTROS
+  }
+  inherits   = ["${distro}-rootless", "${distro}-aws-gcloud-azure"]
+  tags       = repository("gardendev/garden-aws-gcloud-azure", tags("${distro}-rootless"))
 }
