@@ -28,7 +28,7 @@
     "babel-eslint": "^10.0.1",
     "eslint": "^5.8.0",
     "eslint-plugin-vue": "^5.0.0-0",
-    "mocha": "^5.1.1",
+    "mocha": "^10.2.0",
     "vue-template-compiler": "^2.5.17"
   }
 }
