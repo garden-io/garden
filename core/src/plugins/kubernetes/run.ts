@@ -721,11 +721,10 @@ export abstract class PodRunnerError extends GardenError {
   details: PodErrorDetails
 
   constructor({ message, details }: PodRunnerErrorParams) {
-    const logsMessage = details.logs ? ` Here are the logs until the error happened:\n\n${details.logs}` : ""
     super({
-      message: `${message}${logsMessage}`,
+      message,
     })
-    this.details = this.details
+    this.details = details
   }
 }
 
