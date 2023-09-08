@@ -275,7 +275,7 @@ async function readFileManifests(
   const resolvedFiles = await glob(specFiles, { cwd: manifestPath })
   if (specFiles.length > 0 && resolvedFiles.length === 0) {
     throw new ConfigurationError({
-      message: `Invalid manifest file path(s) declared in ${action.longDescription()}'. Cannot find any manifest files for paths ${naturalList(
+      message: `Invalid manifest file path(s) declared in ${action.longDescription()}. Cannot find any manifest files for paths ${naturalList(
         specFiles
       )} in ${manifestPath} directory.`,
     })

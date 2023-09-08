@@ -296,7 +296,7 @@ describe("kubernetes Pod runner functions", () => {
         await expectError(
           () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events, throwOnExitCode: true }),
           (err) => {
-            expect(err.message.trim()).to.include("Command exited with code 1")
+            expect(err.message.trim()).to.include("Exited with code: 1")
             expect(err.message.trim()).to.include("foo")
           }
         )

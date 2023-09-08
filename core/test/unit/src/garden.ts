@@ -619,7 +619,10 @@ describe("Garden", () => {
       const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, { plugins })
       await expectError(() => garden.getAllPlugins(), {
-        contains: `Unable to load plugin: Error: Error validating plugin module \"${pluginPath}\": key .gardenPlugin must be of type object`,
+        contains: [
+          `Unable to load plugin`,
+          `Error: Error validating plugin module \"${pluginPath}\": key .gardenPlugin must be of type object`,
+        ]
       })
     })
 
@@ -629,7 +632,10 @@ describe("Garden", () => {
       const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, { plugins })
       await expectError(() => garden.getAllPlugins(), {
-        contains: `Unable to load plugin: Error: Error validating plugin module "${pluginPath}": key .gardenPlugin is required`,
+        contains: [
+          `Unable to load plugin`,
+          `Error: Error validating plugin module "${pluginPath}": key .gardenPlugin is required`,
+        ]
       })
     })
 

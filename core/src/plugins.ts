@@ -20,7 +20,7 @@ import type { GenericProviderConfig } from "./config/provider"
 import { CircularDependenciesError, ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy, Dictionary } from "lodash"
 import { findByName, pushToKey, getNames, isNotNull, MaybeUndefined } from "./util/util"
-import { dedent, naturalList } from "./util/string"
+import { dedent, deline, naturalList } from "./util/string"
 import { validateSchema } from "./config/validation"
 import type { Log } from "./logger/log-entry"
 import { DependencyGraph } from "./graph/common"
@@ -695,7 +695,7 @@ function resolveActionDefinition<K extends ActionKind>({
 
   if (!baseDefinition) {
     throw new PluginError({
-      message: dedent`
+      message: deline`
         ${kind} type '${spec.name}', defined in plugin '${plugin.name}', specifies base type '${spec.base}' which cannot be found.
         The plugin is likely missing a dependency declaration.
         Please report an issue with the author.
@@ -713,7 +713,7 @@ function resolveActionDefinition<K extends ActionKind>({
     !(plugin.dependencies && plugin.dependencies.find((d) => d.name === declaredBy))
   ) {
     throw new PluginError({
-      message: dedent`
+      message: deline`
         ${kind} type '${type}', defined in plugin '${plugin.name}', specifies base type '${spec.base}' which is defined by '${declaredBy}' but '${plugin.name}' does not specify a dependency on that plugin.
         Plugins must explicitly declare dependencies on plugins that define types they reference.
         Please report an issue with the author.
@@ -909,7 +909,7 @@ function resolveModuleDefinition(
 
   if (!baseDefinition) {
     throw new PluginError({
-      message: dedent`
+      message: deline`
         Module type '${spec.name}', defined in plugin '${plugin.name}', specifies base module type '${spec.base}' which cannot be found.
         The plugin is likely missing a dependency declaration.
         Please report an issue with the author.
@@ -927,7 +927,7 @@ function resolveModuleDefinition(
     !(plugin.dependencies && plugin.dependencies.find((d) => d.name === declaredBy))
   ) {
     throw new PluginError({
-      message: dedent`
+      message: deline`
         Module type '${moduleType}', defined in plugin '${plugin.name}', specifies base module type '${spec.base}' which is defined by '${declaredBy}' but '${plugin.name}' does not specify a dependency on that plugin.
         Plugins must explicitly declare dependencies on plugins that define module types they reference.
         Please report an issue with the author.
