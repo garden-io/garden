@@ -12,6 +12,7 @@ import { CliWrapper } from "@garden-io/sdk/util/ext-tools"
 import { ConfigurationError, RuntimeError } from "@garden-io/sdk/exceptions"
 import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { PulumiProvider } from "./provider"
+import { naturalList } from "@garden-io/sdk/util/string"
 
 export const defaultPulumiEnv = {
   // This suppresses the "warning: A new version of Pulumi is available" output when running pulumi commands.
@@ -30,11 +31,7 @@ export function pulumi(ctx: PluginContext, provider: PulumiProvider) {
 
     if (!cli) {
       throw new ConfigurationError({
-        message: `Unsupported pulumi version: ${version}`,
-        detail: {
-          version,
-          supportedVersions,
-        },
+        message: `Unsupported pulumi version: ${version}. Supported versions: ${naturalList(supportedVersions)}`,
       })
     }
 
@@ -53,7 +50,6 @@ export class GlobalPulumi extends CliWrapper {
     } catch (err) {
       throw new RuntimeError({
         message: `Pulumi version is set to null, and pulumi CLI could not be found on PATH`,
-        detail: {},
       })
     }
   }

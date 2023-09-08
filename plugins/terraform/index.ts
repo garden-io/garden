@@ -56,7 +56,6 @@ export const gardenPlugin = () =>
           if (!exists) {
             throw new ConfigurationError({
               message: `Terraform: configured initRoot config directory '${config.initRoot}' does not exist`,
-              detail: { config, projectRoot },
             })
           }
         }
@@ -108,9 +107,6 @@ export const gardenPlugin = () =>
                 if (!exists) {
                   throw new ConfigurationError({
                     message: `Terraform: configured root directory '${root}' does not exist`,
-                    detail: {
-                      root,
-                    },
                   })
                 }
               }

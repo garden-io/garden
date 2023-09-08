@@ -35,10 +35,7 @@ function makeRootCommand(commandName: string): PluginCommand {
 
       if (!provider.config.initRoot) {
         throw new ConfigurationError({
-          message: `terraform provider does not have an ${chalk.underline("initRoot")} configured`,
-          detail: {
-            config: provider.config,
-          },
+          message: `terraform provider does not have an ${chalk.underline("initRoot")} configured in the provider section of the project configuration`,
         })
       }
 
@@ -115,7 +112,7 @@ function makeActionCommand(commandName: string): PluginCommand {
 
 function findAction(graph: ConfigGraph, name: string): TerraformDeploy {
   if (!name) {
-    throw new ParameterError({ message: `The first command argument must be an action name.`, detail: { name } })
+    throw new ParameterError({ message: `The first command argument must be an action name.` })
   }
 
   const action = graph.getDeploy(name)
@@ -123,10 +120,6 @@ function findAction(graph: ConfigGraph, name: string): TerraformDeploy {
   if (!action.isCompatible("terraform")) {
     throw new ParameterError({
       message: chalk.red(`Action ${chalk.white(name)} is not a terraform action (got ${action.type}).`),
-      detail: {
-        name,
-        type: action.type,
-      },
     })
   }
 
