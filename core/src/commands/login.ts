@@ -98,7 +98,7 @@ export class LoginCommand extends Command<{}, Opts> {
       if (!(err instanceof CloudApiError)) {
         throw err
       }
-      if (err?.detail?.statusCode === 401) {
+      if (err.responseStatusCode === 401) {
         const msg = dedent`
           Looks like your session token is invalid. If you were previously logged into a different instance
           of ${distroName}, log out first before logging in.

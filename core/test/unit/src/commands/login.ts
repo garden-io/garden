@@ -251,7 +251,7 @@ describe("LoginCommand", () => {
     await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
     td.replace(CloudApi.prototype, "refreshToken", async () => {
-      throw new CloudApiError({ message: "bummer" })
+      throw new CloudApiError({ message: "bummer", responseStatusCode: 401 })
     })
 
     const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)

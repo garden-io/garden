@@ -6,9 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
+import { execSync } from "child_process"
+import _spawn from "cross-spawn"
+import { createHash } from "crypto"
+import { readFile } from "fs-extra"
+import { load } from "js-yaml"
 import {
   difference,
-  extend,
   find,
   fromPairs,
   groupBy,
@@ -24,24 +29,18 @@ import {
   truncate,
   uniqBy,
 } from "lodash"
-import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
-import _spawn from "cross-spawn"
-import { readFile } from "fs-extra"
-import { GardenError, InternalError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
-import { load } from "js-yaml"
-import { createHash } from "crypto"
-import { dedent, tailString } from "./string"
-import { Readable, Writable } from "stream"
-import type { Log } from "../logger/log-entry"
-import type { PrimitiveMap } from "../config/common"
-import { isAbsolute, relative } from "path"
-import { getDefaultProfiler } from "./profiling"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants"
-import split2 = require("split2")
-import execa = require("execa")
-import { execSync } from "child_process"
 import pMap from "p-map"
 import pProps from "p-props"
+import { isAbsolute, relative } from "path"
+import { Readable, Writable } from "stream"
+import type { PrimitiveMap } from "../config/common"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants"
+import { GardenError, InternalError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
+import type { Log } from "../logger/log-entry"
+import { getDefaultProfiler } from "./profiling"
+import { dedent, naturalList, tailString } from "./string"
+import split2 = require("split2")
+import execa = require("execa")
 
 export { apply as jsonMerge } from "json-merge-patch"
 
@@ -330,16 +329,11 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
       return
     }
 
-    const _reject = (err: GardenError) => {
-      extend(err.detail, <any>result)
-      reject(err)
-    }
-
     if (timeout > 0) {
       _timeout = setTimeout(() => {
         proc.kill("SIGKILL")
-        _reject(
-          new TimeoutError({ message: `${cmd} timed out after ${timeout} seconds.`, detail: { cmd, args, opts } })
+        reject(
+          new TimeoutError({ message: `${cmd} timed out after ${timeout} seconds.` })
         )
       }, timeout * 1000)
     }
@@ -350,7 +344,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
         msg = `${msg} Please make sure '${cmd}' is installed and in the $PATH.`
         cwd && (msg = `${msg} Please make sure '${cwd}' exists and is a valid directory path.`)
       }
-      _reject(new RuntimeError({ message: msg, detail: { cmd, args, opts, result, err } }))
+      reject(new RuntimeError({ message: msg }))
     })
 
     proc.on("close", (code) => {
@@ -360,7 +354,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
       if (code === 0 || ignoreError) {
         resolve(result)
       } else {
-        _reject(
+        reject(
           new ChildProcessError({
             cmd,
             args,
@@ -554,11 +548,7 @@ export function pickKeys<T extends object, U extends keyof T>(obj: T, keys: U[],
 
   if (missing.length) {
     throw new ParameterError({
-      message: `Could not find ${description}(s): ${missing.map((k, _) => k).join(", ")}`,
-      detail: {
-        missing,
-        available: Object.keys(obj),
-      },
+      message: `Could not find ${description}(s): ${missing.map((k, _) => k).join(", ")}. Available: ${naturalList(Object.keys(obj))}`,
     })
   }
 
@@ -581,8 +571,7 @@ export function findByNames<T extends ObjectWithName>({
 
   if (missing.length && !allowMissing) {
     throw new ParameterError({
-      message: `Could not find ${description}(s): ${missing.join(", ")}`,
-      detail: { available, missing },
+      message: `Could not find ${description}(s): ${missing.join(", ")}. Available: ${naturalList(available)}`,
     })
   }
 
@@ -603,11 +592,7 @@ export function pushToKey(obj: object, key: string, value: any) {
   if (obj[key]) {
     if (!isArray(obj[key])) {
       throw new RuntimeError({
-        message: `Value at '${key}' is not an array`,
-        detail: {
-          obj,
-          key,
-        },
+        message: `Value at '${key}' is not an array. Got ${typeof obj[key]}`,
       })
     }
     obj[key].push(value)

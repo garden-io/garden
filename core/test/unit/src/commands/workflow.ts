@@ -30,6 +30,7 @@ import { dedent } from "../../../../src/util/string"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { defaultWorkflowResources, WorkflowStepSpec } from "../../../../src/config/workflow"
 import { TestGardenCli } from "../../../helpers/cli"
+import { WorkflowScriptError } from "../../../../src/exceptions"
 
 describe("RunWorkflowCommand", () => {
   const cmd = new WorkflowCommand()
@@ -838,9 +839,12 @@ describe("RunWorkflowCommand", () => {
       args: { workflow: "workflow-a" },
       opts: { output: "json" },
     })
-
-    expect(errors![0].message).to.equal("Script exited with code 1")
-    expect(errors![0].detail.stdout).to.equal("boo!")
+    const error = errors![0]
+    if (!(error instanceof WorkflowScriptError)) {
+      expect.fail("Expected error to be a WorkflowScriptError")
+    }
+    expect(error.message).to.equal("Script exited with code 1")
+    expect(error.details.stdout).to.equal("boo!")
   })
 
   it("should return script logs with the --output flag set", async () => {

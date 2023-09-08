@@ -997,7 +997,7 @@ export class PodRunner extends PodRunnerParams {
         if (e instanceof KubernetesError) {
           // if the pod has been deleted during execution we might run into a 404 error.
           // Convert it to Garden NotFoundError and fetch the logs for more details.
-          if (e.statusCode === 404) {
+          if (e.responseStatusCode === 404) {
             throw new PodRunnerNotFoundError({
               details: await notFoundErrorDetails(),
             })

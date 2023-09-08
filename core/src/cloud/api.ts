@@ -550,6 +550,7 @@ export class CloudApi {
           Response code: ${res?.statusCode}
           Response body: ${JSON.stringify(res?.body)}
         `,
+        responseStatusCode: res?.statusCode
       })
     }
 
@@ -691,10 +692,13 @@ export class CloudApi {
    */
   async checkClientAuthToken(): Promise<boolean> {
     let valid = false
+
     try {
       const url = new URL("/token/verify", this.domain)
       this.log.debug(`Checking client auth token with ${getCloudDistributionName(this.domain)}: ${url.href}`)
+
       await this.get("token/verify")
+
       valid = true
     } catch (err) {
       if (!(err instanceof GotHttpError)) {
@@ -706,10 +710,13 @@ export class CloudApi {
           message: `An error occurred while verifying client auth token with ${getCloudDistributionName(
             this.domain
           )}: ${err.message}`,
+          responseStatusCode: err.response.statusCode
         })
       }
     }
+
     this.log.debug(`Checked client auth token with ${getCloudDistributionName(this.domain)} - valid: ${valid}`)
+
     return valid
   }
 

@@ -1852,7 +1852,7 @@ describe("getActionTemplateReferences", () => {
         foo: "${actions}",
       }
       void expectError(() => getActionTemplateReferences(config), {
-        contains: "Found invalid action reference (missing kind)",
+        contains: "Found invalid action reference (missing kind). Got: ${actions}",
       })
     })
 

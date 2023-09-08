@@ -33,8 +33,8 @@ import { readFile } from "fs-extra"
 import WebSocket from "isomorphic-ws"
 import pRetry from "p-retry"
 import { Omit, StringCollector } from "../../util/util"
-import { flatten, isObject, isPlainObject, keyBy, omitBy } from "lodash"
-import { ConfigurationError, GardenError, RuntimeError } from "../../exceptions"
+import { flatten, isPlainObject, keyBy } from "lodash"
+import { ConfigurationError, GardenError, GardenErrorParams, RuntimeError } from "../../exceptions"
 import {
   BaseResource,
   KubernetesList,
@@ -54,9 +54,8 @@ import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
 import { safeDumpYaml } from "../../util/serialization"
 import AsyncLock from "async-lock"
-import { requestWithRetry, RetryOpts } from "./retry"
+import { requestWithRetry, RetryOpts, toKubernetesError } from "./retry"
 import request = require("request-promise")
-import requestErrors = require("request-promise/errors")
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -136,8 +135,22 @@ type CrudMapTypes = { [T in keyof CrudMap]: CrudMap[T]["cls"] }
 export class KubernetesError extends GardenError {
   type = "kubernetes"
 
-  statusCode?: number
-  response?: any
+  /**
+   * HTTP response status code
+   */
+  responseStatusCode: number | undefined
+
+  /**
+   * See also https://nodejs.org/api/errors.html#nodejs-error-codes
+   */
+  osCode: string | undefined
+
+  constructor(params: GardenErrorParams & { responseStatusCode?: number; osCode?: string }) {
+    super(params)
+
+    this.responseStatusCode = params.responseStatusCode
+    this.osCode = params.osCode
+  }
 }
 
 interface List {
@@ -347,15 +360,13 @@ export class KubeApi {
     // apply auth
     await this.config.applyToRequest(requestOpts)
 
-    return await requestWithRetry(
-      log,
-      `Kubernetes API: ${path}`,
-      async () => {
+    const context = `Kubernetes API: ${path}`
+    return await requestWithRetry(log, context, async () => {
         try {
           log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
           return await request(requestOpts)
         } catch (err) {
-          throw handleRequestPromiseError(path, err)
+          throw toKubernetesError(err, context)
         }
       },
       retryOpts
@@ -541,7 +552,7 @@ export class KubeApi {
       const err = new KubernetesError({
         message: `Unrecognized resource type ${apiVersion}/${kind}`,
       })
-      err.statusCode = 404
+      err.responseStatusCode = 404
       throw err
     }
 
@@ -682,7 +693,7 @@ export class KubeApi {
                   })
                   // the API errors are not properly formed Error objects
                   .catch((err: Error) => {
-                    throw wrapError(name, err)
+                    throw toKubernetesError(err, name)
                   })
               )
             }
@@ -808,7 +819,7 @@ export class KubeApi {
             )
           )
         } catch (err) {
-          throw wrapError(description, err)
+          throw toKubernetesError(err, description)
         }
       }
 
@@ -978,36 +989,3 @@ async function getContextConfig(log: Log, ctx: PluginContext, provider: Kubernet
   return kc
 }
 
-function wrapError(name: string, err: any) {
-  if (!err.message || err.name === "HttpError") {
-    const response = err.response || {}
-    const body = response.body || err.body
-    const wrapped = new KubernetesError({
-      message: `Got error from Kubernetes API (${name}) - ${body.message}`,
-      detail: {
-        body,
-        request: omitBy(response.request, (v, k) => isObject(v) || k[0] === "_"),
-      },
-    })
-    wrapped.statusCode = err.statusCode
-    return wrapped
-  } else {
-    return err
-  }
-}
-
-function handleRequestPromiseError(name: string, err: Error) {
-  if (err instanceof requestErrors.StatusCodeError) {
-    const wrapped = new KubernetesError({
-      message: `StatusCodeError from Kubernetes API (${name}) - ${err.message}`,
-      detail: {
-        body: err.error,
-      },
-    })
-    wrapped.statusCode = err.statusCode
-
-    return wrapped
-  } else {
-    return wrapError(name, err)
-  }
-}

@@ -211,6 +211,13 @@ export class WorkflowScriptError extends GardenError {
 
 export class CloudApiError extends GardenError {
   type = "cloud-api"
+
+  responseStatusCode: number | undefined
+
+  constructor(params: GardenErrorParams & { responseStatusCode?: number }) {
+    super(params)
+    this.responseStatusCode = params.responseStatusCode
+  }
 }
 
 export class TemplateStringError extends GardenError {

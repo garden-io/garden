@@ -12,10 +12,10 @@ import { isString } from "lodash"
 import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
 import { PassThrough } from "stream"
 import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsHandlerParams, VcsInfo } from "./vcs"
-import { ChildProcessError, ConfigurationError, RuntimeError } from "../exceptions"
+import { ConfigurationError, RuntimeError } from "../exceptions"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
 import { dedent, deline, splitLast } from "../util/string"
-import { defer, exec } from "../util/util"
+import { ChildProcessError, defer, exec } from "../util/util"
 import { Log } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
 import { getDefaultProfiler, Profile, Profiler } from "../util/profiling"
@@ -244,7 +244,6 @@ export class GitHandler extends VcsHandler {
           // Throw nice error when we detect that we're not in a repo root
           throw new RuntimeError({
             message: notInRepoRootErrorMessage(path),
-            details: { path, exitCode: err.details.code },
           })
         } else {
           throw err
@@ -622,12 +621,10 @@ export class GitHandler extends VcsHandler {
       return git("-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive")
     } catch (err) {
       throw new RuntimeError({
-        message: dedent`Failed to shallow clone with error: \n\n${err}
-      Make sure both git client and server are newer than 2.5.0 and that \`uploadpack.allowReachableSHA1InWant=true\`
-      is set on the server`,
-        detail: {
-          message: err.message,
-        },
+        message: dedent`
+          Failed to shallow clone with error: ${err}
+
+          Make sure both git client and server are newer than 2.5.0 and that \`uploadpack.allowReachableSHA1InWant=true\` is set on the server`,
       })
     }
   }
@@ -650,11 +647,7 @@ export class GitHandler extends VcsHandler {
         } catch (err) {
           gitLog.error(`Failed fetching from ${url}`)
           throw new RuntimeError({
-            message: `Downloading remote ${sourceType} failed with error: \n\n${err}`,
-            detail: {
-              repositoryUrl: url,
-              message: err.message,
-            },
+            message: `Downloading remote ${sourceType} (from ${url}) failed with error: \n\n${err}`,
           })
         }
 
