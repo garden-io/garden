@@ -8,6 +8,7 @@
 * [Quickstart Guide](./basics/quickstart.md)
 * [The Stack Graph (Terminology)](./basics/stack-graph.md)
 * [Garden vs Other Tools](./basics/garden-vs-other-tools.md)
+* [Core Concepts](./basics/core-concepts.md)
 
 ## 🌳 Garden Seeds
 
@@ -155,7 +156,6 @@
   * [Custom Command template context](./reference/template-strings/custom-commands.md)
   * [Workflow template context](./reference/template-strings/workflows.md)
   * [Template Helper Functions](./reference/template-strings/functions.md)
-* [Glossary](./reference/glossary.md)
 * [Commands](./reference/commands.md)
 * [Project Configuration](./reference/project-config.md)
 * [ConfigTemplate Reference](./reference/config-template-config.md)
