@@ -4,7 +4,6 @@ name: ephemeral-cluster-demo
 environments:
   - name: local
   - name: remote
-    defaultNamespace: ${var.userId}
 providers:
   - name: local-kubernetes
     environments: [local]
