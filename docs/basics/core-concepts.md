@@ -1,5 +1,5 @@
 ---
-order: 4
+order: 2
 title: Core Concepts
 ---
 
@@ -17,7 +17,7 @@ A YAML config file with the ending `garden.yml` that includes some Garden config
 ### Project
 The top-level unit of organization in Garden. A project consists of a project-level **Garden config** file and zero or more **actions**.
 
-The project's actions can belong to the same git repository or they can span multiple repos.
+A project can be a monorepo or span multiple repositories.
 
 Garden CLI commands are run in the context of a project.
 
@@ -41,13 +41,13 @@ For example, Garden has a `kubernetes` provider for remote environments and a `l
 Providers are listed in the project-level Garden config and are scoped to **environments**.
 
 ### Action
-Actions are a core concept of Garden and the most basic unit of organization. They are the "atoms" of a Garden project and form the nodes of **the Stack Graph**.
+Actions are core to how Garden works and the most basic unit of organization. They are the "atoms" of a Garden project and form the nodes of **the Stack Graph**.
 
 There are four actions _kinds_:
-- **Build**: A build action describes something you build.
-- **Deploy**: A deploy is something you deploy and expect to stay up and running.
-- **Run**: A run is something you run and wait for to finish.
-- **Test**: A test is also something you run and wait for to finish, similar to tasks, but with slightly different semantics and separate commands for execution.
+- **Build**: describes something you build.
+- **Deploy**: something you deploy and expect to stay up and running.
+- **Run**: something you run and wait for to finish.
+- **Test**: also something you run and wait for to finish, similar to tasks, but with slightly different semantics and separate commands for execution.
 
 Running `garden build` will e.g. execute all the Build actions for that project (i.e., it will build the project).
 
@@ -61,6 +61,15 @@ This is a powerful concept that allows you to model a system of almost any compl
 A DAG (_directed acyclic graph_) that the **actions** and their dependencies make up for a given **project** and **environment**.
 
 You can think of it as a blueprint of how to go from zero to a running system in a single command.
+
+### Versions
+Garden generates a Garden version for each action, based on the source files and configuration involved, as well as any upstream dependencies. When using Garden, you'll see various instances of v-<some hash> strings scattered around logs, e.g. when building, deploying, running tests etc.
+
+These versions are used by Garden and the Stack Graph to work out which actions need to be performed whenever you want to build, deploy, or test your project.
+
+Each version also factors in the versions of every dependency. This means that anytime a version of something that is depended upon changes, every dependant's version also changes.
+
+For example if the source code of a Build action is changed it's version will change. The Deploy action referencing the build will also have a new version due it being dependant on the build and any Test actions referencing the Deploy will also have new versions.
 
 ### Caching
 Garden tracks the version of every file that belongs to a given **action** (and its upstream dependencies).
