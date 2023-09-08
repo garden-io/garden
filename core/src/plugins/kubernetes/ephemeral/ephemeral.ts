@@ -9,6 +9,7 @@
 import { configureProvider, configSchema } from "./config"
 import { createGardenPlugin } from "../../../plugin/plugin"
 import { dedent } from "../../../util/string"
+import { KubernetesProvider } from "../config"
 
 const providerUrl = "./kubernetes.md"
 export const EPHEMERAL_KUBERNETES_PROVIDER_NAME = "ephemeral-kubernetes"
@@ -27,3 +28,7 @@ export const gardenPlugin = () =>
       configureProvider,
     },
   })
+
+  export function isProviderEphemeralKubernetes(provider: KubernetesProvider) {
+    return provider?.name === EPHEMERAL_KUBERNETES_PROVIDER_NAME
+  }

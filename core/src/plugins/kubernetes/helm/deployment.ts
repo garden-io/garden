@@ -167,7 +167,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     attached = true
   }
   // Get ingresses of deployed resources
-  const ingresses = getK8sIngresses(manifests)
+  const ingresses = getK8sIngresses(manifests, provider)
 
   return {
     state: "ready",

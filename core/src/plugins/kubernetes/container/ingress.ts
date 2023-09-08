@@ -6,20 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { extend } from "lodash"
-import { findByName } from "../../../util/util"
-import { ContainerIngressSpec, ContainerDeployAction } from "../../container/moduleConfig"
-import { IngressTlsCertificate, KubernetesProvider } from "../config"
-import { ServiceIngress, ServiceProtocol } from "../../../types/service"
-import { KubeApi } from "../api"
-import { ConfigurationError, PluginError } from "../../../exceptions"
-import { ensureSecret } from "../secrets"
-import { getHostnamesFromPem } from "../../../util/tls"
-import { KubernetesResource } from "../types"
 import { V1Ingress, V1Secret } from "@kubernetes/client-node"
-import { Log } from "../../../logger/log-entry"
 import chalk from "chalk"
+import { extend } from "lodash"
 import { Resolved } from "../../../actions/types"
+import { ConfigurationError, PluginError } from "../../../exceptions"
+import { Log } from "../../../logger/log-entry"
+import { ServiceIngress, ServiceProtocol } from "../../../types/service"
+import { getHostnamesFromPem } from "../../../util/tls"
+import { findByName } from "../../../util/util"
+import { ContainerDeployAction, ContainerIngressSpec } from "../../container/moduleConfig"
+import { KubeApi } from "../api"
+import { IngressTlsCertificate, KubernetesProvider } from "../config"
+import { isProviderEphemeralKubernetes } from "../ephemeral/ephemeral"
+import { ensureSecret } from "../secrets"
+import { KubernetesResource } from "../types"
 
 // Ingress API versions in descending order of preference
 export const supportedIngressApiVersions = ["networking.k8s.io/v1", "networking.k8s.io/v1beta1", "extensions/v1beta1"]
@@ -184,8 +185,14 @@ async function getIngress(
 
   const certificate = await pickCertificate(action, api, provider, hostname)
   // TODO: support other protocols
-  const protocol: ServiceProtocol = !!certificate ? "https" : "http"
-  const port = !!certificate ? provider.config.ingressHttpsPort : provider.config.ingressHttpPort
+  let protocol: ServiceProtocol = !!certificate ? "https" : "http"
+  let port = !!certificate ? provider.config.ingressHttpsPort : provider.config.ingressHttpPort
+
+  // ephemeral-kubernetes ingresses should always be https
+  if (isProviderEphemeralKubernetes(provider)) {
+    protocol = "https"
+    port = provider.config.ingressHttpsPort
+  }
 
   return {
     ...spec,

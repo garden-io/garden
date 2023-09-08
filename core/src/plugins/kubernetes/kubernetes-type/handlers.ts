@@ -214,7 +214,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       version: state === "ready" ? action.versionString() : undefined,
       detail: { remoteResources },
       mode: deployedMode,
-      ingresses: getK8sIngresses(remoteResources),
+      ingresses: getK8sIngresses(remoteResources, provider),
     },
     // TODO-0.13.1
     outputs: {},

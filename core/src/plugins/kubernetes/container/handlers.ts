@@ -22,7 +22,7 @@ import { getContainerModuleOutputs } from "../../container/container"
 import { getContainerBuildActionOutputs } from "../../container/build"
 import { Resolved } from "../../../actions/types"
 import { splitFirst } from "../../../util/string"
-import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "../ephemeral/ephemeral"
+import { EPHEMERAL_KUBERNETES_PROVIDER_NAME, isProviderEphemeralKubernetes } from "../ephemeral/ephemeral"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   let { moduleConfig } = await params.base!(params)
@@ -110,7 +110,7 @@ export function validateDeploySpec(
     const hostname = ingressSpec.hostname || provider.config.defaultHostname
 
     if (!hostname) {
-      if (provider.name === EPHEMERAL_KUBERNETES_PROVIDER_NAME && !provider.config.setupIngressController) {
+      if (isProviderEphemeralKubernetes(provider) && !provider.config.setupIngressController) {
         throw new ConfigurationError({
           message:
             `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
