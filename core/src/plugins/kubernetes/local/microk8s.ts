@@ -7,9 +7,9 @@
  */
 
 import tmp from "tmp-promise"
-import { RuntimeError } from "../../../exceptions"
+import { ChildProcessError, RuntimeError } from "../../../exceptions"
 import { Log } from "../../../logger/log-entry"
-import { ChildProcessError, exec } from "../../../util/util"
+import { exec } from "../../../util/util"
 import { containerHelpers } from "../../container/helpers"
 import { ContainerBuildAction } from "../../container/moduleConfig"
 import chalk from "chalk"

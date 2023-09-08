@@ -25,7 +25,6 @@ import {
   pick,
   range,
   some,
-  trimEnd,
   truncate,
   uniqBy,
 } from "lodash"
@@ -35,7 +34,7 @@ import { isAbsolute, relative } from "path"
 import { Readable, Writable } from "stream"
 import type { PrimitiveMap } from "../config/common"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants"
-import { GardenError, InternalError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
+import { ChildProcessError, InternalError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
 import type { Log } from "../logger/log-entry"
 import { getDefaultProfiler } from "./profiling"
 import { dedent, naturalList, tailString } from "./string"
@@ -368,47 +367,6 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
       }
     })
   })
-}
-
-type ChildProcessErrorDetails = {
-  cmd: string
-  args: string[]
-  code: number
-  output: string
-  stderr: string
-  stdout: string
-  opts?: SpawnOpts
-}
-export class ChildProcessError extends GardenError {
-  type = "childprocess"
-
-  // The details do not need to be exposed in toString() or toJSON(), because they are included in the message.
-  readonly details: ChildProcessErrorDetails
-
-  constructor(details: ChildProcessErrorDetails) {
-    super({ message: ChildProcessError.formatMessage(details) })
-    this.details = details
-  }
-
-  private static formatMessage({cmd, args, code, output, stderr}: ChildProcessErrorDetails): string {
-    const nLinesToShow = 100
-    const lines = output.split("\n")
-    const out = lines.slice(-nLinesToShow).join("\n")
-    const cmdStr = args.length > 0 ? `${cmd} ${args.join(" ")}` : cmd
-    let msg = dedent`
-      Command "${cmdStr}" failed with code ${code}:
-
-      ${trimEnd(stderr, "\n")}
-    `
-    if (output && output !== stderr) {
-      msg +=
-        lines.length > nLinesToShow
-          ? `\n\nHere are the last ${nLinesToShow} lines of the output:`
-          : `\n\nHere's the full output:`
-      msg += `\n\n${trimEnd(out, "\n")}`
-    }
-    return msg
-  }
 }
 
 /**

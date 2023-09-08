@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isString } from "lodash"
-import { getGitHubIssueLink, testFlags } from "./util/util"
+import { isString, trimEnd } from "lodash"
+import { SpawnOpts, getGitHubIssueLink, testFlags } from "./util/util"
 import dedent from "dedent"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
@@ -233,6 +233,47 @@ export class GenericGardenError extends GardenError {
   constructor(params: GenericGardenErrorParams) {
     super(params)
     this.type = params.type
+  }
+}
+
+type ChildProcessErrorDetails = {
+  cmd: string
+  args: string[]
+  code: number
+  output: string
+  stderr: string
+  stdout: string
+  opts?: SpawnOpts
+}
+export class ChildProcessError extends GardenError {
+  type = "childprocess"
+
+  // The details do not need to be exposed in toString() or toJSON(), because they are included in the message.
+  readonly details: ChildProcessErrorDetails
+
+  constructor(details: ChildProcessErrorDetails) {
+    super({ message: ChildProcessError.formatMessage(details) })
+    this.details = details
+  }
+
+  private static formatMessage({cmd, args, code, output, stderr}: ChildProcessErrorDetails): string {
+    const nLinesToShow = 100
+    const lines = output.split("\n")
+    const out = lines.slice(-nLinesToShow).join("\n")
+    const cmdStr = args.length > 0 ? `${cmd} ${args.join(" ")}` : cmd
+    let msg = dedent`
+      Command "${cmdStr}" failed with code ${code}:
+
+      ${trimEnd(stderr, "\n")}
+    `
+    if (output && output !== stderr) {
+      msg +=
+        lines.length > nLinesToShow
+          ? `\n\nHere are the last ${nLinesToShow} lines of the output:`
+          : `\n\nHere's the full output:`
+      msg += `\n\n${trimEnd(out, "\n")}`
+    }
+    return msg
   }
 }
 
