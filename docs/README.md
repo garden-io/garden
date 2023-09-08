@@ -8,7 +8,7 @@
 * [Quickstart Guide](./basics/quickstart.md)
 * [The Stack Graph (Terminology)](./basics/stack-graph.md)
 * [Garden vs Other Tools](./basics/garden-vs-other-tools.md)
-* [Ephemeral Kubernetes Clusters](./basics/ephemeral-clusters.md)
+* [Start a Free Kubernetes Cluster](./basics/ephemeral-clusters.md)
 
 ## 🌳 Garden Seeds
 

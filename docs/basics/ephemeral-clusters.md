@@ -1,5 +1,5 @@
 ---
-title: Ephemeral Kubernetes Clusters
+title: Start a Free Kubernetes Cluster
 order: 4
 ---
 
