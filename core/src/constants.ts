@@ -18,7 +18,7 @@ export const defaultGitScanMode: GitScanMode = "subtree"
 
 export const GARDEN_CORE_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(__dirname, "..", "..")
 export const GARDEN_CLI_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(GARDEN_CORE_ROOT, "..", "cli")
-export const STATIC_DIR = process.env.STATIC_DIR || (isPkg ? resolve(process.execPath, "..", "static") : resolve(GARDEN_CORE_ROOT, "..", "static"));
+export const STATIC_DIR = process.env.STATIC_DIR || (isPkg ? resolve(process.execPath, "..", "static") : resolve(GARDEN_CORE_ROOT, "..", "static"))
 export const DEFAULT_GARDEN_DIR_NAME = ".garden"
 export const MUTAGEN_DIR_NAME = "mutagen"
 export const LOGS_DIR_NAME = "logs"
