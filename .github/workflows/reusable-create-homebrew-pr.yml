@@ -76,8 +76,8 @@ jobs:
         if: inputs.release-condition != 'false'
         uses: cuchi/jinja2-action@v1.2.0
         with:
-          template: garden/support/homebrew-formula.rb.j2
-          output_file: homebrew-garden/Formula/garden-cli.rb
+          template: ${{ github.workspace }}/garden/support/homebrew-formula.rb.j2
+          output_file: ${{ github.workspace }}/homebrew-garden/Formula/garden-cli.rb
           strict: true
           variables: |
             version=${{ inputs.release-version }}}
@@ -90,7 +90,7 @@ jobs:
         if: inputs.release-condition != 'false'
         uses: peter-evans/create-pull-request@v5
         with:
-          path: homebrew-garden
+          path: ${{ github.workspace }}/homebrew-garden
           token: ${{ secrets.COMMITTER_TOKEN }}
           commit-message: ${{ inputs.commit-message }}
           title: Bump garden-cli to ${{ inputs.release-version }}
