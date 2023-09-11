@@ -125,7 +125,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
           )
         }
         if (!res) {
-          throw new RuntimeError({ message: "Port-forwarding is still not running", detail: {} })
+          throw new RuntimeError({ message: "Port-forwarding is still not running" })
         }
         return res
       },

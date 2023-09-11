@@ -16,7 +16,7 @@ import { Garden } from "../../../../../src/garden"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { deline, randomString, dedent } from "../../../../../src/util/string"
 import { runAndCopy, PodRunner, prepareRunPodSpec } from "../../../../../src/plugins/kubernetes/run"
-import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
+import { KubeApi, KubernetesError } from "../../../../../src/plugins/kubernetes/api"
 import {
   KubernetesPluginContext,
   KubernetesProvider,
@@ -193,7 +193,14 @@ describe("kubernetes Pod runner functions", () => {
         await runner.start({ log })
         await expectError(
           () => runner.exec({ log, command: ["sh", "-c", "echo foo && exit 2"], buffer: true }),
-          (err) => expect(err.message.trim()).to.equal("Command exited with code 2:\nfoo")
+          (err) => {
+            expect(err.message).to.eql(dedent`
+              Failed with exit code 2.
+
+              Here are the logs until the error occurred:
+
+              foo`)
+          }
         )
       })
     })
@@ -292,7 +299,15 @@ describe("kubernetes Pod runner functions", () => {
 
         await expectError(
           () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events, throwOnExitCode: true }),
-          (err) => expect(err.message.trim()).to.equal("Command exited with code 1:\nfoo")
+          (err) => {
+            expect(err.message).to.eql(dedent`
+            Failed with exit code 1.
+
+            Here are the logs until the error occurred:
+
+            foo
+            `)
+          }
         )
       })
 
@@ -418,7 +433,7 @@ describe("kubernetes Pod runner functions", () => {
         await expectError(
           () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
           (err) => {
-            expect(err.type).to.eql("out-of-memory")
+            expect(err.type).to.eql("pod-runner-oom")
             expect(err.message).to.include("OOMKilled")
           }
         )
@@ -497,7 +512,7 @@ describe("kubernetes Pod runner functions", () => {
         await expectError(
           () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
           (err) => {
-            expect(err.type).to.eql("out-of-memory")
+            expect(err.type).to.eql("pod-runner-oom")
             expect(err.message).to.include("OOMKilled")
           }
         )
@@ -629,7 +644,6 @@ describe("kubernetes Pod runner functions", () => {
         command: ["echo", "foo"],
         envVars: {},
         description: "Helm module",
-        errorMetadata: {},
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
@@ -686,7 +700,6 @@ describe("kubernetes Pod runner functions", () => {
         envVars: {},
         resources, // <---
         description: "Helm module",
-        errorMetadata: {},
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
@@ -743,7 +756,6 @@ describe("kubernetes Pod runner functions", () => {
         envVars: {},
         resources, // <---
         description: "Helm module",
-        errorMetadata: {},
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
@@ -800,7 +812,6 @@ describe("kubernetes Pod runner functions", () => {
         envVars: {},
         resources, // <---
         description: "Helm module",
-        errorMetadata: {},
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
@@ -887,7 +898,6 @@ describe("kubernetes Pod runner functions", () => {
 
         envVars: {},
         description: "Helm module",
-        errorMetadata: {},
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
@@ -967,7 +977,6 @@ describe("kubernetes Pod runner functions", () => {
 
         envVars: {},
         description: "Helm module",
-        errorMetadata: {},
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
@@ -1068,7 +1077,10 @@ describe("kubernetes Pod runner functions", () => {
 
       await expectError(
         () => api.core.readNamespacedPod(podName, namespace),
-        (err) => expect(err.statusCode).to.equal(404)
+        (err) => {
+          expect(err).to.be.instanceOf(KubernetesError)
+          expect(err.responseStatusCode).to.equal(404)
+        }
       )
     })
 
@@ -1145,7 +1157,10 @@ describe("kubernetes Pod runner functions", () => {
 
         await expectError(
           () => api.core.readNamespacedPod(podName, namespace),
-          (err) => expect(err.statusCode).to.equal(404)
+          (err) => {
+            expect(err).to.be.instanceOf(KubernetesError)
+            expect(err.responseStatusCode).to.equal(404)
+          }
         )
       })
 

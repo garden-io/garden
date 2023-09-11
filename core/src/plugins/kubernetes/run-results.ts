@@ -8,7 +8,7 @@
 
 import { ContainerRunAction } from "../container/moduleConfig"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
-import { KubeApi } from "./api"
+import { KubeApi, KubernetesError } from "./api"
 import { getAppNamespace } from "./namespace"
 import { deserializeValues } from "../../util/serialization"
 import { PluginContext } from "../../plugin-context"
@@ -53,7 +53,10 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
 
     return { state: runResultToActionState(result), detail: result, outputs: { log: result.log } }
   } catch (err) {
-    if (err.statusCode === 404) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       return { state: "not-ready", detail: null, outputs: {} }
     } else {
       throw err
@@ -126,8 +129,11 @@ export async function clearRunResult({
 
   try {
     await api.core.deleteNamespacedConfigMap(key, namespace)
-  } catch (err) {
-    if (err.statusCode !== 404) {
+  } catch (err: unknown) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode !== 404) {
       throw err
     }
   }

@@ -89,11 +89,7 @@ export async function resolveConfigTemplate(
       inputsJsonSchema = JSON.parse((await readFile(path)).toString())
     } catch (error) {
       throw new ConfigurationError({
-        message: `Unable to read inputs schema for ${configTemplateKind} ${validated.name}: ${error}`,
-        detail: {
-          path,
-          error,
-        },
+        message: `Unable to read inputs schema at '${validated.inputsSchemaPath}' for ${configTemplateKind} ${validated.name}: ${error}`,
       })
     }
 
@@ -101,8 +97,7 @@ export async function resolveConfigTemplate(
 
     if (type !== "object") {
       throw new ConfigurationError({
-        message: `Inputs schema for ${configTemplateKind} ${validated.name} has type ${type}, but should be "object".`,
-        detail: { path, type },
+        message: `Inputs schema at '${validated.inputsSchemaPath}' for ${configTemplateKind} ${validated.name} has type ${type}, but should be "object".`,
       })
     }
   }

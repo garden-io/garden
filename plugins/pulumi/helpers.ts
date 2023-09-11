@@ -22,7 +22,7 @@ import { Log, PluginContext } from "@garden-io/sdk/types"
 import { defaultPulumiEnv, pulumi } from "./cli"
 import { PulumiDeploy } from "./action"
 import { PulumiProvider } from "./provider"
-import { deline } from "@garden-io/sdk/util/string"
+import { deline, naturalList } from "@garden-io/sdk/util/string"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
 import { ActionLog } from "@garden-io/core/build/src/logger/log-entry"
 
@@ -253,11 +253,9 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
     )
   } catch (err) {
     throw new FilesystemError({
-      message: `An error occurred while reading pulumi varfiles for action ${action.name}: ${err.message}`,
-      detail: {
-        pulumiVarfiles: spec.pulumiVarfiles,
-        actionName: action.name,
-      },
+      message: `An error occurred while reading specified pulumi varfiles (${naturalList(
+        spec.pulumiVarfiles
+      )}) for action ${action.name}: ${err.message}`,
     })
   }
 
@@ -308,13 +306,9 @@ async function readPulumiPlan(module: PulumiDeploy, planPath: string): Promise<P
     plan = JSON.parse((await readFile(planPath)).toString()) as PulumiPlan
     return plan
   } catch (err) {
-    const errMsg = `An error occurred while reading a pulumi plan file at ${planPath}: ${err.message}`
+    const errMsg = `An error occurred while reading a pulumi plan file at ${planPath} in module ${module.name}: ${err.message}`
     throw new FilesystemError({
       message: errMsg,
-      detail: {
-        planPath,
-        moduleName: module.name,
-      },
     })
   }
 }
@@ -508,14 +502,9 @@ async function loadPulumiVarfile({
   const isYamlFile = ext === ".yml" || ext === ".yaml"
   if (!isYamlFile) {
     const errMsg = deline`
-      Unable to load varfile at path ${resolvedPath}: Expected file extension to be .yml or .yaml, got ${ext}. Pulumi varfiles must be YAML files.`
+      Unable to load Pulumi varfile at path ${resolvedPath} (action ${action.name}): Expected file extension to be .yml or .yaml, got ${ext}. Pulumi varfiles must be YAML files.`
     throw new ConfigurationError({
       message: errMsg,
-      detail: {
-        actionName: action.name,
-        resolvedPath,
-        varfilePath,
-      },
     })
   }
 
@@ -525,14 +514,9 @@ async function loadPulumiVarfile({
     const parsed = load(resolved)
     return parsed as DeepPrimitiveMap
   } catch (error) {
-    const errMsg = `Unable to load varfile at '${resolvedPath}': ${error}`
+    const errMsg = `Unable to load varfile at '${resolvedPath}' (action ${action.name}): ${error}`
     throw new ConfigurationError({
       message: errMsg,
-      detail: {
-        actionName: action.name,
-        error,
-        resolvedPath,
-      },
     })
   }
 }

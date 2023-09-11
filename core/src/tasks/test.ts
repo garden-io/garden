@@ -25,11 +25,18 @@ import { GetTestResult } from "../plugin/handlers/Test/get-result"
 import { TestConfig } from "../config/test"
 import { moduleTestNameToActionName } from "../types/module"
 import { OtelTraced } from "../util/open-telemetry/decorators"
+import { GardenError } from "../exceptions"
 
-class TestError extends Error {
-  override toString() {
-    return this.message
-  }
+/**
+ * Only throw this error when the test itself failed, and not when Garden failed to execute the test.
+ *
+ * Unexpected errors should just bubble up; When the test ran successfully, but it reported a failure (e.g. linter found issues).
+ *
+ * TODO: This probably should not be handled with an exception and instead just be an object that represents a run failure or succcess.
+ * For now however, we use the error and should be careful with how we use it.
+ */
+class TestFailedError extends GardenError {
+  override type = "test-failed"
 }
 
 export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
@@ -148,7 +155,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       if (status.detail?.diagnosticErrorMsg) {
         this.log.debug(`Additional context for the error:\n\n${status.detail.diagnosticErrorMsg}`)
       }
-      throw new TestError(status.detail?.log)
+      throw new TestFailedError({ message: status.detail?.log || "The test failed, but it did not output anything." })
     }
 
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }

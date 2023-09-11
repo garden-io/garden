@@ -625,7 +625,6 @@ export function configureVolumes(
           message: `${action.longDescription()} specifies action '${
             volume.action.name
           }' on volume '${volumeName}' but the Deploy action could not be found. Please make sure it is specified as a dependency on the action.`,
-          detail: { volume },
         })
       }
 
@@ -649,7 +648,6 @@ export function configureVolumes(
           ${chalk.white(volumeAction.name)} for volume mount ${chalk.white(volumeName)}. Only \`persistentvolumeclaim\`
           and \`configmap\` action are supported at this time.
           `),
-          detail: { volumeSpec: volume },
         })
       }
     } else {
@@ -717,9 +715,6 @@ export async function handleChangedSelector({
       )} flag when deploying e.g. with the ${chalk.white(
         "garden deploy"
       )} command. You can also delete the resource from your cluster manually and try again.`,
-      detail: {
-        deployName: action.name,
-      },
     })
   } else {
     if (production && force) {

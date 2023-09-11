@@ -177,7 +177,7 @@ describe("getManifests", () => {
 
       await expectError(
         () => getManifests({ ctx, api, action, log: garden.log, defaultNamespace, readFromSrcDir: false }),
-        (err) => expect(err.message).to.equal(expectedErr)
+        (err) => expect(err.message).to.include(expectedErr)
       )
     })
 
@@ -186,7 +186,7 @@ describe("getManifests", () => {
 
       await expectError(
         () => getManifests({ ctx, api, action, log: garden.log, defaultNamespace, readFromSrcDir: false }),
-        (err) => expect(err.message).to.equal(expectedErr)
+        (err) => expect(err.message).to.include(expectedErr)
       )
     })
 
@@ -195,7 +195,7 @@ describe("getManifests", () => {
 
       await expectError(
         () => getManifests({ ctx, api, action, log: garden.log, defaultNamespace, readFromSrcDir: false }),
-        (err) => expect(err.message).to.equal(expectedErr)
+        (err) => expect(err.message).to.include(expectedErr)
       )
     })
 
@@ -204,7 +204,9 @@ describe("getManifests", () => {
 
       await expectError(
         () => getManifests({ ctx, api, action, log: garden.log, defaultNamespace, readFromSrcDir: false }),
-        (err) => expect(err.message).to.equal(expectedErr)
+        (err) => {
+          expect(err.message).to.include(expectedErr)
+        }
       )
     })
 
@@ -225,8 +227,9 @@ describe("getManifests", () => {
   context("kubernetes manifest files resolution", () => {
     before(async () => {
       garden = await getKubernetesTestGarden()
-      const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
+      const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
       ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+      api = await KubeApi.factory(garden.log, ctx, provider)
     })
 
     beforeEach(async () => {
@@ -306,7 +309,7 @@ describe("getManifests", () => {
             readFromSrcDir: true,
           }),
         {
-          contains: `Invalid manifest file path(s) in ${action.kind} action '${action.name}'`,
+          contains: `Invalid manifest file path(s) declared in ${action.longDescription()}`,
         }
       )
     })
@@ -334,7 +337,7 @@ describe("getManifests", () => {
             readFromSrcDir: true,
           }),
         {
-          contains: `Invalid manifest file path(s) in ${action.kind} action '${action.name}'`,
+          contains: `Invalid manifest file path(s) declared in ${action.longDescription()}`,
         }
       )
     })

@@ -11,16 +11,17 @@ import cloneDeep from "fast-copy"
 import { flatten, last, repeat, size } from "lodash"
 import { printHeader, getTerminalWidth, renderMessageWithDivider, renderDuration } from "../logger/util"
 import { Command, CommandParams, CommandResult } from "./base"
-import { dedent, wordWrap, deline } from "../util/string"
+import { dedent, wordWrap, deline, naturalList } from "../util/string"
 import { Garden } from "../garden"
 import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../config/workflow"
 import { Log } from "../logger/log-entry"
 import {
   ChildProcessError,
-  formatGardenErrorWithDetail,
   GardenError,
+  InternalError,
   RuntimeError,
   WorkflowScriptError,
+  toGardenError,
 } from "../exceptions"
 import {
   WorkflowConfigContext,
@@ -168,12 +169,13 @@ export class WorkflowCommand extends Command<Args, {}> {
           stepResult = await runStepScript(stepParams)
         } else {
           garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
-          throw new ConfigurationError({
-            message: `Workflow steps must specify either a command or a script.`,
-            detail: { step },
+          // This should be catched by the validation layer
+          throw new InternalError({
+            message: `Workflow steps must specify either a command or a script. Got: ${JSON.stringify(step)}`,
           })
         }
-      } catch (err) {
+      } catch (rawErr) {
+        const err = toGardenError(rawErr)
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
         stepErrors[index] = [err]
         printStepDuration({ ...stepParams, success: false })
@@ -207,6 +209,7 @@ export class WorkflowCommand extends Command<Args, {}> {
     if (size(stepErrors) > 0) {
       printResult({ startedAt, log: outerLog, workflow, success: false })
       garden.events.emit("workflowError", {})
+      // TODO: If any of the errors are not instanceof GardenError, we need to log the explanation (with bug report information, etc.)
       const errors = flatten(Object.values(stepErrors))
       const finalError = opts.output
         ? errors
@@ -215,6 +218,7 @@ export class WorkflowCommand extends Command<Args, {}> {
               message: `workflow failed with ${errors.length} ${
                 errors.length > 1 ? "errors" : "error"
               }, see logs above for more info`,
+              wrappedErrors: errors.map(toGardenError),
             }),
           ]
       return { result, errors: finalError }
@@ -337,9 +341,6 @@ export async function runStepCommand(params: RunStepCommandParams): Promise<Comm
   if (!command) {
     throw new ConfigurationError({
       message: `Could not find Garden command '${rawArgs.join(" ")}`,
-      detail: {
-        step,
-      },
     })
   }
 
@@ -367,10 +368,9 @@ export async function runStepCommand(params: RunStepCommandParams): Promise<Comm
 
   if (persistent) {
     throw new ConfigurationError({
-      message: `Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, interactive commands, commands with monitor flags set etc.)`,
-      detail: {
-        step,
-      },
+      message: `Cannot run Garden command '${rawArgs.join(" ")}'${
+        step.name ? ` (Step ${step.name}) ` : ""
+      }: Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, interactive commands, commands with monitor flags set etc.)`,
     })
   }
 
@@ -388,19 +388,16 @@ export async function runStepScript({ garden, bodyLog, step }: RunStepParams): P
     }
 
     const scriptError = new WorkflowScriptError({
-      message: `Script exited with code ${err.detail.code}`,
-      detail: {
-        message: err.detail.stderr,
-        exitCode: err.detail.code,
-        stdout: err.detail.stdout,
-        stderr: err.detail.stderr,
-      },
+      output: err.details.output,
+      exitCode: err.details.code,
+      stdout: err.details.stdout,
+      stderr: err.details.stderr,
     })
 
     bodyLog.error("")
     bodyLog.error({ msg: `Script failed with the following error:`, error: scriptError })
     bodyLog.error("")
-    bodyLog.error(err.detail.stderr)
+    bodyLog.error(err.details.stderr)
 
     throw scriptError
   }
@@ -463,20 +460,17 @@ export function logErrors(
   log.error(chalk.red(errMsg))
   log.debug("")
   for (const error of errors) {
-    if (error.type === "workflow-script") {
+    if (error instanceof WorkflowScriptError) {
       const scriptErrMsg = renderMessageWithDivider({
-        prefix: `Script exited with code ${error.detail.exitCode} ${renderDuration(log.getDuration())}`,
-        msg: error.detail.stderr,
+        prefix: `Script exited with code ${error.details.exitCode} ${renderDuration(log.getDuration())}`,
+        msg: error.explain(),
         isError: true,
       })
       log.error(scriptErrMsg)
     } else {
-      // Error comes from a command step.
-      if (error.detail) {
-        const taskDetailErrMsg = formatGardenErrorWithDetail(error)
-        log.debug(chalk.red(taskDetailErrMsg))
-      }
-      log.error(chalk.red(error.message + "\n"))
+      const taskDetailErrMsg = error.toString(true)
+      log.debug(chalk.red(taskDetailErrMsg))
+      log.error(error.explain() + "\n")
     }
   }
 }
@@ -505,17 +499,16 @@ async function writeWorkflowFile(garden: Garden, file: WorkflowFileSpec) {
 
     if (data === undefined) {
       throw new ConfigurationError({
-        message: `File '${file.path}' requires secret '${file.secretName}' which could not be found.`,
-        detail: {
-          file,
-          availableSecrets: Object.keys(garden.secrets),
-        },
+        message: dedent`
+          File '${file.path}' requires secret '${file.secretName}' which could not be found.
+
+          Available secrets: ${naturalList(Object.keys(garden.secrets))}
+          `,
       })
     }
   } else {
     throw new ConfigurationError({
       message: `File '${file.path}' specifies neither string data nor a secret name.`,
-      detail: { file },
     })
   }
 
@@ -527,8 +520,7 @@ async function writeWorkflowFile(garden: Garden, file: WorkflowFileSpec) {
     await writeFile(fullPath, data)
   } catch (error) {
     throw new FilesystemError({
-      message: `Unable to write file '${file.path}': ${error.message}`,
-      detail: { error, file },
+      message: `Unable to write file '${file.path}': ${error.message || error}`,
     })
   }
 }

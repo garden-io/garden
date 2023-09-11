@@ -23,7 +23,7 @@ import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
 import { uuidv4 } from "../util/random"
-import { GardenError, GardenErrorContext, StackTraceMetadata } from "../exceptions"
+import { GardenError, StackTraceMetadata } from "../exceptions"
 import { ActionConfigMap } from "../actions/types"
 import { actionKinds } from "../actions/types"
 import { getResultErrorProperties } from "./helpers"
@@ -146,8 +146,18 @@ interface ApiEvent extends EventBase {
 }
 
 export type AnalyticsGardenErrorDetail = {
+  /**
+   * The error type will be used for rendering the error to json, and also for analytics.
+   *
+   * Corresponds to GardenError.type
+   */
   errorType: string
-  context?: GardenErrorContext
+  /**
+   * The type of task, if the error was thrown as part of resolving or executing a node in the stack graph.
+   *
+   * Corresponds to GardenError.taskType
+   */
+  taskType?: string
   stackTrace?: StackTraceMetadata
 }
 

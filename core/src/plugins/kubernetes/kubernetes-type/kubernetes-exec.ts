@@ -18,8 +18,8 @@ import { Log } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
 import { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types"
 import { RunResult } from "../../../plugin/base"
-import { dedent, deline } from "../../../util/string"
-import { KubeApi } from "../api"
+import { dedent } from "../../../util/string"
+import { KubeApi, KubernetesError } from "../api"
 import {
   KubernetesPluginContext,
   KubernetesTargetResourceSpec,
@@ -146,16 +146,18 @@ async function readAndExec({
       namespace,
       query: resource,
     })
-  } catch (err) {
-    if (err.statusCode === 404) {
+  } catch (err: unknown) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       throw new ConfigurationError({
         message: chalk.red(
-          deline`${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not
-          be found in namespace ${namespace}. Hint: This action may be missing a dependency on a Deploy in this
-          project that deploys the target resource. If so, adding that dependency will ensure that the Deploy is run
-          before this action.`
+          dedent`
+            ${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.
+
+            Hint: This action may be missing a dependency on a Deploy in this project that deploys the target resource. If so, adding that dependency will ensure that the Deploy is run before this action.`
         ),
-        detail: { resource, namespace },
       })
     } else {
       throw err

@@ -64,8 +64,7 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
 
       if (!projectRoot) {
         throw new RuntimeError({
-          message: `Could not find project config in the current directory, or anywhere above. Please use the --all parameter if you'd like to fetch tools for all registered providers.`,
-          detail: { root: garden.projectRoot },
+          message: `Could not find a project configuration in the current directory, or anywhere above. Please use the --all parameter if you'd like to fetch tools for all registered providers.`,
         })
       }
 

@@ -341,11 +341,14 @@ export async function configureSyncMode({
     const target = override.target || defaultTarget
     if (!target) {
       throw new ConfigurationError({
-        message: dedent`Sync override configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
-        Either specify a target via the \`spec.sync.overrides[].target\` or \`spec.defaultTarget\``,
-        detail: {
-          override,
-        },
+        message: dedent`
+          Sync override configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
+          Either specify a target via the \`spec.sync.overrides[].target\` or \`spec.defaultTarget\`.
+
+          Override configuration:
+          ${(override.command?.length ?? 0) > 0 ? `Command: ${override.command?.join(" ")}` : ""}
+          ${(override.args?.length ?? 0) > 0 ? `Args: ${override.args?.join(" ")}` : ""}
+        `,
       })
     }
     if (target.kind && target.name) {
@@ -360,8 +363,14 @@ export async function configureSyncMode({
 
     if (!target) {
       throw new ConfigurationError({
-        message: `Sync configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.`,
-        detail: { sync },
+        message: dedent`
+          Sync configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
+
+          Sync configuration:
+          Source path: ${sync.sourcePath}
+          Container path: ${sync.containerPath}
+          ${sync.containerName ? `Container name: ${sync.containerName}` : ""}
+        `,
       })
     }
 

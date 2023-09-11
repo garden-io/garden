@@ -46,8 +46,11 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   const projectConfig = await findProjectConfig({ log, path: root, allowInvalid: true })
   if (!projectConfig) {
     throw new ValidationError({
-      message: "Couldn't find a Project definition. Please run this command from the root of your Garden project.",
-      detail: {},
+      message: dedent`
+        Couldn't find a Project definition.
+        Please run this command from the root of your Garden project.
+        Current path: ${root}
+      `,
     })
   }
 

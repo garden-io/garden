@@ -53,9 +53,6 @@ export class LogOutCommand extends Command<{}, Opts> {
       if (!projectConfig) {
         throw new ConfigurationError({
           message: `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-          detail: {
-            root: garden.projectRoot,
-          },
         })
       }
     }

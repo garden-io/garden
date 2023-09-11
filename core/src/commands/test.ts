@@ -171,6 +171,10 @@ export class TestCommand extends Command<Args, Opts> {
       graph.getModules({ names: opts.module })
     }
 
+    const allActions = graph.getActionsByKind("Test", {
+      excludeNames: opts.skip,
+    })
+
     const actions = graph.getActionsByKind("Test", {
       includeNames: names,
       moduleNames: opts.module,
@@ -183,8 +187,8 @@ export class TestCommand extends Command<Args, Opts> {
       log,
       actionKind: "Test",
       actions,
+      allActions,
       names,
-      errData: { params, args },
     })
     if (shouldAbort) {
       return {}
@@ -207,10 +211,6 @@ export class TestCommand extends Command<Args, Opts> {
     if (opts.interactive && tasks.length !== 1) {
       throw new ParameterError({
         message: `The --interactive/-i option can only be used if a single test is selected.`,
-        detail: {
-          args,
-          opts,
-        },
       })
     }
 

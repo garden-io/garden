@@ -158,7 +158,7 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
         if (!(err instanceof ChildProcessError)) {
           throw err
         }
-        providerLog.warn(chalk.yellow(`Unable to enable minikube ingress addon: ${err.detail.output}`))
+        providerLog.warn(chalk.yellow(`Unable to enable minikube ingress addon: ${err.details.output}`))
       }
       remove(_systemServices, (s) => nginxServices.includes(s))
     }

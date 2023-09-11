@@ -92,7 +92,6 @@ export function detectProjectType({
 
   throw new ConfigurationError({
     message: `Could not detect a gradle or maven project to build ${actionName}`,
-    detail: {},
   })
 }
 

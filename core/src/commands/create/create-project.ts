@@ -106,7 +106,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     const configDir = resolve(process.cwd(), opts.dir)
 
     if (!(await isDirectory(configDir))) {
-      throw new ParameterError({ message: `${configDir} is not a directory`, detail: { configDir } })
+      throw new ParameterError({ message: `${configDir} is not a directory` })
     }
 
     const configPath = join(configDir, opts.filename)
@@ -118,7 +118,6 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
       if (configs.filter((c) => c.kind === "Project").length > 0) {
         throw new CreateError({
           message: `A Garden project already exists in ${configPath}`,
-          detail: { configDir, configPath },
         })
       }
     }

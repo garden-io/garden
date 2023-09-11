@@ -146,9 +146,6 @@ export async function prepareTemplates({ ctx, action, log }: PrepareTemplatesPar
     // This will generally be caught at schema validation
     throw new ConfigurationError({
       message: `${action.longDescription()} specifies none of chart.name, chart.path nor chart.url`,
-      detail: {
-        chartSpec: chart,
-      },
     })
   }
 
@@ -223,7 +220,6 @@ export function getBaseModule(module: HelmModule): HelmModule | undefined {
     throw new PluginError({
       message: deline`Helm module '${module.name}' references base module '${module.spec.base}'
       but it is missing from the module's build dependencies.`,
-      detail: { moduleName: module.name, baseModuleName: module.spec.base },
     })
   }
 
@@ -231,7 +227,6 @@ export function getBaseModule(module: HelmModule): HelmModule | undefined {
     throw new ConfigurationError({
       message: deline`Helm module '${module.name}' references base module '${module.spec.base}'
       which is a '${baseModule.type}' module, but should be a helm module.`,
-      detail: { moduleName: module.name, baseModuleName: module.spec.base, baseModuleType: baseModule.type },
     })
   }
 
@@ -253,7 +248,6 @@ export async function getChartPath(action: Resolved<HelmRuntimeAction>) {
     if (!chartExists) {
       throw new ConfigurationError({
         message: `${action.longDescription()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
-        detail: { spec: action.getSpec() },
       })
     }
     return chartDir
@@ -266,7 +260,6 @@ export async function getChartPath(action: Resolved<HelmRuntimeAction>) {
   } else {
     throw new ConfigurationError({
       message: `${action.longDescription()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
-      detail: { spec: action.getSpec() },
     })
   }
 }
@@ -327,7 +320,6 @@ export async function renderHelmTemplateString({
   if (!chartPath) {
     throw new ConfigurationError({
       message: `Referencing Helm template strings is currently only supported for local Helm charts`,
-      detail: {},
     })
   }
 

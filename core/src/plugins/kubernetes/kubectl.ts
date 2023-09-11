@@ -138,11 +138,10 @@ export async function apply({
         message: dedent`
           Failed to apply Kubernetes manifests. This is the output of the kubectl command:
 
-          ${e.detail?.output}
+          ${e.details.output}
 
           Use the option "--log-level verbose" to see the kubernetes manifests that we attempted to apply through "kubectl apply".
           `,
-        detail: e.detail,
       })
     }
     throw e
@@ -266,7 +265,6 @@ class Kubectl extends PluginTool {
       if (!exists) {
         throw new ConfigurationError({
           message: `Could not find configured kubectlPath: ${override}`,
-          detail: { kubectlPath: override },
         })
       }
 

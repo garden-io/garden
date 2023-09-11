@@ -244,12 +244,7 @@ export class ProviderRouter extends BaseRouter {
         const result = await handler.apply(plugin, args)
         if (result === undefined) {
           throw new PluginError({
-            message: `Got empty response from ${handlerType} handler on ${pluginName} provider`,
-            detail: {
-              args,
-              handlerType,
-              pluginName,
-            },
+            message: `Got empty response from ${handlerType} handler on ${pluginName} provider. Called with ${args.length} args.`,
           })
         }
         return validateSchema(result, schema, { context: `${handlerType} output from plugin ${pluginName}` })
@@ -307,23 +302,13 @@ export class ProviderRouter extends BaseRouter {
       return null
     }
 
-    const errorDetails = {
-      requestedHandlerType: handlerType,
-      environment: this.garden.environmentName,
-      pluginName,
-    }
-
     if (pluginName) {
       throw new PluginError({
         message: `Plugin '${pluginName}' does not have a '${handlerType}' handler.`,
-        detail: errorDetails,
       })
     } else {
       throw new ParameterError({
-        message:
-          `No '${handlerType}' handler configured in environment '${this.garden.environmentName}'. ` +
-          `Are you missing a provider configuration?`,
-        detail: errorDetails,
+        message: `No '${handlerType}' handler configured in environment '${this.garden.environmentName}'. Are you missing a provider configuration?`,
       })
     }
   }

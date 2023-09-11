@@ -17,7 +17,7 @@ import { LogEntry } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, safeDumpYaml } from "../util/serialization"
 import { Logger, logLevelMap, LogLevel } from "./logger"
-import { toGardenError, formatGardenErrorWithDetail, explainGardenError } from "../exceptions"
+import { toGardenError } from "../exceptions"
 
 type RenderFn = (entry: LogEntry, logger: Logger) => string
 
@@ -49,7 +49,7 @@ export function renderError(entry: LogEntry): string {
   let out = ""
 
   if (!msg && error) {
-    out = explainGardenError(error)
+    out = toGardenError(error).explain()
   } else if (error) {
     const noAnsiErr = stripAnsi(error.message || "")
     const noAnsiMsg = stripAnsi(msg || "")
@@ -195,7 +195,7 @@ export function cleanWhitespace(str: string) {
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
   const { msg, metadata, timestamp } = entry
-  const errorDetail = entry.error && entry ? formatGardenErrorWithDetail(toGardenError(entry.error)) : undefined
+  const errorDetail = entry.error && entry ? toGardenError(entry.error).toString(true) : undefined
   const section = renderSection(entry)
 
   const jsonLogEntry: JsonLogEntry = {

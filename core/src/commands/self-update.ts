@@ -165,9 +165,6 @@ export namespace GitHubReleaseApi {
     if (!latestVersion) {
       throw new RuntimeError({
         message: `Unable to detect the latest Garden version: ${latestVersionRes}`,
-        detail: {
-          response: latestVersionRes,
-        },
       })
     }
 
@@ -495,7 +492,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     if (!currentSemVer) {
       throw new RuntimeError({
         message: `Unexpected current version: ${currentVersion}. Please make sure it is either a valid (semver) release version.`,
-        detail: {},
       })
     }
 
@@ -511,7 +507,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     if (!targetRelease) {
       throw new RuntimeError({
         message: `Unable to find the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
-        detail: {},
       })
     }
 

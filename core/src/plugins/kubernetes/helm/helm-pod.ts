@@ -141,7 +141,6 @@ export async function runOrTestWithChart(
     // Note: This will generally be caught in schema validation.
     throw new ConfigurationError({
       message: `${action.longDescription()} specified neither podSpec nor resource.`,
-      detail: { spec },
     })
   }
   const k8sCtx = <KubernetesPluginContext>ctx

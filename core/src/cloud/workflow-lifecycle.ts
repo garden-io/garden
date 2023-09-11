@@ -11,9 +11,10 @@ import { Log } from "../logger/log-entry"
 import { CloudApiError } from "../exceptions"
 import { gardenEnv } from "../constants"
 import { Garden } from "../garden"
-import { ApiFetchResponse, isGotError } from "./api"
+import { ApiFetchResponse } from "./api"
 import { CreateWorkflowRunResponse } from "@garden-io/platform-api-types"
-import { deline } from "../util/string"
+import { dedent } from "../util/string"
+import { GotHttpError } from "../util/http"
 
 export interface RegisterWorkflowRunParams {
   workflowConfig: WorkflowConfig
@@ -53,17 +54,19 @@ export async function registerWorkflowRun({
         retryDescription: "Registering workflow run",
       })
     } catch (err) {
-      if (isGotError(err, 422)) {
-        const errMsg = deline`
-          Workflow run registration failed due to mismatch between CLI and API versions. Please make sure your Garden
-          CLI version is compatible with your version of Garden Cloud. See error.log for details
-          on the failed registration request payload.
-        `
+      if (!(err instanceof GotHttpError)) {
+        throw err
+      }
+      if (err.response.statusCode === 422) {
         throw new CloudApiError({
-          message: errMsg,
-          detail: {
-            requestData,
-          },
+          message: dedent`
+          Workflow run registration failed due to mismatch between CLI and API versions. Please make sure your Garden
+          CLI version is compatible with your version of Garden Cloud.
+
+          Request body: ${JSON.stringify(requestData)}
+          Response body: ${err.response.rawBody}
+        `,
+          responseStatusCode: err.response.statusCode,
         })
       } else {
         log.error(`An error occurred while registering workflow run: ${err.message}`)
@@ -75,13 +78,9 @@ export async function registerWorkflowRun({
       return res.workflowRunUid
     } else {
       throw new CloudApiError({
-        message: `Error while registering workflow run: Request failed with status ${res?.status}`,
-        detail: {
-          status: res?.status,
-          workflowRunUid: res?.workflowRunUid,
-        },
+        message: `Error while registering workflow run: Request failed with status ${res?.status}.`,
       })
     }
   }
-  throw new CloudApiError({ message: "Error while registering workflow run: Couldn't initialize API.", detail: {} })
+  throw new CloudApiError({ message: "Error while registering workflow run: Couldn't initialize API." })
 }

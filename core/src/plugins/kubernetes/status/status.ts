@@ -7,9 +7,9 @@
  */
 
 import { diffString } from "json-diff"
-import { DeploymentError } from "../../../exceptions"
+import { DeploymentError, GardenErrorParams } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
-import { KubeApi } from "../api"
+import { KubeApi, KubernetesError } from "../api"
 import { getAppNamespace } from "../namespace"
 import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
 import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
@@ -43,6 +43,15 @@ export interface ResourceStatus<T extends BaseResource | KubernetesObject = Base
   lastMessage?: string
   warning?: true
   logs?: string
+}
+
+export class DeploymentResourceStatusError extends DeploymentError {
+  status: ResourceStatus<BaseResource>
+
+  constructor(params: GardenErrorParams & { status: ResourceStatus<BaseResource> }) {
+    super(params)
+    this.status = params.status
+  }
 }
 
 export interface StatusHandlerParams<T extends BaseResource | KubernetesObject = BaseResource> {
@@ -188,7 +197,10 @@ export async function checkResourceStatus({
     resource = await api.readBySpec({ namespace, manifest, log })
     resourceVersion = parseInt(resource.metadata.resourceVersion!, 10)
   } catch (err) {
-    if (err.statusCode === 404) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       return { state: <DeployState>"missing", resource: manifest }
     } else {
       throw err
@@ -295,12 +307,9 @@ export async function waitForResources({
         }
 
         emitLog(msg)
-        throw new DeploymentError({
+        throw new DeploymentResourceStatusError({
           message: msg,
-          detail: {
-            serviceName: actionName,
-            status,
-          },
+          status,
         })
       }
 
@@ -329,7 +338,7 @@ export async function waitForResources({
         Timed out waiting for ${actionName || "resources"} to deploy after ${timeoutSec} seconds
       `
       emitLog(deploymentErrMsg)
-      throw new DeploymentError({ message: deploymentErrMsg, detail: { statuses } })
+      throw new DeploymentError({ message: deploymentErrMsg })
     }
   }
 
@@ -588,7 +597,10 @@ export async function getDeployedResource<ResourceKind extends KubernetesObject>
     const res = await api.readBySpec({ namespace, manifest, log })
     return <KubernetesResource<ResourceKind>>res
   } catch (err) {
-    if (err.statusCode === 404) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       return null
     } else {
       throw err

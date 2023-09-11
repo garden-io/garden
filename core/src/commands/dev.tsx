@@ -93,12 +93,7 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
     if (terminalWriter.type === "ink") {
       inkWriter = terminalWriter as InkTerminalWriter
     } else {
-      throw new ParameterError({ message: `This command can only be used with the ink logger type`, detail: {
-        writerTypes: {
-          terminalWriter: terminalWriter.type,
-          fileWriters: logger.getWriters().file.map((w) => w.type),
-        },
-      }})
+      throw new ParameterError({ message: `This command can only be used with the ink logger type. Got type ${terminalWriter.type}.` })
     }
 
     const commandLine = await this.initCommandHandler(params)

@@ -62,9 +62,6 @@ export const gardenPlugin = () =>
                 if (!exists) {
                   throw new ConfigurationError({
                     message: `Pulumi: configured working directory '${root}' does not exist`,
-                    detail: {
-                      root,
-                    },
                   })
                 }
               }

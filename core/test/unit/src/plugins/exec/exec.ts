@@ -910,12 +910,6 @@ describe("exec plugin", () => {
             error = err
           }
 
-          pid = error.detail.pid
-          expect(pid).to.be.a("number")
-          expect(pid).to.be.greaterThan(0)
-          expect(error.detail.deployName).to.eql("sync-mode-timeout")
-          expect(error.detail.statusCommand).to.eql([`/bin/sh -c "echo Status command output; exit 1"`])
-          expect(error.detail.statusTimeout).to.eql(3)
           expect(error.message).to.include(`Timed out waiting for local service sync-mode-timeout to be ready.`)
           expect(error.message).to.include(`The last exit code was 1.`)
           expect(error.message).to.include(`Command output:\nStatus command output`)

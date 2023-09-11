@@ -30,6 +30,7 @@ import { dedent } from "../../../../src/util/string"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { defaultWorkflowResources, WorkflowStepSpec } from "../../../../src/config/workflow"
 import { TestGardenCli } from "../../../helpers/cli"
+import { WorkflowScriptError } from "../../../../src/exceptions"
 
 describe("RunWorkflowCommand", () => {
   const cmd = new WorkflowCommand()
@@ -815,8 +816,6 @@ describe("RunWorkflowCommand", () => {
 
     expect(errors![0].type).to.equal("runtime")
     expect(errors![0].message).to.equal("workflow failed with 1 error, see logs above for more info")
-    // no details because log is set to human-readable output and details are logged above
-    expect(errors![0].detail).to.equal(undefined)
   })
 
   it("should throw if a script step fails and add log to output with --output flag set", async () => {
@@ -840,9 +839,12 @@ describe("RunWorkflowCommand", () => {
       args: { workflow: "workflow-a" },
       opts: { output: "json" },
     })
-
-    expect(errors![0].message).to.equal("Script exited with code 1")
-    expect(errors![0].detail.stdout).to.equal("boo!")
+    const error = errors![0]
+    if (!(error instanceof WorkflowScriptError)) {
+      expect.fail("Expected error to be a WorkflowScriptError")
+    }
+    expect(error.message).to.equal("Script exited with code 1. This is the output:\n\nboo!")
+    expect(error.details.stdout).to.equal("boo!")
   })
 
   it("should return script logs with the --output flag set", async () => {
