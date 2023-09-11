@@ -42,9 +42,7 @@ configs:
 
 Note the `inputsSchemaPath` field. This allows users to define "inputs" for the `ConfigTemplate` via a JSON schema. Inputs can be required or optional and can have default values. Garden validates the config to ensure all required values are set.
 
-> [!NOTE]
-> Pro tip: Use your generative AI tool of choice to create the schema. For this example, we used Open AI's ChatGPT 4 to generate the schema based on the Garden config from
-[this Kubernetes Deploy action example](../k8s-deploy-shared-manifests).
+In the example above we use the `enableIngress` input to optionally apply the Ingress manifest ([see below](#optional-ingress) for more details).
 
 We then re-use this template in the Garden config for the API and web components like so:
 
@@ -56,6 +54,7 @@ name: api
 inputs: # <--- The inputs defined in the JSON schema
   relativeProjectRoot: ../
   relativeSourcePath: .
+  enableIngress: false
   containerPath: /app
   containerArgs: [python, app.py]
 # ...
@@ -67,6 +66,7 @@ name: web
 inputs:
   relativeProjectRoot: ../
   relativeSourcePath: .
+  enableIngress: true
   containerPath: /app
   containerArgs: [npm, run, serve]
 # ...
