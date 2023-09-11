@@ -75,7 +75,7 @@ export function testFromModule<M extends GardenModule = GardenModule>(
 
   if (!config) {
     throw new NotFoundError({
-      message: `Could not find test ${name} in module ${module.name}`,
+      message: `Could not find test ${name} in module "${module.name}"`,
     })
   }
 

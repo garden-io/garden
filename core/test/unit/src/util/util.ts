@@ -79,17 +79,20 @@ describe("util", () => {
     })
 
     it("should throw a standardised error message on error", async () => {
-      await expectError(async () => {
-        await exec(`sh -c "echo hello error; exit 1"`, [], { shell: true })
-      }, (err: ChildProcessError) => {
-        expect(err).to.be.an.instanceOf(ChildProcessError)
-        expect(err.details.code).to.eql(1)
-        expect(err.details.cmd).to.eql(`sh -c "echo hello error; exit 1"`)
-        expect(err.details.args).to.eql([])
-        expect(err.details.output).to.eql("hello error")
-        expect(err.details.stdout).to.eql("hello error")
-        expect(err.details.stderr).to.eql("")
-      })
+      await expectError(
+        async () => {
+          await exec(`sh -c "echo hello error; exit 1"`, [], { shell: true })
+        },
+        (err: ChildProcessError) => {
+          expect(err).to.be.an.instanceOf(ChildProcessError)
+          expect(err.details.code).to.eql(1)
+          expect(err.details.cmd).to.eql(`sh -c "echo hello error; exit 1"`)
+          expect(err.details.args).to.eql([])
+          expect(err.details.output).to.eql("hello error")
+          expect(err.details.stdout).to.eql("hello error")
+          expect(err.details.stderr).to.eql("")
+        }
+      )
     })
   })
 
@@ -102,34 +105,37 @@ describe("util", () => {
       }
     })
     it("should throw a standardised error message on error", async () => {
-      await expectError(async () => {
-        await spawn("ls", ["scottiepippen"])
-      }, (err: ChildProcessError) => {
-        expect(err).to.be.an.instanceOf(ChildProcessError)
-        // We're not using "sh -c" here since the output is not added to stdout|stderr if `tty: true` and
-        // we therefore can't test the entire error message.
-        if (process.platform === "darwin") {
-          expect(err.details).to.eql({
-            code: 1,
-            cmd: "ls",
-            args: ["scottiepippen"],
-            opts: {},
-            output: "ls: scottiepippen: No such file or directory\n",
-            stderr: "ls: scottiepippen: No such file or directory\n",
-            stdout: "",
-          })
-        } else {
-          expect(err.details).to.eql({
-            code: 2,
-            cmd: "ls",
-            args: ["scottiepippen"],
-            opts: {},
-            output: "ls: cannot access 'scottiepippen': No such file or directory\n",
-            stderr: "ls: cannot access 'scottiepippen': No such file or directory\n",
-            stdout: "",
-          })
+      await expectError(
+        async () => {
+          await spawn("ls", ["scottiepippen"])
+        },
+        (err: ChildProcessError) => {
+          expect(err).to.be.an.instanceOf(ChildProcessError)
+          // We're not using "sh -c" here since the output is not added to stdout|stderr if `tty: true` and
+          // we therefore can't test the entire error message.
+          if (process.platform === "darwin") {
+            expect(err.details).to.eql({
+              code: 1,
+              cmd: "ls",
+              args: ["scottiepippen"],
+              opts: {},
+              output: "ls: scottiepippen: No such file or directory\n",
+              stderr: "ls: scottiepippen: No such file or directory\n",
+              stdout: "",
+            })
+          } else {
+            expect(err.details).to.eql({
+              code: 2,
+              cmd: "ls",
+              args: ["scottiepippen"],
+              opts: {},
+              output: "ls: cannot access 'scottiepippen': No such file or directory\n",
+              stderr: "ls: cannot access 'scottiepippen': No such file or directory\n",
+              stdout: "",
+            })
+          }
         }
-      })
+      )
     })
   })
 

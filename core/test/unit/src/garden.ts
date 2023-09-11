@@ -427,7 +427,7 @@ describe("Garden", () => {
       })
       await expectError(() => TestGarden.factory(pathFoo, { config, environmentString: "default" }), {
         contains:
-          "Environment default has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default).",
+          "Environment default has defaultNamespace set to null in the project configuration, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default).",
       })
     })
 
@@ -622,7 +622,7 @@ describe("Garden", () => {
         contains: [
           `Unable to load plugin`,
           `Error: Error validating plugin module \"${pluginPath}\": key .gardenPlugin must be of type object`,
-        ]
+        ],
       })
     })
 
@@ -635,7 +635,7 @@ describe("Garden", () => {
         contains: [
           `Unable to load plugin`,
           `Error: Error validating plugin module "${pluginPath}": key .gardenPlugin is required`,
-        ]
+        ],
       })
     })
 

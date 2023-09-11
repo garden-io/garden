@@ -312,7 +312,7 @@ describe("resolveWorkflowConfig", () => {
       ]
 
       void expectError(() => populateNamespaceForTriggers({ ...config, triggers: [trigger] }, environmentConfigs), {
-        contains: `Invalid namespace in trigger for workflow workflow-a: Environment test has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.test).`,
+        contains: `Invalid namespace in trigger for workflow workflow-a: Environment test has defaultNamespace set to null in the project configuration, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.test).`,
       })
     })
 

@@ -728,12 +728,8 @@ describe("kubernetes container deployment handlers", () => {
             expect(stripAnsi(err.message)).to.match(
               /Error while performing Kubernetes API operation readNamespacedConfigMap/
             )
-            expect(stripAnsi(err.message)).to.match(
-              /Response status code: 404/
-            )
-            expect(stripAnsi(err.message)).to.match(
-              /Kubernetes Message: configmaps "should-be-pruned" not found/
-            )
+            expect(stripAnsi(err.message)).to.match(/Response status code: 404/)
+            expect(stripAnsi(err.message)).to.match(/Kubernetes Message: configmaps "should-be-pruned" not found/)
           }
         )
 

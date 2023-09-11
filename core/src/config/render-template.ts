@@ -7,7 +7,7 @@
  */
 
 import { ModuleConfig } from "./module"
-import { dedent, naturalList } from "../util/string"
+import { dedent, deline, naturalList } from "../util/string"
 import {
   BaseGardenResource,
   baseInternalFieldsSchema,
@@ -149,9 +149,8 @@ export async function renderConfigTemplate({
   if (!template) {
     const availableTemplates = Object.keys(templates)
     throw new ConfigurationError({
-      message: dedent`
-        Render ${resolved.name} references template ${resolved.template}, which cannot be found.
-
+      message: deline`
+        Render ${resolved.name} references template ${resolved.template} which cannot be found.
         Available templates: ${naturalList(availableTemplates)}
       `,
     })

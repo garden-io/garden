@@ -173,9 +173,7 @@ describe("sanitizeValue", () => {
     }
     expect(() => {
       sanitizeValue(obj)
-    }).to.throw(
-      "`toSanitizedValue` is not allowed to call `sanitizeValue` because that can cause infinite recursion."
-    )
+    }).to.throw("`toSanitizedValue` is not allowed to call `sanitizeValue` because that can cause infinite recursion.")
   })
 
   it("replaces LogEntry instance on a class instance", async () => {

@@ -194,8 +194,12 @@ describe("kubernetes Pod runner functions", () => {
         await expectError(
           () => runner.exec({ log, command: ["sh", "-c", "echo foo && exit 2"], buffer: true }),
           (err) => {
-            expect(err.message.trim()).to.include("Command exited with code 2")
-            expect(err.message.trim()).to.include("foo")
+            expect(err.message).to.eql(dedent`
+              Failed with exit code 2.
+
+              Here are the logs until the error occurred:
+
+              foo`)
           }
         )
       })

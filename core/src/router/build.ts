@@ -21,7 +21,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const statusOutput = await router.callHandler({
         params,
         handlerType: "getStatus",
-        defaultHandler: async () => ({ state: "unknown" as const, outputs: {}, detail: {} }),
+        defaultHandler: async () => ({ state: "unknown" as const, detail: {}, outputs: {} }),
       })
       const status = statusOutput.result
 

@@ -843,7 +843,7 @@ describe("RunWorkflowCommand", () => {
     if (!(error instanceof WorkflowScriptError)) {
       expect.fail("Expected error to be a WorkflowScriptError")
     }
-    expect(error.message).to.equal("Script exited with code 1")
+    expect(error.message).to.equal("Script exited with code 1. This is the output:\n\nboo!")
     expect(error.details.stdout).to.equal("boo!")
   })
 

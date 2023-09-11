@@ -737,7 +737,7 @@ class PodRunnerWorkloadError extends PodRunnerError {
 
     if (!!terminatedContainerState) {
       let terminationDesc = ""
-      if (!!terminatedContainerState.exitCode) {
+      if (!!terminatedContainerState.exitCode && !message.includes(`${terminatedContainerState.exitCode}`)) {
         terminationDesc += `Exited with code: ${terminatedContainerState.exitCode}. `
       }
       if (!!terminatedContainerState.signal) {
@@ -1034,7 +1034,7 @@ export class PodRunner extends PodRunnerParams {
           if (throwOnExitCode === true) {
             // Consider it as a task execution error inside the Pod.
             throw new PodRunnerWorkloadError({
-              message: "Failed with non-zero exit code.",
+              message: `Failed with exit code ${exitCode}.`,
               details: await podErrorDetails(),
             })
           } else {
@@ -1053,7 +1053,7 @@ export class PodRunner extends PodRunnerParams {
         if (exitCode !== undefined && exitCode !== 0) {
           if (throwOnExitCode === true) {
             throw new PodRunnerWorkloadError({
-              message: "Failed with non-zero exit code.",
+              message: `Failed with exit code ${exitCode}.`,
               details: await podErrorDetails(),
             })
           } else {
@@ -1187,7 +1187,7 @@ export class PodRunner extends PodRunnerParams {
         exitCode: result.exitCode,
         result,
       }
-      throw new PodRunnerWorkloadError({ message: "Failed with non-zero exit code.", details: errorDetails })
+      throw new PodRunnerWorkloadError({ message: `Failed with exit code ${result.exitCode}.`, details: errorDetails })
     }
 
     return {

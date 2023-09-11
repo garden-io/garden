@@ -275,8 +275,10 @@ describe("BuildStagingRsync", () => {
       try {
         process.env.PATH = ""
         await expectError(() => buildStaging.syncFromSrc({ action, log: garden.log }), {
-          contains:
-            "Could not find rsync binary. Please make sure rsync (version 3.1.0 or later) is installed and on your PATH.",
+          contains: [
+            "Could not find rsync binary",
+            "Please make sure rsync (version 3.1.0 or later) is installed and on your PATH.",
+          ],
         })
       } finally {
         process.env.PATH = orgPath

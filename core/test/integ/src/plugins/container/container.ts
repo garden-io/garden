@@ -190,7 +190,9 @@ describe("plugins.container", () => {
       await expectError(
         () => containerHelpers.checkDockerServerVersion(version),
         (err) => {
-          expect(err.message).to.equal("Failed to check Docker server version: Docker server is not running or cannot be reached.")
+          expect(err.message).to.equal(
+            "Failed to check Docker server version: Docker server is not running or cannot be reached."
+          )
         }
       )
     })
