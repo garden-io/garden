@@ -977,7 +977,8 @@ describe("cli", () => {
 
           Please attach the following information to the bug report after making sure that the error message does not contain sensitive information:
 
-          TypeError: Cannot read property foo of undefined.`)
+          TypeError: Cannot read property foo of undefined.
+        `)
 
         const firstStackTraceLine = outputLines[7]
         expect(firstStackTraceLine).to.contain("at TestCommand.action (")
