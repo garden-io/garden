@@ -303,8 +303,6 @@ describe("kubernetes Pod runner functions", () => {
             expect(err.message).to.eql(dedent`
             Failed with exit code 1.
 
-            Reason: Error.
-
             Here are the logs until the error occurred:
 
             foo

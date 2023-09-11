@@ -743,7 +743,7 @@ class PodRunnerWorkloadError extends PodRunnerError {
       if (!!terminatedContainerState.signal) {
         terminationDesc += `Stopped with signal: ${terminatedContainerState.signal}. `
       }
-      if (terminatedContainerState.reason) {
+      if (terminatedContainerState.reason && terminatedContainerState.reason !== "Error") {
         terminationDesc += `Reason: ${terminatedContainerState.reason}. `
       }
       if (terminatedContainerState.message) {
@@ -1040,6 +1040,11 @@ export class PodRunner extends PodRunnerParams {
           } else {
             return exitCode
           }
+        } else if (exitCode === 127) {
+          throw new PodRunnerWorkloadError({
+            message: `Failed with error "command not found". Is there a typo in the task or test spec?`,
+            details: await podErrorDetails(),
+          })
         } else {
           throw new PodRunnerWorkloadError({
             message: `Failed to start Pod ${podName}.`,
@@ -1285,8 +1290,16 @@ export class PodRunner extends PodRunnerParams {
     let exitCode: number | undefined
 
     if (err instanceof KubernetesError) {
-      message = `Unable to start command execution. Failed to initiate a runner pod with error:\n${err.message}\n\nPlease check the cluster health and network connectivity.`
-    } else if (err instanceof PodRunnerError) {
+      throw new KubernetesError({
+        message: dedent`
+          Unable to start command execution. Failed to initiate a runner pod with error:
+          ${err.message}
+
+          Please check the cluster health and network connectivity.
+      `})
+    } else if (err instanceof PodRunnerWorkloadError || err instanceof PodRunnerTimeoutError) {
+      // If we return here, we'll throw TestFailedError or TaskFailedError down the line, which should only be thrown if the actual test failed.
+      // In all other failure conditions, we want to throw and the original error incl. stack trace to bubble up.
       message = err.message
       exitCode = err.details.exitCode
 
