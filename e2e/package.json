@@ -14,7 +14,7 @@
     "npm": ">=8"
   },
   "preferGlobal": true,
-  "private": true,
+  "private": false,
   "files": [
     "build"
   ],
