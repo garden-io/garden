@@ -36,13 +36,13 @@ jobs:
         if: inputs.release-condition != 'false'
         run: |
           set -e -o pipefail
-          echo "sha256=$(curl -sSL --fail ${{ env.ARM_TARBALL_URL }}/wrong | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(curl -sSL --fail ${{ env.ARM_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
       - name: Fetch amd sha256
         id: fetch-amd-sha256
         if: inputs.release-condition != 'false'
         run: |
           set -e -o pipefail
-          echo "sha256=$(curl -sSL --fail ${{ env.AMD_TARBALL_URL }}/wrong | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(curl -sSL --fail ${{ env.AMD_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
 
   homebrew-create-pr:
     runs-on: ubuntu-latest
