@@ -50,7 +50,7 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
 
   if (outputLog) {
     const prefix = `Finished running ${chalk.white(action.name)}. Here is the full output:`
-    log.verbose(
+    log.info(
       renderMessageWithDivider({
         prefix,
         msg: outputLog,
