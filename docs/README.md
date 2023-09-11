@@ -69,14 +69,14 @@
 ## 🌺 Terraform Plugin
 
 * [About](./terraform-plugin/about.md)
-* [Provider Configuration](./terraform-plugin/configure-provider.md)
-* [Deploy action Configuration](./terraform-plugin/configure-deploy-actions.md)
+* [Plugin Configuration](./terraform-plugin/configure-provider.md)
+* [Action Configuration](./terraform-plugin/action-configuration.md)
 
 ## ☘️ Pulumi Plugin
 
 * [About](./pulumi-plugin/about.md)
-* [Provider Configuration](./pulumi-plugin/configure-provider.md)
-* [Deploy action Configuration](./pulumi-plugin/configure-deploy-actions.md)
+* [Plugin Configuration](./pulumi-plugin/configure-provider.md)
+* [Action Configuration](./pulumi-plugin/action-configuration.md)
 
 ## 🌹 Other Plugins
 
