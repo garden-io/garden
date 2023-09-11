@@ -35,13 +35,30 @@ jobs:
         id: fetch-arm-sha256
         if: inputs.release-condition != 'false'
         run: |
-          echo "sha256=$(set -o pipefail && curl -sSL --fail ${{ env.ARM_TARBALL_URL }}/fail | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+          set -o pipefail
+
+          checksum=$(curl -sSL --fail ${{ env.ARM_TARBALL_URL }}/error | shasum -a 256 | cut -d ' ' -f 1)
+
+          if [[ $? -ne 0 ]]; then
+            echo "Failed to fetch binary from ${{ env.ARM_TARBALL_URL }}"
+            exit 1
+          fi
+
+          echo "sha256=$checksum" >> "$GITHUB_OUTPUT"
       - name: Fetch amd sha256
         id: fetch-amd-sha256
         if: inputs.release-condition != 'false'
         run: |
-          echo "sha256=$(set -o pipefail && curl -sSL --fail ${{ env.AMD_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+          set -o pipefail
 
+          checksum=$(curl -sSL --fail ${{ env.AMD_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1)
+
+          if [[ $? -ne 0 ]]; then
+            echo "Failed to fetch binary from ${{ env.AMD_TARBALL_URL }}"
+            exit 1
+          fi
+
+          echo "sha256=$checksum" >> "$GITHUB_OUTPUT"
   homebrew-create-pr:
     runs-on: ubuntu-latest
     needs: fetch-release-checksums
