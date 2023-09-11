@@ -321,7 +321,16 @@ export class InternalError extends GardenError {
       bugReportInformation = `${stripAnsi(context)}\n${bugReportInformation}`
     }
 
-    return chalk.red(`${chalk.bold("Encountered an unexpected Garden error. This is likely a bug 🍂")}\n\nYou can help by reporting this on GitHub: ${getGitHubIssueLink(`Crash: ${this.message}`, "crash")}\n\nPlease attach the following information to the bug report after making sure that the error message does not contain sensitive information:\n\n${chalk.gray(bugReportInformation)}`)
+    const header = "Encountered an unexpected Garden error. This is likely a bug 🍂"
+    const body = dedent`
+      You can help by reporting this on GitHub: ${getGitHubIssueLink(`Crash: ${this.message}`, "crash")}
+
+      Please attach the following information to the bug report after making sure that the error message does not contain sensitive information:
+
+      ${chalk.gray(bugReportInformation)}
+    `
+
+    return chalk.red(`${chalk.bold(header)}\n\n${body}`)
   }
 }
 
