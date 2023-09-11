@@ -49,7 +49,7 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
   const { chalk } = sdk.util
 
   if (outputLog) {
-    const prefix = `Finished running task ${chalk.white(action.name)}. Here is the full output:`
+    const prefix = `Finished running ${chalk.white(action.name)}. Here is the full output:`
     log.verbose(
       renderMessageWithDivider({
         prefix,
