@@ -72,12 +72,18 @@ jobs:
           path: homebrew-garden
           token: ${{ secrets.COMMITTER_TOKEN }}
 
+      - name: Where am I?
+        if: inputs.release-condition != 'false'
+        run: |
+          pwd
+          ls -la
+
       - name: Template Homebrew Formula
         if: inputs.release-condition != 'false'
         uses: cuchi/jinja2-action@v1.2.0
         with:
-          template: ${{ github.workspace }}/garden/support/homebrew-formula.rb.j2
-          output_file: ${{ github.workspace }}/homebrew-garden/Formula/garden-cli.rb
+          template: garden/support/homebrew-formula.rb.j2
+          output_file: homebrew-garden/Formula/garden-cli.rb
           strict: true
           variables: |
             version=${{ inputs.release-version }}}
