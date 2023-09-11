@@ -59,9 +59,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: garden-io/garden
-          ref: main
           path: garden
-          token: ${{ secrets.COMMITTER_TOKEN }}
 
       - name: Checkout homebrew repo
         if: inputs.release-condition != 'false'
@@ -71,12 +69,6 @@ jobs:
           ref: main
           path: homebrew-garden
           token: ${{ secrets.COMMITTER_TOKEN }}
-
-      - name: Where am I?
-        if: inputs.release-condition != 'false'
-        run: |
-          pwd
-          ls -la
 
       - name: Template Homebrew Formula
         if: inputs.release-condition != 'false'
