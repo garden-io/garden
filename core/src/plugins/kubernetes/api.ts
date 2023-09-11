@@ -607,7 +607,7 @@ export class KubeApi {
 
     if (!namespace) {
       throw new KubernetesError({
-        message: `Missing namespace on on ${manifest.kind} resource named ${manifest.metadata.name} and no namespace specified`,
+        message: `Missing namespace on ${manifest.kind} resource named ${manifest.metadata.name} and no namespace specified`,
       })
     }
 
