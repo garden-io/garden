@@ -4,6 +4,8 @@ class GardenCli < Formula
 
   version "{{version}}"
 
+  depends_on "rsync"
+
   # Determine architecture
   if Hardware::CPU.arm?
     url "{{armTarballUrl}}"
@@ -14,7 +16,7 @@ class GardenCli < Formula
   end
 
   def install
-    libexec.install "garden", "fsevents.node", "static", "pty.node"
+    libexec.install "garden", "fsevents.node", "static"
     bin.install_symlink libexec/"garden"
   end
 

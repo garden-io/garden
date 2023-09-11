@@ -14,8 +14,6 @@ on:
         type: string
         description: "Commit message for homebrew repository."
         default: |
-          Bump {{formulaName}} to {{version}}.
-
           For more info: https://github.com/garden-io/garden
 
 permissions:
@@ -78,7 +76,7 @@ jobs:
           output_file: homebrew-garden/Formula/garden-cli.rb
           strict: true
           variables: |
-            version=${{ inputs.release-version }}}
+            version=${{ inputs.release-version }}
             armTarballUrl=${{ needs.fetch-release-checksums.outputs.arm-tarball-url }}
             amdTarballUrl=${{ needs.fetch-release-checksums.outputs.amd-tarball-url }}
             armSha256=${{ needs.fetch-release-checksums.outputs.arm-sha256 }}
@@ -90,9 +88,15 @@ jobs:
         with:
           path: ${{ github.workspace }}/homebrew-garden
           token: ${{ secrets.COMMITTER_TOKEN }}
-          commit-message: ${{ inputs.commit-message }}
+          commit-message: |
+            Bump garden-cli.rb to ${{ inputs.release-version }}
+
+            ${{ inputs.commit-message }}
           title: Bump garden-cli to ${{ inputs.release-version }}
-          body: ${{ inputs.commit-message}}
+          body:  |
+            Bump garden-cli.rb to ${{ inputs.release-version }}
+
+            ${{ inputs.commit-message}}
           branch: garden-cli-${{ inputs.release-version }}
           reviewers: ${{ github.triggering_actor }}
 
