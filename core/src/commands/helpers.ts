@@ -116,11 +116,13 @@ export const validateActionSearchResults = ({
   log,
   names,
   actions,
+  allActions,
   actionKind,
 }: {
   log: Log
   names: string[] | undefined
   actions: { name: string }[]
+  allActions: { name: string }[]
   actionKind: ActionKind
 }): { shouldAbort: boolean } => {
   if (actions.length === 0 && (!names || names.length === 0)) {
@@ -130,7 +132,11 @@ export const validateActionSearchResults = ({
 
   names?.forEach((n) => {
     if (!isGlob(n) && !actions.find((a) => a.name === n)) {
-      throw new ParameterError({ message: `${actionKind} action "${n}" was not found.` })
+      throw new ParameterError({
+        message: `${actionKind} action "${n}" was not found. Available actions: ${naturalList(
+          allActions.map((a) => a.name)
+        )}`,
+      })
     }
   })
 
@@ -139,7 +145,11 @@ export const validateActionSearchResults = ({
     if (names) {
       argumentsMsg = ` (matching argument(s) ${naturalList(names.map((n) => `'${n}'`))})`
     }
-    throw new ParameterError({ message: `No ${actionKind} actions were found${argumentsMsg}.` })
+    throw new ParameterError({
+      message: `No ${actionKind} actions were found${argumentsMsg}. Available actions: ${naturalList(
+        allActions.map((a) => a.name)
+      )}`,
+    })
   }
   return { shouldAbort: false }
 }

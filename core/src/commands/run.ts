@@ -153,6 +153,11 @@ export class RunCommand extends Command<Args, Opts> {
       graph.getModules({ names: opts.module })
     }
 
+    let allActions = graph.getActionsByKind("Run", {
+      excludeNames: opts.skip,
+      includeDisabled: true,
+    })
+
     let actions = graph.getActionsByKind("Run", {
       includeNames: names,
       moduleNames: opts.module,
@@ -164,6 +169,7 @@ export class RunCommand extends Command<Args, Opts> {
       log,
       actionKind: "Run",
       actions,
+      allActions,
       names,
     })
     if (shouldAbort) {

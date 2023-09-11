@@ -23,10 +23,11 @@ describe("command helpers", () => {
           validateActionSearchResults({
             actionKind: "Build",
             actions: [{ name: "action-1" }],
+            allActions: [{ name: "action-1" }, { name: "action-2" }],
             log: logger.createLog(),
             names: ["foo"],
           }),
-        { contains: 'action "foo" was not found' }
+        { contains: 'action "foo" was not found. Available actions: action-1 and action-2' }
       )
     })
 
@@ -36,10 +37,11 @@ describe("command helpers", () => {
           validateActionSearchResults({
             actionKind: "Build",
             actions: [{ name: "action-1" }],
+            allActions: [{ name: "action-1" }],
             log: logger.createLog(),
             names: ["foo", "foo*"],
           }),
-        { contains: 'action "foo" was not found' }
+        { contains: 'action "foo" was not found. Available actions: action-1' }
       )
     })
 
@@ -49,6 +51,7 @@ describe("command helpers", () => {
           validateActionSearchResults({
             actionKind: "Build",
             actions: [{ name: "action-1" }],
+            allActions: [{ name: "action-1" }],
             log: logger.createLog(),
             names: ["foo"],
           }),
@@ -62,10 +65,11 @@ describe("command helpers", () => {
           validateActionSearchResults({
             actionKind: "Build",
             actions: [],
+            allActions: [{ name: "action-1" }],
             log: logger.createLog(),
             names: ["foo*"],
           }),
-        { contains: "No Build actions were found" }
+        { contains: ["No Build actions were found", "Available actions: action-1"] }
       )
     })
 
@@ -75,6 +79,7 @@ describe("command helpers", () => {
           validateActionSearchResults({
             actionKind: "Build",
             actions: [],
+            allActions: [{ name: "action-1" }],
             log: logger.createLog(),
             names: ["foo*"],
           }),
@@ -87,6 +92,7 @@ describe("command helpers", () => {
       validateActionSearchResults({
         actionKind: "Build",
         actions: [],
+        allActions: [{ name: "action-1" }],
         log,
         names: undefined,
       })
@@ -97,6 +103,7 @@ describe("command helpers", () => {
       validateActionSearchResults({
         actionKind: "Build",
         actions: [],
+        allActions: [{ name: "action-1" }],
         log,
         names: [],
       })

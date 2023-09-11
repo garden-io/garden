@@ -171,6 +171,10 @@ export class TestCommand extends Command<Args, Opts> {
       graph.getModules({ names: opts.module })
     }
 
+    const allActions = graph.getActionsByKind("Test", {
+      excludeNames: opts.skip,
+    })
+
     const actions = graph.getActionsByKind("Test", {
       includeNames: names,
       moduleNames: opts.module,
@@ -183,6 +187,7 @@ export class TestCommand extends Command<Args, Opts> {
       log,
       actionKind: "Test",
       actions,
+      allActions,
       names,
     })
     if (shouldAbort) {
