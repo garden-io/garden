@@ -37,7 +37,7 @@ jobs:
         run: |
           set -o pipefail
 
-          checksum=$(curl -sSL --fail ${{ env.ARM_TARBALL_URL }}/error | shasum -a 256 | cut -d ' ' -f 1)
+          checksum=$(curl -sSL --fail ${{ env.ARM_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1)
 
           if [[ $? -ne 0 ]]; then
             echo "Failed to fetch binary from ${{ env.ARM_TARBALL_URL }}"
