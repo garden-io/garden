@@ -87,7 +87,9 @@ export abstract class GardenError extends Error {
    *
    * Can be overridden by subclasses to customize the error message rendering.
    *
-   * @param context A string that e
+   * @param context A string to provide additional context to the error message.
+   *                Used in subclasses but ignored in the base class.
+   * @returns A string with ANSI-formatting.
    */
   explain(_context?: string): string {
     return chalk.red(this.message)
@@ -326,11 +328,9 @@ export class InternalError extends GardenError {
       You can help by reporting this on GitHub: ${getGitHubIssueLink(`Crash: ${this.message}`, "crash")}
 
       Please attach the following information to the bug report after making sure that the error message does not contain sensitive information:
-
-      ${chalk.gray(bugReportInformation)}
     `
 
-    return chalk.red(`${chalk.bold(header)}\n\n${body}`)
+    return chalk.red(`${chalk.bold(header)}\n\n${body}\n\n${chalk.gray(bugReportInformation)}`)
   }
 }
 
