@@ -45,7 +45,7 @@ jobs:
           echo "sha256=$(curl -sSL ${{ env.AMD_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
 
   homebrew-create-pr:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     needs: fetch-release-checksums
     steps:
       - name: Checks release pre-condition
