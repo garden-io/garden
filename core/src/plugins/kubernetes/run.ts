@@ -1296,7 +1296,8 @@ export class PodRunner extends PodRunnerParams {
           ${err.message}
 
           Please check the cluster health and network connectivity.
-      `})
+      `,
+      })
     } else if (err instanceof PodRunnerWorkloadError || err instanceof PodRunnerTimeoutError) {
       // If we return here, we'll throw TestFailedError or TaskFailedError down the line, which should only be thrown if the actual test failed.
       // In all other failure conditions, we want to throw and the original error incl. stack trace to bubble up.
