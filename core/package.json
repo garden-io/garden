@@ -13,6 +13,7 @@
     "node": ">=18",
     "npm": ">=8"
   },
+  "private": "false",
   "preferGlobal": true,
   "files": [
     "build",

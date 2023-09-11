@@ -11,6 +11,7 @@
     "fs-extra": "^11.1.0",
     "lodash": "^4.17.21"
   },
+  "private": "false",
   "devDependencies": {
     "@types/async-lock": "^1.4.0",
     "@types/chai": "^4.3.4",
