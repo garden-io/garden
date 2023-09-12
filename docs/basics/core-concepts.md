@@ -3,7 +3,7 @@ order: 3
 title: Core Concepts
 ---
 
-Below you'll find a definition of all the core Garden concepts.
+Below you'll find definition of the main Garden concepts.
 
 ### Garden CLI
 An open-source standalone binary that's responsible for parsing **Garden config** and executing the **actions** defined there.
@@ -63,7 +63,7 @@ A DAG (_directed acyclic graph_) that the **actions** and their dependencies mak
 You can think of it as a blueprint of how to go from zero to a running system in a single command.
 
 ### Versions
-Garden generates a Garden version for each action, based on the source files and configuration involved, as well as any upstream dependencies. When using Garden, you'll see various instances of v-<some hash> strings scattered around logs, e.g. when building, deploying, running tests etc.
+Garden generates a Garden version for each action, based on the source files and configuration involved, as well as any upstream dependencies. When using Garden, you'll see various instances of `v-<some hash>` strings scattered around logs, e.g. when building, deploying, running tests etc.
 
 These versions are used by Garden and the Stack Graph to work out which actions need to be performed whenever you want to build, deploy, or test your project.
 
@@ -71,9 +71,3 @@ Each version also factors in the versions of every dependency. This means that a
 
 For example if the source code of a Build action is changed it's version will change. The Deploy action referencing the build will also have a new version due it being dependant on the build and any Test actions referencing the Deploy will also have new versions.
 
-### Caching
-Garden tracks the version of every file that belongs to a given **action** (and its upstream dependencies).
-
-Thanks to this and the graph structure, Garden can be very smart about what actions are actually need to be executed when running tests or deploying to existing environments.
-
-For example, when running the `garden test` command, Garden will figure out exactly what parts of the graph have changed and only execute the required actions but skip the others.
