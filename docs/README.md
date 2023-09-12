@@ -9,6 +9,7 @@
 * [Core Concepts](./basics/core-concepts.md)
 * [Garden vs Other Tools](./basics/garden-vs-other-tools.md)
 * [Start a Free Kubernetes Cluster](./basics/ephemeral-clusters.md)
+* [Use Cases](./basics/use-cases.md)
 
 ## 🌳 Garden Seeds
 
