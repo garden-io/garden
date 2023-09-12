@@ -37,9 +37,8 @@ jobs:
         run: |
           set -o pipefail
 
-          checksum=$(curl -sSL --fail ${{ env.ARM_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1)
-
-          if [[ $? -ne 0 ]]; then
+          if ! checksum=$(curl -sSL --fail ${{ env.ARM_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1);
+          then
             echo "Failed to fetch binary from ${{ env.ARM_TARBALL_URL }}"
             exit 1
           fi
@@ -51,9 +50,8 @@ jobs:
         run: |
           set -o pipefail
 
-          checksum=$(curl -sSL --fail ${{ env.AMD_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1)
-
-          if [[ $? -ne 0 ]]; then
+          if ! checksum=$(curl -sSL --fail ${{ env.AMD_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1);
+          then
             echo "Failed to fetch binary from ${{ env.AMD_TARBALL_URL }}"
             exit 1
           fi
