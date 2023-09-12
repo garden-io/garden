@@ -8,6 +8,7 @@
 * [Quickstart Guide](./basics/quickstart.md)
 * [Core Concepts](./basics/core-concepts.md)
 * [Garden vs Other Tools](./basics/garden-vs-other-tools.md)
+* [Use Cases](./basics/use-cases.md)
 
 ## 🌳 Garden Seeds
 
