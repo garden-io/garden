@@ -1,0 +1,45 @@
+apiVersion: "garden.io/v1"
+kind: Project
+name: kubernetes-deploy-shared-manifests
+defaultEnvironment: local
+dotIgnoreFile: .gitignore
+
+variables:
+  postgresUsername: postgres
+  postgresDatabase: postgres
+  postgresPassword: postgres # <-- Don't do this in production!
+  # postgresPassword: ${secrets.POSTGRES_PASSWORD} # <-- It's recommended to store secrets in Garden Enterprise
+
+  remoteEnvName: k8s-deploy-shared-${kebabCase(local.username)}
+
+environments:
+  - name: local
+    variables:
+      imagePullSecretName: EMPTY_SECRET # <--- Not needed for local dev but value can't be empty
+      baseHostname: local.demo.garden
+  - name: remote
+    defaultNamespace: ${var.remoteEnvName}
+    variables:
+      imagePullSecretName: gcr-config
+      baseHostname: ${var.remoteEnvName}.dev-1.sys.garden
+
+providers:
+  - name: local-kubernetes
+    environments: [local]
+  - name: kubernetes
+    dependencies: [exec]
+    environments: [remote]
+    # Replace the below values as appropriate
+    context: gke_garden-ci_europe-west1-b_core-ci
+    ingressClass: "nginx"
+    buildMode: cluster-buildkit
+    imagePullSecrets:
+      - name: ${var.imagePullSecretName}
+        namespace: default
+    deploymentRegistry:
+      hostname: eu.gcr.io
+      namespace: garden-ci
+    namespace: ${environment.namespace}
+    defaultHostname: ${var.baseHostname}
+  - name: octant
+    environments: [ci, preview, dev]
