@@ -18,8 +18,6 @@ jobs:
 
         You can safely close this PR. This is a test PR created by https://github.com/${{ github.repository }}/pull/${{ github.event.number }}
 
-        TEST: Bump {{formulaName}} to {{version}}.
-
         @${{ github.triggering_actor }} Please close this pull request.
     secrets: inherit
 
