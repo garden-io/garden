@@ -9,7 +9,7 @@ At Garden, we're committed to reducing the friction in onboarding and trying out
 
 ## Usage quota and managing clusters
 
-The ephemeral Kubernetes clusters are provided for free to all users. The ephemeral clusters are designed for short-term use and allow you to run and test your applications on Kubernetes.
+The ephemeral Kubernetes clusters are provided for free to all users. The ephemeral clusters are designed for short-term use and allow you to run and test your applications with Garden on Kubernetes cluster.
 
 Each user is granted a maximum of **20 hours per month** of ephemeral cluster usage where each cluster has a maximum lifetime of **4 hours**. After this period, the cluster is automatically destroyed.
 
