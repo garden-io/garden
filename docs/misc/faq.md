@@ -41,7 +41,7 @@ See this [GitHub issue](https://github.com/garden-io/garden/issues/1954) for mor
 
 ### What do all those `v-<something>` versions mean, and why are they different between building and deploying?
 
-These are the _Garden versions_ that are computed for each action in the Stack Graph at runtime, based on source files and configuration for each action. See [here](../basics/stack-graph.md#versions) for more information about how these work and how they're used.
+These are the _Garden versions_ that are computed for each action in the Stack Graph at runtime, based on source files and configuration for each action. See [here](../basics/core-concepts.md#versions) for more information about how these work and how they're used.
 
 You may notice that a version of a Build action is different from the version the Deploy for that Build. This is because the Deploy's version also factors in the runtime configuration for that deploy, which often differs between environments, but we don't want those changes to require a rebuild.
 
