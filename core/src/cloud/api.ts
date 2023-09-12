@@ -813,7 +813,7 @@ export class CloudApi {
       throw new CloudApiError({
         message: `${
           extractErrorMessageBodyFromGotError(err) ?? "Fetching the Kubeconfig for ephemeral cluster failed."
-        }`
+        }`,
       })
     }
   }

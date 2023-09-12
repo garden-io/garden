@@ -122,9 +122,7 @@ export function validateDeploySpec(
             `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
             `Please configure a default hostname or specify a hostname for the ingress.`,
         })
-
       }
-
     }
 
     // make sure the hostname is set
