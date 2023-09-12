@@ -311,7 +311,6 @@ function createProvider<
     if (baseKeys.includes(key)) {
       throw new ValidationError({
         message: `Attempted to re-define built-in provider config field '${key}'. Built-in fields may not be overridden.`,
-        detail: { key },
       })
     }
   }

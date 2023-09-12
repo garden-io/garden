@@ -11,7 +11,7 @@ import { printHeader } from "../logger/util"
 import dedent = require("dedent")
 import { AuthTokenResponse, CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { Log } from "../logger/log-entry"
-import { ConfigurationError, TimeoutError, InternalError } from "../exceptions"
+import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
 import { EventBus } from "../events/events"
 import { getCloudDistributionName } from "../util/util"
@@ -66,9 +66,6 @@ export class LoginCommand extends Command<{}, Opts> {
       if (!projectConfig) {
         throw new ConfigurationError({
           message: `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-          detail: {
-            root: garden.projectRoot,
-          },
         })
       }
     }
@@ -98,7 +95,10 @@ export class LoginCommand extends Command<{}, Opts> {
         return {}
       }
     } catch (err) {
-      if (err?.detail?.statusCode === 401) {
+      if (!(err instanceof CloudApiError)) {
+        throw err
+      }
+      if (err.responseStatusCode === 401) {
         const msg = dedent`
           Looks like your session token is invalid. If you were previously logged into a different instance
           of ${distroName}, log out first before logging in.
@@ -134,7 +134,6 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
       reject(
         new TimeoutError({
           message: `Timed out after ${loginTimeoutSec} seconds, waiting for web login response.`,
-          detail: {},
         })
       )
     }, loginTimeoutSec * 1000)
@@ -150,7 +149,7 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
   })
   await server.close()
   if (!response) {
-    throw new InternalError({ message: `Error: Did not receive an auth token after logging in.`, detail: {} })
+    throw new InternalError({ message: `Error: Did not receive an auth token after logging in.` })
   }
 
   return response

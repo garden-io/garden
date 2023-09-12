@@ -247,12 +247,9 @@ export async function prepareSystem({
       // If any of the services are not ready or missing, we throw, since builds and deployments are likely to fail.
       throw new KubernetesError({
         message: deline`
-        One or more cluster-wide system services are missing or not ready. You need to run ${initCommand}
-        to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
-      `,
-        detail: {
-          status,
-        },
+          One or more cluster-wide system services are missing or not ready. You need to run ${initCommand}
+          to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
+        `,
       })
     } else {
       // If system services are outdated but none are *missing*, we warn instead of flagging as not ready here.
@@ -314,8 +311,11 @@ export async function cleanupEnvironment({
           try {
             const annotations = (await api.core.readNamespace(ns)).metadata.annotations || {}
             return annotations[gardenAnnotationKey("generated")] === "true" ? ns : null
-          } catch (err) {
-            if (err.statusCode === 404) {
+          } catch (err: unknown) {
+            if (!(err instanceof KubernetesError)) {
+              throw err
+            }
+            if (err.responseStatusCode === 404) {
               return null
             } else {
               throw err
@@ -400,7 +400,6 @@ export async function buildDockerAuthConfig(
         it does not have \`type: ${dockerAuthSecretType}\`.
         ${dockerAuthDocsLink}
         `,
-          detail: { secretRef },
         })
       }
 
@@ -414,7 +413,6 @@ export async function buildDockerAuthConfig(
         it does not contain a ${dockerAuthSecretKey} key.
         ${dockerAuthDocsLink}
         `,
-          detail: { secretRef },
         })
       }
 
@@ -429,7 +427,6 @@ export async function buildDockerAuthConfig(
         ${err.message}.
         ${dockerAuthDocsLink}
         `,
-          detail: { secretRef },
         })
       }
       if (!decoded.auths && !decoded.credHelpers) {
@@ -439,7 +436,6 @@ export async function buildDockerAuthConfig(
         because it is missing an "auths" or "credHelpers" key.
         ${dockerAuthDocsLink}
         `,
-          detail: { secretRef },
         })
       }
 

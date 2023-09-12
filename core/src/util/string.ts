@@ -84,7 +84,7 @@ export function naturalList(list: string[], { trailingWord = "and", quote = fals
     list = list.map((s) => "'" + s + "'")
   }
   if (list.length === 0) {
-    return ""
+    return "<None>"
   } else if (list.length === 1) {
     return list[0]
   } else {

@@ -724,9 +724,9 @@ describe("cli", () => {
       const stripped = stripAnsi(consoleOutput!).trim()
 
       expect(code).to.equal(1)
-      expect(
-        stripped.startsWith('Invalid value for option --logger-type: "bla" is not a valid argument (should be any of ')
-      ).to.be.true
+      expect(stripped).to.contain(
+        'Invalid value for option --logger-type: "bla" is not a valid argument (should be any of '
+      )
       expect(consoleOutput).to.include(cmd.renderHelp())
     })
 
@@ -759,7 +759,7 @@ describe("cli", () => {
       const stripped = stripAnsi(consoleOutput!).trim()
 
       expect(code).to.equal(1)
-      expect(stripped.startsWith("Missing required argument foo")).to.be.true
+      expect(stripped).to.include("Missing required argument foo")
       expect(consoleOutput).to.include(cmd.renderHelp())
     })
 
@@ -971,13 +971,14 @@ describe("cli", () => {
 
         const firstSevenLines = outputLines.slice(0, 7).join("\n")
         expect(firstSevenLines).to.eql(dedent`
-        Encountered an unexpected Garden error. This is likely a bug 🍂
+          Encountered an unexpected Garden error. This is likely a bug 🍂
 
-        You can help by reporting this on GitHub: https://github.com/garden-io/garden/issues/new?labels=bug,crash&template=CRASH.md&title=Crash%3A%20Cannot%20read%20property%20foo%20of%20undefined.
+          You can help by reporting this on GitHub: https://github.com/garden-io/garden/issues/new?labels=bug,crash&template=CRASH.md&title=Crash%3A%20Cannot%20read%20property%20foo%20of%20undefined.
 
-        Please attach the following information to the bug report after making sure that the error message does not contain sensitive information:
+          Please attach the following information to the bug report after making sure that the error message does not contain sensitive information:
 
-        TypeError: Cannot read property foo of undefined.`)
+          TypeError: Cannot read property foo of undefined.
+        `)
 
         const firstStackTraceLine = outputLines[7]
         expect(firstStackTraceLine).to.contain("at TestCommand.action (")

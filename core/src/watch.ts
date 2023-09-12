@@ -56,7 +56,7 @@ export class Watcher extends EventEmitter2 {
       try {
         require("fsevents")
       } catch (error) {
-        throw InternalError.wrapError(error, {}, "Unable to load fsevents module")
+        throw InternalError.wrapError(error, "Unable to load fsevents module")
       }
     }
 

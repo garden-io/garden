@@ -132,10 +132,8 @@ export class SyncStartCommand extends Command<Args, Opts> {
       return true
     })
 
-    const actionKeys = actions.map((a) => a.key())
-
     if (actions.length === 0) {
-      throw new ParameterError({ message: `No matched action supports syncing. Aborting.`, detail: { actionKeys } })
+      throw new ParameterError({ message: `No matched action supports syncing. Aborting.` })
     }
 
     if (opts.deploy) {
@@ -263,10 +261,8 @@ export async function startSyncWithoutDeploy({
 
   if (!someSyncStarted) {
     throw new RuntimeError({
-      message: `Could not start any sync. Aborting.`,
-      detail: {
-        actionKeys,
-      },
+      message: dedent`
+        Could not start any syncs. Aborting.${actionKeys ? `\n\nActions: ${naturalList(actionKeys)}` : ""}`,
     })
   }
 }

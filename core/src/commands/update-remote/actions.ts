@@ -20,6 +20,7 @@ import { Log } from "../../logger/log-entry"
 import { joiArray, joi } from "../../config/common"
 import { StringsParameter, ParameterValues } from "../../cli/params"
 import pMap from "p-map"
+import { naturalList } from "../../util/string"
 
 const updateRemoteActionsArguments = {
   actions: new StringsParameter({
@@ -105,11 +106,10 @@ export async function updateRemoteActions({
       .sort()
 
     throw new ParameterError({
-      message: `Expected action(s) ${chalk.underline(diff.join(","))} to have a remote source.`,
-      detail: {
-        actionsWithRemoteSource,
-        input: keys ? keys.sort() : undefined,
-      },
+      message: dedent`
+        Expected action(s) ${chalk.underline(diff.join(","))} to have a remote source.
+        Actions with remote source: ${naturalList(actionsWithRemoteSource.map((a) => a.name))}
+      `,
     })
   }
 

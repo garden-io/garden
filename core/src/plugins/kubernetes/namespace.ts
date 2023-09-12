@@ -91,7 +91,6 @@ export async function ensureNamespace(
             throw new KubernetesError({
               message: dedent`Namespace "${n.metadata.name}" is in "Terminating" state so Garden is unable to create it.
             Please try again once the namespace has terminated.`,
-              detail: {},
             })
           }
         }
@@ -122,8 +121,7 @@ export async function ensureNamespace(
           result.created = true
         } catch (error) {
           throw new KubernetesError({
-            message: `Namespace ${namespace.name} doesn't exist and Garden was unable to create it. You may need to create it manually or ask an administrator to do so.`,
-            detail: { error },
+            message: `Namespace ${namespace.name} doesn't exist and Garden was unable to create it. Error: ${error.message}\n\nYou may need to create it manually or ask an administrator to do so.`,
           })
         }
       } else if (namespaceNeedsUpdate(result.remoteResource, namespace)) {
@@ -171,7 +169,10 @@ export async function namespaceExists(api: KubeApi, ctx: KubernetesPluginContext
     await api.core.readNamespace(name)
     return true
   } catch (err) {
-    if (err.statusCode === 404) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       return false
     } else {
       throw err
@@ -279,15 +280,11 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     const api = await KubeApi.factory(log, ctx, ctx.provider as KubernetesProvider)
     await api.request({ path: "/version", log })
   } catch (err) {
-    log.error("Error")
+    log.silly(`Full Kubernetes connect error: ${err.stack}`)
 
     throw new DeploymentError({
       message: dedent`
-      Unable to connect to Kubernetes cluster. Got error:
-
-      ${err.stack}
-    `,
-      detail: { providerConfig: k8sCtx.provider.config },
+        Unable to connect to Kubernetes cluster. Got error: ${err.message}`,
     })
   }
 
@@ -304,9 +301,12 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
       // Note: Need to call the delete method with an empty object
       // TODO: any cast is required until https://github.com/kubernetes-client/javascript/issues/52 is fixed
       await api.core.deleteNamespace(ns, <any>{})
-    } catch (err) {
+    } catch (err: unknown) {
+      if (!(err instanceof KubernetesError)) {
+        throw err
+      }
       // Ignore not found errors.
-      if (err.statusCode !== 404) {
+      if (err.responseStatusCode !== 404) {
         throw err
       }
     }
@@ -329,9 +329,6 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
     if (now - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
       throw new TimeoutError({
         message: `Timed out waiting for namespace ${namespaces.join(", ")} delete to complete`,
-        detail: {
-          namespaces,
-        },
       })
     }
   }

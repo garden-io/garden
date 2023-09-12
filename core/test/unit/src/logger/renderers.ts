@@ -58,10 +58,6 @@ describe("renderers", () => {
       const error = new GenericGardenError({
         message: "hello error",
         type: "a",
-        detail: {
-          foo: "bar",
-          _internal: "no show",
-        },
       })
       const log = logger.createLog().info({ msg: "foo", error })
       const rendered = renderError(log.entries[0])

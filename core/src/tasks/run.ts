@@ -18,11 +18,18 @@ import { RunAction } from "../actions/run"
 import { GetRunResult } from "../plugin/handlers/Run/get-result"
 import { resolvedActionToExecuted } from "../actions/helpers"
 import { OtelTraced } from "../util/open-telemetry/decorators"
+import { GardenError } from "../exceptions"
 
-class RunTaskError extends Error {
-  override toString() {
-    return this.message
-  }
+/**
+ * Only throw this error when the run itself failed, and not when Garden failed to execute the run.
+ *
+ * Unexpected errors should just bubble up; When the task ran successfully, but it reported a failure (e.g. linter found issues).
+ *
+ * TODO: This probably should not be handled with an exception and instead just be an object that represents a run failure or succcess.
+ * For now however, we use the error and should be careful with how we use it.
+ */
+class RunFailedError extends GardenError {
+  override type = "run-failed"
 }
 
 @Profile()
@@ -126,7 +133,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       if (status.detail?.diagnosticErrorMsg) {
         this.log.debug(`Additional context for the error:\n\n${status.detail.diagnosticErrorMsg}`)
       }
-      throw new RunTaskError(status.detail?.log)
+      throw new RunFailedError({ message: status.detail?.log || "The run failed, but it did not output anything." })
     }
 
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }

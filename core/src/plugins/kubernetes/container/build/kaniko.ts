@@ -175,7 +175,6 @@ export const kanikoBuild: BuildHandler = async (params) => {
   if (kanikoBuildFailed(buildRes)) {
     throw new BuildError({
       message: `Failed building ${chalk.bold(action.name)}:\n\n${buildLog}`,
-      detail: { buildLog },
     })
   }
 
@@ -200,7 +199,7 @@ export const getKanikoFlags = (flags?: string[], topLevelFlags?: string[]): stri
   const flagToKey = (flag: string) => {
     const found = flag.match(/--([a-zA-Z]*)/)
     if (found === null) {
-      throw new ConfigurationError({ message: `Invalid format for a kaniko flag`, detail: { flag } })
+      throw new ConfigurationError({ message: `Invalid format for a kaniko flag. Expected it to match /--([a-zA-Z]*)/, actually got: ${flag}` })
     }
     return found[0]
   }

@@ -10,7 +10,7 @@ import { exec } from "../../../util/util"
 import { Log } from "../../../logger/log-entry"
 import { load } from "js-yaml"
 import { KubernetesConfig, KubernetesProvider } from "../config"
-import { RuntimeError } from "../../../exceptions"
+import { GardenError, RuntimeError } from "../../../exceptions"
 import { KubeApi } from "../api"
 import { KubernetesResource } from "../types"
 import { PluginContext } from "../../../plugin-context"
@@ -74,9 +74,12 @@ export async function loadImageToKind(imageId: string, config: KubernetesConfig,
       await exec("kind", ["load", "docker-image", imageId, `--name=${clusterName}`])
     }
   } catch (err) {
+    if (!(err instanceof GardenError)) {
+      throw err
+    }
     throw new RuntimeError({
       message: `An attempt to load image ${imageId} into the kind cluster failed: ${err.message}`,
-      detail: { err },
+      wrappedErrors: [err],
     })
   }
 }

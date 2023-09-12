@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
+import { KubeApi, KubernetesError } from "../../../../../../src/plugins/kubernetes/api"
 import {
   createContainerManifests,
   createWorkloadManifest,
@@ -689,6 +689,10 @@ describe("kubernetes container deployment handlers", () => {
 
         await apply({ log, ctx, api, provider, manifests: [configMapToPrune], namespace })
 
+        try {
+          await api.core.deleteNamespacedConfigMap(mapToNotPruneKey, namespace)
+        } catch (_e) {}
+
         // Here, we create via the k8s API (not `kubetl apply`), so that unlike `configMapToPrune`, it won't acquire
         // the "last applied" annotation. This means that it should *not* be pruned when we deploy the service, even
         // though it has the service's label.
@@ -722,8 +726,10 @@ describe("kubernetes container deployment handlers", () => {
           () => api.core.readNamespacedConfigMap(mapToPruneKey, namespace),
           (err) => {
             expect(stripAnsi(err.message)).to.match(
-              /Got error from Kubernetes API \(readNamespacedConfigMap\) - configmaps "should-be-pruned" not found/
+              /Error while performing Kubernetes API operation readNamespacedConfigMap/
             )
+            expect(stripAnsi(err.message)).to.match(/Response status code: 404/)
+            expect(stripAnsi(err.message)).to.match(/Kubernetes Message: configmaps "should-be-pruned" not found/)
           }
         )
 
@@ -864,7 +870,10 @@ describe("kubernetes container deployment handlers", () => {
         await api.apps.readNamespacedDeployment(action.name, provider.config.namespace!.name)
         return true
       } catch (err) {
-        if (err.statusCode === 404) {
+        if (!(err instanceof KubernetesError)) {
+          throw err
+        }
+        if (err.responseStatusCode === 404) {
           return false
         } else {
           throw err

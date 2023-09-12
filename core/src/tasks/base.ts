@@ -278,7 +278,6 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
           throw new GraphError({
             message: `${this.action.longDescription()} depends on one or more runtime outputs from action
              ${action.key}, which is disabled. Please either remove the reference or enable the action.`,
-            detail: { dependant: this.action.key(), dependency: action.key() },
           })
         }
         return [this.getExecuteTask(action)]
@@ -327,8 +326,8 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
 
     if (!result) {
       throw new InternalError({
+        taskType: this.type,
         message: `Could not find resolved action '${action.key()}' when processing task '${this.getBaseKey()}'.`,
-        detail: { taskType: this.type, action: action.key() },
       })
     }
 
@@ -345,8 +344,8 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
 
     if (!result) {
       throw new InternalError({
+        taskType: this.type,
         message: `Could not find executed action '${action.key()}' when processing task '${this.getBaseKey()}'.`,
-        detail: { taskType: this.type, action: action.key() },
       })
     }
 
@@ -407,7 +406,7 @@ export function emitGetStatusEvents<
   const method = descriptor.value
 
   if (!method) {
-    throw new RuntimeError({ message: "No method to decorate", detail: {} })
+    throw new RuntimeError({ message: "No method to decorate" })
   }
 
   descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskStatusParams<A>]) {
@@ -494,7 +493,7 @@ export function emitProcessingEvents<
   const method = descriptor.value
 
   if (!method) {
-    throw new RuntimeError({ message: "No method to decorate", detail: {} })
+    throw new RuntimeError({ message: "No method to decorate" })
   }
 
   descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskStatusParams<A>]) {

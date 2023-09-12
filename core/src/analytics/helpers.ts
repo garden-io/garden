@@ -15,7 +15,7 @@ function getErrorDetail(error: GardenError): AnalyticsGardenErrorDetail {
 
   return {
     errorType: error.type,
-    context: error.context,
+    taskType: error.taskType,
     stackTrace: firstEntry,
   }
 }

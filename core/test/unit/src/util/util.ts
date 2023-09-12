@@ -14,7 +14,6 @@ import {
   getEnvVarName,
   exec,
   createOutputStream,
-  makeErrorMsg,
   spawn,
   relationshipClasses,
   isValidDateInstance,
@@ -31,76 +30,6 @@ function isLinuxOrDarwin() {
 }
 
 describe("util", () => {
-  describe("makeErrorMsg", () => {
-    it("should return an error message", () => {
-      const msg = makeErrorMsg({
-        code: 1,
-        cmd: "ls",
-        args: ["some-dir"],
-        error: "dir not found",
-        output: "dir not found",
-      })
-      expect(msg).to.equal(dedent`
-        Command "ls some-dir" failed with code 1:
-
-        dir not found
-      `)
-    })
-    it("should ignore emtpy args", () => {
-      const msg = makeErrorMsg({
-        code: 1,
-        cmd: "ls",
-        args: [],
-        error: "dir not found",
-        output: "dir not found",
-      })
-      expect(msg).to.equal(dedent`
-        Command "ls" failed with code 1:
-
-        dir not found
-      `)
-    })
-    it("should include output if it's not the same as the error", () => {
-      const msg = makeErrorMsg({
-        code: 1,
-        cmd: "ls some-dir",
-        args: [],
-        error: "dir not found",
-        output: "dir not found and some more output",
-      })
-      expect(msg).to.equal(dedent`
-        Command "ls some-dir" failed with code 1:
-
-        dir not found
-
-        Here's the full output:
-
-        dir not found and some more output
-      `)
-    })
-    it("should include the last 100 lines of output if output is very long", () => {
-      const output = "All work and no play\n"
-      const outputFull = output.repeat(102)
-      const outputPartial = output.repeat(99) // This makes 100 lines in total
-
-      const msg = makeErrorMsg({
-        code: 1,
-        cmd: "ls some-dir",
-        args: [],
-        error: "dir not found",
-        output: outputFull,
-      })
-      expect(msg).to.equal(dedent`
-        Command "ls some-dir" failed with code 1:
-
-        dir not found
-
-        Here are the last 100 lines of the output:
-
-        ${outputPartial}
-      `)
-    })
-  })
   describe("exec", () => {
     before(function () {
       // These tests depend the underlying OS and are only executed on macOS and linux
@@ -150,22 +79,20 @@ describe("util", () => {
     })
 
     it("should throw a standardised error message on error", async () => {
-      try {
-        // Using "sh -c" to get consistent output between operating systems
-        await exec(`sh -c "echo hello error; exit 1"`, [], { shell: true })
-      } catch (err) {
-        expect(err).to.be.instanceOf(ChildProcessError)
-        expect(err.type).to.eql("childprocess")
-        expect(err.message).to.equal(
-          makeErrorMsg({
-            code: 1,
-            cmd: `sh -c "echo hello error; exit 1"`,
-            args: [],
-            output: "hello error",
-            error: "",
-          })
-        )
-      }
+      await expectError(
+        async () => {
+          await exec(`sh -c "echo hello error; exit 1"`, [], { shell: true })
+        },
+        (err: ChildProcessError) => {
+          expect(err).to.be.an.instanceOf(ChildProcessError)
+          expect(err.details.code).to.eql(1)
+          expect(err.details.cmd).to.eql(`sh -c "echo hello error; exit 1"`)
+          expect(err.details.args).to.eql([])
+          expect(err.details.output).to.eql("hello error")
+          expect(err.details.stdout).to.eql("hello error")
+          expect(err.details.stderr).to.eql("")
+        }
+      )
     })
   })
 
@@ -178,37 +105,37 @@ describe("util", () => {
       }
     })
     it("should throw a standardised error message on error", async () => {
-      try {
-        await spawn("ls", ["scottiepippen"])
-      } catch (err) {
-        // Spawn does not throw ChildProcessError at the moment.
-        expect(err).to.be.instanceOf(ChildProcessError)
-        expect(err.type).to.eql("childprocess")
-
-        // We're not using "sh -c" here since the output is not added to stdout|stderr if `tty: true` and
-        // we therefore can't test the entire error message.
-        if (process.platform === "darwin") {
-          expect(err.message).to.equal(
-            makeErrorMsg({
+      await expectError(
+        async () => {
+          await spawn("ls", ["scottiepippen"])
+        },
+        (err: ChildProcessError) => {
+          expect(err).to.be.an.instanceOf(ChildProcessError)
+          // We're not using "sh -c" here since the output is not added to stdout|stderr if `tty: true` and
+          // we therefore can't test the entire error message.
+          if (process.platform === "darwin") {
+            expect(err.details).to.eql({
               code: 1,
-              cmd: "ls scottiepippen",
-              args: [],
-              output: "ls: scottiepippen: No such file or directory",
-              error: "ls: scottiepippen: No such file or directory",
+              cmd: "ls",
+              args: ["scottiepippen"],
+              opts: {},
+              output: "ls: scottiepippen: No such file or directory\n",
+              stderr: "ls: scottiepippen: No such file or directory\n",
+              stdout: "",
             })
-          )
-        } else {
-          expect(err.message).to.equal(
-            makeErrorMsg({
+          } else {
+            expect(err.details).to.eql({
               code: 2,
-              cmd: "ls scottiepippen",
-              args: [],
-              output: "ls: cannot access 'scottiepippen': No such file or directory",
-              error: "ls: cannot access 'scottiepippen': No such file or directory",
+              cmd: "ls",
+              args: ["scottiepippen"],
+              opts: {},
+              output: "ls: cannot access 'scottiepippen': No such file or directory\n",
+              stderr: "ls: cannot access 'scottiepippen': No such file or directory\n",
+              stdout: "",
             })
-          )
+          }
         }
-      }
+      )
     })
   })
 
@@ -229,9 +156,7 @@ describe("util", () => {
       await expectError(
         () => pickKeys(obj, <any>["a", "foo", "bar"]),
         (err) => {
-          expect(err.message).to.equal("Could not find key(s): foo, bar")
-          expect(err.detail.missing).to.eql(["foo", "bar"])
-          expect(err.detail.available).to.eql(["a", "b", "c"])
+          expect(err.message).to.equal("Could not find key(s): foo, bar. Available: a, b and c")
         }
       )
     })

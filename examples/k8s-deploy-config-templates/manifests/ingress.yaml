@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${parent.name}
+  labels:
+    app: ${parent.name}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: ${parent.name}.${var.baseHostname}
+    http:
+      paths:
+      - backend:
+          service:
+            name: ${parent.name}
+            port:
+              number: ${inputs.servicePorts[0].port}
+        path: /
+        pathType: Prefix

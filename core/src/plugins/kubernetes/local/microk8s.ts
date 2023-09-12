@@ -31,7 +31,7 @@ export async function configureMicrok8sAddons(log: Log, addons: string[]) {
     if (!(err instanceof ChildProcessError)) {
       throw err
     }
-    if (err.detail.output.includes("permission denied") || err.detail.output.includes("Insufficient permissions")) {
+    if (err.details.output.includes("permission denied") || err.details.output.includes("Insufficient permissions")) {
       microK8sLog.warn(
         chalk.yellow(
           deline`Unable to get microk8s status and manage addons. You may need to add the current user to the microk8s
@@ -46,11 +46,7 @@ export async function configureMicrok8sAddons(log: Log, addons: string[]) {
 
   if (!status.includes("microk8s is running")) {
     throw new RuntimeError({
-      message: `Unable to get microk8s status. Is the cluster installed and running?`,
-      detail: {
-        status,
-        statusCommandResult,
-      },
+      message: `Unexpected microk8s status '${status}'.  Is the cluster installed and running?`,
     })
   }
 

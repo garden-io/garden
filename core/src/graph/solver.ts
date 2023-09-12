@@ -8,7 +8,7 @@
 
 import type { BaseTask, Task, ValidResultType } from "../tasks/base"
 import type { Log } from "../logger/log-entry"
-import { GardenError, GraphError, explainGardenError, toGardenError } from "../exceptions"
+import { GardenError, GardenErrorParams, GraphError, toGardenError } from "../exceptions"
 import { uuidv4 } from "../util/random"
 import { DependencyGraph, metadataForLog } from "./common"
 import { Profile } from "../util/profiling"
@@ -19,7 +19,6 @@ import { gardenEnv } from "../constants"
 import type { Garden } from "../garden"
 import { GraphResultEventPayload } from "../events/events"
 import { renderDivider, renderDuration, renderMessageWithDivider } from "../logger/util"
-import { formatGardenErrorWithDetail } from "../exceptions"
 import chalk from "chalk"
 import {
   CompleteTaskParams,
@@ -145,7 +144,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             cleanup({
               error: new GraphResultError({
                 message: `Failed to ${result.description}: ${result.error}`,
-                detail: { results },
+                results,
                 wrappedErrors: [toGardenError(result.error)],
               }),
             })
@@ -184,7 +183,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
               msg += `\n ↳ ${r.description}: ${r?.error ? r.error.message : "[ABORTED]"}`
             }
 
-            error = new GraphResultError({ message: msg, detail: { results }, wrappedErrors })
+            error = new GraphResultError({ message: msg, results, wrappedErrors })
           }
 
           cleanup({ error: null })
@@ -510,15 +509,13 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const error = toGardenError(err)
     const msg = renderMessageWithDivider({
       prefix: errMessagePrefix,
-      msg: explainGardenError(error, errMessagePrefix),
+      msg: error.explain(errMessagePrefix),
       isError: true,
     })
     log.error({ msg, error, showDuration: false })
     const divider = renderDivider()
     log.silly(
-      chalk.gray(
-        `Full error with stack trace and details:\n${divider}\n${formatGardenErrorWithDetail(error)}\n${divider}`
-      )
+      chalk.gray(`Full error with stack trace and wrapped errors:\n${divider}\n${error.toString(true)}\n${divider}`)
     )
   }
 }
@@ -556,4 +553,12 @@ interface GraphResultErrorDetail {
   results: GraphResults
 }
 
-class GraphResultError extends GraphError<GraphResultErrorDetail> {}
+class GraphResultError extends GraphError {
+  results: GraphResults
+
+  constructor(params: GraphResultErrorDetail & GardenErrorParams) {
+    super(params)
+
+    this.results = params.results
+  }
+}

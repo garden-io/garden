@@ -148,7 +148,7 @@ describe("resolvePlugins", () => {
     ]
 
     await expectError(async () => resolvePlugins(log, { base, dependant }, [{ name: "test" }]), {
-      contains: "plugin 'dependant' redeclares the 'base' build type, already declared by its base.",
+      contains: "plugin 'dependant' redeclares the 'base' build type, already declared by its base",
     })
   })
 

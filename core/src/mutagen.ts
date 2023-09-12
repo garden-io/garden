@@ -818,15 +818,23 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
     parsed = JSON.parse(res.stdout)
   } catch (err) {
     throw new MutagenError({
-      message: `Could not parse response from mutagen sync list: ${res.stdout}`,
-      detail: { res },
+      message: dedent`
+        Could not parse response from mutagen sync list: ${res.stdout}
+
+        Full output:
+        ${res.all}
+        `,
     })
   }
 
   if (!Array.isArray(parsed)) {
     throw new MutagenError({
-      message: `Unexpected response from mutagen sync list: ${parsed}`,
-      detail: { res, parsed },
+      message: dedent`
+        Unexpected response from mutagen sync list: ${parsed}. Got: ${typeof parsed}
+
+        Full output:
+        ${res.all}
+        `,
     })
   }
 

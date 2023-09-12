@@ -733,7 +733,6 @@ export abstract class ResolvedRuntimeAction<
       if (!buildAction) {
         throw new InternalError({
           message: `Could not find build dependency '${buildName}' specified on the build field on ${this.longDescription()}.`,
-          detail: { action: this.key(), buildName },
         })
       }
 

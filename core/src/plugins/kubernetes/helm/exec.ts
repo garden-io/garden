@@ -30,9 +30,6 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
       message: `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with. This is currently necessary for the ${chalk.white(
         "exec"
       )} command to work with helm Deploy actions.`,
-      detail: {
-        name: action.name,
-      },
     })
   }
 
@@ -61,11 +58,7 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
   // TODO: this check should probably live outside of the plugin
   if (!target || !includes(["ready", "outdated"], status.detail?.state)) {
     throw new DeploymentError({
-      message: `${action.longDescription()} is not running`,
-      detail: {
-        name: action.name,
-        state: status.detail?.state || status.state,
-      },
+      message: `${action.longDescription()} is not running (Status: ${status.detail?.state || status.state})`,
     })
   }
 

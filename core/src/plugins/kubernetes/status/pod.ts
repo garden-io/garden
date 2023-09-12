@@ -117,9 +117,13 @@ export async function getPodLogs({
           timestamps
         )
       } catch (error) {
-        const terminated = error.statusCode === 400 && error.detail?.body?.message?.endsWith("is terminated")
+        if (!(error instanceof KubernetesError)) {
+          throw error
+        }
 
-        if (terminated || error.statusCode === 404) {
+        const terminated = error.responseStatusCode === 400 && error.apiMessage?.endsWith("is terminated")
+
+        if (terminated || error.responseStatusCode === 404) {
           // Couldn't find pod/container, try requesting a previously terminated one
           try {
             log = await api.core.readNamespacedPodLog(
@@ -135,9 +139,9 @@ export async function getPodLogs({
               lineLimit,
               timestamps
             )
-          } catch (err) {
+          } catch (err: unknown) {
             log = `[Could not retrieve previous logs for deleted pod ${pod.metadata!.name!}: ${
-              err.message || "Unknown error occurred"
+              err || "Unknown error occurred"
             }]`
           }
         } else if (error instanceof KubernetesError && error.message.includes("waiting to start")) {

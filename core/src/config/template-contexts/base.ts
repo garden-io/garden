@@ -97,11 +97,6 @@ export abstract class ConfigContext {
     if (opts.stack.includes(fullPath)) {
       throw new ConfigurationError({
         message: `Circular reference detected when resolving key ${path} (${opts.stack.join(" -> ")})`,
-        detail: {
-          nodePath,
-          fullPath,
-          opts,
-        },
       })
     }
 
@@ -127,12 +122,6 @@ export abstract class ConfigContext {
       } else if (isPrimitive(value)) {
         throw new ConfigurationError({
           message: `Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof value}.`,
-          detail: {
-            value,
-            nodePath,
-            fullPath,
-            opts,
-          },
         })
       } else if (value instanceof Map) {
         available = [...value.keys()]
@@ -147,11 +136,6 @@ export abstract class ConfigContext {
         if (opts.stack.includes(stackEntry)) {
           throw new ConfigurationError({
             message: `Circular reference detected when resolving key ${stackEntry} (from ${opts.stack.join(" -> ")})`,
-            detail: {
-              nodePath,
-              fullPath,
-              opts,
-            },
           })
         }
 
@@ -207,20 +191,10 @@ export abstract class ConfigContext {
         // be passed through. This is caught in the template parser code.
         throw new TemplateStringPassthroughException({
           message,
-          detail: {
-            nodePath,
-            fullPath,
-            opts,
-          },
         })
       } else if (opts.allowPartial) {
         throw new TemplateStringMissingKeyException({
           message,
-          detail: {
-            nodePath,
-            fullPath,
-            opts,
-          },
         })
       } else {
         // Otherwise we return the undefined value, so that any logical expressions can be evaluated appropriately.
@@ -309,7 +283,7 @@ export class ErrorContext extends ConfigContext {
   }
 
   override resolve({}): ContextResolveOutput {
-    throw new ConfigurationError({ message: this.message, detail: {} })
+    throw new ConfigurationError({ message: this.message })
   }
 }
 

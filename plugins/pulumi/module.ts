@@ -44,9 +44,6 @@ export const configurePulumiModule: ModuleActionHandlers<PulumiModule>["configur
     if (!exists) {
       throw new ConfigurationError({
         message: `Pulumi: configured working directory '${root}' does not exist`,
-        detail: {
-          moduleConfig,
-        },
       })
     }
   }
@@ -60,20 +57,12 @@ export const configurePulumiModule: ModuleActionHandlers<PulumiModule>["configur
     if (orgName) {
       throw new ConfigurationError({
         message: "Pulumi: orgName is not supported for self-managed backends",
-        detail: {
-          moduleConfig,
-          providerConfig: provider.config,
-        },
       })
     }
 
     if (moduleConfig.spec.cacheStatus) {
       throw new ConfigurationError({
         message: "Pulumi: `cacheStatus: true` is not supported for self-managed backends",
-        detail: {
-          moduleConfig,
-          providerConfig: provider.config,
-        },
       })
     }
   }

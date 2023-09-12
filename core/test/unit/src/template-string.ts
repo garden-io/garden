@@ -1028,7 +1028,7 @@ describe("resolveTemplateString", () => {
     it("throws if an argument is missing", () => {
       void expectError(() => resolveTemplateString("${base64Decode()}", new TestContext({})), {
         contains:
-          "Invalid template string (${base64Decode()}): Missing argument 'string' for base64Decode helper function.",
+          "Invalid template string (${base64Decode()}): Missing argument 'string' (at index 0) for base64Decode helper function.",
       })
     })
 

@@ -13,7 +13,7 @@ import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global
 import { getOtelSDK } from "@garden-io/core/build/src/util/open-telemetry/tracing"
 import { withContextFromEnv } from "@garden-io/core/build/src/util/open-telemetry/propagation"
 import { wrapActiveSpan } from "@garden-io/core/build/src/util/open-telemetry/spans"
-import { InternalError, explainGardenError } from "@garden-io/core/build/src/exceptions"
+import { InternalError } from "@garden-io/core/build/src/exceptions"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [
@@ -77,8 +77,8 @@ export async function runCli({
 function logUnexpectedError(error: Error, context: string) {
   // NOTE: If this function is called, this is always a bug, because GardenCli.run is designed to return an error code. If it throws an error, something is wrong with our code and we need to fix it.
   // This is why we wrap the error with InternalError here, even if it is a GardenError already, because  if an error hits this code path, it's definitely a crash and we need to fix that bug.
-  const wrappedError = InternalError.wrapError(error, {}, context)
+  const wrappedError = InternalError.wrapError(error)
 
   // eslint-disable-next-line no-console
-  console.log(`${context}: ${explainGardenError(wrappedError, context)}`)
+  console.log(`${wrappedError.explain(context)}`)
 }

@@ -186,7 +186,6 @@ export function getProviderTemplateReferences(config: GenericProviderConfig) {
           Invalid template key '${key.join(".")}' in configuration for provider '${config.name}'. You must
           specify a provider name as well (e.g. \${providers.my-provider}).
         `,
-          detail: { config, key: key.join(".") },
         })
       }
       deps.push(providerName)

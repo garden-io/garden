@@ -21,7 +21,7 @@ import { KubernetesPluginContext, KubernetesProvider } from "../../config"
 import { PodRunner, PodRunnerError } from "../../run"
 import { PluginContext } from "../../../../plugin-context"
 import { hashString, sleep } from "../../../../util/util"
-import { InternalError, RuntimeError } from "../../../../exceptions"
+import { GardenError, InternalError, RuntimeError } from "../../../../exceptions"
 import { Log } from "../../../../logger/log-entry"
 import { prepareDockerAuth } from "../../init"
 import { prepareSecrets } from "../../secrets"
@@ -189,7 +189,6 @@ export async function skopeoBuildStatus({
     // This is validated in the provider configure handler, so this is an internal error if it happens
     throw new InternalError({
       message: `Expected configured deploymentRegistry for remote build`,
-      detail: { config: provider.config },
     })
   }
 
@@ -230,24 +229,24 @@ export async function skopeoBuildStatus({
     })
     return { state: "ready", outputs, detail: {} }
   } catch (err) {
+    if (!(err instanceof GardenError)) {
+      throw err
+    }
+
     if (err instanceof PodRunnerError) {
-      const res = err.detail.result
+      const res = err.details.result
 
       // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
       if (res?.exitCode !== 0 && !skopeoManifestUnknown(res?.stderr)) {
         const output = res?.allLogs || err.message
 
         throw new RuntimeError({
-          message: `Unable to query registry for image status: ${output}`,
-          detail: {
-            command: skopeoCommand,
-            output,
-          },
+          message: `Unable to query registry for image status: Command "${skopeoCommand.join(" ")}" failed. This is the output:\n${output}`,
         })
       }
     }
 
-    // TODO: Do we really want to return state: "unknown" with no details on any error, even on TypeError etc?
+    // TODO: Do we really want to return state: "unknown" with no details on any other error?
     // NOTE(steffen): I'd have expected us to throw here
     return { state: "unknown", outputs, detail: {} }
   }

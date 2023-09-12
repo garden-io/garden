@@ -19,7 +19,7 @@ import { matchGlobs, listDirectory } from "@garden-io/sdk/util/fs"
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
 import { joi, joiIdentifier, joiSparseArray } from "@garden-io/core/build/src/config/common"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
-import { PluginError, ConfigurationError } from "@garden-io/core/build/src/exceptions"
+import { PluginError, ConfigurationError, GardenError } from "@garden-io/core/build/src/exceptions"
 import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
 import { renderTemplates } from "@garden-io/core/build/src/plugins/kubernetes/helm/common"
 import { getK8sProvider } from "@garden-io/core/build/src/plugins/kubernetes/util"
@@ -228,9 +228,12 @@ export const gardenPlugin = () =>
                 try {
                   files = ctx.resolveTemplateStrings(files)
                 } catch (error) {
+                  if (!(error instanceof GardenError)) {
+                    throw error
+                  }
                   throw new ConfigurationError({
                     message: `The spec.files field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
-                    detail: { config, error },
+                    wrappedErrors: [error],
                   })
                 }
                 config.include = uniq([...config.include, ...files])
@@ -258,18 +261,11 @@ export const gardenPlugin = () =>
               if (!sourceAction) {
                 throw new ConfigurationError({
                   message: `Must specify a helm Deploy action in the \`helmDeploy\` field. Could not find Deploy action '${spec.helmDeploy}'.`,
-                  detail: {
-                    helmDeployRef: spec.helmDeploy,
-                  },
                 })
               }
               if (sourceAction.type !== "helm") {
                 throw new ConfigurationError({
                   message: `Must specify a helm Deploy action in the \`helmDeploy\` field. Deploy action '${spec.helmDeploy}' has type '${sourceAction.type}'.`,
-                  detail: {
-                    helmDeployRef: spec.helmDeploy,
-                    foundDeployType: sourceAction.type,
-                  },
                 })
               }
 
@@ -472,7 +468,7 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
   try {
     parsed = JSON.parse(result.stdout)
   } catch (err) {
-    throw new PluginError({ message: `Error running conftest: ${result.all}`, detail: { result } })
+    throw new PluginError({ message: `Error running conftest: ${result.all}` })
   }
 
   const allFailures = parsed.filter((p: any) => p.failures?.length > 0)

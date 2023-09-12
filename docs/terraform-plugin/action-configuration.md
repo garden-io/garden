@@ -1,9 +1,11 @@
 ---
 order: 3
-title: Deploy action Configuration
+title: Action Configuration
 ---
 
-# Deploy action Configuration
+# Action Configuration
+
+## Deploy Action
 
 You can define `terraform` actions as part of your project, much like any other actions. A `terraform` action maps to a single `Deploy` that you can define as a runtime dependency for any of your other `Deploy`, `Run` and `Test` actions. You can also reference the stack outputs of a `terraform` action using [runtime output template strings](../using-garden/variables-and-templating.md#runtime-outputs). For example:
 

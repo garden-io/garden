@@ -125,7 +125,6 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
           const renderedComputed = JSON.stringify(computedOutput)
           throw new InternalError({
             message: `Test failed for ${spec.name} helper. Expected input args ${example.input} to resolve to ${renderedResult}, got ${renderedComputed}`,
-            detail: { spec },
           })
         }
 

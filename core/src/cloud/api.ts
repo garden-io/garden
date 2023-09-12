@@ -8,6 +8,13 @@
 
 import { IncomingHttpHeaders } from "http"
 
+import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
+import { CloudApiError, InternalError } from "../exceptions"
+import { Log } from "../logger/log-entry"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
+import { Cookie } from "tough-cookie"
+import { cloneDeep, isObject } from "lodash"
+import { dedent, deline } from "../util/string"
 import {
   BaseResponse,
   CreateEphemeralClusterResponse,
@@ -18,34 +25,19 @@ import {
   GetProjectResponse,
   ListProjectsResponse,
 } from "@garden-io/platform-api-types"
-import { add } from "date-fns"
-import { isObject } from "lodash"
-import { Cookie } from "tough-cookie"
-import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
-import { StringMap } from "../config/common"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
-import { CloudApiError } from "../exceptions"
-import { Log } from "../logger/log-entry"
-import { LogLevel } from "../logger/logger"
-import { CommandInfo } from "../plugin-context"
-import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
-import { deline } from "../util/string"
 import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
+import { CommandInfo } from "../plugin-context"
+import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
+import { add } from "date-fns"
+import { LogLevel } from "../logger/logger"
 import { makeAuthHeader } from "./auth"
+import { StringMap } from "../config/common"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 export class CloudApiTokenRefreshError extends CloudApiError {}
-
-export function isGotError(error: any, statusCode: number): error is GotHttpError {
-  return error instanceof GotHttpError && error.response.statusCode === statusCode
-}
-
-function is401Error(error: any): error is GotHttpError {
-  return isGotError(error, 401)
-}
 
 function extractErrorMessageBodyFromGotError(error: any): error is GotHttpError {
   return error?.response?.body?.message
@@ -240,7 +232,6 @@ export class CloudApi {
           message: deline`
             The provided access token is expired or has been revoked, please create a new
             one from the ${distroName} UI.`,
-          detail: {},
         })
       }
     } else {
@@ -274,7 +265,7 @@ export class CloudApi {
         yet been created in ${distroName}, or that there's a problem with your account's VCS username / login
         credentials.
       `
-      throw new CloudApiError({ message: errMsg, detail: { tokenResponse } })
+      throw new CloudApiError({ message: errMsg })
     }
     try {
       const validityMs = tokenResponse.tokenValidity || 604800000
@@ -285,10 +276,21 @@ export class CloudApi {
       })
       log.debug("Saved client auth token to config store")
     } catch (error) {
-      throw new CloudApiError({
-        message: `An error occurred while saving client auth token to local config db:\n${error.message}`,
-        detail: { tokenResponse },
-      })
+      const redactedResponse = cloneDeep(tokenResponse)
+      if (redactedResponse.refreshToken) {
+        redactedResponse.refreshToken = "<Redacted>"
+      }
+      if (redactedResponse.token) {
+        redactedResponse.token = "<Redacted>"
+      }
+      // If we get here, this is a bug.
+      throw InternalError.wrapError(
+        error,
+        dedent`
+        An error occurred while saving client auth token to local config db.
+
+        Token response: ${JSON.stringify(redactedResponse)}`
+      )
     }
   }
 
@@ -383,7 +385,6 @@ export class CloudApi {
         message: deline`Found an unexpected state with multiple projects using the same name, ${projectName}.
         Please make sure there is only one project with the given name.
         Projects can be deleted through the Garden Cloud UI at ${this.domain}`,
-        detail: {},
       })
     }
 
@@ -461,13 +462,15 @@ export class CloudApi {
       }
       await CloudApi.saveAuthToken(this.log, this.globalConfigStore, tokenObj, this.domain)
     } catch (err) {
+      if (!(err instanceof GotHttpError)) {
+        throw err
+      }
+
       this.log.debug({ msg: `Failed to refresh the token.` })
-      const detail = is401Error(err) ? { statusCode: err.response.statusCode } : {}
       throw new CloudApiTokenRefreshError({
         message: `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
           err.message
-        }`,
-        detail,
+        }. Response status code: ${err.response.statusCode}`,
       })
     }
   }
@@ -550,11 +553,14 @@ export class CloudApi {
 
     if (!isObject(res.body)) {
       throw new CloudApiError({
-        message: `Unexpected API response`,
-        detail: {
-          path,
-          body: res?.body,
-        },
+        message: dedent`
+          Unexpected API response: Expected object.
+
+          Request url: ${url}
+          Response code: ${res?.statusCode}
+          Response body: ${JSON.stringify(res?.body)}
+        `,
+        responseStatusCode: res?.statusCode,
       })
     }
 
@@ -646,17 +652,19 @@ export class CloudApi {
       this.registeredSessions.set(sessionId, session)
       return session
     } catch (err) {
-      // We don't want the command to fail when an error occurs during session registration.
-      if (isGotError(err, 422)) {
+      if (!(err instanceof GotHttpError)) {
+        throw err
+      }
+
+      // We don't want the command to fail when an error occurs in the backend during session registration.
+      if (err.response.statusCode === 422) {
         const errMsg = deline`
           Session registration skipped due to mismatch between CLI and API versions. Please make sure your Garden CLI
           version is compatible with your version of ${this.distroName}.
         `
         this.log.debug(errMsg)
       } else {
-        // TODO: Reintroduce error-level warning when we're checking if the Cloud/Enterprise version is compatible with
-        // the Core version.
-        this.log.verbose(`An error occurred while registering the session: ${err.message}`)
+        this.log.warn(`An error occurred while registering the session: ${err.message}`)
       }
       return
     }
@@ -694,22 +702,31 @@ export class CloudApi {
    */
   async checkClientAuthToken(): Promise<boolean> {
     let valid = false
+
     try {
       const url = new URL("/token/verify", this.domain)
       this.log.debug(`Checking client auth token with ${getCloudDistributionName(this.domain)}: ${url.href}`)
+
       await this.get("token/verify")
+
       valid = true
     } catch (err) {
-      if (!is401Error(err)) {
+      if (!(err instanceof GotHttpError)) {
+        throw err
+      }
+
+      if (err.response.statusCode !== 401) {
         throw new CloudApiError({
           message: `An error occurred while verifying client auth token with ${getCloudDistributionName(
             this.domain
           )}: ${err.message}`,
-          detail: {},
+          responseStatusCode: err.response.statusCode,
         })
       }
     }
+
     this.log.debug(`Checked client auth token with ${getCloudDistributionName(this.domain)} - valid: ${valid}`)
+
     return valid
   }
 
@@ -750,18 +767,17 @@ export class CloudApi {
       const res = await this.get<BaseResponse>(`/secrets/projectUid/${projectId}/env/${environmentName}`)
       secrets = res.data
     } catch (err) {
-      if (isGotError(err, 404)) {
-        log.debug(`No secrets were received from ${distroName}.`)
-        log.debug("")
-        log.debug(deline`
-          Either the environment ${environmentName} does not exist in ${distroName}, or no project
-          with the id in your project configuration exists in ${distroName}.
-        `)
-        log.debug("")
-        log.debug(deline`
-          Please visit ${this.domain} to review the environments and projects currently
-          in the system.
-        `)
+      if (!(err instanceof GotHttpError)) {
+        throw err
+      }
+      if (err.response.statusCode === 404) {
+        log.debug(dedent`
+          No secrets were received from ${distroName}.
+
+          Either the environment ${environmentName} does not exist in ${distroName}, or no project with the id in your project configuration exists in ${distroName}.
+
+          Please visit ${this.domain} to review the environments and projects currently in the system.
+          `)
       } else {
         throw err
       }
@@ -797,8 +813,7 @@ export class CloudApi {
       throw new CloudApiError({
         message: `${
           extractErrorMessageBodyFromGotError(err) ?? "Fetching the Kubeconfig for ephemeral cluster failed."
-        }`,
-        detail: clusterId,
+        }`
       })
     }
   }

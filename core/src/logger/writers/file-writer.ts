@@ -69,7 +69,6 @@ export class FileWriter extends Writer {
     if (!isAbsolute(logFilePath)) {
       throw new InternalError({
         message: `FileWriter expected absolute log file path, got ${logFilePath}`,
-        detail: { logFilePath },
       })
     }
     await ensureDir(dirname(logFilePath))

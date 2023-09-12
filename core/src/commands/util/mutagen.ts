@@ -42,8 +42,10 @@ export class MutagenCommand extends Command<{}, {}> {
 
     if (!projectRoot) {
       throw new RuntimeError({
-        message: `Could not find project config in the current directory, or anywhere above. Please run this command within a Garden project directory.`,
-        detail: { root: garden.projectRoot },
+        message: dedent`
+          Could not find project config in the current directory, or anywhere above.
+          Please run this command within a Garden project directory.
+        `,
       })
     }
 

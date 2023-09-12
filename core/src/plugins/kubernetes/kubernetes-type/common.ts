@@ -17,7 +17,7 @@ import { KubeApi } from "../api"
 import { dedent, gardenAnnotationKey, naturalList } from "../../../util/string"
 import { Log } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
-import { ConfigurationError, PluginError } from "../../../exceptions"
+import { ConfigurationError, GardenError, PluginError } from "../../../exceptions"
 import { KubernetesPluginContext, KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config"
 import { HelmModule } from "../helm/module-config"
 import { KubernetesDeployAction } from "./config"
@@ -151,9 +151,6 @@ export function validateDeclaredManifests(declaredManifests: DeclaredManifest[])
           - ${renderManifestDeclaration(duplicate)}
           - ${renderManifestDeclaration(examinee)}
           `,
-        detail: {
-          manifestDeclarations: [examinee, duplicate],
-        },
       })
     }
   }
@@ -221,11 +218,9 @@ async function readKustomizeManifests(
   for (const arg of disallowedKustomizeArgs) {
     if (extraArgs.includes(arg)) {
       throw new ConfigurationError({
-        message: `kustomize.extraArgs must not include any of ${disallowedKustomizeArgs.join(", ")}`,
-        detail: {
-          spec,
-          extraArgs,
-        },
+        message: `Invalid spec on ${action.longDescription()}: kustomize.extraArgs must not include any of ${disallowedKustomizeArgs.join(
+          ", "
+        )}. Got: ${naturalList(extraArgs)}`,
       })
     }
   }
@@ -246,12 +241,12 @@ async function readKustomizeManifests(
       manifest,
     }))
   } catch (error) {
+    if (!(error instanceof GardenError)) {
+      throw error
+    }
     throw new PluginError({
       message: `Failed resolving kustomize manifests: ${error.message}`,
-      detail: {
-        error,
-        spec,
-      },
+      wrappedErrors: [error],
     })
   }
 }
@@ -271,40 +266,18 @@ async function readFileManifests(
   })
   if (missingPaths.length) {
     throw new ConfigurationError({
-      message: `Invalid manifest file path(s) in ${action.kind} action '${
-        action.name
-      }'. Cannot find manifest file(s) at ${naturalList(missingPaths)} in ${manifestPath} directory.`,
-      detail: {
-        action: {
-          kind: action.kind,
-          name: action.name,
-          type: action.type,
-          spec: {
-            files: specFiles,
-          },
-        },
-        missingPaths,
-      },
+      message: `Invalid manifest file path(s) declared in ${action.longDescription()}. Cannot find manifest file(s) at ${naturalList(
+        missingPaths
+      )} in ${manifestPath} directory.`,
     })
   }
 
   const resolvedFiles = await glob(specFiles, { cwd: manifestPath })
   if (specFiles.length > 0 && resolvedFiles.length === 0) {
     throw new ConfigurationError({
-      message: `Invalid manifest file path(s) in ${action.kind} action '${
-        action.name
-      }'. Cannot find any manifest files for paths ${naturalList(specFiles)} in ${manifestPath} directory.`,
-      detail: {
-        action: {
-          kind: action.kind,
-          name: action.name,
-          type: action.type,
-          spec: {
-            files: specFiles,
-          },
-        },
-        resolvedFiles,
-      },
+      message: `Invalid manifest file path(s) declared in ${action.longDescription()}. Cannot find any manifest files for paths ${naturalList(
+        specFiles
+      )} in ${manifestPath} directory.`,
     })
   }
 
@@ -339,11 +312,11 @@ function expandListManifests(manifests: KubernetesResource[]): KubernetesResourc
         // at least the first manifest has a kind: seems to be a valid List
         return manifest.items as KubernetesResource[]
       } else {
+        // This should be extremely rare. If this happens, consider adding a validation layer before reading Kubernetes manifests from a file and changing this to an InternalError.
         throw new PluginError({
-          message: "Failed to read Kubernetes manifest: Encountered an invalid List manifest",
-          detail: {
-            manifest,
-          },
+          message: `Failed to read Kubernetes manifest: Encountered an invalid List manifest: ${JSON.stringify(
+            manifest
+          )}`,
         })
       }
     }
@@ -392,7 +365,6 @@ export async function runOrTestWithPod(
       // Note: This will generally be caught in schema validation.
       throw new ConfigurationError({
         message: `${action.longDescription()} specified neither podSpec nor resource.`,
-        detail: { spec },
       })
     }
     const k8sCtx = <KubernetesPluginContext>ctx
@@ -412,7 +384,6 @@ export async function runOrTestWithPod(
   } else if (!container) {
     throw new ConfigurationError({
       message: `${action.longDescription()} specified a podSpec without containers. Please make sure there is at least one container in the spec.`,
-      detail: { spec },
     })
   }
 

@@ -518,8 +518,11 @@ const actionRefParseError = (reference: any) => {
   const refStr = JSON.stringify(reference)
 
   return new ConfigurationError({
-    message: `Could not parse ${refStr} as a valid action reference. An action reference should be a "<kind>.<name>" string, where <kind> is one of ${validActionKinds} and <name> is a valid name of an action. You may also specify an object with separate kind and name fields.`,
-    detail: { reference },
+    message: deline`
+      Could not parse ${refStr} as a valid action reference.
+      An action reference should be a "<kind>.<name>" string, where <kind> is one of
+      ${validActionKinds} and <name> is a valid name of an action. You may also specify
+      an object with separate kind and name fields.`,
   })
 }
 
@@ -562,7 +565,7 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
   let { name } = spec
 
   if (schemaRegistry[name]) {
-    throw new InternalError({ message: `Object schema ${name} defined multiple times`, detail: { name } })
+    throw new InternalError({ message: `Object schema ${name} defined multiple times` })
   }
 
   schemaRegistry[name] = { spec }

@@ -96,7 +96,7 @@ export function getMvndTool(ctx: PluginContext) {
   const tool = find(ctx.tools, (_, k) => k.endsWith(".mavend"))
 
   if (!tool) {
-    throw new PluginError({ message: `Could not find configured maven daemon tool`, detail: { tools: ctx.tools } })
+    throw new PluginError({ message: `Could not find configured maven daemon tool` })
   }
 
   return tool

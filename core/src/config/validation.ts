@@ -7,7 +7,7 @@
  */
 
 import Joi from "@hapi/joi"
-import { ConfigurationError, LocalConfigError } from "../exceptions"
+import { ConfigurationError } from "../exceptions"
 import chalk from "chalk"
 import { relative } from "path"
 import { uuidv4 } from "../util/random"
@@ -39,7 +39,7 @@ const joiOptions: Joi.ValidationOptions = {
 
 export interface ValidateOptions {
   context?: string // Descriptive text to include in validation error messages, e.g. "module at some/local/path"
-  ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
+  ErrorClass?: typeof ConfigurationError
 }
 
 export interface ValidateWithPathParams<T> {
@@ -49,7 +49,7 @@ export interface ValidateWithPathParams<T> {
   projectRoot: string
   name?: string // Name of the top-level entity that the config belongs to, e.g. "some-module" or "some-project"
   configType: string // The type of top-level entity that the config belongs to, e.g. "module" or "project"
-  ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
+  ErrorClass?: typeof ConfigurationError
 }
 
 /**
@@ -143,13 +143,6 @@ export const validateSchema = profile(function $validateSchema<T>(
 
     throw new ErrorClass({
       message: `${msgPrefix}: ${errorDescription}`,
-      detail: {
-        value,
-        context,
-        schemaMetadata,
-        errorDescription,
-        errorDetails,
-      },
     })
   }
 
