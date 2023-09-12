@@ -7,16 +7,10 @@
 * [How Garden Works](./basics/how-garden-works.md)
 * [Quickstart Guide](./basics/quickstart.md)
 * [Core Concepts](./basics/core-concepts.md)
-* [Garden vs Other Tools](./basics/garden-vs-other-tools.md)
 * [Use Cases](./basics/use-cases.md)
+* [Garden vs Other Tools](./basics/garden-vs-other-tools.md)
 
-## 🌳 Garden Seeds
-
-* [About](./garden-seeds/about.md)
-* [Languages](./garden-seeds/languages/README.md)
-  * [Go 🌸](./garden-seeds/languages/go.md)
-
-## 🌻 Tutorials
+## 🌳 Tutorials
 
 * [Your First Project](./tutorials/your-first-project/README.md)
   * [1. Initialize a Project](./tutorials/your-first-project/1-initialize-a-project.md)
@@ -25,7 +19,7 @@
   * [4. Configure Your Project](./tutorials/your-first-project/4-configure-your-project.md)
 * [Migrating your configuration for Bonsai](./tutorials/migrating-to-bonsai.md)
 
-## 💐 Using Garden
+## 🌻 Using Garden
 
 * [Configuration Overview](./using-garden/configuration-overview.md)
 * [Projects](./using-garden/projects.md)
@@ -38,7 +32,7 @@
 * [Using the CLI](./using-garden/using-the-cli.md)
 * [Modules](./using-garden/modules.md)
 
-## 🌿 Kubernetes Plugins
+## 💐 Kubernetes Plugins
 
 * [About](./k8s-plugins/about.md)
 * [Remote K8s Plugin Configuration](./k8s-plugins/remote-k8s/README.md)
@@ -67,24 +61,24 @@
   * [Minimal RBAC Configuration for Development Clusters](./k8s-plugins/advanced/rbac-config.md)
   * [Deploying to Production](./k8s-plugins/advanced/deploying-to-production.md)
 
-## 🌺 Terraform Plugin
+## 🌿 Terraform Plugin
 
 * [About](./terraform-plugin/about.md)
 * [Plugin Configuration](./terraform-plugin/configure-provider.md)
 * [Action Configuration](./terraform-plugin/action-configuration.md)
 
-## ☘️ Pulumi Plugin
+## 🌺 Pulumi Plugin
 
 * [About](./pulumi-plugin/about.md)
 * [Plugin Configuration](./pulumi-plugin/configure-provider.md)
 * [Action Configuration](./pulumi-plugin/action-configuration.md)
 
-## 🌹 Other Plugins
+## ☘️ Other Plugins
 
 * [Container](./other-plugins/container.md)
 * [Exec (local scripts)](./other-plugins/exec.md)
 
-## 🌼 Guides
+## 🌹 Guides
 
 * [Installing Garden](./guides/installation.md)
 * [Adopting Garden](./guides/adopting-garden.md)
@@ -94,12 +88,12 @@
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
 
-## 🌷 Advanced
+## 🌼 Advanced
 
 * [Using Remote Sources](./advanced/using-remote-sources.md)
 * [Custom Commands](./advanced/custom-commands.md)
 
-## 🪷 Reference
+## 🌷 Reference
 
 * [Providers](./reference/providers/README.md)
   * [`conftest-container`](./reference/providers/conftest-container.md)
@@ -176,6 +170,12 @@
   * [`pulumi`](./reference/module-types/pulumi.md)
   * [`templated`](./reference/module-types/templated.md)
   * [`terraform`](./reference/module-types/terraform.md)
+
+## 🪷 Garden Seeds
+
+* [About](./garden-seeds/about.md)
+* [Languages](./garden-seeds/languages/README.md)
+  * [Go 🌸](./garden-seeds/languages/go.md)
 
 ## 🎋 Misc
 
