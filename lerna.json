@@ -1,0 +1,16 @@
+{
+    "$schema": "node_modules/lerna/schemas/lerna-schema.json",
+    "version": "0.13.13",
+    "npmClient": "yarn",
+    "packages": [
+        "cli",
+        "core",
+        "plugins/conftest",
+        "plugins/conftest-container",
+        "plugins/conftest-kubernetes",
+        "plugins/jib",
+        "plugins/pulumi",
+        "plugins/terraform",
+        "sdk"
+    ]
+}

@@ -5,6 +5,7 @@ on:
     # The workflow will run once the release has been published (i.e. is not in draft state anymore)
     # and it will only run if it is not a pre-release. See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#release
     types: [released]
+  workflow_dispatch: 
 
 permissions:
   contents: read
@@ -33,13 +34,13 @@ jobs:
         working-directory: ./core
         run: |
           CURRENT_CORE_VERSION="$(node -e "console.log(require('./package.json').version);")"
-          npm version "$CURRENT_CORE_VERSION-edge.$SHORT_SHA"
-          npm publish --tag edge
+          lerna version "$CURRENT_CORE_VERSION-edge.$SHORT_SHA" --no-git-tag-version --no-push --yes
+          lerna publish -from-package --dist-tag edge --yes
       - name: Publish stable version if normal release
         if: github.event.release.prerelease != true
         working-directory: ./core
         run: |
-          npm publish
+          lerna publish from-package --yes
 
   release-homebrew:
     uses: ./.github/workflows/reusable-create-homebrew-pr.yml

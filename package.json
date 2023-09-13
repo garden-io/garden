@@ -45,6 +45,7 @@
     "gulp": "^4.0.2",
     "handlebars": "^4.7.6",
     "husky": "^4.2.5",
+    "lerna": "^7.2.0",
     "lodash": "^4.17.21",
     "markdown-link-check": "^3.11.2",
     "minimatch": "^3.0.4",
