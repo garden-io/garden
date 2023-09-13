@@ -19,7 +19,6 @@
   * [2. Connect to a Cluster](./tutorials/your-first-project/2-connect-to-a-cluster.md)
   * [3. Deploy and Test](./tutorials/your-first-project/3-deploy-and-test.md)
   * [4. Configure Your Project](./tutorials/your-first-project/4-configure-your-project.md)
-* [Migrating your configuration for Bonsai](./tutorials/migrating-to-bonsai.md)
 
 ## 🌻 Using Garden
 
@@ -82,9 +81,10 @@
 
 ## 🌹 Guides
 
+* [Migrating to Bonsai](./guides/migrating-to-bonsai.md)
 * [Installing Garden](./guides/installation.md)
-* [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
 * [Code Synchronization](./guides/code-synchronization.md)
+* [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
 * [Environments and namespaces](./guides/namespaces.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
