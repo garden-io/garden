@@ -16,11 +16,14 @@ import { Cookie } from "tough-cookie"
 import { cloneDeep, isObject } from "lodash"
 import { dedent, deline } from "../util/string"
 import {
-  GetProjectResponse,
-  GetProfileResponse,
-  CreateProjectsForRepoResponse,
-  ListProjectsResponse,
   BaseResponse,
+  CreateEphemeralClusterResponse,
+  CreateProjectsForRepoResponse,
+  EphemeralClusterWithRegistry,
+  GetKubeconfigResponse,
+  GetProfileResponse,
+  GetProjectResponse,
+  ListProjectsResponse,
 } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
@@ -35,6 +38,10 @@ const gardenClientVersion = getPackageVersion()
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 export class CloudApiTokenRefreshError extends CloudApiError {}
+
+function extractErrorMessageBodyFromGotError(error: any): error is GotHttpError {
+  return error?.response?.body?.message
+}
 
 function stripLeadingSlash(str: string) {
   return str.replace(/^\/+/, "")
@@ -785,5 +792,29 @@ export class CloudApi {
       log.error(`${prefix}: ${emptyKeys.sort().join(", ")}`)
     }
     return secrets
+  }
+
+  async createEphemeralCluster(): Promise<EphemeralClusterWithRegistry> {
+    try {
+      const response = await this.post<CreateEphemeralClusterResponse>(`/ephemeral-clusters/`)
+      return response.data
+    } catch (err) {
+      throw new CloudApiError({
+        message: `${extractErrorMessageBodyFromGotError(err) ?? "Creating an ephemeral cluster failed."}`,
+      })
+    }
+  }
+
+  async getKubeConfigForCluster(clusterId: string): Promise<string> {
+    try {
+      const response = await this.get<GetKubeconfigResponse>(`/ephemeral-clusters/${clusterId}/kubeconfig`)
+      return response.data.kubeconfig
+    } catch (err) {
+      throw new CloudApiError({
+        message: `${
+          extractErrorMessageBodyFromGotError(err) ?? "Fetching the Kubeconfig for ephemeral cluster failed."
+        }`,
+      })
+    }
   }
 }

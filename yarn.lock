@@ -482,10 +482,10 @@
   dependencies:
     heap ">= 0.2.0"
 
-"@garden-io/platform-api-types@1.455.0":
-  version "1.455.0"
-  resolved "https://registry.yarnpkg.com/@garden-io/platform-api-types/-/platform-api-types-1.455.0.tgz#68530a03fdc62122158fc7a73195c12147792d1c"
-  integrity sha512-VJ1qgLMswcGEVOWkjXxPJV25HL0JXAfwvhiMrKjFoipbopgo1yzoKqcy3N31WFsbrmY9gDRUQexdIy8WrLNqjg==
+"@garden-io/platform-api-types@1.914.0":
+  version "1.914.0"
+  resolved "https://registry.yarnpkg.com/@garden-io/platform-api-types/-/platform-api-types-1.914.0.tgz#4ad7641151d500492464d7c7dcfe0da8aa79b1dc"
+  integrity sha512-/ThhZ5raa5cWjDoNP2v7QRZk7k5Qz4IbgLsf7JEmoE1cVk6l8uvLPgTZMJY+QqA+ZAkPPmF1W8N719UzHqEKxQ==
 
 "@google-cloud/kms@^3.7.0":
   version "3.7.0"

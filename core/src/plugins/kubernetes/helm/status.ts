@@ -72,7 +72,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
     const deployedResources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
 
     forwardablePorts = getForwardablePorts({ resources: deployedResources, parentAction: action, mode: deployedMode })
-    ingresses = getK8sIngresses(deployedResources)
+    ingresses = getK8sIngresses(deployedResources, provider)
 
     if (state === "ready") {
       // Local mode always takes precedence over sync mode
