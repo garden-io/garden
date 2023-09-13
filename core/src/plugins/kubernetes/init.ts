@@ -35,7 +35,7 @@ import { mapValues, omit } from "lodash"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress"
 import { Log } from "../../logger/log-entry"
 import { DeployStatusMap } from "../../plugin/handlers/Deploy/get-status"
-import { EPHEMERAL_KUBERNETES_PROVIDER_NAME, isProviderEphemeralKubernetes } from "./ephemeral/ephemeral"
+import { isProviderEphemeralKubernetes } from "./ephemeral/ephemeral"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `

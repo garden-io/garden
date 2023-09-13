@@ -22,7 +22,6 @@ import { getContainerModuleOutputs } from "../../container/container"
 import { getContainerBuildActionOutputs } from "../../container/build"
 import { Resolved } from "../../../actions/types"
 import { splitFirst } from "../../../util/string"
-import { EPHEMERAL_KUBERNETES_PROVIDER_NAME, isProviderEphemeralKubernetes } from "../ephemeral/ephemeral"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   let { moduleConfig } = await params.base!(params)
