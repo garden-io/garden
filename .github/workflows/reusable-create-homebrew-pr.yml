@@ -20,46 +20,53 @@ permissions:
   contents: read
 
 jobs:
-  fetch-release-checksums:
+  homebrew-sha256:
     runs-on: ubuntu-latest
     env:
-      ARM_TARBALL_URL: https://download.garden.io/core/${{ inputs.release-version }}/garden-${{ inputs.release-version }}-macos-arm64.tar.gz
-      AMD_TARBALL_URL: https://download.garden.io/core/${{ inputs.release-version }}/garden-${{ inputs.release-version }}-macos-amd64.tar.gz
+      MACOS_ARM_TARBALL_URL: https://download.garden.io/core/${{ inputs.release-version }}/garden-${{ inputs.release-version }}-macos-arm64.tar.gz
+      MACOS_AMD_TARBALL_URL: https://download.garden.io/core/${{ inputs.release-version }}/garden-${{ inputs.release-version }}-macos-amd64.tar.gz
+      LINUX_ARM_TARBALL_URL: https://download.garden.io/core/${{ inputs.release-version }}/garden-${{ inputs.release-version }}-linux-arm64.tar.gz
+      LINUX_AMD_TARBALL_URL: https://download.garden.io/core/${{ inputs.release-version }}/garden-${{ inputs.release-version }}-linux-amd64.tar.gz
     outputs:
-      arm-sha256: ${{ steps.fetch-arm-sha256.outputs.sha256 }}
-      amd-sha256: ${{ steps.fetch-amd-sha256.outputs.sha256 }}
-      arm-tarball-url: ${{ env.ARM_TARBALL_URL }}
-      amd-tarball-url: ${{ env.AMD_TARBALL_URL }}
+      macos-arm-tarball-url: ${{ env.MACOS_ARM_TARBALL_URL }}
+      macos-amd-tarball-url: ${{ env.MACOS_AMD_TARBALL_URL }}
+      macos-arm-sha256: ${{ steps.macos-arm.outputs.sha256 }}
+      macos-amd-sha256: ${{ steps.macos-amd.outputs.sha256 }}
+      linux-arm-tarball-url: ${{ env.LINUX_ARM_TARBALL_URL }}
+      linux-amd-tarball-url: ${{ env.LINUX_AMD_TARBALL_URL }}
+      linux-arm-sha256: ${{ steps.linux-arm.outputs.sha256 }}
+      linux-amd-sha256: ${{ steps.linux-amd.outputs.sha256 }}
     steps:
-      - name: Fetch arm sha256
-        id: fetch-arm-sha256
-        if: inputs.release-condition != 'false'
-        run: |
-          set -o pipefail
+      - name: Checkout garden repo
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # 4.0.0
 
-          if ! checksum=$(curl -sSL --fail ${{ env.ARM_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1);
-          then
-            echo "Failed to fetch binary from ${{ env.ARM_TARBALL_URL }}"
-            exit 1
-          fi
+      - name: Checksum Linux ARM64
+        id: linux-arm
+        uses: ./.github/actions/checksum
+        with:
+          archive-url: ${{ env.LINUX_ARM_TARBALL_URL }}
 
-          echo "sha256=$checksum" >> "$GITHUB_OUTPUT"
-      - name: Fetch amd sha256
-        id: fetch-amd-sha256
-        if: inputs.release-condition != 'false'
-        run: |
-          set -o pipefail
+      - name: Checksum Linux AMD64
+        id: linux-amd
+        uses: ./.github/actions/checksum
+        with:
+          archive-url: ${{ env.LINUX_AMD_TARBALL_URL }}
 
-          if ! checksum=$(curl -sSL --fail ${{ env.AMD_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1);
-          then
-            echo "Failed to fetch binary from ${{ env.AMD_TARBALL_URL }}"
-            exit 1
-          fi
+      - name: Checksum MacOS ARM
+        id: macos-arm
+        uses: ./.github/actions/checksum
+        with:
+          archive-url: ${{ env.MACOS_ARM_TARBALL_URL }}
 
-          echo "sha256=$checksum" >> "$GITHUB_OUTPUT"
+      - name: Checksum MacOS AMD
+        id: macos-amd
+        uses: ./.github/actions/checksum
+        with:
+          archive-url: ${{ env.MACOS_AMD_TARBALL_URL }}
+
   homebrew-create-pr:
     runs-on: ubuntu-latest
-    needs: fetch-release-checksums
+    needs: homebrew-sha256
     steps:
       - name: Checks release pre-condition
         if: inputs.release-condition == 'false'
@@ -92,11 +99,15 @@ jobs:
           strict: true
           variables: |
             version=${{ inputs.release-version }}
-            armTarballUrl=${{ needs.fetch-release-checksums.outputs.arm-tarball-url }}
-            amdTarballUrl=${{ needs.fetch-release-checksums.outputs.amd-tarball-url }}
-            armSha256=${{ needs.fetch-release-checksums.outputs.arm-sha256 }}
-            amdSha256=${{ needs.fetch-release-checksums.outputs.amd-sha256 }}
-      
+            macosArmTarballUrl=${{ needs.homebrew-sha256.outputs.macos-arm-tarball-url }}
+            macosAmdTarballUrl=${{ needs.homebrew-sha256.outputs.macos-amd-tarball-url }}
+            macosArmSha256=${{ needs.homebrew-sha256.outputs.macos-arm-sha256 }}
+            macosAmdSha256=${{ needs.homebrew-sha256.outputs.macos-amd-sha256 }}
+            linuxArmTarballUrl=${{ needs.homebrew-sha256.outputs.linux-arm-tarball-url }}
+            linuxAmdTarballUrl=${{ needs.homebrew-sha256.outputs.linux-amd-tarball-url }}
+            linuxArmSha256=${{ needs.homebrew-sha256.outputs.linux-arm-sha256 }}
+            linuxAmdSha256=${{ needs.homebrew-sha256.outputs.linux-amd-sha256 }}
+
       - name: Create PR on Homebrew Repository
         if: inputs.release-condition != 'false'
         uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # 5.0.2

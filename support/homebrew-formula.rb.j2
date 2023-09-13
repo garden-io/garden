@@ -6,14 +6,24 @@ class GardenCli < Formula
 
   depends_on "rsync"
 
-  # Determine architecture
-  if Hardware::CPU.arm?
-    url "{{armTarballUrl}}"
-    sha256 "{{armSha256}}"
+  if OS.linux?
+    if Hardware::CPU.arm?
+      url "{{linuxArmTarballUrl}}"
+      sha256 "{{linuxArmSha256}}"
+    else
+      url "{{linuxAmdTarballUrl}}"
+      sha256 "{{linuxAmdSha256}}"
+    end
   else
-    url "{{amdTarballUrl}}"
-    sha256 "{{amdSha256}}"
-  end
+    # macos  
+    if Hardware::CPU.arm?
+      url "{{macosArmTarballUrl}}"
+      sha256 "{{macosArmSha256}}"
+    else
+      url "{{macosAmdTarballUrl}}"
+      sha256 "{{macosAmdSha256}}"
+    end
+  end 
 
   def install
     libexec.install "garden", "fsevents.node", "static"

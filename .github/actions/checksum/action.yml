@@ -1,0 +1,27 @@
+name: 'Checksum'
+description: 'Calculate checksum for URL'
+inputs:
+  archive-url:
+    description: 'URL of archive to checksum'
+    required: true
+outputs:
+  sha256:
+    description: "SHA256 checksum"
+    value: ${{ steps.checksum.outputs.sha256 }}
+runs:
+  using: "composite"
+  steps:
+    - id: checksum
+      run: |
+        set -o pipefail
+
+        if ! checksum=$(curl -sSL --fail "${{ env.ARCHIVE_URL }}" | shasum -a 256 | cut -d ' ' -f 1);
+        then
+          echo "Failed to fetch binary from ${{ env.ARCHIVE_URL }}"
+          exit 1
+        fi
+
+        echo "sha256=$checksum" >> "$GITHUB_OUTPUT"
+      shell: bash
+      env:
+        ARCHIVE_URL: ${{ inputs.archive-url }}
