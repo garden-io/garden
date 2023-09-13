@@ -186,7 +186,7 @@ The primary namespace used for resource deployments.
 
 ### `${providers.<provider-name>.outputs.default-hostname}`
 
-The default hostname configured on the provider.
+The dynamic hostname configured on the provider automatically, when an ephemeral cluster is created.
 
 | Type     |
 | -------- |

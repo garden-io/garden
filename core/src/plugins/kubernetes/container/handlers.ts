@@ -110,19 +110,11 @@ export function validateDeploySpec(
     const hostname = ingressSpec.hostname || provider.config.defaultHostname
 
     if (!hostname) {
-      if (isProviderEphemeralKubernetes(provider) && !provider.config.setupIngressController) {
-        throw new ConfigurationError({
-          message:
-            `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
-            `You are using ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider and and have disabled ingress controller setup by specifying setupIngressController=false in the provider configuration. Either allow Garden to deploy an ingress controller for using the dynamically assigned hostname, or specify the hostname yourself.`,
-        })
-      } else {
-        throw new ConfigurationError({
-          message:
-            `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
-            `Please configure a default hostname or specify a hostname for the ingress.`,
-        })
-      }
+      throw new ConfigurationError({
+        message:
+          `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
+          `Please configure a default hostname or specify a hostname for the ingress.`,
+      })
     }
 
     // make sure the hostname is set
