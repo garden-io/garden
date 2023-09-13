@@ -44,19 +44,11 @@ garden deploy --env remote
 
 Garden will automatically provision an Ephemeral Kubernetes Cluster for your project and deploy your application to it.
 
-## Ingresses
+## Ingress
 
-Ephemeral Kubernetes Clusters fully support ingresses and each cluster is assigned its own unique default hostname dynamically when created.
+Ephemeral Kubernetes Clusters fully support ingresses and each cluster is assigned its own unique default hostname dynamically when created. This hostname and its direct subdomains are secured by TLS and require authentication.
 
-The ingress URLs are not publicly accessible and require authentication via GitHub. To preview an ingress URL, you need to authenticate with GitHub and authorize the "Garden Ephemeral Environment Previews" app.
-
-The first time you attempt to preview an ingress URL, you will be automatically redirected to GitHub for authorization of the "Garden Ephemeral Environment Previews" app. This is a one-time step, and subsequent ingress previews won't require reauthorization, ensuring a seamless experience as long as you remain logged into GitHub.
-
-{% hint style="info" %}
-Ingress URLs can only be previewed by the user who was logged in to Garden Cloud when a deployment was done using the ephemeral-kubernetes provider.
-{% endhint %}
-
-## Referring to the dynamic hostname in your Garden configs
+### Configuring ingress
 
 If you want to refer to the hostname that is assigned dynamically when the cluster is created, you can refer to that using the output `${providers.ephemeral-kubernetes.outputs.default-hostname}`. This can be useful if, for example, you want to expose an ingress on a subdomain of the default hostname.
 
@@ -69,6 +61,16 @@ ingresses:
       port: http
       hostname: api.${providers.ephemeral-kubernetes.outputs.default-hostname}
 ```
+
+### Authentication for ingress
+
+The ingress URLs are not publicly accessible and require authentication via GitHub. To preview an ingress URL, you need to authenticate with GitHub and authorize the "Garden Ephemeral Environment Previews" app.
+
+The first time you attempt to preview an ingress URL, you will be automatically redirected to GitHub for authorization of the "Garden Ephemeral Environment Previews" app. This is a one-time step, and subsequent ingress previews won't require re-authorization, ensuring a seamless experience as long as you remain logged in to the GitHub.
+
+{% hint style="info" %}
+Ingress URLs are not shareable at the moment however it is planned to be supported in future releases. Stay tuned for further updates on this.
+{% endhint %}
 
 ## Accessing the ephemeral cluster via kubeconfig
 

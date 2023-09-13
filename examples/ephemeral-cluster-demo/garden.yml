@@ -2,11 +2,8 @@ apiVersion: garden.io/v1
 kind: Project
 name: ephemeral-cluster-demo
 environments:
-  - name: local
   - name: remote
 providers:
-  - name: local-kubernetes
-    environments: [local]
   - name: ephemeral-kubernetes
     environments: [remote]
 variables:

@@ -18,7 +18,6 @@ The project configuration of this application, which is specified in `garden.yml
 ```yaml
 ...
 environments:
-  - name: local
   - name: remote # <-- remote environment name
 
 providers:
@@ -33,7 +32,7 @@ providers:
 To deploy this project to an ephemeral cluster provided by Garden, follow these steps:
 
 1. Login to Garden Cloud using `garden login`.
-2. Run `garden deploy --env remote` to deploy the application to remote environment which would be on an ephemeral cluster.
+2. Run `garden deploy` to deploy the application to remote environment which would be on an ephemeral cluster.
 
 The ephemeral cluster will be created for you automatically during the deploy step. Once the project has been successfully deployed, the logs will display the ingress URLs for accessing the backend and the frontend.
 

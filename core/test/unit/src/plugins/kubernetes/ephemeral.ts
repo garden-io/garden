@@ -55,7 +55,7 @@ describe("ephemeral-kubernetes configureProvider", () => {
     })
   }
 
-  it("should throw an error in configure provider if user is not in", async () => {
+  it("should throw an error in configure provider if user is not logged in", async () => {
     garden = await makeTestGardenA(undefined)
     await expectError(
       () =>
