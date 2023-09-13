@@ -17,7 +17,11 @@ export const EPHEMERAL_KUBERNETES_PROVIDER_NAME = "ephemeral-kubernetes"
 
 const outputsSchema = joi.object().keys({
   "app-namespace": joiIdentifier().required().description("The primary namespace used for resource deployments."),
-  "default-hostname": joi.string().description("The dynamic hostname assigned to the ephemeral cluster automatically, when an ephemeral cluster is created."),
+  "default-hostname": joi
+    .string()
+    .description(
+      "The dynamic hostname assigned to the ephemeral cluster automatically, when an ephemeral cluster is created."
+    ),
 })
 
 export const gardenPlugin = () =>
