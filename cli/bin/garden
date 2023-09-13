@@ -1,5 +1,24 @@
 #!/usr/bin/env node
+const path = require('path');
 
+process.env.NODE_OPTIONS = "max-old-space-size=4096 max-semi-space-size=64";
+process.env.STATIC_DIR = path.join(__dirname, '..', 'static');
+
+const fs = require('fs');
+const exec = require('child_process').exec;
+
+const gitDir = path.join(process.env.STATIC_DIR, '.git');
+
+if (!fs.existsSync(gitDir)) {
+  exec(`git init ${process.env.STATIC_DIR}`, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error: ${error.message}`);
+    }
+    if (stderr) {
+      console.error(`Stderr: ${stderr}`);
+    }
+  });
+}
 
 if (process.env.GARDEN_ENABLE_PROFILING === "1" || process.env.GARDEN_ENABLE_PROFILING === "true") {
   // Patch require to profile module loading
