@@ -1,8 +1,8 @@
 name: 'Checksum'
 description: 'Calculate checksum for URL'
 inputs:
-  archive-url:
-    description: 'URL of archive to checksum'
+  url:
+    description: 'URL to checksum'
     required: true
 outputs:
   sha256:
@@ -15,13 +15,13 @@ runs:
       run: |
         set -o pipefail
 
-        if ! checksum=$(curl -sSL --fail "${{ env.ARCHIVE_URL }}" | shasum -a 256 | cut -d ' ' -f 1);
+        if ! checksum=$(curl -sSL --fail "${{ env.URL }}" | shasum -a 256 | cut -d ' ' -f 1);
         then
-          echo "Failed to fetch binary from ${{ env.ARCHIVE_URL }}"
+          echo "Failed to fetch URL ${{ env.URL }}"
           exit 1
         fi
 
         echo "sha256=$checksum" >> "$GITHUB_OUTPUT"
       shell: bash
       env:
-        ARCHIVE_URL: ${{ inputs.archive-url }}
+        URL: ${{ inputs.url }}

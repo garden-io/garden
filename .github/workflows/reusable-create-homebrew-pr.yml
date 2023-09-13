@@ -44,25 +44,25 @@ jobs:
         id: linux-arm
         uses: ./.github/actions/checksum
         with:
-          archive-url: ${{ env.LINUX_ARM_TARBALL_URL }}
+          url: ${{ env.LINUX_ARM_TARBALL_URL }}
 
       - name: Checksum Linux AMD64
         id: linux-amd
         uses: ./.github/actions/checksum
         with:
-          archive-url: ${{ env.LINUX_AMD_TARBALL_URL }}
+          url: ${{ env.LINUX_AMD_TARBALL_URL }}
 
       - name: Checksum MacOS ARM
         id: macos-arm
         uses: ./.github/actions/checksum
         with:
-          archive-url: ${{ env.MACOS_ARM_TARBALL_URL }}
+          url: ${{ env.MACOS_ARM_TARBALL_URL }}
 
       - name: Checksum MacOS AMD
         id: macos-amd
         uses: ./.github/actions/checksum
         with:
-          archive-url: ${{ env.MACOS_AMD_TARBALL_URL }}
+          url: ${{ env.MACOS_AMD_TARBALL_URL }}
 
   homebrew-create-pr:
     runs-on: ubuntu-latest
