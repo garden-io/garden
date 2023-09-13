@@ -69,14 +69,14 @@ jobs:
 
       - name: Checkout garden repo
         if: inputs.release-condition != 'false'
-        uses: actions/checkout@v4
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # 4.0.0
         with:
           repository: garden-io/garden
           path: garden
 
       - name: Checkout homebrew repo
         if: inputs.release-condition != 'false'
-        uses: actions/checkout@v4
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # 4.0.0
         with:
           repository: garden-io/homebrew-garden
           ref: main
@@ -85,7 +85,7 @@ jobs:
 
       - name: Template Homebrew Formula
         if: inputs.release-condition != 'false'
-        uses: cuchi/jinja2-action@v1.2.0
+        uses: cuchi/jinja2-action@3fa06acb38601d3caea4c5ce0416e268a8799d71 # 1.2.1
         with:
           template: garden/support/homebrew-formula.rb.j2
           output_file: homebrew-garden/Formula/garden-cli.rb
@@ -99,7 +99,7 @@ jobs:
       
       - name: Create PR on Homebrew Repository
         if: inputs.release-condition != 'false'
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # 5.0.2
         with:
           path: ${{ github.workspace }}/homebrew-garden
           token: ${{ secrets.COMMITTER_TOKEN }}
