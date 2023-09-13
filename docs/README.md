@@ -7,6 +7,7 @@
 * [How Garden Works](./basics/how-garden-works.md)
 * [Quickstart Guide](./basics/quickstart.md)
 * [Core Concepts](./basics/core-concepts.md)
+* [Start a Free Kubernetes Cluster](./basics/ephemeral-clusters.md)
 * [Use Cases](./basics/use-cases.md)
 * [Garden vs Other Tools](./basics/garden-vs-other-tools.md)
 
