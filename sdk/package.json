@@ -14,10 +14,7 @@
     "npm": ">=8"
   },
   "preferGlobal": true,
-  "private": true,
-  "files": [
-    "build"
-  ],
+  "private": false,
   "main": "index.js",
   "dependencies": {
     "@garden-io/core": "*",

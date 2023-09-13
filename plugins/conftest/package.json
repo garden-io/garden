@@ -3,7 +3,7 @@
   "version": "0.13.13",
   "description": "conftest plugin for Garden",
   "main": "index.js",
-  "private": true,
+  "private": false,
   "dependencies": {
     "@garden-io/core": "*",
     "@garden-io/sdk": "*",

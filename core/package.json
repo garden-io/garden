@@ -22,6 +22,7 @@
     "access": "public"
   },
   "main": "build/src/index.js",
+  "private": false,
   "types": "build/src/index.d.ts",
   "dependencies": {
     "@codenamize/codenamize": "^1.1.1",

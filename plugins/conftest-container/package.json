@@ -3,6 +3,7 @@
   "version": "0.13.13",
   "description": "Auto-generator for the conftest plugin and Garden container modules",
   "main": "index.js",
+  "private": "false",
   "dependencies": {
     "@garden-io/core": "*",
     "@garden-io/garden-conftest": "*",

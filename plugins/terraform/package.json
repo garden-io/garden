@@ -3,6 +3,7 @@
   "version": "0.13.13",
   "description": "Terraform plugin for Garden",
   "main": "index.js",
+  "private": false,
   "dependencies": {
     "@garden-io/core": "*",
     "@garden-io/sdk": "*",
