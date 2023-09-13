@@ -48,7 +48,7 @@ Garden will automatically provision an Ephemeral Kubernetes Cluster for your pro
 
 Ephemeral Kubernetes Clusters fully support ingresses and each cluster is assigned its own unique default hostname dynamically when created. This hostname and its direct subdomains are secured by TLS and require authentication.
 
-### Configuring the ingress
+### Configuring ingress
 
 If you want to refer to the hostname that is assigned dynamically when the cluster is created, you can refer to that using the output `${providers.ephemeral-kubernetes.outputs.default-hostname}`. This can be useful if, for example, you want to expose an ingress on a subdomain of the default hostname.
 
