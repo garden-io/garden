@@ -62,7 +62,7 @@ ingresses:
       hostname: api.${providers.ephemeral-kubernetes.outputs.default-hostname}
 ```
 
-### Authentication for the ingress
+### Authentication for ingress
 
 The ingress URLs are not publicly accessible and require authentication via GitHub. To preview an ingress URL, you need to authenticate with GitHub and authorize the "Garden Ephemeral Environment Previews" app.
 
