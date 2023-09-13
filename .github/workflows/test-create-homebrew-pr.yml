@@ -12,13 +12,11 @@ jobs:
   test:
     uses: ./.github/workflows/reusable-create-homebrew-pr.yml
     with:
-      release-version: edge
+      release-version: edge-bonsai
       commit-message: |
         This is just a test. DO NOT MERGE
 
         You can safely close this PR. This is a test PR created by https://github.com/${{ github.repository }}/pull/${{ github.event.number }}
-
-        TEST: Bump {{formulaName}} to {{version}}.
 
         @${{ github.triggering_actor }} Please close this pull request.
     secrets: inherit
@@ -27,7 +25,7 @@ jobs:
     uses: ./.github/workflows/reusable-create-homebrew-pr.yml
     with:
       release-condition: false
-      release-version: edge
+      release-version: edge-bonsai
       commit-message: |
         Do not merge. This PR should not exist.
 
