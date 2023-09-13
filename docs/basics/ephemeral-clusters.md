@@ -48,7 +48,7 @@ Garden will automatically provision an Ephemeral Kubernetes Cluster for your pro
 
 Ephemeral Kubernetes Clusters fully support ingresses and each cluster is assigned its own unique default hostname dynamically when created. This hostname and its direct subdomains are secured by TLS and require authentication.
 
-### Configuring ingress
+### Configuring the ingress
 
 If you want to refer to the hostname that is assigned dynamically when the cluster is created, you can refer to that using the output `${providers.ephemeral-kubernetes.outputs.default-hostname}`. This can be useful if, for example, you want to expose an ingress on a subdomain of the default hostname.
 
@@ -62,7 +62,7 @@ ingresses:
       hostname: api.${providers.ephemeral-kubernetes.outputs.default-hostname}
 ```
 
-### Authentication for ingress
+### Authentication for the ingress
 
 The ingress URLs are not publicly accessible and require authentication via GitHub. To preview an ingress URL, you need to authenticate with GitHub and authorize the "Garden Ephemeral Environment Previews" app.
 
@@ -89,7 +89,6 @@ As of today, the ephemeral-kubernetes provider has the following limitations:
 
 ## Example projects using the `ephemeral-kubernetes` provider
 
-To demonstrate the use of the `ephemeral-kubernetes` provider, we have added an example project: [ephemeral-cluster-demo](https://github.com/garden-io/garden/tree/main/examples) under our examples collection. Check out the `ephemeral-cluster-demo` example and README at:
-<!-- todo add example link once example is merged: https://github.com/garden-io/garden/tree/main/examples/ephemeral-cluster-demo -->
+To demonstrate the use of the `ephemeral-kubernetes` provider, we have added an example project: [ephemeral-cluster-demo](https://github.com/garden-io/garden/tree/main/examples) under our examples collection. Check out the `ephemeral-cluster-demo` example and README at: https://github.com/garden-io/garden/tree/main/examples/ephemeral-cluster-demo
 
 
