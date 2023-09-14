@@ -1,11 +1,13 @@
 ---
-title: Deploy action Configuration
+title: Action Configuration
 order: 2
 ---
 
-# Deploy action Configuration
+# Action Configuration
 
-You need to write Garden deploy action configs next to the pulumi stacks you'd like to include in your project. These should be located in the same directory as the stack config, or in an enclosing directory.
+## Deploy Action
+
+You need to write Garden Deploy action configs next to the pulumi stacks you'd like to include in your project. These should be located in the same directory as the stack config, or in an enclosing directory.
 
 For example:
 ```yaml

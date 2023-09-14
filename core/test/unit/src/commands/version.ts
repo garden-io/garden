@@ -59,7 +59,7 @@ describe("VersionCommand", () => {
     const garden = await makeDummyGarden(tmpDir.path, { commandInfo: { name: "version", args: {}, opts: {} } })
     const { result } = await command.action({
       log: garden.log,
-    })
+    } as any)
     expect(result).to.eql({
       version: getPackageVersion(),
     })

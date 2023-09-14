@@ -11,7 +11,7 @@ import { findByName } from "../../../util/util"
 import { ContainerIngressSpec, ContainerDeployAction } from "../../container/moduleConfig"
 import { IngressTlsCertificate, KubernetesProvider } from "../config"
 import { ServiceIngress, ServiceProtocol } from "../../../types/service"
-import { KubeApi } from "../api"
+import { KubeApi, KubernetesError } from "../api"
 import { ConfigurationError, PluginError } from "../../../exceptions"
 import { ensureSecret } from "../secrets"
 import { getHostnamesFromPem } from "../../../util/tls"
@@ -20,6 +20,7 @@ import { V1Ingress, V1Secret } from "@kubernetes/client-node"
 import { Log } from "../../../logger/log-entry"
 import chalk from "chalk"
 import { Resolved } from "../../../actions/types"
+import { isProviderEphemeralKubernetes } from "../ephemeral/ephemeral"
 
 // Ingress API versions in descending order of preference
 export const supportedIngressApiVersions = ["networking.k8s.io/v1", "networking.k8s.io/v1beta1", "extensions/v1beta1"]
@@ -177,15 +178,20 @@ async function getIngress(
   if (!hostname) {
     // this should be caught when parsing the module
     throw new PluginError({
-      message: `Missing hostname in ingress spec`,
-      detail: { deploySpec: action.getSpec(), ingressSpec: spec },
+      message: `No hostname configured for one of the ingresses on ${action.longDescription()}. Please configure a default hostname or specify a hostname for the ingress.`,
     })
   }
 
   const certificate = await pickCertificate(action, api, provider, hostname)
   // TODO: support other protocols
-  const protocol: ServiceProtocol = !!certificate ? "https" : "http"
-  const port = !!certificate ? provider.config.ingressHttpsPort : provider.config.ingressHttpPort
+  let protocol: ServiceProtocol = !!certificate ? "https" : "http"
+  let port = !!certificate ? provider.config.ingressHttpsPort : provider.config.ingressHttpPort
+
+  // ephemeral-kubernetes ingresses should always be https
+  if (isProviderEphemeralKubernetes(provider)) {
+    protocol = "https"
+    port = provider.config.ingressHttpsPort
+  }
 
   return {
     ...spec,
@@ -234,11 +240,13 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
 
     try {
       secret = await api.core.readNamespacedSecret(cert.secretRef.name, cert.secretRef.namespace)
-    } catch (err) {
-      if (err.statusCode === 404) {
+    } catch (err: unknown) {
+      if (!(err instanceof KubernetesError)) {
+        throw err
+      }
+      if (err.responseStatusCode === 404) {
         throw new ConfigurationError({
           message: `Cannot find Secret ${cert.secretRef.name} configured for TLS certificate ${cert.name}`,
-          detail: cert,
         })
       } else {
         throw err
@@ -250,7 +258,6 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
     if (!data["tls.crt"] || !data["tls.key"]) {
       throw new ConfigurationError({
         message: `Secret '${cert.secretRef.name}' is not a valid TLS secret (missing tls.crt and/or tls.key).`,
-        detail: cert,
       })
     }
 
@@ -260,11 +267,9 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
       return getHostnamesFromPem(crtData)
     } catch (error) {
       throw new ConfigurationError({
-        message: `Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate`,
-        detail: {
-          ...cert,
-          error,
-        },
+        message: `Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate: ${
+          error.message || error
+        }`,
       })
     }
   }
@@ -292,10 +297,6 @@ async function pickCertificate(
       message:
         `Could not find certificate for hostname '${hostname}' ` +
         `configured on service '${action.name}' and forceSsl flag is set.`,
-      detail: {
-        actionName: action.name,
-        hostname,
-      },
     })
   }
 

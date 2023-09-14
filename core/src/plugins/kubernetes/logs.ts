@@ -23,7 +23,7 @@ import { Writable } from "stream"
 import request from "request"
 import { LogLevel } from "../../logger/logger"
 import { clearTimeout } from "timers"
-import { HttpError } from "@kubernetes/client-node"
+import { HttpError as KubernetesClientHttpError } from "@kubernetes/client-node"
 import { splitFirst } from "../../util/string"
 
 // When not following logs, the entire log is read into memory and sorted.
@@ -302,7 +302,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
     // Also no need to log the error event after a timed-out event
     if (!(prevStatus === "error" && status === "closed") && !(prevStatus === "timed-out" && status === "error")) {
       let reason = error
-      if (error instanceof HttpError) {
+      if (error instanceof KubernetesClientHttpError) {
         reason = `HTTP request failed with status ${error.statusCode}`
       }
       this.log.silly(`<Lost connection to ${description}. Reason: ${reason}>`)
@@ -338,7 +338,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
       if (e instanceof KubernetesError) {
         this.log.silly(`<Encountered error while fetching Pod status for ${description}. Reason: ${e.message}>`)
         // retry once if the pod status query returned 404
-        if (e.statusCode === 404 && prevStatus === "error") {
+        if (e.responseStatusCode === 404 && prevStatus === "error") {
           stopRetrying("The pod or the namespace does not exist")
         }
       } else {

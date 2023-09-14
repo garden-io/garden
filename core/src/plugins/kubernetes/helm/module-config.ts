@@ -221,7 +221,6 @@ export async function configureHelmModule({
         Since Helm charts cannot currently be merged, please either remove the sources or
         the \`base\` reference in your module config.
       `,
-        detail: { moduleConfig },
       })
     }
 

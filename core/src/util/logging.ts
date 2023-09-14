@@ -11,10 +11,19 @@ import stripAnsi from "strip-ansi"
 import { isPrimitive } from "../config/common"
 import { deepFilter } from "./objects"
 
+let _callingToSanitizedValue = false
+
 /**
  * Strips undefined values, internal objects and circular references from an object.
  */
 export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
+  if (_callingToSanitizedValue) {
+    // I can't use InternalError here, because that calls sanitizeValue
+    throw new Error(
+      "`toSanitizedValue` is not allowed to call `sanitizeValue` because that can cause infinite recursion."
+    )
+  }
+
   if (!_parents) {
     _parents = new WeakSet()
   } else if (_parents.has(value)) {
@@ -45,7 +54,12 @@ export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
     // Looks to be a class instance
     if (value.toSanitizedValue) {
       // Special allowance for internal objects
-      return value.toSanitizedValue()
+      try {
+        _callingToSanitizedValue = true
+        return value.toSanitizedValue()
+      } finally {
+        _callingToSanitizedValue = false
+      }
     } else {
       // Any other class. Convert to plain object and sanitize attributes.
       _parents.add(value)

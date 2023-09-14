@@ -8,8 +8,7 @@
 
 import toposort from "toposort"
 import { flatten, difference, mapValues, cloneDeep, find } from "lodash"
-import { GardenBaseError } from "../exceptions"
-import { naturalList } from "../util/string"
+import { dedent, naturalList } from "../util/string"
 import { Action, ActionDependencyAttributes, ActionKind, Resolved, ResolvedAction } from "../actions/types"
 import { actionReferenceToString } from "../actions/base"
 import { BuildAction } from "../actions/build"
@@ -23,6 +22,7 @@ import { RunAction } from "../actions/run"
 import { TestAction } from "../actions/test"
 import { GroupConfig } from "../config/group"
 import minimatch from "minimatch"
+import { GraphError } from "../exceptions"
 
 export type DependencyRelationFilterFn = (node: ConfigGraphNode) => boolean
 
@@ -53,10 +53,6 @@ interface GetActionsParams extends GetActionOpts {
   moduleNames?: string[] // If specified, the found actions must be from these modules
   includeNames?: string[] // Glob patterns to include. An action is returned if its name matches any of these.
   excludeNames?: string[] // Glob patterns to exclude. An action is returned if its name matches none of these.
-}
-
-export class GraphError extends GardenBaseError {
-  type = "graph"
 }
 
 export type PickTypeByKind<
@@ -181,19 +177,16 @@ export abstract class BaseConfigGraph<
 
     if (!action) {
       throw new GraphError({
-        message: `Could not find ${kind} action ${name}.`,
-        detail: {
-          available: this.getNamesByKind(),
-        },
+        message: dedent`
+          Could not find ${kind} action ${name}.
+
+          Declared action names for action kind '${kind}': ${naturalList(this.getNamesByKind()[kind])}`,
       })
     }
 
     if (action.isDisabled() && !opts.includeDisabled) {
       throw new GraphError({
         message: `${action.longDescription()} is disabled.`,
-        detail: {
-          config: action.getConfig(),
-        },
       })
     }
 
@@ -250,10 +243,6 @@ export abstract class BaseConfigGraph<
 
       throw new GraphError({
         message: `Could not find one or more ${kind} actions: ${naturalList(missing)}`,
-        detail: {
-          names,
-          missing,
-        },
       })
     }
 
@@ -297,8 +286,10 @@ export abstract class BaseConfigGraph<
 
     if (!group) {
       throw new GraphError({
-        message: `Could not find Group ${name}`,
-        detail: { availableGroups: Object.keys(this.groups) },
+        message: dedent`
+          Could not find Group ${name}.
+
+          Available groups: ${Object.keys(this.groups)}`,
       })
     }
 
@@ -627,5 +618,9 @@ export class ConfigGraphNode {
     } else {
       return nodes
     }
+  }
+
+  toSanitizedValue() {
+    return `<Node: ${this.name}`
   }
 }

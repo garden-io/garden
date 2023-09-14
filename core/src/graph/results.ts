@@ -7,10 +7,10 @@
  */
 
 import { BaseTask, Task, ValidResultType } from "../tasks/base"
-import { InternalError } from "../exceptions"
 import { fromPairs, omit, pick } from "lodash"
 import { toGraphResultEventPayload } from "../events/events"
 import CircularJSON from "circular-json"
+import { GardenError, InternalError, toGardenError } from "../exceptions"
 
 export interface TaskEventBase {
   type: string
@@ -111,10 +111,6 @@ export class GraphResults<B extends Task = Task> {
       const taskKeys = Array.from(this.tasks.keys())
       throw new InternalError({
         message: `GraphResults object does not have task ${key}. Available keys: [${taskKeys.join(", ")}]`,
-        detail: {
-          key,
-          taskKeys,
-        },
       })
     }
   }
@@ -227,40 +223,11 @@ function filterOutputsForExport(outputs: any) {
   return omit(outputs, "resolvedAction", "executedAction")
 }
 
-function filterErrorForExport(error: any) {
+function filterErrorForExport(error: any): GardenError | null {
   if (!error) {
     return null
   }
-  const detail = error.detail || {}
-  const filteredDetail = pick(
-    detail || {},
-    "aborted",
-    "completedAt",
-    "description",
-    "message",
-    "stack",
-    "key",
-    "name",
-    "processed",
-    "success",
-    "type"
-  )
 
-  // recursively go through the wrappedErrors
-  const allWrappedErrors = error.wrappedErrors || []
-  const filteredWrappedErrors = allWrappedErrors.flatMap((e) => {
-    const filteredError = filterErrorForExport(e)
-
-    if (!filteredError) {
-      return []
-    } else {
-      return [filteredError]
-    }
-  })
-
-  return {
-    ...pick(error, "message", "type", "stack"),
-    detail: filteredDetail,
-    wrappedErrors: filteredWrappedErrors,
-  }
+  // it's ok to return the original error. The toJSON method controls export of additional details (none by default)
+  return toGardenError(error)
 }

@@ -12,7 +12,7 @@ import { isString } from "lodash"
 import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
 import { PassThrough } from "stream"
 import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsHandlerParams, VcsInfo } from "./vcs"
-import { ConfigurationError, RuntimeError } from "../exceptions"
+import { ChildProcessError, ConfigurationError, RuntimeError } from "../exceptions"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
 import { dedent, deline, splitLast } from "../util/string"
 import { defer, exec } from "../util/util"
@@ -56,8 +56,7 @@ export function parseGitUrl(url: string) {
     throw new ConfigurationError({
       message: deline`
         Repository URLs must contain a hash part pointing to a specific branch or tag
-        (e.g. https://github.com/org/repo.git#main)`,
-      detail: { repositoryUrl: url },
+        (e.g. https://github.com/org/repo.git#main). Actually got: '${url}'`,
     })
   }
   const parsed = { repositoryUrl: parts[0], hash: parts[1] }
@@ -88,6 +87,9 @@ export class GitHandler extends VcsHandler {
   }
 
   gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
+    /**
+     * @throws ChildProcessError
+     */
     return async (...args: (string | undefined)[]) => {
       log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
       const { stdout } = await exec("git", args.filter(isString), {
@@ -103,7 +105,7 @@ export class GitHandler extends VcsHandler {
     try {
       return await git("diff-index", "--name-only", "HEAD", path)
     } catch (err) {
-      if (err.exitCode === 128) {
+      if (err instanceof ChildProcessError && err.details.code === 128) {
         // no commit in repo
         return []
       } else {
@@ -165,8 +167,12 @@ export class GitHandler extends VcsHandler {
         await git("status")
         gitSafeDirs.add(path)
       } catch (err) {
+        if (!(err instanceof ChildProcessError)) {
+          throw err
+        }
+
         // Git has stricter repo ownerships checks since 2.36.0
-        if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
+        if (err.details.code === 128 && err.details.stderr.toLowerCase().includes("fatal: unsafe repository")) {
           log.warn(
             chalk.yellow(
               `It looks like you're using Git 2.36.0 or newer and the directory "${path}" is owned by someone else. It will be added to safe.directory list in the .gitconfig.`
@@ -187,11 +193,14 @@ export class GitHandler extends VcsHandler {
           }
 
           return
-        } else if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: not a git repository")) {
-          throw new RuntimeError({ message: notInRepoRootErrorMessage(path), detail: { path } })
+        } else if (
+          err.details.code === 128 &&
+          err.details.stderr.toLowerCase().includes("fatal: not a git repository")
+        ) {
+          throw new RuntimeError({ message: notInRepoRootErrorMessage(path) })
         } else {
           log.error(
-            `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.exitCode}. Error message: ${err.stderr}`
+            `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.details.code}. Error message: ${err.details.stderr}`
           )
           throw err
         }
@@ -224,17 +233,21 @@ export class GitHandler extends VcsHandler {
         this.repoRoots.set(path, repoRoot)
         return repoRoot
       } catch (err) {
-        if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
+        if (!(err instanceof ChildProcessError)) {
+          throw err
+        }
+        if (err.details.code === 128 && err.details.stderr.toLowerCase().includes("fatal: unsafe repository")) {
           // Throw nice error when we detect that we're not in a repo root
           throw new RuntimeError({
             message:
-              err.stderr +
+              err.details.stderr +
               `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
-            detail: { path },
           })
-        } else if (err.exitCode === 128) {
+        } else if (err.details.code === 128) {
           // Throw nice error when we detect that we're not in a repo root
-          throw new RuntimeError({ message: notInRepoRootErrorMessage(path), detail: { path, exitCode: err.exitCode } })
+          throw new RuntimeError({
+            message: notInRepoRootErrorMessage(path),
+          })
         } else {
           throw err
         }
@@ -291,8 +304,7 @@ export class GitHandler extends VcsHandler {
         return []
       }
     } catch (err) {
-      // 128 = File no longer exists
-      if (err.exitCode === 128 || err.code === "ENOENT") {
+      if (err.code === "ENOENT") {
         gitLog.warn(`Attempted to scan directory at ${path}, but it does not exist.`)
         return []
       } else {
@@ -386,8 +398,7 @@ export class GitHandler extends VcsHandler {
             return []
           }
         } catch (err) {
-          // 128 = File no longer exists
-          if (err.exitCode === 128 || err.code === "ENOENT") {
+          if (err.code === "ENOENT") {
             gitLog.warn(
               `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
             )
@@ -613,12 +624,10 @@ export class GitHandler extends VcsHandler {
       return git("-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive")
     } catch (err) {
       throw new RuntimeError({
-        message: dedent`Failed to shallow clone with error: \n\n${err}
-      Make sure both git client and server are newer than 2.5.0 and that \`uploadpack.allowReachableSHA1InWant=true\`
-      is set on the server`,
-        detail: {
-          message: err.message,
-        },
+        message: dedent`
+          Failed to shallow clone with error: ${err}
+
+          Make sure both git client and server are newer than 2.5.0 and that \`uploadpack.allowReachableSHA1InWant=true\` is set on the server`,
       })
     }
   }
@@ -641,11 +650,7 @@ export class GitHandler extends VcsHandler {
         } catch (err) {
           gitLog.error(`Failed fetching from ${url}`)
           throw new RuntimeError({
-            message: `Downloading remote ${sourceType} failed with error: \n\n${err}`,
-            detail: {
-              repositoryUrl: url,
-              message: err.message,
-            },
+            message: `Downloading remote ${sourceType} (from ${url}) failed with error: \n\n${err}`,
           })
         }
 
@@ -683,11 +688,7 @@ export class GitHandler extends VcsHandler {
         } catch (err) {
           gitLog.error(`Failed fetching from ${url}`)
           throw new RuntimeError({
-            message: `Updating remote ${sourceType} failed with error: \n\n${err}`,
-            detail: {
-              repositoryUrl: url,
-              message: err.message,
-            },
+            message: `Updating remote ${sourceType} (at url: ${url}) failed with error: \n\n${err.message || err}`,
           })
         }
 
@@ -783,7 +784,7 @@ export class GitHandler extends VcsHandler {
       output.branch = (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
       output.commitHash = (await git("rev-parse", "HEAD"))[0]
     } catch (err) {
-      if (err.exitCode !== 128) {
+      if (err instanceof ChildProcessError && err.details.code !== 128) {
         throw err
       }
     }

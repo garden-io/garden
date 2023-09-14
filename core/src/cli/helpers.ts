@@ -19,7 +19,7 @@ import { maxBy, zip } from "lodash"
 import { Logger } from "../logger/logger"
 
 import { ParameterValues, Parameter, Parameters, globalDisplayOptions } from "./params"
-import { GardenBaseError, InternalError, ParameterError, toGardenError } from "../exceptions"
+import { GardenError, ParameterError, RuntimeError, toGardenError } from "../exceptions"
 import { getPackageVersion, removeSlice } from "../util/util"
 import { Log } from "../logger/log-entry"
 import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv, ERROR_LOG_FILENAME } from "../constants"
@@ -27,7 +27,7 @@ import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore } from "../config-store/global"
 import { got } from "../util/http"
 import minimist = require("minimist")
-import { renderTable, tablePresets, naturalList } from "../util/string"
+import { renderTable, tablePresets, naturalList, deline } from "../util/string"
 import { globalOptions, GlobalOptions } from "./params"
 import { BuiltinArgs, Command, CommandGroup } from "../commands/base"
 import { DeepPrimitiveMap } from "../config/common"
@@ -58,12 +58,13 @@ export function helpTextMaxWidth() {
 
 export async function checkForStaticDir() {
   if (!(await pathExists(STATIC_DIR))) {
-    throw new InternalError({
-      message:
-        `Could not find the static data directory. Garden is packaged with a data directory ` +
-        `called 'static', which should be located next to your garden binary. Please try reinstalling, ` +
-        `and make sure the release archive is fully extracted to the target directory.`,
-      detail: {},
+    // if this happens, this is most likely not a Garden bug but some kind of corrupted installation, and the user needs to do something about it.
+    throw new RuntimeError({
+      message: deline`
+        Could not find the static data directory. Garden is packaged with a data directory
+        called 'static', which should be located next to your garden binary. Please try reinstalling,
+        and make sure the release archive is fully extracted to the target directory.
+      `,
     })
   }
 }
@@ -285,10 +286,6 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
 
       throw new ParameterError({
         message: `Unexpected positional argument "${argVal}" (expected ${expected})`,
-        detail: {
-          expectedKeys: argKeys,
-          extraValue: argVal,
-        },
       })
     }
 
@@ -306,11 +303,6 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
     } catch (error) {
       throw new ParameterError({
         message: `Invalid value for argument ${chalk.white.bold(argKey)}: ${error.message}`,
-        detail: {
-          error,
-          key: argKey,
-          value: argVal,
-        },
       })
     }
   }
@@ -373,7 +365,6 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
   if (errors.length > 0) {
     throw new ParameterError({
       message: chalk.red.bold(errors.join("\n")),
-      detail: { parsedArgs, processedArgs, processedOpts, errors },
     })
   }
 
@@ -549,7 +540,7 @@ function renderParameters(params: Parameters, formatName: (name: string, param: 
 }
 
 export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) {
-  const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
+  const gardenErrors: GardenError[] = errors.map(toGardenError)
 
   const errorLog = log || logger.createLog()
 
@@ -558,7 +549,7 @@ export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) 
       error,
     })
     // Output error details to console when log level is silly
-    errorLog.silly(error.formatWithDetail())
+    errorLog.silly(error.toString(true))
   }
 
   if (logger.getWriters().file.length > 0) {

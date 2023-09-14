@@ -7,7 +7,7 @@
  */
 
 import tmp from "tmp-promise"
-import { RuntimeError } from "../../../exceptions"
+import { ChildProcessError, RuntimeError } from "../../../exceptions"
 import { Log } from "../../../logger/log-entry"
 import { exec } from "../../../util/util"
 import { containerHelpers } from "../../container/helpers"
@@ -20,7 +20,7 @@ import { parse as parsePath } from "path"
 
 // TODO: Pass the correct log context instead of creating it here.
 export async function configureMicrok8sAddons(log: Log, addons: string[]) {
-  let statusCommandResult: ExecaReturnValue | undefined = undefined
+  let statusCommandResult: ExecaReturnValue | ChildProcessError | undefined = undefined
   let status = ""
   const microK8sLog = log.createLog({ name: "microk8s" })
 
@@ -28,7 +28,10 @@ export async function configureMicrok8sAddons(log: Log, addons: string[]) {
     statusCommandResult = await exec("microk8s", ["status"])
     status = statusCommandResult.stdout
   } catch (err) {
-    if (err.all?.includes("permission denied") || err.all?.includes("Insufficient permissions")) {
+    if (!(err instanceof ChildProcessError)) {
+      throw err
+    }
+    if (err.details.output.includes("permission denied") || err.details.output.includes("Insufficient permissions")) {
       microK8sLog.warn(
         chalk.yellow(
           deline`Unable to get microk8s status and manage addons. You may need to add the current user to the microk8s
@@ -43,11 +46,7 @@ export async function configureMicrok8sAddons(log: Log, addons: string[]) {
 
   if (!status.includes("microk8s is running")) {
     throw new RuntimeError({
-      message: `Unable to get microk8s status. Is the cluster installed and running?`,
-      detail: {
-        status,
-        statusCommandResult,
-      },
+      message: `Unexpected microk8s status '${status}'.  Is the cluster installed and running?`,
     })
   }
 
@@ -147,9 +146,6 @@ export async function loadImageToMicrok8s({
   } catch (err) {
     throw new RuntimeError({
       message: `An attempt to load image ${imageId} into the microk8s cluster failed: ${err.message}`,
-      detail: {
-        err,
-      },
     })
   }
 }

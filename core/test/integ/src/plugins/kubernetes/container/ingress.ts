@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import td from "testdouble"
 
-import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
+import { KubeApi, KubernetesError } from "../../../../../../src/plugins/kubernetes/api"
 import { KubernetesProvider, KubernetesConfig, defaultResources } from "../../../../../../src/plugins/kubernetes/config"
 import { expectError } from "../../../../../helpers"
 import { Garden } from "../../../../../../src/garden"
@@ -567,8 +567,7 @@ describe("createIngressResources", () => {
       // tools,
     }
 
-    const err: any = new Error("nope")
-    err.statusCode = 404
+    const err = new KubernetesError({ message: "nope", responseStatusCode: 404 })
     td.when(api.core.readNamespacedSecret("foo", "default")).thenReject(err)
 
     await expectError(
@@ -608,8 +607,7 @@ describe("createIngressResources", () => {
 
     const api = await getKubeApi(basicProvider)
 
-    const err: any = new Error("nope")
-    err.statusCode = 404
+    const err = new KubernetesError({ message: "nope", responseStatusCode: 404 })
     td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({ data: {} })
 
     await expectError(
@@ -649,8 +647,7 @@ describe("createIngressResources", () => {
 
     const api = await getKubeApi(basicProvider)
 
-    const err: any = new Error("nope")
-    err.statusCode = 404
+    const err = new KubernetesError({ message: "nope", responseStatusCode: 404 })
     td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({
       data: {
         "tls.crt": "blablablablablalbalblabl",

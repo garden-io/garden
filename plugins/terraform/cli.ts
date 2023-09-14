@@ -11,6 +11,7 @@ import which from "which"
 import { ConfigurationError, RuntimeError } from "@garden-io/sdk/exceptions"
 import { CliWrapper, PluginToolSpec } from "@garden-io/sdk/util/ext-tools"
 import { Log, PluginContext } from "@garden-io/sdk/types"
+import { naturalList } from "@garden-io/sdk/util/string"
 
 export function terraform(ctx: PluginContext, provider: TerraformProvider) {
   const version = provider.config.version
@@ -22,11 +23,7 @@ export function terraform(ctx: PluginContext, provider: TerraformProvider) {
 
     if (!cli) {
       throw new ConfigurationError({
-        message: `Unsupported Terraform version: ${version}`,
-        detail: {
-          version,
-          supportedVersions,
-        },
+        message: `Unsupported Terraform version: ${version}. Supported versions: ${naturalList(supportedVersions)}`,
       })
     }
 
@@ -45,7 +42,6 @@ export class GlobalTerraform extends CliWrapper {
     } catch (err) {
       throw new RuntimeError({
         message: `Terraform version is set to null, and terraform CLI could not be found on PATH`,
-        detail: {},
       })
     }
   }

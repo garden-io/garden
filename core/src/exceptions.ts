@@ -6,23 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isEmpty, isString } from "lodash"
-import { stringify } from "yaml"
-import { withoutInternalFields, sanitizeValue } from "./util/logging"
-import { testFlags } from "./util/util"
-
-export interface GardenError<D extends object = any> extends Error {
-  type: string
-  message: string
-  detail?: D
-  stack?: string
-  wrappedErrors?: GardenError[]
-  context?: GardenErrorContext
-}
-
-export function isGardenError(err: any): err is GardenError {
-  return "type" in err && "message" in err
-}
+import { isString, trimEnd } from "lodash"
+import { SpawnOpts, getGitHubIssueLink, testFlags } from "./util/util"
+import dedent from "dedent"
+import chalk from "chalk"
+import stripAnsi from "strip-ansi"
+import { Cycle } from "./graph/common"
+import indentString from "indent-string"
 
 export type StackTraceMetadata = {
   functionName: string
@@ -35,189 +25,321 @@ export type GardenErrorStackTrace = {
   wrappedMetadata?: StackTraceMetadata[][]
 }
 
-export interface GardenErrorParams<D extends object = any> {
+export interface GardenErrorParams {
   message: string
-  readonly detail?: D
   readonly stack?: string
   readonly wrappedErrors?: GardenError[]
-  readonly context?: GardenErrorContext
-}
 
-export type GardenErrorContext = {
-  taskType?: string
+  /**
+   * The type of task, if the error was thrown as part of resolving or executing a node in the stack graph.
+   */
+  readonly taskType?: string
 }
-
-export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
+export abstract class GardenError extends Error {
+  /**
+   * The error type will be used for rendering the error to json, and also for analytics.
+   */
   abstract type: string
-  public override message: string
-  public detail?: D
-  public wrappedErrors?: GardenError<any>[]
-  public context?: GardenErrorContext
 
-  constructor({ message, detail, stack, wrappedErrors, context }: GardenErrorParams<D>) {
-    super(message)
-    this.detail = detail
+  /**
+   * The type of task, if the error was thrown as part of resolving or executing a node in the stack graph.
+   */
+  public taskType?: string
+
+  public override message: string
+  public wrappedErrors?: GardenError[]
+
+  constructor({ message, stack, wrappedErrors, taskType }: GardenErrorParams) {
+    super(message.trim())
     this.stack = stack || this.stack
     this.wrappedErrors = wrappedErrors
-    this.context = context
+    this.taskType = taskType
   }
 
-  override toString() {
-    if (testFlags.expandErrors) {
-      let str = super.toString()
+  override toString(verbose: boolean = false): string {
+    if (verbose || testFlags.expandErrors) {
+      const errorDetails = this.stack || this.message
 
       if (this.wrappedErrors) {
-        str += "\n\nWrapped error:\n\n"
+        return dedent`
+          ${errorDetails}
 
-        for (const wrappedError in this.wrappedErrors) {
-          str += wrappedError + "\n\n"
-        }
+          Error type: ${this.type}
+
+          Wrapped errors:
+          ${this.wrappedErrors?.map(
+            (e) => dedent`
+            ⮑ ${indentString(e.toString(verbose), 3).trim()}
+
+          `
+          )}
+        `
+      } else {
+        return errorDetails
       }
-
-      return str
     } else {
       return super.toString()
     }
   }
 
-  toSanitizedValue() {
+  /**
+   * Returns string with ANSI-formatting that will be used to present the error to the user on the terminal.
+   *
+   * Can be overridden by subclasses to customize the error message rendering.
+   *
+   * @param context A string to provide additional context to the error message.
+   *                Used in subclasses but ignored in the base class.
+   * @returns A string with ANSI-formatting.
+   */
+  explain(_context?: string): string {
+    return chalk.red(this.message)
+  }
+
+  toJSON() {
     return {
       type: this.type,
       message: this.message,
       stack: this.stack,
-      detail: filterErrorDetail(this.detail),
+      wrappedErrors: this.wrappedErrors,
     }
   }
-
-  formatWithDetail() {
-    return formatGardenErrorWithDetail(this)
-  }
 }
-
-export class AuthenticationError extends GardenBaseError {
-  type = "authentication"
-}
-
-export class BuildError extends GardenBaseError {
+export class BuildError extends GardenError {
   type = "build"
 }
 
-export class ConfigurationError extends GardenBaseError {
+export class ConfigurationError extends GardenError {
   type = "configuration"
 }
 
-export class CommandError extends GardenBaseError {
+type CircularDependenciesErrorParams = {
+  messagePrefix: string
+  cycles: Cycle[]
+  cyclesSummary: string
+}
+export class CircularDependenciesError extends ConfigurationError {
+  private _messagePrefix: string
+  cycles: Cycle[]
+  cyclesSummary: string
+
+  constructor({ messagePrefix, cycles, cyclesSummary }: CircularDependenciesErrorParams) {
+    super({ message: CircularDependenciesError.constructMessage(messagePrefix, cyclesSummary) })
+    this._messagePrefix = messagePrefix
+    this.cycles = cycles
+    this.cyclesSummary = cyclesSummary
+  }
+
+  set messagePrefix(newMessagePrefix: string) {
+    this._messagePrefix = newMessagePrefix
+    this.message = CircularDependenciesError.constructMessage(newMessagePrefix, this.cyclesSummary)
+  }
+
+  get messagePrefix(): string {
+    return this._messagePrefix
+  }
+
+  private static constructMessage(messagePrefix: string, cyclesSummary: string) {
+    return `${messagePrefix}:\n\n${cyclesSummary}`
+  }
+}
+
+export class CommandError extends GardenError {
   type = "command"
 }
 
-export class FilesystemError extends GardenBaseError {
+export class FilesystemError extends GardenError {
   type = "filesystem"
 }
 
-export class LocalConfigError extends GardenBaseError {
-  type = "local-config"
-}
-
-export class ValidationError extends GardenBaseError {
+export class ValidationError extends GardenError {
   type = "validation"
 }
 
-export class PluginError extends GardenBaseError {
+export class PluginError extends GardenError {
   type = "plugin"
 }
 
-export class ParameterError extends GardenBaseError {
+export class ParameterError extends GardenError {
   type = "parameter"
 }
 
-export class NotImplementedError extends GardenBaseError {
+export class NotImplementedError extends GardenError {
   type = "not-implemented"
 }
 
-export class DeploymentError extends GardenBaseError {
+export class DeploymentError extends GardenError {
   type = "deployment"
 }
 
-export class RuntimeError extends GardenBaseError {
+export class RuntimeError extends GardenError {
   type = "runtime"
 }
 
-export class InternalError extends GardenBaseError {
-  type = "internal"
-
-  constructor({ message, detail }: { message: string; detail: any }) {
-    super({ message: message + "\nThis is a bug. Please report it!", detail })
-  }
+export class GraphError extends GardenError {
+  type = "graph"
 }
 
-export class TimeoutError extends GardenBaseError {
+export class TimeoutError extends GardenError {
   type = "timeout"
 }
 
-export class OutOfMemoryError extends GardenBaseError {
+export class OutOfMemoryError extends GardenError {
   type = "out-of-memory"
 }
 
-export class NotFoundError extends GardenBaseError {
+export class NotFoundError extends GardenError {
   type = "not-found"
 }
 
-export class WorkflowScriptError extends GardenBaseError {
+interface WorkflowScriptErrorDetails {
+  output: string
+  exitCode: number
+  stdout: string
+  stderr: string
+}
+
+export class WorkflowScriptError extends GardenError {
   type = "workflow-script"
+
+  details: WorkflowScriptErrorDetails
+
+  constructor(details: WorkflowScriptErrorDetails) {
+    super({
+      message: dedent`
+      Script exited with code ${details.exitCode}. This is the output:
+
+      ${details.stderr || details.output}`,
+    })
+    this.details = details
+  }
 }
 
-export class CloudApiError extends GardenBaseError {
+export class CloudApiError extends GardenError {
   type = "cloud-api"
+
+  responseStatusCode: number | undefined
+
+  constructor(params: GardenErrorParams & { responseStatusCode?: number }) {
+    super(params)
+    this.responseStatusCode = params.responseStatusCode
+  }
 }
 
-export class TemplateStringError extends GardenBaseError {
+export class TemplateStringError extends GardenError {
   type = "template-string"
 }
 
-export class WrappedNativeError extends GardenBaseError {
-  type = "wrapped-native-error"
+interface GenericGardenErrorParams extends GardenErrorParams {
+  type: string
+}
+export class GenericGardenError extends GardenError {
+  type: string
 
-  constructor(error: Error) {
-    super({ message: error.message, stack: error.stack })
+  constructor(params: GenericGardenErrorParams) {
+    super(params)
+    this.type = params.type
   }
 }
 
-export function toGardenError(err: Error | GardenBaseError | string): GardenBaseError {
-  if (err instanceof GardenBaseError) {
-    return err
-  } else if (err instanceof Error) {
-    const wrappedError = new WrappedNativeError(err)
-    const out = new RuntimeError({ message: err.message, wrappedErrors: [wrappedError] })
-    out.stack = err.stack
-    return out
-  } else if (isString(err)) {
-    return new RuntimeError({ message: err })
-  } else {
-    const msg = err["message"]
-    return new RuntimeError({ message: msg })
+type ChildProcessErrorDetails = {
+  cmd: string
+  args: string[]
+  code: number
+  output: string
+  stderr: string
+  stdout: string
+  opts?: SpawnOpts
+}
+export class ChildProcessError extends GardenError {
+  type = "childprocess"
+
+  // The details do not need to be exposed in toString() or toJSON(), because they are included in the message.
+  readonly details: ChildProcessErrorDetails
+
+  constructor(details: ChildProcessErrorDetails) {
+    super({ message: ChildProcessError.formatMessage(details) })
+    this.details = details
   }
-}
 
-function filterErrorDetail(detail: any) {
-  return withoutInternalFields(sanitizeValue(detail))
-}
+  private static formatMessage({ cmd, args, code, output, stderr }: ChildProcessErrorDetails): string {
+    const nLinesToShow = 100
+    const lines = output.split("\n")
+    const out = lines.slice(-nLinesToShow).join("\n")
+    const cmdStr = args.length > 0 ? `${cmd} ${args.join(" ")}` : cmd
+    let msg = dedent`
+      Command "${cmdStr}" failed with code ${code}:
 
-export function formatGardenErrorWithDetail(error: GardenError) {
-  const { detail, message, stack } = error
-  let out = stack || message || ""
-
-  // We sanitize and recursively filter out internal fields (i.e. having names starting with _).
-  const filteredDetail = filterErrorDetail(detail)
-
-  if (!isEmpty(filteredDetail)) {
-    try {
-      const yamlDetail = stringify(filteredDetail, { blockQuote: "literal", lineWidth: 0 })
-      out += `\n\nError Details:\n\n${yamlDetail}`
-    } catch (err) {
-      out += `\n\nUnable to render error details:\n${err.message}`
+      ${trimEnd(stderr, "\n")}
+    `
+    if (output && output !== stderr) {
+      msg +=
+        lines.length > nLinesToShow
+          ? `\n\nHere are the last ${nLinesToShow} lines of the output:`
+          : `\n\nHere's the full output:`
+      msg += `\n\n${trimEnd(out, "\n")}`
     }
+    return msg
   }
-  return out
+}
+
+/**
+ * Throw this error only when this error condition is definitely a Garden bug.
+ *
+ * Examples where throwing this error is appropriate:
+ * - A Javascript TypeError has occurred, e.g. reading property on undefined.
+ * - "This should not happen" kind of situations, e.g. internal data structures are in an invalid state.
+ * - An unhandled exception has been thrown by a library. If you don't know what to do with this exception and it is most likely not due to user error, wrap it with "InternalError".
+ *
+ * In case the network is involved, we should *not* use the "InternalError", because that's usually a situation that the user needs to resolve.
+ */
+export class InternalError extends GardenError {
+  // we want it to be obvious in amplitude data that this is not a normal error condition
+  type = "crash"
+
+  // not using object destructuring here on purpose, because errors are of type any and then the error might be passed as the params object accidentally.
+  static wrapError(error: Error | string | any, prefix?: string): InternalError {
+    let message: string | undefined
+    let stack: string | undefined
+
+    if (error instanceof Error) {
+      message = error.message
+      stack = error.stack
+    } else if (isString(error)) {
+      message = error
+    } else if (error) {
+      message = error["message"]
+      stack = error["stack"]
+    }
+
+    message = message ? stripAnsi(message) : ""
+
+    return new InternalError({ message: prefix ? `${stripAnsi(prefix)}: ${message}` : message, stack })
+  }
+
+  override explain(context?: string): string {
+    let bugReportInformation = this.stack || this.message
+
+    if (context) {
+      bugReportInformation = `${stripAnsi(context)}\n${bugReportInformation}`
+    }
+
+    const header = "Encountered an unexpected Garden error. This is likely a bug 🍂"
+    const body = dedent`
+      You can help by reporting this on GitHub: ${getGitHubIssueLink(`Crash: ${this.message}`, "crash")}
+
+      Please attach the following information to the bug report after making sure that the error message does not contain sensitive information:
+    `
+
+    return chalk.red(`${chalk.bold(header)}\n\n${body}\n\n${chalk.gray(bugReportInformation)}`)
+  }
+}
+
+export function toGardenError(err: Error | GardenError | string | any): GardenError {
+  if (err instanceof GardenError) {
+    return err
+  } else {
+    return InternalError.wrapError(err)
+  }
 }
 
 function getStackTraceFromString(stack: string): StackTraceMetadata[] {

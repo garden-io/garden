@@ -8,12 +8,14 @@
 
 import { expect } from "chai"
 import {
+  ChildProcessError,
   ConfigurationError,
-  GardenBaseError,
+  GardenError,
   RuntimeError,
   StackTraceMetadata,
   getStackTraceMetadata,
 } from "../../../src/exceptions"
+import dedent from "dedent"
 
 describe("GardenError", () => {
   // helper to avoid dealing with changing line numbers
@@ -28,7 +30,7 @@ describe("GardenError", () => {
   }
 
   it("should return stack trace metadata", async () => {
-    let error: GardenBaseError
+    let error: GardenError
 
     try {
       throw new RuntimeError({ message: "test exception" })
@@ -102,5 +104,80 @@ describe("GardenError", () => {
       { relativeFileName: "mocha/lib/runnable.js", lineNumber: undefined, functionName: "Test.Runnable.run" },
       { relativeFileName: "timers", lineNumber: undefined, functionName: "processImmediate" },
     ])
+  })
+})
+
+describe("ChildProcessError", () => {
+  it("formats an appropriate error message", () => {
+    const err = new ChildProcessError({
+      code: 1,
+      cmd: "ls",
+      args: ["some-dir"],
+      stderr: "dir not found",
+      stdout: "",
+      output: "dir not found",
+    })
+    expect(err.message).to.equal(dedent`
+      Command "ls some-dir" failed with code 1:
+
+      dir not found
+    `)
+  })
+  it("should ignore emtpy args", () => {
+    const err = new ChildProcessError({
+      code: 1,
+      cmd: "ls",
+      args: [],
+      stderr: "dir not found",
+      stdout: "",
+      output: "dir not found",
+    })
+    expect(err.message).to.equal(dedent`
+      Command "ls" failed with code 1:
+
+      dir not found
+    `)
+  })
+  it("should include output if it's not the same as the error", () => {
+    const err = new ChildProcessError({
+      code: 1,
+      cmd: "ls some-dir",
+      args: [],
+      stderr: "dir not found",
+      stdout: " and some more output",
+      output: "dir not found and some more output",
+    })
+    expect(err.message).to.equal(dedent`
+      Command "ls some-dir" failed with code 1:
+
+      dir not found
+
+      Here's the full output:
+
+      dir not found and some more output
+    `)
+  })
+  it("should include the last 100 lines of output if output is very long", () => {
+    const output = "All work and no play\n"
+    const outputFull = output.repeat(102)
+    const outputPartial = output.repeat(99) // This makes 100 lines in total
+
+    const err = new ChildProcessError({
+      code: 1,
+      cmd: "ls some-dir",
+      args: [],
+      stderr: "dir not found",
+      stdout: outputFull,
+      output: outputFull,
+    })
+    expect(err.message).to.equal(dedent`
+      Command "ls some-dir" failed with code 1:
+
+      dir not found
+
+      Here are the last 100 lines of the output:
+
+      ${outputPartial}
+    `)
   })
 })

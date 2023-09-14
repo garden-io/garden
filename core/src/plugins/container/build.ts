@@ -48,7 +48,6 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
       Dockerfile not found at ${spec.dockerfile || defaultDockerfileName} for build ${action.name}.
       Please make sure the file exists, and is not excluded by include/exclude fields or .gardenignore files.
     `,
-      detail: { spec },
     })
   }
 

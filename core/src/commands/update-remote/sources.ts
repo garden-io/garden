@@ -19,6 +19,7 @@ import { Garden } from "../../garden"
 import { Log } from "../../logger/log-entry"
 import { joiArray, joi } from "../../config/common"
 import { StringsParameter, ParameterValues } from "../../cli/params"
+import { naturalList } from "../../util/string"
 
 const updateRemoteSourcesArguments = {
   sources: new StringsParameter({
@@ -94,13 +95,10 @@ export async function updateRemoteSources({
   const diff = difference(sources, names)
   if (diff.length > 0) {
     throw new ParameterError({
-      message: `Expected source(s) ${chalk.underline(
-        diff.join(",")
-      )} to be specified in the project garden.yml config.`,
-      detail: {
-        remoteSources: projectSources.map((s) => s.name).sort(),
-        input: sources ? sources.sort() : undefined,
-      },
+      message: dedent`
+        Expected source(s) ${chalk.underline(diff.join(","))} to be specified in the project garden.yml config.
+        Configured remote sources: ${naturalList(projectSources.map((s) => s.name).sort())}
+      `,
     })
   }
 

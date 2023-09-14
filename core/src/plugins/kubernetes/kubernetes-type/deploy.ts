@@ -19,7 +19,7 @@ import {
   getKubernetesDeployStatus,
   kubernetesDeploy,
 } from "./handlers"
-import { ConfigurationError } from "../../../exceptions"
+import { ConfigurationError, GardenError } from "../../../exceptions"
 import { uniq } from "lodash"
 import { DOCS_BASE_URL } from "../../../constants"
 import { kubernetesGetSyncStatus, kubernetesStartSync } from "./sync"
@@ -56,9 +56,12 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
         try {
           files = ctx.resolveTemplateStrings(files)
         } catch (error) {
+          if (!(error instanceof GardenError)) {
+            throw error
+          }
           throw new ConfigurationError({
-            message: `The spec.files field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
-            detail: { config, error },
+            message: `The spec.files field in Deploy action ${config.name} contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
+            wrappedErrors: [error],
           })
         }
         config.include = uniq([...config.include, ...files])

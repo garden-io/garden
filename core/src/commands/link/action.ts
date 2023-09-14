@@ -72,12 +72,10 @@ export class LinkActionCommand extends Command<Args> {
 
     if (!action.hasRemoteSource()) {
       throw new ParameterError({
-        message:
-          `Expected action ${chalk.underline(key)} to have a remote source.` +
-          ` Did you mean to use the "link source" command?`,
-        detail: {
-          actionKey: key,
-        },
+        message: dedent`
+          Expected action ${chalk.underline(key)} to have a remote source.
+          Did you mean to use the "link source" command?
+        `,
       })
     }
 

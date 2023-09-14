@@ -24,7 +24,7 @@ import {
 import { joi } from "../config/common"
 import { CustomCommandContext } from "../config/template-contexts/custom-command"
 import { validateWithPath } from "../config/validation"
-import { ConfigurationError, GardenBaseError, InternalError, RuntimeError, toGardenError } from "../exceptions"
+import { ConfigurationError, GardenError, RuntimeError, InternalError, toGardenError } from "../exceptions"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { listDirectory, isConfigFilename } from "../util/fs"
 import { Command, CommandParams, CommandResult, PrintHeaderParams } from "./base"
@@ -50,7 +50,7 @@ function convertArgSpec(spec: CustomCommandOption) {
   } else if (spec.type === "boolean") {
     return new BooleanParameter(params)
   } else {
-    throw new ConfigurationError({ message: `Unexpected parameter type '${spec.type}'`, detail: { spec } })
+    throw new ConfigurationError({ message: `Unexpected parameter type '${spec.type}'` })
   }
 }
 
@@ -66,7 +66,7 @@ interface CustomCommandResult {
     completedAt: Date
     command: string[]
     result: any
-    errors: (Error | GardenBaseError)[]
+    errors: (Error | GardenError)[]
   }
 }
 
@@ -117,7 +117,7 @@ export class CustomCommandWrapper extends Command {
     const commandContext = new CustomCommandContext({ ...garden, args, opts, variables, rest })
 
     const result: CustomCommandResult = {}
-    const errors: GardenBaseError[] = []
+    const errors: GardenError[] = []
 
     // Run exec command
     if (this.spec.exec) {
@@ -154,8 +154,7 @@ export class CustomCommandWrapper extends Command {
           exitCode: res.exitCode,
           errors: [
             new RuntimeError({
-              message: `Command exited with code ${res.exitCode}`,
-              detail: { exitCode: res.exitCode, command },
+              message: `Command "${command.join(" ")}" exited with code ${res.exitCode}`,
             }),
           ],
         }
@@ -185,7 +184,7 @@ export class CustomCommandWrapper extends Command {
 
       // Doing runtime check to avoid updating hundreds of test invocations with a new required param, sorry. - JE
       if (!cli) {
-        throw new InternalError({ message: `Missing cli argument in custom command wrapperd.`, detail: {} })
+        throw new InternalError({ message: `Missing cli argument in custom command wrapperd.` })
       }
 
       // Pass explicitly set global opts with the command, if they're not set in the command itself.

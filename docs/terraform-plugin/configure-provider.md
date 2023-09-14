@@ -1,9 +1,9 @@
 ---
 order: 2
-title: Provider Configuration
+title: Plugin Configuration
 ---
 
-# Provider Configuration
+# Plugin Configuration
 
 First off, you need to enable the provider in your project configuration. This is as simple as placing it in your list of providers:
 

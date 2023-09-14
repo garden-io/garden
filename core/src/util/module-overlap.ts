@@ -158,8 +158,7 @@ export function detectModuleOverlap({
         if (!!overlap) {
           if (!type) {
             throw new InternalError({
-              message: "Got some module overlap errors with undefined type. This is a bug, please report it.",
-              detail: { config: pivot, overlap },
+              message: `Got some module overlap errors with undefined type. pivot: ${pivot.name}, overlap: ${overlap.name}`,
             })
           }
           foundOverlaps.push({ config: pivot, overlaps: [overlap], type, generateFilesOverlaps })

@@ -18,6 +18,7 @@ import { addLinkedSources, moduleHasRemoteSource } from "../../util/ext-source-u
 import { joiArray, joi } from "../../config/common"
 import { linkedModuleSchema } from "../../config/project"
 import { StringParameter, PathParameter } from "../../cli/params"
+import { naturalList } from "../../util/string"
 
 const linkModuleArguments = {
   module: new StringParameter({
@@ -75,13 +76,14 @@ export class LinkModuleCommand extends Command<Args> {
       const modulesWithRemoteSource = graph.getModules().filter(moduleHasRemoteSource).sort()
 
       throw new ParameterError({
-        message:
-          `Expected module(s) ${chalk.underline(moduleName)} to have a remote source.` +
-          ` Did you mean to use the "link source" command?`,
-        detail: {
-          modulesWithRemoteSource,
-          input: module,
-        },
+        message: dedent`
+          Expected module(s) ${chalk.underline(
+            moduleName
+          )} to have a remote source. Did you mean to use the "link source" command? ${
+            modulesWithRemoteSource.length > 0
+              ? `\n\nModules with remote sources: ${naturalList(modulesWithRemoteSource.map((m) => m.name))}`
+              : ""
+          }`,
       })
     }
 

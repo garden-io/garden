@@ -22,6 +22,7 @@
     "strip-ansi": "^6.0.0"
   },
   "scripts": {
+    "check-types": "tsc -p . --noEmit",
     "fix-format": "prettier --write \"**/*.ts\"",
     "lint": "eslint -c ../../.eslintrc --ext .ts .",
     "test": "mocha"

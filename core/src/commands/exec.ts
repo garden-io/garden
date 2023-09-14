@@ -131,7 +131,6 @@ export class ExecCommand extends Command<Args, Opts> {
       case "stopped":
         throw new NotFoundError({
           message: `${action.key()} status is ${deployState}. Cannot execute command.`,
-          detail: { deployState },
         })
       case "ready":
         // Nothing to report/throw, the deployment is ready

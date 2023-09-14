@@ -43,7 +43,7 @@ describe("GetTestResultCommand", () => {
           args: { name: moduleName, moduleTestName: testName },
           opts: withDefaultGlobalOpts({}),
         }),
-      { type: "parameter", contains: `Could not find test "${testName}" in module ${moduleName}` }
+      { type: "parameter", contains: `Could not find test "${testName}" in module "${moduleName}"` }
     )
   })
 

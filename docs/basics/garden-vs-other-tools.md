@@ -1,6 +1,6 @@
 ---
 title: Garden vs Other Tools
-order: 3
+order: 5
 ---
 
 # Garden vs Other Tools & Platforms

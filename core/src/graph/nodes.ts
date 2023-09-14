@@ -7,7 +7,7 @@
  */
 
 import { Task, ValidResultType } from "../tasks/base"
-import { GardenBaseError, InternalError, isGardenError } from "../exceptions"
+import { GraphError, InternalError, toGardenError } from "../exceptions"
 import { GraphResult, GraphResultFromTask, GraphResults } from "./results"
 import type { GraphSolver } from "./solver"
 import { ValuesType } from "utility-types"
@@ -154,8 +154,8 @@ export abstract class TaskNode<T extends Task = Task> {
           startedAt,
           aborted: true,
           result: null,
-          // Note: The error message is constructed in the error constructor
-          error: new GraphNodeError({ ...this.result, aborted: true, node: d }),
+          // If it was aborted without error, we don't need a GraphNodeError
+          error: error ? new GraphNodeError({ resultError: error, node: d }) : null,
         })
       }
     }
@@ -262,9 +262,6 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
     if (statusResult === undefined) {
       throw new InternalError({
         message: `Attempted to execute ${this.describe()} before resolving status.`,
-        detail: {
-          nodeKey: this.getKey(),
-        },
       })
     }
 
@@ -336,53 +333,26 @@ export interface CompleteTaskParams {
   result: ValidResultType | null
   aborted: boolean
 }
-
-export interface GraphNodeErrorDetail extends GraphResult {
+export interface GraphNodeErrorParams {
+  resultError: Error
   node: TaskNode
-  failedDependency?: TaskNode
 }
 
-export interface GraphNodeErrorParams extends GraphNodeErrorDetail {}
+export class GraphNodeError extends GraphError {
+  node: TaskNode
 
-export class GraphNodeError extends GardenBaseError<GraphNodeErrorDetail> {
-  type = "graph"
+  constructor({ resultError, node }: GraphNodeErrorParams) {
+    const message = `${node.describe()} failed: ${resultError}`
+    const wrappedErrors = [toGardenError(resultError)]
+    const stack = resultError.stack
 
-  constructor(params: GraphNodeErrorParams) {
-    const { node, failedDependency, error } = params
+    super({
+      message,
+      stack,
+      wrappedErrors,
+      taskType: node.task.type,
+    })
 
-    let message = ""
-
-    if (failedDependency) {
-      message = `${node.describe()} aborted because a dependency could not be completed:`
-
-      let nextDep: TaskNode | null = failedDependency
-
-      while (nextDep) {
-        const result = nextDep.getResult()
-
-        if (!result) {
-          nextDep = null
-        } else if (result?.aborted) {
-          message += chalk.yellow(`\n↳ ${nextDep.describe()} [ABORTED]`)
-          if (result.error instanceof GraphNodeError && result.error.detail?.failedDependency) {
-            nextDep = result.error.detail.failedDependency
-          } else {
-            nextDep = null
-          }
-        } else if (result?.error) {
-          message += chalk.red.bold(`\n↳ ${nextDep.describe()} [FAILED] - ${result.error.message}`)
-          nextDep = null
-        }
-      }
-    } else {
-      message = `${node.describe()} failed: ${error}`
-    }
-
-    const wrappedErrors = isGardenError(error) ? [error] : []
-    super({ message, detail: params, wrappedErrors, context: { taskType: node.task.type } })
-  }
-
-  aborted() {
-    return this.detail?.aborted
+    this.node = node
   }
 }

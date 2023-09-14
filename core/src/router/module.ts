@@ -34,6 +34,7 @@ import { ConfigGraph } from "../graph/config-graph"
 import { GetModuleOutputsParams, GetModuleOutputsResult } from "../plugin/handlers/Module/get-outputs"
 import { BaseRouter, BaseRouterParams } from "./base"
 import { ConvertModuleParams, ConvertModuleResult } from "../plugin/handlers/Module/convert"
+import dedent from "dedent"
 
 export interface DeployManyParams {
   graph: ConfigGraph
@@ -185,12 +186,7 @@ export class ModuleRouter extends BaseRouter {
         const result = await handler.apply(plugin, args)
         if (result === undefined) {
           throw new PluginError({
-            message: `Got empty response from ${moduleType}.${handlerType} handler on ${pluginName} provider`,
-            detail: {
-              args,
-              handlerType,
-              pluginName,
-            },
+            message: `Got empty response from ${moduleType}.${handlerType} handler (called with ${args.length} args) on ${pluginName} provider.`,
           })
         }
         return validateSchema(result, schema, {
@@ -297,10 +293,12 @@ export class ModuleRouter extends BaseRouter {
 
         // This should never happen
         throw new InternalError({
-          message:
-            `Unable to find any matching configuration when selecting ${moduleType}/${handlerType} handler ` +
-            `(please report this as a bug).`,
-          detail: { handlers, configs },
+          message: dedent`
+            Unable to find any matching configuration when selecting ${moduleType}/${handlerType} handler.
+
+            Configured providers: ${configs.map((c) => c.name).join(", ")}
+            Plugin names: ${filtered.map((p) => p.pluginName).join(", ")}
+          `,
         })
       } else {
         return filtered[0]
@@ -314,24 +312,13 @@ export class ModuleRouter extends BaseRouter {
       })
     } else {
       // Nothing matched, throw error.
-      const errorDetails = {
-        requestedHandlerType: handlerType,
-        requestedModuleType: moduleType,
-        environment: this.garden.environmentName,
-        pluginName,
-      }
-
       if (pluginName) {
         throw new PluginError({
           message: `Plugin '${pluginName}' does not have a '${handlerType}' handler for module type '${moduleType}'.`,
-          detail: errorDetails,
         })
       } else {
         throw new ParameterError({
-          message:
-            `No '${handlerType}' handler configured for module type '${moduleType}' in environment ` +
-            `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
-          detail: errorDetails,
+          message: `No '${handlerType}' handler configured for module type '${moduleType}' in environment '${this.garden.environmentName}'. Are you missing a provider configuration?`,
         })
       }
     }

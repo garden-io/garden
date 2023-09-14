@@ -150,10 +150,9 @@ export async function renderConfigTemplate({
     const availableTemplates = Object.keys(templates)
     throw new ConfigurationError({
       message: deline`
-      Render ${resolved.name} references template ${resolved.template},
-      which cannot be found. Available templates: ${availableTemplates.join(", ")}
+        Render ${resolved.name} references template ${resolved.template} which cannot be found.
+        Available templates: ${naturalList(availableTemplates)}
       `,
-      detail: { availableTemplates },
     })
   }
 
@@ -199,7 +198,7 @@ async function renderModules({
       try {
         moduleConfig = prepareModuleResource(spec, renderConfigPath, garden.projectRoot)
       } catch (error) {
-        let msg = error.message
+        let msg = error.message || String(error)
 
         if (spec.name && spec.name.includes && spec.name.includes("${")) {
           msg +=
@@ -208,11 +207,6 @@ async function renderModules({
 
         throw new ConfigurationError({
           message: `${configTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${renderConfig.name}: ${msg}`,
-          detail: {
-            moduleSpec: spec,
-            parent: renderConfig,
-            error,
-          },
         })
       }
 
@@ -262,12 +256,9 @@ async function renderConfigs({
         resolvedName = resolveTemplateString(m.name, context, { allowPartial: false })
       } catch (error) {
         throw new ConfigurationError({
-          message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error.message}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
-          detail: {
-            spec: m,
-            renderConfig,
-            error,
-          },
+          message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${
+            error.message || error
+          }\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
         })
       }
 
@@ -276,10 +267,6 @@ async function renderConfigs({
         if (maybeTemplateString(m[field])) {
           throw new ConfigurationError({
             message: `${templateDescription} contains an invalid resource: Found a template string in '${field}' field (${m[field]}).`,
-            detail: {
-              spec: m,
-              renderConfig,
-            },
           })
         }
       }
@@ -289,10 +276,6 @@ async function renderConfigs({
           message: `Unexpected kind '${m.kind}' found in ${templateDescription}. Supported kinds are: ${naturalList(
             templatableKinds
           )}`,
-          detail: {
-            spec: m,
-            renderConfig,
-          },
         })
       }
 
@@ -311,12 +294,13 @@ async function renderConfigs({
           allowInvalid: false,
         })!
       } catch (error) {
+        if (!(error instanceof ConfigurationError)) {
+          throw error
+        }
         throw new ConfigurationError({
-          message: `${templateDescription} returned an invalid config (named ${spec.name}) for Render ${renderConfig.name}: ${error.message}`,
-          detail: {
-            spec,
-            renderConfig,
-          },
+          message: `${templateDescription} returned an invalid config (named ${spec.name}) for Render ${
+            renderConfig.name
+          }: ${error.message || error}}`,
           wrappedErrors: [error],
         })
       }

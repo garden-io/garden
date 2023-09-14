@@ -16,9 +16,9 @@ import { WorkflowConfig } from "../config/workflow"
 import { Log, LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
 import { findByName, getNames } from "./util"
-import { GardenBaseError, GardenError, InternalError } from "../exceptions"
+import { GardenError, InternalError } from "../exceptions"
 import { EventBus, EventName, Events } from "../events/events"
-import { dedent } from "./string"
+import { dedent, naturalList } from "./string"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants"
@@ -37,7 +37,7 @@ import { mkdirp, remove } from "fs-extra"
 import { GlobalConfigStore } from "../config-store/global"
 import { isPromise } from "./objects"
 
-export class TestError extends GardenBaseError {
+export class TestError extends GardenError {
   type = "_test"
 }
 
@@ -137,7 +137,6 @@ export class TestEventBus extends EventBus {
       Logged events:
       ${this.eventLog.map((e) => JSON.stringify(e)).join("\n")}
     `,
-      detail: { name, payload },
     })
   }
 }
@@ -346,8 +345,7 @@ export class TestGarden extends Garden {
 
     if (!config) {
       throw new TestError({
-        message: `Could not find module config ${name}`,
-        detail: { name, available: getNames(modules) },
+        message: `Could not find module config ${name}. Available modules: ${naturalList(getNames(modules))}`,
       })
     }
 
@@ -412,7 +410,8 @@ export class TestGarden extends Garden {
 export function expectFuzzyMatch(str: string, sample: string | string[]) {
   const errorMessageNonAnsi = stripAnsi(str)
   const samples = typeof sample === "string" ? [sample] : sample
-  samples.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
+  const samplesNonAnsi = samples.map(stripAnsi)
+  samplesNonAnsi.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
 }
 
 export function expectLogsContain(logs: string[], sample: string) {
@@ -491,4 +490,28 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
   }
 
   return handleNonError(false)
+}
+
+// adapted from https://stackoverflow.com/a/18543419/1518423
+export function captureStream(stream: NodeJS.WritableStream) {
+  const oldWrite = stream.write
+  let buf: string = ""
+
+  class FakeWrite {
+    write(chunk, _callback)
+    write(chunk, _encoding?, _callback?) {
+      buf += chunk.toString()
+    }
+  }
+
+  stream["write"] = FakeWrite.prototype.write
+
+  return {
+    unhook: function unhook() {
+      stream.write = oldWrite
+    },
+    captured: () => {
+      return buf
+    },
+  }
 }

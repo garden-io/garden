@@ -1,11 +1,11 @@
 ---
-title: Provider Configuration
+title: Plugin Configuration
 order: 1
 ---
 
-# Provider Configuration
+# Plugin Configuration
 
-First, you need to enable the pulumi provider in your project configuration. This is as simple as placing it in your list of providers:
+First, you need to enable the `pulumi` provider in your project configuration. This is as simple as placing it in your list of providers:
 ```yaml
 apiVersion: garden.io/v1
 kind: Project
@@ -18,9 +18,9 @@ providers:
 In case you want to use different backends for different Garden environments you can configure your provider and deploy actions follows. This example uses two
 different pulumi backends. In the `dev` environment it uses a self-managed state backend, in this case an S3 bucket which is specified
 with the `backendURL`.
-In the `prod` environment it uses pulumi managed state backend, which is the default so we don't need to specify a `backendURL`. 
+In the `prod` environment it uses pulumi managed state backend, which is the default so we don't need to specify a `backendURL`.
 
-Note that when you use a self managed state backend, Garden's deploy action level `spec.cacheStatus` needs to be set to `false`, since 
+Note that when you use a self managed state backend, Garden's deploy action level `spec.cacheStatus` needs to be set to `false`, since
 caching is only available with the pulumi managed state backend. The same applies to `spec.orgName` which only makes sense in the context of the pulumi managed state backend.
 Please ensure that `spec.orgName` is set to `null` or empty string `""` for all the environments that are not using the pulumi managed state backend.
 

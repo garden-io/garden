@@ -13,7 +13,7 @@ import { dedent, splitLines, naturalList } from "../../util/string"
 import { STATIC_DIR } from "../../constants"
 import { padStart, padEnd } from "lodash"
 import chalk from "chalk"
-import { ConfigurationError } from "../../exceptions"
+import { ConfigurationError, GardenError } from "../../exceptions"
 import { defaultDockerfileName } from "../container/config"
 import { baseBuildSpecSchema } from "../../config/module"
 import { getGitHubUrl } from "../../docs/common"
@@ -270,9 +270,12 @@ hadolintTest.addHandler("configure", async ({ ctx, config }) => {
     try {
       dockerfilePath = ctx.resolveTemplateStrings(dockerfilePath)
     } catch (error) {
+      if (!(error instanceof GardenError)) {
+        throw error
+      }
       throw new ConfigurationError({
-        message: `The spec.dockerfilePath field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
-        detail: { config, error },
+        message: `The spec.dockerfilePath field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error.message}`,
+        wrappedErrors: [error],
       })
     }
     config.include.push(dockerfilePath)
@@ -291,11 +294,7 @@ hadolintTest.addHandler("run", async ({ ctx, log, action }) => {
     dockerfile = (await readFile(dockerfilePath)).toString()
   } catch {
     throw new ConfigurationError({
-      message: `hadolint: Could not find Dockerfile at ${spec.dockerfilePath}`,
-      detail: {
-        actionPath: action.basePath(),
-        ...spec,
-      },
+      message: `hadolint: Could not find Dockerfile at ${spec.dockerfilePath}. Action path: ${action.basePath()}`,
     })
   }
 

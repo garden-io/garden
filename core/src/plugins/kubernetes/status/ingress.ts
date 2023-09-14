@@ -6,7 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServiceIngress } from "../../../types/service"
+import { ServiceIngress, ServiceProtocol } from "../../../types/service"
+import { KubernetesProvider } from "../config"
+import { isProviderEphemeralKubernetes } from "../ephemeral/ephemeral"
 import { KubernetesIngress, KubernetesResource } from "../types"
 
 /**
@@ -14,7 +16,7 @@ import { KubernetesIngress, KubernetesResource } from "../types"
  *
  * Does a best-effort extraction based on known ingress resource types.
  */
-export function getK8sIngresses(resources: KubernetesResource[]): ServiceIngress[] {
+export function getK8sIngresses(resources: KubernetesResource[], provider?: KubernetesProvider): ServiceIngress[] {
   const output: ServiceIngress[] = []
 
   for (const r of resources.filter(isIngressResource)) {
@@ -40,9 +42,15 @@ export function getK8sIngresses(resources: KubernetesResource[]): ServiceIngress
           stringPath = path
         }
 
+        let protocol: ServiceProtocol = tlsHosts.includes(rule.host) ? "https" : "http"
+        // ephemeral-kubernetes ingresses should always be https
+        if (provider && isProviderEphemeralKubernetes(provider)) {
+          protocol = "https"
+        }
+
         output.push({
           hostname: rule.host,
-          protocol: tlsHosts.includes(rule.host) ? "https" : "http",
+          protocol,
           path: stringPath,
         })
       }

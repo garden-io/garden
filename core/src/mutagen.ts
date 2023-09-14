@@ -18,7 +18,7 @@ import { join } from "path"
 import respawn from "respawn"
 import split2 from "split2"
 import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants"
-import { GardenBaseError } from "./exceptions"
+import { GardenError } from "./exceptions"
 import pMemoize from "./lib/p-memoize"
 import { Log } from "./logger/log-entry"
 import { PluginContext } from "./plugin-context"
@@ -128,7 +128,7 @@ interface ActiveSync {
   mutagenParameters: string[]
 }
 
-export class MutagenError extends GardenBaseError {
+export class MutagenError extends GardenError {
   type = "mutagen"
 }
 
@@ -818,15 +818,23 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
     parsed = JSON.parse(res.stdout)
   } catch (err) {
     throw new MutagenError({
-      message: `Could not parse response from mutagen sync list: ${res.stdout}`,
-      detail: { res },
+      message: dedent`
+        Could not parse response from mutagen sync list: ${res.stdout}
+
+        Full output:
+        ${res.all}
+        `,
     })
   }
 
   if (!Array.isArray(parsed)) {
     throw new MutagenError({
-      message: `Unexpected response from mutagen sync list: ${parsed}`,
-      detail: { res, parsed },
+      message: dedent`
+        Unexpected response from mutagen sync list: ${parsed}. Got: ${typeof parsed}
+
+        Full output:
+        ${res.all}
+        `,
     })
   }
 

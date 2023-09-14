@@ -6,9 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
+import { execSync } from "child_process"
+import _spawn from "cross-spawn"
+import { createHash } from "crypto"
+import { readFile } from "fs-extra"
+import { load } from "js-yaml"
 import {
   difference,
-  extend,
   find,
   fromPairs,
   groupBy,
@@ -20,27 +25,21 @@ import {
   pick,
   range,
   some,
-  trimEnd,
+  truncate,
   uniqBy,
 } from "lodash"
-import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
-import _spawn from "cross-spawn"
-import { readFile } from "fs-extra"
-import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
-import { load } from "js-yaml"
-import { createHash } from "crypto"
-import { dedent, tailString } from "./string"
-import { Readable, Writable } from "stream"
-import type { Log } from "../logger/log-entry"
-import type { PrimitiveMap } from "../config/common"
-import { isAbsolute, relative } from "path"
-import { getDefaultProfiler } from "./profiling"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants"
-import split2 = require("split2")
-import execa = require("execa")
-import { execSync } from "child_process"
 import pMap from "p-map"
 import pProps from "p-props"
+import { isAbsolute, relative } from "path"
+import { Readable, Writable } from "stream"
+import type { PrimitiveMap } from "../config/common"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants"
+import { ChildProcessError, InternalError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
+import type { Log } from "../logger/log-entry"
+import { getDefaultProfiler } from "./profiling"
+import { dedent, naturalList, tailString } from "./string"
+import split2 = require("split2")
+import execa = require("execa")
 
 export { apply as jsonMerge } from "json-merge-patch"
 
@@ -181,39 +180,6 @@ export function createOutputStream(log: Log, origin?: string) {
 
   return outputStream
 }
-
-export function makeErrorMsg({
-  code,
-  cmd,
-  args,
-  output,
-  error,
-}: {
-  code: number
-  cmd: string
-  args: string[]
-  error: string
-  output: string
-}) {
-  const nLinesToShow = 100
-  const lines = output.split("\n")
-  const out = lines.slice(-nLinesToShow).join("\n")
-  const cmdStr = args.length > 0 ? `${cmd} ${args.join(" ")}` : cmd
-  let msg = dedent`
-    Command "${cmdStr}" failed with code ${code}:
-
-    ${trimEnd(error, "\n")}
-  `
-  if (output && output !== error) {
-    msg +=
-      lines.length > nLinesToShow
-        ? `\n\nHere are the last ${nLinesToShow} lines of the output:`
-        : `\n\nHere's the full output:`
-    msg += `\n\n${trimEnd(out, "\n")}`
-  }
-  return msg
-}
-
 export interface ExecOpts extends execa.Options {
   stdout?: Writable
   stderr?: Writable
@@ -224,6 +190,9 @@ export interface ExecOpts extends execa.Options {
  * Enforces `buffer: true` (which is the default execa behavior).
  *
  * Also adds the ability to pipe stdout|stderr to an output stream.
+ *
+ * @throws RuntimeError on EMFILE (Too many open files)
+ * @throws ChildProcessError on any other error condition
  */
 export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
   // Ensure buffer is always set to true so that we can read the error output
@@ -247,20 +216,18 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
 
         This can also be due to limits on open file descriptors being too low. Here is one guide on how to configure those limits for different platforms: https://docs.riak.com/riak/kv/latest/using/performance/open-files-limit/index.html
         `,
-        detail: { error: err },
       })
     }
 
     const error = <execa.ExecaError>err
-    const message = makeErrorMsg({
+    throw new ChildProcessError({
       cmd,
       args,
       code: error.exitCode || err.code || err.errno,
       output: error.all || error.stdout || error.stderr || "",
-      error: error.stderr,
+      stderr: error.stderr || "",
+      stdout: error.stdout || "",
     })
-    error.message = message
-    throw error
   }
 }
 
@@ -290,6 +257,9 @@ export interface SpawnOutput {
 /**
  * Note: For line-by-line stdout/stderr streaming, both `opts.stdout` and `opts.stderr` must be defined. This is a
  * result of how Node's child process spawning works (which this function wraps).
+ *
+ * @throws RuntimeError on ENOENT (command not found)
+ * @throws ChildProcessError on any other error condition
  */
 export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   const {
@@ -320,7 +290,9 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 
   if (tty) {
     if (data) {
-      throw new ParameterError({ message: `Cannot pipe to stdin when tty=true`, detail: { cmd, args, opts } })
+      throw new InternalError({
+        message: `Cannot pipe to stdin when tty=true. (spawn(${JSON.stringify(cmd)}, ${JSON.stringify(args)})`,
+      })
     }
     _process.stdin.setEncoding("utf8")
     // raw mode is not available if we're running without a TTY
@@ -358,17 +330,10 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
       return
     }
 
-    const _reject = (err: GardenError) => {
-      extend(err.detail, <any>result)
-      reject(err)
-    }
-
     if (timeout > 0) {
       _timeout = setTimeout(() => {
         proc.kill("SIGKILL")
-        _reject(
-          new TimeoutError({ message: `${cmd} timed out after ${timeout} seconds.`, detail: { cmd, args, opts } })
-        )
+        reject(new TimeoutError({ message: `${cmd} timed out after ${timeout} seconds.` }))
       }, timeout * 1000)
     }
 
@@ -378,7 +343,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
         msg = `${msg} Please make sure '${cmd}' is installed and in the $PATH.`
         cwd && (msg = `${msg} Please make sure '${cwd}' exists and is a valid directory path.`)
       }
-      _reject(new RuntimeError({ message: msg, detail: { cmd, args, opts, result, err } }))
+      reject(new RuntimeError({ message: msg }))
     })
 
     proc.on("close", (code) => {
@@ -388,14 +353,17 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
       if (code === 0 || ignoreError) {
         resolve(result)
       } else {
-        const msg = makeErrorMsg({
-          code: code!,
-          cmd,
-          args,
-          output: result.all || result.stdout || result.stderr || "",
-          error: result.stderr || "",
-        })
-        _reject(new RuntimeError({ message: msg, detail: { cmd, args, opts, result } }))
+        reject(
+          new ChildProcessError({
+            cmd,
+            args,
+            code: result.code,
+            opts,
+            output: result.all,
+            stderr: result.stderr,
+            stdout: result.stdout,
+          })
+        )
       }
     })
   })
@@ -538,11 +506,9 @@ export function pickKeys<T extends object, U extends keyof T>(obj: T, keys: U[],
 
   if (missing.length) {
     throw new ParameterError({
-      message: `Could not find ${description}(s): ${missing.map((k, _) => k).join(", ")}`,
-      detail: {
-        missing,
-        available: Object.keys(obj),
-      },
+      message: `Could not find ${description}(s): ${missing.map((k, _) => k).join(", ")}. Available: ${naturalList(
+        Object.keys(obj)
+      )}`,
     })
   }
 
@@ -565,8 +531,7 @@ export function findByNames<T extends ObjectWithName>({
 
   if (missing.length && !allowMissing) {
     throw new ParameterError({
-      message: `Could not find ${description}(s): ${missing.join(", ")}`,
-      detail: { available, missing },
+      message: `Could not find ${description}(s): ${missing.join(", ")}. Available: ${naturalList(available)}`,
     })
   }
 
@@ -587,11 +552,7 @@ export function pushToKey(obj: object, key: string, value: any) {
   if (obj[key]) {
     if (!isArray(obj[key])) {
       throw new RuntimeError({
-        message: `Value at '${key}' is not an array`,
-        detail: {
-          obj,
-          key,
-        },
+        message: `Value at '${key}' is not an array. Got ${typeof obj[key]}`,
       })
     }
     obj[key].push(value)
@@ -681,40 +642,33 @@ export async function runScript({
   script: string
   envVars?: PrimitiveMap
 }) {
-  envVars = envVars || {}
-
+  const env = toEnvVars(envVars || {})
+  const outputStream = split2()
+  outputStream.on("error", (line: Buffer) => {
+    log.error(line.toString())
+  })
+  outputStream.on("data", (line: Buffer) => {
+    log.info(line.toString())
+  })
+  const errorStream = split2()
+  errorStream.on("error", (line: Buffer) => {
+    log.error(line.toString())
+  })
+  errorStream.on("data", (line: Buffer) => {
+    log.error(line.toString())
+  })
   // Workaround for https://github.com/vercel/pkg/issues/897
-  envVars.PKG_EXECPATH = ""
-
-  // Run the script, capturing any errors
-  const proc = execa("bash", ["-s"], {
-    all: true,
+  env.PKG_EXECPATH = ""
+  // script can be either a command or path to an executable
+  // shell script since we use the shell option.
+  const result = await exec(script, [], {
+    shell: true,
     cwd,
-    // The script is piped to stdin
-    input: script,
-    // Set a very large max buffer (we only hold one of these at a time, and want to avoid overflow errors)
-    buffer: true,
-    maxBuffer: 100 * 1024 * 1024,
-    env: toEnvVars(envVars || {}),
+    env,
+    stdout: outputStream,
+    stderr: errorStream,
   })
-
-  // Stream output to `log`, splitting by line
-  const stdout = split2()
-  const stderr = split2()
-
-  stdout.on("error", () => {})
-  stdout.on("data", (line: Buffer) => {
-    log.info(line.toString())
-  })
-  stderr.on("error", () => {})
-  stderr.on("data", (line: Buffer) => {
-    log.info(line.toString())
-  })
-
-  proc.stdout!.pipe(stdout)
-  proc.stderr!.pipe(stderr)
-
-  return await proc
+  return result
 }
 
 export async function streamToString(stream: Readable) {
@@ -839,11 +793,27 @@ export function userPrompt(params: {
   return require("inquirer").prompt(params)
 }
 
-export function getGitHubIssueLink(title: string, type: "bug" | "feature-request") {
-  if (type === "feature-request") {
-    return `https://github.com/garden-io/garden/issues/new?assignees=&labels=feature+request&template=FEATURE_REQUEST.md&title=%5BFEATURE%5D%3A+${title}`
-  } else {
-    return `https://github.com/garden-io/garden/issues/new?assignees=&labels=&template=BUG_REPORT.md&title=${title}`
+export function getGitHubIssueLink(title: string, type: "bug" | "crash" | "feature-request") {
+  try {
+    title = encodeURIComponent(
+      truncate(title, {
+        length: 80,
+        omission: encodeURIComponent("..."),
+      })
+    ).replaceAll("'", "%27")
+  } catch (e) {
+    // encodeURIComponent might throw URIError with malformed unicode strings.
+    // The title is not that important, we can also leave it empty in that case.
+    title = ""
+  }
+
+  switch (type) {
+    case "feature-request":
+      return `https://github.com/garden-io/garden/issues/new?labels=feature+request&template=FEATURE_REQUEST.md&title=%5BFEATURE%5D%3A+${title}`
+    case "bug":
+      return `https://github.com/garden-io/garden/issues/new?labels=bug&template=BUG_REPORT.md&title=${title}`
+    case "crash":
+      return `https://github.com/garden-io/garden/issues/new?labels=bug,crash&template=CRASH.md&title=${title}`
   }
 }
 

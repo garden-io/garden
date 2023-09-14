@@ -14,7 +14,7 @@ import { printHeader } from "../../logger/util"
 import { isDirectory } from "../../util/fs"
 import { loadConfigResources } from "../../config/base"
 import { resolve, basename, relative, join } from "path"
-import { GardenBaseError, ParameterError } from "../../exceptions"
+import { GardenError, ParameterError } from "../../exceptions"
 import { addConfig } from "./helpers"
 import { wordWrap } from "../../util/string"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
@@ -60,7 +60,7 @@ interface CreateProjectResult {
   name: string
 }
 
-class CreateError extends GardenBaseError {
+class CreateError extends GardenError {
   type: "create"
 }
 
@@ -106,7 +106,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     const configDir = resolve(process.cwd(), opts.dir)
 
     if (!(await isDirectory(configDir))) {
-      throw new ParameterError({ message: `${configDir} is not a directory`, detail: { configDir } })
+      throw new ParameterError({ message: `${configDir} is not a directory` })
     }
 
     const configPath = join(configDir, opts.filename)
@@ -118,7 +118,6 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
       if (configs.filter((c) => c.kind === "Project").length > 0) {
         throw new CreateError({
           message: `A Garden project already exists in ${configPath}`,
-          detail: { configDir, configPath },
         })
       }
     }
