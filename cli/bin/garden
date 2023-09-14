@@ -1,7 +1,6 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --max-old-space-size=4096 --max-semi-space-size=64
 const path = require('path');
 
-process.env.NODE_OPTIONS = "max-old-space-size=4096 max-semi-space-size=64";
 process.env.STATIC_DIR = path.join(__dirname, '..', 'static');
 
 const fs = require('fs');
