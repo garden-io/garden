@@ -1,11 +1,13 @@
 ---
 title: Adopting Garden
-order: 2
+order: 5
 ---
 
 # Adopting Garden
 
-This page contains a high-level overview of the steps required to adopt Garden. The configuration snippets are just for demonstration purposes to help you understand how Garden grows with your stack.
+This page contains a high-level overview of the steps involved in adopting Garden. The configuration snippets are mostly for demonstration purposes to help you understand how your config evolves as you adopt Garden for more use cases.
+
+In what what follows we assume you have a basic understanding of Garden and its core concepts. If not, checkout the [How Garden Works](./how-garden-works.md) or [Core Concepts](./core-concepts.md) guides.
 
 ## Step 1 — Pick your plugins
 
@@ -36,7 +38,7 @@ Below you'll find a brief overview of our main plugins. Once you know what you n
 
 The [local Kubernetes](../k8s-plugins/local-k8s/README.md) is usually the easiest way to get started. All you need is a local Kubernetes installation (e.g. Minikube or Docker for Desktop) and a project to deploy.
 
-Our [Quickstart Guide](../basics/quickstart.md) uses this plugin.
+Our [Quickstart Guide](./quickstart.md) uses this plugin.
 
 This plugin is great for kicking the tires and for solo projects that you can comfortably run on your laptop.
 
@@ -83,12 +85,9 @@ Garden actions and their configuration can be spread across different files and 
 
 Once you've configured your plugin(s), it's time to add actions.
 
-Actions are the components that make up your stack.
-The four kinds of actions are `deploy`, `test`, `run` and `build`.
+Actions are the basic building blocks of that make up your Garden project. The four kinds of actions are `Build`, `Deploy`, `Test`, and `Run` and how they're configured depends on the action _kind_ and _type_.
 
-How they're configured depends on the kind and plugins you're using (kind).
-
-We recommend putting each action in its own `garden.yml` file and locate it next to any source files. For demonstration purposes, here's what a (slightly simplified) Garden project could look like in a _single file_:
+We recommend putting each action in its own `garden.yml` file and locate it next to any source files but for demonstration purposes, here's what a (slightly simplified) Garden project could look like in a _single file_:
 
 ```yaml
 # At the root of your project.
@@ -126,10 +125,16 @@ spec:
 
 ---
 
+kind: Build
+name: api
+type: container
+
+---
+
 kind: Deploy
 name: api
 type: kubernetes
-dependencies: [run.db-init]
+dependencies: [build.api, run.db-init]
 spec:
   files: [ manifest.yml ]
 
@@ -152,18 +157,18 @@ Depending on the size of your project, you may want to add a handful of actions 
 
 ## Step 3 — Add more plugins and environments
 
-Garden works great during development, and for running tests and creating preview environments in CI.
+Garden works great during development _and_ for running tests and creating preview environments in CI.
 
 We recommend adopting Garden in one part of your software delivery cycle to begin and then gradually introducing more.
 
 A common path looks something like this:
 
-1. Start by using Garden in CI to create preview environments.
-2. Roll Garden out to developers and add production-like dev environments.
-3. Use Garden for running end-to-end tests, as you code, and in CI
-   pipelines.
-4. Use Garden for production deployments or integrate it with your
-   existing tools.
+1. Start by using Garden in CI to create preview environments and optionally run end-to-end tests.
+2. Roll Garden out to developers to enable them to create production-like preview environments from their laptops and
+   run end-to-end tests _as they code_.
+3. Set up [sync mode](../guides/code-synchronization.md) so developers can _develop_ in production-like environments with live
+   code syncing.
+4. Use Garden for production deployments or integrate it with your existing CD tools.
 
 At this point, a simplified configuration could look something like the following:
 
@@ -204,7 +209,7 @@ type: kubernetes
 files: "[path/to/your/${environment.name}/k8s/manifests]" # <--- Pick manifests based on env
 ```
 
-At this point you'll have codified all your workflows such that they are portable across environments and you can go from zero to a running system in a single command.
+At this point you'll have codified all your workflows such that they are portable across environments—allowing you to go from zero to a running system in a single command.
 
 Now that you have a feel for how our users typically adopt Garden, we recommend heading to the documentation for your plugin of choice, and to start Gardenifying your project.
 

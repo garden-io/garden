@@ -9,6 +9,7 @@
 * [Core Concepts](./basics/core-concepts.md)
 * [Start a Free Kubernetes Cluster](./basics/ephemeral-clusters.md)
 * [Use Cases](./basics/use-cases.md)
+* [Adopting Garden](./basics/adopting-garden.md)
 * [Garden vs Other Tools](./basics/garden-vs-other-tools.md)
 
 ## 🌳 Tutorials
@@ -82,9 +83,8 @@
 ## 🌹 Guides
 
 * [Installing Garden](./guides/installation.md)
-* [Adopting Garden](./guides/adopting-garden.md)
-* [Code Synchronization](./guides/code-synchronization.md)
 * [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
+* [Code Synchronization](./guides/code-synchronization.md)
 * [Environments and namespaces](./guides/namespaces.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
