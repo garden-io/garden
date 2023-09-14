@@ -186,8 +186,8 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
       buffer: true,
     })
 
-    log.debug(`Loading image to local docker with ID ${localId}`)
-    await loadImage({ ctx, runner, log })
+    log.debug(`Loading image to local docker with ID ${localId} with tag ${remoteId}`)
+    await loadImage({ ctx, runner, log, localId, remoteId })
   } catch (err) {
     if (!(err instanceof GardenError)) {
       throw err
@@ -201,7 +201,19 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
   }
 }
 
-async function loadImage({ ctx, runner, log }: { ctx: PluginContext; runner: PodRunner; log: Log }) {
+async function loadImage({
+  ctx,
+  runner,
+  log,
+  localId,
+  remoteId,
+}: {
+  ctx: PluginContext
+  runner: PodRunner
+  log: Log
+  localId: string
+  remoteId: string
+}) {
   await tmp.withFile(async ({ path }) => {
     let writeStream = fs.createWriteStream(path)
 
@@ -218,6 +230,13 @@ async function loadImage({ ctx, runner, log }: { ctx: PluginContext; runner: Pod
       ctx,
       cwd: "/tmp",
       args: ["load", "-i", path],
+      log,
+    })
+
+    await containerHelpers.dockerCli({
+      ctx,
+      cwd: "/tmp",
+      args: ["tag", localId, remoteId],
       log,
     })
   })
