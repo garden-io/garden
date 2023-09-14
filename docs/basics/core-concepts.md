@@ -3,7 +3,7 @@ order: 3
 title: Core Concepts
 ---
 
-Below you'll find definition of the main Garden concepts.
+Below you'll find a glossary of the main Garden concepts.
 
 ### Garden CLI
 An open-source standalone binary that's responsible for parsing **Garden config** and executing the **actions** defined there.
