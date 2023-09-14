@@ -15,18 +15,14 @@ providers:
   - name: kubernetes
     environments: [remote]
     # Replace the below values as appropriate
-    context: gke_garden-ci_europe-west1-b_core-ci
-    namespace: ${project.name}-testing-${var.userId}
-    defaultHostname: ${var.baseHostname}
+    context: arn:aws:eks:eu-central-1:873483817304:cluster/garden-ci-k8s-cfb88b38
     buildMode: kaniko
-    deploymentRegistry:
-      hostname: eu.gcr.io # <- set this according to the region your cluster runs in
-      namespace: garden-ci # <- set this to the project ID of the target cluster
     imagePullSecrets:
-      # Make sure this matches the name and namespace of the imagePullSecret you've created
-      # to authenticate with your registry (if needed)
-      - name: gcr-config
+      - name: regcred
         namespace: default
+    deploymentRegistry:
+      hostname: 873483817304.dkr.ecr.eu-central-1.amazonaws.com
+      namespace: vote-demo
 variables:
   userId: ${kebabCase(local.username)}
   postgres-database: postgres

@@ -431,6 +431,12 @@ export async function upsertConfigMap({
     data: serializedData,
   }
 
+
+  console.log("############################## hello")
+  console.log(body)
+  console.log("##############################")
+
+
   try {
     await api.core.createNamespacedConfigMap(namespace, <any>body)
   } catch (err) {
