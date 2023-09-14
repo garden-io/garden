@@ -89,7 +89,6 @@ As of today, the ephemeral-kubernetes provider has the following limitations:
 
 ## Example projects using the `ephemeral-kubernetes` provider
 
-To demonstrate the use of the `ephemeral-kubernetes` provider, we have added an example project: [ephemeral-cluster-demo](https://github.com/garden-io/garden/tree/main/examples) under our examples collection. Check out the `ephemeral-cluster-demo` example and README at:
-<!-- todo add example link once example is merged: https://github.com/garden-io/garden/tree/main/examples/ephemeral-cluster-demo -->
+To demonstrate the use of the `ephemeral-kubernetes` provider, we have added an example project: [ephemeral-cluster-demo](https://github.com/garden-io/garden/tree/main/examples) under our examples collection. Check out the `ephemeral-cluster-demo` example and README at: https://github.com/garden-io/garden/tree/main/examples/ephemeral-cluster-demo
 
 
