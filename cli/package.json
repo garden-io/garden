@@ -16,7 +16,9 @@
   "preferGlobal": true,
   "private": false,
   "files": [
-    "build"
+    "build",
+    "static",
+    "bin"
   ],
   "bin": {
     "garden": "bin/garden"
@@ -50,7 +52,7 @@
   },
   "scripts": {
     "add-version-files": "node build/src/add-version-files.js",
-    "build": "tsc --build . --verbose && yarn run add-version-files && yarn run generate-docs",
+    "build": "shx cp -r ../static ./static && git init ./static && tsc --build . --verbose && yarn run add-version-files && yarn run generate-docs",
     "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "shx rm -rf build dist",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
