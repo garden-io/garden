@@ -37,6 +37,7 @@ const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
+
 export class CloudApiTokenRefreshError extends CloudApiError {}
 
 function extractErrorMessageBodyFromGotError(error: any): error is GotHttpError {
@@ -734,17 +735,7 @@ export class CloudApi {
     return new URL(`/projects/${projectId}`, this.domain)
   }
 
-  getCommandResultUrl({
-    projectId,
-    sessionId,
-    userId,
-    shortId,
-  }: {
-    projectId: string
-    sessionId: string
-    userId: string
-    shortId: string
-  }) {
+  getCommandResultUrl({ projectId, sessionId, shortId }: { projectId: string; sessionId: string; shortId: string }) {
     // fallback to full url if shortid is missing
     const path = shortId ? `/go/command/${shortId}` : `/projects/${projectId}/commands/${sessionId}`
     return new URL(path, this.domain)

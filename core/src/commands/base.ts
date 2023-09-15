@@ -315,7 +315,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
           const commandResultUrl = cloudSession.api.getCommandResultUrl({
             sessionId: garden.sessionId,
             projectId: cloudSession.projectId,
-            userId,
             shortId: cloudSession.shortId,
           }).href
           const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
