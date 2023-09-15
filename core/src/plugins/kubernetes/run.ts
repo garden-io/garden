@@ -184,8 +184,6 @@ export async function runAndCopy({
     api,
     provider,
     log,
-    action,
-    version,
     podData: {
       podSpec,
       podName,
@@ -382,19 +380,15 @@ function getPodResourceAndRunner({
 async function runWithoutArtifacts({
   ctx,
   api,
-  action,
   provider,
   log,
   podData,
   run,
-  version,
 }: {
   ctx: PluginContext
   log: Log
   api: KubeApi
   provider: KubernetesProvider
-  action: SupportedRuntimeAction
-  version: string
   podData: PodData
   run: BaseRunParams
 }): Promise<RunResult> {
@@ -481,20 +475,17 @@ async function runWithArtifacts({
   api,
   provider,
   log,
-  action,
   mainContainerName,
   artifacts,
   artifactsPath,
   description,
   stdout,
   stderr,
-  version,
   podData,
   run,
 }: {
   ctx: PluginContext
   log: Log
-  action: SupportedRuntimeAction
   mainContainerName: string
   api: KubeApi
   provider: KubernetesProvider
@@ -503,7 +494,6 @@ async function runWithArtifacts({
   description?: string
   stdout: Writable
   stderr: Writable
-  version: string
   podData: PodData
   run: BaseRunParams
 }): Promise<RunResult> {
@@ -713,6 +703,7 @@ type RunParams = StartParams & {
 
 type PodRunnerDetailsParams = { details: PodErrorDetails }
 type PodRunnerErrorParams = GardenErrorParams & PodRunnerDetailsParams
+
 export abstract class PodRunnerError extends GardenError {
   type = "pod-runner"
 
@@ -766,6 +757,7 @@ class PodRunnerWorkloadError extends PodRunnerError {
     })
   }
 }
+
 class PodRunnerOutOfMemoryError extends PodRunnerError {
   override type = "pod-runner-oom"
 
@@ -814,6 +806,7 @@ class PodRunnerTimeoutError extends PodRunnerError {
     })
   }
 }
+
 interface RunAndWaitResult {
   command: string[]
   startedAt: Date
