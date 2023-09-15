@@ -191,8 +191,9 @@ export class GardenServer extends EventEmitter {
           resolve()
         })
 
-        this.server.listen(this.port, hostname)
-        this.app.ws.listen({ server: this.server })
+        this.server.listen(this.port, hostname, () => {
+          this.app.ws.listen({ server: this.server })
+        })
       })
     }
 
