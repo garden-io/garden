@@ -15,7 +15,7 @@ import { dedent, deline } from "../../util/string"
 import { LogLevel } from "../../logger/logger"
 import { KubernetesError } from "./api"
 import requestErrors = require("request-promise/errors")
-import { InternalError, isOSError } from "../../exceptions"
+import { InternalError, isErrnoException } from "../../exceptions"
 
 /**
  * The flag {@code forceRetry} can be used to avoid {@link shouldRetry} helper call in case if the error code
@@ -93,7 +93,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
     errorType = "StatusCodeError"
     response = err.response
     responseStatusCode = err.statusCode
-  } else if (isOSError(err)) {
+  } else if (isErrnoException(err)) {
     errorType = "Error"
     osCode = err.code
   } else {

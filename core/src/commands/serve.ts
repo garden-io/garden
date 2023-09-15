@@ -21,6 +21,7 @@ import { CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
 import { uuidv4 } from "../util/random"
 import { Garden } from "../garden"
 import { GardenPluginReference } from "../plugin/plugin"
+import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions"
 
 export const defaultServerPort = 9700
 
@@ -125,13 +126,30 @@ export class ServeCommand<
 
     const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
 
-    this.server = await startServer({
-      log,
-      manager,
-      port: opts.port,
-      defaultProjectRoot: manager.defaultProjectRoot || process.cwd(),
-      serveCommand: this,
-    })
+    try {
+      this.server = await startServer({
+        log,
+        manager,
+        port: opts.port,
+        defaultProjectRoot: manager.defaultProjectRoot || process.cwd(),
+        serveCommand: this,
+      })
+    } catch (err) {
+      if (isEAddrInUseException(err) && err.port === opts.port) {
+        throw new ParameterError({
+          message: dedent`
+            Port ${opts.port} is already in use, possibly by another Garden server process.
+            Either terminate the other process, or choose another port using the --port parameter.
+          `,
+        })
+      } else if (isErrnoException(err)) {
+        throw new CommandError({
+          message: `Unable to start server: ${err.message}`,
+        })
+      }
+
+      throw err
+    }
 
     try {
       const cloudApi = await manager.getCloudApi({ log, cloudDomain, globalConfigStore: garden.globalConfigStore })
@@ -194,28 +212,13 @@ export class ServeCommand<
       }
     }
 
-    // Print nicer error message when address is not available
-    process.on("uncaughtException", (err: any) => {
-      if (err.errno === "EADDRINUSE" && err.port === opts.port) {
-        log.error({
-          msg: dedent`
-          Port ${opts.port} is already in use, possibly by another Garden server process.
-          Either terminate the other process, or choose another port using the --port parameter.
-          `,
-        })
-      } else {
-        log.error({ msg: err.message })
-      }
-      process.exit(1)
-    })
-
     return new Promise((resolve, reject) => {
       this.server!.on("close", () => {
         resolve({})
       })
 
-      this.server!.on("error", () => {
-        reject({})
+      this.server!.on("error", (err: unknown) => {
+        reject(err)
       })
 
       // Errors are handled in the method

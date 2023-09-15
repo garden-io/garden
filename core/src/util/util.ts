@@ -34,7 +34,7 @@ import { isAbsolute, relative } from "path"
 import { Readable, Writable } from "stream"
 import type { PrimitiveMap } from "../config/common"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants"
-import { ChildProcessError, InternalError, ParameterError, RuntimeError, TimeoutError, isOSError } from "../exceptions"
+import { ChildProcessError, InternalError, ParameterError, RuntimeError, TimeoutError, isErrnoException } from "../exceptions"
 import type { Log } from "../logger/log-entry"
 import { getDefaultProfiler } from "./profiling"
 import { dedent, naturalList, tailString } from "./string"
@@ -207,7 +207,7 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
     const res = await proc
     return res
   } catch (err) {
-    if (isOSError(err) && err.code === "EMFILE") {
+    if (isErrnoException(err) && err.code === "EMFILE") {
       throw new RuntimeError({
         message: dedent`
         Received EMFILE (Too many open files) error when running ${cmd}.

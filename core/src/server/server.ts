@@ -46,6 +46,7 @@ import type { AutocompleteSuggestion } from "../cli/autocomplete"
 import execa = require("execa")
 import { z } from "zod"
 import { omitUndefined } from "../util/objects"
+import { createServer } from "http"
 
 const pty = require("node-pty-prebuilt-multiarch")
 
@@ -177,7 +178,8 @@ export class GardenServer extends EventEmitter {
     const _start = async () => {
       // TODO: pipe every event
       return new Promise<void>((resolve, reject) => {
-        this.server = this.app.listen(this.port, hostname)
+        this.server = createServer(this.app.callback())
+
         this.server.on("error", (error) => {
           this.emit("error", error)
           reject(error)
@@ -188,6 +190,8 @@ export class GardenServer extends EventEmitter {
         this.server.once("listening", () => {
           resolve()
         })
+
+        this.server.listen(this.port, hostname)
       })
     }
 

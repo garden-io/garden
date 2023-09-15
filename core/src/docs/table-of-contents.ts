@@ -32,7 +32,7 @@ import { repeat } from "lodash"
 import titleize = require("titleize")
 import humanizeString = require("humanize-string")
 import { dedent } from "../util/string"
-import { isOSError } from "../exceptions"
+import { isErrnoException } from "../exceptions"
 
 interface Metadata {
   order: number
@@ -70,7 +70,7 @@ function attachMetadata(tree: FileTree) {
     // by dtree. The only reason ENOENT might happen is if it's a non-empty
     // directory that has no README. If the error is *not* ENOENT though,
     // something really went wrong.
-    if (!isOSError(e) || e.code !== "ENOENT") {
+    if (!isErrnoException(e) || e.code !== "ENOENT") {
       throw e
     } else {
       // It's not an empty directory but there's no README: link to first

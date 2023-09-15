@@ -13,16 +13,42 @@ import chalk from "chalk"
 import stripAnsi from "strip-ansi"
 import { Cycle } from "./graph/common"
 import indentString from "indent-string"
+import { constants } from "os"
+
+// See https://nodejs.org/api/os.html#error-constants
+type NodeJSErrnoErrors = typeof constants.errno
+type NodeJSErrnoErrorCodes = keyof NodeJSErrnoErrors
+
+const errnoErrorCodeSet = new Set(Object.keys(constants.errno))
 
 /**
  * NodeJS native errors with a code property.
  */
-export type OSError = {
-  code: string
-} & Error
+export type NodeJSErrnoException = NodeJS.ErrnoException & {
+  code: NodeJSErrnoErrorCodes
+  errno: number
+}
 
-export function isOSError(err: any): err is OSError {
-  return typeof err?.code === "string"
+export type EAddrInUseException = NodeJSErrnoException & {
+  code: "EADDRINUSE"
+  syscall: string
+  address: string
+  port: number
+}
+
+export function isErrnoException(err: any): err is NodeJSErrnoException {
+  return (
+    typeof err.code === "string" &&
+    typeof err.errno === "number" &&
+    errnoErrorCodeSet.has(err.code)
+  )
+}
+
+export function isEAddrInUseException(err: any): err is EAddrInUseException {
+  return (
+    isErrnoException(err) &&
+    err.code === "EADDRINUSE"
+  )
 }
 
 export type StackTraceMetadata = {
