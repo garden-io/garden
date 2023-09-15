@@ -24,8 +24,7 @@ import { RuntimeError, GardenError, InternalError, toGardenError } from "../exce
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel, LogLevel } from "../logger/logger"
-import { printFooter, renderMessageWithDivider } from "../logger/util"
-import { capitalize } from "lodash"
+import { printFooter } from "../logger/util"
 import {
   getCloudDistributionName,
   getCloudLogSectionName,
@@ -678,22 +677,6 @@ ${cliStyles.heading("COMMANDS")}
 ${renderCommands(commands)}
 `
   }
-}
-
-export function printResult({
-  log,
-  result,
-  success,
-  description,
-}: {
-  log: Log
-  result: string
-  success: boolean
-  description: string
-}) {
-  const prefix = success ? `${capitalize(description)} output:` : `${capitalize(description)} failed with error:`
-  const msg = renderMessageWithDivider({ prefix, msg: result, isError: !success })
-  success ? log.info(chalk.white(msg)) : log.error(msg)
 }
 
 // fixme: These interfaces and schemas are mostly copied from their original locations. This is to ensure that
