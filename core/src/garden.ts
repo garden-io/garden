@@ -158,7 +158,7 @@ import { OtelTraced } from "./util/open-telemetry/decorators"
 import { wrapActiveSpan } from "./util/open-telemetry/spans"
 import { GitRepoHandler } from "./vcs/git-repo"
 import { configureNoOpExporter } from "./util/open-telemetry/tracing"
-import { detectModuleOverlap, makeOverlapErrors, ModuleOverlapDescription } from "./util/module-overlap"
+import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap"
 
 const defaultLocalAddress = "localhost"
 
@@ -991,15 +991,8 @@ export class Garden {
     })
     if (overlaps.length > 0) {
       const overlapErrors = makeOverlapErrors(this.projectRoot, overlaps)
-      const messages: string[] = []
-      const overlappingModules: ModuleOverlapDescription[] = []
-      for (const overlapError of overlapErrors) {
-        const { message, detail } = overlapError
-        messages.push(message)
-        overlappingModules.push(...detail.overlappingModules)
-      }
       throw new ConfigurationError({
-        message: messages.join("\n\n"),
+        message: overlapErrors.join("\n\n"),
       })
     }
 
