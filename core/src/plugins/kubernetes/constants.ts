@@ -26,8 +26,6 @@ export const PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME = "garden-prx-ssh"
 export const systemDockerAuthSecretName = "builder-docker-config"
 export const dockerAuthSecretKey = ".dockerconfigjson"
 
-export const gardenUtilDaemonDeploymentName = "garden-util-daemon"
-
 export const skopeoDaemonContainerName = "util"
 
 export const defaultIngressClass = "nginx"
