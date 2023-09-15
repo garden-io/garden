@@ -11,7 +11,6 @@ import { ConfigurationError } from "../exceptions"
 import chalk from "chalk"
 import { relative } from "path"
 import { uuidv4 } from "../util/random"
-import { metadataFromDescription } from "./common"
 import { profile } from "../util/profiling"
 
 export const joiPathPlaceholder = uuidv4()
