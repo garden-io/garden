@@ -991,13 +991,8 @@ export class Garden {
     })
     if (overlaps.length > 0) {
       const overlapErrors = makeOverlapErrors(this.projectRoot, overlaps)
-      const messages: string[] = []
-      for (const overlapError of overlapErrors) {
-        const { message } = overlapError
-        messages.push(message)
-      }
       throw new ConfigurationError({
-        message: messages.join("\n\n"),
+        message: overlapErrors.join("\n\n"),
       })
     }
 

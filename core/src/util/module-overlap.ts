@@ -169,13 +169,9 @@ export function detectModuleOverlap({
   return foundOverlaps
 }
 
-export interface OverlapErrorDescription {
-  message: string
-}
+type ModuleOverlapRenderer = (moduleOverlaps: ModuleOverlap[]) => string
 
-type ModuleOverlapRenderer = (moduleOverlaps: ModuleOverlap[]) => OverlapErrorDescription
-
-const makePathOverlapError: ModuleOverlapRenderer = (moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription => {
+const makePathOverlapError: ModuleOverlapRenderer = (moduleOverlaps: ModuleOverlap[]) => {
   const overlapList = moduleOverlaps.map(({ config, overlaps }) => {
     const formatted = overlaps.map((o) => {
       const detail = o.path === config.path ? "same path" : "nested"
@@ -183,7 +179,7 @@ const makePathOverlapError: ModuleOverlapRenderer = (moduleOverlaps: ModuleOverl
     })
     return `Module ${chalk.bold(config.name)} overlaps with module(s) ${naturalList(formatted)}.`
   })
-  const message = chalk.red(dedent`
+  return chalk.red(dedent`
       Found multiple enabled modules that share the same garden.yml file or are nested within another:
 
       ${overlapList.join("\n\n")}
@@ -197,12 +193,9 @@ const makePathOverlapError: ModuleOverlapRenderer = (moduleOverlaps: ModuleOverl
         at any given time. For example, you can make sure that the modules are enabled only in a certain
         environment.
     `)
-  return { message }
 }
 
-const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
-  moduleOverlaps: ModuleOverlap[]
-): OverlapErrorDescription => {
+const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (moduleOverlaps: ModuleOverlap[]) => {
   const moduleOverlapList = moduleOverlaps.map(({ config, overlaps, generateFilesOverlaps }) => {
     const formatted = overlaps.map((o) => {
       return `${chalk.bold(o.name)}`
@@ -211,12 +204,11 @@ const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
       generateFilesOverlaps || []
     )}.`
   })
-  const message = chalk.red(dedent`
+  return chalk.red(dedent`
       Found multiple enabled modules that share the same value(s) in ${chalk.bold("generateFiles[].targetPath")}:
 
       ${moduleOverlapList.join("\n\n")}
     `)
-  return { message }
 }
 
 // This explicit type ensures that every `ModuleOverlapType` has a defined renderer
@@ -225,7 +217,7 @@ const moduleOverlapRenderers: { [k in ModuleOverlapType]: ModuleOverlapRenderer 
   generateFiles: makeGenerateFilesOverlapError,
 }
 
-export function makeOverlapErrors(projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription[] {
+export function makeOverlapErrors(projectRoot: string, moduleOverlaps: ModuleOverlap[]): string[] {
   return Object.entries(groupBy(moduleOverlaps, "type")).map(([type, overlaps]) => {
     const moduleOverlapType = type as ModuleOverlapType
     const renderer = moduleOverlapRenderers[moduleOverlapType]
