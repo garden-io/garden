@@ -301,7 +301,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
         cachedStatus = validateSchema(cachedData, cachedStatusSchema)
       } catch (err) {
         // Can't find or read a cached status
-        this.log.silly(`Unable to find or read provider status from ${cachePath}: ${err.message}`)
+        this.log.silly(`Unable to find or read provider status from ${cachePath}: ${err}`)
       }
     }
 

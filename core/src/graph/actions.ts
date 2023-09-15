@@ -189,6 +189,10 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
         graph.addAction(action)
       } catch (error) {
+        if (!(error instanceof GardenError)) {
+          throw error
+        }
+
         throw new ConfigurationError({
           message:
             chalk.redBright(
@@ -683,7 +687,7 @@ function dependenciesFromActionConfig(
       return { kind, name, explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false }
     } catch (error) {
       throw new ValidationError({
-        message: `Invalid dependency specified: ${error.message}`,
+        message: `Invalid dependency specified: ${error}`,
       })
     }
   })

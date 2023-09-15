@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { isErrnoException } from "../exceptions"
 import { Log } from "../logger/log-entry"
 import { createWriteStream } from "fs"
 
@@ -36,8 +37,8 @@ export async function zipFolder(src: string, dest: string, log: Log) {
     })
 
     archive.on("warning", (err) => {
-      if (err.code === "ENOENT") {
-        log.warn(err)
+      if (isErrnoException(err) && err.code === "ENOENT") {
+        log.warn(err.message)
       } else {
         log.error(err)
         reject(err)

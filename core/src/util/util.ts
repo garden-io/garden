@@ -34,7 +34,14 @@ import { isAbsolute, relative } from "path"
 import { Readable, Writable } from "stream"
 import type { PrimitiveMap } from "../config/common"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants"
-import { ChildProcessError, InternalError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
+import {
+  ChildProcessError,
+  InternalError,
+  ParameterError,
+  RuntimeError,
+  TimeoutError,
+  isErrnoException,
+} from "../exceptions"
 import type { Log } from "../logger/log-entry"
 import { getDefaultProfiler } from "./profiling"
 import { dedent, naturalList, tailString } from "./string"
@@ -207,7 +214,7 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
     const res = await proc
     return res
   } catch (err) {
-    if (err.code === "EMFILE" || err.errno === "EMFILE") {
+    if (isErrnoException(err) && err.code === "EMFILE") {
       throw new RuntimeError({
         message: dedent`
         Received EMFILE (Too many open files) error when running ${cmd}.
@@ -217,13 +224,18 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
         This can also be due to limits on open file descriptors being too low. Here is one guide on how to configure those limits for different platforms: https://docs.riak.com/riak/kv/latest/using/performance/open-files-limit/index.html
         `,
       })
+    } else if (isErrnoException(err)) {
+      throw new RuntimeError({
+        message: `Failed to run ${cmd}: ${err}`,
+        code: err.code,
+      })
     }
 
     const error = <execa.ExecaError>err
     throw new ChildProcessError({
       cmd,
       args,
-      code: error.exitCode || err.code || err.errno,
+      code: error.exitCode,
       output: error.all || error.stdout || error.stderr || "",
       stderr: error.stderr || "",
       stdout: error.stdout || "",

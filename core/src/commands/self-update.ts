@@ -18,7 +18,7 @@ import { RuntimeError } from "../exceptions"
 import { makeTempDir } from "../util/fs"
 import { createReadStream, createWriteStream } from "fs"
 import { copy, mkdirp, move, readdir, remove } from "fs-extra"
-import { got } from "../util/http"
+import { GotHttpError, got } from "../util/http"
 import { promisify } from "node:util"
 import semver from "semver"
 import stream from "stream"
@@ -358,7 +358,11 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
         const pipeline = promisify(stream.pipeline)
         await pipeline(got.stream(url), createWriteStream(tempPath))
       } catch (err) {
-        if (err.code === "ERR_NON_2XX_3XX_RESPONSE" && err.response?.statusCode === 404) {
+        if (
+          err instanceof GotHttpError &&
+          err.code === "ERR_NON_2XX_3XX_RESPONSE" &&
+          err.response?.statusCode === 404
+        ) {
           log.info("")
           log.error(chalk.redBright(`Could not find version ${desiredVersion} for ${build}.`))
 

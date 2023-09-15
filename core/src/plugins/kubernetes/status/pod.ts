@@ -139,7 +139,7 @@ export async function getPodLogs({
               lineLimit,
               timestamps
             )
-          } catch (err: unknown) {
+          } catch (err) {
             log = `[Could not retrieve previous logs for deleted pod ${pod.metadata!.name!}: ${
               err || "Unknown error occurred"
             }]`

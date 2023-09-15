@@ -363,6 +363,9 @@ export class RootLogger extends LoggerBase {
       try {
         config.level = parseLogLevel(gardenEnv.GARDEN_LOG_LEVEL)
       } catch (err) {
+        if (!(err instanceof ParameterError)) {
+          throw err
+        }
         throw new CommandError({ message: `Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}` })
       }
     }

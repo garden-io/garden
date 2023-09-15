@@ -135,7 +135,7 @@ export class ToolsCommand extends Command<Args, Opts> {
             garden = await Garden.factory(garden.projectRoot, { ...omit(garden.opts, "config"), log })
           } catch (err) {
             // We don't want to fail here due to incorrect parameters etc.
-            log.debug(`Unable to resolve project config: ${err.message}`)
+            log.debug(`Unable to resolve project config: ${err}`)
           }
         }
         const configuredPlugins = await garden.getAllPlugins()

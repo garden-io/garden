@@ -87,7 +87,7 @@ export class LogOutCommand extends Command<{}, Opts> {
       cloudApi.close()
     } catch (err) {
       const msg = dedent`
-      The following issue occurred while logging out from ${distroName} (your session will be cleared regardless): ${err.message}\n
+      The following issue occurred while logging out from ${distroName} (your session will be cleared regardless): ${err}\n
       `
       log.warn(msg)
     } finally {

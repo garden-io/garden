@@ -789,6 +789,7 @@ describe("AnalyticsHandler", () => {
         error: {
           errorType: "runtime",
           taskType: undefined,
+          code: undefined,
           stackTrace: {
             functionName: "Testing.runtime",
             relativeFileName: "utils/exec.ts",
@@ -798,6 +799,7 @@ describe("AnalyticsHandler", () => {
         wrapped: {
           errorType: "configuration",
           taskType: undefined,
+          code: undefined,
           stackTrace: {
             functionName: "Testing.configuration",
             relativeFileName: "garden.ts",
@@ -807,6 +809,7 @@ describe("AnalyticsHandler", () => {
         leaf: {
           errorType: "deployment",
           taskType: undefined,
+          code: undefined,
           stackTrace: {
             functionName: "Testing.deployment",
             relativeFileName: "plugins/kubernetes.ts",
@@ -855,6 +858,7 @@ describe("AnalyticsHandler", () => {
         error: {
           errorType: "configuration",
           taskType: undefined,
+          code: undefined,
           stackTrace: {
             functionName: "Testing.configuration",
             relativeFileName: "garden.ts",

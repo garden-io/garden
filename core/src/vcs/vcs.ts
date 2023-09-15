@@ -352,7 +352,7 @@ async function readVersionFile(path: string, schema: Joi.Schema): Promise<any> {
     return validateSchema(JSON.parse(versionFileContents), schema)
   } catch (error) {
     throw new ConfigurationError({
-      message: `Unable to parse ${path} as valid version file: ${error.message || error}`,
+      message: `Unable to parse ${path} as valid version file: ${error}`,
     })
   }
 }

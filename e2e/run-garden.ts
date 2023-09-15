@@ -135,7 +135,7 @@ export async function runGarden(cwd: string, command: string[]): Promise<JsonLog
     await proc
     return parsedLog
   } catch (err) {
-    let msg = err.message.split("\n")[0]
+    let msg = String(err).split("\n")[0]
     if (parsedLog.length > 0) {
       msg += "\n" + parsedLog.map((l) => stringifyJsonLog(l, { error: true })).join("\n")
     }
@@ -261,7 +261,7 @@ export class GardenWatch {
 
     this.checkIntervalMs = checkIntervalMs
 
-    let error: Error | undefined = undefined
+    let error: unknown = undefined
     const startTime = new Date().getTime()
 
     while (this.running) {

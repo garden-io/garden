@@ -520,7 +520,7 @@ async function writeWorkflowFile(garden: Garden, file: WorkflowFileSpec) {
     await writeFile(fullPath, data)
   } catch (error) {
     throw new FilesystemError({
-      message: `Unable to write file '${file.path}': ${error.message || error}`,
+      message: `Unable to write file '${file.path}': ${error}`,
     })
   }
 }

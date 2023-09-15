@@ -35,7 +35,7 @@ describe("GardenError", () => {
     try {
       throw new RuntimeError({ message: "test exception" })
     } catch (err) {
-      error = err
+      error = err as RuntimeError
     }
 
     const stackTrace = getStackTraceMetadata(error)

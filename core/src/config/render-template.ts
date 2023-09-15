@@ -20,7 +20,7 @@ import {
 import { maybeTemplateString, resolveTemplateString, resolveTemplateStrings } from "../template-string/template-string"
 import { validateWithPath } from "./validation"
 import { Garden } from "../garden"
-import { ConfigurationError } from "../exceptions"
+import { ConfigurationError, GardenError } from "../exceptions"
 import { resolve, posix } from "path"
 import { ensureDir } from "fs-extra"
 import type { TemplatedModuleConfig } from "../plugins/templated"
@@ -198,7 +198,10 @@ async function renderModules({
       try {
         moduleConfig = prepareModuleResource(spec, renderConfigPath, garden.projectRoot)
       } catch (error) {
-        let msg = error.message || String(error)
+        if (!(error instanceof GardenError)) {
+          throw error
+        }
+        let msg = error.message
 
         if (spec.name && spec.name.includes && spec.name.includes("${")) {
           msg +=
@@ -256,9 +259,7 @@ async function renderConfigs({
         resolvedName = resolveTemplateString(m.name, context, { allowPartial: false })
       } catch (error) {
         throw new ConfigurationError({
-          message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${
-            error.message || error
-          }\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
+          message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
         })
       }
 

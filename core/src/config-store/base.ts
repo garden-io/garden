@@ -9,7 +9,6 @@
 import { ensureFile, readFile } from "fs-extra"
 import { z, ZodType } from "zod"
 import { lock } from "proper-lockfile"
-import { dump } from "js-yaml"
 import writeFileAtomic from "write-file-atomic"
 import { InternalError } from "../exceptions"
 
@@ -144,7 +143,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
     } catch (error) {
       const configPath = this.getConfigPath()
       throw new InternalError({
-        message: `Validation error(s) when ${context} configuration file at ${configPath}:\n${dump(error.message)}`,
+        message: `Validation error(s) when ${context} configuration file at ${configPath}:\n${error}`,
       })
     }
   }

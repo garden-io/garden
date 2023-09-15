@@ -103,7 +103,7 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
       data,
     })
   } catch (err) {
-    log.warn(chalk.yellow(`Unable to store Run result: ${err.message}`))
+    log.warn(chalk.yellow(`Unable to store Run result: ${err}`))
   }
 
   return data
@@ -129,7 +129,7 @@ export async function clearRunResult({
 
   try {
     await api.core.deleteNamespacedConfigMap(key, namespace)
-  } catch (err: unknown) {
+  } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }

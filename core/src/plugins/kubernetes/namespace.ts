@@ -121,7 +121,7 @@ export async function ensureNamespace(
           result.created = true
         } catch (error) {
           throw new KubernetesError({
-            message: `Namespace ${namespace.name} doesn't exist and Garden was unable to create it. Error: ${error.message}\n\nYou may need to create it manually or ask an administrator to do so.`,
+            message: `Namespace ${namespace.name} doesn't exist and Garden was unable to create it. ${error}\n\nYou may need to create it manually or ask an administrator to do so.`,
           })
         }
       } else if (namespaceNeedsUpdate(result.remoteResource, namespace)) {
@@ -280,11 +280,15 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     const api = await KubeApi.factory(log, ctx, ctx.provider as KubernetesProvider)
     await api.request({ path: "/version", log })
   } catch (err) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
     log.silly(`Full Kubernetes connect error: ${err.stack}`)
 
     throw new DeploymentError({
       message: dedent`
         Unable to connect to Kubernetes cluster. Got error: ${err.message}`,
+      wrappedErrors: [err],
     })
   }
 
@@ -301,7 +305,7 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
       // Note: Need to call the delete method with an empty object
       // TODO: any cast is required until https://github.com/kubernetes-client/javascript/issues/52 is fixed
       await api.core.deleteNamespace(ns, <any>{})
-    } catch (err: unknown) {
+    } catch (err) {
       if (!(err instanceof KubernetesError)) {
         throw err
       }

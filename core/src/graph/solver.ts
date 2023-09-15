@@ -385,9 +385,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       const processResult = await node.execute()
       result = this.completeTask({ startedAt, error: null, result: processResult, node, aborted: false })
     } catch (error) {
-      result = this.completeTask({ startedAt, error, result: null, node, aborted: false })
+      result = this.completeTask({ startedAt, error: toGardenError(error), result: null, node, aborted: false })
       if (!node.task.interactive) {
-        this.logTaskError(node, error)
+        this.logTaskError(node, toGardenError(error))
       }
     }
   }

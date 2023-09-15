@@ -174,7 +174,7 @@ export class ProxySshKeystore {
     try {
       rmSync(filePath, { force: true })
     } catch (err) {
-      log.warn(`Could not remove file: ${filePath}; cause: ${err.message}`)
+      log.warn(`Could not remove file: ${filePath}; cause: ${err}`)
     }
   }
 

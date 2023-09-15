@@ -302,7 +302,7 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
       }
     } catch (error) {
       throw new ParameterError({
-        message: `Invalid value for argument ${chalk.white.bold(argKey)}: ${error.message}`,
+        message: `Invalid value for argument ${chalk.white.bold(argKey)}: ${error}`,
       })
     }
   }
@@ -357,6 +357,9 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
         value = spec.validate(spec.coerce(value))
         processedOpts[key as keyof typeof optSpec] = value
       } catch (err) {
+        if (!(err instanceof GardenError)) {
+          throw err
+        }
         errors.push(`Invalid value for option ${flagStr}: ${err.message}`)
       }
     }

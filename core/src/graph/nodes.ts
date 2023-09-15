@@ -282,7 +282,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
       }
       return processResult
     } catch (error) {
-      this.task.emit("processed", { error })
+      this.task.emit("processed", { error: toGardenError(error) })
       throw error
     }
   }
@@ -315,7 +315,7 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
       }
       return result
     } catch (error) {
-      this.task.emit("statusResolved", { error })
+      this.task.emit("statusResolved", { error: toGardenError(error) })
       throw error
     }
   }

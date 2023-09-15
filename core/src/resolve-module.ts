@@ -7,7 +7,7 @@
  */
 
 import cloneDeep from "fast-copy"
-import { flatMap, isArray, isString, keyBy } from "lodash"
+import { isArray, isString, keyBy } from "lodash"
 import { validateWithPath } from "./config/validation"
 import {
   getModuleTemplateReferences,
@@ -22,6 +22,7 @@ import {
   CircularDependenciesError,
   ConfigurationError,
   FilesystemError,
+  GardenError,
   PluginError,
   toGardenError,
 } from "./exceptions"
@@ -130,7 +131,7 @@ export class ModuleResolver {
 
     const resolvedConfigs: ModuleConfigMap = {}
     const resolvedModules: ModuleMap = {}
-    const errors: { [moduleName: string]: Error } = {}
+    const errors: { [moduleName: string]: GardenError } = {}
 
     const inFlight = new Set<string>()
 
@@ -195,8 +196,8 @@ export class ModuleResolver {
           processingGraph.removeNode(moduleKey)
         }
       } catch (err) {
-        this.log.silly(`ModuleResolver: Node ${moduleKey} failed: ${err.message}`)
-        errors[moduleKey] = err
+        this.log.silly(`ModuleResolver: Node ${moduleKey} failed: ${err}`)
+        errors[moduleKey] = toGardenError(err)
       }
 
       inFlight.delete(moduleKey)
@@ -217,7 +218,7 @@ export class ModuleResolver {
         const combined = new ConfigurationError({
           message: chalk.red(msg),
           stack: errorStack,
-          wrappedErrors: flatMap(Object.values(errors)).map(toGardenError),
+          wrappedErrors: Object.values(errors),
         })
         throw combined
       }
@@ -574,7 +575,7 @@ export class ModuleResolver {
           await this.garden.vcs.writeFile(this.log, targetPath, resolvedContents)
         } catch (error) {
           throw new FilesystemError({
-            message: `Unable to write templated file ${fileSpec.targetPath} from ${resolvedConfig.name}: ${error.message}`,
+            message: `Unable to write templated file ${fileSpec.targetPath} from ${resolvedConfig.name}: ${error}`,
           })
         }
       })

@@ -96,7 +96,7 @@ export async function loadAndValidateYaml(content: string, path: string): Promis
       await lint(content)
     } catch (linterErr) {
       throw new ConfigurationError({
-        message: `Could not parse ${basename(path)} in directory ${path} as valid YAML: ${linterErr.message}`,
+        message: `Could not parse ${basename(path)} in directory ${path} as valid YAML: ${linterErr}`,
       })
     }
     // ... but default to throwing a generic error, in case the error wasn't caught by yaml-lint.
@@ -104,7 +104,7 @@ export async function loadAndValidateYaml(content: string, path: string): Promis
       message: dedent`
         Failed to load YAML from ${basename(path)} in directory ${path}.
 
-        Linting the file did not yield any errors. This is all we know: ${loadErr.message || loadErr}
+        Linting the file did not yield any errors. This is all we know: ${loadErr}
       `,
     })
   }

@@ -23,7 +23,7 @@ import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
 import { uuidv4 } from "../util/random"
-import { GardenError, StackTraceMetadata } from "../exceptions"
+import { GardenError, NodeJSErrnoErrorCodes, StackTraceMetadata } from "../exceptions"
 import { ActionConfigMap } from "../actions/types"
 import { actionKinds } from "../actions/types"
 import { getResultErrorProperties } from "./helpers"
@@ -158,6 +158,12 @@ export type AnalyticsGardenErrorDetail = {
    * Corresponds to GardenError.taskType
    */
   taskType?: string
+
+  /**
+   * If this error was caused by an underlying NodeJSErrnoException, this will be the code.
+   */
+  code?: NodeJSErrnoErrorCodes
+
   stackTrace?: StackTraceMetadata
 }
 
@@ -444,7 +450,7 @@ export class AnalyticsHandler {
       try {
         cloudUser = await garden.cloudApi?.getProfile()
       } catch (err) {
-        log.debug(`Getting profile from API failed with error: ${err.message}`)
+        log.debug(`Getting profile from API failed with error: ${err}`)
       }
     }
 
@@ -637,7 +643,7 @@ export class AnalyticsHandler {
     try {
       errorProperties = getResultErrorProperties(errors)
     } catch (err) {
-      this.log.debug(`Failed to extract command result error properties, ${err.toString()}`)
+      this.log.debug(`Failed to extract command result error properties, ${err}`)
     }
 
     return this.track({

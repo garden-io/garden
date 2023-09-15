@@ -49,7 +49,7 @@ export const gulpLicenseCheck = (opts: LicenseCheckPluginOptions) => {
         } else {
           checkHeaderFromBuffer(file, this)
         }
-      } catch (error) {
+      } catch (error: any) {
         callback(new PluginError("gulp-license-check", error), null)
         return
       }

@@ -45,10 +45,10 @@ export async function getArtifactFileList({
     try {
       files = JSON.parse(metadata.toString()).files || []
     } catch (err) {
-      log.debug(`Failed parsing artifact metadata file: ${err.message}`)
+      log.debug(`Failed parsing artifact metadata file: ${err}`)
     }
   } catch (err) {
-    log.debug(`Failed reading metadata file: ${err.message}`)
+    log.debug(`Failed reading metadata file: ${err}`)
   }
   return files
 }
@@ -78,6 +78,9 @@ export async function copyArtifacts({
   try {
     files = await cpy("**/*", garden.artifactsPath, { cwd: artifactsPath, parents: true })
   } catch (err) {
+    if (!(err instanceof Error)) {
+      throw err
+    }
     // Ignore error thrown when the directory is empty
     if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
       throw err

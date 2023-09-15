@@ -280,7 +280,7 @@ export class ExecLogsFollower {
         }
       })
     } catch (err) {
-      this.events.emit("error", { message: `Starting file watcher failed with error ${err.message}` })
+      this.events.emit("error", { message: `Starting file watcher failed with error ${err}` })
       return
     }
 
@@ -399,7 +399,7 @@ export class ExecLogsFollower {
       this.events.emit("fileReadError", {
         bytesRead,
         lastStreamedEntry,
-        message: `Tailing file failed with error: ${err.message} }`,
+        message: `Tailing file failed with error: ${err} }`,
       })
       return
     }
@@ -432,7 +432,7 @@ export class ExecLogsFollower {
         splitStream.on("end", () => res(count))
       })
     } catch (err) {
-      this.events.emit("error", { message: `Counting lines failed with error: ${err.message}` })
+      this.events.emit("error", { message: `Counting lines failed with error: ${err}` })
       return 0
     }
   }

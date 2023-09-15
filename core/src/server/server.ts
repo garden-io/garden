@@ -46,6 +46,7 @@ import type { AutocompleteSuggestion } from "../cli/autocomplete"
 import execa = require("execa")
 import { z } from "zod"
 import { omitUndefined } from "../util/objects"
+import { createServer } from "http"
 
 const pty = require("node-pty-prebuilt-multiarch")
 
@@ -177,7 +178,8 @@ export class GardenServer extends EventEmitter {
     const _start = async () => {
       // TODO: pipe every event
       return new Promise<void>((resolve, reject) => {
-        this.server = this.app.listen(this.port, hostname)
+        this.server = createServer(this.app.callback())
+
         this.server.on("error", (error) => {
           this.emit("error", error)
           reject(error)
@@ -187,6 +189,10 @@ export class GardenServer extends EventEmitter {
         })
         this.server.once("listening", () => {
           resolve()
+        })
+
+        this.server.listen(this.port, hostname, () => {
+          this.app.ws.listen({ server: this.server })
         })
       })
     }
@@ -254,7 +260,7 @@ export class GardenServer extends EventEmitter {
     try {
       request = validateSchema(request, serverRequestSchema(), { context: "API request" })
     } catch (err) {
-      return ctx.throw(400, "Invalid request format: " + err.message)
+      return ctx.throw(400, `Invalid request format: ${err}`)
     }
 
     try {
@@ -276,11 +282,12 @@ export class GardenServer extends EventEmitter {
 
       return result
     } catch (error) {
-      if (error.status) {
+      if (error instanceof Koa.HttpError) {
         throw error
       }
-      this.log.error({ msg: error.message, error })
-      return ctx.throw(500, `Unable to process request: ${error.message}`)
+      const message = String(error)
+      this.log.error({ msg: message, error: toGardenError(error) })
+      return ctx.throw(500, `Unable to process request: ${message}`)
     }
   }
 
@@ -584,7 +591,7 @@ export class GardenServer extends EventEmitter {
           proc.write(stdin.toString())
         })
       } catch (err) {
-        const msg = `Could not run command '${command}': ${err.message}`
+        const msg = `Could not run command '${command}': ${err}`
         this.log.error(msg)
         const event = websocketCloseEvents.ok
         if (websocket.OPEN) {
@@ -780,8 +787,11 @@ export class GardenServer extends EventEmitter {
             delete this.activePersistentRequests[requestId]
           })
       } catch (error) {
-        this.log.error({ msg: `Unexpected error handling request ID ${requestId}: ${error.message}`, error })
-        return send("error", { message: error.message, requestId })
+        this.log.error({
+          msg: `Unexpected error handling request ID ${requestId}: ${error}`,
+          error: toGardenError(error),
+        })
+        return send("error", { message: String(error), requestId })
       }
     } else if (requestType === "commandStatus") {
       // Retrieve the status for an active persistent command

@@ -33,7 +33,7 @@ async function execVersionCheck(params: BinaryVersionCheckParams): Promise<strin
   try {
     return (await exec(params.versionCommand.cmd, params.versionCommand.args)).stdout
   } catch (error) {
-    throw versionCheckError(params, `Could not find ${params.name} binary: ${error.message || error}`)
+    throw versionCheckError(params, `Could not find ${params.name} binary: ${error}`)
   }
 }
 
@@ -55,7 +55,7 @@ function validateVersionNumber(version: string, params: BinaryVersionCheckParams
   } catch (error) {
     throw versionCheckError(
       params,
-      `Could not parse the ${params.name} version ${version} as a valid semver value: ${error.message || error}`
+      `Could not parse the ${params.name} version ${version} as a valid semver value: ${error}`
     )
   }
 }
