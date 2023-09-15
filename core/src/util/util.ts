@@ -217,6 +217,11 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
         This can also be due to limits on open file descriptors being too low. Here is one guide on how to configure those limits for different platforms: https://docs.riak.com/riak/kv/latest/using/performance/open-files-limit/index.html
         `,
       })
+    } else if (isErrnoException(err)) {
+      throw new RuntimeError({
+        message: `Failed to run ${cmd}: ${err}`,
+        code: err.code,
+      })
     }
 
     const error = <execa.ExecaError>err

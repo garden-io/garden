@@ -15,7 +15,7 @@ import { dedent, deline } from "../../util/string"
 import { LogLevel } from "../../logger/logger"
 import { KubernetesError } from "./api"
 import requestErrors = require("request-promise/errors")
-import { InternalError, isErrnoException } from "../../exceptions"
+import { InternalError, NodeJSErrnoErrorCodes, isErrnoException } from "../../exceptions"
 
 /**
  * The flag {@code forceRetry} can be used to avoid {@link shouldRetry} helper call in case if the error code
@@ -82,7 +82,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
   let response: KubernetesClientHttpError["response"] | undefined
   let body: any | undefined
   let responseStatusCode: number | undefined
-  let osCode: string | undefined
+  let code: NodeJSErrnoErrorCodes | undefined
 
   if (err instanceof KubernetesClientHttpError) {
     errorType = "HttpError"
@@ -95,7 +95,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
     responseStatusCode = err.statusCode
   } else if (isErrnoException(err)) {
     errorType = "Error"
-    osCode = err.code
+    code = err.code
   } else {
     // In all other cases, we don't know what this is, so let's just throw an InternalError
     throw InternalError.wrapError(err, `toKubernetesError encountered an unknown error unexpectedly during ${context}`)
@@ -116,7 +116,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
       ${responseStatusCode ? `Response status code: ${responseStatusCode}` : ""}
       ${apiMessage ? `Kubernetes Message: ${apiMessage}` : ""}`,
     responseStatusCode,
-    osCode,
+    code,
     apiMessage,
   })
 }
@@ -133,7 +133,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
 export function shouldRetry(error: unknown, context: string): boolean {
   const err = toKubernetesError(error, context)
 
-  if (err.osCode === "ECONNRESET") {
+  if (err.code === "ECONNRESET") {
     return true
   }
 

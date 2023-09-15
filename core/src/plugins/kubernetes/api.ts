@@ -145,16 +145,10 @@ export class KubernetesError extends GardenError {
    */
   apiMessage: string | undefined
 
-  /**
-   * See also https://nodejs.org/api/errors.html#nodejs-error-codes
-   */
-  osCode: string | undefined
-
-  constructor(params: GardenErrorParams & { responseStatusCode?: number; osCode?: string; apiMessage?: string }) {
+  constructor(params: GardenErrorParams & { responseStatusCode?: number; apiMessage?: string }) {
     super(params)
 
     this.responseStatusCode = params.responseStatusCode
-    this.osCode = params.osCode
     this.apiMessage = params.apiMessage
   }
 }

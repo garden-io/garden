@@ -23,7 +23,7 @@ import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
 import { uuidv4 } from "../util/random"
-import { GardenError, StackTraceMetadata } from "../exceptions"
+import { GardenError, NodeJSErrnoErrorCodes, StackTraceMetadata } from "../exceptions"
 import { ActionConfigMap } from "../actions/types"
 import { actionKinds } from "../actions/types"
 import { getResultErrorProperties } from "./helpers"
@@ -158,6 +158,12 @@ export type AnalyticsGardenErrorDetail = {
    * Corresponds to GardenError.taskType
    */
   taskType?: string
+
+  /**
+   * If this error was caused by an underlying NodeJSErrnoException, this will be the code.
+   */
+  code?: NodeJSErrnoErrorCodes
+
   stackTrace?: StackTraceMetadata
 }
 

@@ -135,7 +135,7 @@ export class ServeCommand<
         serveCommand: this,
       })
     } catch (err) {
-      if (isEAddrInUseException(err) && err.port === opts.port) {
+      if (isEAddrInUseException(err)) {
         throw new ParameterError({
           message: dedent`
             Port ${opts.port} is already in use, possibly by another Garden server process.
@@ -145,6 +145,7 @@ export class ServeCommand<
       } else if (isErrnoException(err)) {
         throw new CommandError({
           message: `Unable to start server: ${err.message}`,
+          code: err.code,
         })
       }
 
