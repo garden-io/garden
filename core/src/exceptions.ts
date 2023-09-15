@@ -137,6 +137,8 @@ export abstract class GardenError extends Error {
   toJSON() {
     return {
       type: this.type,
+      taskType: this.taskType,
+      code: this.code,
       message: this.message,
       stack: this.stack,
       wrappedErrors: this.wrappedErrors,
@@ -339,8 +341,13 @@ export class InternalError extends GardenError {
   static wrapError(error: Error | string | any, prefix?: string): InternalError {
     let message: string | undefined
     let stack: string | undefined
+    let code: NodeJSErrnoErrorCodes | undefined
 
-    if (error instanceof Error) {
+    if (isErrnoException(error)) {
+      message = error.message
+      stack = error.stack
+      code = error.code
+    } else if (error instanceof Error) {
       message = error.message
       stack = error.stack
     } else if (isString(error)) {
@@ -352,7 +359,7 @@ export class InternalError extends GardenError {
 
     message = message ? stripAnsi(message) : ""
 
-    return new InternalError({ message: prefix ? `${stripAnsi(prefix)}: ${message}` : message, stack })
+    return new InternalError({ message: prefix ? `${stripAnsi(prefix)}: ${message}` : message, stack, code })
   }
 
   override explain(context?: string): string {

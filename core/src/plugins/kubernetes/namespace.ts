@@ -288,6 +288,7 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     throw new DeploymentError({
       message: dedent`
         Unable to connect to Kubernetes cluster. Got error: ${err.message}`,
+      wrappedErrors: [err],
     })
   }
 

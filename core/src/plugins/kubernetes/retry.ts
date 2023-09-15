@@ -93,6 +93,11 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
     errorType = "StatusCodeError"
     response = err.response
     responseStatusCode = err.statusCode
+  } else if (err instanceof requestErrors.RequestError) {
+    errorType = "RequestError"
+    if (isErrnoException(err.cause)) {
+      code = err.cause.code
+    }
   } else if (isErrnoException(err)) {
     errorType = "Error"
     code = err.code
