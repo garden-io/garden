@@ -75,7 +75,7 @@ The [Exec plugin](../other-plugins/exec.md) allows you to execute arbitrary scri
 
 It's great for executing auth scripts, running services locally, and as a general purpose escape hatch.
 
-It's built in, which means you don't need to specify it in the project level configuration and you can simply add `exec` actions right away.
+It's built in, which means you don't need to specify it in the project level configuration, and you can simply add `exec` actions right away.
 
 ## Step 2 — Add your actions
 
