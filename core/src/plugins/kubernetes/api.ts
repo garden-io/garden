@@ -965,7 +965,7 @@ export const KUBECTL_RETRY_OPTS: RetryOpts = {
   maxRetries: 3,
   minTimeoutMs: 300,
   // forceRetry is important, because shouldRetry cannot handle ChildProcessError.
-  forceRetry: true
+  forceRetry: true,
 }
 
 export async function getKubeConfig(log: Log, ctx: PluginContext, provider: KubernetesProvider) {
@@ -985,7 +985,7 @@ export async function getKubeConfig(log: Log, ctx: PluginContext, provider: Kube
             log,
             args,
           }),
-          KUBECTL_RETRY_OPTS,
+        KUBECTL_RETRY_OPTS
       )
     }
     return load(kubeConfigStr)!

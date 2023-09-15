@@ -109,7 +109,8 @@ export async function apply({
 
   const input = Buffer.from(encodeYamlMulti(manifests))
 
-  log.debug(`Applying Kubernetes manifests:\n${input.toString()}`)
+  const manifestLogLevel = "debug" as const
+  log[manifestLogLevel](`Applying Kubernetes manifests:\n${input.toString()}`)
 
   let args = ["apply"]
   dryRun && args.push("--dry-run")
@@ -128,7 +129,7 @@ export async function apply({
           args,
           input,
         }),
-        KUBECTL_RETRY_OPTS
+      KUBECTL_RETRY_OPTS
     )
   } catch (e) {
     if (e instanceof ChildProcessError) {
@@ -138,7 +139,7 @@ export async function apply({
 
           ${e.details.output}
 
-          Use the option "--log-level verbose" to see the kubernetes manifests that we attempted to apply through "kubectl apply".
+          Use the option "--log-level ${manifestLogLevel}" to see the kubernetes manifests that we attempted to apply through "kubectl apply".
           `,
       })
     }
