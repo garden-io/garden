@@ -169,16 +169,6 @@ export function detectModuleOverlap({
   return foundOverlaps
 }
 
-interface ModuleDesc {
-  path: string
-  name: string
-}
-
-export interface ModuleOverlapDescription {
-  module: ModuleDesc
-  overlaps: ModuleDesc[]
-}
-
 export interface OverlapErrorDescription {
   message: string
 }
