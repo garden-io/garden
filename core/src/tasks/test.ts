@@ -6,9 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { find } from "lodash"
-import minimatch from "minimatch"
-
 import {
   BaseActionTaskParams,
   ActionTaskProcessParams,
@@ -18,12 +15,9 @@ import {
   emitProcessingEvents,
 } from "../tasks/base"
 import { Profile } from "../util/profiling"
-import { ModuleConfig } from "../config/module"
 import { resolvedActionToExecuted } from "../actions/helpers"
 import { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/Test/get-result"
-import { TestConfig } from "../config/test"
-import { moduleTestNameToActionName } from "../types/module"
 import { OtelTraced } from "../util/open-telemetry/decorators"
 import { GardenError } from "../exceptions"
 
@@ -160,18 +154,4 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
 
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
-}
-
-export function filterTestConfigs(module: ModuleConfig, filterNames?: string[]): ModuleConfig["testConfigs"] {
-  const acceptableTestConfig = (test: TestConfig) => {
-    if (test.disabled) {
-      return false
-    }
-    if (!filterNames || filterNames.length === 0) {
-      return true
-    }
-    const testName = moduleTestNameToActionName(module.name, test.name)
-    return find(filterNames, (n: string) => minimatch(testName, n))
-  }
-  return module.testConfigs.filter(acceptableTestConfig)
 }
