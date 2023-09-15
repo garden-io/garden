@@ -43,7 +43,6 @@ import { ConfigGraph } from "../graph/config-graph"
 import { getGardenCloudDomain } from "../cloud/api"
 import type { ServeCommand } from "../commands/serve"
 import type { AutocompleteSuggestion } from "../cli/autocomplete"
-import execa = require("execa")
 import { z } from "zod"
 import { omitUndefined } from "../util/objects"
 
