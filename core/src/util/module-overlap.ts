@@ -113,7 +113,7 @@ const isGenerateFilesOverlap: ModuleOverlapMatcher = ({ leftConfig, rightConfig 
 
 const moduleOverlapMatchers: ModuleOverlapMatcher[] = [isModulePathOverlap, isGenerateFilesOverlap]
 
-const moduleNameComparator = (a, b) => (a.name > b.name ? 1 : -1)
+const moduleNameComparator = (a: ModuleConfig, b: ModuleConfig) => (a.name > b.name ? 1 : -1)
 
 function resolveGenerateFilesTargetPaths(modulePath: string, generateFiles: GenerateFileSpec[]): string[] {
   return generateFiles.map((f) => f.targetPath).map((p) => resolve(modulePath, ...p.split(posix.sep)))
