@@ -514,7 +514,7 @@ describe("resolveTemplateString", () => {
   it("should throw when using + on number and array", () => {
     void expectError(() => resolveTemplateString("${a + b}", new TestContext({ a: 123, b: ["a"] })), {
       contains:
-        "Invalid template string (${a + b}): Error: Both terms need to be either arrays or strings or numbers for + operator (got number and object).",
+        "Invalid template string (${a + b}): Both terms need to be either arrays or strings or numbers for + operator (got number and object).",
     })
   })
 
@@ -602,7 +602,7 @@ describe("resolveTemplateString", () => {
   it("should throw when using >= on non-numeric terms", () => {
     void expectError(() => resolveTemplateString("${a >= b}", new TestContext({ a: 123, b: "foo" })), {
       contains:
-        "Invalid template string (${a >= b}): Error: Both terms need to be numbers for >= operator (got number and string).",
+        "Invalid template string (${a >= b}): Both terms need to be numbers for >= operator (got number and string).",
     })
   })
 
