@@ -37,18 +37,11 @@ export type EAddrInUseException = NodeJSErrnoException & {
 }
 
 export function isErrnoException(err: any): err is NodeJSErrnoException {
-  return (
-    typeof err.code === "string" &&
-    typeof err.errno === "number" &&
-    errnoErrorCodeSet.has(err.code)
-  )
+  return typeof err.code === "string" && typeof err.errno === "number" && errnoErrorCodeSet.has(err.code)
 }
 
 export function isEAddrInUseException(err: any): err is EAddrInUseException {
-  return (
-    isErrnoException(err) &&
-    err.code === "EADDRINUSE"
-  )
+  return isErrnoException(err) && err.code === "EADDRINUSE"
 }
 
 export type StackTraceMetadata = {
@@ -92,7 +85,6 @@ export abstract class GardenError extends Error {
 
   public override message: string
   public wrappedErrors?: GardenError[]
-
 
   constructor({ message, stack, wrappedErrors, taskType, code }: GardenErrorParams) {
     super(message.trim())

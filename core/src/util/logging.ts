@@ -20,9 +20,8 @@ let _callingToSanitizedValue = false
 export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
   if (_callingToSanitizedValue) {
     throw new InternalError({
-      message: "`toSanitizedValue` is not allowed to call `sanitizeValue` because that can cause infinite recursion."
-    }
-    )
+      message: "`toSanitizedValue` is not allowed to call `sanitizeValue` because that can cause infinite recursion.",
+    })
   }
 
   if (!_parents) {
