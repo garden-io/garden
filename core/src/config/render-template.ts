@@ -167,7 +167,7 @@ export async function renderConfigTemplate({
   })
 
   // TODO: remove in 0.14
-  const modules = await renderModules({ garden, log, template, context, renderConfig: resolved })
+  const modules = await renderModules({ garden, template, context, renderConfig: resolved })
 
   const configs = await renderConfigs({ garden, log, template, context, renderConfig: resolved })
 
@@ -176,13 +176,11 @@ export async function renderConfigTemplate({
 
 async function renderModules({
   garden,
-  log,
   template,
   context,
   renderConfig,
 }: {
   garden: Garden
-  log: Log
   template: ConfigTemplateConfig
   context: RenderTemplateConfigContext
   renderConfig: RenderTemplateConfig
