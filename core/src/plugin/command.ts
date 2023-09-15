@@ -33,7 +33,7 @@ export const pluginParamsSchema = createSchema({
     ),
     log: logEntrySchema(),
     modules: joiArray(moduleSchema()).description(
-      "If the command defnitions has `resolveModules` set to `true`, this is set to a list of all modules in the project/environment. Otherwise this is an empty list."
+      "If the command definitions has `resolveModules` set to `true`, this is set to a list of all modules in the project/environment. Otherwise this is an empty list."
     ),
   }),
 })

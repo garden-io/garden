@@ -390,7 +390,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
             })
             log.silly(`Completed command '${this.getFullName()}' action successfully`)
           } else {
-            // The command is protected and the user decided to not continue with the exectution.
+            // The command is protected and the user decided to not continue with the execution.
             log.info("\nCommand aborted.")
             return {}
           }
@@ -819,7 +819,7 @@ export interface ProcessCommandResult {
 export const resultMetadataKeys = () => ({
   aborted: joi.boolean().description("Set to true if the action was not attempted, e.g. if a dependency failed."),
   durationMsec: joi.number().integer().description("The duration of the action's execution in msec, if applicable."),
-  success: joi.boolean().required().description("Whether the action was succeessfully executed."),
+  success: joi.boolean().required().description("Whether the action was successfully executed."),
   error: joi.string().description("An error message, if the action's execution failed."),
   inputVersion: joi
     .string()

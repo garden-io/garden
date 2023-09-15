@@ -269,7 +269,7 @@ interface GetActionStatusesCommandResult {
 
 export class _GetActionStatusesCommand extends ConsoleCommand {
   name = "_get-action-statuses"
-  help = "[Internal/Experimental] Retuns a map of all actions statuses."
+  help = "[Internal/Experimental] Returns a map of all actions statuses."
   override hidden = true
 
   override streamEvents = false

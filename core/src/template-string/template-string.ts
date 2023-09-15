@@ -610,7 +610,7 @@ export function getModuleTemplateReferences<T extends object>(obj: T, context: M
  *
  * Prefix should be e.g. "Module" or "Provider" (used when generating error messages).
  *
- * TODO: We've disabled this for now. Re-introudce once we've removed get config command call from GE!
+ * TODO: We've disabled this for now. Re-introduce once we've removed get config command call from GE!
  */
 export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: StringMap, prefix: string, log?: Log) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]

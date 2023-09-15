@@ -533,7 +533,7 @@ export function getSelectorString(labels: { [key: string]: string }) {
  * Service with Pod templates from a Deployment.
  *
  * @param selector The selector on the Service, or the `matchLabels` part of a Deployment spec selector
- * @param labels The workload labels to match agains
+ * @param labels The workload labels to match against
  */
 export function matchSelector(selector: { [key: string]: string }, labels: { [key: string]: string }) {
   return Object.keys(selector).length > 0 && isSubset(labels, selector)

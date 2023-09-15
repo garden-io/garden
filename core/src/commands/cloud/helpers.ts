@@ -95,9 +95,9 @@ export function makeSecretFromResponse(res: SecretResultApi): SecretResult {
 }
 
 /**
- * Helper function for consistenly logging outputs for Garden Cloud bulk operation commands.
+ * Helper function for consistently logging outputs for Garden Cloud bulk operation commands.
  *
- * Throws if any errors exist after logging the relavant output.
+ * Throws if any errors exist after logging the relevant output.
  */
 export function handleBulkOperationResult<T>({
   log,

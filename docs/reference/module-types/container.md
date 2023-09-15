@@ -454,7 +454,7 @@ services:
         # The port exposed on the container by the running process. This will also be the default value for
         # `servicePort`.
         # This is the port you would expose in your Dockerfile and that your process listens on. This is commonly a
-        # non-priviledged port like 8080 for security reasons.
+        # non-privileged port like 8080 for security reasons.
         # The service port maps to the container port:
         # `servicePort:80 -> containerPort:8080 -> process:8080`
         containerPort:
@@ -1882,7 +1882,7 @@ The protocol of the port.
 [services](#services) > [ports](#servicesports) > containerPort
 
 The port exposed on the container by the running process. This will also be the default value for `servicePort`.
-This is the port you would expose in your Dockerfile and that your process listens on. This is commonly a non-priviledged port like 8080 for security reasons.
+This is the port you would expose in your Dockerfile and that your process listens on. This is commonly a non-privileged port like 8080 for security reasons.
 The service port maps to the container port:
 `servicePort:80 -> containerPort:8080 -> process:8080`
 

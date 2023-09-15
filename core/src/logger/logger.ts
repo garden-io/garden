@@ -77,7 +77,7 @@ export const eventLogLevel = LogLevel.debug
 
 /**
  * Return the logger type, depending on what command line args have been set
- * and whether the commnad specifies a logger type.
+ * and whether the command specifies a logger type.
  */
 export function getTerminalWriterType({
   silent,

@@ -751,7 +751,7 @@ export class GardenServer extends EventEmitter {
               return commandResult
             }
           })
-          // Here we handle the actual commnad result.
+          // Here we handle the actual command result.
           .then((commandResult) => {
             const { result, errors } = commandResult
             send(

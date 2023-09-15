@@ -31,7 +31,7 @@ export function makeGetTestOrTaskLog(actions: (TestAction | RunAction)[]) {
  * Runs a `dev` command and runs `commandName` with the args & opts provided in `params` as the first
  * interactive command.
  *
- * Also updates the `commandInfo` accordinly so that the session registration parameters sent to Cloud are correct.
+ * Also updates the `commandInfo` accordingly so that the session registration parameters sent to Cloud are correct.
  */
 export async function runAsDevCommand(
   commandName: string, // The calling command's opts need to extend `ServeCommandOpts`.
