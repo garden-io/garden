@@ -146,7 +146,7 @@ async function readAndExec({
       namespace,
       query: resource,
     })
-  } catch (err: unknown) {
+  } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }

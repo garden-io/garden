@@ -426,7 +426,7 @@ type ExpectErrorAssertion =
 const defaultErrorMessageGetter = (err: any) => err.message
 
 export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) {
-  const handleError = (err: GardenError) => {
+  const handleError = (err: unknown) => {
     if (assertion === undefined) {
       return true
     }
@@ -442,15 +442,15 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
     const message = errorMessageGetter && errorMessageGetter(err)
 
     if (type) {
+      if (!(err instanceof GardenError)) {
+        expect.fail(`Expected GardenError, got: ${err}`)
+      }
+
       if (!err.type) {
-        const newError = Error(`Expected GardenError with type ${type}, got: ${err}`)
-        newError.stack = err.stack
-        throw newError
+        expect.fail(`Expected GardenError with type ${type}, got: ${err}`)
       }
       if (err.type !== type) {
-        const newError = Error(`Expected ${type} error, got: ${err.type} error`)
-        newError.stack = err.stack
-        throw newError
+        expect.fail(`Expected ${type} error, got: ${err.type} error`)
       }
     }
 
@@ -460,6 +460,10 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
     }
 
     if (message) {
+      if (!(err instanceof GardenError)) {
+        expect.fail(`Expected GardenError, got: ${err}`)
+      }
+
       return err.message === message
     }
 
@@ -470,9 +474,9 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
     if (caught) {
       return
     } else if (typeof assertion === "string") {
-      throw new Error(`Expected ${assertion} error (got no error)`)
+      expect.fail(`Expected ${assertion} error (got no error)`)
     } else {
-      throw new Error(`Expected error (got no error)`)
+      expect.fail(`Expected error (got no error)`)
     }
   }
 

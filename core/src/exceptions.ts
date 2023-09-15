@@ -14,6 +14,17 @@ import stripAnsi from "strip-ansi"
 import { Cycle } from "./graph/common"
 import indentString from "indent-string"
 
+/**
+ * NodeJS native errors with a code property.
+ */
+export type OSError = {
+  code: string
+} & Error
+
+export function isOSError(err: any): err is OSError {
+  return typeof err?.code === "string"
+}
+
 export type StackTraceMetadata = {
   functionName: string
   relativeFileName?: string

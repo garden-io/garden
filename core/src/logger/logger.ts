@@ -8,7 +8,7 @@
 
 import { LogMetadata, LogEntry, CoreLog, CoreLogContext } from "./log-entry"
 import { Writer } from "./writers/base"
-import { CommandError, ParameterError, InternalError } from "../exceptions"
+import { CommandError, ParameterError, InternalError, GardenError } from "../exceptions"
 import { TerminalWriter } from "./writers/terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { EventBus } from "../events/events"
@@ -363,6 +363,9 @@ export class RootLogger extends LoggerBase {
       try {
         config.level = parseLogLevel(gardenEnv.GARDEN_LOG_LEVEL)
       } catch (err) {
+        if (!(err instanceof GardenError)) {
+          throw err
+        }
         throw new CommandError({ message: `Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}` })
       }
     }

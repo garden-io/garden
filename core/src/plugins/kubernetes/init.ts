@@ -311,7 +311,7 @@ export async function cleanupEnvironment({
           try {
             const annotations = (await api.core.readNamespace(ns)).metadata.annotations || {}
             return annotations[gardenAnnotationKey("generated")] === "true" ? ns : null
-          } catch (err: unknown) {
+          } catch (err) {
             if (!(err instanceof KubernetesError)) {
               throw err
             }
@@ -424,7 +424,7 @@ export async function buildDockerAuthConfig(
         throw new ConfigurationError({
           message: dedent`
         Could not parse configured imagePullSecret '${secret.metadata.name}' as a JSON docker authentication file:
-        ${err.message}.
+        ${err}.
         ${dockerAuthDocsLink}
         `,
         })

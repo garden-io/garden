@@ -23,6 +23,7 @@ import { HelmDeployAction } from "./config"
 import { ActionMode, Resolved } from "../../../actions/types"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 import { isTruthy } from "../../../util/util"
+import { ChildProcessError } from "../../../exceptions"
 
 export const gardenCloudAECPauseAnnotation = "garden.io/aec-status"
 
@@ -236,6 +237,9 @@ export async function getReleaseStatus({
       detail: { ...res, values, mode: deployedMode },
     }
   } catch (err) {
+    if (!(err instanceof ChildProcessError)) {
+      throw err
+    }
     if (err.message.includes("release: not found")) {
       return { state: "missing", detail: {} }
     } else {

@@ -236,7 +236,7 @@ export async function deployPersistentExecService({
   try {
     await resetLogFile(logFilePath)
   } catch (err) {
-    log.debug(`Failed resetting log file for service ${deployName} at path ${logFilePath}: ${err.message}`)
+    log.debug(`Failed resetting log file for service ${deployName} at path ${logFilePath}: ${err}`)
   }
 
   await killProcess(log, pidFilePath, deployName)
@@ -370,7 +370,7 @@ async function killProcess(log: Log, pidFilePath: string, deployName: string) {
           log.debug(`Sent SIGTERM to existing ${deployName} process (PID ${oldPid})`)
         } catch (err) {
           // This most likely means that the process had already been terminated, which is fine for our purposes here.
-          log.debug(`An error occurred while deleting existing ${deployName} process (PID ${oldPid}): ${err.message}`)
+          log.debug(`An error occurred while deleting existing ${deployName} process (PID ${oldPid}): ${err}`)
         }
       }
     }

@@ -478,7 +478,7 @@ export async function resolveRequest({
       cmdArgs = parseResults.args
       cmdOpts = parseResults.opts
     } catch (error) {
-      return fail(400, `Invalid arguments for command ${command.getFullName()}`, error.message)
+      return fail(400, `Invalid arguments for command ${command.getFullName()}`, `${error}`)
     }
   }
 

@@ -444,7 +444,7 @@ export class AnalyticsHandler {
       try {
         cloudUser = await garden.cloudApi?.getProfile()
       } catch (err) {
-        log.debug(`Getting profile from API failed with error: ${err.message}`)
+        log.debug(`Getting profile from API failed with error: ${err}`)
       }
     }
 
@@ -637,7 +637,7 @@ export class AnalyticsHandler {
     try {
       errorProperties = getResultErrorProperties(errors)
     } catch (err) {
-      this.log.debug(`Failed to extract command result error properties, ${err.toString()}`)
+      this.log.debug(`Failed to extract command result error properties, ${err}`)
     }
 
     return this.track({

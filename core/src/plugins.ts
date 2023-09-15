@@ -196,7 +196,7 @@ export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: Re
       pluginModule = require(moduleNameOrLocation)
     } catch (error) {
       throw new ConfigurationError({
-        message: `Unable to load plugin "${moduleNameOrLocation}" (could not load module: ${error.message})`,
+        message: `Unable to load plugin "${moduleNameOrLocation}" (could not load module: ${error})`,
       })
     }
 

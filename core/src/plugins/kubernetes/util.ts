@@ -430,7 +430,7 @@ export async function upsertConfigMap({
 
   try {
     await api.core.createNamespacedConfigMap(namespace, <any>body)
-  } catch (err: unknown) {
+  } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }
@@ -682,7 +682,7 @@ export async function getTargetResource({
   try {
     target = await readTargetResource({ api, namespace, query })
     return target
-  } catch (err: unknown) {
+  } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }

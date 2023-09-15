@@ -44,7 +44,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
     }
 
     return { state: runResultToActionState(result), detail: <TestResult>result, outputs: { log: result.log || "" } }
-  } catch (err: unknown) {
+  } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }

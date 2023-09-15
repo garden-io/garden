@@ -13,7 +13,7 @@ import chalk from "chalk"
 import { merge } from "json-merge-patch"
 import { extname, join, resolve } from "path"
 import { ensureDir, pathExists, readFile } from "fs-extra"
-import { ConfigurationError, FilesystemError } from "@garden-io/sdk/exceptions"
+import { ChildProcessError, ConfigurationError, FilesystemError, GardenError, PluginError } from "@garden-io/sdk/exceptions"
 import { dumpYaml } from "@garden-io/core/build/src/util/serialization"
 import { DeepPrimitiveMap } from "@garden-io/core/build/src/config/common"
 import { loadAndValidateYaml } from "@garden-io/core/build/src/config/base"
@@ -22,7 +22,7 @@ import { Log, PluginContext } from "@garden-io/sdk/types"
 import { defaultPulumiEnv, pulumi } from "./cli"
 import { PulumiDeploy } from "./action"
 import { PulumiProvider } from "./provider"
-import { deline, naturalList } from "@garden-io/sdk/util/string"
+import { dedent, deline, naturalList } from "@garden-io/sdk/util/string"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
 import { ActionLog } from "@garden-io/core/build/src/logger/log-entry"
 
@@ -176,7 +176,16 @@ export async function setStackVersionTag({ log, ctx, provider, action }: PulumiP
       cwd: getActionStackRoot(action),
     })
   } catch (err) {
-    throw err.message + "\n\nHint: consider setting 'cacheStatus: false'\n"
+    if (!(err instanceof ChildProcessError)) {
+      throw err
+    }
+    throw new PluginError({
+      message: dedent`
+      An error occurred while setting the stack version tag for action ${action.name}: ${err.message}
+
+      Hint: consider setting 'cacheStatus: false'
+      `,
+    })
   }
 }
 
@@ -191,6 +200,9 @@ export async function getStackVersionTag({ log, ctx, provider, action }: PulumiP
       cwd: getActionStackRoot(action),
     })
   } catch (err) {
+    if (!(err instanceof ChildProcessError)) {
+      throw err
+    }
     log.debug(err.message)
     return null
   }
@@ -208,6 +220,9 @@ export async function clearStackVersionTag({ log, ctx, provider, action }: Pulum
       cwd: getActionStackRoot(action),
     })
   } catch (err) {
+    if (!(err instanceof ChildProcessError)) {
+      throw err
+    }
     log.debug(err.message)
   }
 }
@@ -252,6 +267,9 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
       })
     )
   } catch (err) {
+    if (!(err instanceof GardenError)) {
+      throw err
+    }
     throw new FilesystemError({
       message: `An error occurred while reading specified pulumi varfiles (${naturalList(
         spec.pulumiVarfiles
@@ -306,7 +324,7 @@ async function readPulumiPlan(module: PulumiDeploy, planPath: string): Promise<P
     plan = JSON.parse((await readFile(planPath)).toString()) as PulumiPlan
     return plan
   } catch (err) {
-    const errMsg = `An error occurred while reading a pulumi plan file at ${planPath} in module ${module.name}: ${err.message}`
+    const errMsg = `An error occurred while reading a pulumi plan file at ${planPath} in module ${module.name}: ${err}`
     throw new FilesystemError({
       message: errMsg,
     })

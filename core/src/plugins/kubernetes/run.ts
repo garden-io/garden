@@ -523,7 +523,7 @@ async function runWithArtifacts({
     // Start the Pod
     try {
       await runner.start({ log, timeoutSec })
-    } catch (err: unknown) {
+    } catch (err) {
       if (!(err instanceof DeploymentResourceStatusError)) {
         throw err
       }
@@ -664,6 +664,9 @@ async function runWithArtifacts({
       try {
         await copy(tmpDir.path, artifactsPath, { filter: (f) => !f.endsWith(".garden-placeholder") })
       } catch (err) {
+        if (!(err instanceof Error)) {
+          throw err
+        }
         // Ignore error thrown when the directory is empty
         if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
           throw err
@@ -1238,9 +1241,7 @@ export class PodRunner extends PodRunnerParams {
       const containerLogs = allLogs.find((l) => l.containerName === mainContainerName)?.log?.trim()
       return containerLogs || ""
     } catch (err) {
-      return `[Could not retrieve logs for container '${mainContainerName}': ${
-        err.message || "unknown error occurred"
-      }]`
+      return `[Could not retrieve logs for container '${mainContainerName}': ${err}]`
     }
   }
 
@@ -1251,7 +1252,7 @@ export class PodRunner extends PodRunnerParams {
   async stop() {
     try {
       await this.api.core.deleteNamespacedPod(this.podName, this.namespace, undefined, undefined, 0)
-    } catch (err: unknown) {
+    } catch (err) {
       if (!(err instanceof KubernetesError)) {
         throw err
       }

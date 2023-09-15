@@ -515,7 +515,7 @@ ${renderCommands(commands)}
         const parseResults = processCliArgs({ rawArgs: args, parsedArgs: argv, command, matchedPath, cli: true })
         parsedArgs = parseResults.args
         parsedOpts = parseResults.opts
-      } catch (err: unknown) {
+      } catch (err) {
         errors.push(toGardenError(err))
         return done(1, `${err}\n` + command.renderHelp())
       }
@@ -554,7 +554,7 @@ ${renderCommands(commands)}
       commandResult = runResults.result
       analytics = runResults.analytics
     } catch (err) {
-      commandResult = { errors: [err] }
+      commandResult = { errors: [toGardenError(err)] }
     }
 
     errors.push(...(commandResult.errors || []))

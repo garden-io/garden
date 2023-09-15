@@ -20,6 +20,7 @@ import { DeployAction } from "./actions/deploy"
 import { GetPortForwardResult } from "./plugin/handlers/Deploy/get-port-forward"
 import { Executed } from "./actions/types"
 import { PluginEventBroker } from "./plugin-context"
+import { GardenError, isOSError } from "./exceptions"
 
 export interface PortProxy {
   key: string
@@ -116,6 +117,10 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
         const output = await router.deploy.getPortForward({ action, log: actionLog, graph, events, ...spec })
         fwd = output.result
       } catch (err) {
+        if (!(err instanceof GardenError)) {
+          throw err
+        }
+
         const msg = err.message.trim()
 
         if (msg !== lastPrintedError) {
@@ -236,7 +241,7 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
     try {
       localPort = await getPort({ host: localIp, port: preferredLocalPort })
     } catch (err) {
-      if (err.code === "EADDRNOTAVAIL" && localIp !== defaultLocalAddress) {
+      if (isOSError(err) && err.code === "EADDRNOTAVAIL" && localIp !== defaultLocalAddress) {
         // If we're not allowed to bind to other 127.x.x.x addresses, we fall back to localhost. This will almost always
         // be the case on Mac, until we come up with something more clever (that doesn't require sudo).
         localIp = defaultLocalAddress

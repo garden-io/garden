@@ -8,7 +8,7 @@
 
 import { BaseResponse } from "@garden-io/platform-api-types"
 import { StringsParameter } from "../../../cli/params"
-import { CommandError, ConfigurationError } from "../../../exceptions"
+import { CommandError, ConfigurationError, GardenError } from "../../../exceptions"
 import { printHeader } from "../../../logger/util"
 import { dedent, deline } from "../../../util/string"
 import { Command, CommandParams, CommandResult } from "../../base"
@@ -70,9 +70,12 @@ export class SecretsDeleteCommand extends Command<Args> {
         const res = await api.delete<BaseResponse>(`/secrets/${id}`)
         results.push({ id, status: res.status })
       } catch (err) {
+        if (!(err instanceof GardenError)) {
+          throw err
+        }
         errors.push({
           identifier: id,
-          message: err?.response?.body?.message || err.messsage,
+          message: err.message,
         })
       }
     }

@@ -12,7 +12,7 @@ import { isString } from "lodash"
 import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
 import { PassThrough } from "stream"
 import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsHandlerParams, VcsInfo } from "./vcs"
-import { ChildProcessError, ConfigurationError, RuntimeError } from "../exceptions"
+import { ChildProcessError, ConfigurationError, RuntimeError, isOSError } from "../exceptions"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
 import { dedent, deline, splitLast } from "../util/string"
 import { defer, exec } from "../util/util"
@@ -304,7 +304,7 @@ export class GitHandler extends VcsHandler {
         return []
       }
     } catch (err) {
-      if (err.code === "ENOENT") {
+      if (isOSError(err) && err.code === "ENOENT") {
         gitLog.warn(`Attempted to scan directory at ${path}, but it does not exist.`)
         return []
       } else {
@@ -398,7 +398,7 @@ export class GitHandler extends VcsHandler {
             return []
           }
         } catch (err) {
-          if (err.code === "ENOENT") {
+          if (isOSError(err) && err.code === "ENOENT") {
             gitLog.warn(
               `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
             )
@@ -502,7 +502,7 @@ export class GitHandler extends VcsHandler {
               }
               return ensureHash(output, stats)
             } catch (err) {
-              if (err.code === "ENOENT") {
+              if (isOSError(err) && err.code === "ENOENT") {
                 gitLog.verbose(`Ignoring dead symlink at ${resolvedPath}`)
                 return
               }
@@ -515,7 +515,7 @@ export class GitHandler extends VcsHandler {
           return ensureHash(output, stats)
         }
       } catch (err) {
-        if (err.code === "ENOENT") {
+        if (isOSError(err) && err.code === "ENOENT") {
           return
         }
         throw err
@@ -538,7 +538,7 @@ export class GitHandler extends VcsHandler {
     const splitStream = split2()
 
     // Stream
-    const fail = (err: Error) => {
+    const fail = (err: unknown) => {
       proc.kill()
       splitStream.end()
       processEnded.reject(err)
@@ -688,7 +688,7 @@ export class GitHandler extends VcsHandler {
         } catch (err) {
           gitLog.error(`Failed fetching from ${url}`)
           throw new RuntimeError({
-            message: `Updating remote ${sourceType} (at url: ${url}) failed with error: \n\n${err.message || err}`,
+            message: `Updating remote ${sourceType} (at url: ${url}) failed with error: \n\n${err}`,
           })
         }
 

@@ -413,7 +413,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
         } catch (err) {
           analytics?.trackCommandResult(
             this.getFullName(),
-            [err],
+            [toGardenError(err)],
             commandStartTime || new Date(),
             1,
             parentSessionId || undefined
@@ -529,7 +529,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
       try {
         subscriber(data)
       } catch (err) {
-        log.debug(`Error when calling subscriber on ${this.getFullName()} command: ${err.message}`)
+        log.debug(`Error when calling subscriber on ${this.getFullName()} command: ${err}`)
       }
     }
   }

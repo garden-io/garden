@@ -42,7 +42,7 @@ export const getHelmDeployLogs: DeployActionHandler<"getLogs", HelmDeployAction>
         break
       } catch (err) {
         log.debug(`Failed getting deployed resources. Retrying...`)
-        log.silly(err.message)
+        log.silly(`Failed getting deployed resources: ${err}. Retrying...`)
       }
       await sleep(2000)
     }

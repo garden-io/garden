@@ -18,6 +18,7 @@ import { ConfigContext } from "../../../src/config/template-contexts/base"
 import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../helpers"
 import { dedent } from "../../../src/util/string"
 import stripAnsi from "strip-ansi"
+import { TemplateStringError } from "../../../src/exceptions"
 
 class TestContext extends ConfigContext {
   constructor(context) {
@@ -160,6 +161,9 @@ describe("resolveTemplateString", () => {
     try {
       resolveTemplateString("${some", new TestContext({ some: {} }))
     } catch (err) {
+      if (!(err instanceof TemplateStringError)) {
+        expect.fail("Expected TemplateStringError")
+      }
       expect(stripAnsi(err.message)).to.equal(
         "Invalid template string (${some): Unable to parse as valid template string."
       )

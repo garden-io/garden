@@ -535,7 +535,7 @@ export function callHelperFunction({
     return { resolved }
   } catch (error) {
     const _error = new TemplateStringError({
-      message: `Error from helper function ${functionName}: ${error.message}`,
+      message: `Error from helper function ${functionName}: ${error}`,
     })
     return { _error }
   }

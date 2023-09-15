@@ -254,7 +254,7 @@ export class GardenServer extends EventEmitter {
     try {
       request = validateSchema(request, serverRequestSchema(), { context: "API request" })
     } catch (err) {
-      return ctx.throw(400, "Invalid request format: " + err.message)
+      return ctx.throw(400, `Invalid request format: ${err}`)
     }
 
     try {
@@ -276,11 +276,12 @@ export class GardenServer extends EventEmitter {
 
       return result
     } catch (error) {
-      if (error.status) {
+      if (error instanceof Koa.HttpError) {
         throw error
       }
-      this.log.error({ msg: error.message, error })
-      return ctx.throw(500, `Unable to process request: ${error.message}`)
+      const message = String(error)
+      this.log.error({ msg: message, error: toGardenError(error) })
+      return ctx.throw(500, `Unable to process request: ${message}`)
     }
   }
 
@@ -584,7 +585,7 @@ export class GardenServer extends EventEmitter {
           proc.write(stdin.toString())
         })
       } catch (err) {
-        const msg = `Could not run command '${command}': ${err.message}`
+        const msg = `Could not run command '${command}': ${err}`
         this.log.error(msg)
         const event = websocketCloseEvents.ok
         if (websocket.OPEN) {
@@ -780,8 +781,8 @@ export class GardenServer extends EventEmitter {
             delete this.activePersistentRequests[requestId]
           })
       } catch (error) {
-        this.log.error({ msg: `Unexpected error handling request ID ${requestId}: ${error.message}`, error })
-        return send("error", { message: error.message, requestId })
+        this.log.error({ msg: `Unexpected error handling request ID ${requestId}: ${error}`, error: toGardenError(error) })
+        return send("error", { message: String(error), requestId })
       }
     } else if (requestType === "commandStatus") {
       // Retrieve the status for an active persistent command

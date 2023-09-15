@@ -26,6 +26,7 @@ import { Garden } from "../../../src/garden"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../../../src/constants"
 import tmp from "tmp-promise"
 import { ActionKind, BaseActionConfig } from "../../../src/actions/types"
+import { GraphError, ParameterError } from "../../../src/exceptions"
 
 const makeAction = ({
   basePath,
@@ -188,11 +189,14 @@ describe("ConfigGraph (action-based configs)", () => {
         try {
           configGraph.getBuilds({ names: ["missing-build"] })
         } catch (err) {
+          if ((!(err instanceof GraphError))) {
+            expect.fail("Expected GraphError")
+          }
           expect(err.type).to.equal("graph")
           return
         }
 
-        throw new Error("Expected error")
+        expect.fail("Expected error")
       })
 
       it("should throw if specifically requesting a disabled Build action", async () => {
@@ -247,11 +251,14 @@ describe("ConfigGraph (action-based configs)", () => {
         try {
           configGraph.getDeploys({ names: ["missing-deploy"] })
         } catch (err) {
+          if (!(err instanceof GraphError)) {
+            expect.fail("Expected GraphError")
+          }
           expect(err.type).to.equal("graph")
           return
         }
 
-        throw new Error("Expected error")
+        expect.fail("Expected error")
       })
 
       it("should throw if specifically requesting a disabled Deploy action", async () => {
@@ -306,6 +313,9 @@ describe("ConfigGraph (action-based configs)", () => {
         try {
           configGraph.getRuns({ names: ["missing-run"] })
         } catch (err) {
+          if (!(err instanceof GraphError)) {
+            expect.fail("Expected GraphError")
+          }
           expect(err.type).to.equal("graph")
           return
         }
@@ -365,11 +375,14 @@ describe("ConfigGraph (action-based configs)", () => {
         try {
           configGraph.getTests({ names: ["missing-test"] })
         } catch (err) {
+          if (!(err instanceof GraphError)) {
+            expect.fail("Expected GraphError")
+          }
           expect(err.type).to.equal("graph")
           return
         }
 
-        throw new Error("Expected error")
+        expect.fail("Expected error")
       })
 
       it("should throw if specifically requesting a disabled Test action", async () => {
@@ -401,6 +414,9 @@ describe("ConfigGraph (action-based configs)", () => {
         try {
           configGraph.getBuild("missing-build")
         } catch (err) {
+          if (!(err instanceof GraphError)) {
+            expect.fail("Expected GraphError")
+          }
           expect(err.type).to.equal("graph")
           return
         }
@@ -423,6 +439,9 @@ describe("ConfigGraph (action-based configs)", () => {
         try {
           configGraph.getDeploy("missing-deploy")
         } catch (err) {
+          if (!(err instanceof GraphError)) {
+            expect.fail("Expected GraphError")
+          }
           expect(err.type).to.equal("graph")
           return
         }
@@ -445,6 +464,9 @@ describe("ConfigGraph (action-based configs)", () => {
         try {
           configGraph.getRun("missing-run")
         } catch (err) {
+          if (!(err instanceof GraphError)) {
+            expect.fail("Expected GraphError")
+          }
           expect(err.type).to.equal("graph")
           return
         }
@@ -467,6 +489,9 @@ describe("ConfigGraph (action-based configs)", () => {
         try {
           configGraph.getTest("missing-test")
         } catch (err) {
+          if (!(err instanceof GraphError)) {
+            expect.fail("Expected GraphError")
+          }
           expect(err.type).to.equal("graph")
           return
         }
@@ -608,6 +633,9 @@ describe("ConfigGraph (module-based configs)", () => {
       try {
         graphA.getModules({ names: ["bla"] })
       } catch (err) {
+        if (!(err instanceof ParameterError)) {
+          expect.fail("Expected ParameterError")
+        }
         expect(err.type).to.equal("parameter")
         return
       }
@@ -781,6 +809,9 @@ describe("ConfigGraph (module-based configs)", () => {
       try {
         graphA.getDeploys({ names: ["bla"] })
       } catch (err) {
+        if (!(err instanceof GraphError)) {
+          expect.fail("Expected GraphError")
+        }
         expect(err.type).to.equal("graph")
         return
       }
@@ -800,6 +831,9 @@ describe("ConfigGraph (module-based configs)", () => {
       try {
         graphA.getDeploy("bla")
       } catch (err) {
+        if (!(err instanceof GraphError)) {
+          expect.fail("Expected GraphError")
+        }
         expect(err.type).to.equal("graph")
         return
       }
@@ -926,6 +960,9 @@ describe("ConfigGraph (module-based configs)", () => {
       try {
         graphA.getRuns({ names: ["bla"] })
       } catch (err) {
+        if (!(err instanceof GraphError)) {
+          expect.fail("Expected GraphError")
+        }
         expect(err.type).to.equal("graph")
         return
       }
@@ -945,6 +982,9 @@ describe("ConfigGraph (module-based configs)", () => {
       try {
         graphA.getRun("bla")
       } catch (err) {
+        if (!(err instanceof GraphError)) {
+          expect.fail("Expected GraphError")
+        }
         expect(err.type).to.equal("graph")
         return
       }

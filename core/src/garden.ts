@@ -1829,7 +1829,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         try {
           cloudProject = await cloudApi.getProjectById(cloudProjectId)
         } catch (err) {
-          cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
+          cloudLog.debug(`Getting project from API failed with error: ${err}`)
         }
       }
 
@@ -1845,7 +1845,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
           if (err instanceof CloudApiDuplicateProjectsError) {
             cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
           } else {
-            cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)
+            cloudLog.debug(`Creating a new cloud project failed with error: ${err}`)
           }
         }
       }
@@ -1868,7 +1868,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
           cloudLog.verbose(chalk.green("Ready"))
           cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
         } catch (err) {
-          cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
+          cloudLog.debug(`Fetching secrets failed with error: ${err}`)
         }
       } else {
         cloudLog.info(

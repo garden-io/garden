@@ -15,7 +15,7 @@ import { dedent, deline } from "../../util/string"
 import { LogLevel } from "../../logger/logger"
 import { KubernetesError } from "./api"
 import requestErrors = require("request-promise/errors")
-import { InternalError } from "../../exceptions"
+import { InternalError, isOSError } from "../../exceptions"
 
 /**
  * The flag {@code forceRetry} can be used to avoid {@link shouldRetry} helper call in case if the error code
@@ -47,7 +47,7 @@ export async function requestWithRetry<R>(
   const retry = async (usedRetries: number): Promise<R> => {
     try {
       return await req()
-    } catch (err: unknown) {
+    } catch (err) {
       if (forceRetry || shouldRetry(err, context)) {
         retryLog = retryLog || log.createLog({ fixLevel: LogLevel.debug })
         if (usedRetries <= maxRetries) {
@@ -71,14 +71,6 @@ export async function requestWithRetry<R>(
   }
   const result = await retry(1)
   return result
-}
-
-type OSError = {
-  code: string
-} & Error
-
-function isOSError(err: any): err is OSError {
-  return typeof err?.code === "string"
 }
 
 export function toKubernetesError(err: unknown, context: string): KubernetesError {

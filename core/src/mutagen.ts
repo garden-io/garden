@@ -18,7 +18,7 @@ import { join } from "path"
 import respawn from "respawn"
 import split2 from "split2"
 import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants"
-import { GardenError } from "./exceptions"
+import { ChildProcessError, GardenError } from "./exceptions"
 import pMemoize from "./lib/p-memoize"
 import { Log } from "./logger/log-entry"
 import { PluginContext } from "./plugin-context"
@@ -528,6 +528,9 @@ export class Mutagen {
       delete this.activeSyncs[key]
       log.debug(`Mutagen sync ${key} terminated.`)
     } catch (err) {
+      if (!(err instanceof ChildProcessError)) {
+        throw err
+      }
       // Ignore other errors, which should mean the sync wasn't found
       if (err.message.includes("unable to connect to daemon")) {
         throw err
@@ -569,7 +572,7 @@ export class Mutagen {
         try {
           await this.flushSync(session.name)
         } catch (err) {
-          log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err.message}`))
+          log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err}`))
         }
       })
     )
@@ -634,6 +637,9 @@ export class Mutagen {
           env: getMutagenEnv(this.dataDir),
         })
       } catch (err) {
+        if (!(err instanceof ChildProcessError)) {
+          throw err
+        }
         const unableToConnect = err.message.match(/unable to connect to daemon/)
         if (unableToConnect && loops < 10) {
           loops += 1

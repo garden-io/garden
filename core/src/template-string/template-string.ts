@@ -207,6 +207,9 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
 
     return resolved
   } catch (err) {
+    if (!(err instanceof GardenError)) {
+      throw err
+    }
     const prefix = `Invalid template string (${chalk.white(truncate(string, 35).replace(/\n/g, "\\n"))}): `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 

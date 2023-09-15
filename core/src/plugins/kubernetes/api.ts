@@ -212,7 +212,7 @@ async function nullIfNotFound<T>(fn: () => Promise<T>) {
   try {
     const resource = await fn()
     return resource
-  } catch (err: unknown) {
+  } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }
@@ -330,7 +330,7 @@ export class KubeApi {
 
           apiResources[apiVersion] = keyBy(resources, "kind")
           return apiResources[apiVersion]
-        } catch (err: unknown) {
+        } catch (err) {
           if (!(err instanceof KubernetesError)) {
             throw err
           }
@@ -487,7 +487,7 @@ export class KubeApi {
             labelSelector,
           })
           return resourceListForKind.items
-        } catch (err: unknown) {
+        } catch (err) {
           if (!(err instanceof KubernetesError)) {
             throw err
           }
@@ -546,7 +546,7 @@ export class KubeApi {
 
     try {
       await this.request({ log, path: apiPath, opts: { method: "delete" } })
-    } catch (err: unknown) {
+    } catch (err) {
       if (!(err instanceof KubernetesError)) {
         throw err
       }
@@ -650,7 +650,7 @@ export class KubeApi {
 
     try {
       await replace()
-    } catch (replaceError: unknown) {
+    } catch (replaceError) {
       if (!(replaceError instanceof KubernetesError)) {
         throw replaceError
       }
@@ -658,7 +658,7 @@ export class KubeApi {
         try {
           await api[crudMap[kind].create](namespace, <any>obj)
           log.debug(`Created ${kind} ${namespace}/${name}`)
-        } catch (createError: unknown) {
+        } catch (createError) {
           if (!(createError instanceof KubernetesError)) {
             throw createError
           }
