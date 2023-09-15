@@ -1,6 +1,6 @@
 ---
 title: Installing Garden
-order: 1
+order: 2
 ---
 
 # Installing Garden

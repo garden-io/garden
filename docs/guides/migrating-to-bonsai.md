@@ -1,4 +1,9 @@
-# Migrating your configuration for Bonsai
+---
+order: 1
+title: Migrating to Bonsai
+---
+
+# Migrating to Bonsai
 
 **Bonsai** is the codename for Garden 0.13.
 

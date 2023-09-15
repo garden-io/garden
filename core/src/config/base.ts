@@ -303,7 +303,7 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectResource): Projec
   if (projectSpec["apiVersion"] === undefined) {
     emitNonRepeatableWarning(
       log,
-      `"apiVersion" is missing in the Project config. Assuming "${GardenApiVersion.v0}" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${DOCS_BASE_URL}/tutorials/migrating-to-bonsai`
+      `"apiVersion" is missing in the Project config. Assuming "${GardenApiVersion.v0}" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${DOCS_BASE_URL}/guides/migrating-to-bonsai`
     )
 
     return { ...projectSpec, apiVersion: GardenApiVersion.v0 }
