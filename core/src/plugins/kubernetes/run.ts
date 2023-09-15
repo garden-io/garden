@@ -118,7 +118,6 @@ export async function runAndCopy({
   resources,
   description,
   namespace,
-  version,
   volumes,
   privileged,
   addCapabilities,
@@ -137,7 +136,6 @@ export async function runAndCopy({
   resources?: ContainerResourcesSpec
   description?: string
   namespace: string
-  version: string
   volumes?: ContainerVolumeSpec[]
   privileged?: boolean
   addCapabilities?: string[]
