@@ -23,10 +23,6 @@ import { CommandParams } from "./base"
 import { ServeCommandOpts } from "./serve"
 import { DevCommand } from "./dev"
 
-export function makeGetTestOrTaskLog(actions: (TestAction | RunAction)[]) {
-  return actions.map((t) => prettyPrintTestOrTask(t)).join("\n")
-}
-
 /**
  * Runs a `dev` command and runs `commandName` with the args & opts provided in `params` as the first
  * interactive command.
