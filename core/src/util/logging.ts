@@ -10,6 +10,7 @@ import { isArray, isPlainObject, isString, mapValues } from "lodash"
 import stripAnsi from "strip-ansi"
 import { isPrimitive } from "../config/common"
 import { deepFilter } from "./objects"
+import { InternalError } from "../exceptions"
 
 let _callingToSanitizedValue = false
 
@@ -18,9 +19,9 @@ let _callingToSanitizedValue = false
  */
 export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
   if (_callingToSanitizedValue) {
-    // I can't use InternalError here, because that calls sanitizeValue
-    throw new Error(
-      "`toSanitizedValue` is not allowed to call `sanitizeValue` because that can cause infinite recursion."
+    throw new InternalError({
+      message: "`toSanitizedValue` is not allowed to call `sanitizeValue` because that can cause infinite recursion."
+    }
     )
   }
 

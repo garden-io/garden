@@ -170,7 +170,7 @@ describe("resolveTemplateString", () => {
       return
     }
 
-    throw new Error("Expected error")
+    expect.fail("Expected error")
   })
 
   it("should throw on nested format strings", () => {

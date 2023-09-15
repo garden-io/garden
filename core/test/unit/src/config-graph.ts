@@ -320,7 +320,7 @@ describe("ConfigGraph (action-based configs)", () => {
           return
         }
 
-        throw new Error("Expected error")
+        expect.fail("Expected error")
       })
 
       it("should throw if specifically requesting a disabled Run action", async () => {
@@ -421,7 +421,7 @@ describe("ConfigGraph (action-based configs)", () => {
           return
         }
 
-        throw new Error("Expected error")
+        expect.fail("Expected error")
       })
     })
 
@@ -446,7 +446,7 @@ describe("ConfigGraph (action-based configs)", () => {
           return
         }
 
-        throw new Error("Expected error")
+        expect.fail("Expected error")
       })
     })
 
@@ -471,7 +471,7 @@ describe("ConfigGraph (action-based configs)", () => {
           return
         }
 
-        throw new Error("Expected error")
+        expect.fail("Expected error")
       })
     })
 
@@ -496,7 +496,7 @@ describe("ConfigGraph (action-based configs)", () => {
           return
         }
 
-        throw new Error("Expected error")
+        expect.fail("Expected error")
       })
     })
   })
@@ -640,7 +640,7 @@ describe("ConfigGraph (module-based configs)", () => {
         return
       }
 
-      throw new Error("Expected error")
+      expect.fail("Expected error")
     })
 
     it("should throw if a build dependency is missing", async () => {
@@ -816,7 +816,7 @@ describe("ConfigGraph (module-based configs)", () => {
         return
       }
 
-      throw new Error("Expected error")
+      expect.fail("Expected error")
     })
   })
 
@@ -838,7 +838,7 @@ describe("ConfigGraph (module-based configs)", () => {
         return
       }
 
-      throw new Error("Expected error")
+      expect.fail("Expected error")
     })
   })
 
@@ -967,7 +967,7 @@ describe("ConfigGraph (module-based configs)", () => {
         return
       }
 
-      throw new Error("Expected error")
+      expect.fail("Expected error")
     })
   })
 
@@ -989,7 +989,7 @@ describe("ConfigGraph (module-based configs)", () => {
         return
       }
 
-      throw new Error("Expected error")
+      expect.fail("Expected error")
     })
   })
 
