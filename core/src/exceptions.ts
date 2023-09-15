@@ -35,6 +35,7 @@ export interface GardenErrorParams {
    */
   readonly taskType?: string
 }
+
 export abstract class GardenError extends Error {
   /**
    * The error type will be used for rendering the error to json, and also for analytics.
@@ -104,6 +105,7 @@ export abstract class GardenError extends Error {
     }
   }
 }
+
 export class BuildError extends GardenError {
   type = "build"
 }
@@ -117,6 +119,7 @@ type CircularDependenciesErrorParams = {
   cycles: Cycle[]
   cyclesSummary: string
 }
+
 export class CircularDependenciesError extends ConfigurationError {
   private _messagePrefix: string
   cycles: Cycle[]
@@ -183,10 +186,6 @@ export class TimeoutError extends GardenError {
   type = "timeout"
 }
 
-export class OutOfMemoryError extends GardenError {
-  type = "out-of-memory"
-}
-
 export class NotFoundError extends GardenError {
   type = "not-found"
 }
@@ -232,6 +231,7 @@ export class TemplateStringError extends GardenError {
 interface GenericGardenErrorParams extends GardenErrorParams {
   type: string
 }
+
 export class GenericGardenError extends GardenError {
   type: string
 
@@ -250,6 +250,7 @@ type ChildProcessErrorDetails = {
   stdout: string
   opts?: SpawnOpts
 }
+
 export class ChildProcessError extends GardenError {
   type = "childprocess"
 
