@@ -20,7 +20,7 @@ import {
 import { maybeTemplateString, resolveTemplateString, resolveTemplateStrings } from "../template-string/template-string"
 import { validateWithPath } from "./validation"
 import { Garden } from "../garden"
-import { ConfigurationError } from "../exceptions"
+import { ConfigurationError, GardenError } from "../exceptions"
 import { resolve, posix } from "path"
 import { ensureDir } from "fs-extra"
 import type { TemplatedModuleConfig } from "../plugins/templated"
@@ -198,7 +198,10 @@ async function renderModules({
       try {
         moduleConfig = prepareModuleResource(spec, renderConfigPath, garden.projectRoot)
       } catch (error) {
-        let msg = String(error)
+        if (!(error instanceof GardenError)) {
+          throw error
+        }
+        let msg = error.message
 
         if (spec.name && spec.name.includes && spec.name.includes("${")) {
           msg +=

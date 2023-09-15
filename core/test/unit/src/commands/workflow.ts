@@ -486,7 +486,7 @@ describe("RunWorkflowCommand", () => {
     ])
 
     await expectError(() => cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } }), {
-      contains: "Unable to write file 'garden.yml/foo.txt': EEXIST: file already exists, mkdir",
+      contains: "Unable to write file 'garden.yml/foo.txt': Error: EEXIST: file already exists, mkdir",
     })
   })
 
@@ -507,7 +507,7 @@ describe("RunWorkflowCommand", () => {
     ])
 
     await expectError(() => cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } }), {
-      contains: `Unable to write file '.garden': EISDIR: illegal operation on a directory, open '${garden.gardenDirPath}'`,
+      contains: `Unable to write file '.garden': Error: EISDIR: illegal operation on a directory, open '${garden.gardenDirPath}'`,
     })
   })
 

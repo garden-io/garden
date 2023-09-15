@@ -514,7 +514,7 @@ describe("resolveTemplateString", () => {
   it("should throw when using + on number and array", () => {
     void expectError(() => resolveTemplateString("${a + b}", new TestContext({ a: 123, b: ["a"] })), {
       contains:
-        "Invalid template string (${a + b}): Both terms need to be either arrays or strings or numbers for + operator (got number and object).",
+        "Invalid template string (${a + b}): Error: Both terms need to be either arrays or strings or numbers for + operator (got number and object).",
     })
   })
 
@@ -602,7 +602,7 @@ describe("resolveTemplateString", () => {
   it("should throw when using >= on non-numeric terms", () => {
     void expectError(() => resolveTemplateString("${a >= b}", new TestContext({ a: 123, b: "foo" })), {
       contains:
-        "Invalid template string (${a >= b}): Both terms need to be numbers for >= operator (got number and string).",
+        "Invalid template string (${a >= b}): Error: Both terms need to be numbers for >= operator (got number and string).",
     })
   })
 
@@ -1053,7 +1053,7 @@ describe("resolveTemplateString", () => {
     it("throws if the function fails", () => {
       void expectError(() => resolveTemplateString("${jsonDecode('{]}')}", new TestContext({})), {
         contains:
-          "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: Unexpected token ] in JSON at position 1",
+          "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: SyntaxError: Unexpected token ] in JSON at position 1",
       })
     })
 
@@ -1093,7 +1093,7 @@ describe("resolveTemplateString", () => {
               b: ["a"],
             },
             errorMessage:
-              "Error from helper function concat: Both terms need to be either arrays or strings (got string and object).",
+              "Error from helper function concat: Error: Both terms need to be either arrays or strings (got string and object).",
           })
         })
 
@@ -1150,13 +1150,13 @@ describe("resolveTemplateString", () => {
 
       it("throws on invalid string in the start index", () => {
         void expectError(() => resolveTemplateString("${slice(foo, 'a', 3)}", new TestContext({ foo: "abcdef" })), {
-          contains: `Invalid template string (\${slice(foo, 'a', 3)}): Error from helper function slice: start index must be a number or a numeric string (got "a")`,
+          contains: `Invalid template string (\${slice(foo, 'a', 3)}): Error from helper function slice: Error: start index must be a number or a numeric string (got "a")`,
         })
       })
 
       it("throws on invalid string in the end index", () => {
         void expectError(() => resolveTemplateString("${slice(foo, 0, 'b')}", new TestContext({ foo: "abcdef" })), {
-          contains: `Invalid template string (\${slice(foo, 0, 'b')}): Error from helper function slice: end index must be a number or a numeric string (got "b")`,
+          contains: `Invalid template string (\${slice(foo, 0, 'b')}): Error from helper function slice: Error: end index must be a number or a numeric string (got "b")`,
         })
       })
     })

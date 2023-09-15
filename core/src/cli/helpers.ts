@@ -357,7 +357,10 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
         value = spec.validate(spec.coerce(value))
         processedOpts[key as keyof typeof optSpec] = value
       } catch (err) {
-        errors.push(`Invalid value for option ${flagStr}: ${err}`)
+        if (!(err instanceof GardenError)) {
+          throw err
+        }
+        errors.push(`Invalid value for option ${flagStr}: ${err.message}`)
       }
     }
   }
