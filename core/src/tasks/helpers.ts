@@ -59,9 +59,3 @@ export function getDeployStatuses(dependencyResults: GraphResults): { [name: str
   const statuses = mapValues(deployResults, (r) => omit(r!.result, "version") as DeployStatus)
   return mapKeys(statuses, (_, key) => splitLast(key, ".")[1])
 }
-
-export function getRunResults(dependencyResults: GraphResults): { [name: string]: GetRunResult } {
-  const runResults = pickBy(dependencyResults.getMap(), (r) => r && r.type === "run")
-  const results = mapValues(runResults, (r) => r!.result as GetRunResult)
-  return mapKeys(results, (_, key) => splitLast(key, ".")[1])
-}
