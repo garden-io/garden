@@ -8,7 +8,6 @@
 
 import { DockerImageWithDigest } from "../../util/string"
 
-export const rsyncPort = 873
 export const rsyncPortName = "garden-rsync"
 export const buildSyncVolumeName = `garden-sync`
 
