@@ -533,8 +533,6 @@ function workloadConfig({
   }
 }
 
-type HealthCheckMode = "dev" | "local" | "normal"
-
 function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec, mode: ActionMode): void {
   if (mode === "local") {
     // no need to configure liveness and readiness probes for a service running in local mode
