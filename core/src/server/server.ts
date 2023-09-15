@@ -192,6 +192,7 @@ export class GardenServer extends EventEmitter {
         })
 
         this.server.listen(this.port, hostname)
+        this.app.ws.listen({ server: this.server })
       })
     }
 
