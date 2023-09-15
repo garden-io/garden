@@ -207,7 +207,7 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
     const res = await proc
     return res
   } catch (err) {
-    if (isOSError(err) && (err.code === "EMFILE")) {
+    if (isOSError(err) && err.code === "EMFILE") {
       throw new RuntimeError({
         message: dedent`
         Received EMFILE (Too many open files) error when running ${cmd}.

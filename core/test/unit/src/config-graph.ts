@@ -189,7 +189,7 @@ describe("ConfigGraph (action-based configs)", () => {
         try {
           configGraph.getBuilds({ names: ["missing-build"] })
         } catch (err) {
-          if ((!(err instanceof GraphError))) {
+          if (!(err instanceof GraphError)) {
             expect.fail("Expected GraphError")
           }
           expect(err.type).to.equal("graph")

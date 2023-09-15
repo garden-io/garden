@@ -358,7 +358,11 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
         const pipeline = promisify(stream.pipeline)
         await pipeline(got.stream(url), createWriteStream(tempPath))
       } catch (err) {
-        if (err instanceof GotHttpError && err.code === "ERR_NON_2XX_3XX_RESPONSE" && err.response?.statusCode === 404) {
+        if (
+          err instanceof GotHttpError &&
+          err.code === "ERR_NON_2XX_3XX_RESPONSE" &&
+          err.response?.statusCode === 404
+        ) {
           log.info("")
           log.error(chalk.redBright(`Could not find version ${desiredVersion} for ${build}.`))
 

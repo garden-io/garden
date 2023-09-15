@@ -781,7 +781,10 @@ export class GardenServer extends EventEmitter {
             delete this.activePersistentRequests[requestId]
           })
       } catch (error) {
-        this.log.error({ msg: `Unexpected error handling request ID ${requestId}: ${error}`, error: toGardenError(error) })
+        this.log.error({
+          msg: `Unexpected error handling request ID ${requestId}: ${error}`,
+          error: toGardenError(error),
+        })
         return send("error", { message: String(error), requestId })
       }
     } else if (requestType === "commandStatus") {
