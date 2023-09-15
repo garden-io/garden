@@ -313,10 +313,6 @@ export interface ActionDescription {
   version: ActionVersion
 }
 
-export interface ActionDescriptionMap {
-  [key: string]: ActionDescription
-}
-
 export abstract class BaseAction<
   C extends BaseActionConfig = BaseActionConfig,
   StaticOutputs extends {} = any,

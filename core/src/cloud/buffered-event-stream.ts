@@ -72,8 +72,6 @@ interface StreamTarget {
   clientAuthToken?: string
 }
 
-export type StreamRecordType = "event" | "logEntry"
-
 interface ApiBatchBase {
   workflowRunUid?: string
   sessionId: string | null

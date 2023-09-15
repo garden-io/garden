@@ -42,8 +42,6 @@ import { callHelperFunction } from "./functions"
 import { ActionKind, actionKindsLower } from "../actions/types"
 import { deepMap } from "../util/objects"
 
-export type StringOrStringPromise = Promise<string> | string
-
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
 const escapePrefix = "$${"

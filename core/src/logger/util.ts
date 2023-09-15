@@ -22,8 +22,6 @@ export interface LogLike {
   entries: any[]
 }
 
-export type ProcessLog<T extends LogLike = LogLike> = (node: T) => boolean
-
 /**
  * Returns the entry's section or first parent section it finds.
  */

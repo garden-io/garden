@@ -236,13 +236,6 @@ export type TestActionDefinition<C extends TestAction = TestAction> = ActionType
 
 // COMBINED //
 
-export interface ActionTypeDescriptions {
-  Build: BuildActionDescriptions
-  Deploy: DeployActionDescriptions
-  Run: RunActionDescriptions
-  Test: TestActionDescriptions
-}
-
 export interface ActionClassMap {
   Build: BuildAction
   Deploy: DeployAction
@@ -255,10 +248,6 @@ export type ActionTypeHandlers = {
   Deploy: DeployActionHandlers
   Run: RunActionHandlers
   Test: TestActionHandlers
-}
-
-export type ActionTypeHandlerNames = {
-  [K in ActionKind]: keyof ActionTypeHandlers[K]
 }
 
 export interface ResolvedActionTypeHandlerDescription<N = string> extends ResolvedActionHandlerDescription<N> {

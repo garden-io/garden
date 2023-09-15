@@ -926,10 +926,6 @@ interface ServerWebsocketMessages {
 
 type ServerWebsocketMessageType = keyof ServerWebsocketMessages
 
-export type ServerWebsocketMessage = ServerWebsocketMessages[ServerWebsocketMessageType] & {
-  type: ServerWebsocketMessageType
-}
-
 type SendWrapper<T extends ServerWebsocketMessageType = ServerWebsocketMessageType> = (
   type: T,
   payload: ServerWebsocketMessages[T]

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type Joi from "@hapi/joi"
 import { getLogLevelChoices, LogLevel } from "../logger/logger"
 import stringArgv from "string-argv"
 import { Command, CommandParams, CommandResult, ConsoleCommand } from "../commands/base"
@@ -42,14 +41,6 @@ import { z } from "zod"
 import { exec } from "../util/util"
 import split2 from "split2"
 import pProps from "p-props"
-
-export interface CommandMap {
-  [key: string]: {
-    command: Command
-    requestSchema: Joi.ObjectSchema
-    // TODO: implement resultSchema on Commands, so we can include it here as well (for docs mainly)
-  }
-}
 
 const autocompleteArguments = {
   input: new StringParameter({

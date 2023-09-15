@@ -10,7 +10,6 @@ import { Task, ValidResultType } from "../tasks/base"
 import { GraphError, InternalError, toGardenError } from "../exceptions"
 import { GraphResult, GraphResultFromTask, GraphResults } from "./results"
 import type { GraphSolver } from "./solver"
-import { ValuesType } from "utility-types"
 import chalk from "chalk"
 import { metadataForLog } from "./common"
 import { Profile } from "../util/profiling"
@@ -19,8 +18,6 @@ export interface InternalNodeTypes {
   status: StatusTaskNode
   process: ProcessTaskNode
 }
-
-export type InternalNode = ValuesType<InternalNodeTypes>
 
 export interface NodeTypes extends InternalNodeTypes {
   request: RequestTaskNode

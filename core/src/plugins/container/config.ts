@@ -884,6 +884,7 @@ const artifactsSchema = memoize(() =>
 export interface ContainerTestOutputs {
   log: string
 }
+
 export const containerTestOutputSchema = createSchema({
   name: "container-test-output",
   keys: () => ({
@@ -1079,4 +1080,3 @@ export type ContainerRuntimeActionConfig =
   | ContainerDeployActionConfig
   | ContainerRunActionConfig
   | ContainerTestActionConfig
-export type ContainerAction = ContainerRuntimeAction | ContainerBuildAction

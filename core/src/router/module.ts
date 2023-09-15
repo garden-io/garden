@@ -10,7 +10,6 @@ import { fromPairs, uniqBy } from "lodash"
 import { validateSchema } from "../config/validation"
 import { defaultProvider } from "../config/provider"
 import { ParameterError, PluginError, InternalError } from "../exceptions"
-import { Log } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
 import {
   ModuleActionOutputs,
@@ -30,19 +29,10 @@ import { ConfigureModuleParams, ConfigureModuleResult } from "../plugin/handlers
 import { PluginEventBroker } from "../plugin-context"
 import { BuildDependencyConfig } from "../config/module"
 import { Profile } from "../util/profiling"
-import { ConfigGraph } from "../graph/config-graph"
 import { GetModuleOutputsParams, GetModuleOutputsResult } from "../plugin/handlers/Module/get-outputs"
 import { BaseRouter, BaseRouterParams } from "./base"
 import { ConvertModuleParams, ConvertModuleResult } from "../plugin/handlers/Module/convert"
 import dedent from "dedent"
-
-export interface DeployManyParams {
-  graph: ConfigGraph
-  log: Log
-  deployNames?: string[]
-  force?: boolean
-  forceBuild?: boolean
-}
 
 /**
  * The ActionRouter takes care of choosing which plugin should be responsible for handling an action,

@@ -101,10 +101,6 @@ interface ModuleSpecCommon {
   varfile?: string
 }
 
-export interface AddModuleSpec extends ModuleSpecCommon {
-  [key: string]: any
-}
-
 export interface BaseModuleSpec extends ModuleSpecCommon {
   /**
    * the apiVersion field is unused in all Modules at the moment and hidden in the reference docs.
@@ -348,8 +344,4 @@ export const baseModuleSchemaKeys = memoize(() =>
 
 export function serializeConfig(moduleConfig: Partial<ModuleConfig>) {
   return stableStringify(moduleConfig)
-}
-
-export interface ModuleResource extends ModuleConfig {
-  kind: "Module"
 }

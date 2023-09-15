@@ -15,7 +15,7 @@ import {
   resolveTemplateString,
   resolveTemplateStrings,
 } from "./template-string/template-string"
-import { ContextResolveOpts, GenericContext } from "./config/template-contexts/base"
+import { GenericContext } from "./config/template-contexts/base"
 import { dirname, posix, relative, resolve } from "path"
 import type { Garden } from "./garden"
 import {
@@ -658,10 +658,6 @@ export class ModuleResolver {
     )
     return mergedVariables
   }
-}
-
-export interface ModuleConfigResolveOpts extends ContextResolveOpts {
-  configContext: ModuleConfigContext
 }
 
 export interface ConvertModulesResult {
