@@ -31,8 +31,6 @@ export interface AugmentGraphResult {
   addActions?: BaseActionConfig[]
 }
 
-export const addModuleSchema = () => baseModuleSpecSchema()
-
 export const augmentGraph = () => ({
   description: dedent`
     Add actions and/or dependency relationships to the project stack graph. See the individual output fields for
