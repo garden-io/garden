@@ -955,6 +955,13 @@ function getGroupBasePath(apiVersion: string) {
   return apiVersion.includes("/") ? `/apis/${apiVersion}` : `/api/${apiVersion}`
 }
 
+export const KUBECTL_RETRY_OPTS: RetryOpts = {
+  maxRetries: 3,
+  minTimeoutMs: 300,
+  // forceRetry is important, because shouldRetry cannot handle ChildProcessError.
+  forceRetry: true,
+}
+
 export async function getKubeConfig(log: Log, ctx: PluginContext, provider: KubernetesProvider) {
   let kubeConfigStr: string
 
@@ -972,7 +979,7 @@ export async function getKubeConfig(log: Log, ctx: PluginContext, provider: Kube
             log,
             args,
           }),
-        { forceRetry: true }
+        KUBECTL_RETRY_OPTS
       )
     }
     return load(kubeConfigStr)!
