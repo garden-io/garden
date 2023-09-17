@@ -114,7 +114,7 @@ export class LoginCommand extends Command<{}, Opts> {
     log.info({ msg: `Logging in to ${cloudDomain}...` })
     const tokenResponse = await login(log, cloudDomain, garden.events)
     // Save the token, then try to create a cloud API instance and retrieve the profile
-    await CloudApi.saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain)
+    await CloudApi.saveAuthToken({ log, globalConfigStore, tokenResponse, domain: cloudDomain })
 
     try {
       cloudApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
@@ -137,7 +137,7 @@ export class LoginCommand extends Command<{}, Opts> {
         log.silly(`Failed to retreive the user profile after retrieving access token, ${err}`)
       }
 
-      await CloudApi.saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain, userProfile)
+      await CloudApi.saveAuthToken({ log, globalConfigStore, tokenResponse, domain: cloudDomain, userProfile })
       log.info({ msg: `Successfully logged in to ${cloudDomain}.` })
     } catch (err) {
       await CloudApi.clearAuthToken(log, globalConfigStore, cloudDomain)

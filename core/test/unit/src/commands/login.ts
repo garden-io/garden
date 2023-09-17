@@ -178,7 +178,12 @@ describe("LoginCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await CloudApi.saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(CloudApi.prototype, "startInterval", async () => {})
 
@@ -282,7 +287,12 @@ describe("LoginCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await CloudApi.saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
     td.replace(CloudApi.prototype, "refreshToken", async () => {
       throw new Error("bummer")
@@ -313,7 +323,12 @@ describe("LoginCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await CloudApi.saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
     td.replace(CloudApi.prototype, "refreshToken", async () => {
       throw new CloudApiError({ message: "bummer", responseStatusCode: 401 })

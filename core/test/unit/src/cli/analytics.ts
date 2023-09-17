@@ -195,7 +195,13 @@ describe("cli analytics", () => {
         domain,
       }
 
-      await CloudApi.saveAuthToken(log, garden.globalConfigStore, testToken, domain, userProfile)
+      await CloudApi.saveAuthToken({
+        log,
+        globalConfigStore: garden.globalConfigStore,
+        tokenResponse: testToken,
+        domain,
+        userProfile,
+      })
     })
 
     afterEach(async () => {

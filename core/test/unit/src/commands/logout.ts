@@ -60,7 +60,12 @@ describe("LogoutCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await CloudApi.saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(CloudApi.prototype, "startInterval", async () => {})
     td.replace(CloudApi.prototype, "post", async () => {})
@@ -98,7 +103,12 @@ describe("LogoutCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await CloudApi.saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(CloudApi.prototype, "startInterval", async () => {})
     td.replace(CloudApi.prototype, "post", async () => {})
@@ -151,7 +161,12 @@ describe("LogoutCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await CloudApi.saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     // Throw when initializing Enterprise API
     td.replace(CloudApi.prototype, "factory", async () => {
       throw new Error("Not tonight")
@@ -191,7 +206,12 @@ describe("LogoutCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await CloudApi.saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     // Throw when using Enterprise API to call logout endpoint
     td.replace(CloudApi.prototype, "post", async () => {
       throw new Error("Not tonight")
@@ -249,7 +269,12 @@ describe("LogoutCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await CloudApi.saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(CloudApi.prototype, "startInterval", async () => {})
     td.replace(CloudApi.prototype, "post", async () => {})

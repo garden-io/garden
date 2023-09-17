@@ -43,7 +43,7 @@ describe("AuthToken", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await CloudApi.saveAuthToken(log, globalConfigStore, testToken, domain)
+      await CloudApi.saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain })
       const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.eql(testToken.token)
     })
@@ -60,7 +60,7 @@ describe("AuthToken", () => {
         domain,
       }
 
-      await CloudApi.saveAuthToken(log, globalConfigStore, testToken, domain, userProfile)
+      await CloudApi.saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain, userProfile })
       const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.eql(testToken.token)
 
@@ -80,7 +80,7 @@ describe("AuthToken", () => {
         domain,
       }
 
-      await CloudApi.saveAuthToken(log, globalConfigStore, testToken, domain, userProfile)
+      await CloudApi.saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain, userProfile })
       const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.eql(testToken.token)
 
@@ -108,7 +108,7 @@ describe("AuthToken", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await CloudApi.saveAuthToken(log, globalConfigStore, testToken, domain)
+      await CloudApi.saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain })
       await CloudApi.clearAuthToken(log, globalConfigStore, domain)
       const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.be.undefined

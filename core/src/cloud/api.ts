@@ -173,6 +173,14 @@ export interface CloudApiFactoryParams {
   skipLogging?: boolean
 }
 
+export interface SaveAuthTokenParams {
+  log: Log
+  globalConfigStore: GlobalConfigStore
+  tokenResponse: AuthTokenResponse
+  domain: string
+  userProfile?: CloudUserProfile
+}
+
 export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<CloudApi | undefined>
 
 /**
@@ -260,13 +268,13 @@ export class CloudApi {
     return api
   }
 
-  static async saveAuthToken(
-    log: Log,
-    globalConfigStore: GlobalConfigStore,
-    tokenResponse: AuthTokenResponse,
-    domain: string,
-    userProfile: CloudUserProfile | undefined = undefined
-  ) {
+  static async saveAuthToken({
+    log,
+    globalConfigStore,
+    tokenResponse,
+    domain,
+    userProfile = undefined,
+  }: SaveAuthTokenParams) {
     const distroName = getCloudDistributionName(domain)
 
     if (!tokenResponse.token) {
@@ -504,7 +512,13 @@ export class CloudApi {
           domain: this.domain,
         }
       }
-      await CloudApi.saveAuthToken(this.log, this.globalConfigStore, tokenObj, this.domain, userProfile)
+      await CloudApi.saveAuthToken({
+        log: this.log,
+        globalConfigStore: this.globalConfigStore,
+        tokenResponse: tokenObj,
+        domain: this.domain,
+        userProfile,
+      })
     } catch (err) {
       if (!(err instanceof GotHttpError)) {
         throw err
