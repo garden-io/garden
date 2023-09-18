@@ -60,10 +60,10 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   // creating tmp dir .garden/ephemeral-kubernetes for storing kubeconfig
   const ephemeralClusterDirPath = join(ctx.gardenDirPath, "ephemeral-kubernetes")
   await mkdirp(ephemeralClusterDirPath)
-  log.info("Creating ephemeral kubernetes cluster")
+  log.info("Retrieving ephemeral Kubernetes cluster")
   const createEphemeralClusterResponse = await ctx.cloudApi.createEphemeralCluster()
   const clusterId = createEphemeralClusterResponse.instanceMetadata.instanceId
-  log.info(`Ephemeral kubernetes cluster created successfully`)
+  log.info(`Ephemeral Kubernetes cluster retrieved successfully`)
   const deadlineDateTime = moment(createEphemeralClusterResponse.instanceMetadata.deadline)
   const diffInNowAndDeadline = moment.duration(deadlineDateTime.diff(moment())).asMinutes().toFixed(1)
   log.info(
@@ -73,7 +73,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       )}`
     )
   )
-  log.info("Getting Kubeconfig for the cluster")
+  log.info("Fetching kubeconfig for the ephemeral cluster")
   const kubeConfig = await ctx.cloudApi.getKubeConfigForCluster(clusterId)
   const kubeconfigFileName = `${clusterId}-kubeconfig.yaml`
   const kubeConfigPath = join(ctx.gardenDirPath, "ephemeral-kubernetes", kubeconfigFileName)

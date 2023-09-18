@@ -232,7 +232,7 @@ export async function prepareSystem({
   }
 
   // We require manual init if we're installing any system services to remote clusters unless the remote cluster
-  // is an ephemeral-cluster, to avoid conflicts between users or unnecessary work.
+  // is an ephemeral cluster, to avoid conflicts between users or unnecessary work.
   if (!clusterInit && remoteCluster && !isProviderEphemeralKubernetes(provider)) {
     const initCommand = chalk.white.bold(`garden --env=${ctx.environmentName} plugins kubernetes cluster-init`)
 
