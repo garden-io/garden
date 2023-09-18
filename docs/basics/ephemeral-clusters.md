@@ -3,21 +3,21 @@ title: Start a Free Kubernetes Cluster
 order: 4
 ---
 
-# Garden Ephemeral Kubernetes Clusters
+# Garden Managed Kubernetes Clusters
 
 {% hint style="warning" %}
-This feature is still experimental. Please let us know if you have any questions or if any issues come up!
+This feature is still experimental and only available in Garden `>=0.13.14`. Please let us know if you have any questions or if any issues come up!
 {% endhint %}
 
 At Garden, we're committed to reducing the friction with getting started and trialing our tooling with your projects. To make Garden adoption more accessible and convenient, we've introduced **Ephemeral Kubernetes Clusters**. We designed this feature to provide you with a hassle-free way to explore Garden's capabilities on Kubernetes without needing to configure or provision a local or remote cluster.
 
 The Ephemeral Kubernetes Clusters are provided for free to all users in our **Community Tier**. These clusters are meant for short-term use and to allow you to run and test your applications with Garden on a remote Kubernetes cluster.
 
-You can add or remove Garden ephemeral clusters easily via the `garden-kubernetes` provider.
+You can add or remove Garden managed clusters easily via the `garden-kubernetes` provider.
 
 ## Getting started
 
-There are a lot of example garden projects that are already configured and ready to go with Garden ephemeral clusters. Checkout our [quickstart guide](quickstart.md) or the [ephemeral-cluster-demo](https://github.com/garden-io/garden/tree/main/examples/ephemeral-cluster-demo) example on GitHub.
+There are a lot of example garden projects that are already configured and ready to go with Garden managed clusters. Checkout our [quickstart guide](quickstart.md) or the [ephemeral-cluster-demo](https://github.com/garden-io/garden/tree/main/examples/ephemeral-cluster-demo) example on GitHub.
 In the following steps you'll learn how to configure your own Garden projects to use the `garden-kubernetes` provider.
 
 ### Step 1 - Configure the provider
@@ -101,14 +101,18 @@ The first time you attempt to preview an ingress URL, you will be automatically 
 Ingress URLs are not shareable at the moment however it is planned to be supported in future releases. Stay tuned for further updates on this.
 {% endhint %}
 
-## Accessing the ephemeral cluster via kubeconfig
+## Accessing a cluster via kubeconfig
 
-Once your ephemeral cluster is created, the kubeconfig file for that cluster is stored on your local machine. The path to the kubeconfig file is shown in the logs when you deploy your project using Garden and looks like following:
+Once your cluster is created, the kubeconfig file for that cluster is stored on your local machine. The path to the kubeconfig file is shown in the logs when you deploy your project using Garden and looks like following:
 ```
 kubeconfig for ephemeral cluster saved at path: /garden/examples/ephemeral-cluster-demo/.garden/garden-kubernetes/<cluster-id>-kubeconfig.yaml
 ```
 
 This kubeconfig file allows you to interact with the cluster using `kubectl` or other Kubernetes tools.
+
+## Security
+
+Your managed Garden cluster is not shared with other Garden users, but due to it's ephemeral character not suitable for production workloads. Ingress is secured by TLS and needs authentication via GitHub. That means your application will not be publicly available in the internet.
 
 ## Limitations
 
@@ -118,7 +122,7 @@ As of today, the `garden-kubernetes` provider has the following limitations:
 
 ## Usage quota and managing clusters
 
-Each user is granted a maximum of **20 hours per month** of ephemeral cluster usage where each cluster has a maximum lifetime of **4 hours**. After this period, the cluster is automatically destroyed.
+Each user is granted a maximum of **20 hours per month** of managed cluster usage where each cluster has a maximum lifetime of **4 hours**. After this period, the cluster is automatically destroyed.
 
-If you need to destroy the cluster before its maximum lifetime of 4 hours expires, you can do so by visiting [Garden Cloud](https://app.garden.io) and selecting the option to destroy the ephemeral cluster from there. This allows you to release resources and terminate the cluster when it's no longer needed.
+If you need to destroy the cluster before its maximum lifetime of 4 hours expires, you can do so by visiting [Garden Cloud](https://app.garden.io) and selecting the option to destroy the cluster from there. This allows you to release resources and terminate the cluster when it's no longer needed.
 
