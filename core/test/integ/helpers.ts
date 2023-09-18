@@ -6,23 +6,59 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import kms from "@google-cloud/kms"
-import { readFile } from "fs-extra"
+import { GoogleAuth, DownscopedClient } from "google-auth-library"
+import { expect } from "chai"
+import { base64 } from "../../src/util/string"
 
-const projectId = "garden-ci"
-const keyRingId = "dev"
-const cryptoKeyId = "dev"
-const locationId = "global"
+export async function getGoogleADCImagePullSecret() {
+  let token: string
 
-/**
- * Decrypt a secret file, encrypted with our Google Cloud KMS key.
- */
-export async function decryptSecretFile(path: string) {
-  const client = new kms.KeyManagementServiceClient()
+  try {
+    // This will use ADC to get the credentials used for the downscoped client.
+    const googleAuth = new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+      projectId: "garden-ci",
+    })
 
-  const name = client.cryptoKeyPath(projectId, locationId, keyRingId, cryptoKeyId)
-  const ciphertext = await readFile(path)
-  const [result] = await client.decrypt({ name, ciphertext })
+    // Obtain an authenticated client via ADC.
+    const client = await googleAuth.getClient()
 
-  return result.plaintext!
+    // Use the client to create a DownscopedClient.
+    const cabClient = new DownscopedClient(client, {
+      accessBoundary: {
+        accessBoundaryRules: [
+          {
+            availablePermissions: ["inRole:roles/artifactregistry.repoAdmin"],
+            availableResource: "//artifactregistry.googleapis.com/projects/garden-ci/locations/_/repositories/_",
+          },
+        ],
+      },
+    })
+
+    // Refresh the tokens.
+    const refreshedAccessToken = await cabClient.getAccessToken()
+
+    // This will need to be passed to the token consumer.
+    if (!refreshedAccessToken.token) {
+      expect.fail("Failed to downscope token for image pull secret via ADC: token was not set")
+    }
+
+    token = refreshedAccessToken.token
+  } catch (err) {
+    if (!(err instanceof Error)) {
+      throw err
+    }
+    if (err.message.includes("API has not been used in project") || err.message.includes("Could not load the default credentials")) {
+      expect.fail("Could not get downscoped token: Not authenticated to gcloud. Please run the command 'gcloud auth application-default login --project garden-ci'")
+    }
+    throw err
+  }
+
+  return {
+    auths: {
+      "eu.gcr.io": {
+        auth: base64(`oauth2accesstoken:${token}`),
+      }
+    }
+  }
 }

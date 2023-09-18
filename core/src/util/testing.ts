@@ -159,6 +159,7 @@ export type TestGardenOpts = Partial<GardenOpts> & {
   noCache?: boolean
   noTempDir?: boolean
   onlySpecifiedPlugins?: boolean
+  remoteContainerAuth?: boolean
 }
 
 export class TestGarden extends Garden {

@@ -18,7 +18,7 @@ providers:
           - "**/prefix-*"
   - name: local-kubernetes
     deploymentRegistry: &deploymentRegistry
-      hostname: index.docker.io
+      hostname: eu.gcr.io
       namespace: gardendev
     environments: [local-remote-registry]
   - &base

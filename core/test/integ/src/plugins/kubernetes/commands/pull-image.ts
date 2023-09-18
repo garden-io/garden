@@ -32,7 +32,7 @@ describe("pull-image plugin command", () => {
   })
 
   const init = async (environmentName: string) => {
-    garden = await getContainerTestGarden(environmentName)
+    garden = await getContainerTestGarden(environmentName, { remoteContainerAuth: true })
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -70,7 +70,7 @@ describe("pull-image plugin command", () => {
     before(async () => {
       await init("kaniko")
 
-      action = graph.getBuild("remote-registry-test.build") as BuildAction
+      action = graph.getBuild("remote-registry-test") as BuildAction
       const resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
 
       // build the image
@@ -107,7 +107,7 @@ describe("pull-image plugin command", () => {
     before(async () => {
       await init("cluster-buildkit")
 
-      action = graph.getBuild("remote-registry-test.build")
+      action = graph.getBuild("remote-registry-test")
       const resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
 
       // build the image
