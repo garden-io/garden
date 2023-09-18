@@ -18,7 +18,7 @@ import stringWidth from "string-width"
 import { maxBy, zip } from "lodash"
 import { Logger } from "../logger/logger"
 
-import { ParameterValues, Parameter, Parameters, globalDisplayOptions } from "./params"
+import { ParameterValues, Parameter, ParameterObject, globalDisplayOptions } from "./params"
 import { GardenError, ParameterError, RuntimeError, toGardenError } from "../exceptions"
 import { getPackageVersion, removeSlice } from "../util/util"
 import { Log } from "../logger/log-entry"
@@ -213,7 +213,7 @@ export function parseCliArgs(params: {
  * @param command     The Command that the arguments are for
  * @param cli         Set to false if `cliOnly` options should be ignored
  */
-export function processCliArgs<A extends Parameters, O extends Parameters>({
+export function processCliArgs<A extends ParameterObject, O extends ParameterObject>({
   log,
   rawArgs,
   parsedArgs,
@@ -408,7 +408,7 @@ export function parseCliVarFlags(cliVars: string[] | undefined) {
   return cliVars ? dotenv.parse(cliVars.join("\n")) : {}
 }
 
-export function optionsWithAliasValues<A extends Parameters, O extends Parameters>(
+export function optionsWithAliasValues<A extends ParameterObject, O extends ParameterObject>(
   command: Command<A, O>,
   parsedOpts: DeepPrimitiveMap
 ): DeepPrimitiveMap {
@@ -487,13 +487,13 @@ export function renderCommands(commands: Command[]) {
   })
 }
 
-export function renderArguments(params: Parameters) {
+export function renderArguments(params: ParameterObject) {
   return renderParameters(params, (name, param) => {
     return " " + cliStyles.usagePositional(name, param.required, param.spread)
   })
 }
 
-export function renderOptions(params: Parameters) {
+export function renderOptions(params: ParameterObject) {
   return renderParameters(params, (name, param) => {
     const renderAlias = (alias: string | undefined): string => {
       if (!alias) {
@@ -509,7 +509,7 @@ export function renderOptions(params: Parameters) {
   })
 }
 
-function renderParameters(params: Parameters, formatName: (name: string, param: Parameter<any>) => string) {
+function renderParameters(params: ParameterObject, formatName: (name: string, param: Parameter<any>) => string) {
   const sortedParams = Object.keys(params).sort()
 
   const names = sortedParams.map((name) => formatName(name, params[name]))

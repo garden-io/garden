@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { optionsWithAliasValues, pickCommand, processCliArgs } from "../../../../src/cli/helpers"
-import { Parameters, StringParameter, StringsParameter } from "../../../../src/cli/params"
+import { ParameterObject, StringParameter, StringsParameter } from "../../../../src/cli/params"
 import { expectError } from "../../../helpers"
 import { getPackageVersion } from "../../../../src/util/util"
 import { GARDEN_CORE_ROOT } from "../../../../src/constants"
@@ -170,7 +170,7 @@ describe("parseCliArgs", () => {
   })
 })
 
-function parseAndProcess<A extends Parameters, O extends Parameters>(
+function parseAndProcess<A extends ParameterObject, O extends ParameterObject>(
   args: string[],
   command: Command<A, O>,
   cli = true

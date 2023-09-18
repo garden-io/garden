@@ -277,15 +277,15 @@ describe("ConfigContext", () => {
     it("should return a Joi object schema with all described attributes", () => {
       class Nested extends ConfigContext {
         @schema(joi.string().description("Nested description"))
-        nestedKey: string
+        nestedKey?: string
       }
 
       class Context extends ConfigContext {
         @schema(joi.string().description("Some description"))
-        key: string
+        key?: string
 
         @schema(Nested.getSchema().description("A nested context"))
-        nested: Nested
+        nested?: Nested
 
         // this should simply be ignored
         foo = "bar"

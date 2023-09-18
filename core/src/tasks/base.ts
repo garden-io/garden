@@ -102,7 +102,6 @@ interface TaskEvents<O extends ValidResultType> {
   processed: TaskEventPayload<O>
   ready: { result: O }
 }
-
 @Profile()
 export abstract class BaseTask<O extends ValidResultType = ValidResultType> extends TypedEventEmitter<TaskEvents<O>> {
   abstract type: string
@@ -117,8 +116,6 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
   public readonly skipDependencies: boolean
   protected readonly executeTask: boolean = false
   interactive = false
-
-  _resultType: O & BaseTaskOutputs
 
   constructor(initArgs: CommonTaskParams) {
     super()
@@ -216,11 +213,7 @@ export interface ActionTaskProcessParams<T extends Action, S extends ValidResult
   status: S | null
 }
 
-export interface BaseActionTaskOutputs extends BaseTaskOutputs {}
-
 export abstract class BaseActionTask<T extends Action, O extends ValidResultType> extends BaseTask<O> {
-  override _resultType: O & BaseActionTaskOutputs
-
   action: T
   graph: ConfigGraph
   forceActions: ActionReference[]
@@ -370,7 +363,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
   }
 }
 
-export interface ExecuteActionOutputs<T extends Action> extends BaseActionTaskOutputs {
+export interface ExecuteActionOutputs<T extends Action> extends BaseTaskOutputs {
   executedAction: Executed<T>
 }
 
@@ -495,7 +488,7 @@ export function emitProcessingEvents<
     throw new RuntimeError({ message: "No method to decorate" })
   }
 
-  descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskStatusParams<A>]) {
+  descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskProcessParams<A, R>]) {
     const actionKind = this.action.kind.toLowerCase() as Lowercase<A["kind"]>
     const eventName = actionKindToEventNameMap[actionKind]
     const startedAt = new Date().toISOString()
@@ -563,3 +556,12 @@ export abstract class ExecuteActionTask<
 
   abstract override process(params: ActionTaskProcessParams<T, O>): Promise<O & ExecuteActionOutputs<T>>
 }
+
+export type TaskResultType<T extends BaseTask<ValidResultType>> = T extends ExecuteActionTask<
+  infer ActionType,
+  infer ResultType
+>
+  ? ResultType & ExecuteActionOutputs<ActionType>
+  : T extends BaseTask<infer ResultType>
+  ? ResultType & BaseTaskOutputs
+  : never

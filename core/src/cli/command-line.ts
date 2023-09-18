@@ -35,9 +35,10 @@ import {
   renderCommandErrors,
   renderCommands,
 } from "./helpers"
-import type { GlobalOptions, ParameterValues } from "./params"
+import type { GlobalOptions, ParameterObject, ParameterValues } from "./params"
 import { bindActiveContext, withSessionContext } from "../util/open-telemetry/context"
 import { wrapActiveSpan } from "../util/open-telemetry/spans"
+import dedent from "dedent"
 
 const defaultMessageDuration = 3000
 const commandLinePrefix = chalk.yellow("🌼  > ")
@@ -129,7 +130,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private commandLineCallback: SetStringCallback
   private statusCallback: SetStringCallback
   private messageCallback: SetStringCallback
-  private messageTimeout: NodeJS.Timeout
+  private messageTimeout?: NodeJS.Timeout
 
   private serveCommand: ServeCommand
   private extraCommands: Command[]
@@ -472,11 +473,11 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     const char = "┈"
     const color = chalk.bold
 
-    const wrapped = `
-${renderDivider({ title: chalk.bold(title), width, char, color })}
-${text}
-${renderDivider({ width, char, color })}
-`
+    const wrapped = dedent`
+      ${renderDivider({ title: chalk.bold(title), width, char, color })}
+      ${text}
+      ${renderDivider({ width, char, color })}
+    `
 
     this.log.info(wrapped)
   }
@@ -591,8 +592,8 @@ ${chalk.white.underline("Keys:")}
     }
 
     // Prepare args and opts
-    let args: BuiltinArgs & ParameterValues<any> = {}
-    let opts: ParameterValues<any> = {}
+    let args: BuiltinArgs & ParameterValues<ParameterObject> = {}
+    let opts: ParameterValues<ParameterObject & GlobalOptions>
 
     try {
       const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false, skipGlobalDefault: true })
@@ -660,13 +661,13 @@ ${chalk.white.underline("Keys:")}
   }: {
     command: Command
     rawArgs: string[]
-    args: ParameterValues<any>
-    opts: ParameterValues<any>
+    args: PrepareParams["args"]
+    opts: PrepareParams["opts"]
   }) {
     const id = uuidv4()
     const width = getTermWidth() - 2
 
-    const prepareParams = {
+    const prepareParams: PrepareParams = {
       log: this.log,
       args,
       opts,

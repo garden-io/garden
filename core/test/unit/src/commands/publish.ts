@@ -20,10 +20,11 @@ import { ConvertModuleParams } from "../../../../src/plugin/handlers/Module/conv
 import { PublishTask } from "../../../../src/tasks/publish"
 import { joi } from "../../../../src/config/common"
 import { execBuildSpecSchema } from "../../../../src/plugins/exec/build"
+import { ActionTypeHandlerParamsType } from "../../../../src/plugin/handlers/base/base"
 
 const projectRootB = getDataDir("test-project-b")
 
-type PublishActionParams = PublishBuildAction["_paramsType"]
+type PublishActionParams = ActionTypeHandlerParamsType<PublishBuildAction>
 type PublishActionResultDetail = PublishActionResult["detail"]
 
 const publishAction = async ({ tag }: PublishActionParams): Promise<PublishActionResultDetail> => {

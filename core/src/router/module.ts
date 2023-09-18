@@ -173,7 +173,7 @@ export class ModuleRouter extends BaseRouter {
     // Wrap the handler with identifying attributes
     const wrapped = Object.assign(
       <WrappedModuleActionHandlers[T]>(async (...args: any[]) => {
-        const result = await handler.apply(plugin, args)
+        const result = await handler.apply(plugin, args as any)
         if (result === undefined) {
           throw new PluginError({
             message: `Got empty response from ${moduleType}.${handlerType} handler (called with ${args.length} args) on ${pluginName} provider.`,

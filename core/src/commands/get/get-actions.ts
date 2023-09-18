@@ -101,6 +101,9 @@ const getActionsOpts = {
 export type Args = typeof getActionsArgs
 export type Opts = typeof getActionsOpts
 
+type CmdParams = CommandParams<Args, Opts>
+type foo = CmdParams["opts"]
+
 export class GetActionsCommand extends Command {
   name = "actions"
   help = "Outputs all or specified actions."
