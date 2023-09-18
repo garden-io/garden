@@ -115,6 +115,7 @@ interface PropertiesBase {
   enterpriseDomainV2?: string
   isLoggedIn: boolean
   cloudUserId?: string
+  cloudDomain?: string
   customer?: string
   organizationName?: string
   ciName: string | null
@@ -299,6 +300,8 @@ export class AnalyticsHandler {
     isEnabled,
     ciInfo,
     projectName,
+    configuredCloudDomain,
+    configuredCloudProjectId,
   }: {
     garden: Garden
     log: Log
@@ -310,6 +313,8 @@ export class AnalyticsHandler {
     cloudUser?: CloudUserProfile
     ciInfo: CiInfo
     projectName: string
+    configuredCloudDomain?: string
+    configuredCloudProjectId?: string
   }) {
     const segmentApiKey = gardenEnv.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
@@ -370,28 +375,25 @@ export class AnalyticsHandler {
     // The enterprise project ID is the UID for this project in Garden Cloud that the user puts
     // in the project level Garden configuration. Not to be confused with the anonymized project ID we generate from
     // the project name for the purpose of analytics.
-    const enterpriseProjectId = this.garden.projectId
-    const enterpriseDomain = this.garden.cloudDomain
-
-    // we only set this when defined in the project config since it indicates
-    // that the project has been connected to a cloud project
-    if (enterpriseProjectId && enterpriseDomain) {
-      this.enterpriseProjectId = AnalyticsHandler.hash(enterpriseProjectId)
-      this.enterpriseProjectIdV2 = AnalyticsHandler.hashV2(enterpriseProjectId)
-      this.enterpriseDomain = AnalyticsHandler.hash(enterpriseDomain)
-      this.enterpriseDomainV2 = AnalyticsHandler.hashV2(enterpriseDomain)
+    if (configuredCloudProjectId && configuredCloudDomain) {
+      this.enterpriseProjectId = AnalyticsHandler.hash(configuredCloudProjectId)
+      this.enterpriseProjectIdV2 = AnalyticsHandler.hashV2(configuredCloudProjectId)
+      this.enterpriseDomain = AnalyticsHandler.hash(configuredCloudDomain)
+      this.enterpriseDomainV2 = AnalyticsHandler.hashV2(configuredCloudDomain)
     }
 
     // A user can be logged in to the community tier
     if (cloudUser) {
       this.cloudUserId = AnalyticsHandler.makeUniqueCloudUserId(cloudUser)
       this.cloudOrganizationName = cloudUser.organizationName
+      this.cloudDomain = this.garden.cloudDomain
       this.isLoggedIn = true
     }
 
     this.isRecurringUser = getIsRecurringUser(analyticsConfig.firstRunAt, analyticsConfig.latestRunAt)
 
     const userIdV2 = AnalyticsHandler.hashV2(anonymousUserId)
+
     this.identify({
       userId: this.cloudUserId,
       anonymousId: anonymousUserId,
@@ -475,30 +477,38 @@ export class AnalyticsHandler {
 
     // best effort load the project if this is a dummy garden instance
     let projectName = garden.projectName
-    let fallbackCloudDomain: string | undefined
 
-    // Not logged in and this is a dummy instance, try to best effort retrieve
-    // the user and project metadata
-    if (!garden.cloudApi && garden instanceof DummyGarden) {
-      const config: ProjectConfig | undefined = await findProjectConfig({ log, path: garden.projectRoot })
+    let projectConfig: ProjectConfig | undefined
 
-      if (config) {
-        fallbackCloudDomain = getGardenCloudDomain(config.domain)
-        // override the project name since it will default to no-project
-        projectName = config.name
+    if (garden instanceof DummyGarden) {
+      // Not logged in and this is a dummy instance, try to best effort retrieve the config
+      projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
 
-        // fallback to the stored user profile (this is done without verifying the token and the content)
-        const userProfile = await CloudApi.getAuthTokenUserProfile(log, garden.globalConfigStore, fallbackCloudDomain)
+      // override the project name since it will default to no-project
+      if (projectConfig) {
+        projectName = projectConfig.name
 
-        if (userProfile) {
-          cloudUser = {
-            userId: userProfile.userId,
-            organizationName: userProfile.organizationName,
-            domain: fallbackCloudDomain,
+        if (!garden.cloudApi) {
+          const fallbackCloudDomain = getGardenCloudDomain(projectConfig.domain)
+
+          // fallback to the stored user profile (this is done without verifying the token and the content)
+          const userProfile = await CloudApi.getAuthTokenUserProfile(log, garden.globalConfigStore, fallbackCloudDomain)
+
+          if (userProfile) {
+            cloudUser = {
+              userId: userProfile.userId,
+              organizationName: userProfile.organizationName,
+              domain: fallbackCloudDomain,
+            }
           }
         }
       }
+    } else {
+      projectConfig = garden.getProjectConfig()
     }
+
+    const configuredCloudDomain = projectConfig?.domain
+    const configuredCloudProjectId = projectConfig?.id
 
     if (isFirstRun && !ciInfo.isCi) {
       const gitHubUrl = getGitHubUrl("docs/misc/telemetry.md")
@@ -549,6 +559,8 @@ export class AnalyticsHandler {
       ciInfo,
       anonymousUserId,
       projectName,
+      configuredCloudDomain,
+      configuredCloudProjectId,
     })
   }
 
@@ -595,6 +607,7 @@ export class AnalyticsHandler {
       enterpriseDomainV2: this.enterpriseDomainV2,
       isLoggedIn: this.isLoggedIn,
       cloudUserId: this.cloudUserId,
+      cloudDomain: this.cloudDomain,
       ciName: this.ciName,
       customer: this.cloudOrganizationName,
       organizationName: this.cloudOrganizationName,
