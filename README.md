@@ -6,7 +6,7 @@ _If you love Garden, please ★ star this repository to show your support :green
   <img src="https://github.com/garden-io/garden/assets/59834693/f62a04cb-44bc-4dd4-8426-398b6cd846fd" align="center">
 </p>
 <div align="center">
-  <a href="https://docs.garden.io/overview/5-min-quickstart/?utm_source=github">Quickstart</a>
+  <a href="https://docs.garden.io/getting-started/quickstart/?utm_source=github">Quickstart</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/?utm_source=github">Website</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
@@ -30,7 +30,7 @@ With Garden you can:
 
 ## Installation
 
-The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/overview/quickstart).
+The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/getting-started/quickstart).
 
 Otherwise:
 
@@ -38,7 +38,7 @@ Otherwise:
 curl -sL https://get.garden.io/install.sh | bash
 ```
 
-For more installation options, see the [installation guide](https://docs.garden.io/overview/quickstart#step-1-install-garden).
+For more installation options, see the [installation guide](https://docs.garden.io/getting-started/installation).
 
 ## Demo
 
