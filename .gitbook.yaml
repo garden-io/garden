@@ -7,8 +7,8 @@ structure:
 redirects:
   installation: ./getting-started/1-installation.md
   quick-start: ./getting-started/0-introduction.md
-  basics/installation: ./getting-started/1-installation.md
-  stack-graph: ./basics/stack-graph.md
+  overview/installation: ./getting-started/1-installation.md
+  stack-graph: ./overview/stack-graph.md
   troubleshooting: ./misc/troubleshooting.md
   examples/demo-project: ./example-projects/demo-project.md
   examples/tls-project: ./example-projects/tls-project.md
@@ -41,10 +41,10 @@ redirects:
   advanced/pulumi: ./pulumi-plugin/about.md
   advanced/rbac-config: ./k8s-plugins/advanced/rbac-config.md
   getting-started: ./tutorials/your-first-project.md
-  getting-started/0-introduction: ./basics/quickstart
+  getting-started/0-introduction: ./overview/quickstart
   getting-started/1-installation: ./guides/installation.md
   getting-started/2-connect-to-a-cluster: ./tutorials/your-first-project/2-connect-to-a-cluster.md
-  basics/5-min-quickstart: ./basics/quickstart.md
+  overview/5-min-quickstart: ./overview/quickstart.md
   other-plugins/container: ./other-plugins/container
   guides/remote-kubernetes: ./k8s-plugins/about.md
   guides/in-cluster-building: ./k8s-plugins/advanced/in-cluster-building.md

@@ -2,15 +2,15 @@
 
 * [Welcome!](welcome.md)
 
-## 🌸 Basics
+## 🌸 Overview
 
-* [How Garden Works](./basics/how-garden-works.md)
-* [Quickstart Guide](./basics/quickstart.md)
-* [Core Concepts](./basics/core-concepts.md)
-* [Start a Free Kubernetes Cluster](./basics/ephemeral-clusters.md)
-* [Use Cases](./basics/use-cases.md)
-* [Adopting Garden](./basics/adopting-garden.md)
-* [Garden vs Other Tools](./basics/garden-vs-other-tools.md)
+* [How Garden Works](./overview/how-garden-works.md)
+* [Quickstart Guide](./overview/quickstart.md)
+* [Core Concepts](./overview/core-concepts.md)
+* [Start a Free Kubernetes Cluster](./overview/ephemeral-clusters.md)
+* [Use Cases](./overview/use-cases.md)
+* [Adopting Garden](./overview/adopting-garden.md)
+* [Garden vs Other Tools](./overview/garden-vs-other-tools.md)
 
 ## 🌳 Tutorials
 

@@ -10,7 +10,7 @@ The example is a three tier web app with web, API, and database components.
 
 ## How it's set up
 
-### The basics
+### The overview
 
 At the root of the project there's a directory called `manifests` which contains manifests for K8s Deployment, Ingress, and Service objects respectively.
 

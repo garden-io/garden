@@ -15,7 +15,7 @@ The [Using the CLI guide](./using-the-cli.md) offers helpful information on how 
 
 ## [Configuration Overview](./configuration-overview.md)
 
-This guide introduces the very basics of Garden configuration.
+This guide introduces the very overview of Garden configuration.
 
 ## [Projects](./projects.md)
 

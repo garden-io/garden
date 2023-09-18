@@ -164,7 +164,7 @@ In short, there’s more to it than running `kubectl apply`.
 
 Because Garden is pluggable with plugins for Terraform, Pulumi, local scripts, and more, another common use case is for teams to use it to reign in the sprawling complexity of their stack.
 
-All of these tools and bash scripts can be incorporated into the [Garden Stack Graph](../basics/how-garden-works.md#the-stack-graph). Furthermore, Garden supports “action templates” which allows DevOps engineers or Platform Teams to author and maintain templates that other teams across the organisation can consume, without introducing more tooling and config drift.
+All of these tools and bash scripts can be incorporated into the [Garden Stack Graph](../overview/how-garden-works.md#the-stack-graph). Furthermore, Garden supports “action templates” which allows DevOps engineers or Platform Teams to author and maintain templates that other teams across the organisation can consume, without introducing more tooling and config drift.
 
 One of our users told us that any developer can hop over to any team and be productive in a day, even if that team has a vastly different stack. It’s still just `garden dev` and `garden test`.
 

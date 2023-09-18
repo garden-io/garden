@@ -9,7 +9,7 @@ tocTitle: "`ephemeral-kubernetes`"
 
 The `ephemeral-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that allows to deploy applications to one of the ephemeral Kubernetes clusters provided by Garden.
 
-For information about using ephemeral Kubernetes clusters, please refer to [Ephemeral Kubernetes clusters guide](../../basics/ephemeral-clusters.md)
+For information about using ephemeral Kubernetes clusters, please refer to [Ephemeral Kubernetes clusters guide](../../overview/ephemeral-clusters.md)
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
