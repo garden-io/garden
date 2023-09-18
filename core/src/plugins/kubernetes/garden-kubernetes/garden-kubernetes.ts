@@ -13,7 +13,7 @@ import { KubernetesProvider } from "../config"
 import { joi, joiIdentifier } from "../../../config/common"
 
 const providerUrl = "./kubernetes.md"
-export const EPHEMERAL_KUBERNETES_PROVIDER_NAME = "ephemeral-kubernetes"
+export const GARDEN_KUBERNETES_PROVIDER_NAME = "garden-kubernetes"
 
 const outputsSchema = joi.object().keys({
   "app-namespace": joiIdentifier().required().description("The primary namespace used for resource deployments."),
@@ -26,12 +26,17 @@ const outputsSchema = joi.object().keys({
 
 export const gardenPlugin = () =>
   createGardenPlugin({
-    name: EPHEMERAL_KUBERNETES_PROVIDER_NAME,
+    name: GARDEN_KUBERNETES_PROVIDER_NAME,
     base: "kubernetes",
     docs: dedent`
-    The \`${EPHEMERAL_KUBERNETES_PROVIDER_NAME}\` provider is a specialized version of the [\`kubernetes\` provider](${providerUrl}) that allows to deploy applications to one of the ephemeral Kubernetes clusters provided by Garden.
+    {% hint style="warning" %}
+    This feature is still experimental and can be accessed starting from Garden **v0.13.14**.
+    Please let us know if you encounter any issues.
+    {% endhint %}
 
-    For information about using ephemeral Kubernetes clusters, please refer to [Ephemeral Kubernetes clusters guide](../../basics/ephemeral-clusters.md)
+    The \`${GARDEN_KUBERNETES_PROVIDER_NAME}\` provider is a specialized version of the [\`kubernetes\` provider](${providerUrl}) that allows to deploy applications to one of the ephemeral Kubernetes clusters provided by Garden.
+
+    For information about using ephemeral Kubernetes clusters, please refer to [Garden Managed Kubernetes Clusters guide](../../guides/garden-managed-kubernetes-clusters.md)
   `,
     configSchema: configSchema(),
     outputsSchema,
@@ -40,6 +45,6 @@ export const gardenPlugin = () =>
     },
   })
 
-export function isProviderEphemeralKubernetes(provider: KubernetesProvider) {
-  return provider?.name === EPHEMERAL_KUBERNETES_PROVIDER_NAME
+export function isProviderGardenKubernetes(provider: KubernetesProvider) {
+  return provider?.name === GARDEN_KUBERNETES_PROVIDER_NAME
 }

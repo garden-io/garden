@@ -21,10 +21,10 @@ spec:
   ingresses:
     - path: /
       port: http
-      hostname: frontend.${providers.ephemeral-kubernetes.outputs.default-hostname}
+      hostname: frontend.${providers.garden-kubernetes.outputs.default-hostname}
     - path: /call-backend
       port: http
-      hostname: frontend.${providers.ephemeral-kubernetes.outputs.default-hostname}
+      hostname: frontend.${providers.garden-kubernetes.outputs.default-hostname}
 
 ---
 

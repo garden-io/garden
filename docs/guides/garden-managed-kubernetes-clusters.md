@@ -1,15 +1,16 @@
 ---
-title: Start a Free Kubernetes Cluster
-order: 4
+title: Garden Managed Kubernetes Clusters
+order: 8
 ---
 
-# Ephemeral Kubernetes Clusters
+# Garden Managed Kubernetes Clusters
 
 {% hint style="warning" %}
-This feature is still experimental. Please let us know if you have any questions or if any issues come up!
+This feature is still experimental and can be accessed starting from Garden **v0.13.14**.
+Please let us know if you encounter any issues.
 {% endhint %}
 
-At Garden, we're committed to reducing the friction with getting started and trialing our tooling with your projects. To make Garden adoption more accessible and convenient, we've introduced **Ephemeral Kubernetes Clusters**. We designed this feature to provide you with a hassle-free way to explore Garden's capabilities on Kubernetes without needing to configure or provision a local or remote cluster.
+At Garden, we're committed to reducing the friction with getting started and trialing our tooling with your projects. To make Garden adoption more accessible and convenient, we've introduced **Ephemeral Kubernetes Clusters**, fully managed by Garden. We designed this feature to provide you with a hassle-free way to explore Garden's capabilities on Kubernetes without needing to configure or provision a local or remote cluster.
 
 The Ephemeral Kubernetes Clusters are provided for free to all users in our **Community Tier**. These clusters are meant for short-term use and to allow you to run and test your applications with Garden on a Kubernetes remote cluster.
 
@@ -24,15 +25,15 @@ If you need to destroy the cluster before its maximum lifetime of 4 hours expire
 To get started with Ephemeral Kubernetes Clusters, follow these steps:
 
 1. Login to Garden Cloud by running `garden login` from your project root.
-2. Configure the `ephemeral-kubernetes` provider in your project's configuration file. Here's an example configuration:
+2. Configure the `garden-kubernetes` provider in your project's configuration file. Here's an example configuration:
 
 ```yaml
 providers:
-  - name: ephemeral-kubernetes
+  - name: garden-kubernetes
     environments: [remote]
 
 ```
-In the above configuration, we configure `ephemeral-kubernetes` for the `remote` environment.
+In the above configuration, we configure `garden-kubernetes` for the `remote` environment.
 
 ## Deploy your project on ephemeral cluster
 
@@ -50,7 +51,7 @@ Ephemeral Kubernetes Clusters fully support ingresses and each cluster is assign
 
 ### Configuring ingress
 
-If you want to refer to the hostname that is assigned dynamically when the cluster is created, you can refer to that using the output `${providers.ephemeral-kubernetes.outputs.default-hostname}`. This can be useful if, for example, you want to expose an ingress on a subdomain of the default hostname.
+If you want to refer to the hostname that is assigned dynamically when the cluster is created, you can refer to that using the output `${providers.garden-kubernetes.outputs.default-hostname}`. This can be useful if, for example, you want to expose an ingress on a subdomain of the default hostname.
 
 For example, if you wish to expose `api` on `api.<default-hostname>`, you can use the following configuration for ingresses:
 
@@ -59,7 +60,7 @@ For example, if you wish to expose `api` on `api.<default-hostname>`, you can us
 ingresses:
     - path: /
       port: http
-      hostname: api.${providers.ephemeral-kubernetes.outputs.default-hostname}
+      hostname: api.${providers.garden-kubernetes.outputs.default-hostname}
 ```
 
 ### Authentication for ingress
@@ -76,19 +77,19 @@ Ingress URLs are not shareable at the moment however it is planned to be support
 
 Once your ephemeral cluster is created, the kubeconfig file for that cluster is stored on your local machine. The path to the kubeconfig file is shown in the logs when you deploy your project using Garden and looks like following:
 ```
-kubeconfig for ephemeral cluster saved at path: /garden/examples/ephemeral-cluster-demo/.garden/ephemeral-kubernetes/<cluster-id>-kubeconfig.yaml
+kubeconfig for ephemeral cluster saved at path: /garden/examples/ephemeral-cluster-demo/.garden/garden-kubernetes/<cluster-id>-kubeconfig.yaml
 ```
 
 This kubeconfig file allows you to interact with the cluster using `kubectl` or other Kubernetes tools.
 
 ## Limitations
 
-As of today, the ephemeral-kubernetes provider has the following limitations:
+As of today, the garden-kubernetes provider has the following limitations:
 
 - Local docker builds are currently not supported. In-cluster building with Kaniko is the only supported building method and it is configured by default at the provider level.
 
-## Example projects using the `ephemeral-kubernetes` provider
+## Example projects using the `garden-kubernetes` provider
 
-To demonstrate the use of the `ephemeral-kubernetes` provider, we have added an example project: [ephemeral-cluster-demo](https://github.com/garden-io/garden/tree/main/examples) under our examples collection. Check out the `ephemeral-cluster-demo` example and README at: https://github.com/garden-io/garden/tree/main/examples/ephemeral-cluster-demo
+To demonstrate the use of the `garden-kubernetes` provider, we have added an example project: [ephemeral-cluster-demo](https://github.com/garden-io/garden/tree/main/examples) under our examples collection. Check out the `ephemeral-cluster-demo` example and README at: https://github.com/garden-io/garden/tree/main/examples/ephemeral-cluster-demo
 
 

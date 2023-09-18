@@ -7,7 +7,6 @@
 * [How Garden Works](./basics/how-garden-works.md)
 * [Quickstart Guide](./basics/quickstart.md)
 * [Core Concepts](./basics/core-concepts.md)
-* [Start a Free Kubernetes Cluster](./basics/ephemeral-clusters.md)
 * [Use Cases](./basics/use-cases.md)
 * [Adopting Garden](./basics/adopting-garden.md)
 * [Garden vs Other Tools](./basics/garden-vs-other-tools.md)
@@ -83,11 +82,12 @@
 
 * [Migrating to Bonsai](./guides/migrating-to-bonsai.md)
 * [Installing Garden](./guides/installation.md)
-* [Code Synchronization](./guides/code-synchronization.md)
 * [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
+* [Code Synchronization](./guides/code-synchronization.md)
 * [Environments and namespaces](./guides/namespaces.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
+* [Garden Managed Kubernetes Clusters](./guides/garden-managed-kubernetes-clusters.md)
 
 ## 🌼 Advanced
 
@@ -101,8 +101,8 @@
   * [`conftest-kubernetes`](./reference/providers/conftest-kubernetes.md)
   * [`conftest`](./reference/providers/conftest.md)
   * [`container`](./reference/providers/container.md)
-  * [`ephemeral-kubernetes`](./reference/providers/ephemeral-kubernetes.md)
   * [`exec`](./reference/providers/exec.md)
+  * [`garden-kubernetes`](./reference/providers/garden-kubernetes.md)
   * [`hadolint`](./reference/providers/hadolint.md)
   * [`jib`](./reference/providers/jib.md)
   * [`kubernetes`](./reference/providers/kubernetes.md)

@@ -1,17 +1,12 @@
-# Demo project with using Ephemeral Cluster
+# Simple demo project using a Garden Managed Kubernetes Cluster
 
-A basic demo showing the use of Ephemeral Clusters.
+This example project demonstrates how to use Garden's `garden-kubernetes` provider for deploying an application to one of the ephemeral Kubernetes clusters provided by Garden.
 
+For information about ephemeral Kubernetes clusters, [`check out the docs.`](../../docs/guides/garden-managed-kubernetes-clusters.md)
 
-# Simple demo project using Ephemeral Cluster
+## Configuring garden-kubernetes
 
-This example project demonstrates how to use Garden's ephemeral-kubernetes provider for deploying an application to one of the ephemeral Kubernetes clusters provided by Garden.
-
-For information about ephemeral Kubernetes clusters, [`check out the docs.`](../../docs/basics/ephemeral-clusters.md)
-
-## Configuring ephemeral kubernetes
-
-The project configuration of this application, which is specified in `garden.yml`, declares 2 environments `local` and `remote`. And for the `remote` environment `ephemeral-kubernetes` provider is configured as following:
+The project configuration of this application, which is specified in `garden.yml`, declares an environment `remote` and configures `garden-kubernetes` provider for the `remote` environment as following:
 
 ```yaml
 ...
@@ -19,8 +14,8 @@ environments:
   - name: remote # <-- remote environment name
 
 providers:
-  # setting ephemeral-kubernetes provider for remote environment
-  - name: ephemeral-kubernetes
+  # setting garden-kubernetes provider for remote environment
+  - name: garden-kubernetes
     environments: [remote]
 ...
 ```

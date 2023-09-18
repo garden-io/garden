@@ -35,7 +35,7 @@ import { mapValues, omit } from "lodash"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress"
 import { Log } from "../../logger/log-entry"
 import { DeployStatusMap } from "../../plugin/handlers/Deploy/get-status"
-import { isProviderEphemeralKubernetes } from "./ephemeral/ephemeral"
+import { isProviderGardenKubernetes } from "./garden-kubernetes/garden-kubernetes"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
@@ -232,8 +232,8 @@ export async function prepareSystem({
   }
 
   // We require manual init if we're installing any system services to remote clusters unless the remote cluster
-  // is an ephemeral-cluster, to avoid conflicts between users or unnecessary work.
-  if (!clusterInit && remoteCluster && !isProviderEphemeralKubernetes(provider)) {
+  // is a garden ephemeral cluster, to avoid conflicts between users or unnecessary work.
+  if (!clusterInit && remoteCluster && !isProviderGardenKubernetes(provider)) {
     const initCommand = chalk.white.bold(`garden --env=${ctx.environmentName} plugins kubernetes cluster-init`)
 
     if (combinedState === "ready") {

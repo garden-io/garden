@@ -10,14 +10,14 @@ import { expect } from "chai"
 import { providerFromConfig } from "../../../../../src/config/provider"
 import { Garden } from "../../../../../src/garden"
 import { getRootLogger } from "../../../../../src/logger/logger"
-import { configureProvider } from "../../../../../src/plugins/kubernetes/ephemeral/config"
-import { gardenPlugin } from "../../../../../src/plugins/kubernetes/ephemeral/ephemeral"
+import { configureProvider } from "../../../../../src/plugins/kubernetes/garden-kubernetes/config"
+import { gardenPlugin } from "../../../../../src/plugins/kubernetes/garden-kubernetes/garden-kubernetes"
 import { TempDirectory, expectError, makeTempDir, makeTestGardenA } from "../../../../helpers"
 import { FakeCloudApi } from "../../../../helpers/api"
 
-describe("ephemeral-kubernetes configureProvider", () => {
+describe("garden-kubernetes configureProvider", () => {
   const basicConfig = {
-    name: "ephemeral-kubernetes",
+    name: "garden-kubernetes",
   }
 
   let tmpDir: TempDirectory
@@ -64,7 +64,7 @@ describe("ephemeral-kubernetes configureProvider", () => {
         }),
       (err) => {
         expect(err.message).to.contain(
-          "You are not logged in. You must be logged into Garden Cloud in order to use ephemeral-kubernetes provider"
+          "You are not logged in. You must be logged into Garden Cloud in order to use garden-kubernetes provider"
         )
       }
     )
@@ -79,7 +79,7 @@ describe("ephemeral-kubernetes configureProvider", () => {
           ...basicConfig,
         }),
       (err) => {
-        expect(err.message).to.equal("ephemeral-kubernetes provider is currently not supported for Garden Enterprise.")
+        expect(err.message).to.equal("garden-kubernetes provider is currently not supported for Garden Enterprise.")
       }
     )
   })

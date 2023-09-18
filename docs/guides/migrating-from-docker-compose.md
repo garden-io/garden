@@ -1,3 +1,8 @@
+---
+title: Migrating from Docker Compose to Garden
+order: 6
+---
+
 # Migrating from Docker Compose to Garden
 
 If you already have an application configured to use Docker Compose and want to migrate it to Garden, you can do so by

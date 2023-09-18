@@ -1,15 +1,20 @@
 ---
-title: "`ephemeral-kubernetes` Provider"
-tocTitle: "`ephemeral-kubernetes`"
+title: "`garden-kubernetes` Provider"
+tocTitle: "`garden-kubernetes`"
 ---
 
-# `ephemeral-kubernetes` Provider
+# `garden-kubernetes` Provider
 
 ## Description
 
-The `ephemeral-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that allows to deploy applications to one of the ephemeral Kubernetes clusters provided by Garden.
+{% hint style="warning" %}
+This feature is still experimental and can be accessed starting from Garden **v0.13.14**.
+Please let us know if you encounter any issues.
+{% endhint %}
 
-For information about using ephemeral Kubernetes clusters, please refer to [Ephemeral Kubernetes clusters guide](../../basics/ephemeral-clusters.md)
+The `garden-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that allows to deploy applications to one of the ephemeral Kubernetes clusters provided by Garden.
+
+For information about using ephemeral Kubernetes clusters, please refer to [Garden Managed Kubernetes Clusters guide](../../guides/garden-managed-kubernetes-clusters.md)
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
@@ -29,7 +34,7 @@ providers:
     environments:
 
     # The name of the provider plugin to use.
-    name: ephemeral-kubernetes
+    name: garden-kubernetes
 
     # Specify which namespace to deploy services to (defaults to the project name). Note that the framework generates
     # other namespaces as well with this name as a prefix.
@@ -100,15 +105,15 @@ providers:
 
 The name of the provider plugin to use.
 
-| Type     | Default                  | Required |
-| -------- | ------------------------ | -------- |
-| `string` | `"ephemeral-kubernetes"` | Yes      |
+| Type     | Default               | Required |
+| -------- | --------------------- | -------- |
+| `string` | `"garden-kubernetes"` | Yes      |
 
 Example:
 
 ```yaml
 providers:
-  - name: "ephemeral-kubernetes"
+  - name: "garden-kubernetes"
 ```
 
 ### `providers[].namespace`
@@ -174,7 +179,7 @@ Set this to null or false to skip installing/enabling the `nginx` ingress contro
 
 ## Outputs
 
-The following keys are available via the `${providers.<provider-name>}` template string key for `ephemeral-kubernetes` providers.
+The following keys are available via the `${providers.<provider-name>}` template string key for `garden-kubernetes` providers.
 
 ### `${providers.<provider-name>.outputs.app-namespace}`
 

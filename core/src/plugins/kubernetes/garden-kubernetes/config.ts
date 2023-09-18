@@ -18,12 +18,12 @@ import { ConfigurationError } from "../../../exceptions"
 import { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider"
 import { dedent } from "../../../util/string"
 import { KubernetesConfig, namespaceSchema } from "../config"
-import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral"
+import { GARDEN_KUBERNETES_PROVIDER_NAME } from "./garden-kubernetes"
 
 export const configSchema = () =>
   providerConfigBaseSchema()
     .keys({
-      name: joiProviderName(EPHEMERAL_KUBERNETES_PROVIDER_NAME),
+      name: joiProviderName(GARDEN_KUBERNETES_PROVIDER_NAME),
       namespace: namespaceSchema().description(
         "Specify which namespace to deploy services to (defaults to the project name). " +
           "Note that the framework generates other namespaces as well with this name as a prefix."
@@ -36,34 +36,34 @@ export const configSchema = () =>
           dedent`Set this to null or false to skip installing/enabling the \`nginx\` ingress controller. Note: if you skip installing the \`nginx\` ingress controller for ephemeral cluster, your ingresses may not function properly.`
         ),
     })
-    .description(`The provider configuration for the ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} plugin.`)
+    .description(`The provider configuration for the ${GARDEN_KUBERNETES_PROVIDER_NAME} plugin.`)
 
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
   const { base, log, projectName, ctx, config: baseConfig } = params
   if (projectName === "garden-system") {
-    // avoid configuring ephemeral-kubernetes provider and creating ephemeral-cluster for garden-system project
+    // avoid configuring garden-kubernetes provider and creating ephemeral-cluster for garden-system project
     return {
       config: baseConfig,
     }
   }
-  log.info(`Configuring ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider for project ${projectName}`)
+  log.info(`Configuring ${GARDEN_KUBERNETES_PROVIDER_NAME} provider for project ${projectName}`)
   if (!ctx.cloudApi) {
     throw new ConfigurationError({
-      message: `You are not logged in. You must be logged into Garden Cloud in order to use ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider.`,
+      message: `You are not logged in. You must be logged into Garden Cloud in order to use ${GARDEN_KUBERNETES_PROVIDER_NAME} provider.`,
     })
   }
   if (ctx.cloudApi && ctx.cloudApi?.domain !== "https://app.garden.io") {
     throw new ConfigurationError({
-      message: `${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider is currently not supported for ${ctx.cloudApi.distroName}.`,
+      message: `${GARDEN_KUBERNETES_PROVIDER_NAME} provider is currently not supported for ${ctx.cloudApi.distroName}.`,
     })
   }
-  // creating tmp dir .garden/ephemeral-kubernetes for storing kubeconfig
-  const ephemeralClusterDirPath = join(ctx.gardenDirPath, "ephemeral-kubernetes")
+  // creating tmp dir .garden/garden-kubernetes for storing kubeconfig
+  const ephemeralClusterDirPath = join(ctx.gardenDirPath, "garden-kubernetes")
   await mkdirp(ephemeralClusterDirPath)
-  log.info("Creating ephemeral kubernetes cluster")
+  log.info("Getting an ephemeral kubernetes cluster")
   const createEphemeralClusterResponse = await ctx.cloudApi.createEphemeralCluster()
   const clusterId = createEphemeralClusterResponse.instanceMetadata.instanceId
-  log.info(`Ephemeral kubernetes cluster created successfully`)
+  log.info(`Ephemeral kubernetes cluster retrieved successfully`)
   const deadlineDateTime = moment(createEphemeralClusterResponse.instanceMetadata.deadline)
   const diffInNowAndDeadline = moment.duration(deadlineDateTime.diff(moment())).asMinutes().toFixed(1)
   log.info(
@@ -76,7 +76,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   log.info("Getting Kubeconfig for the cluster")
   const kubeConfig = await ctx.cloudApi.getKubeConfigForCluster(clusterId)
   const kubeconfigFileName = `${clusterId}-kubeconfig.yaml`
-  const kubeConfigPath = join(ctx.gardenDirPath, "ephemeral-kubernetes", kubeconfigFileName)
+  const kubeConfigPath = join(ctx.gardenDirPath, "garden-kubernetes", kubeconfigFileName)
   await writeFile(kubeConfigPath, kubeConfig)
   log.info(`Kubeconfig for ephemeral cluster saved at path: ${chalk.underline(kubeConfigPath)}`)
 
@@ -110,7 +110,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
     ],
   }
   // set setupIngressController to null while initializing kubernetes plugin
-  // as we use it later and configure it separately for ephemeral-kubernetes
+  // as we use it later and configure it separately for garden-kubernetes
   const kubernetesPluginConfig = {
     ...params,
     config: {
