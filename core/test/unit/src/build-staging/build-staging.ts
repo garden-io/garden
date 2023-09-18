@@ -301,7 +301,7 @@ describe("BuildStagingRsync", () => {
         contains: [
           "found rsync binary but the version is too old",
           "please make sure rsync",
-          "more about garden installation and requirements can be found in our documentation",
+          "more about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/getting-started/installation",
         ],
       })
     })
@@ -312,7 +312,7 @@ describe("BuildStagingRsync", () => {
         contains: [
           "could not detect rsync binary version in the version command",
           "please make sure rsync",
-          "more about garden installation and requirements can be found in our documentation",
+          "more about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/getting-started/installation",
         ],
       })
     })
