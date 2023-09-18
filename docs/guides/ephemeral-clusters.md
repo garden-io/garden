@@ -1,6 +1,6 @@
 ---
-title: Start a Free Kubernetes Cluster
-order: 4
+title: Ephemeral Kubernetes Clusters
+order: 8
 ---
 
 # Garden Ephemeral Kubernetes Clusters

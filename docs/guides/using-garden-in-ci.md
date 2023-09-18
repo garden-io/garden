@@ -1,3 +1,8 @@
+---
+title: Using Garden in CI
+order: 7
+---
+
 # Using Garden in CI
 
 In this guide we'll demonstrate how Garden can fit into your continuous integration (CI) pipeline. Simply by adding extra environments to the project configuration, you can use Garden for local development _and_ for testing and deploying your project in CI. This approach has several benefits:
