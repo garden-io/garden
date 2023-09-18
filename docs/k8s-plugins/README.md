@@ -1,4 +1,4 @@
 ---
 title: Kubernetes Plugins
-order: 4
+order: 5
 ---

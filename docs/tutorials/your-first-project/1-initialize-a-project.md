@@ -5,7 +5,7 @@ order: 1
 
 # 1. Initialize a Project
 
-With the Garden CLI [installed](../../overview/quickstart.md#step-1-install-garden), we'll kick off by configuring a
+With the Garden CLI [installed](../../getting-started/quickstart.md#step-1-install-garden), we'll kick off by configuring a
 simple example project for use with Garden.
 
 Start by cloning our repo and finding the [example project](../../../examples/demo-project-start):

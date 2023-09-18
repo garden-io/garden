@@ -38,7 +38,7 @@ Below you'll find a brief overview of our main plugins. Once you know what you n
 
 The [local Kubernetes](../k8s-plugins/local-k8s/README.md) is usually the easiest way to get started. All you need is a local Kubernetes installation (e.g. Minikube or Docker for Desktop) and a project to deploy.
 
-Our [Quickstart Guide](./quickstart.md) uses this plugin.
+Our [Quickstart Guide](../getting-started/quickstart.md) uses this plugin.
 
 This plugin is great for kicking the tires and for solo projects that you can comfortably run on your laptop.
 

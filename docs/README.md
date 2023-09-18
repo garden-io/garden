@@ -5,6 +5,13 @@
 ## 🌸 Overview
 
 * [How Garden Works](./overview/how-garden-works.md)
+* [Quickstart Guide](./getting-started/quickstart.md)
+* [Core Concepts](./overview/core-concepts.md)
+* [Start a Free Kubernetes Cluster](./overview/ephemeral-clusters.md)
+* [Use Cases](./overview/use-cases.md)
+* [Adopting Garden](./overview/adopting-garden.md)
+* [Garden vs Other Tools](./overview/garden-vs-other-tools.md)
+* [How Garden Works](./overview/how-garden-works.md)
 * [Quickstart Guide](./overview/quickstart.md)
 * [Core Concepts](./overview/core-concepts.md)
 * [Start a Free Kubernetes Cluster](./overview/ephemeral-clusters.md)
