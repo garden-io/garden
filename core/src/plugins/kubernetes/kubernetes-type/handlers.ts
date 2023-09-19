@@ -327,7 +327,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       provider,
     })
   } catch (error) {
-    log.debug({ msg: `Failed querying for remote resources: ${error.message}`, error })
+    log.debug({ msg: `Failed querying for remote resources: ${error}` })
     return composeKubernetesDeployStatus({
       action,
       deployedMode,

@@ -227,7 +227,7 @@ export function parseMetadataResource(log: Log, resource: KubernetesResource<V1C
       // TODO: validate by schema
       output.manifestMetadata = JSON.parse(manifestMetadata)
     } catch (error) {
-      log.debug({ msg: `Failed querying for remote resources: ${error.message}`, error })
+      log.debug({ msg: `Failed querying for remote resources: ${error}` })
     }
   }
 
