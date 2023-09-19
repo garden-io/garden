@@ -15,11 +15,10 @@ Garden is an all-in-one DevOps platform that enables you to build, test, deploy 
 
 In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
 
-In just 3 steps, we'll:
+In just 2 steps, we'll:
 
 * Install Garden
-* Run a local, [supported flavor](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes
-* Deploy an example application
+* Deploy an example application to a remote ephemeral Kubernetes cluster.
 
 ### Step 1 — Install Garden
 
@@ -68,28 +67,9 @@ This will significantly speed up the first Garden build of large projects on Win
 
 For more detailed installation instructions, please see our [Installation guide](../guides/installation.md).
 
-### Step 2 — Install Kubernetes locally
+### Step 2 — Deploy the example application
 
-{% hint style="info" %}
-If you already have [a supported version](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes installed locally you can skip this section.
-{% endhint %}
-
-This quickstart uses Docker Desktop's built-in Kubernetes. For supported alternatives, check out our [guide to local Kubernetes flavors](../k8s-plugins/local-k8s/install.md).
-
-Download and install Docker Desktop following the instructions on the [official Docker site](https://docs.docker.com/desktop).
-
-Then enable Kubernetes in Docker Desktop:
-
-1. From the Docker Dashboard, select the **Settings** icon.
-2. Select **Kubernetes** from the left sidebar.
-3. Next to **Enable Kubernetes**, select the checkbox.
-4. Select **Apply & Restart** to save the settings and then click Install to confirm. This instantiates the images required to run the Kubernetes server as containers, and installs kubectl on your machine.
-
-See the [official Docker docs](https://docs.docker.com/desktop/kubernetes/) for more.
-
-### Step 3 — Deploy the example application
-
-Now that we have Garden installed and Kubernetes running locally, we can deploy our example application.
+Now that we have Garden installed we will deploy our example application to an [ephemeral Kubernetes cluster](../guides/ephemeral-clusters.md) provided by Garden.
 
 Clone the example project from GitHub:
 
@@ -105,67 +85,24 @@ garden dev
 
 The first time you run `garden dev`, Garden will initialize then await further instructions inside a [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop). From inside the REPL you can command Garden to build, test, and deploy your project.
 
-After running `garden dev`, you're ready to deploy your project. Run:
+After running `garden dev`, login to the Garden web dashboard. Run:
+
+```sh
+login
+```
+
+Now you are ready to deploy, run:
 
 ```sh
 deploy
 ```
 
-![Garden dev deploy](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/d8095ad1a8615edf49e721b8afcd901f3056e127/dev-mode.gif)
-
-You should now be able to visit the example project at [http://vote.local.demo.garden](http://vote.local.demo.garden).
+You should now be able to visit the example project at the link output by Garden.
 
 The quickstart also comes with some tests of the unit and end-to-end variety. To run your unit test, just run `test unit`. To run your end-to-end test, run `test e2e`. Easy!
 
-![Garden dev tests](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/210fbac5a733869c507920988e588a0c1989a7ae/dev-mode-tests.gif)
-
-If the page doesn't load, you'll need to go to step 4 and update your hostfile. Otherwise, you're done!
-
 The project itself doubles as an interactive guide that walks you through some common Garden commands and workflows. We encourage you to give it a spin!
 
-### Step 4 — Update hostfile (only if needed)
-
-{% hint style="info" %}
-The `*.local.demo.garden` domain resolves to 127.0.0.1 via our DNS provider. This means that when you go to [http://vote.local.demo.garden](http://vote.local.demo.garden), you _should_ be redirected to the app that you have running locally. However, some routers will prevent redirects to 127.0.0.1 and you'll need to update your hostfile instead.
-{% endhint %}
-
-If you get an error saying that DNS address can't be found when attempting to load the page, follow the instructions below to edit the hostfile for your platform.
-
-{% tabs %}
-
-{% tab title="macOS / Linux" %}
-In your terminal, open your hostfile as an administrator by running:
-
-```console
-sudo vim /etc/hosts
-```
-
-We're using vim here but feel free to use your editor of choice.
-
-Then add the following to file and save it:
-
-```sh
-127.0.0.1 vote.local.demo.garden
-```
-
-{% endtab %}
-
-{% tab title="Windows" %}
-First, open Notepad as an administrator.
-
-From Notepad, open the `hosts` file in the `C:\Windows\System32\Drivers\etc` directory.
-
-Then add the following to the file and save it:
-
-```sh
-127.0.0.1 vote.local.demo.garden
-```
-
-{% endtab %}
-
-{% endtabs %}
-
-Now you should be able to load the quickstart example project in your browser at [http://vote.local.demo.garden](http://vote.local.demo.garden).
 
 ## Next Steps
 
