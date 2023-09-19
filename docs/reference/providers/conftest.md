@@ -7,7 +7,7 @@ tocTitle: "`conftest`"
 
 ## Description
 
-This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files. The provider creates Test action types of the same name, which allow you to specify files to validate.
+This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/open-policy-agent/conftest) and Open Policy Agent rego query files. The provider creates Test action types of the same name, which allow you to specify files to validate.
 
 Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your `conftest` actions, e.g. the [`conftest-container`](./conftest-container.md) and/or [`conftest-kubernetes`](./conftest-kubernetes.md) providers. See the [conftest example project](https://github.com/garden-io/garden/tree/0.13.13/examples/conftest) for a simple usage example of the latter.
 
