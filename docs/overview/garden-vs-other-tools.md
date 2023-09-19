@@ -94,7 +94,7 @@ We work together! Garden has plugins for deploying using Helm, kubectl, Terrafor
 with the way your system is currently built, deployed and tested, and focus on being the graph automation and developer
 experience layer on top of those building blocks.
 
-Check out the [How Garden Works guide](https://docs.garden.io/basics/how-garden-works) for more details.
+Check out the [How Garden Works guide](https://docs.garden.io/overview/how-garden-works) for more details.
 
 ## Kubernetes dev tools (Okteto, Skaffold, Loft)
 

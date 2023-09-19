@@ -57,7 +57,7 @@ spec:
 ...
 ```
 
-`env` is a simple mapping of "name: value". [Template strings](../../using-garden/variables-and-templating.md#template-string-basics) can also be used to interpolate values.
+`env` is a simple mapping of "name: value". [Template strings](../../using-garden/variables-and-templating.md#template-string-overview) can also be used to interpolate values.
 
 ### Secrets
 
