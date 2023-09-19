@@ -1,6 +1,6 @@
 # Pulumi + kubernetes example
 
-This example project demonstrates the basics of Garden's pulumi plugin. There are two pulumi deploy actions:
+This example project demonstrates the overview of Garden's pulumi plugin. There are two pulumi deploy actions:
 1. `k8s-namespace`: Creates a namespace, and returns the namespace name as a stack output.
 2. `k8s-deployment`: Creates a Deployment and a Service in the namespace created by `k8s-namespace` (the namespace name is read in via a stack reference).
 

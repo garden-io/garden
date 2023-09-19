@@ -17,10 +17,11 @@ You can add or remove ephemeral Kubernetes cluster easily via the `ephemeral-kub
 
 ## Getting started
 
-There are multiple example garden projects that are already configured and ready to go with Garden ephemeral clusters. Checkout our [quickstart guide](../basics/quickstart.md) or the [ephemeral-cluster-demo](https://github.com/garden-io/garden/tree/main/examples/ephemeral-cluster-demo) example on GitHub.
+There are multiple example garden projects that are already configured and ready to go with Garden ephemeral clusters. Checkout our [quickstart guide](../getting-started/quickstart.md) or the [ephemeral-cluster-demo](https://github.com/garden-io/garden/tree/main/examples/ephemeral-cluster-demo) example on GitHub.
 In the following steps you'll learn how to configure your own Garden projects to use the `ephemeral-kubernetes` provider.
 
 ### Step 1 - Configure the provider
+
  Add the `ephemeral-kubernetes` provider to your project configuration file and associate it with an environment. If you are starting a new project copy this file:
 
 ```yaml

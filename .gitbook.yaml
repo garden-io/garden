@@ -5,10 +5,10 @@ structure:
   summary: README.md
 
 redirects:
-  installation: ./getting-started/1-installation.md
-  quick-start: ./getting-started/0-introduction.md
-  basics/installation: ./getting-started/1-installation.md
-  stack-graph: ./basics/stack-graph.md
+  installation: ./getting-started/installation.md
+  quick-start: ./getting-started/quickstart.md
+  basics/installation: ./getting-started/installation.md
+  stack-graph: ./overview/stack-graph.md
   troubleshooting: ./misc/troubleshooting.md
   examples/demo-project: ./example-projects/demo-project.md
   examples/tls-project: ./example-projects/tls-project.md
@@ -18,7 +18,7 @@ redirects:
   providers/conftest-container: ./reference/providers/conftest-container.md
   providers/conftest-kubernetes: ./reference/providers/conftest-kubernetes.md
   providers/conftest: ./reference/providers/conftest.md
-  providers/hadolint: ./reference/providers/hadolint.md
+  providers/hadolint: ./reference/providers/hadolint.md♡
   providers/kubernetes: ./reference/providers/kubernetes.md
   providers/local-kubernetes: ./reference/providers/local-kubernetes.md
   providers/maven-container: ./reference/providers/maven-container.md
@@ -41,10 +41,10 @@ redirects:
   advanced/pulumi: ./pulumi-plugin/about.md
   advanced/rbac-config: ./k8s-plugins/advanced/rbac-config.md
   getting-started: ./tutorials/your-first-project.md
-  getting-started/0-introduction: ./basics/quickstart
-  getting-started/1-installation: ./guides/installation.md
+  getting-started/0-introduction: ./overview/quickstart
+  getting-started/1-installation: ./getting-started/installation.md
   getting-started/2-connect-to-a-cluster: ./tutorials/your-first-project/2-connect-to-a-cluster.md
-  basics/5-min-quickstart: ./basics/quickstart.md
+  basics/5-min-quickstart: ./getting-started/quickstart.md
   other-plugins/container: ./other-plugins/container
   guides/remote-kubernetes: ./k8s-plugins/about.md
   guides/in-cluster-building: ./k8s-plugins/advanced/in-cluster-building.md

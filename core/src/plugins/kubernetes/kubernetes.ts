@@ -149,7 +149,7 @@ export const gardenPlugin = () => {
 
     For usage information, please refer to the [guides section](../../guides). A good place to start is
     the [Remote Kubernetes guide](${makeDocsLink`k8s-plugins/remote-k8s/README`}) guide if you're connecting to remote clusters.
-    The [Quickstart guide](${makeDocsLink`basics/quickstart`}) guide is also helpful as an introduction.
+    The [Quickstart guide](${makeDocsLink`getting-started/quickstart`}) guide is also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
   `,

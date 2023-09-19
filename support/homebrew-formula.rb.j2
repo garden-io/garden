@@ -4,8 +4,6 @@ class GardenCli < Formula
 
   version "{{version}}"
 
-  depends_on "rsync"
-
   # Determine architecture
   if Hardware::CPU.arm?
     url "{{armTarballUrl}}"
