@@ -1,3 +1,8 @@
+---
+title: Contributing
+order: 2
+---
+
 # Contributor Covenant Code of Conduct
 
 ## Our Pledge

@@ -1,8 +1,14 @@
+---
+title: Config resolution
+order: 5
+---
+
 # Config resolution
 
 This doc explains the high-level steps that Garden takes to go from config files on disk to a fully resolved project (with all modules, actions and workflows resolved with no template strings remaining).
 
 This includes:
+
 * The steps involved in resolving Garden template strings into concrete values. For example:
   * E.g. `${environment.name}.mydomain.com` -> `dev.mydomain.com`
   * or `${actions.build.api.outputs.deployment-image-id}` -> `some-registry.io/my-org/api:v-abf3f8dca`.
@@ -18,6 +24,7 @@ Then we'll move on to describing the high-level resolution flow and how it provi
 ## How template strings are resolved - The parser and the `resolveTemplateStrings` function
 
 Let's say we're resolving template strings in this action config:
+
 ```yaml
 kind: Deploy
 type: container
@@ -27,7 +34,9 @@ spec:
     $merge: ${var.commonEnvVars} # evaluates to: { SOME_VAR: A, OTHER_VAR: B }
     ENV_NAME: ${environment.name} # evaluates to: dev
 ```
+
 The end result should be:
+
 ```yaml
 kind: Deploy
 type: container
@@ -38,25 +47,30 @@ spec:
     OTHER_VAR: B
     ENV_NAME: dev
 ```
+
 The following needs to happen here:
+
 * `${environment.name}` and `${var.commonEnvVars}` need to be resolved (into `dev` and `{ SOME_VAR: A, OTHER_VAR: B }`).
 * The `{ SOME_VAR: A, OTHER_VAR: B }` map needs to be merged into the `env` map.
 
 Both of these happen inside the `resolveTemplateStrings` function. We highly recommend reading the source code for `resolveTemplateStrings` along with this doc, since the full details of the implementation reside there.
 
 The `resolveTemplateStrings` function takes the following params:
+
 * `value` is a JSON-like object. For example, a project/action/module config.
 * `context` provides the template keys & values that the parser uses for lookups—in the example below, this would contain the `environment` and `var` keys (among other things).
 * `opts` contains a few optional fields, most importantly `allowPartial`, which we'll cover in the section on partial resolution below.
 
 In a nutshell, we do the following in `resolveTemplateStrings`:
-* We recursively walk through `value`, looking for string values and calling the parser on them (the parser is also provided with the `context` and ` opts` params, among other things).
+
+* We recursively walk through `value`, looking for string values and calling the parser on them (the parser is also provided with the `context` and `opts` params, among other things).
 * These values are replaced with the resolved values from the parser.
 * Structural operators (e.g. `$merge`, `$if`, `$concat` and `$forEach`) are also applied.
 
 > Note: To avoid coupling this guide too tightly to the particular implementation (this guide was written in August 2023), we'll leave it to the reader to familiarize themselves with the details by reading the source of `resolveTemplateStrings` and other helpers/data structures around it.
 
 The _parser_ is an auto-generated recursive-descent parser, and implements all the syntactic elements available in Garden's template expressions. This includes:
+
 * Boolean expressions
 * Calling template helper functions (like `camelCase`, `join` or `isEmpty`)
 * Template context lookups (like `environment.name` or `var.some_key`)
@@ -106,8 +120,9 @@ While not all commands will resolve the config graph (which is done via `Garden#
 > Note: We're using the `Class#instanceMethod` and `Class.classMethod` notation here.
 
 At a high level, these are the steps that Garden takes to fully resolve a project (including modules, config templates, templated modules and actions). A close reading of `Garden#getConfigGraph` and the helpers it calls tells you most of what you need to know.
+
 * First, a `Garden` instance is created for the project.
-  + This involves finding & resolving the project config, and resolving the environment config that the command is being run in.
+  * This involves finding & resolving the project config, and resolving the environment config that the command is being run in.
   * The project config has the most limited template context available, since it's resolved first. The environment config context has access to a bit more context, and so forth as we proceed through this flow.
   * See the `resolveGardenParams` helper.
 * Next, `Garden#getConfigGraph` calls `scanAndAddConfigs` (`getConfigGraph` is usually called in the `action` method of the command in question).
@@ -151,6 +166,7 @@ The `ModuleResolver#resolveModuleConfig` method is where the module config is in
 After modules have been resolved, they are converted into actions by the `convertModules` function (called inside `Garden#getConfigGraph`).
 
 A module usually results in several actions:
+
 * A Build for the build step (if any).
   * If the module uses the `copyfrom` field, a dummy Build will be included to ensure that the copying takes place when the module's constituent actions are run later.
 * A Deploy for each service.
@@ -165,7 +181,7 @@ To get a better understanding of how module conversion works, we recommend readi
 
 ### Phase 1 of action resolution: Preprocessing during config graph construction
 
-Here, we do partial resolution on certain fields on the action configs, fully resolving built-in action config fields (like `include` and ` dependencies`)—that is, framework-level fields that are not plugin-specific.
+Here, we do partial resolution on certain fields on the action configs, fully resolving built-in action config fields (like `include` and `dependencies`)—that is, framework-level fields that are not plugin-specific.
 
 Some of these built-in fields need to be resolved so the framework can e.g. calculate the action version (`include`/`exclude`) and figure out the dependency structure between actions (`dependencies`) so that the `ConfigGraph` can be constructed. These calculations need to be finished before the solver is called to fully resolve and execute the actions in phase 2 (which is what enables us to resolve references to e.g. action outputs).
 
@@ -180,4 +196,3 @@ For more details on how the solver resolves and executes actions, see the [graph
 The static and runtime outputs of dependency actions are populated into the `ActionSpecContext` used to fully resolve action specs and variables (see also: `ActionReferencesContext` and the `actions` and `runtime` keys under `ActionSpecContext`).
 
 For a closer look at how actions are fully resolved, check out the `process` method of `ResolveActionTask`.
-
