@@ -115,8 +115,6 @@ The quickstart also comes with some tests of the unit and end-to-end variety. To
 
 ![Garden dev tests](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/210fbac5a733869c507920988e588a0c1989a7ae/dev-mode-tests.gif)
 
-If the page doesn't load, you'll need to go to step 4 and update your hostfile. Otherwise, you're done!
-
 The project itself doubles as an interactive guide that walks you through some common Garden commands and workflows. We encourage you to give it a spin!
 
 
