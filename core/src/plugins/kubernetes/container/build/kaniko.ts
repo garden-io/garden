@@ -93,7 +93,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
   const deploymentImageId = outputs.deploymentImageId
   const dockerfile = spec.dockerfile || defaultDockerfileName
 
-  let { authSecret } = await ensureUtilDeployment({
+  let { authSecret, utilPodLabelSelector } = await ensureUtilDeployment({
     ctx,
     provider,
     log,
@@ -106,7 +106,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     ctx: ctx as KubernetesPluginContext,
     api,
     namespace: projectNamespace,
-    deploymentName: utilDeploymentName,
+    podLabelSelector: utilPodLabelSelector,
   })
 
   log.info(`Building image ${localId}...`)
@@ -356,7 +356,7 @@ async function runKaniko({
 
   let commandStr = dedent`
     /kaniko/executor ${argsStr};
-    export exitcode=$?;
+    exitcode=$?;
     touch ${sharedMountPath}/done;
     exit $exitcode;
   `

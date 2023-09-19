@@ -15,15 +15,13 @@ import { makeTempDir } from "../../util/fs"
 import { KubeApi } from "./api"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { ensureBuildkit } from "./container/build/buildkit"
-import { ensureUtilDeployment, syncToBuildSync, utilContainerName, utilDeploymentName } from "./container/build/common"
+import { ensureUtilDeployment, getUtilPod, syncToBuildSync, utilContainerName } from "./container/build/common"
 import { loadToLocalK8s } from "./container/build/local"
 import { containerHandlers } from "./container/handlers"
 import { getNamespaceStatus } from "./namespace"
 import { PodRunner } from "./run"
-import { getRunningDeploymentPod } from "./util"
 import { BuildActionExtension, BuildActionParams } from "../../plugin/action-types"
 import { ContainerBuildAction } from "../container/config"
-import { buildkitDeploymentName } from "./constants"
 import { naturalList } from "../../util/string"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
@@ -100,29 +98,29 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
       file: tarPath,
     })
 
-    let deploymentName: string
+    let utilPodLabelSelector: { [key: string]: string }
 
     // Make sure the sync target is up
     if (buildMode === "kaniko") {
       // Make sure the garden-util deployment is up
-      await ensureUtilDeployment({
+      const result = await ensureUtilDeployment({
         ctx,
         provider,
         log,
         api,
         namespace,
       })
-      deploymentName = utilDeploymentName
+      utilPodLabelSelector = result.utilPodLabelSelector
     } else if (buildMode === "cluster-buildkit") {
       // Make sure the buildkit deployment is up
-      await ensureBuildkit({
+      const result = await ensureBuildkit({
         ctx,
         provider,
         log,
         api,
         namespace,
       })
-      deploymentName = buildkitDeploymentName
+      utilPodLabelSelector = result.utilPodLabelSelector
     } else {
       throw new ConfigurationError({ message: `Unexpected buildMode ${buildMode}` })
     }
@@ -133,7 +131,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
       ctx: k8sCtx,
       api,
       namespace,
-      deploymentName,
+      podLabelSelector: utilPodLabelSelector,
       sourcePath: extractPath,
     })
 
@@ -155,11 +153,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
       ctx,
       provider,
       namespace,
-      pod: await getRunningDeploymentPod({
-        api,
-        deploymentName,
-        namespace,
-      }),
+      pod: await getUtilPod(api, namespace, utilPodLabelSelector),
     })
 
     const { log: skopeoLog } = await runner.exec({

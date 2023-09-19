@@ -8,13 +8,13 @@
 
 import AsyncLock from "async-lock"
 import { ContainerBuildAction, ContainerRegistryConfig } from "../../../container/moduleConfig"
-import { getRunningDeploymentPod } from "../../util"
+import { getRunningDeploymentPod, hashManifest, labelSelectorToString } from "../../util"
 import { buildSyncVolumeName, dockerAuthSecretKey, k8sUtilImageName, rsyncPortName } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../../config"
 import { PodRunner, PodRunnerError } from "../../run"
 import { PluginContext } from "../../../../plugin-context"
-import { hashString, sleep } from "../../../../util/util"
+import { hashString } from "../../../../util/util"
 import { GardenError, InternalError, RuntimeError } from "../../../../exceptions"
 import { Log } from "../../../../logger/log-entry"
 import { prepareDockerAuth } from "../../init"
@@ -22,10 +22,10 @@ import { prepareSecrets } from "../../secrets"
 import chalk from "chalk"
 import { Mutagen } from "../../../../mutagen"
 import { randomString } from "../../../../util/string"
-import { V1Container, V1Service } from "@kubernetes/client-node"
+import { V1Container, V1Pod, V1Service } from "@kubernetes/client-node"
 import { cloneDeep, isEmpty } from "lodash"
 import { compareDeployedResources, waitForResources } from "../../status/status"
-import { KubernetesDeployment, KubernetesResource } from "../../types"
+import { KubernetesDeployment, KubernetesResource, KubernetesServerResource } from "../../types"
 import { BuildActionHandler, BuildActionResults } from "../../../../plugin/action-types"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { Resolved } from "../../../../actions/types"
@@ -66,12 +66,12 @@ interface SyncToSharedBuildSyncParams {
   api: KubeApi
   action: ContainerBuildAction
   namespace: string
-  deploymentName: string
+  podLabelSelector: { [key: string]: string }
   sourcePath?: string
 }
 
 export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
-  const { ctx, action, log, api, namespace, deploymentName } = params
+  const { ctx, action, log, api, namespace, podLabelSelector } = params
 
   const sourcePath = params.sourcePath || action.getBuildPath()
 
@@ -83,11 +83,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
   // Absolute path from within the sync/util container
   const dataPath = `/data/${contextRelPath}`
 
-  const buildSyncPod = await getRunningDeploymentPod({
-    api,
-    deploymentName,
-    namespace,
-  })
+  const buildSyncPod = await getUtilPod(api, namespace, podLabelSelector)
 
   // Sync using mutagen
   const key = `k8s--build-sync--${ctx.environmentName}--${namespace}--${action.name}--${randomString(8)}`
@@ -106,13 +102,13 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
 
   await runner.exec({
     log,
-    command: ["sh", "-c", "mkdir -p " + targetPath],
+    command: ["sh", "-c", `mkdir -p ${targetPath}`],
     containerName: utilContainerName,
     buffer: true,
   })
 
   try {
-    const resourceName = `Deployment/${deploymentName}`
+    const resourceName = `Pod/${buildSyncPod.metadata.name}`
 
     log.debug(`Syncing from ${sourcePath} to ${resourceName}`)
 
@@ -143,6 +139,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
 
     // -> Flush the sync once
     await mutagen.flushSync(key)
+
     log.debug(`Sync from ${sourcePath} to ${resourceName} completed`)
   } finally {
     // -> Terminate the sync
@@ -294,6 +291,12 @@ export async function ensureUtilDeployment({
 
     // Check status of the util deployment
     const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name, imagePullSecrets)
+
+    // TODO: think about this, it's ugly
+    const versionHash = (await hashManifest(deployment)).substring(0, 8)
+    deployment.spec.template.metadata!.labels!["garden-util-version"] = versionHash
+    service.spec.selector!["garden-util-version"] = versionHash
+
     const status = await compareDeployedResources({
       ctx: ctx as KubernetesPluginContext,
       api,
@@ -303,11 +306,7 @@ export async function ensureUtilDeployment({
     })
 
     if (status.state === "ready") {
-      // Need to wait a little to ensure the secret is updated in the deployment
-      if (secretUpdated) {
-        await sleep(1000)
-      }
-      return { authSecret, updated: false }
+      return { authSecret, updated: secretUpdated, utilPodLabelSelector: service.spec.selector! }
     }
 
     // Deploy the service
@@ -330,7 +329,7 @@ export async function ensureUtilDeployment({
 
     deployLog.info("Done!")
 
-    return { authSecret, updated: true }
+    return { authSecret, updated: true, utilPodLabelSelector: service.spec.selector! }
   })
 }
 
@@ -549,4 +548,30 @@ const baseUtilService: KubernetesResource<V1Service> = {
     },
     type: "ClusterIP",
   },
+}
+export async function getUtilPod(
+  api: KubeApi,
+  namespace: string,
+  podLabelSelector: { [key: string]: string }
+): Promise<KubernetesServerResource<V1Pod>> {
+  const pods = await api.core.listNamespacedPod(
+    namespace,
+    undefined, // pretty
+    undefined, // allowWatchBookmarks
+    undefined, // _continue
+    undefined, // fieldSelector
+    labelSelectorToString(podLabelSelector)
+  )
+
+  if (pods.items.length === 0) {
+    throw new InternalError({
+      message: `Invalid label selector ${labelSelectorToString(podLabelSelector)}: no matching pods found`,
+    })
+  } else if (pods.items.length > 1) {
+    throw new InternalError({
+      message: `Invalid label selector ${labelSelectorToString(podLabelSelector)}: more than one matching pod found`,
+    })
+  }
+
+  return pods.items[0]
 }
