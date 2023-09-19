@@ -16,7 +16,7 @@ import { KubernetesProvider, KubernetesPluginContext } from "../../../../../../s
 import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
 import { expect } from "chai"
 import { grouped } from "../../../../../helpers"
-import { BuildAction } from "../../../../../../src/actions/build"
+import { BuildAction, ResolvedBuildAction } from "../../../../../../src/actions/build"
 import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("pull-image plugin command", () => {
@@ -40,6 +40,7 @@ describe("pull-image plugin command", () => {
 
   async function removeImage(action: BuildAction) {
     const imageId = action._staticOutputs["local-image-id"]
+
     try {
       await containerHelpers.dockerCli({
         cwd: "/tmp",
@@ -65,13 +66,14 @@ describe("pull-image plugin command", () => {
   }
 
   grouped("kaniko", "remote-only").context("using an external cluster registry with kaniko", () => {
+    let resolvedAction: ResolvedBuildAction
     let action: BuildAction
 
     before(async () => {
       await init("kaniko")
 
-      action = graph.getBuild("remote-registry-test") as BuildAction
-      const resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
+      action = graph.getBuild("remote-registry-test")
+      resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
 
       // build the image
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
@@ -89,15 +91,15 @@ describe("pull-image plugin command", () => {
     })
 
     it("should pull the image", async () => {
-      await removeImage(action)
+      await removeImage(resolvedAction)
       await pullBuild({
-        localId: action._staticOutputs["local-image-id"],
-        remoteId: action._staticOutputs["deployment-image-id"],
+        localId: resolvedAction._staticOutputs["local-image-id"],
+        remoteId: resolvedAction._staticOutputs["deployment-image-id"],
         ctx: ctx as KubernetesPluginContext,
         action,
         log: garden.log,
       })
-      await ensureImagePulled(action)
+      await ensureImagePulled(resolvedAction)
     })
   })
 
