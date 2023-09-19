@@ -179,6 +179,5 @@ export async function runOrTestWithChart(
     namespace,
     podName: makePodName(action.kind.toLowerCase(), action.name),
     timeout: action.getConfig().timeout,
-    version,
   })
 }

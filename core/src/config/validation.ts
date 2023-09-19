@@ -11,7 +11,6 @@ import { ConfigurationError } from "../exceptions"
 import chalk from "chalk"
 import { relative } from "path"
 import { uuidv4 } from "../util/random"
-import { metadataFromDescription } from "./common"
 import { profile } from "../util/profiling"
 
 export const joiPathPlaceholder = uuidv4()
@@ -134,7 +133,6 @@ export const validateSchema = profile(function $validateSchema<T>(
     let errorDescription = errorDetails.map((e) => e.message).join(", ")
 
     const schemaDescription = schema.describe()
-    const schemaMetadata = metadataFromDescription(schemaDescription)
 
     if (schemaDescription.keys) {
       // Not the case e.g. for array schemas

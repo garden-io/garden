@@ -150,16 +150,6 @@ export interface RunStatusForEventPayload {
   state: RunState
 }
 
-export function runStatusForEventPayload<R extends RunResult>(result: R | null | undefined): RunStatusForEventPayload {
-  if (result) {
-    return {
-      state: result.success ? "succeeded" : "failed",
-    }
-  } else {
-    return { state: result === null ? "outdated" : "not-implemented" }
-  }
-}
-
 export const outputSchemaDocs = dedent`
   The schema must be a single level object, with string keys. Each value must be a primitive (null, boolean, number or string).
 

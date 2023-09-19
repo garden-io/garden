@@ -7,6 +7,10 @@ tocTitle: "`ephemeral-kubernetes`"
 
 ## Description
 
+{% hint style="warning" %}
+This feature is still experimental and only available in Garden `>=0.13.14`. Please let us know if you have any questions or if any issues come up!
+{% endhint %}
+
 The `ephemeral-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that allows to deploy applications to one of the ephemeral Kubernetes clusters provided by Garden.
 
 For information about using ephemeral Kubernetes clusters, please refer to [Ephemeral Kubernetes clusters guide](../../overview/ephemeral-clusters.md)

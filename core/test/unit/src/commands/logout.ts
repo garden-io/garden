@@ -81,7 +81,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from https://example.invalid.")
+    expect(logOutput).to.include("Successfully logged out from https://example.invalid.")
   })
 
   it("should logout from Garden Cloud with default domain", async () => {
@@ -119,7 +119,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include(`Succesfully logged out from ${DEFAULT_GARDEN_CLOUD_DOMAIN}.`)
+    expect(logOutput).to.include(`Successfully logged out from ${DEFAULT_GARDEN_CLOUD_DOMAIN}.`)
   })
 
   it("should be a no-op if the user is already logged out", async () => {
@@ -173,7 +173,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from https://example.invalid.")
+    expect(logOutput).to.include("Successfully logged out from https://example.invalid.")
   })
 
   it("should remove token even if API calls fail", async () => {
@@ -213,7 +213,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from https://example.invalid.")
+    expect(logOutput).to.include("Successfully logged out from https://example.invalid.")
   })
 
   it("should not logout if outside project root and disable-project-check flag is false", async () => {
@@ -280,6 +280,6 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from https://example.invalid.")
+    expect(logOutput).to.include("Successfully logged out from https://example.invalid.")
   })
 })

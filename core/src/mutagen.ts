@@ -476,7 +476,7 @@ export class Mutagen {
         params.push("--default-directory-mode", modeToString(defaultDirectoryMode))
       }
 
-      const active = await this.getActiveSyncSessions(log)
+      const active = await this.getActiveSyncSessions()
       let existing = active.find((s) => s.name === key)
 
       if (existing) {
@@ -566,7 +566,7 @@ export class Mutagen {
    * Ensure all active syncs are completed.
    */
   async flushAllSyncs(log: Log) {
-    const active = await this.getActiveSyncSessions(log)
+    const active = await this.getActiveSyncSessions()
     await Promise.all(
       active.map(async (session) => {
         try {
@@ -581,7 +581,7 @@ export class Mutagen {
   /**
    * List all Mutagen sync sessions.
    */
-  async getActiveSyncSessions(log: Log): Promise<SyncSession[]> {
+  async getActiveSyncSessions(): Promise<SyncSession[]> {
     const res = await this.execCommand(["sync", "list", "--template={{ json . }}"])
     return parseSyncListResult(res)
   }

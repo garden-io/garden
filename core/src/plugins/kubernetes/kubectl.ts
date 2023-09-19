@@ -91,7 +91,7 @@ export async function apply({
   // be enough to make `kubectl apply --prune` backwards-compatible.
   let resourcesToPrune: KubernetesResource[] = []
   if (namespace && pruneLabels) {
-    // Fetch all deployed resources in the namesapce matching `pruneLabels` (for all resource kinds represented in
+    // Fetch all deployed resources in the namespace matching `pruneLabels` (for all resource kinds represented in
     // `versionedPruneKinds` - see its definition above).
     const resourcesForLabels = await api.listResourcesForKinds({
       log,

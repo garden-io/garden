@@ -247,11 +247,11 @@ export interface SegmentEvent {
  * prompt for opt-in/opt-out and wrappers for single events.
  *
  * Initalization:
- * const analyticsClient = await AnalyticsHanlder.init(garden: Garden, log: LogEntry)
+ * const analyticsClient = await AnalyticsHandler.init(garden: Garden, log: LogEntry)
  * analyticsClient.trackCommand(commandName)
  *
  * Subsequent usage:
- * const analyticsClient = AnalyticsHanlder.getInstance()
+ * const analyticsClient = AnalyticsHandler.getInstance()
  * analyticsClient.trackCommand(commandName)
  */
 @Profile()
@@ -402,7 +402,7 @@ export class AnalyticsHandler {
   static async init(garden: Garden, log: Log) {
     // Ensure that we re-initialize the analytics metadata when switching projects
     if (!AnalyticsHandler.instance || AnalyticsHandler.instance.garden?.projectName !== garden.projectName) {
-      // We're passing this explictliy to that it's easier to overwrite and test
+      // We're passing this explicitly to that it's easier to overwrite and test
       // in actual CI.
       const ciInfo = {
         isCi: ci.isCI,
@@ -435,7 +435,7 @@ export class AnalyticsHandler {
   /**
    * A factory function that returns an instance of the Analytics class.
    *
-   * Handles async work and calculates values that are set by the contructor itself.
+   * Handles async work and calculates values that are set by the constructor itself.
    *
    * It also initializes the analytics config and updates the analytics data we store in local config.
    */

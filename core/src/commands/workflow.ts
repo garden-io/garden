@@ -169,7 +169,7 @@ export class WorkflowCommand extends Command<Args, {}> {
           stepResult = await runStepScript(stepParams)
         } else {
           garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
-          // This should be catched by the validation layer
+          // This should be caught by the validation layer
           throw new InternalError({
             message: `Workflow steps must specify either a command or a script. Got: ${JSON.stringify(step)}`,
           })

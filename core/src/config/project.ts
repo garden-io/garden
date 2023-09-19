@@ -49,8 +49,6 @@ export const defaultNamespace = "default"
 // These plugins are always loaded
 export const fixedPlugins = ["exec", "container", "templated"]
 
-export type EnvironmentNamespacing = "disabled" | "optional" | "required"
-
 export interface ParsedEnvironment {
   environment: string
   namespace?: string

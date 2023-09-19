@@ -6,7 +6,6 @@
 
 * [How Garden Works](./overview/how-garden-works.md)
 * [Core Concepts](./overview/core-concepts.md)
-* [Start a Free Kubernetes Cluster](./overview/ephemeral-clusters.md)
 * [Use Cases](./overview/use-cases.md)
 * [Adopting Garden](./overview/adopting-garden.md)
 * [Garden vs Other Tools](./overview/garden-vs-other-tools.md)
@@ -87,11 +86,12 @@
 ## 🌼 Guides
 
 * [Migrating to Bonsai](./guides/migrating-to-bonsai.md)
-* [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
 * [Environments and namespaces](./guides/namespaces.md)
-* [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Code Synchronization](./guides/code-synchronization.md)
+* [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
+* [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
+* [Ephemeral Kubernetes Clusters](./guides/ephemeral-clusters.md)
 
 ## 🌷 Advanced
 

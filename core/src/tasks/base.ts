@@ -119,7 +119,6 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
   interactive = false
 
   _resultType: O & BaseTaskOutputs
-  _resolvedDependencies?: BaseTask[]
 
   constructor(initArgs: CommonTaskParams) {
     super()

@@ -6,9 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { find } from "lodash"
-import minimatch from "minimatch"
-
 import {
   BaseActionTaskParams,
   ActionTaskProcessParams,
@@ -18,12 +15,9 @@ import {
   emitProcessingEvents,
 } from "../tasks/base"
 import { Profile } from "../util/profiling"
-import { ModuleConfig } from "../config/module"
 import { resolvedActionToExecuted } from "../actions/helpers"
 import { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/Test/get-result"
-import { TestConfig } from "../config/test"
-import { moduleTestNameToActionName } from "../types/module"
 import { OtelTraced } from "../util/open-telemetry/decorators"
 import { GardenError } from "../exceptions"
 
@@ -32,8 +26,8 @@ import { GardenError } from "../exceptions"
  *
  * Unexpected errors should just bubble up; When the test ran successfully, but it reported a failure (e.g. linter found issues).
  *
- * TODO: This probably should not be handled with an exception and instead just be an object that represents a run failure or succcess.
- * For now however, we use the error and should be careful with how we use it.
+ * TODO: This probably should not be handled with an exception and instead just be an object that represents a run failure or success.
+ *   For now however, we use the error and should be careful with how we use it.
  */
 class TestFailedError extends GardenError {
   override type = "test-failed"
@@ -160,18 +154,4 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
 
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
-}
-
-export function filterTestConfigs(module: ModuleConfig, filterNames?: string[]): ModuleConfig["testConfigs"] {
-  const acceptableTestConfig = (test: TestConfig) => {
-    if (test.disabled) {
-      return false
-    }
-    if (!filterNames || filterNames.length === 0) {
-      return true
-    }
-    const testName = moduleTestNameToActionName(module.name, test.name)
-    return find(filterNames, (n: string) => minimatch(testName, n))
-  }
-  return module.testConfigs.filter(acceptableTestConfig)
 }

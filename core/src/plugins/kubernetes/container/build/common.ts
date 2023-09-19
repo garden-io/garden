@@ -9,13 +9,7 @@
 import AsyncLock from "async-lock"
 import { ContainerBuildAction, ContainerRegistryConfig } from "../../../container/moduleConfig"
 import { getRunningDeploymentPod } from "../../util"
-import {
-  buildSyncVolumeName,
-  dockerAuthSecretKey,
-  gardenUtilDaemonDeploymentName,
-  k8sUtilImageName,
-  rsyncPortName,
-} from "../../constants"
+import { buildSyncVolumeName, dockerAuthSecretKey, k8sUtilImageName, rsyncPortName } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../../config"
 import { PodRunner, PodRunnerError } from "../../run"
@@ -241,7 +235,9 @@ export async function skopeoBuildStatus({
         const output = res?.allLogs || err.message
 
         throw new RuntimeError({
-          message: `Unable to query registry for image status: Command "${skopeoCommand.join(" ")}" failed. This is the output:\n${output}`,
+          message: `Unable to query registry for image status: Command "${skopeoCommand.join(
+            " "
+          )}" failed. This is the output:\n${output}`,
         })
       }
     }
@@ -265,35 +261,6 @@ export function skopeoManifestUnknown(errMsg: string | null | undefined): boolea
     errMsg.includes("name unknown") ||
     /(artifact|repository) [^ ]+ not found/.test(errMsg)
   )
-}
-
-/**
- * Get a PodRunner for the util deployment in the garden-system namespace.
- */
-export async function getUtilDaemonPodRunner({
-  api,
-  systemNamespace,
-  ctx,
-  provider,
-}: {
-  api: KubeApi
-  systemNamespace: string
-  ctx: PluginContext
-  provider: KubernetesProvider
-}) {
-  const pod = await getRunningDeploymentPod({
-    api,
-    deploymentName: gardenUtilDaemonDeploymentName,
-    namespace: systemNamespace,
-  })
-
-  return new PodRunner({
-    api,
-    ctx,
-    provider,
-    namespace: systemNamespace,
-    pod,
-  })
 }
 
 /**

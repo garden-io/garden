@@ -24,8 +24,7 @@ import { RuntimeError, GardenError, InternalError, toGardenError } from "../exce
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel, LogLevel } from "../logger/logger"
-import { printFooter, renderMessageWithDivider } from "../logger/util"
-import { capitalize } from "lodash"
+import { printFooter } from "../logger/util"
 import {
   getCloudDistributionName,
   getCloudLogSectionName,
@@ -315,7 +314,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
           const commandResultUrl = cloudSession.api.getCommandResultUrl({
             sessionId: garden.sessionId,
             projectId: cloudSession.projectId,
-            userId,
             shortId: cloudSession.shortId,
           }).href
           const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
@@ -390,7 +388,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
             })
             log.silly(`Completed command '${this.getFullName()}' action successfully`)
           } else {
-            // The command is protected and the user decided to not continue with the exectution.
+            // The command is protected and the user decided to not continue with the execution.
             log.info("\nCommand aborted.")
             return {}
           }
@@ -681,22 +679,6 @@ ${renderCommands(commands)}
   }
 }
 
-export function printResult({
-  log,
-  result,
-  success,
-  description,
-}: {
-  log: Log
-  result: string
-  success: boolean
-  description: string
-}) {
-  const prefix = success ? `${capitalize(description)} output:` : `${capitalize(description)} failed with error:`
-  const msg = renderMessageWithDivider({ prefix, msg: result, isError: !success })
-  success ? log.info(chalk.white(msg)) : log.error(msg)
-}
-
 // fixme: These interfaces and schemas are mostly copied from their original locations. This is to ensure that
 // dynamically sized or nested fields don't accidentally get introduced to command results. We should find a neater
 // wat to manage all this.
@@ -819,7 +801,7 @@ export interface ProcessCommandResult {
 export const resultMetadataKeys = () => ({
   aborted: joi.boolean().description("Set to true if the action was not attempted, e.g. if a dependency failed."),
   durationMsec: joi.number().integer().description("The duration of the action's execution in msec, if applicable."),
-  success: joi.boolean().required().description("Whether the action was succeessfully executed."),
+  success: joi.boolean().required().description("Whether the action was successfully executed."),
   error: joi.string().description("An error message, if the action's execution failed."),
   inputVersion: joi
     .string()

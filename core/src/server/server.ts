@@ -43,7 +43,6 @@ import { ConfigGraph } from "../graph/config-graph"
 import { getGardenCloudDomain } from "../cloud/api"
 import type { ServeCommand } from "../commands/serve"
 import type { AutocompleteSuggestion } from "../cli/autocomplete"
-import execa = require("execa")
 import { z } from "zod"
 import { omitUndefined } from "../util/objects"
 import { createServer } from "http"
@@ -759,7 +758,7 @@ export class GardenServer extends EventEmitter {
               return commandResult
             }
           })
-          // Here we handle the actual commnad result.
+          // Here we handle the actual command result.
           .then((commandResult) => {
             const { result, errors } = commandResult
             send(
@@ -936,10 +935,6 @@ interface ServerWebsocketMessages {
 }
 
 type ServerWebsocketMessageType = keyof ServerWebsocketMessages
-
-export type ServerWebsocketMessage = ServerWebsocketMessages[ServerWebsocketMessageType] & {
-  type: ServerWebsocketMessageType
-}
 
 type SendWrapper<T extends ServerWebsocketMessageType = ServerWebsocketMessageType> = (
   type: T,

@@ -132,10 +132,6 @@ export function pickCommand(commands: (Command | CommandGroup)[], args: string[]
   return { command, rest, matchedPath }
 }
 
-export type ParamSpec = {
-  [key: string]: Parameter<string | string[] | number | boolean | undefined>
-}
-
 export function prepareMinimistOpts({
   options,
   cli,
