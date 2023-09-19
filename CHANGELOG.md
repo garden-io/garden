@@ -1,4 +1,24 @@
 
+<a name="0.13.14"></a>
+## [0.13.14](https://github.com/garden-io/garden/compare/0.13.13...0.13.14) (2023-09-19)
+
+### Bug Fixes
+
+* remove rsync dependency from homebrew formula ([#5086](https://github.com/garden-io/garden/issues/5086)) ([640b51a14](https://github.com/garden-io/garden/commit/640b51a14))
+* print the output of Run and Test actions on the info log level ([#5059](https://github.com/garden-io/garden/issues/5059)) ([30e6fa008](https://github.com/garden-io/garden/commit/30e6fa008))
+* avoid crash during kubectl retry ([#5098](https://github.com/garden-io/garden/issues/5098)) ([c5a7679cb](https://github.com/garden-io/garden/commit/c5a7679cb))
+* use shell matching platform when running scripts ([#5034](https://github.com/garden-io/garden/issues/5034)) ([22013ae77](https://github.com/garden-io/garden/commit/22013ae77))
+* do not error if actionSources are empty ([#5036](https://github.com/garden-io/garden/issues/5036)) ([bc38c9747](https://github.com/garden-io/garden/commit/bc38c9747))
+* **framework:** several error handling improvements ([#5001](https://github.com/garden-io/garden/issues/5001)) ([1bfe7b5ad](https://github.com/garden-io/garden/commit/1bfe7b5ad))
+
+### Features
+
+* add ephemeral kubernetes provider ([#4927](https://github.com/garden-io/garden/issues/4927)) ([ed0ab0198](https://github.com/garden-io/garden/commit/ed0ab0198))
+
+### Improvements
+
+* **plugins:** debug log manifest dump ([#4997](https://github.com/garden-io/garden/issues/4997)) ([3a568369b](https://github.com/garden-io/garden/commit/3a568369b))
+
 <a name="0.13.13"></a>
 ## [0.13.13](https://github.com/garden-io/garden/compare/0.13.12...0.13.13) (2023-08-31)
 
