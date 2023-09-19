@@ -405,7 +405,6 @@ ${renderCommands(commands)}
     let argv = parseCliArgs({ stringArgs: args, cli: true })
 
     const errors: (GardenError | Error)[] = []
-    const _this = this
 
     async function done(abortCode: number, consoleOutput: string, result: any = {}) {
       if (exitOnError) {

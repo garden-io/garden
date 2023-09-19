@@ -64,7 +64,7 @@ export interface ProviderActionOutputs<C extends BaseProviderConfig = any, O ext
   getDebugInfo: DebugInfo
 }
 
-// It takes a short while to resolve all these scemas, so we cache the result
+// It takes a short while to resolve all these schemas, so we cache the result
 let _providerActionDescriptions: ResolvedActionHandlerDescriptions
 
 export function getProviderActionDescriptions(): ResolvedActionHandlerDescriptions {

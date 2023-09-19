@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { resolve } from "url"
 import { getPortForward } from "../port-forward"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
 import { Log } from "../../../logger/log-entry"
@@ -17,7 +16,6 @@ import {
   KubernetesResourceSpec,
 } from "../config"
 import { getSystemNamespace } from "../namespace"
-import { got, GotTextOptions } from "../../../util/http"
 import {
   ContainerBuildAction,
   ContainerResourcesSpec,
@@ -49,14 +47,6 @@ export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>, pro
       message: `${action.longDescription()} specifies neither a \`build\` nor \`spec.image\``,
     })
   }
-}
-
-export async function queryRegistry(ctx: KubernetesPluginContext, log: Log, path: string, opts?: GotTextOptions) {
-  const registryFwd = await getRegistryPortForward(ctx, log)
-  const baseUrl = `http://localhost:${registryFwd.localPort}/v2/`
-  const url = resolve(baseUrl, path)
-
-  return got(url, opts)
 }
 
 export async function getRegistryPortForward(ctx: KubernetesPluginContext, log: Log) {

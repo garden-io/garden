@@ -42,8 +42,6 @@ import { k8sGetContainerDeployStatus, ContainerServiceStatus } from "./status"
 import { emitNonRepeatableWarning } from "../../../warnings"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run"
 
-export const DEFAULT_CPU_REQUEST = "10m"
-export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters - or so they tell me
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
 export const DEFAULT_MINIMUM_REPLICAS = 1
@@ -532,8 +530,6 @@ function workloadConfig({
     },
   }
 }
-
-type HealthCheckMode = "dev" | "local" | "normal"
 
 function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec, mode: ActionMode): void {
   if (mode === "local") {

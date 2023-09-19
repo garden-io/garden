@@ -40,8 +40,6 @@ interface HelmStatusDetail {
   remoteResources?: KubernetesServerResource[]
 }
 
-export type HelmServiceStatus = ServiceStatus<HelmStatusDetail>
-
 export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAction> = async (params) => {
   const { ctx, action, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx

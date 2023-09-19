@@ -21,8 +21,6 @@ export class GetEysiCommand extends Command {
     Just try it.
   `
 
-  loggerType: "basic"
-
   override hidden = true
   override noProject = true
 

@@ -613,7 +613,7 @@ export async function startSyncs(params: StartSyncsParams) {
     })
   )
 
-  const allSyncs = expectedKeys.length === 0 ? [] : await mutagen.getActiveSyncSessions(log)
+  const allSyncs = expectedKeys.length === 0 ? [] : await mutagen.getActiveSyncSessions()
   const keyPrefix = getSyncKeyPrefix(ctx, action)
 
   for (const sync of allSyncs.filter((s) => s.name.startsWith(keyPrefix) && !expectedKeys.includes(s.name))) {
@@ -629,7 +629,7 @@ export async function stopSyncs(params: StopSyncsParams) {
 
   const mutagen = new Mutagen({ ctx, log })
 
-  const allSyncs = await mutagen.getActiveSyncSessions(log)
+  const allSyncs = await mutagen.getActiveSyncSessions()
   const keyPrefix = getSyncKeyPrefix(ctx, action)
   const syncs = allSyncs.filter((sync) => sync.name.startsWith(keyPrefix))
 
@@ -653,7 +653,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
     monitor,
   } = params
   const mutagen = new Mutagen({ ctx, log })
-  const allSyncs = await mutagen.getActiveSyncSessions(log)
+  const allSyncs = await mutagen.getActiveSyncSessions()
   const syncsByName = keyBy(allSyncs, "name")
   let session: SyncSession | null = null
   const syncStatuses: SyncStatus[] = []

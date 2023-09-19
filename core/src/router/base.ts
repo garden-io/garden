@@ -42,7 +42,6 @@ import type { NamespaceStatus } from "../types/namespace"
 import { TemplatableConfigContext } from "../config/template-contexts/project"
 
 export type CommonParams = keyof PluginActionContextParams
-export type RequirePluginName<T> = T & { pluginName: string }
 
 export interface BaseRouterParams {
   garden: Garden

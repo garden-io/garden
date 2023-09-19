@@ -725,7 +725,7 @@ ${chalk.white.underline("Keys:")}
             if (!projectConfig) {
               const msg = opts.root
                 ? `Could not find project at specified --root '${opts.root}'`
-                : `Could not find project in current directory or any parent directoty`
+                : `Could not find project in current directory or any parent directory`
               this.flashError(getCmdFailMsg(name))
               this.log.error(msg)
               return

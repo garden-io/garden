@@ -51,7 +51,6 @@ const localSchema = z.object({
 })
 
 export type LocalConfig = z.infer<typeof localSchema>
-export type AnalyticsLocalConfig = LocalConfig["analytics"]
 
 // TODO: we should not be passing this to provider actions
 export const configStoreSchema = memoize(() =>

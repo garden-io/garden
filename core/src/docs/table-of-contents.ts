@@ -203,5 +203,5 @@ export async function writeTableOfContents(docsRoot: string, outputFileName: str
   const tocPath = resolve(docsRoot, outputFileName)
   await createFile(tocPath)
   await writeFile(tocPath, toWrite)
-  console.log("Table of contents generated successfuly.")
+  console.log("Table of contents generated successfully.")
 }

@@ -399,6 +399,5 @@ export async function runOrTestWithPod(
     namespace,
     podName: makePodName(action.kind.toLowerCase(), action.name),
     timeout: action.getConfig().timeout,
-    version,
   })
 }

@@ -18,8 +18,6 @@ export class CommunityCommand extends Command {
     Opens the Garden Community Discord invite link
   `
 
-  loggerType: "basic"
-
   override noProject = true
 
   override printHeader() {}

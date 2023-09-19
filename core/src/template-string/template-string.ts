@@ -42,8 +42,6 @@ import { callHelperFunction } from "./functions"
 import { ActionKind, actionKindsLower } from "../actions/types"
 import { deepMap } from "../util/objects"
 
-export type StringOrStringPromise = Promise<string> | string
-
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
 const escapePrefix = "$${"
@@ -613,7 +611,7 @@ export function getModuleTemplateReferences<T extends object>(obj: T, context: M
  *
  * Prefix should be e.g. "Module" or "Provider" (used when generating error messages).
  *
- * TODO: We've disabled this for now. Re-introudce once we've removed get config command call from GE!
+ * TODO: We've disabled this for now. Re-introduce once we've removed get config command call from GE!
  */
 export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: StringMap, prefix: string, log?: Log) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]

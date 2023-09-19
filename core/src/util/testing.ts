@@ -141,7 +141,7 @@ export class TestEventBus extends EventBus {
   }
 }
 
-const defaultCommandinfo = { name: "test", args: {}, opts: {} }
+const defaultCommandInfo = { name: "test", args: {}, opts: {} }
 export const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
 
 const paramCache: { [key: string]: GardenParams } = {}
@@ -186,7 +186,7 @@ export class TestGarden extends Garden {
       params.log = opts?.log || getRootLogger().createLog()
       params.plugins = opts?.plugins || []
     } else {
-      params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })
+      params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandInfo, ...opts })
       if (cacheKey) {
         paramCache[cacheKey] = cloneDeep({ ...params, log: <any>{}, plugins: [] })
       }

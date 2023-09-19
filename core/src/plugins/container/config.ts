@@ -567,7 +567,7 @@ export const portSchema = createSchema({
         for \`servicePort\`.
 
         This is the port you would expose in your Dockerfile and that your process listens on.
-        This is commonly a non-priviledged port like 8080 for security reasons.
+        This is commonly a non-privileged port like 8080 for security reasons.
 
         The service port maps to the container port:
 
@@ -884,6 +884,7 @@ const artifactsSchema = memoize(() =>
 export interface ContainerTestOutputs {
   log: string
 }
+
 export const containerTestOutputSchema = createSchema({
   name: "container-test-output",
   keys: () => ({
@@ -1079,4 +1080,3 @@ export type ContainerRuntimeActionConfig =
   | ContainerDeployActionConfig
   | ContainerRunActionConfig
   | ContainerTestActionConfig
-export type ContainerAction = ContainerRuntimeAction | ContainerBuildAction

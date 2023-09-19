@@ -9,7 +9,6 @@
 import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { joi, joiArray, joiIdentifierMap } from "../../../config/common"
-import { baseModuleSpecSchema } from "../../../config/module"
 import { providerSchema, ProviderMap, BaseProviderConfig } from "../../../config/provider"
 import { BaseAction, baseActionConfigSchema } from "../../../actions/base"
 import type { ActionKind, BaseActionConfig } from "../../../actions/types"
@@ -30,8 +29,6 @@ export interface AugmentGraphResult {
   addDependencies?: AddDependency[]
   addActions?: BaseActionConfig[]
 }
-
-export const addModuleSchema = () => baseModuleSpecSchema()
 
 export const augmentGraph = () => ({
   description: dedent`

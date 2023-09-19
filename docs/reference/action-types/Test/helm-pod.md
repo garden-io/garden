@@ -161,7 +161,7 @@ spec:
   # The command/entrypoint used to run inside the container.
   command:
 
-  # The arguments to pass to the command/entypoint used for execution.
+  # The arguments to pass to the command/entrypoint used for execution.
   args:
 
   # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
@@ -541,7 +541,7 @@ spec:
 
 [spec](#spec) > args
 
-The arguments to pass to the command/entypoint used for execution.
+The arguments to pass to the command/entrypoint used for execution.
 
 | Type            | Required |
 | --------------- | -------- |

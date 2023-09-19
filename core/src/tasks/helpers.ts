@@ -16,7 +16,6 @@ import { isRunAction } from "../actions/run"
 import { InternalError } from "../exceptions"
 import type { GraphResults } from "../graph/results"
 import type { DeployStatus } from "../plugin/handlers/Deploy/get-status"
-import type { GetRunResult } from "../plugin/handlers/Run/get-result"
 import { splitLast } from "../util/string"
 import type { ResolveActionTask } from "./resolve-action"
 
@@ -58,10 +57,4 @@ export function getDeployStatuses(dependencyResults: GraphResults): { [name: str
   const deployResults = pickBy(dependencyResults.getMap(), (r) => r && r.type === "deploy")
   const statuses = mapValues(deployResults, (r) => omit(r!.result, "version") as DeployStatus)
   return mapKeys(statuses, (_, key) => splitLast(key, ".")[1])
-}
-
-export function getRunResults(dependencyResults: GraphResults): { [name: string]: GetRunResult } {
-  const runResults = pickBy(dependencyResults.getMap(), (r) => r && r.type === "run")
-  const results = mapValues(runResults, (r) => r!.result as GetRunResult)
-  return mapKeys(results, (_, key) => splitLast(key, ".")[1])
 }

@@ -8,7 +8,6 @@
 
 import { createSchema, joi, joiIdentifier } from "../config/common"
 import { deline } from "../util/string"
-import { PluginTool } from "../util/ext-tools"
 import { Architecture, Platform } from "../util/util"
 
 export interface ToolBuildSpec {
@@ -69,10 +68,6 @@ export interface PluginToolSpec {
   type: "library" | "binary"
   builds: ToolBuildSpec[]
   _includeInGardenImage?: boolean
-}
-
-export interface PluginTools {
-  [name: string]: PluginTool
 }
 
 export const toolSchema = createSchema({
