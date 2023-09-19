@@ -18,8 +18,8 @@ providers:
           - "**/prefix-*"
   - name: local-kubernetes
     deploymentRegistry: &deploymentRegistry
-      hostname: eu.gcr.io
-      namespace: gardendev
+      hostname: europe-west3-docker.pkg.dev
+      namespace: garden-ci/garden-integ-tests
     environments: [local-remote-registry]
   - &base
     name: local-kubernetes
