@@ -490,54 +490,60 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
     throw new PluginError({ message: `Error running conftest: ${result.all}` })
   }
 
-  const allFailures = parsed.filter((p: any) => p.failures?.length > 0)
-  const allWarnings = parsed.filter((p: any) => p.warnings?.length > 0)
-
   const resultCategories: string[] = []
   let formattedResult = "OK"
 
-  if (allFailures.length > 0) {
-    resultCategories.push(`${allFailures.length} failure(s)`)
+  let countFailures = 0
+  let countWarnings = 0
+
+  const lines: string[] = []
+
+  // We let the format match the conftest output
+  for (const { filename, warnings, failures } of parsed) {
+    const failuresForFilename = failures || []
+    for (const failure of failuresForFilename) {
+      lines.push(
+        chalk.redBright.bold("FAIL") + chalk.gray(" - ") + chalk.redBright(filename) + chalk.gray(" - ") + failure.msg
+      )
+      countFailures += 1
+    }
+
+    const warningsForFilename = warnings || []
+    for (const warning of warningsForFilename) {
+      lines.push(
+        chalk.yellowBright.bold("WARN") +
+          chalk.gray(" - ") +
+          chalk.yellowBright(filename) +
+          chalk.gray(" - ") +
+          warning.msg
+      )
+
+      countWarnings += 1
+    }
   }
 
-  if (allWarnings.length > 0) {
-    resultCategories.push(`${allWarnings.length} warning(s)`)
+  if (countFailures > 0) {
+    resultCategories.push(`${countFailures} failure(s)`)
+  }
+
+  if (countWarnings > 0) {
+    resultCategories.push(`${countWarnings} warning(s)`)
   }
 
   let formattedHeader = `conftest reported ${naturalList(resultCategories)}`
 
-  if (allFailures.length > 0 || allWarnings.length > 0) {
-    const lines = [`${formattedHeader}:\n`]
-
-    // We let the format match the conftest output
-    for (const { filename, warnings, failures } of parsed) {
-      for (const failure of failures) {
-        lines.push(
-          chalk.redBright.bold("FAIL") + chalk.gray(" - ") + chalk.redBright(filename) + chalk.gray(" - ") + failure.msg
-        )
-      }
-      for (const warning of warnings) {
-        lines.push(
-          chalk.yellowBright.bold("WARN") +
-            chalk.gray(" - ") +
-            chalk.yellowBright(filename) +
-            chalk.gray(" - ") +
-            warning.msg
-        )
-      }
-    }
-
-    formattedResult = lines.join("\n")
-  }
-
   const threshold = provider.config.testFailureThreshold
 
-  if (allWarnings.length > 0 && threshold === "warn") {
+  if (countWarnings > 0 && threshold === "warn") {
     success = false
-  } else if (allFailures.length > 0 && threshold !== "none") {
+  } else if (countFailures > 0 && threshold !== "none") {
     success = false
-  } else if (allWarnings.length > 0) {
+  } else if (countWarnings > 0) {
     log.warn(chalk.yellow(formattedHeader))
+  }
+
+  if (!success) {
+    formattedResult = formattedHeader + ":\n\n" + lines.join("\n")
   }
 
   return { success, formattedResult }
