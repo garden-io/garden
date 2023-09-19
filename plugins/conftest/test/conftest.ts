@@ -20,7 +20,7 @@ import { TestTask } from "@garden-io/core/build/src/tasks/test"
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 import { GardenApiVersion } from "@garden-io/core/build/src/constants"
 
-describe.skip("conftest provider", () => {
+describe("conftest provider", () => {
   const projectRoot = join(__dirname, "test-project")
 
   const projectConfig: ProjectConfig = {
@@ -35,7 +35,7 @@ describe.skip("conftest provider", () => {
     variables: {},
   }
 
-  describe("testModule", () => {
+  describe.skip("testModule", () => {
     it("should format warnings and errors nicely", async () => {
       const garden = await makeTestGarden(projectRoot, {
         plugins: [gardenPlugin()],

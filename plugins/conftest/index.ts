@@ -120,7 +120,7 @@ export const gardenPlugin = () =>
   createGardenPlugin({
     name: "conftest",
     docs: dedent`
-    This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files. The provider creates Test action types of the same name, which allow you to specify files to validate.
+    This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/open-policy-agent/conftest) and Open Policy Agent rego query files. The provider creates Test action types of the same name, which allow you to specify files to validate.
 
     Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your \`conftest\` actions, e.g. the [\`conftest-container\`](./conftest-container.md) and/or [\`conftest-kubernetes\`](./conftest-kubernetes.md) providers. See the [conftest example project](${gitHubUrl}) for a simple usage example of the latter.
 
@@ -138,7 +138,7 @@ export const gardenPlugin = () =>
 
           > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](../../providers/conftest-container.md) and [\`conftest-kubernetes\`](../../providers/conftest-kubernetes.md) create this automatically, but you may in some cases want or need to manually specify files to test.
 
-          See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
+          See the [conftest docs](https://github.com/open-policy-agent/conftest) for details on how to configure policies.
           `,
           schema: testActionSchema(),
           handlers: <TestActionHandlers<TestAction<ConftestTestConfig>>>{
@@ -206,7 +206,7 @@ export const gardenPlugin = () =>
 
           > Note: In most cases, you'll let the [\`conftest-kubernetes\`](../../providers/conftest-kubernetes.md) provider create this Test automatically, but you may in some cases want or need to manually specify files to test.
 
-          See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
+          See the [conftest docs](https://github.com/open-policy-agent/conftest) for details on how to configure policies.
           `,
           schema: testActionSchema().keys({
             helmDeploy: joi
@@ -272,7 +272,6 @@ export const gardenPlugin = () =>
               const templates = await renderTemplates({
                 ctx: k8sCtx,
                 action: sourceAction,
-
                 log,
               })
 
@@ -320,7 +319,7 @@ export const gardenPlugin = () =>
 
         > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](../providers/conftest-container.md) and [\`conftest-kubernetes\`](../providers/conftest-kubernetes.md) create this action type automatically, but you may in some cases want or need to manually specify files to test.
 
-        See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
+        See the [conftest docs](https://github.com/open-policy-agent/conftest) for details on how to configure policies.
       `,
         schema: commonModuleSchema(),
         needsBuild: false,
@@ -370,7 +369,7 @@ export const gardenPlugin = () =>
 
         > Note: In most cases, you'll let the [\`conftest-kubernetes\`](../providers/conftest-kubernetes.md) provider create this action type automatically, but you may in some cases want or need to manually specify files to test.
 
-        See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
+        See the [conftest docs](https://github.com/open-policy-agent/conftest) for details on how to configure policies.
       `,
         schema: commonModuleSchema().keys({
           sourceModule: joiIdentifier().required().description("Specify a helm module whose chart we want to test."),
