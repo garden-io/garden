@@ -25,11 +25,10 @@ If you find any bugs 🐛 or have suggestions to improve our labs please don't h
 
 In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
 
-In just 3 steps, we'll:
+In just 2 steps, we'll:
 
 * Install Garden
-* Run a local, [supported flavor](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes
-* Deploy an example application
+* Deploy an example application to a remote ephemeral Kubernetes cluster.
 
 ### Step 1 — Install Garden
 
@@ -78,28 +77,9 @@ This will significantly speed up the first Garden build of large projects on Win
 
 For more detailed installation instructions, please see our [Installation guide](../guides/installation.md).
 
-### Step 2 — Install Kubernetes locally
+### Step 2 — Deploy the example application
 
-{% hint style="info" %}
-If you already have [a supported version](../k8s-plugins/local-k8s/README.md#requirements) of Kubernetes installed locally you can skip this section.
-{% endhint %}
-
-This quickstart uses Docker Desktop's built-in Kubernetes. For supported alternatives, check out our [guide to local Kubernetes flavors](../k8s-plugins/local-k8s/install.md).
-
-Download and install Docker Desktop following the instructions on the [official Docker site](https://docs.docker.com/desktop).
-
-Then enable Kubernetes in Docker Desktop:
-
-1. From the Docker Dashboard, select the **Settings** icon.
-2. Select **Kubernetes** from the left sidebar.
-3. Next to **Enable Kubernetes**, select the checkbox.
-4. Select **Apply & Restart** to save the settings and then click Install to confirm. This instantiates the images required to run the Kubernetes server as containers, and installs kubectl on your machine.
-
-See the [official Docker docs](https://docs.docker.com/desktop/kubernetes/) for more.
-
-### Step 3 — Deploy the example application
-
-Now that we have Garden installed and Kubernetes running locally, we can deploy our example application.
+Now that we have Garden installed we will deploy our example application to an [ephemeral Kubernetes cluster](ephemeral-clusters.md) provided by Gardden.
 
 Clone the example project from GitHub:
 
@@ -115,7 +95,13 @@ garden dev
 
 The first time you run `garden dev`, Garden will initialize then await further instructions inside a [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop). From inside the REPL you can command Garden to build, test, and deploy your project.
 
-After running `garden dev`, you're ready to deploy your project. Run:
+After running `garden dev`, login to the Garden web dashboard. Run:
+
+```sh
+login
+```
+
+Now you are ready to deploy, run:
 
 ```sh
 deploy
@@ -123,7 +109,7 @@ deploy
 
 ![Garden dev deploy](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/d8095ad1a8615edf49e721b8afcd901f3056e127/dev-mode.gif)
 
-You should now be able to visit the example project at [http://vote.local.demo.garden](http://vote.local.demo.garden).
+You should now be able to visit the example project at .
 
 The quickstart also comes with some tests of the unit and end-to-end variety. To run your unit test, just run `test unit`. To run your end-to-end test, run `test e2e`. Easy!
 
@@ -175,7 +161,7 @@ Then add the following to the file and save it:
 
 {% endtabs %}
 
-Now you should be able to load the quickstart example project in your browser at [http://vote.local.demo.garden](http://vote.local.demo.garden).
+Now you should be able to load the quickstart example project in your browser at the link output by Garden.
 
 ## Next Steps
 

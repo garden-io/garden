@@ -32,9 +32,11 @@ apiVersion: garden.io/v1
 kind: Project
 name: demo-project-start
 
-defaultEnvironment: local
+defaultEnvironment: ephemeral
 
 environments:
+  - name: ephemeral
+
   - name: local
     defaultNamespace: garden-local
 
@@ -46,10 +48,12 @@ environments:
     defaultNamespace: staging
 
 providers:
+  - name: ephemeral-kubernetes
+    environments:
+      - ephemeral
   - name: local-kubernetes
     environments:
       - local
-
   - name: kubernetes
     environments:
       - remote
@@ -134,8 +138,5 @@ spec:
     - path: /call-backend
       port: http
 ```
-
-Before deploying, you need to set up a local kubernetes cluster or connect to a remote cluster.
-First you can try to deploy the project with the local kubernetes cluster.
 
 Now, let's move on to our next section, and [connect to a Kubernetes cluster](./2-connect-to-a-cluster.md).
