@@ -107,13 +107,9 @@ Now you are ready to deploy, run:
 deploy
 ```
 
-![Garden dev deploy](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/d8095ad1a8615edf49e721b8afcd901f3056e127/dev-mode.gif)
-
-You should now be able to visit the example project at the link outputted by Garden.
+You should now be able to visit the example project at the link output by Garden.
 
 The quickstart also comes with some tests of the unit and end-to-end variety. To run your unit test, just run `test unit`. To run your end-to-end test, run `test e2e`. Easy!
-
-![Garden dev tests](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/210fbac5a733869c507920988e588a0c1989a7ae/dev-mode-tests.gif)
 
 The project itself doubles as an interactive guide that walks you through some common Garden commands and workflows. We encourage you to give it a spin!
 
