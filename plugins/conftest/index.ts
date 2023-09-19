@@ -401,40 +401,59 @@ export const gardenPlugin = () =>
     tools: [
       {
         name: "conftest",
-        version: "0.17.1",
+        version: "0.45.0",
         description: "A rego-based configuration validator.",
         type: "binary",
         _includeInGardenImage: true,
         builds: [
-          // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
           {
             platform: "darwin",
             architecture: "amd64",
-            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Darwin_x86_64.tar.gz",
-            sha256: "1c97f0e43fab99c94593696d362fc1e00e8e80bd0321729412de51d83ecbfb73",
+            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Darwin_x86_64.tar.gz",
+            sha256: "cd199c00fb634242e9062fb6b68692040198b1a2fee88537add7a719485a9839",
             extract: {
               format: "tar",
               targetPath: "conftest",
             },
           },
-          // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
+          {
+            platform: "darwin",
+            architecture: "arm64",
+            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Darwin_arm64.tar.gz",
+            sha256: "3c4e2d7fd01e7a2a17558e4e5f8086bc92312a8e8773747e2d4a067ca20127b4",
+            extract: {
+              format: "tar",
+              targetPath: "conftest",
+            },
+          },
           {
             platform: "linux",
             architecture: "amd64",
-            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Linux_x86_64.tar.gz",
-            sha256: "d18c95a4b04e87bfd59e06cc980801d2df5dabb371b495506ef03f70a0a40624",
+            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz",
+            sha256: "65edcf630f5cd2142138555542f10f8cbc99588e5dfcefbfa1e8074c7cc82c23",
             extract: {
               format: "tar",
               targetPath: "conftest",
             },
           },
+          {
+            platform: "linux",
+            architecture: "arm64",
+            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_arm64.tar.gz",
+            sha256: "9851d4c2a6488fbaab6af34223ed77425bc6fb5a4b349a53e6e1410cdf4798f0",
+            extract: {
+              format: "tar",
+              targetPath: "conftest",
+            },
+          },
+
           {
             platform: "windows",
             architecture: "amd64",
             url:
-              "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/" +
-              "conftest_0.17.1_Windows_x86_64.zip",
-            sha256: "4c2df80420f2f148ec085bb75a8c5b92e1c665c6a041768a79924c81082527c3",
+              "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/" +
+              "conftest_0.45.0_Windows_x86_64.zip",
+            sha256: "376135229a8ee5e4a1e77d10dad00dc907b04c4efb7d3857e542371902e309ce",
             extract: {
               format: "zip",
               targetPath: "conftest.exe",
