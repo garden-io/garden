@@ -79,7 +79,7 @@ For more detailed installation instructions, please see our [Installation guide]
 
 ### Step 2 — Deploy the example application
 
-Now that we have Garden installed we will deploy our example application to an [ephemeral Kubernetes cluster](ephemeral-clusters.md) provided by Gardden.
+Now that we have Garden installed we will deploy our example application to an [ephemeral Kubernetes cluster](../k8s-plugins/ephemeral-k8s/README.md) provided by Garden.
 
 Clone the example project from GitHub:
 
