@@ -49,7 +49,7 @@ The ingress URLs are not publicly accessible and require authentication via GitH
 The first time you attempt to preview an ingress URL, you will be automatically redirected to GitHub for authorization of the "Garden Ephemeral Environment Previews" app. This is a one-time step, and subsequent ingress previews won't require re-authorization, ensuring a seamless experience as long as you remain logged in to the GitHub.
 
 {% hint style="info" %}
-Ingress URLs are not shareable at the moment however it is planned to be supported in future releases. Stay tuned for further updates on this.
+Ingress URLs are not shareable at the moment however we are planning to support this functionality in future releases. Stay tuned for further updates.
 {% endhint %}
 
 ## DNS

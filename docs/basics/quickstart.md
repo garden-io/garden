@@ -109,7 +109,7 @@ deploy
 
 ![Garden dev deploy](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/d8095ad1a8615edf49e721b8afcd901f3056e127/dev-mode.gif)
 
-You should now be able to visit the example project at .
+You should now be able to visit the example project at the link outputted by Garden.
 
 The quickstart also comes with some tests of the unit and end-to-end variety. To run your unit test, just run `test unit`. To run your end-to-end test, run `test e2e`. Easy!
 
@@ -119,49 +119,6 @@ If the page doesn't load, you'll need to go to step 4 and update your hostfile. 
 
 The project itself doubles as an interactive guide that walks you through some common Garden commands and workflows. We encourage you to give it a spin!
 
-### Step 4 — Update hostfile (only if needed)
-
-{% hint style="info" %}
-The `*.local.demo.garden` domain resolves to 127.0.0.1 via our DNS provider. This means that when you go to [http://vote.local.demo.garden](http://vote.local.demo.garden), you _should_ be redirected to the app that you have running locally. However, some routers will prevent redirects to 127.0.0.1 and you'll need to update your hostfile instead.
-{% endhint %}
-
-If you get an error saying that DNS address can't be found when attempting to load the page, follow the instructions below to edit the hostfile for your platform.
-
-{% tabs %}
-
-{% tab title="macOS / Linux" %}
-In your terminal, open your hostfile as an administrator by running:
-
-```console
-sudo vim /etc/hosts
-```
-
-We're using vim here but feel free to use your editor of choice.
-
-Then add the following to file and save it:
-
-```sh
-127.0.0.1 vote.local.demo.garden
-```
-
-{% endtab %}
-
-{% tab title="Windows" %}
-First, open Notepad as an administrator.
-
-From Notepad, open the `hosts` file in the `C:\Windows\System32\Drivers\etc` directory.
-
-Then add the following to the file and save it:
-
-```sh
-127.0.0.1 vote.local.demo.garden
-```
-
-{% endtab %}
-
-{% endtabs %}
-
-Now you should be able to load the quickstart example project in your browser at the link output by Garden.
 
 ## Next Steps
 
