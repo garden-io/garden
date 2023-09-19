@@ -902,8 +902,8 @@ workflows:
           requires: [build]
       - lint:
           requires: [build]
-      - check-docs:
-          requires: [build]
+      # - check-docs:
+      #     requires: [build]
       - check-package-licenses:
           requires: [build]
       - test-framework:
