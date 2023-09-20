@@ -1,9 +1,7 @@
 ---
 title: Config resolution
-order: 5
+order: 6
 ---
-
-# Config resolution
 
 This doc explains the high-level steps that Garden takes to go from config files on disk to a fully resolved project (with all modules, actions and workflows resolved with no template strings remaining).
 

@@ -1,9 +1,7 @@
 ---
 title: Graph execution
-order: 6
+order: 7
 ---
-
-# Graph execution
 
 This doc explains the steps involved when `GraphSolver` (solver) processes a set of tasks in dependency order. The solver and the task classes (e.g. `ResolveActionTask` and `BuildTask`) are tightly integrated, so this doc will cover them as a single whole.
 

@@ -1,9 +1,7 @@
 ---
 title: Developing Garden
-order: 4
+order: 5
 ---
-
-# Developing Garden
 
 Once you've [set up your developer environment](./garden-dev-env-setup.md), you're ready to hack on Garden!
 

@@ -1,9 +1,7 @@
 ---
 title: Contributing to Garden
-order: 99
+order: 1
 ---
-
-# Contributing to Garden
 
 {% hint style="info" %}
 

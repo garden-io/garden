@@ -1,9 +1,7 @@
 ---
 title: Setting up your developer environment
-order: 3
+order: 4
 ---
-
-# Setting up your development environment
 
 ## Step 1: Install Docker and Kubernetes
 
@@ -17,7 +15,7 @@ git clone https://github.com/garden-io/garden.git
 
 ## Step 3: Install dependencies
 
-### OSX
+### macOS
 
 For Mac we have a script that installs all required dependencies.
 
