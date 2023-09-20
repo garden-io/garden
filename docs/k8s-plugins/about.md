@@ -5,10 +5,11 @@ order: 1
 
 # About
 
-Garden has two Kubernetes plugins:
+Garden has three Kubernetes plugins:
 
 - The `local-kubernetes` plugin is for local installations of Kubernetes such as Minikube or Docker for Desktop.
 - The `kubernetes` plugin works with any Kubernetes cluster.
+- The `ephemeral-kubernetes` plugin is for spinning up a zero-config, temporary Garden managed Kubernetes cluster.
 
 The following pages provide step-by-step guides for getting started with either plugin. You can skip any steps you've already completed.
 
@@ -22,4 +23,4 @@ For tests and tasks, Garden spins up Pods from the respective image that execute
 
 For live code synchronization, Garden uses a tool called Mutagen to sync changes to the running container.
 
-There's a lot more to the Kubernetes plugin and if you're interested in the "nitty-gritty", we're more than happy to answer questions us on our [Discord channel](https://discord.gg/FrmhuUjFs6).
+There's a lot more to the Kubernetes plugins and if you're interested in the "nitty-gritty", we're more than happy to answer questions us on our [Discord channel](https://discord.gg/FrmhuUjFs6).
