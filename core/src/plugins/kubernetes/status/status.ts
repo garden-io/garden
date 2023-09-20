@@ -480,7 +480,7 @@ export async function compareDeployedResources({
     // Start by checking for "last applied configuration" annotations and comparing against those.
     // This can be more accurate than comparing against resolved resources.
     if (deployedResource.metadata && deployedResource.metadata.annotations) {
-      const lastAppliedHashed = deployedResource.metadata.annotations[gardenAnnotationKey("manifest-hash")]
+      const lastAppliedHashed = deployedResource.metadata.annotations[hashKey]
 
       // The new manifest matches the last applied manifest
       if (lastAppliedHashed && (await hashManifest(manifest)) === lastAppliedHashed) {
