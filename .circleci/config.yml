@@ -1103,6 +1103,7 @@ workflows:
           k3sVersion: v1.27.2+k3s1
 
       - test-plugins:
+          <<: *only-internal-prs
           requires: [build]
           kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
 
