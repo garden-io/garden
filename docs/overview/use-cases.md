@@ -89,7 +89,7 @@ Our commercial offering, Garden Enterprise, also includes secrets management and
 
 For more details check out our guide on [using Garden in CI](../guides/using-garden-in-ci.md).
 
-## On-demand, isolated preview environments
+## On-demand preview environments
 
 Teams often use Garden to spin up isolated preview environments.
 
@@ -124,7 +124,7 @@ If you find yourself:
 
 Smart caching will also help speed up pipelines for projects with a lot of tests. In fact, one the teams using Garden is able to end-to-end test a stack of 130+ services, hundreds of times a day, thanks to Garden’s caching.
 
-## Isolated, remote, production-like developer environments
+## Production-like developer environments
 
 There comes a time when your project simply gets too large to run on your laptop, and you need the full power of the cloud to fully spin it up.
 
@@ -142,7 +142,7 @@ And as with the other use cases, Garden’s caching ensures dev environments are
 
 If you worry your laptop may catch fire next time you run `docker compose up`, remote environments might be for you.
 
-## Hybrid environments (Remocal?)
+## Hybrid environments
 
 This is a spin on the section above.
 
