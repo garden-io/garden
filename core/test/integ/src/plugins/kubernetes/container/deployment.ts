@@ -79,8 +79,8 @@ describe("kubernetes container deployment handlers", () => {
     }
   })
 
-  const init = async (environmentName: string) => {
-    garden = await getContainerTestGarden(environmentName)
+  const init = async (environmentName: string, remoteContainerAuth: boolean = false) => {
+    garden = await getContainerTestGarden(environmentName, { remoteContainerAuth })
     router = await garden.getActionRouter()
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = <KubernetesPluginContext>(
@@ -788,7 +788,7 @@ describe("kubernetes container deployment handlers", () => {
 
     grouped("kaniko", "remote-only").context("kaniko", () => {
       before(async () => {
-        await init("kaniko")
+        await init("kaniko", true)
       })
 
       it("should deploy a simple service", async () => {
@@ -807,8 +807,12 @@ describe("kubernetes container deployment handlers", () => {
         const statuses = getDeployStatuses(results.results)
         const status = statuses[action.name]
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
+        const buildVersionString = action.getBuildAction()?.versionString()
+
+        // Note: the image version should match the build action version and not the
+        // deploy action version
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `index.docker.io/gardendev/${action.name}:${action.versionString()}`
+          `garden-integ-tests/${action.name}:${buildVersionString}`
         )
       })
     })
