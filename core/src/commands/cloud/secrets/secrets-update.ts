@@ -164,11 +164,8 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       try {
         secretsToUpdateArgs = dotenv.parse(await readFile(fromFile))
       } catch (err) {
-        if (!(err instanceof GardenError)) {
-          throw err
-        }
         throw new CommandError({
-          message: `Unable to read secrets from file at path ${fromFile}: ${err.message}`,
+          message: `Unable to read secrets from file at path ${fromFile}: ${err}`,
         })
       }
     } else if (args.secretNamesOrIds) {
@@ -178,11 +175,8 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
           Object.assign(acc, secret)
           return acc
         } catch (err) {
-          if (!(err instanceof GardenError)) {
-            throw err
-          }
           throw new CommandError({
-            message: `Unable to read secret from argument ${keyValPair}: ${err.message}`,
+            message: `Unable to read secret from argument ${keyValPair}: ${err}`,
           })
         }
       }, {})
