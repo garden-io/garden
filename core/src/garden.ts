@@ -829,7 +829,7 @@ export class Garden {
           provider.moduleConfigs.map(async (moduleConfig) => {
             // Make sure module and all nested entities are scoped to the plugin
             moduleConfig.plugin = provider.name
-            await this.addModuleConfig(moduleConfig)
+            return this.addModuleConfig(moduleConfig)
           })
         )
       )

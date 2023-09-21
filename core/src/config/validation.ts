@@ -192,7 +192,7 @@ export const validateSchema = profile(function $validateSchema<T>(
   }
 
   throw new ErrorClass({
-    message: `${msgPrefix}: ${errorDescription}`,
+    message: `${msgPrefix}:\n${errorDescription}`,
   })
 })
 

@@ -52,7 +52,7 @@ describe("validateSchema", () => {
     const schema = joi.object().keys({ foo: joi.string() })
     const value = { foo: 123 }
     await expectError(() => validateSchema(value, schema), {
-      contains: "Validation error:\nfoo must be a string",
+      contains: ["Validation error", "foo must be a string"],
     })
   })
 
@@ -60,7 +60,7 @@ describe("validateSchema", () => {
     const schema = joi.object().keys({ foo: joi.object().keys({ bar: joi.string() }) })
     const value = { foo: { bar: 123 } }
     await expectError(() => validateSchema(value, schema), {
-      contains: "Validation error:\nfoo.bar must be a string",
+      contains: ["Validation error", "foo.bar must be a string"],
     })
   })
 
@@ -68,7 +68,7 @@ describe("validateSchema", () => {
     const schema = joi.object().keys({ foo: joi.object().pattern(/.+/, joi.string()) })
     const value = { foo: { bar: 123 } }
     await expectError(() => validateSchema(value, schema), {
-      contains: "Validation error:\nfoo[bar] must be a string",
+      contains: ["Validation error", "foo[bar] must be a string"],
     })
   })
 

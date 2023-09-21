@@ -166,7 +166,7 @@ describe("loadConfigResources", () => {
     await expectError(
       async () =>
         await loadConfigResources(log, projectPath, resolve(projectPath, "invalid-syntax-module", "garden.yml")),
-      { contains: ["could not parse", "Map keys must be unique"] }
+      { contains: ["could not parse", "duplicated mapping key"] }
     )
   })
 
@@ -192,7 +192,7 @@ describe("loadConfigResources", () => {
     await expectError(
       async () => await loadConfigResources(log, projectPath, resolve(projectPath, "missing-type", "garden.yml")),
       {
-        contains: "Error validating module (missing-type/garden.yml):\ntype is required",
+        contains: ["Error validating module (missing-type/garden.yml)", "type is required"],
       }
     )
   })
@@ -202,7 +202,7 @@ describe("loadConfigResources", () => {
     await expectError(
       async () => await loadConfigResources(log, projectPath, resolve(projectPath, "missing-name", "garden.yml")),
       {
-        contains: "Error validating module (missing-name/garden.yml):\nname is required",
+        contains: ["Error validating module (missing-name/garden.yml)", "name is required"],
       }
     )
   })
