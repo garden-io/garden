@@ -16,6 +16,7 @@ import { LogLevel } from "../../logger/logger"
 import { KubernetesError } from "./api"
 import requestErrors = require("request-promise/errors")
 import { InternalError, NodeJSErrnoErrorCodes, isErrnoException } from "../../exceptions"
+import { ErrorEvent } from "ws"
 
 /**
  * The flag {@code forceRetry} can be used to avoid {@link shouldRetry} helper call in case if the error code
@@ -73,6 +74,16 @@ export async function requestWithRetry<R>(
   return result
 }
 
+function isWebsocketErrorEvent(err: any): err is ErrorEvent {
+  if (typeof err !== "object") {
+    return false
+  }
+  if (typeof err.message === "string" && err.error instanceof Error && err.target) {
+    return true
+  }
+  return false
+}
+
 export function toKubernetesError(err: unknown, context: string): KubernetesError {
   if (err instanceof KubernetesError) {
     return err
@@ -98,9 +109,19 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
     if (isErrnoException(err.cause)) {
       code = err.cause.code
     }
+  } else if (err instanceof requestErrors.TransformError) {
+    errorType = "TransformError"
+    if (isErrnoException(err.cause)) {
+      code = err.cause.code
+    }
+    response = err.response
+    responseStatusCode = err.response?.statusCode
   } else if (isErrnoException(err)) {
     errorType = "Error"
     code = err.code
+  } else if (isWebsocketErrorEvent(err)) {
+    errorType = "WebsocketError"
+    // The ErrorEvent does not expose the status code other than as part of the error.message
   } else {
     // In all other cases, we don't know what this is, so let's just throw an InternalError
     throw InternalError.wrapError(err, `toKubernetesError encountered an unknown error unexpectedly during ${context}`)

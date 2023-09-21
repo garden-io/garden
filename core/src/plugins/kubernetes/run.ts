@@ -1155,6 +1155,7 @@ export class PodRunner {
 
     log.debug(`Execing command in ${this.namespace}/Pod/${this.podName}/${containerName}: ${command.join(" ")}`)
     const startTime = new Date(Date.now())
+
     const result = await this.api.execInPod({
       log,
       namespace: this.namespace,
