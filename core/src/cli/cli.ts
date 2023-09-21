@@ -91,13 +91,16 @@ export class GardenCli {
       .sort()
       .filter((cmd) => cmd.getPath().length === 1)
 
-    let msg = dedent`
-      ${cliStyles.heading("USAGE")}
-        garden ${cliStyles.commandPlaceholder()} ${cliStyles.optionsPlaceholder()}
+    // `dedent` has a bug where it doesn't indent correctly
+    // when there's ANSI codes in the beginning of a line.
+    // Thus we have to dedent like this.
+    let msg = `
+${cliStyles.heading("USAGE")}
+  garden ${cliStyles.commandPlaceholder()} ${cliStyles.optionsPlaceholder()}
 
-      ${cliStyles.heading("COMMANDS")}
-      ${renderCommands(commands)}
-    `
+${cliStyles.heading("COMMANDS")}
+${renderCommands(commands)}
+`
 
     const customCommands = await this.getCustomCommands(log, workingDir)
 

@@ -38,7 +38,6 @@ import {
 import type { GlobalOptions, ParameterObject, ParameterValues } from "./params"
 import { bindActiveContext, withSessionContext } from "../util/open-telemetry/context"
 import { wrapActiveSpan } from "../util/open-telemetry/spans"
-import dedent from "dedent"
 
 const defaultMessageDuration = 3000
 const commandLinePrefix = chalk.yellow("🌼  > ")
@@ -473,11 +472,14 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     const char = "┈"
     const color = chalk.bold
 
-    const wrapped = dedent`
-      ${renderDivider({ title: chalk.bold(title), width, char, color })}
-      ${text}
-      ${renderDivider({ width, char, color })}
-    `
+    // `dedent` has a bug where it doesn't indent correctly
+    // when there's ANSI codes in the beginning of a line.
+    // Thus we have to dedent like this.
+    const wrapped = `
+${renderDivider({ title: chalk.bold(title), width, char, color })}
+${text}
+${renderDivider({ width, char, color })}
+`
 
     this.log.info(wrapped)
   }
