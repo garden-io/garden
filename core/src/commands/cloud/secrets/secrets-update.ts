@@ -11,7 +11,7 @@ import { pickBy, sortBy, uniqBy } from "lodash"
 import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params"
 import { CloudProject } from "../../../cloud/api"
 import { StringMap } from "../../../config/common"
-import { CloudApiError, CommandError, ConfigurationError } from "../../../exceptions"
+import { CloudApiError, CommandError, ConfigurationError, GardenError } from "../../../exceptions"
 import { printHeader } from "../../../logger/util"
 import { dedent, deline } from "../../../util/string"
 import { getCloudDistributionName } from "../../../util/util"
@@ -72,9 +72,6 @@ export async function getSecretsToUpdateByName<T>({
     const duplicateSecretNames = duplicateSecrets.map((s) => s.name)?.join(", ")
     throw new CommandError({
       message: `Multiple secrets with the name(s) ${duplicateSecretNames} found. Either update the secret(s) by ID or use the --scope-to-env and --scope-to-user-id flags to update the scoped secret(s).`,
-      detail: {
-        args,
-      },
     })
   }
   return tmp.map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.name] }))
@@ -159,10 +156,6 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     if (!updateById && userId !== undefined && !envName) {
       throw new CommandError({
         message: `Got user ID but not environment name. Secrets scoped to users must be scoped to environments as well.`,
-        detail: {
-          args,
-          opts,
-        },
       })
     }
 
@@ -171,12 +164,11 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       try {
         secretsToUpdateArgs = dotenv.parse(await readFile(fromFile))
       } catch (err) {
+        if (!(err instanceof GardenError)) {
+          throw err
+        }
         throw new CommandError({
           message: `Unable to read secrets from file at path ${fromFile}: ${err.message}`,
-          detail: {
-            args,
-            opts,
-          },
         })
       }
     } else if (args.secretNamesOrIds) {
@@ -186,27 +178,23 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
           Object.assign(acc, secret)
           return acc
         } catch (err) {
+          if (!(err instanceof GardenError)) {
+            throw err
+          }
           throw new CommandError({
             message: `Unable to read secret from argument ${keyValPair}: ${err.message}`,
-            detail: {
-              args,
-              opts,
-            },
           })
         }
       }, {})
     } else {
       throw new CommandError({
         message: `No secret(s) provided. Either provide secrets directly to the command or via a file using the --from-file flag.`,
-        detail: {
-          args,
-        },
       })
     }
 
     const api = garden.cloudApi
     if (!api) {
-      throw new ConfigurationError({ message: noApiMsg("update", "secrets"), detail: {} })
+      throw new ConfigurationError({ message: noApiMsg("update", "secrets") })
     }
 
     let project: CloudProject | undefined
@@ -216,7 +204,6 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     if (!project) {
       throw new CloudApiError({
         message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
-        detail: {},
       })
     }
 
@@ -226,10 +213,6 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       if (!environment) {
         throw new CloudApiError({
           message: `Environment with name ${envName} not found in project`,
-          detail: {
-            environmentName: envName,
-            availableEnvironmentNames: project.environments.map((e) => e.name),
-          },
         })
       }
       environmentId = environment.id
@@ -265,9 +248,6 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     if (secretsToUpdate.length === 0 && secretsToCreate.length === 0) {
       throw new CommandError({
         message: `No secrets to be updated or created.`,
-        detail: {
-          args,
-        },
       })
     }
 
@@ -296,9 +276,12 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
         const res = await api.put<UpdateSecretResponse>(`/secrets/${secret.id}`, { body })
         results.push(makeSecretFromResponse(res.data))
       } catch (err) {
+        if (!(err instanceof GardenError)) {
+          throw err
+        }
         errors.push({
           identifier: secret.name,
-          message: err?.response?.body?.message || err.messsage,
+          message: err.message,
         })
       }
     }
@@ -314,9 +297,12 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
           const res = await api.post<CreateSecretResponse>(`/secrets`, { body })
           results.push(makeSecretFromResponse(res.data))
         } catch (err) {
+          if (!(err instanceof GardenError)) {
+            throw err
+          }
           errors.push({
             identifier: name,
-            message: err?.response?.body?.message || err.messsage,
+            message: err.message,
           })
         }
       }
