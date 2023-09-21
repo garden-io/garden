@@ -20,6 +20,7 @@ import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getK8sIngresses } from "../status/ingress"
 import {
   getDeployedResource,
+  k8sManifestHashAnnotationKey,
   resolveResourceStatus,
   resolveResourceStatuses,
   ResourceStatus,
@@ -257,8 +258,7 @@ async function getResourceStatuses({
 
       // Check if AEC has paused the resource
       // TODO: remove this quickfix once we have implemented generic manifests/resources comparison
-      const manifestHashAnnotationKey = gardenAnnotationKey("manifest-hash")
-      const manifestHash = resource.metadata?.annotations?.[manifestHashAnnotationKey]
+      const manifestHash = resource.metadata?.annotations?.[k8sManifestHashAnnotationKey]
       if (manifestHash === "paused-by-aec") {
         return { resource, state: "outdated" } as ResourceStatus
       }
