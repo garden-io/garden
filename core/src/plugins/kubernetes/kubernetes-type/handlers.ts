@@ -253,9 +253,16 @@ async function getResourceStatuses({
           metadata: { name: m.name, namespace: m.namespace },
         }
         return { resource: missingResource, state: "missing" } as ResourceStatus
-      } else {
-        return await resolveResourceStatus({ api, namespace, resource, log })
       }
+
+      // Check if AEC has paused the resource
+      const manifestHashAnnotationKey = gardenAnnotationKey("manifest-hash")
+      const manifestHash = resource.metadata?.annotations?.[manifestHashAnnotationKey]
+      if (manifestHash === "paused-by-aec") {
+        return { resource, state: "outdated" } as ResourceStatus
+      }
+
+      return await resolveResourceStatus({ api, namespace, resource, log })
     })
   )
 }
