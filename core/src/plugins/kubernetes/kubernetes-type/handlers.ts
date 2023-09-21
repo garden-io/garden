@@ -256,6 +256,7 @@ async function getResourceStatuses({
       }
 
       // Check if AEC has paused the resource
+      // TODO: remove this quickfix once we have implemented generic manifests/resources comparison
       const manifestHashAnnotationKey = gardenAnnotationKey("manifest-hash")
       const manifestHash = resource.metadata?.annotations?.[manifestHashAnnotationKey]
       if (manifestHash === "paused-by-aec") {
