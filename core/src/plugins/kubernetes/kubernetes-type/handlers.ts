@@ -238,7 +238,7 @@ async function getResourceStatuses({
     return []
   }
 
-  const maybeDeployedResources: [ManifestMetadata, any][] = await Promise.all(
+  const maybeDeployedResources: [ManifestMetadata, KubernetesResource | null][] = await Promise.all(
     manifestMetadata.map(async (m) => {
       return [m, await api.readOrNull({ log, ...m })]
     })
